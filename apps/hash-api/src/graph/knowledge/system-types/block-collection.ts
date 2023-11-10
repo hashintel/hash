@@ -1,5 +1,5 @@
 import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   BlockDataProperties,

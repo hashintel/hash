@@ -4,7 +4,7 @@ import {
   notArchivedFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { CommentNotificationProperties } from "@local/hash-isomorphic-utils/system-types/commentnotification";
 import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";

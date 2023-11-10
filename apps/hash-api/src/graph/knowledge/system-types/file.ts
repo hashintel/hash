@@ -1,5 +1,5 @@
 import { apiOrigin } from "@local/hash-graphql-shared/environment";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   File,
   FileProperties,
@@ -67,7 +67,7 @@ const generateCommonParameters = async (
       existingEntity: null,
       entityTypeId:
         fileEntityCreationInput.entityTypeId ?? mimeType.startsWith("image/")
-          ? systemTypes.entityType.imageFile.entityTypeId
+          ? systemTypes.entityType.image.entityTypeId
           : systemTypes.entityType.file.entityTypeId,
       mimeType,
       ownedById: fileEntityCreationInput.ownedById,

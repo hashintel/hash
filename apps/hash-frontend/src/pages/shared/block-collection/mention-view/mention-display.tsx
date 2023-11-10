@@ -1,5 +1,5 @@
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   extractEntityUuidFromEntityId,
@@ -137,7 +137,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
           entity.metadata.entityTypeId ===
             systemTypes.entityType.user.entityTypeId ||
           entity.metadata.entityTypeId ===
-            systemTypes.entityType.org.entityTypeId
+            systemTypes.entityType.organization.entityTypeId
         ) {
           const shortname =
             entity.properties[

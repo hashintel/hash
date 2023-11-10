@@ -1,6 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { OrgMembershipProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountGroupId,

@@ -8,7 +8,7 @@ import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-que
 import {
   blockProtocolTypes,
   systemTypes,
-} from "@local/hash-isomorphic-utils/ontology-types";
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   EntityRootType,
   extractEntityUuidFromEntityId,

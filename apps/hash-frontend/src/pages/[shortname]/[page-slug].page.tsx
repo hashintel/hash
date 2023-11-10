@@ -12,7 +12,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
@@ -202,7 +202,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
                       { ignoreParents: true },
                     ),
                     generateVersionedUrlMatchingFilter(
-                      systemTypes.entityType.org.entityTypeId,
+                      systemTypes.entityType.organization.entityTypeId,
                       { ignoreParents: true },
                     ),
                   ],

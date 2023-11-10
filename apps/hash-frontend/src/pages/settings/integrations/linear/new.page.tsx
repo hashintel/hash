@@ -1,5 +1,5 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { EntityId } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Typography } from "@mui/material";

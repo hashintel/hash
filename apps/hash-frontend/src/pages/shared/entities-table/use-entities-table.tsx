@@ -4,7 +4,7 @@ import {
   PropertyType,
 } from "@blockprotocol/type-system";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   BaseUrl,
   Entity,

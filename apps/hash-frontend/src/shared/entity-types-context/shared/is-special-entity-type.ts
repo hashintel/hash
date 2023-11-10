@@ -1,6 +1,6 @@
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system/dist/cjs";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   EntityTypeWithMetadata,
   linkEntityTypeUrl,
@@ -34,8 +34,7 @@ export const isSpecialEntityType = (
   const parentIds = getParentIds(entityType, allEntityTypes);
 
   let isFile = entityType.$id === systemTypes.entityType.file.entityTypeId;
-  let isImage =
-    entityType.$id === systemTypes.entityType.imageFile.entityTypeId;
+  let isImage = entityType.$id === systemTypes.entityType.image.entityTypeId;
   let isLink = false;
 
   for (const id of parentIds) {
@@ -47,7 +46,7 @@ export const isSpecialEntityType = (
     }
     if (
       extractBaseUrl(id) ===
-      extractBaseUrl(systemTypes.entityType.imageFile.entityTypeId)
+      extractBaseUrl(systemTypes.entityType.image.entityTypeId)
     ) {
       isImage = true;
     }

@@ -3,7 +3,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   SimpleProperties,
   simplifyProperties,
@@ -144,7 +144,7 @@ export const createHashInstance: ImpureGraphFunction<
         systemTypes.propertyType.userSelfRegistrationIsEnabled.propertyTypeId,
       )]: params.userSelfRegistrationIsEnabled ?? true,
       [extractBaseUrl(
-        systemTypes.propertyType.userRegistrationByInviteIsEnabled
+        systemTypes.propertyType.userRegistrationByInvitationIsEnabled
           .propertyTypeId,
       )]: params.userRegistrationByInviteIsEnabled ?? true,
       [extractBaseUrl(

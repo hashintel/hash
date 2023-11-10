@@ -2,7 +2,7 @@ import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import {
   blockProtocolTypes,
   systemTypes,
-} from "@local/hash-isomorphic-utils/ontology-types";
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { CommentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { AccountGroupId, Entity, EntityId } from "@local/hash-subgraph";

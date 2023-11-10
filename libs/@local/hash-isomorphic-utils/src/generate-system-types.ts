@@ -2,15 +2,11 @@ import { codegen, CodegenParameters } from "@blockprotocol/graph/codegen";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import slugify from "slugify";
 
-import {
-  blockProtocolTypes,
-  EntityTypeDefinition,
-  linearTypes,
-  systemTypes,
-} from "./ontology-types";
+import { blockProtocolTypes, systemTypes } from "./ontology-type-ids";
+import { linearTypes } from "./ontology-types";
 
 const generateTypes = async (
-  typeMap: Record<string, EntityTypeDefinition>,
+  typeMap: Record<string, { entityTypeId: VersionedUrl }>,
   label: string,
   subFolder?: string,
 ) => {

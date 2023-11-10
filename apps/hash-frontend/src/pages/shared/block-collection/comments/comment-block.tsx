@@ -15,7 +15,7 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { EntityId } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";

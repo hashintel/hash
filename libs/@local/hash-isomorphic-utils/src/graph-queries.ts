@@ -8,12 +8,13 @@ import {
   PropertyTypeQueryToken,
   Selector,
 } from "@local/hash-graph-client";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { QueryTemporalAxesUnresolved, Timestamp } from "@local/hash-subgraph";
 import {
   componentsFromVersionedUrl,
   extractBaseUrl,
 } from "@local/hash-subgraph/type-system-patch";
+
+import { systemTypes } from "./ontology-type-ids";
 
 export const zeroedGraphResolveDepths: GraphResolveDepths = {
   inheritsFrom: { outgoing: 0 },

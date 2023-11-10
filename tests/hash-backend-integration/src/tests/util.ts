@@ -7,7 +7,7 @@ import {
 import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { createOrg } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import { createUser } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { ensureSystemTypesExist } from "@apps/hash-api/src/graph/system-types";
+import { migrateSystemTypes } from "@apps/hash-api/src/graph/migrate-system-types.js";
 import { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
 import { getRequiredEnv } from "@apps/hash-api/src/util";
 import { VersionedUrl } from "@blockprotocol/type-system";
@@ -109,7 +109,7 @@ export const createTestOrg = async (
   shortNamePrefix: string,
   logger: Logger,
 ) => {
-  await ensureSystemTypesExist({ logger, context });
+  await migrateSystemTypes({ logger, context });
 
   const shortname = generateRandomShortname(shortNamePrefix);
 

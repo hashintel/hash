@@ -4,7 +4,7 @@ import {
   Item,
   TextCell,
 } from "@glideapps/glide-data-grid";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,

@@ -1,25 +1,26 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Entity } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box } from "@mui/material";
-import { useMemo } from "react";
+import { ReactNode, useMemo } from "react";
 
 import { FileRegularIcon } from "./icons/file-regular-icon";
 import { UserIcon } from "./icons/user-icon";
 import { UsersRegularIcon } from "./icons/users-regular-icon";
 
-export const entityTypeIcons = {
+export const entityTypeIcons: Record<VersionedUrl, ReactNode> = {
   [systemTypes.entityType.user.entityTypeId]: (
     <UserIcon sx={{ fontSize: 12 }} />
   ),
-  [systemTypes.entityType.org.entityTypeId]: (
+  [systemTypes.entityType.organization.entityTypeId]: (
     <UsersRegularIcon sx={{ fontSize: 14, position: "relative", top: 1 }} />
   ),
   [systemTypes.entityType.page.entityTypeId]: (
     <FileRegularIcon sx={{ fontSize: 12 }} />
   ),
-} as const;
+};
 
 export const useEntityIcon = (params: {
   entity?: Entity;

@@ -41,7 +41,7 @@ import {
   UpdateBlockCollectionContentsMutationVariables,
   UpdateBlockCollectionContentsResultPlaceholder,
 } from "./graphql/api-types.gen";
-import { systemTypes } from "./ontology-types";
+import { systemTypes } from "./ontology-type-ids";
 import { isEntityNode } from "./prosemirror";
 import { BlockProperties, ContainsProperties } from "./system-types/shared";
 
@@ -416,7 +416,7 @@ const mapEntityToGqlBlock = (
 
   const componentId =
     entity.properties[
-      "http://localhost:3000/@system-user/types/property-type/component-id/"
+      "https://hash.ai/@hash/types/property-type/component-id/"
     ];
 
   return {

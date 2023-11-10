@@ -36,7 +36,7 @@ import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import {
   blockProtocolTypes,
   systemTypes,
-} from "@local/hash-isomorphic-utils/ontology-types";
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Entity, OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";

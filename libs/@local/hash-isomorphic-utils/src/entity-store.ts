@@ -12,7 +12,7 @@ import { Draft, produce } from "immer";
 
 import { BlockEntity } from "./entity";
 import { generateDraftIdForEntity } from "./entity-store-plugin";
-import { blockProtocolTypes } from "./ontology-types";
+import { blockProtocolTypes } from "./ontology-type-ids";
 
 export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
 

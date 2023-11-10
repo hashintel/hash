@@ -1,4 +1,4 @@
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { ImpureGraphFunction } from "../../../../context-types";
 import { Block, getBlockCollectionByBlock } from "../../../system-types/block";

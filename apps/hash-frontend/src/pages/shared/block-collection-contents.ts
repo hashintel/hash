@@ -3,7 +3,7 @@ import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-que
 import {
   blockProtocolTypes,
   systemTypes,
-} from "@local/hash-isomorphic-utils/ontology-types";
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { ContainsProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {

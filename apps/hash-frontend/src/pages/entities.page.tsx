@@ -1,6 +1,6 @@
 import { extractVersion, VersionedUrl } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isBaseUrl } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, buttonClasses, Container, Typography } from "@mui/material";

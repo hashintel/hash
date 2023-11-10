@@ -6,7 +6,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   OrgProperties,
   UserProperties,
@@ -81,7 +81,7 @@ export const useUserOrOrg = (
                   { ignoreParents: true },
                 ),
                 generateVersionedUrlMatchingFilter(
-                  systemTypes.entityType.org.entityTypeId,
+                  systemTypes.entityType.organization.entityTypeId,
                   { ignoreParents: true },
                 ),
               ],

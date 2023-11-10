@@ -1,4 +1,4 @@
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { useCallback } from "react";
 

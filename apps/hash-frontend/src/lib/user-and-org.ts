@@ -1,5 +1,5 @@
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { Image } from "@local/hash-isomorphic-utils/system-types/imagefile";
 import {
@@ -126,7 +126,8 @@ export type Org = MinimalOrg & {
 export const isEntityOrgEntity = (
   entity: Entity,
 ): entity is Entity<OrgProperties> =>
-  entity.metadata.entityTypeId === systemTypes.entityType.org.entityTypeId;
+  entity.metadata.entityTypeId ===
+  systemTypes.entityType.organization.entityTypeId;
 
 /**
  * Constructs a simplified org object from a subgraph.
@@ -248,12 +249,12 @@ export const constructOrg = (params: {
 };
 
 export type ServiceAccountKind =
-  | "linkedInAccount"
+  | "linkedinAccount"
   | "twitterAccount"
-  | "tikTokAccount"
+  | "tiktokAccount"
   | "facebookAccount"
   | "instagramAccount"
-  | "gitHubAccount";
+  | "githubAccount";
 
 export type UserServiceAccount = {
   linkEntity: LinkEntity;

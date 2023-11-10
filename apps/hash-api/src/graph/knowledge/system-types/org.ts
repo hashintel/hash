@@ -3,7 +3,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { OrgProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -53,11 +53,12 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
   entity,
 }) => {
   if (
-    entity.metadata.entityTypeId !== systemTypes.entityType.org.entityTypeId
+    entity.metadata.entityTypeId !==
+    systemTypes.entityType.organization.entityTypeId
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      systemTypes.entityType.org.entityTypeId,
+      systemTypes.entityType.organization.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
@@ -124,7 +125,8 @@ export const createOrg: ImpureGraphFunction<
   const properties: EntityPropertiesObject = {
     [extractBaseUrl(systemTypes.propertyType.shortname.propertyTypeId)]:
       shortname,
-    [extractBaseUrl(systemTypes.propertyType.orgName.propertyTypeId)]: name,
+    [extractBaseUrl(systemTypes.propertyType.organizationName.propertyTypeId)]:
+      name,
     ...(websiteUrl
       ? {
           [extractBaseUrl(systemTypes.propertyType.websiteUrl.propertyTypeId)]:
@@ -136,7 +138,7 @@ export const createOrg: ImpureGraphFunction<
   const entity = await createEntity(ctx, authentication, {
     ownedById: orgAccountGroupId as OwnedById,
     properties,
-    entityTypeId: systemTypes.entityType.org.entityTypeId,
+    entityTypeId: systemTypes.entityType.organization.entityTypeId,
     entityUuid: orgAccountGroupId as string as EntityUuid,
   });
   await modifyEntityAuthorizationRelationships(ctx, authentication, [
@@ -188,7 +190,7 @@ export const getOrgByShortname: ImpureGraphFunction<
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
-            systemTypes.entityType.org.entityTypeId,
+            systemTypes.entityType.organization.entityTypeId,
           ),
           {
             equal: [
@@ -297,7 +299,7 @@ export const updateOrgName: ImpureGraphFunction<
   const updatedEntity = await updateEntityProperty(ctx, authentication, {
     entity: org.entity,
     propertyTypeBaseUrl: extractBaseUrl(
-      systemTypes.propertyType.orgName.propertyTypeId,
+      systemTypes.propertyType.organizationName.propertyTypeId,
     ),
     value: updatedOrgName,
   });

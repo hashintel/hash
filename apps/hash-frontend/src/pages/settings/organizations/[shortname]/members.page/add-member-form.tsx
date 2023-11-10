@@ -3,7 +3,7 @@ import { extractBaseUrl } from "@blockprotocol/type-system";
 import { TextField } from "@hashintel/design-system";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   AccountEntityId,
   EntityRootType,

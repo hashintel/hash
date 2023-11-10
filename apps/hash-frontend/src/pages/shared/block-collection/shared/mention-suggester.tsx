@@ -7,7 +7,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   BaseUrl,
   Entity,
@@ -154,7 +154,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               { ignoreParents: true },
             ),
             generateVersionedUrlMatchingFilter(
-              systemTypes.entityType.org.entityTypeId,
+              systemTypes.entityType.organization.entityTypeId,
               { ignoreParents: true },
             ),
           ],
@@ -290,7 +290,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
             })
             // Sort the sections to ensure page entities and user entities are displayed first
             .sort((a, b) => {
-              const customOrder = {
+              const customOrder: Record<VersionedUrl, number> = {
                 [systemTypes.entityType.page.entityTypeId]: 0,
                 [systemTypes.entityType.user.entityTypeId]: 1,
               };

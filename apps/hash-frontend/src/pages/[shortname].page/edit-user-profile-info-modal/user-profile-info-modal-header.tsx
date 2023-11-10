@@ -5,7 +5,7 @@ import {
   IconButton,
   RotateIconRegular,
 } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { Box, buttonClasses, styled } from "@mui/material";
 import Image from "next/image";
@@ -158,7 +158,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
               }
             : {
                 fileEntityCreationInput: {
-                  entityTypeId: systemTypes.entityType.imageFile.entityTypeId,
+                  entityTypeId: systemTypes.entityType.image.entityTypeId,
                 },
               }),
         },

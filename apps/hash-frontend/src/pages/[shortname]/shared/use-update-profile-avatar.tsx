@@ -1,4 +1,4 @@
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { useCallback, useState } from "react";
 
@@ -49,7 +49,7 @@ export const useUpdateProfileAvatar = (props: {
               }
             : {
                 fileEntityCreationInput: {
-                  entityTypeId: systemTypes.entityType.imageFile.entityTypeId,
+                  entityTypeId: systemTypes.entityType.image.entityTypeId,
                 },
               }),
         },

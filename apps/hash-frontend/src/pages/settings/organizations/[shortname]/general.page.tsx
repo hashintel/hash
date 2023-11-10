@@ -1,6 +1,9 @@
 import { EntityPropertiesObject } from "@blockprotocol/graph";
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  blockProtocolTypes,
+  systemTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useRef } from "react";
@@ -43,14 +46,15 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
       // @todo this is tedious, either enable TS's exact-optional-property-types or allow 'undefined' as a value in EntityPropertiesObject
       ...(orgData.name
         ? {
-            [extractBaseUrl(systemTypes.propertyType.orgName.propertyTypeId)]:
-              orgData.name,
+            [extractBaseUrl(
+              systemTypes.propertyType.organizationName.propertyTypeId,
+            )]: orgData.name,
           }
         : {}),
       ...(orgData.description
         ? {
             [extractBaseUrl(
-              systemTypes.propertyType.description.propertyTypeId,
+              blockProtocolTypes.propertyType.description.propertyTypeId,
             )]: orgData.description,
           }
         : {}),
@@ -72,7 +76,7 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
     await updateEntity({
       data: {
         entityId: org.entity.metadata.recordId.entityId,
-        entityTypeId: systemTypes.entityType.org.entityTypeId,
+        entityTypeId: systemTypes.entityType.organization.entityTypeId,
         properties: {
           // @todo allow partial property updates, or spread the existing entity's properties here
           [extractBaseUrl(systemTypes.propertyType.shortname.propertyTypeId)]:

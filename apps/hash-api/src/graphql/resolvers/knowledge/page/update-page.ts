@@ -1,4 +1,4 @@
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { updateEntityProperties } from "../../../../graph/knowledge/primitive/entity";

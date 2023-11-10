@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import { LinearClient } from "@linear/sdk";
 import { apiOrigin } from "@local/hash-graphql-shared/environment";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   AccountId,
   Entity,

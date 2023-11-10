@@ -6,7 +6,7 @@ import {
   ComponentIdHashBlockMap,
   fetchBlock,
 } from "@local/hash-isomorphic-utils/blocks";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box } from "@mui/material";
 import { TldrawEditorConfig } from "@tldraw/editor";

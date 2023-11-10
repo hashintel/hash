@@ -26,7 +26,7 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import {
   blockProtocolTypes,
   systemTypes,
-} from "@local/hash-isomorphic-utils/ontology-types";
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
