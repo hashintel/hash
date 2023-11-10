@@ -1,5 +1,5 @@
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import { apiOrigin } from "@local/hash-graphql-shared/environment";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import {
   fullDecisionTimeAxis,
   zeroedGraphResolveDepths,

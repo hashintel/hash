@@ -1,9 +1,9 @@
 import { useMutation, useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
-import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
+import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import {
   blockProtocolTypes,
   systemTypes,

@@ -1,8 +1,8 @@
 import { useMutation } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
-import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
-import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
+import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { OwnedById } from "@local/hash-subgraph";
 import { useApp } from "@tldraw/editor";
 import { DialogProps } from "@tldraw/tldraw";

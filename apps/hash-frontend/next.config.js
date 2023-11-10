@@ -123,7 +123,6 @@ module.exports = withSentryConfig(
         "@hashintel/query-editor",
         "@local/advanced-types",
         "@local/hash-graph-client",
-        "@local/hash-graphql-shared",
         "@local/hash-isomorphic-utils",
         "@local/hash-subgraph",
         "react-syntax-highlighter",

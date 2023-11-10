@@ -4,8 +4,10 @@ import {
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
-import { apiGraphQLEndpoint } from "@local/hash-graphql-shared/environment";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import {
+  apiGraphQLEndpoint,
+  frontendUrl,
+} from "@local/hash-isomorphic-utils/environment";
 import {
   SystemTypeWebShortname,
   systemTypeWebShortnames,

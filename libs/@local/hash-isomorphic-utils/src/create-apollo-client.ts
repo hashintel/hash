@@ -13,8 +13,8 @@ import {
   RequestInit as RequestInitFromNodeFetch,
 } from "node-fetch";
 
-import { apiGraphQLEndpoint } from "../environment";
-import possibleTypes from "./fragment-types.gen.json";
+import { apiGraphQLEndpoint } from "./environment";
+import possibleTypes from "./graphql/fragment-types.gen.json";
 
 const errorLink = onError(({ graphQLErrors, operation }) => {
   if (graphQLErrors) {

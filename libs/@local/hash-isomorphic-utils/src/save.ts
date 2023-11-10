@@ -1,7 +1,7 @@
 import { ApolloClient } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
-import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
+import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
+import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/types";
 import {
   Entity,

@@ -1,9 +1,9 @@
-import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
-import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import {
   UpdateBlockCollectionContentsMutation,
   UpdateBlockCollectionContentsMutationVariables,
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
+import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
 import { EntityId } from "@local/hash-subgraph";
 import { toDomPrecision } from "@tldraw/primitives";

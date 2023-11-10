@@ -36,7 +36,6 @@
     "@lit-labs/react": "1.0.6",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
-    "@local/hash-graphql-shared": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@mui/icons-material": "5.14.11",

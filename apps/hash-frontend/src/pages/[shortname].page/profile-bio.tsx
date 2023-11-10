@@ -3,8 +3,8 @@ import { IconButton, PenRegularIcon } from "@hashintel/design-system";
 import {
   GetEntityQuery,
   GetEntityQueryVariables,
-} from "@local/hash-graphql-shared/graphql/api-types.gen";
-import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
+} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/types";
 import { EntityRootType, OwnedById } from "@local/hash-subgraph";

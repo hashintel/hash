@@ -1,16 +1,16 @@
 import { useQuery } from "@apollo/client";
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import {
-  GetEntityQuery,
-  GetEntityQueryVariables,
-} from "@local/hash-graphql-shared/graphql/api-types.gen";
-import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  GetEntityQuery,
+  GetEntityQueryVariables,
+} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";

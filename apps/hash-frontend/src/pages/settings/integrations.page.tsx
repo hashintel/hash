@@ -1,4 +1,4 @@
-import { apiOrigin } from "@local/hash-graphql-shared/environment";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { Box, Container, Paper, Typography } from "@mui/material";
 import { FunctionComponent, useContext } from "react";
 
