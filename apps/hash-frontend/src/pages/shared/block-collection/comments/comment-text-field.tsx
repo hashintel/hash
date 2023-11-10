@@ -243,7 +243,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
           overflow: "hidden",
           flexGrow: 1,
           fontSize: 14,
-          lineHeight: "150%",
+          lineHeight: 1.7,
           color: palette.gray[90],
         })}
       />
