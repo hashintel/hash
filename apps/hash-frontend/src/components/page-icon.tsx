@@ -1,7 +1,5 @@
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { Box, BoxProps } from "@mui/material";
 
 import { CanvasIcon } from "../shared/icons/canvas-icon";

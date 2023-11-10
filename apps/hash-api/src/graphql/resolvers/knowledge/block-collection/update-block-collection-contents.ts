@@ -1,5 +1,5 @@
 import { Entity } from "@local/hash-subgraph";
-import { ApolloError, UserInputError } from "apollo-server-errors";
+import { UserInputError } from "apollo-server-errors";
 
 import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
 import {

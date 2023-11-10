@@ -12,7 +12,6 @@ import {
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
 import { ConstructEntityTypeParams } from "@local/hash-graphql-shared/graphql/types";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,

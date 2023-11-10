@@ -91,10 +91,8 @@ export const getEntityTypeAndDescendantsById = (
     throw new Error(`Entity type ${entityTypeId} not found in subgraph`);
   }
 
-  const descendants = getEntityTypes(subgraph).filter((entityType) =>
-    (entityType.schema.allOf ?? []).some(
-      (parent) => parent.$ref === entityTypeId,
-    ),
+  const descendants = getEntityTypes(subgraph).filter((type) =>
+    (type.schema.allOf ?? []).some((parent) => parent.$ref === entityTypeId),
   );
 
   // Return the entity type, followed by its ancestors
