@@ -12,9 +12,9 @@ export const scalars = {
   TextToken: "@local/hash-graphql-shared/graphql/types#TextToken",
 
   HasIndexedContentProperties:
-    "@local/hash-graphql-shared/graphql/types#HasIndexedContentProperties",
+    "@local/hash-isomorphic-utils/system-types/shared#HasIndexedContentProperties",
   HasSpatiallyPositionedContentProperties:
-    "@local/hash-graphql-shared/graphql/types#HasSpatiallyPositionedContentProperties",
+    "@local/hash-isomorphic-utils/system-types/canvas#HasSpatiallyPositionedContentProperties",
 
   DataTypeWithMetadata: "@local/hash-subgraph#DataTypeWithMetadata",
   ConstructDataTypeParams:

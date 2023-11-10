@@ -1,9 +1,6 @@
 import { ApolloClient } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system";
-import {
-  HasIndexedContentProperties,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-} from "@local/hash-graphql-shared/graphql/types";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import {
@@ -50,7 +47,10 @@ import {
 } from "./graphql/api-types.gen";
 import { systemTypes } from "./ontology-types";
 import { isEntityNode } from "./prosemirror";
-import { BlockProperties } from "./system-types/shared";
+import {
+  BlockProperties,
+  HasIndexedContentProperties,
+} from "./system-types/shared";
 
 const generatePlaceholderId = () => `placeholder-${uuid()}`;
 

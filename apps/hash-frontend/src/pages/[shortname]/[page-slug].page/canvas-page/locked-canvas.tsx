@@ -1,4 +1,4 @@
-import { HasSpatiallyPositionedContentProperties } from "@local/hash-graphql-shared/graphql/types";
+import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
 import { Matrix2d, toDomPrecision } from "@tldraw/primitives";
 
 import { BlockLoader } from "../../../../components/block-loader/block-loader";

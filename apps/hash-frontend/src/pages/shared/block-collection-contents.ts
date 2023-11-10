@@ -1,15 +1,15 @@
-import {
-  HasIndexedContentProperties,
-  HasSpatiallyPositionedContentProperties,
-  TextToken,
-} from "@local/hash-graphql-shared/graphql/types";
+import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolTypes,
   systemTypes,
 } from "@local/hash-isomorphic-utils/ontology-types";
-import { BlockProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
+import {
+  BlockProperties,
+  HasIndexedContentProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
   EntityId,
