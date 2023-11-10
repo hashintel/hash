@@ -23,6 +23,10 @@ export const systemTypes = {
       entityTypeId:
         "https://hash.ai/@hash/types/entity-type/github-account/v/1",
     },
+    hasServiceAccount: {
+      entityTypeId:
+        "https://hash.ai/@hash/types/entity-type/has-service-account/v/1",
+    },
     hashInstance: {
       entityTypeId: "https://hash.ai/@hash/types/entity-type/hash-instance/v/1",
     },
@@ -48,17 +52,15 @@ export const systemTypes = {
     notification: {
       entityTypeId: "https://hash.ai/@hash/types/entity-type/notification/v/1",
     },
-    org: { entityTypeId: "https://hash.ai/@hash/types/entity-type/org/v/1" },
+    organization: {
+      entityTypeId: "https://hash.ai/@hash/types/entity-type/organization/v/1",
+    },
     page: { entityTypeId: "https://hash.ai/@hash/types/entity-type/page/v/1" },
     profileBio: {
       entityTypeId: "https://hash.ai/@hash/types/entity-type/profile-bio/v/1",
     },
     quickNote: {
       entityTypeId: "https://hash.ai/@hash/types/entity-type/quick-note/v/1",
-    },
-    serviceAccount: {
-      entityTypeId:
-        "https://hash.ai/@hash/types/entity-type/service-account/v/1",
     },
     text: { entityTypeId: "https://hash.ai/@hash/types/entity-type/text/v/1" },
     tiktokAccount: {
@@ -75,12 +77,9 @@ export const systemTypes = {
     },
   },
   linkEntityType: {
-    author: {
-      linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/author/v/1",
-    },
-    blockData: {
+    authoredBy: {
       linkEntityTypeId:
-        "https://hash.ai/@hash/types/entity-type/block-data/v/1",
+        "https://hash.ai/@hash/types/entity-type/authored-by/v/1",
     },
     contains: {
       linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/contains/v/1",
@@ -96,12 +95,19 @@ export const systemTypes = {
       linkEntityTypeId:
         "https://hash.ai/@hash/types/entity-type/has-cover-image/v/1",
     },
-    hasServiceAccount: {
+    hasData: {
+      linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/has-data/v/1",
+    },
+    hasParent: {
       linkEntityTypeId:
-        "https://hash.ai/@hash/types/entity-type/has-service-account/v/1",
+        "https://hash.ai/@hash/types/entity-type/has-parent/v/1",
     },
     hasText: {
       linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/has-text/v/1",
+    },
+    isMemberOf: {
+      linkEntityTypeId:
+        "https://hash.ai/@hash/types/entity-type/is-member-of/v/1",
     },
     occurredInBlock: {
       linkEntityTypeId:
@@ -118,13 +124,6 @@ export const systemTypes = {
     occurredInText: {
       linkEntityTypeId:
         "https://hash.ai/@hash/types/entity-type/occurred-in-text/v/1",
-    },
-    orgMembership: {
-      linkEntityTypeId:
-        "https://hash.ai/@hash/types/entity-type/org-membership/v/1",
-    },
-    parent: {
-      linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/parent/v/1",
     },
     repliedToComment: {
       linkEntityTypeId:
@@ -228,14 +227,6 @@ export const systemTypes = {
       propertyTypeId:
         "https://hash.ai/@hash/types/property-type/organization-name/v/1",
     },
-    organizationProvidedInformation: {
-      propertyTypeId:
-        "https://hash.ai/@hash/types/property-type/organization-provided-information/v/1",
-    },
-    organizationSize: {
-      propertyTypeId:
-        "https://hash.ai/@hash/types/property-type/organization-size/v/1",
-    },
     pagesAreEnabled: {
       propertyTypeId:
         "https://hash.ai/@hash/types/property-type/pages-are-enabled/v/1",
@@ -284,8 +275,9 @@ export const systemTypes = {
       propertyTypeId:
         "https://hash.ai/@hash/types/property-type/vault-path/v/1",
     },
-    website: {
-      propertyTypeId: "https://hash.ai/@hash/types/property-type/website/v/1",
+    websiteUrl: {
+      propertyTypeId:
+        "https://hash.ai/@hash/types/property-type/website-url/v/1",
     },
   },
 } as const;
