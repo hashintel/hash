@@ -10,6 +10,9 @@ import {
 } from "./migrate-ontology-types/types";
 import { systemAccountId } from "./system-account";
 
+/**
+ * Migrate the ontology types in the Graph API.
+ */
 export const migrateOntologyTypes = async (params: {
   logger: Logger;
   context: ImpureGraphContext;
@@ -21,9 +24,9 @@ export const migrateOntologyTypes = async (params: {
     "migrate-ontology-types/migrations",
   );
 
-  const migrationFileNames = await readdir(migrationDirectory);
-
-  const sortedMigrationFileNames = migrationFileNames.sort();
+  const migrationFileNames = (await readdir(migrationDirectory))
+    .filter((fileName) => fileName.endsWith(".migration.ts"))
+    .sort();
 
   let migrationState: MigrationState = {
     propertyTypeVersions: {},
@@ -31,12 +34,13 @@ export const migrateOntologyTypes = async (params: {
     dataTypeVersions: {},
   };
 
-  for (const migrationFileName of sortedMigrationFileNames) {
+  for (const migrationFileName of migrationFileNames) {
     if (migrationFileName.endsWith(".migration.ts")) {
       const filePath = path.join(migrationDirectory, migrationFileName);
 
       const module = await import(filePath);
 
+      // Expect the default export of a migration file to be of type `MigrationFunction`
       const migrationFunction = module.default as MigrationFunction;
 
       /** @todo: consider persisting which migration files have been run */
