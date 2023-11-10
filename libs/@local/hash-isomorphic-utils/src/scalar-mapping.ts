@@ -7,26 +7,20 @@ export const scalars = {
   QueryOperationInput: "@blockprotocol/graph#QueryOperationInput",
   VersionedUrl: "@blockprotocol/type-system#VersionedUrl",
 
-  UnknownEntityProperties:
-    "@local/hash-isomorphic-utils/types#UnknownEntityProperties",
-  TextToken: "@local/hash-isomorphic-utils/types#TextToken",
+  UnknownEntityProperties: "@blockprotocol/core#JsonObject",
+  TextToken: "@blockprotocol/core#JsonObject",
 
-  HasIndexedContentProperties:
-    "@local/hash-isomorphic-utils/system-types/shared#HasIndexedContentProperties",
-  HasSpatiallyPositionedContentProperties:
-    "@local/hash-isomorphic-utils/system-types/canvas#HasSpatiallyPositionedContentProperties",
+  HasIndexedContentProperties: "@blockprotocol/core#JsonObject",
+  HasSpatiallyPositionedContentProperties: "@blockprotocol/core#JsonObject",
 
   DataTypeWithMetadata: "@local/hash-subgraph#DataTypeWithMetadata",
-  ConstructDataTypeParams:
-    "@local/hash-isomorphic-utils/types#ConstructDataTypeParams",
+  ConstructDataTypeParams: "@blockprotocol/core#JsonObject",
 
   EntityTypeWithMetadata: "@local/hash-subgraph#EntityTypeWithMetadata",
-  ConstructEntityTypeParams:
-    "@local/hash-isomorphic-utils/types#ConstructEntityTypeParams",
+  ConstructEntityTypeParams: "@blockprotocol/core#JsonObject",
 
   PropertyTypeWithMetadata: "@local/hash-subgraph#PropertyTypeWithMetadata",
-  ConstructPropertyTypeParams:
-    "@local/hash-isomorphic-utils/types#ConstructPropertyTypeParams",
+  ConstructPropertyTypeParams: "@blockprotocol/core#JsonObject",
 
   Entity: "@local/hash-subgraph#Entity",
   EntityRecordId: "@local/hash-subgraph#EntityRecordId",
@@ -36,9 +30,8 @@ export const scalars = {
     "@local/hash-subgraph#EntityTemporalVersioningMetadata",
   EntityPropertiesObject: "@local/hash-subgraph#EntityPropertiesObject",
 
-  UserPermissionsOnEntities:
-    "@local/hash-isomorphic-utils/types#UserPermissionsOnEntities",
-  UserPermissions: "@local/hash-isomorphic-utils/types#UserPermissions",
+  UserPermissionsOnEntities: "@blockprotocol/core#JsonObject",
+  UserPermissions: "@blockprotocol/core#JsonObject",
 
   GraphElementVertexId: "@local/hash-subgraph#GraphElementVertexId",
   Edges: "@local/hash-subgraph#Edges",
