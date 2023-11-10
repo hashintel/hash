@@ -7,10 +7,10 @@ import { ImpureGraphContext } from "./context-types";
 import {
   MigrationFunction,
   MigrationState,
-} from "./migrate-system-types/types";
+} from "./migrate-ontology-types/types";
 import { systemAccountId } from "./system-account";
 
-export const migrateSystemTypes = async (params: {
+export const migrateOntologyTypes = async (params: {
   logger: Logger;
   context: ImpureGraphContext;
 }) => {
@@ -18,7 +18,7 @@ export const migrateSystemTypes = async (params: {
 
   const migrationDirectory = path.join(
     __dirname,
-    "migrate-system-types/migrations",
+    "migrate-ontology-types/migrations",
   );
 
   const migrationFileNames = await readdir(migrationDirectory);
