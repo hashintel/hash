@@ -49,14 +49,16 @@ const knowledge = [
   fileTypedef,
 ];
 
-// This needs to be called 'schema' to be picked up by codegen -
-// It could alternatively be a default export.
-export const schema = [
+const schema = [
   baseSchema,
-  // blockprotocolTypedef,
-  // embedTypeDef,
-  // ...ontology,
-  // ...knowledge,
-  // linearTypedef,
-  // subgraphTypedef,
+  blockprotocolTypedef,
+  embedTypeDef,
+  ...ontology,
+  ...knowledge,
+  linearTypedef,
+  subgraphTypedef,
 ];
+
+// This needs to be a default export to be picked up by codegen -
+// It could alternatively be a const called 'schema'
+export default schema;
