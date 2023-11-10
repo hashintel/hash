@@ -6,31 +6,27 @@ import { Entity, LinkData } from "@blockprotocol/graph";
 
 import {
   ArchivedPropertyValue,
-  Author,
-  AuthorOutgoingLinkAndTarget,
-  AuthorOutgoingLinksByLinkEntityTypeId,
-  AuthorProperties,
+  AuthoredBy,
+  AuthoredByOutgoingLinkAndTarget,
+  AuthoredByOutgoingLinksByLinkEntityTypeId,
+  AuthoredByProperties,
   Block,
-  BlockBlockDataLink,
   BlockCollection,
   BlockCollectionContainsLink,
   BlockCollectionOutgoingLinkAndTarget,
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
-  BlockData,
-  BlockDataOutgoingLinkAndTarget,
-  BlockDataOutgoingLinksByLinkEntityTypeId,
-  BlockDataProperties,
+  BlockHasDataLink,
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
   BooleanDataType,
   Comment,
-  CommentAuthorLink,
+  CommentAuthoredByLink,
+  CommentHasParentLink,
   CommentHasTextLink,
   CommentOutgoingLinkAndTarget,
   CommentOutgoingLinksByLinkEntityTypeId,
-  CommentParentLink,
   CommentProperties,
   ComponentIdPropertyValue,
   Contains,
@@ -68,6 +64,14 @@ import {
   HasCoverImageOutgoingLinkAndTarget,
   HasCoverImageOutgoingLinksByLinkEntityTypeId,
   HasCoverImageProperties,
+  HasData,
+  HasDataOutgoingLinkAndTarget,
+  HasDataOutgoingLinksByLinkEntityTypeId,
+  HasDataProperties,
+  HasParent,
+  HasParentOutgoingLinkAndTarget,
+  HasParentOutgoingLinksByLinkEntityTypeId,
+  HasParentProperties,
   HasServiceAccount,
   HasServiceAccountOutgoingLinkAndTarget,
   HasServiceAccountOutgoingLinksByLinkEntityTypeId,
@@ -81,6 +85,10 @@ import {
   ImageOutgoingLinkAndTarget,
   ImageOutgoingLinksByLinkEntityTypeId,
   ImageProperties,
+  IsMemberOf,
+  IsMemberOfOutgoingLinkAndTarget,
+  IsMemberOfOutgoingLinksByLinkEntityTypeId,
+  IsMemberOfProperties,
   KratosIdentityIdPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
@@ -103,32 +111,22 @@ import {
   OccurredInEntityOutgoingLinkAndTarget,
   OccurredInEntityOutgoingLinksByLinkEntityTypeId,
   OccurredInEntityProperties,
-  Org,
+  Organization,
+  OrganizationHasAvatarLink,
+  OrganizationHasBioLink,
+  OrganizationHasCoverImageLink,
   OrganizationNamePropertyValue,
-  OrganizationProvidedInformationPropertyValue,
-  OrganizationSizePropertyValue,
-  OrgHasAvatarLink,
-  OrgHasBioLink,
-  OrgHasCoverImageLink,
-  OrgMembership,
-  OrgMembershipOutgoingLinkAndTarget,
-  OrgMembershipOutgoingLinksByLinkEntityTypeId,
-  OrgMembershipProperties,
-  OrgOutgoingLinkAndTarget,
-  OrgOutgoingLinksByLinkEntityTypeId,
-  OrgProperties,
+  OrganizationOutgoingLinkAndTarget,
+  OrganizationOutgoingLinksByLinkEntityTypeId,
+  OrganizationProperties,
   OriginalFileNamePropertyValue,
   OriginalSourcePropertyValue,
   OriginalURLPropertyValue,
   Page,
+  PageHasParentLink,
   PageOutgoingLinkAndTarget,
   PageOutgoingLinksByLinkEntityTypeId,
-  PageParentLink,
   PageProperties,
-  Parent,
-  ParentOutgoingLinkAndTarget,
-  ParentOutgoingLinksByLinkEntityTypeId,
-  ParentProperties,
   PinnedEntityTypeBaseURLPropertyValue,
   PreferredNamePropertyValue,
   PreferredPronounsPropertyValue,
@@ -160,40 +158,36 @@ import {
   UserHasAvatarLink,
   UserHasBioLink,
   UserHasServiceAccountLink,
-  UserOrgMembershipLink,
+  UserIsMemberOfLink,
   UserOutgoingLinkAndTarget,
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
-  WebsitePropertyValue,
+  WebsiteURLPropertyValue,
 } from "./shared";
 
 export type {
   ArchivedPropertyValue,
-  Author,
-  AuthorOutgoingLinkAndTarget,
-  AuthorOutgoingLinksByLinkEntityTypeId,
-  AuthorProperties,
+  AuthoredBy,
+  AuthoredByOutgoingLinkAndTarget,
+  AuthoredByOutgoingLinksByLinkEntityTypeId,
+  AuthoredByProperties,
   Block,
-  BlockBlockDataLink,
   BlockCollection,
   BlockCollectionContainsLink,
   BlockCollectionOutgoingLinkAndTarget,
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
-  BlockData,
-  BlockDataOutgoingLinkAndTarget,
-  BlockDataOutgoingLinksByLinkEntityTypeId,
-  BlockDataProperties,
+  BlockHasDataLink,
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
   BooleanDataType,
   Comment,
-  CommentAuthorLink,
+  CommentAuthoredByLink,
+  CommentHasParentLink,
   CommentHasTextLink,
   CommentOutgoingLinkAndTarget,
   CommentOutgoingLinksByLinkEntityTypeId,
-  CommentParentLink,
   CommentProperties,
   ComponentIdPropertyValue,
   Contains,
@@ -231,6 +225,14 @@ export type {
   HasCoverImageOutgoingLinkAndTarget,
   HasCoverImageOutgoingLinksByLinkEntityTypeId,
   HasCoverImageProperties,
+  HasData,
+  HasDataOutgoingLinkAndTarget,
+  HasDataOutgoingLinksByLinkEntityTypeId,
+  HasDataProperties,
+  HasParent,
+  HasParentOutgoingLinkAndTarget,
+  HasParentOutgoingLinksByLinkEntityTypeId,
+  HasParentProperties,
   HasServiceAccount,
   HasServiceAccountOutgoingLinkAndTarget,
   HasServiceAccountOutgoingLinksByLinkEntityTypeId,
@@ -244,6 +246,10 @@ export type {
   ImageOutgoingLinkAndTarget,
   ImageOutgoingLinksByLinkEntityTypeId,
   ImageProperties,
+  IsMemberOf,
+  IsMemberOfOutgoingLinkAndTarget,
+  IsMemberOfOutgoingLinksByLinkEntityTypeId,
+  IsMemberOfProperties,
   KratosIdentityIdPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
@@ -266,32 +272,22 @@ export type {
   OccurredInEntityOutgoingLinkAndTarget,
   OccurredInEntityOutgoingLinksByLinkEntityTypeId,
   OccurredInEntityProperties,
-  Org,
+  Organization,
+  OrganizationHasAvatarLink,
+  OrganizationHasBioLink,
+  OrganizationHasCoverImageLink,
   OrganizationNamePropertyValue,
-  OrganizationProvidedInformationPropertyValue,
-  OrganizationSizePropertyValue,
-  OrgHasAvatarLink,
-  OrgHasBioLink,
-  OrgHasCoverImageLink,
-  OrgMembership,
-  OrgMembershipOutgoingLinkAndTarget,
-  OrgMembershipOutgoingLinksByLinkEntityTypeId,
-  OrgMembershipProperties,
-  OrgOutgoingLinkAndTarget,
-  OrgOutgoingLinksByLinkEntityTypeId,
-  OrgProperties,
+  OrganizationOutgoingLinkAndTarget,
+  OrganizationOutgoingLinksByLinkEntityTypeId,
+  OrganizationProperties,
   OriginalFileNamePropertyValue,
   OriginalSourcePropertyValue,
   OriginalURLPropertyValue,
   Page,
+  PageHasParentLink,
   PageOutgoingLinkAndTarget,
   PageOutgoingLinksByLinkEntityTypeId,
-  PageParentLink,
   PageProperties,
-  Parent,
-  ParentOutgoingLinkAndTarget,
-  ParentOutgoingLinksByLinkEntityTypeId,
-  ParentProperties,
   PinnedEntityTypeBaseURLPropertyValue,
   PreferredNamePropertyValue,
   PreferredPronounsPropertyValue,
@@ -323,11 +319,11 @@ export type {
   UserHasAvatarLink,
   UserHasBioLink,
   UserHasServiceAccountLink,
-  UserOrgMembershipLink,
+  UserIsMemberOfLink,
   UserOutgoingLinkAndTarget,
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
-  WebsitePropertyValue,
+  WebsiteURLPropertyValue,
 };
 
 export type CommentNotification = Entity<CommentNotificationProperties>;
@@ -346,15 +342,20 @@ export type CommentNotificationOutgoingLinkAndTarget =
   | CommentNotificationOccurredInBlockLink
   | CommentNotificationOccurredInEntityLink
   | CommentNotificationRepliedToCommentLink
+  | CommentNotificationTriggeredByCommentLink
   | CommentNotificationTriggeredByUserLink;
 
 export type CommentNotificationOutgoingLinksByLinkEntityTypeId = {
   "https://hash.ai/@hash/types/entity-type/occurred-in-block/v/1": CommentNotificationOccurredInBlockLink;
   "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/1": CommentNotificationOccurredInEntityLink;
   "https://hash.ai/@hash/types/entity-type/replied-to-comment/v/1": CommentNotificationRepliedToCommentLink;
+  "https://hash.ai/@hash/types/entity-type/triggered-by-comment/v/1": CommentNotificationTriggeredByCommentLink;
   "https://hash.ai/@hash/types/entity-type/triggered-by-user/v/1": CommentNotificationTriggeredByUserLink;
 };
 
+/**
+ * A notification related to a comment.
+ */
 export type CommentNotificationProperties = CommentNotificationProperties1 &
   CommentNotificationProperties2;
 export type CommentNotificationProperties1 = NotificationProperties;
@@ -363,6 +364,11 @@ export type CommentNotificationProperties2 = {};
 
 export type CommentNotificationRepliedToCommentLink = {
   linkEntity: RepliedToComment;
+  rightEntity: Comment;
+};
+
+export type CommentNotificationTriggeredByCommentLink = {
+  linkEntity: TriggeredByComment;
   rightEntity: Comment;
 };
 
@@ -380,10 +386,27 @@ export type RepliedToCommentOutgoingLinkAndTarget = never;
 export type RepliedToCommentOutgoingLinksByLinkEntityTypeId = {};
 
 /**
- * A comment that was replied to.
+ * The comment that something replied to.
  */
 export type RepliedToCommentProperties = RepliedToCommentProperties1 &
   RepliedToCommentProperties2;
 export type RepliedToCommentProperties1 = LinkProperties;
 
 export type RepliedToCommentProperties2 = {};
+
+export type TriggeredByComment = Entity<TriggeredByCommentProperties> & {
+  linkData: LinkData;
+};
+
+export type TriggeredByCommentOutgoingLinkAndTarget = never;
+
+export type TriggeredByCommentOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A comment that triggered something.
+ */
+export type TriggeredByCommentProperties = TriggeredByCommentProperties1 &
+  TriggeredByCommentProperties2;
+export type TriggeredByCommentProperties1 = LinkProperties;
+
+export type TriggeredByCommentProperties2 = {};

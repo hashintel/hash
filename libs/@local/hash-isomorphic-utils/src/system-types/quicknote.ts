@@ -7,16 +7,12 @@ import { Entity } from "@blockprotocol/graph";
 import {
   ArchivedPropertyValue,
   Block,
-  BlockBlockDataLink,
   BlockCollection,
   BlockCollectionContainsLink,
   BlockCollectionOutgoingLinkAndTarget,
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
-  BlockData,
-  BlockDataOutgoingLinkAndTarget,
-  BlockDataOutgoingLinksByLinkEntityTypeId,
-  BlockDataProperties,
+  BlockHasDataLink,
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
@@ -26,6 +22,10 @@ import {
   ContainsOutgoingLinkAndTarget,
   ContainsOutgoingLinksByLinkEntityTypeId,
   ContainsProperties,
+  HasData,
+  HasDataOutgoingLinkAndTarget,
+  HasDataOutgoingLinksByLinkEntityTypeId,
+  HasDataProperties,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
@@ -38,16 +38,12 @@ import {
 export type {
   ArchivedPropertyValue,
   Block,
-  BlockBlockDataLink,
   BlockCollection,
   BlockCollectionContainsLink,
   BlockCollectionOutgoingLinkAndTarget,
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
-  BlockData,
-  BlockDataOutgoingLinkAndTarget,
-  BlockDataOutgoingLinksByLinkEntityTypeId,
-  BlockDataProperties,
+  BlockHasDataLink,
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
@@ -57,6 +53,10 @@ export type {
   ContainsOutgoingLinkAndTarget,
   ContainsOutgoingLinksByLinkEntityTypeId,
   ContainsProperties,
+  HasData,
+  HasDataOutgoingLinkAndTarget,
+  HasDataOutgoingLinksByLinkEntityTypeId,
+  HasDataProperties,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
@@ -72,6 +72,9 @@ export type QuickNoteOutgoingLinkAndTarget = never;
 
 export type QuickNoteOutgoingLinksByLinkEntityTypeId = {};
 
+/**
+ * A (usually) quick or short note.
+ */
 export type QuickNoteProperties = QuickNoteProperties1 & QuickNoteProperties2;
 export type QuickNoteProperties1 = BlockCollectionProperties;
 

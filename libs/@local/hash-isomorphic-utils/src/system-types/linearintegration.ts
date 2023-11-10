@@ -6,16 +6,12 @@ import { Entity, LinkData } from "@blockprotocol/graph";
 
 import {
   Block,
-  BlockBlockDataLink,
   BlockCollection,
   BlockCollectionContainsLink,
   BlockCollectionOutgoingLinkAndTarget,
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
-  BlockData,
-  BlockDataOutgoingLinkAndTarget,
-  BlockDataOutgoingLinksByLinkEntityTypeId,
-  BlockDataProperties,
+  BlockHasDataLink,
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
@@ -56,6 +52,10 @@ import {
   HasCoverImageOutgoingLinkAndTarget,
   HasCoverImageOutgoingLinksByLinkEntityTypeId,
   HasCoverImageProperties,
+  HasData,
+  HasDataOutgoingLinkAndTarget,
+  HasDataOutgoingLinksByLinkEntityTypeId,
+  HasDataProperties,
   HasServiceAccount,
   HasServiceAccountOutgoingLinkAndTarget,
   HasServiceAccountOutgoingLinksByLinkEntityTypeId,
@@ -64,6 +64,10 @@ import {
   ImageOutgoingLinkAndTarget,
   ImageOutgoingLinksByLinkEntityTypeId,
   ImageProperties,
+  IsMemberOf,
+  IsMemberOfOutgoingLinkAndTarget,
+  IsMemberOfOutgoingLinksByLinkEntityTypeId,
+  IsMemberOfProperties,
   KratosIdentityIdPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
@@ -73,20 +77,14 @@ import {
   MIMETypePropertyValue,
   NumberDataType,
   NumericIndexPropertyValue,
-  Org,
+  Organization,
+  OrganizationHasAvatarLink,
+  OrganizationHasBioLink,
+  OrganizationHasCoverImageLink,
   OrganizationNamePropertyValue,
-  OrganizationProvidedInformationPropertyValue,
-  OrganizationSizePropertyValue,
-  OrgHasAvatarLink,
-  OrgHasBioLink,
-  OrgHasCoverImageLink,
-  OrgMembership,
-  OrgMembershipOutgoingLinkAndTarget,
-  OrgMembershipOutgoingLinksByLinkEntityTypeId,
-  OrgMembershipProperties,
-  OrgOutgoingLinkAndTarget,
-  OrgOutgoingLinksByLinkEntityTypeId,
-  OrgProperties,
+  OrganizationOutgoingLinkAndTarget,
+  OrganizationOutgoingLinksByLinkEntityTypeId,
+  OrganizationProperties,
   OriginalFileNamePropertyValue,
   OriginalSourcePropertyValue,
   OriginalURLPropertyValue,
@@ -108,7 +106,7 @@ import {
   UserHasAvatarLink,
   UserHasBioLink,
   UserHasServiceAccountLink,
-  UserOrgMembershipLink,
+  UserIsMemberOfLink,
   UserOutgoingLinkAndTarget,
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
@@ -117,21 +115,17 @@ import {
   UserSecretOutgoingLinksByLinkEntityTypeId,
   UserSecretProperties,
   VaultPathPropertyValue,
-  WebsitePropertyValue,
+  WebsiteURLPropertyValue,
 } from "./shared";
 
 export type {
   Block,
-  BlockBlockDataLink,
   BlockCollection,
   BlockCollectionContainsLink,
   BlockCollectionOutgoingLinkAndTarget,
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
-  BlockData,
-  BlockDataOutgoingLinkAndTarget,
-  BlockDataOutgoingLinksByLinkEntityTypeId,
-  BlockDataProperties,
+  BlockHasDataLink,
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
@@ -172,6 +166,10 @@ export type {
   HasCoverImageOutgoingLinkAndTarget,
   HasCoverImageOutgoingLinksByLinkEntityTypeId,
   HasCoverImageProperties,
+  HasData,
+  HasDataOutgoingLinkAndTarget,
+  HasDataOutgoingLinksByLinkEntityTypeId,
+  HasDataProperties,
   HasServiceAccount,
   HasServiceAccountOutgoingLinkAndTarget,
   HasServiceAccountOutgoingLinksByLinkEntityTypeId,
@@ -180,6 +178,10 @@ export type {
   ImageOutgoingLinkAndTarget,
   ImageOutgoingLinksByLinkEntityTypeId,
   ImageProperties,
+  IsMemberOf,
+  IsMemberOfOutgoingLinkAndTarget,
+  IsMemberOfOutgoingLinksByLinkEntityTypeId,
+  IsMemberOfProperties,
   KratosIdentityIdPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
@@ -189,20 +191,14 @@ export type {
   MIMETypePropertyValue,
   NumberDataType,
   NumericIndexPropertyValue,
-  Org,
+  Organization,
+  OrganizationHasAvatarLink,
+  OrganizationHasBioLink,
+  OrganizationHasCoverImageLink,
   OrganizationNamePropertyValue,
-  OrganizationProvidedInformationPropertyValue,
-  OrganizationSizePropertyValue,
-  OrgHasAvatarLink,
-  OrgHasBioLink,
-  OrgHasCoverImageLink,
-  OrgMembership,
-  OrgMembershipOutgoingLinkAndTarget,
-  OrgMembershipOutgoingLinksByLinkEntityTypeId,
-  OrgMembershipProperties,
-  OrgOutgoingLinkAndTarget,
-  OrgOutgoingLinksByLinkEntityTypeId,
-  OrgProperties,
+  OrganizationOutgoingLinkAndTarget,
+  OrganizationOutgoingLinksByLinkEntityTypeId,
+  OrganizationProperties,
   OriginalFileNamePropertyValue,
   OriginalSourcePropertyValue,
   OriginalURLPropertyValue,
@@ -224,7 +220,7 @@ export type {
   UserHasAvatarLink,
   UserHasBioLink,
   UserHasServiceAccountLink,
-  UserOrgMembershipLink,
+  UserIsMemberOfLink,
   UserOutgoingLinkAndTarget,
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
@@ -233,7 +229,7 @@ export type {
   UserSecretOutgoingLinksByLinkEntityTypeId,
   UserSecretProperties,
   VaultPathPropertyValue,
-  WebsitePropertyValue,
+  WebsiteURLPropertyValue,
 };
 
 export type LinearIntegration = Entity<LinearIntegrationProperties>;
@@ -256,7 +252,7 @@ export type LinearIntegrationProperties = {
 
 export type LinearIntegrationSyncLinearDataWithLink = {
   linkEntity: SyncLinearDataWith;
-  rightEntity: User | Org;
+  rightEntity: User | Organization;
 };
 
 export type LinearIntegrationUsesUserSecretLink = {
@@ -302,7 +298,7 @@ export type UsesUserSecretOutgoingLinkAndTarget = never;
 export type UsesUserSecretOutgoingLinksByLinkEntityTypeId = {};
 
 /**
- * Something that uses a user secret.
+ * The user secret something uses.
  */
 export type UsesUserSecretProperties = UsesUserSecretProperties1 &
   UsesUserSecretProperties2;
