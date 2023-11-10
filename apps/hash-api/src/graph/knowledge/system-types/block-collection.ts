@@ -5,11 +5,7 @@ import {
   HasDataProperties,
   HasIndexedContentProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  Entity,
-  EntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
+import { EntityId, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 import { PositionInput } from "../../../graphql/api-types.gen";
@@ -80,14 +76,14 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
  */
 export const addBlockToBlockCollection: ImpureGraphFunction<
   {
-    blockCollectionEntity: Entity;
+    blockCollectionEntityId: EntityId;
     block: Block;
     position: PositionInput;
   },
   Promise<void>
 > = async (ctx, authentication, params) => {
   const {
-    blockCollectionEntity,
+    blockCollectionEntityId,
     block,
     position: { canvasPosition, indexPosition },
   } = params;
@@ -97,15 +93,13 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
   }
 
   await createLinkEntity(ctx, authentication, {
-    leftEntityId: blockCollectionEntity.metadata.recordId.entityId,
+    leftEntityId: blockCollectionEntityId,
     rightEntityId: block.entity.metadata.recordId.entityId,
     linkEntityType: canvasPosition
       ? SYSTEM_TYPES.linkEntityType.hasSpatiallyPositionedContent
       : SYSTEM_TYPES.linkEntityType.hasIndexedContent,
     // assume that link to block is owned by the same account as the blockCollection
-    ownedById: extractOwnedByIdFromEntityId(
-      blockCollectionEntity.metadata.recordId.entityId,
-    ),
+    ownedById: extractOwnedByIdFromEntityId(blockCollectionEntityId),
     properties: canvasPosition || indexPosition,
   });
 };

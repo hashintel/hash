@@ -26,7 +26,6 @@ import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
 import { BlockCreationDialog } from "./canvas-page/block-creation-dialog";
 import { BlockShapeDef, BlockTool } from "./canvas-page/block-shape";
 import { LockedCanvas } from "./canvas-page/locked-canvas";
-import { defaultBlockHeight, defaultBlockWidth } from "./canvas-page/shared";
 
 const config = new TldrawEditorConfig({
   shapes: [BlockShapeDef],
@@ -85,7 +84,7 @@ export const CanvasPageBlock = ({
     }
 
     app.createShapes(
-      contents.map(({ linkEntity, rightEntity: blockEntity }, index) => {
+      contents.map(({ linkEntity, rightEntity: blockEntity }) => {
         const {
           "https://hash.ai/@hash/types/property-type/x-position/": x,
           "https://hash.ai/@hash/types/property-type/y-position/": y,
@@ -98,9 +97,9 @@ export const CanvasPageBlock = ({
         return {
           id: createShapeId(),
           type: "bpBlock",
-          x: x ?? 50,
-          y: y ?? index * defaultBlockHeight + 50,
-          rotation: rotation ?? 0,
+          x,
+          y,
+          rotation,
           props: {
             blockLoaderProps: {
               blockEntityId:
@@ -113,8 +112,8 @@ export const CanvasPageBlock = ({
             },
             linkEntityId: linkEntity.metadata.recordId.entityId,
             pageEntityId: linkEntity.linkData?.leftEntityId,
-            h: height ?? defaultBlockHeight,
-            w: width ?? defaultBlockWidth,
+            h: height,
+            w: width,
           },
         };
       }),

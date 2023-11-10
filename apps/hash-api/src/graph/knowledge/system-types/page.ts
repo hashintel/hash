@@ -197,7 +197,7 @@ export const createPage: ImpureGraphFunction<
 
   for (const block of initialBlocks) {
     await addBlockToBlockCollection(ctx, authentication, {
-      blockCollectionEntity: page.entity,
+      blockCollectionEntityId: page.entity.metadata.recordId.entityId,
       block,
       position:
         type === "document"

@@ -18,6 +18,7 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
+import { generateNKeysBetween } from "fractional-indexing";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
@@ -56,6 +57,22 @@ const generatePlaceholderId = () => `placeholder-${uuid()}`;
 const flipMap = <K, V>(map: Map<K, V>): Map<V, K> =>
   new Map(Array.from(map, ([key, value]) => [value, key] as const));
 
+type BeforeBlockDraftIdAndLink = [
+  string,
+  {
+    linkEntityId: EntityId;
+    fractionalIndex: string;
+  },
+];
+
+type AfterBlockDraftIdAndLink = [
+  string,
+  {
+    linkEntityId?: EntityId;
+    fractionalIndex?: string;
+  },
+];
+
 /**
  * Given the entity 'store', the 'blocks' persisted to the database, and the PromiseMirror 'doc',
  * determines what changes are needed to persist changes to the database.
@@ -63,7 +80,10 @@ const flipMap = <K, V>(map: Map<K, V>): Map<V, K> =>
 const calculateSaveActions = (
   store: EntityStore,
   ownedById: OwnedById,
-  blocks: BlockEntity[],
+  blocksAndLinks: {
+    blockEntity: BlockEntity;
+    contentLinkEntity: LinkEntity<HasIndexedContentProperties>;
+  }[],
   doc: Node,
   getEntityTypeForComponent: (componentId: string) => VersionedUrl,
 ) => {
@@ -99,20 +119,10 @@ const calculateSaveActions = (
         continue;
       }
 
-      const previousProperties = savedEntity.properties;
-
-      const nextProperties = draftEntity.properties;
-
-      // The only thing that has changed is the text entity within the legacy link,
-      // so there is no update to this entity itself
-      if (isEqual(previousProperties, nextProperties)) {
-        continue;
-      }
-
       actions.push({
         updateEntity: {
           entityId: draftEntity.metadata.recordId.entityId,
-          properties: nextProperties,
+          properties: draftEntity.properties,
         },
       });
     } else {
@@ -185,22 +195,34 @@ const calculateSaveActions = (
   // Having dealt with non-block entities, now we check for changes in the blocks themselves
   // Block entities are wrappers which point to (a) a component and (b) a child entity
   // First, gather the ids of the blocks as they appear in the db-persisted block collection
-  const beforeBlockDraftIds = blocks.map((block) => {
+  // along with the link's id and position, to be able to (a) remove links and (b) assign new positions relative any retained ones
+  const beforeBlockDraftIds: BeforeBlockDraftIdAndLink[] = [];
+  for (const { blockEntity, contentLinkEntity } of blocksAndLinks) {
     const draftEntity = getDraftEntityByEntityId(
       store.draft,
-      block.metadata.recordId.entityId,
+      blockEntity.metadata.recordId.entityId,
     );
 
-    if (!draftEntity) {
-      throw new Error(
-        `Draft entity missing: ${block.metadata.recordId.entityId}`,
-      );
+    if (draftEntity) {
+      beforeBlockDraftIds.push([
+        draftEntity.draftId,
+        {
+          linkEntityId: contentLinkEntity.metadata.recordId.entityId,
+          fractionalIndex:
+            contentLinkEntity.properties[
+              "https://hash.ai/@hash/types/property-type/fractional-index/"
+            ],
+        },
+      ]);
+    } else {
+      /**
+       * This entity is in the API's block list but not locally, which means it may have been added by another user recently.
+       * Until we have a collaborative server the best we can do is ignore it in calculating save actions. H-1234
+       */
     }
+  }
 
-    return draftEntity.draftId;
-  });
-
-  const afterBlockDraftIds: string[] = [];
+  const afterBlockDraftIds: AfterBlockDraftIdAndLink[] = [];
 
   // Check nodes in the ProseMirror document to gather the ids of the blocks as they appear in the latest block collection
   doc.descendants((node) => {
@@ -216,7 +238,7 @@ const calculateSaveActions = (
       }
 
       if (isDraftBlockEntity(draftEntity)) {
-        afterBlockDraftIds.push(draftEntity.draftId);
+        afterBlockDraftIds.push([draftEntity.draftId, {}]);
         return false;
       }
     }
@@ -224,42 +246,84 @@ const calculateSaveActions = (
     return true;
   });
 
-  // Check the blocks from the db-persisted block collection against the latest version of the block collection
-  let position = 0;
-  let itCount = 0;
-  // Move actions are order-sensitive, so we're going to sort them separately.
-  const moveActions: UpdateBlockCollectionAction[] = [];
+  /**
+   * This is a crude and inefficient way of updating the fractional indices of the blocks.
+   * We generate an entirely new series of indices, and then check if any of the block's previous indices
+   * happen to be reusable instead of the new one assigned to them, and if so skip updating them.
+   * When appending blocks this is fine, but shifting any existing blocks will involve a lot of new indices.
+   * It basically defeats the point of having fractional indices in the first place,
+   * and is a placeholder for a proper treatment of updating indices in the new list.
+   *
+   * @todo improve this to minimise the number of indices that need to be updated – H-1259
+   */
+  const newFractionalIndexSeries = generateNKeysBetween(
+    null,
+    null,
+    afterBlockDraftIds.length,
+  );
 
-  while (
-    position < Math.max(beforeBlockDraftIds.length, afterBlockDraftIds.length)
-  ) {
-    itCount += 1;
+  /**
+   * Check which of the latest blocks needs:
+   * 1. Moving if it existed before but can't re-use its index
+   * 2. Its child entity reference updating, if different from in the previous series
+   * 3. Creating if it didn't exist in the previous series
+   */
+  for (let i = 0; i < afterBlockDraftIds.length; i++) {
+    const afterDraftId = afterBlockDraftIds[i]![0];
+    const newFractionalIndex = newFractionalIndexSeries[i]!;
+    const newValue = afterBlockDraftIds[i]!;
 
-    // @todo figure out a better safe guard against infinite loops
-    if (itCount === 1000) {
-      throw new Error("Max iteration count");
-    }
+    const oldValue = beforeBlockDraftIds.find(
+      ([draftId]) => draftId === afterDraftId,
+    );
 
-    const afterDraftId = afterBlockDraftIds[position];
-    const beforeDraftId = beforeBlockDraftIds[position];
+    const previousFractionalIndex = oldValue?.[1]?.fractionalIndex;
+    if (
+      previousFractionalIndex &&
+      previousFractionalIndex > (newFractionalIndexSeries[i - 1] ?? "A") &&
+      previousFractionalIndex < (newFractionalIndexSeries[i + 1] ?? "zzzzzzzzz")
+    ) {
+      // No moving action required
+    } else {
+      newValue[1] = {
+        linkEntityId: oldValue?.[1]?.linkEntityId,
+        fractionalIndex: newFractionalIndex,
+      };
 
-    if (!beforeDraftId && !afterDraftId) {
-      throw new Error("Cannot process block without draft id");
-    }
-
-    if (afterDraftId === beforeDraftId) {
-      // the block id has not changed – but its child entity may have done, so we need to compare them
-
-      const draftEntity = draftIdToBlockEntities.get(afterDraftId!); // asserted because we've just checked they're not both falsy
-      if (!draftEntity) {
-        throw new Error("missing draft block entity");
+      if (newValue[1].linkEntityId) {
+        // We have an existing link entity and we couldn't re-use its fractional index – move it
+        actions.push({
+          moveBlock: {
+            linkEntityId: newValue[1].linkEntityId,
+            position: {
+              indexPosition: {
+                "https://hash.ai/@hash/types/property-type/fractional-index/":
+                  newFractionalIndex,
+              },
+            },
+          },
+        });
       }
+    }
 
+    // Get the latest block entity and its child entity for the following step
+    const draftEntity = draftIdToBlockEntities.get(afterDraftId);
+    if (!draftEntity) {
+      throw new Error("missing draft block entity");
+    }
+    const newChildEntityForBlock = draftEntity.blockChildEntity;
+
+    /**
+     * We also need to:
+     * 1. For an existing block, check if its child entity needs changing
+     * 2. For a block that wasn't in the previous series, create it
+     */
+    if (oldValue) {
+      // We have an existing block – check if its child entity has changed and updated it if so
       if (!draftEntity.metadata.recordId.entityId) {
-        // The block has not yet been saved to the database, and therefore there is no saved block to compare it with
-        // It's probably been inserted as part of this loop and spliced into the before ids – no further action required
-        position += 1;
-        continue;
+        throw new Error(
+          `Draft entity with id ${draftEntity.draftId} has no saved entityId}`,
+        );
       }
 
       const savedEntity = store.saved[draftEntity.metadata.recordId.entityId];
@@ -267,8 +331,6 @@ const calculateSaveActions = (
         throw new Error("missing saved block entity");
       }
 
-      // extract the children for comparison
-      const newChildEntityForBlock = draftEntity.blockChildEntity;
       if (!("blockChildEntity" in savedEntity)) {
         throw new Error("Missing child entity in saved block entity");
       }
@@ -293,31 +355,11 @@ const calculateSaveActions = (
           },
         });
       }
-
-      position += 1;
-      continue;
-    }
-
-    // the before draft id isn't the same as the after draft id, so this block shouldn't be in this position any more
-    if (beforeDraftId) {
-      moveActions.push({ removeBlock: { linkEntityId: "123" as EntityId } }); // @todo fix this
-
-      // delete this block from the 'before' series so that we're comparing subsequent blocks in the correct position
-      beforeBlockDraftIds.splice(position, 1);
-    }
-
-    // this block wasn't in this position before – it needs inserting there
-    if (afterDraftId) {
-      const draftEntity = draftIdToBlockEntities.get(afterDraftId);
-
-      if (!draftEntity) {
-        throw new Error("missing draft entity");
-      }
-
-      const blockData = draftEntity.blockChildEntity;
+    } else {
+      // We have a new block – insert it
       const blockChildEntityId =
-        blockData?.metadata.recordId.entityId ??
-        draftIdToPlaceholderId.get(blockData!.draftId!);
+        newChildEntityForBlock?.metadata.recordId.entityId ??
+        draftIdToPlaceholderId.get(newChildEntityForBlock!.draftId!);
 
       if (!blockChildEntityId) {
         throw new Error("Block data entity id missing");
@@ -325,17 +367,15 @@ const calculateSaveActions = (
 
       const blockPlaceholderId = generatePlaceholderId();
 
-      if (!draftEntity.metadata.recordId.entityId) {
-        draftIdToPlaceholderId.set(draftEntity.draftId, blockPlaceholderId);
-      }
+      draftIdToPlaceholderId.set(draftEntity.draftId, blockPlaceholderId);
 
-      moveActions.push({
+      actions.push({
         insertBlock: {
           ownedById,
           position: {
             indexPosition: {
               "https://hash.ai/@hash/types/property-type/fractional-index/":
-                "123", // @todo fix this
+                newFractionalIndex,
             },
           },
           entity: {
@@ -343,26 +383,27 @@ const calculateSaveActions = (
             // In that case, we rely on the EntityId to be swapped out in the GQL resolver.
             existingEntityId: blockChildEntityId as EntityId,
           },
-          ...(draftEntity.metadata.recordId.entityId
-            ? {
-                existingBlockEntityId: draftEntity.metadata.recordId.entityId,
-              }
-            : {
-                blockPlaceholderId,
-                componentId: draftEntity.componentId,
-              }),
+          blockPlaceholderId,
+          componentId: draftEntity.componentId,
         },
       });
-
-      // insert this new block into the 'before' series so that we compare subsequent blocks in the current position
-      beforeBlockDraftIds.splice(position, 0, afterDraftId);
     }
   }
 
-  actions.push(
-    ...moveActions.filter((action) => action.removeBlock),
-    ...moveActions.filter((action) => action.insertBlock),
-  );
+  /**
+   * Check the old saved blocks to remove any which are missing from the new list
+   */
+  for (const [beforeBlockDraftId, { linkEntityId }] of beforeBlockDraftIds) {
+    if (
+      !afterBlockDraftIds.find(([draftId]) => draftId === beforeBlockDraftId)
+    ) {
+      actions.push({
+        removeBlock: {
+          linkEntityId,
+        },
+      });
+    }
+  }
 
   const placeholderToDraft = flipMap(draftIdToPlaceholderId);
 
@@ -426,22 +467,28 @@ const mapEntityToGqlBlock = (
   };
 };
 
-export const save = async (
-  apolloClient: ApolloClient<unknown>,
-  ownedById: OwnedById,
-  blockCollectionEntityId: EntityId,
-  doc: Node,
-  store: EntityStore,
-  blocksMap: () => ComponentIdHashBlockMap,
-) => {
-  const blocks = await apolloClient
+export const save = async ({
+  apolloClient,
+  ownedById,
+  blockCollectionEntityId,
+  doc,
+  store,
+  getBlocksMap,
+}: {
+  apolloClient: ApolloClient<unknown>;
+  ownedById: OwnedById;
+  blockCollectionEntityId: EntityId;
+  doc: Node;
+  store: EntityStore;
+  getBlocksMap: () => ComponentIdHashBlockMap;
+}) => {
+  const blockAndLinkList = await apolloClient
     .query<GetEntityQuery, GetEntityQueryVariables>({
       query: getEntityQuery,
       variables: {
         includePermissions: false,
         entityId: blockCollectionEntityId,
         ...zeroedGraphResolveDepths,
-        isOfType: { outgoing: 1 },
         ...getBlockCollectionResolveDepth({ blockDataDepth: 1 }),
         ...currentTimeInstantTemporalAxes,
       },
@@ -454,7 +501,7 @@ export const save = async (
 
       const [blockCollectionEntity] = getRoots(subgraph);
 
-      const blockEntities = getOutgoingLinkAndTargetEntities<
+      const blocksAndLinks = getOutgoingLinkAndTargetEntities<
         {
           linkEntity: LinkEntity<HasIndexedContentProperties>[];
           rightEntity: Entity<BlockProperties>[];
@@ -476,21 +523,29 @@ export const save = async (
           sortBlockCollectionLinks(a[0]!, b[0]!),
         )
         .map(
-          ({ rightEntity: rightEntityRevisions }) => rightEntityRevisions[0]!,
+          ({
+            rightEntity: rightEntityRevisions,
+            linkEntity: linkEntityRevisions,
+          }) => ({
+            blockEntity: rightEntityRevisions[0]!,
+            contentLinkEntity: linkEntityRevisions[0]!,
+          }),
         );
 
-      return blockEntities.map((blockEntity) =>
-        mapEntityToGqlBlock(blockEntity, subgraph),
-      );
+      return blocksAndLinks.map(({ blockEntity, contentLinkEntity }) => ({
+        blockEntity: mapEntityToGqlBlock(blockEntity, subgraph),
+        contentLinkEntity,
+      }));
     });
 
   const [actions, placeholderToDraft] = calculateSaveActions(
     store,
     ownedById,
-    blocks,
+    blockAndLinkList,
     doc,
     (componentId: string) => {
-      const component = blocksMap()[componentId];
+      const component = getBlocksMap()[componentId];
+
       if (!component) {
         throw new Error(`Component ${componentId} not found in blocksMap`);
       }
@@ -499,29 +554,17 @@ export const save = async (
     },
   );
 
-  let currentBlocks = blocks;
+  let currentBlocks = blockAndLinkList.map(({ blockEntity }) => blockEntity);
+
   let placeholders: UpdateBlockCollectionContentsResultPlaceholder[] = [];
 
   if (actions.length > 0) {
-    // Even if the actions list is empty, we hit the endpoint to get an updated
-    // block collection result.
     const res = await apolloClient.mutate<
       UpdateBlockCollectionContentsMutation,
       UpdateBlockCollectionContentsMutationVariables
     >({
       variables: { entityId: blockCollectionEntityId, actions },
       mutation: updateBlockCollectionContents,
-      refetchQueries: [
-        {
-          query: getEntityQuery,
-          variables: {
-            includePermissions: false,
-            entityId: blockCollectionEntityId,
-            ...zeroedGraphResolveDepths,
-            ...getBlockCollectionResolveDepth({ blockDataDepth: 1 }),
-          } satisfies GetEntityQueryVariables,
-        },
-      ],
     });
 
     if (!res.data) {

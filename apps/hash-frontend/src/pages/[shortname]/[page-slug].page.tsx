@@ -553,45 +553,46 @@ const Page: NextPageWithLayout<PageProps> = ({
         <CollabPositionProvider value={[]}>
           <UserBlocksProvider value={blocksMap}>
             <BlockLoadedProvider routeHash={routeHash}>
-              {isCanvasPage ? (
-                <CanvasPageBlock contents={contents} />
-              ) : (
-                <Box marginTop={5} position="relative">
-                  {!!canUserEdit && pageComments.length > 0 ? (
-                    <PageSectionContainer
-                      pageComments={pageComments}
-                      readonly={!canUserEdit}
-                      sx={{
-                        position: "absolute",
-                        top: 0,
-                        right: 0,
-                        left: 0,
-                        width: "100%",
-                      }}
-                    >
-                      <Box width="100%" position="relative">
-                        <Box
-                          sx={{
-                            position: "absolute",
-                            left: "calc(100% + 48px)",
-                            zIndex: 1,
-                          }}
-                        >
-                          {pageComments.map((comment) => (
-                            <CommentThread
-                              key={comment.metadata.recordId.entityId}
-                              pageId={pageEntityId}
-                              comment={comment}
-                            />
-                          ))}
+              <BlockCollectionContextProvider
+                blockCollectionSubgraph={pageSubgraph}
+                userPermissionsOnEntities={userPermissionsOnEntities}
+              >
+                {isCanvasPage ? (
+                  <CanvasPageBlock contents={contents} />
+                ) : (
+                  <Box marginTop={5} position="relative">
+                    {!!canUserEdit && pageComments.length > 0 ? (
+                      <PageSectionContainer
+                        pageComments={pageComments}
+                        readonly={!canUserEdit}
+                        sx={{
+                          position: "absolute",
+                          top: 0,
+                          right: 0,
+                          left: 0,
+                          width: "100%",
+                        }}
+                      >
+                        <Box width="100%" position="relative">
+                          <Box
+                            sx={{
+                              position: "absolute",
+                              left: "calc(100% + 48px)",
+                              zIndex: 1,
+                            }}
+                          >
+                            {pageComments.map((comment) => (
+                              <CommentThread
+                                key={comment.metadata.recordId.entityId}
+                                pageId={pageEntityId}
+                                comment={comment}
+                              />
+                            ))}
+                          </Box>
                         </Box>
-                      </Box>
-                    </PageSectionContainer>
-                  ) : null}
-                  <BlockCollectionContextProvider
-                    blockCollectionSubgraph={pageSubgraph}
-                    userPermissionsOnEntities={userPermissionsOnEntities}
-                  >
+                      </PageSectionContainer>
+                    ) : null}
+
                     <BlockCollection
                       ownedById={extractOwnedById(pageWorkspace)}
                       contents={contents}
@@ -612,9 +613,9 @@ const Page: NextPageWithLayout<PageProps> = ({
                         },
                       }}
                     />
-                  </BlockCollectionContextProvider>
-                </Box>
-              )}
+                  </Box>
+                )}
+              </BlockCollectionContextProvider>
             </BlockLoadedProvider>
           </UserBlocksProvider>
         </CollabPositionProvider>
