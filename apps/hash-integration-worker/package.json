@@ -25,7 +25,7 @@
     "@temporalio/worker": "1.8.1",
     "@temporalio/workflow": "1.8.1",
     "agentkeepalive": "4.2.1",
-    "axios": "0.27.2",
+    "axios": "1.6.0",
     "dotenv-flow": "3.2.0",
     "ts-node": "10.9.1",
     "typescript": "5.1.6"
