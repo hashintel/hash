@@ -53,10 +53,10 @@ const knowledge = [
 // It could alternatively be a default export.
 export const schema = [
   baseSchema,
-  blockprotocolTypedef,
-  embedTypeDef,
-  ...ontology,
-  ...knowledge,
-  linearTypedef,
-  subgraphTypedef,
+  // blockprotocolTypedef,
+  // embedTypeDef,
+  // ...ontology,
+  // ...knowledge,
+  // linearTypedef,
+  // subgraphTypedef,
 ];
