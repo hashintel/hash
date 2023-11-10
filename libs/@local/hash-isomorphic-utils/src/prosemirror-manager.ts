@@ -8,6 +8,7 @@ import {
   areComponentsCompatible,
   fetchBlock,
   HashBlock,
+  isBlockWithTextualContentProperty,
   prepareBlockCache,
 } from "./blocks";
 import {
@@ -22,6 +23,7 @@ import {
   EntityStoreType,
   isBlockEntity,
   isDraftBlockEntity,
+  textualContentPropertyTypeBaseUrl,
 } from "./entity-store";
 import {
   addEntityStoreAction,
@@ -303,7 +305,10 @@ export class ProsemirrorManager {
 
     const { tr } = this.view.state;
 
-    const entityProperties = targetVariant?.properties ?? {};
+    const entityProperties = targetVariant?.properties
+      ? JSON.parse(JSON.stringify(targetVariant.properties))
+      : {};
+
     const entityStoreState = entityStorePluginState(this.view.state);
     const blockEntity = draftBlockId
       ? entityStoreState.store.draft[draftBlockId]
@@ -334,12 +339,26 @@ export class ProsemirrorManager {
         });
         targetBlockId = blockEntity.draftId;
       } else {
-        /**
-         * @todo fix data retention when swapping blocks
-         *   – this currently doesn't take account of different properties for Heading, Text etc
-         */
-
         const newBlockProperties = entityProperties;
+
+        // Retain any text from the old entity if we have some and we know it accepts textual-content
+        if (isBlockWithTextualContentProperty(targetComponentId)) {
+          const existingTextContent =
+            blockEntity.blockChildEntity?.properties[
+              textualContentPropertyTypeBaseUrl
+            ];
+          const newTextContent =
+            newBlockProperties[textualContentPropertyTypeBaseUrl];
+
+          if (
+            existingTextContent &&
+            (!newTextContent ||
+              (Array.isArray(newTextContent) && !newTextContent[0]))
+          ) {
+            newBlockProperties[textualContentPropertyTypeBaseUrl] =
+              existingTextContent;
+          }
+        }
 
         targetBlockId = this.createBlockEntity(
           tr,
