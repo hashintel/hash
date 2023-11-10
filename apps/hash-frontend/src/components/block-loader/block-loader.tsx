@@ -7,10 +7,8 @@ import { getRoots } from "@blockprotocol/graph/temporal/stdlib";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { textualContentPropertyTypeBaseUrl } from "@local/hash-isomorphic-utils/entity-store";
-import {
-  TextToken,
-  UserPermissionsOnEntities,
-} from "@local/hash-isomorphic-utils/types";
+import { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
+import { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
 import {
   Entity,
   EntityId,
@@ -280,9 +278,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
     const textTokens = rootEntity.properties[
       textualContentPropertyTypeBaseUrl
-    ] as TextToken[] | undefined;
+    ] as TextualContentPropertyValue | undefined;
 
-    if (textTokens) {
+    if (textTokens && typeof textTokens !== "string") {
       newProperties[textualContentPropertyTypeBaseUrl] = textTokens
         .map((token) =>
           "text" in token ? token.text : "hardBreak" in token ? "\n" : "",
