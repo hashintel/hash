@@ -1,4 +1,4 @@
-import { UserPermissionsOnEntities } from "@local/hash-graphql-shared/graphql/types";
+import { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
 import { GraphQLResolveInfo } from "graphql";
 import { parseResolveInfo, ResolveTree } from "graphql-parse-resolve-info";
 

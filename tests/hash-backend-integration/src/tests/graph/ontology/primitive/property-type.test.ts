@@ -15,11 +15,11 @@ import {
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { ConstructPropertyTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
   isOwnedOntologyElementMetadata,
   OwnedById,

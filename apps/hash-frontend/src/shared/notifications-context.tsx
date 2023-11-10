@@ -1,6 +1,5 @@
 import { useQuery } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import {
   getFirstEntityRevision,
   TextProperties,
@@ -25,6 +24,7 @@ import {
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/commentnotification";
 import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/types";
 import {
   Entity,
   EntityRootType,

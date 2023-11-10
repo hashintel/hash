@@ -1,5 +1,5 @@
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { AccountGroupId, Entity, EntityId } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 

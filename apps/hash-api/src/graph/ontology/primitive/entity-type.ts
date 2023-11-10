@@ -11,12 +11,12 @@ import {
   OntologyTemporalMetadata,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
-import { ConstructEntityTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
   EntityTypeAuthorizationRelationship,
   EntityTypeInstantiatorSubject,

@@ -5,12 +5,12 @@ import {
 } from "@blockprotocol/graph/temporal";
 import { getRoots } from "@blockprotocol/graph/temporal/stdlib";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import { textualContentPropertyTypeBaseUrl } from "@local/hash-isomorphic-utils/entity-store";
 import {
   TextToken,
   UserPermissionsOnEntities,
-} from "@local/hash-graphql-shared/graphql/types";
-import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import { textualContentPropertyTypeBaseUrl } from "@local/hash-isomorphic-utils/entity-store";
+} from "@local/hash-isomorphic-utils/types";
 import {
   Entity,
   EntityId,

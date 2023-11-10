@@ -4,9 +4,9 @@ import {
   GetEntityQuery,
   GetEntityQueryVariables,
 } from "@local/hash-graphql-shared/graphql/api-types.gen";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/types";
 import { EntityRootType, OwnedById } from "@local/hash-subgraph";
 import { Box, Skeleton, Typography } from "@mui/material";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";

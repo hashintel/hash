@@ -1,7 +1,7 @@
 import { useLazyQuery } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/types";
 import {
   Entity,
   EntityId,
@@ -167,8 +167,7 @@ export const useFetchBlockSubgraph = (): ((
 
           return {
             subgraph,
-            userPermissionsOnEntities:
-              data.getEntity.userPermissionsOnEntities!,
+            userPermissionsOnEntities: data.getEntity.userPermissionsOnEntities,
           } satisfies SubgraphAndPermissions;
         })
         .catch((err) => {

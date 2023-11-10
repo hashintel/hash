@@ -1,5 +1,5 @@
 import { CodegenConfig } from "@graphql-codegen/cli";
-import { scalars } from "@local/hash-graphql-shared/graphql/scalar-mapping";
+import { scalars } from "@local/hash-isomorphic-utils/scalar-mapping";
 
 const config: CodegenConfig = {
   overwrite: true,

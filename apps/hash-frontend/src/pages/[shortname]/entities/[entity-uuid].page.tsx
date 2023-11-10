@@ -1,6 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/types";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
@@ -109,7 +109,6 @@ const Page: NextPageWithLayout = () => {
               setEntitySubgraphFromDb(subgraph);
               setDraftEntitySubgraph(subgraph);
               setIsReadOnly(
-                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive on unsafe index access
                 !data.getEntity.userPermissionsOnEntities?.[entityId]?.edit,
               );
             } catch {

@@ -1,6 +1,5 @@
 import { useMutation, useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
@@ -9,6 +8,7 @@ import {
   blockProtocolTypes,
   systemTypes,
 } from "@local/hash-isomorphic-utils/ontology-types";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import {
   EntityRootType,
   extractEntityUuidFromEntityId,

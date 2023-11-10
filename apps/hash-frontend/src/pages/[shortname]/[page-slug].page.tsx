@@ -4,7 +4,6 @@ import {
   GetEntityQuery,
   GetEntityQueryVariables,
 } from "@local/hash-graphql-shared/graphql/api-types.gen";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import {
@@ -15,6 +14,7 @@ import {
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/types";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import {
   EntityId,

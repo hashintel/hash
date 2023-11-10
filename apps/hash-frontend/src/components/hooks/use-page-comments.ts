@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import {
   Entity,
   EntityId,

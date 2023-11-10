@@ -10,7 +10,7 @@ import {
   SubgraphRootType,
 } from "@local/hash-subgraph";
 
-import { SubgraphFieldsFragment } from "./api-types.gen";
+import { SubgraphFieldsFragment } from "./graphql/api-types.gen";
 
 export type TextToken =
   | {
