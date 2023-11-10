@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { DraggableAttributes } from "@dnd-kit/core";
 import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
@@ -20,6 +21,7 @@ interface DragProps {
 }
 export interface PageTreeItemProps {
   pageEntityId: EntityId;
+  pageEntityTypeId: VersionedUrl;
   title: string;
   pagePath: string;
   depth: number;
@@ -44,6 +46,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
   (
     {
       pageEntityId,
+      pageEntityTypeId,
       title,
       pagePath,
       depth,
@@ -140,6 +143,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
           <PageIconButton
             hasDarkBg={selected}
             entityId={pageEntityId}
+            pageEntityTypeId={pageEntityTypeId}
             icon={icon}
             size="small"
             onClick={stopEvent}

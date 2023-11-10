@@ -73,6 +73,40 @@ export const getEntityTypeAndParentsById = (
 };
 
 /**
+ * Gets an array of `EntityTypeWithMetadata` containing the requested entity type and all its descendants
+ * i.e. entity types which inherit from it, whether directly or indirectly.
+ *
+ * @param subgraph a subgraph containing the entity type and its descendants
+ * @param entityTypeId the `VersionedUrl` of the entity type
+ * @throws Error if the entity type or any of its descendants aren't present in the subgraph
+ * @returns EntityTypeWithMetadata[] an array of `EntityTypeWithMetadata`, where the first element is the entity type
+ */
+export const getEntityTypeAndDescendantsById = (
+  subgraph: Subgraph,
+  entityTypeId: VersionedUrl,
+): EntityTypeWithMetadata[] => {
+  const entityType = getEntityTypeById(subgraph, entityTypeId);
+
+  if (!entityType) {
+    throw new Error(`Entity type ${entityTypeId} not found in subgraph`);
+  }
+
+  const descendants = getEntityTypes(subgraph).filter((entityType) =>
+    (entityType.schema.allOf ?? []).some(
+      (parent) => parent.$ref === entityTypeId,
+    ),
+  );
+
+  // Return the entity type, followed by its ancestors
+  return [
+    entityType,
+    ...descendants.flatMap(({ schema }) =>
+      getEntityTypeAndDescendantsById(subgraph, schema.$id),
+    ),
+  ];
+};
+
+/**
  * Gets a `EntityTypeWithMetadata` by its `OntologyTypeVertexId` from within the vertices of the subgraph. Returns
  * `undefined` if the entity type couldn't be found.
  *

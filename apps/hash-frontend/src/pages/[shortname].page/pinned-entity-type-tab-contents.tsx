@@ -42,6 +42,7 @@ import { generateEntityLabel } from "../../lib/entities";
 import { Org, User } from "../../lib/user-and-org";
 import { ArrowDownAZRegularIcon } from "../../shared/icons/arrow-down-a-z-regular-icon";
 import { ArrowUpZARegularIcon } from "../../shared/icons/arrow-up-a-z-regular-icon";
+import { CanvasIcon } from "../../shared/icons/canvas-icon";
 import { ClockRegularIcon } from "../../shared/icons/clock-regular-icon";
 import { PageLightIcon } from "../../shared/icons/page-light-icon";
 import { PlusRegularIcon } from "../../shared/icons/plus-regular";
@@ -71,7 +72,15 @@ const EntityRow: FunctionComponent<{
 
   const icon = useEntityIcon({
     entity,
-    pageIcon: <PageLightIcon sx={{ fontSize: 18 }} />,
+    pageIcon:
+      entity.metadata.entityTypeId ===
+      systemTypes.entityType.canvas.entityTypeId ? (
+        <CanvasIcon
+          sx={{ fontSize: 20, fill: ({ palette }) => palette.gray[40] }}
+        />
+      ) : (
+        <PageLightIcon sx={{ fontSize: 18 }} />
+      ),
   });
 
   return (
@@ -227,11 +236,10 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
 
   const isPagesTab =
     currentTab.entityTypeBaseUrl ===
-    // @todo check inheritance in pinned entity type tabs
     extractBaseUrl(systemTypes.entityType.page.entityTypeId);
 
   return (
-    <Box>
+    <Box mb={6}>
       <Box display="flex" alignItems="center" columnGap={1.5} marginBottom={1}>
         <ProfileSectionHeading>{currentTab.pluralTitle}</ProfileSectionHeading>
         <Box display="flex" alignItems="center" columnGap={1}>

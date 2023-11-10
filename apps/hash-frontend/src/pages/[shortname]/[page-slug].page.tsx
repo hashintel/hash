@@ -288,7 +288,16 @@ const generateCrumbsFromPages = ({
         pageEntityUuid,
       }),
       id: currentPageEntityId,
-      icon: <PageIcon icon={currentPage.icon} size="small" />,
+      icon: (
+        <PageIcon
+          icon={currentPage.icon}
+          size="small"
+          isCanvas={
+            currentPage.metadata.entityTypeId ===
+            systemTypes.entityType.canvas.entityTypeId
+          }
+        />
+      ),
     });
 
     if (currentPage.parentPage) {
@@ -490,6 +499,7 @@ const Page: NextPageWithLayout<PageProps> = ({
             <Box position="relative">
               <PageIconButton
                 entityId={pageEntityId}
+                pageEntityTypeId={page.metadata.entityTypeId}
                 icon={icon}
                 readonly={!canUserEdit}
                 sx={({ breakpoints }) => ({
