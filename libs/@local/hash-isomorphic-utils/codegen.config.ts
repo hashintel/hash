@@ -1,7 +1,5 @@
 import { CodegenConfig } from "@graphql-codegen/cli";
 
-import { scalars } from "./src/scalar-mapping";
-
 const config: CodegenConfig = {
   overwrite: true,
   schema: "./src/graphql/type-defs/**/*.ts",
@@ -15,7 +13,6 @@ const config: CodegenConfig = {
       config: {
         skipTypename: true,
         // Use shared scalars
-        scalars,
       },
     },
   },
