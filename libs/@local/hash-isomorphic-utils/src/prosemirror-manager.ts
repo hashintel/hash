@@ -1,4 +1,6 @@
 import { BlockVariant, JsonObject } from "@blockprotocol/core";
+import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+import { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
 import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { Node, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
@@ -343,10 +345,10 @@ export class ProsemirrorManager {
 
         // Retain any text from the old entity if we have some and we know it accepts textual-content
         if (isBlockWithTextualContentProperty(targetComponentId)) {
-          const existingTextContent =
-            blockEntity.blockChildEntity?.properties[
-              textualContentPropertyTypeBaseUrl
-            ];
+          const existingTextContent = blockEntity.blockChildEntity?.properties[
+            textualContentPropertyTypeBaseUrl
+          ] as TextualContentPropertyValue | undefined;
+
           const newTextContent =
             newBlockProperties[textualContentPropertyTypeBaseUrl];
 
@@ -355,8 +357,15 @@ export class ProsemirrorManager {
             (!newTextContent ||
               (Array.isArray(newTextContent) && !newTextContent[0]))
           ) {
+            const textAsTokens =
+              typeof existingTextContent === "string"
+                ? ([
+                    { tokenType: "text", text: existingTextContent },
+                  ] satisfies TextToken[])
+                : existingTextContent;
+
             newBlockProperties[textualContentPropertyTypeBaseUrl] =
-              existingTextContent;
+              textAsTokens;
           }
         }
 
