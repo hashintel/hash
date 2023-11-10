@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@openapitools/openapi-generator-cli": "2.5.2",
-    "axios": "0.27.2"
+    "axios": "1.6.0"
   },
   "devDependencies": {
     "@apps/hash-graph": "0.0.0-private",
