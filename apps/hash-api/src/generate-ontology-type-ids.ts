@@ -69,8 +69,9 @@ const generateOntologyIds = async () => {
   const [
     allSystemEntityTypes,
     systemPropertyTypes,
+    blockProtocolEntityTypes,
     blockProtocolPropertyTypes,
-    allDataTypes,
+    blockProtocolDataTypes,
   ] = await Promise.all([
     getEntityTypes(graphContext, authentication, {
       query: {
@@ -112,6 +113,25 @@ const generateOntologyIds = async () => {
         temporalAxes: currentTimeInstantTemporalAxes,
       },
     }).then((subgraph) => getRoots(subgraph)),
+    getEntityTypes(graphContext, authentication, {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["version"] }, { parameter: "latest" }],
+            },
+            {
+              startsWith: [
+                { path: ["versionedUrl"] },
+                { parameter: "https://blockprotocol.org" },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    }).then((subgraph) => getRoots(subgraph)),
     getPropertyTypes(graphContext, authentication, {
       query: {
         filter: {
@@ -137,6 +157,12 @@ const generateOntologyIds = async () => {
           all: [
             {
               equal: [{ path: ["version"] }, { parameter: "latest" }],
+            },
+            {
+              startsWith: [
+                { path: ["versionedUrl"] },
+                { parameter: "https://blockprotocol.org" },
+              ],
             },
           ],
         },
@@ -202,6 +228,17 @@ const generateOntologyIds = async () => {
   };
 
   const blockProtocolTypes = {
+    entityType: blockProtocolEntityTypes
+      .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
+      .reduce(
+        (prev, { schema }) => ({
+          ...prev,
+          [convertTitleToCamelCase(schema.title)]: {
+            entityTypeId: schema.$id,
+          },
+        }),
+        {},
+      ),
     propertyType: blockProtocolPropertyTypes
       .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
       .reduce(
@@ -214,7 +251,7 @@ const generateOntologyIds = async () => {
         {},
       ),
     /** @todo: fetch the BP data types specifically when we have custom datatypes */
-    dataType: allDataTypes
+    dataType: blockProtocolDataTypes
       .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
       .reduce(
         (prev, { schema }) => ({
