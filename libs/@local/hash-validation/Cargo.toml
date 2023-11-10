@@ -13,4 +13,4 @@ serde_json = { version = "1.0.108" }
 
 [dev-dependencies]
 graph-test-data = { path = "../../../tests/hash-graph-test-data/rust" }
-tokio = { version = "1.33.0", default-features = false , features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.34.0", default-features = false , features = ["macros", "rt-multi-thread"] }
