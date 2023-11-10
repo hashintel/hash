@@ -555,8 +555,8 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        title: "Has Service Account",
-        description: "The service account something has.",
+        title: "Service Account",
+        description: "A service account.",
         properties: [
           {
             propertyType: profileUrlPropertyType,
@@ -1008,16 +1008,6 @@ const migrate: MigrationFunction = async ({
       migrationState,
     },
   );
-
-  const _hasServiceAccountSecretLinkEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
-      entityTypeDefinition: {
-        allOf: [linkEntityTypeUrl],
-        title: "Has Service Account",
-        description: "The service account something has.",
-      },
-      migrationState,
-    });
 
   const userSecretEntityType = await createSystemEntityTypeIfNotExists(
     context,

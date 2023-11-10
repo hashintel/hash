@@ -66,62 +66,85 @@ const generateOntologyIds = async () => {
 
   const authentication = { actorId: publicUserAccountId };
 
-  const [allSystemEntityTypes, systemPropertyTypes, allDataTypes] =
-    await Promise.all([
-      getEntityTypes(graphContext, authentication, {
-        query: {
-          filter: {
-            all: [
-              {
-                equal: [{ path: ["version"] }, { parameter: "latest" }],
-              },
-              {
-                equal: [
-                  {
-                    path: ["ownedById"],
-                  },
-                  { parameter: hashOrg.accountGroupId },
-                ],
-              },
-            ],
-          },
-          graphResolveDepths: zeroedGraphResolveDepths,
-          temporalAxes: currentTimeInstantTemporalAxes,
+  const [
+    allSystemEntityTypes,
+    systemPropertyTypes,
+    blockProtocolPropertyTypes,
+    allDataTypes,
+  ] = await Promise.all([
+    getEntityTypes(graphContext, authentication, {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["version"] }, { parameter: "latest" }],
+            },
+            {
+              equal: [
+                {
+                  path: ["ownedById"],
+                },
+                { parameter: hashOrg.accountGroupId },
+              ],
+            },
+          ],
         },
-      }).then((subgraph) => getRoots(subgraph)),
-      getPropertyTypes(graphContext, authentication, {
-        query: {
-          filter: {
-            all: [
-              {
-                equal: [{ path: ["version"] }, { parameter: "latest" }],
-              },
-              {
-                equal: [
-                  { path: ["ownedById"] },
-                  { parameter: hashOrg.accountGroupId },
-                ],
-              },
-            ],
-          },
-          graphResolveDepths: zeroedGraphResolveDepths,
-          temporalAxes: currentTimeInstantTemporalAxes,
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    }).then((subgraph) => getRoots(subgraph)),
+    getPropertyTypes(graphContext, authentication, {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["version"] }, { parameter: "latest" }],
+            },
+            {
+              equal: [
+                { path: ["ownedById"] },
+                { parameter: hashOrg.accountGroupId },
+              ],
+            },
+          ],
         },
-      }).then((subgraph) => getRoots(subgraph)),
-      getDataTypes(graphContext, authentication, {
-        query: {
-          filter: {
-            all: [
-              {
-                equal: [{ path: ["version"] }, { parameter: "latest" }],
-              },
-            ],
-          },
-          graphResolveDepths: zeroedGraphResolveDepths,
-          temporalAxes: currentTimeInstantTemporalAxes,
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    }).then((subgraph) => getRoots(subgraph)),
+    getPropertyTypes(graphContext, authentication, {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["version"] }, { parameter: "latest" }],
+            },
+            {
+              startsWith: [
+                { path: ["versionedUrl"] },
+                { parameter: "https://blockprotocol.org" },
+              ],
+            },
+          ],
         },
-      }).then((subgraph) => getRoots(subgraph)),
-    ]);
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    }).then((subgraph) => getRoots(subgraph)),
+    getDataTypes(graphContext, authentication, {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["version"] }, { parameter: "latest" }],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    }).then((subgraph) => getRoots(subgraph)),
+  ]);
 
   const systemEntityTypes: EntityTypeWithMetadata[] = [];
   const systemLinkEntityTypes: EntityTypeWithMetadata[] = [];
@@ -178,7 +201,18 @@ const generateOntologyIds = async () => {
       ),
   };
 
-  const blockprotocolTypes = {
+  const blockProtocolTypes = {
+    propertyType: blockProtocolPropertyTypes
+      .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
+      .reduce(
+        (prev, { schema }) => ({
+          ...prev,
+          [convertTitleToCamelCase(schema.title)]: {
+            propertyTypeId: schema.$id,
+          },
+        }),
+        {},
+      ),
     /** @todo: fetch the BP data types specifically when we have custom datatypes */
     dataType: allDataTypes
       .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
@@ -187,6 +221,8 @@ const generateOntologyIds = async () => {
           ...prev,
           [convertTitleToCamelCase(schema.title)]: {
             dataTypeId: schema.$id,
+            title: schema.title,
+            description: schema.description,
           },
         }),
         {},
@@ -202,8 +238,8 @@ const generateOntologyIds = async () => {
     outputPath,
     [
       `export const systemTypes = ${JSON.stringify(systemTypes)} as const;`,
-      `export const blockprotocolTypes = ${JSON.stringify(
-        blockprotocolTypes,
+      `export const blockProtocolTypes = ${JSON.stringify(
+        blockProtocolTypes,
       )} as const;`,
     ].join("\n\n"),
   );

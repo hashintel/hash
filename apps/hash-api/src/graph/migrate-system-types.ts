@@ -28,6 +28,7 @@ export const migrateSystemTypes = async (params: {
   let migrationState: MigrationState = {
     propertyTypeVersions: {},
     entityTypeVersions: {},
+    dataTypeVersions: {},
   };
 
   for (const migrationFileName of sortedMigrationFileNames) {

@@ -1,20 +1,22 @@
 /* eslint-disable no-param-reassign */
-import { VersionedUrl } from "@blockprotocol/type-system";
-import {
-  PrimitiveDataTypeKey,
-  SchemaKind,
-} from "@local/hash-isomorphic-utils/ontology-types";
+import { extractVersion, VersionedUrl } from "@blockprotocol/type-system";
+import { SchemaKind } from "@local/hash-isomorphic-utils/ontology-types";
 import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 import {
   BaseUrl,
+  DataTypeWithMetadata,
   EntityTypeWithMetadata,
   OwnedById,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph/.";
-import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
+import {
+  extractBaseUrl,
+  versionedUrlFromComponents,
+} from "@local/hash-subgraph/type-system-patch";
 
 import { NotFoundError } from "../../lib/error";
 import { ImpureGraphFunction } from "../context-types";
+import { getDataTypeById } from "../ontology/primitive/data-type";
 import {
   createEntityType,
   getEntityTypeById,
@@ -32,6 +34,7 @@ import {
   getOrCreateOwningAccountGroupId,
   isSelfHostedInstance,
   LinkDestinationConstraint,
+  PrimitiveDataTypeKey,
 } from "../util";
 import { MigrationState } from "./types";
 
@@ -49,6 +52,38 @@ const generateSystemTypeBaseUrl = ({
   `${systemTypeDomain}/@${systemTypeWebShortname}/types/${kind}/${slugifyTypeTitle(
     title,
   )}/` as const as BaseUrl;
+
+export const loadExternalDataTypeIfNotExists: ImpureGraphFunction<
+  {
+    dataTypeId: VersionedUrl;
+    migrationState: MigrationState;
+  },
+  Promise<DataTypeWithMetadata>
+> = async (context, authentication, { dataTypeId, migrationState }) => {
+  const baseUrl = extractBaseUrl(dataTypeId);
+  const versionNumber = extractVersion(dataTypeId);
+
+  migrationState.dataTypeVersions[baseUrl] = versionNumber;
+
+  const existingDataType = await getDataTypeById(context, authentication, {
+    dataTypeId,
+  }).catch((error: Error) => {
+    if (error instanceof NotFoundError) {
+      return null;
+    }
+    throw error;
+  });
+
+  if (existingDataType) {
+    return existingDataType;
+  }
+
+  await context.graphApi.loadExternalDataType(authentication.actorId, {
+    dataTypeId,
+  });
+
+  return await getDataTypeById(context, authentication, { dataTypeId });
+};
 
 export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
   {
