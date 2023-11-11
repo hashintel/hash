@@ -58,6 +58,7 @@
     "@types/node": "18.15.13",
     "@types/node-fetch": "^2.6.2",
     "eslint": "8.33.0",
+    "graphql": "16.8.1",
     "next": "13.5.5",
     "react": "18.2.0",
     "rimraf": "^5.0.5",
