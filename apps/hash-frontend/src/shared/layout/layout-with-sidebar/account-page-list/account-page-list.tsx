@@ -118,7 +118,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     }
 
     try {
-      await createUntitledPage(getLastIndex(treeItems));
+      await createUntitledPage(getLastIndex(treeItems), "document");
     } catch (err) {
       // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error("Could not create page: ", err);
@@ -308,7 +308,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           ? parentPage?.metadata.recordId.entityId === parentId
           : !parentPage,
       )
-      .map(({ page: { icon, metadata, title }, depth }) => {
+      .map(({ page: { icon, metadata, title, type }, depth }) => {
         const { entityId } = metadata.recordId;
 
         const expanded =
@@ -324,6 +324,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             key={entityId}
             title={title}
             pageEntityId={entityId}
+            pageEntityTypeId={metadata.entityTypeId}
             icon={icon}
             pagePath={
               !ownerShortname
@@ -348,6 +349,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
               await createSubPage(
                 entityId,
                 getLastIndex(treeItemList, entityId),
+                type, // just make the subpage the same type as the parent (doc or canvas) for now
               );
 
               setExpandedPageIds((expandedIds) => {

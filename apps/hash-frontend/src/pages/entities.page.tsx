@@ -1,6 +1,6 @@
 import { extractVersion, VersionedUrl } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { isBaseUrl } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, buttonClasses, Container, Typography } from "@mui/material";
@@ -63,7 +63,7 @@ const EntitiesPage: NextPageWithLayout = () => {
   });
 
   const createPage = useCallback(async () => {
-    await createUntitledPage(lastRootPageIndex);
+    await createUntitledPage(lastRootPageIndex, "document");
   }, [lastRootPageIndex, createUntitledPage]);
 
   const latestEntityTypes = useLatestEntityTypesOptional({
@@ -88,7 +88,7 @@ const EntitiesPage: NextPageWithLayout = () => {
   });
 
   const isViewAllPagesPage =
-    entityType?.schema.$id === systemTypes.entityType.page.entityTypeId;
+    entityType && isPageEntityTypeId(entityType.schema.$id);
 
   const pageTitle = entityType
     ? entityTypeId

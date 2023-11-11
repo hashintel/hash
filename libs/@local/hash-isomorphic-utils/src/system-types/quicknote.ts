@@ -7,74 +7,80 @@ import { Entity } from "@blockprotocol/graph";
 import {
   ArchivedPropertyValue,
   Block,
-  BlockBlockDataLink,
   BlockCollection,
-  BlockCollectionContainsLink,
   BlockCollectionOutgoingLinkAndTarget,
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
-  BlockData,
-  BlockDataOutgoingLinkAndTarget,
-  BlockDataOutgoingLinksByLinkEntityTypeId,
-  BlockDataProperties,
+  BlockHasDataLink,
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
   BooleanDataType,
   ComponentIdPropertyValue,
-  Contains,
-  ContainsOutgoingLinkAndTarget,
-  ContainsOutgoingLinksByLinkEntityTypeId,
-  ContainsProperties,
+  FractionalIndexPropertyValue,
+  HasData,
+  HasDataOutgoingLinkAndTarget,
+  HasDataOutgoingLinksByLinkEntityTypeId,
+  HasDataProperties,
+  HasIndexedContent,
+  HasIndexedContentOutgoingLinkAndTarget,
+  HasIndexedContentOutgoingLinksByLinkEntityTypeId,
+  HasIndexedContentProperties,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
-  NumberDataType,
-  NumericIndexPropertyValue,
   TextDataType,
 } from "./shared";
 
 export type {
   ArchivedPropertyValue,
   Block,
-  BlockBlockDataLink,
   BlockCollection,
-  BlockCollectionContainsLink,
   BlockCollectionOutgoingLinkAndTarget,
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
-  BlockData,
-  BlockDataOutgoingLinkAndTarget,
-  BlockDataOutgoingLinksByLinkEntityTypeId,
-  BlockDataProperties,
+  BlockHasDataLink,
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
   BooleanDataType,
   ComponentIdPropertyValue,
-  Contains,
-  ContainsOutgoingLinkAndTarget,
-  ContainsOutgoingLinksByLinkEntityTypeId,
-  ContainsProperties,
+  FractionalIndexPropertyValue,
+  HasData,
+  HasDataOutgoingLinkAndTarget,
+  HasDataOutgoingLinksByLinkEntityTypeId,
+  HasDataProperties,
+  HasIndexedContent,
+  HasIndexedContentOutgoingLinkAndTarget,
+  HasIndexedContentOutgoingLinksByLinkEntityTypeId,
+  HasIndexedContentProperties,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
-  NumberDataType,
-  NumericIndexPropertyValue,
   TextDataType,
 };
 
 export type QuickNote = Entity<QuickNoteProperties>;
 
-export type QuickNoteOutgoingLinkAndTarget = never;
+export type QuickNoteHasIndexedContentLink = {
+  linkEntity: HasIndexedContent;
+  rightEntity: Block;
+};
 
-export type QuickNoteOutgoingLinksByLinkEntityTypeId = {};
+export type QuickNoteOutgoingLinkAndTarget = QuickNoteHasIndexedContentLink;
 
+export type QuickNoteOutgoingLinksByLinkEntityTypeId = {
+  "https://hash.ai/@hash/types/entity-type/has-indexed-content/v/1": QuickNoteHasIndexedContentLink;
+};
+
+/**
+ * A (usually) quick or short note.
+ */
 export type QuickNoteProperties = QuickNoteProperties1 & QuickNoteProperties2;
 export type QuickNoteProperties1 = BlockCollectionProperties;
 
 export type QuickNoteProperties2 = {
-  "http://localhost:3000/@system-user/types/property-type/archived/"?: ArchivedPropertyValue;
+  "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValue;
 };

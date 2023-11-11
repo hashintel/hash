@@ -30,6 +30,9 @@ const baseSchema = gql`
   type Query
 
   type Mutation
+
+  # Apollo implements this, but we need to declare it for editor tooling
+  directive @oneOf on INPUT_OBJECT
 `;
 
 const ontology = [dataTypeTypedef, propertyTypeTypedef, entityTypeTypedef];

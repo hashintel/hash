@@ -1,4 +1,4 @@
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { Entity, EntityId, Subgraph } from "@local/hash-subgraph";
 import { getEntityRevisionsByEntityId } from "@local/hash-subgraph/stdlib";
 
@@ -7,12 +7,9 @@ import {
   EntityStore,
   EntityStoreType,
   isDraftBlockEntity,
-  isDraftEntity,
-  isEntity,
   textualContentPropertyTypeBaseUrl,
 } from "./entity-store";
 import { Block } from "./graphql/api-types.gen";
-import { flatMapTree } from "./util";
 
 export type BlockEntity = Block;
 
@@ -24,24 +21,17 @@ export type TextEntityType = Omit<EntityStoreType, "properties"> & {
   properties: TextProperties;
 };
 
-// @todo make this more robust
-export const isTextProperties =
+const isRichTextProperties =
   (properties: {}): properties is TextEntityType["properties"] =>
-    textualContentPropertyTypeBaseUrl in properties;
+    textualContentPropertyTypeBaseUrl in properties &&
+    Array.isArray(
+      properties[textualContentPropertyTypeBaseUrl as keyof typeof properties],
+    );
 
-export const isTextEntity = (
+export const isRichTextContainingEntity = (
   entity: EntityStoreType | DraftEntity,
 ): entity is TextEntityType =>
-  "properties" in entity &&
-  // Draft text entities would not have an entity type ID assigned yet.
-  // To have this check, we have to make a seperate check for draft text entities.
-  // (entity.entityTypeId ?? "") === TEXT_ENTITY_TYPE_ID &&
-  isTextProperties(entity.properties);
-
-export const isDraftTextEntity = (
-  entity: DraftEntity,
-): entity is DraftEntity<TextEntityType> =>
-  isTextEntity(entity) && isDraftEntity(entity);
+  "properties" in entity && isRichTextProperties(entity.properties);
 
 export const getEntityChildEntity = (
   draftId: string,
@@ -66,8 +56,9 @@ export const getBlockChildEntity = (
   const blockEntity = entityStore.draft[draftBlockId];
 
   if (!isDraftBlockEntity(blockEntity)) {
-    throw new Error("Can only get text entity from block entity");
+    throw new Error("Can only get child entity from block entity");
   }
+
   const childEntity = getEntityChildEntity(
     blockEntity.draftId,
     entityStore.draft,
@@ -78,33 +69,6 @@ export const getBlockChildEntity = (
   }
 
   return childEntity;
-};
-
-/**
- * Flatmap a list of BlockEntities
- * @param blockEntities blocks to traverse
- * @param mapFn function to match each entity
- * @returns a list of mapped values
- */
-export const flatMapBlocks = <T>(
-  blockEntities: BlockEntity[],
-  mapFn: (entity: EntityStoreType, block: BlockEntity) => T[],
-) => {
-  const result = [];
-
-  for (const block of blockEntities) {
-    result.push(
-      ...flatMapTree(block, (node) => {
-        if (isEntity(node)) {
-          return mapFn(node, block);
-        }
-
-        return [];
-      }),
-    );
-  }
-
-  return result;
 };
 
 export const getFirstEntityRevision = (

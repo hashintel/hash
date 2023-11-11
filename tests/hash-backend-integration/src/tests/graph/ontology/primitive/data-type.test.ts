@@ -11,11 +11,11 @@ import {
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { ConstructDataTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
   DataTypeWithMetadata,
   isOwnedOntologyElementMetadata,

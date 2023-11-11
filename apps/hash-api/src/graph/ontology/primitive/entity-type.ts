@@ -11,13 +11,12 @@ import {
   OntologyTemporalMetadata,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
-import { ConstructEntityTypeParams } from "@local/hash-graphql-shared/graphql/types";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
   EntityTypeAuthorizationRelationship,
   EntityTypeInstantiatorSubject,
@@ -37,7 +36,7 @@ import {
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction } from "../../context-types";
-import { getWebShortname } from "./util";
+import { getWebShortname, isExternalTypeId } from "./util";
 
 export const getEntityTypeAuthorizationRelationships: ImpureGraphFunction<
   { entityTypeId: VersionedUrl },
@@ -229,7 +228,7 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
     query,
   });
 
-  if (subgraph.roots.length === 0 && !entityTypeId.startsWith(frontendUrl)) {
+  if (subgraph.roots.length === 0 && isExternalTypeId(entityTypeId)) {
     await context.graphApi.loadExternalEntityType(authentication.actorId, {
       entityTypeId,
     });

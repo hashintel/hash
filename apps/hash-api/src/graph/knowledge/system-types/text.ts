@@ -1,11 +1,15 @@
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  contentLinkTypeFilter,
+  pageEntityTypeFilter,
+} from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import {
   Entity,
   EntityId,
@@ -136,10 +140,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
     query: {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.linkEntityType.contains.schema.$id,
-            { ignoreParents: true },
-          ),
+          contentLinkTypeFilter,
           {
             any: matchingBlockDataLinks.map(({ linkData }) => ({
               equal: [
@@ -163,10 +164,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
     query: {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.entityType.page.schema.$id,
-            { ignoreParents: true },
-          ),
+          pageEntityTypeFilter,
           {
             any: matchingContainsLinks.map(({ metadata }) => ({
               equal: [

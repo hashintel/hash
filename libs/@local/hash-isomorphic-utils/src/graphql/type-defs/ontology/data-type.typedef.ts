@@ -1,7 +1,6 @@
 import { gql } from "apollo-server-express";
 
 export const dataTypeTypedef = gql`
-  scalar VersionedUrl
   # scalar DataType
   # scalar ConstructDataTypeParams
   # scalar DataTypeWithMetadata

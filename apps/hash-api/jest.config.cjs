@@ -8,8 +8,6 @@ module.exports = {
   ],
   coverageReporters: ["lcov", "text"],
   moduleNameMapper: {
-    "@local/hash-graphql-shared(.*)":
-      "<rootDir>/../../libs/@local/hash-graphql-shared/src$1",
     "@local/hash-isomorphic-utils(.*)":
       "<rootDir>/../../libs/@local/hash-isomorphic-utils/src$1",
   },

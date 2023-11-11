@@ -20,6 +20,7 @@ export const blockCollectionContents: ResolverFn<
 
   const contentItems = await getBlockCollectionBlocks(context, authentication, {
     blockCollectionEntityId: blockCollection.metadata.recordId.entityId,
+    blockCollectionEntityTypeId: blockCollection.metadata.entityTypeId,
   });
 
   return contentItems.map(({ linkEntity, rightEntity }) => ({

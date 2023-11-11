@@ -10,7 +10,11 @@ import {
   HashBlock,
   prepareBlockCache,
 } from "./blocks";
-import { BlockEntity, getBlockChildEntity, isTextEntity } from "./entity";
+import {
+  BlockEntity,
+  getBlockChildEntity,
+  isRichTextContainingEntity,
+} from "./entity";
 import {
   createEntityStore,
   DraftEntity,
@@ -164,7 +168,7 @@ export class ProsemirrorManager {
         : null;
 
     const content =
-      blockData && isTextEntity(blockData)
+      blockData && isRichTextContainingEntity(blockData)
         ? childrenForTextEntity(blockData, this.schema)
         : [];
 

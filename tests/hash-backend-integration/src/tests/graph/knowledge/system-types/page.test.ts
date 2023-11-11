@@ -25,8 +25,13 @@ import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { HasIndexedContentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { OwnedById } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import {
+  extractBaseUrl,
+  LinkEntity,
+} from "@local/hash-subgraph/type-system-patch";
+import { generateKeyBetween } from "fractional-indexing";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
@@ -85,10 +90,12 @@ describe("Page", () => {
     testPage = await createPage(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       title: "Test Page",
+      type: "document",
     });
 
     const initialBlocks = await getPageBlocks(graphContext, authentication, {
       pageEntityId: testPage.entity.metadata.recordId.entityId,
+      type: "document",
     });
 
     expect(initialBlocks).toHaveLength(1);
@@ -109,11 +116,13 @@ describe("Page", () => {
       title: "Test Page 2",
       summary: "Test page 2 summary",
       initialBlocks: [initialBlock1, initialBlock2],
+      type: "document",
     });
 
     const initialBlocks = (
       await getPageBlocks(graphContext, authentication, {
         pageEntityId: testPage2.entity.metadata.recordId.entityId,
+        type: "document",
       })
     ).map((block) => block.rightEntity);
     const expectedInitialBlocks = [initialBlock1, initialBlock2];
@@ -169,6 +178,7 @@ describe("Page", () => {
       ownedById: testUser.accountId as OwnedById,
       title: "Test Parent Page",
       summary: "Test page summary",
+      type: "document",
     });
 
     expect(
@@ -187,42 +197,80 @@ describe("Page", () => {
   });
 
   let testBlock1: Block;
+  let testBlockLink1: LinkEntity<HasIndexedContentProperties>;
 
   let testBlock2: Block;
+  let testBlockLink2: LinkEntity<HasIndexedContentProperties>;
 
   let testBlock3: Block;
+  let testBlockLink3: LinkEntity<HasIndexedContentProperties>;
+
+  let firstKey: string;
 
   it("can insert blocks", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const existingBlocks = await getPageBlocks(graphContext, authentication, {
       pageEntityId: testPage.entity.metadata.recordId.entityId,
+      type: "document",
     });
 
     expect(existingBlocks).toHaveLength(1);
 
     testBlock1 = existingBlocks[0]!.rightEntity!;
+    testBlockLink1 = existingBlocks[0]!
+      .linkEntity as unknown as LinkEntity<HasIndexedContentProperties>;
 
     [testBlock2, testBlock3] = await Promise.all([
       createTestBlock(),
       createTestBlock(),
     ]);
 
-    // insert block at un-specified position
-    await addBlockToBlockCollection(graphContext, authentication, {
-      blockCollectionEntity: testPage.entity,
-      block: testBlock3,
-    });
     // insert block at specified position
-    await addBlockToBlockCollection(graphContext, authentication, {
-      blockCollectionEntity: testPage.entity,
-      block: testBlock2,
-      position: 1,
-    });
+    testBlockLink2 = (await addBlockToBlockCollection(
+      graphContext,
+      authentication,
+      {
+        blockCollectionEntityId: testPage.entity.metadata.recordId.entityId,
+        block: testBlock2,
+        position: {
+          indexPosition: {
+            "https://hash.ai/@hash/types/property-type/fractional-index/":
+              generateKeyBetween(
+                testBlockLink1.properties[
+                  "https://hash.ai/@hash/types/property-type/fractional-index/"
+                ],
+                null,
+              ),
+          },
+        },
+      },
+    )) as unknown as LinkEntity<HasIndexedContentProperties>;
+
+    testBlockLink3 = (await addBlockToBlockCollection(
+      graphContext,
+      authentication,
+      {
+        blockCollectionEntityId: testPage.entity.metadata.recordId.entityId,
+        block: testBlock3,
+        position: {
+          indexPosition: {
+            "https://hash.ai/@hash/types/property-type/fractional-index/":
+              generateKeyBetween(
+                testBlockLink2.properties[
+                  "https://hash.ai/@hash/types/property-type/fractional-index/"
+                ],
+                null,
+              ),
+          },
+        },
+      },
+    )) as unknown as LinkEntity<HasIndexedContentProperties>;
 
     const blocks = (
       await getPageBlocks(graphContext, authentication, {
         pageEntityId: testPage.entity.metadata.recordId.entityId,
+        type: "document",
       })
     ).map((contentItem) => contentItem.rightEntity);
     const expectedBlocks = [testBlock1, testBlock2, testBlock3];
@@ -234,18 +282,30 @@ describe("Page", () => {
   it("can move a block", async () => {
     const authentication = { actorId: testUser.accountId };
 
+    firstKey = generateKeyBetween(
+      null,
+      testBlockLink1.properties[
+        "https://hash.ai/@hash/types/property-type/fractional-index/"
+      ],
+    );
+
     await moveBlockInBlockCollection(graphContext, authentication, {
-      blockCollectionEntity: testPage.entity,
-      currentPosition: 0,
-      newPosition: 2,
+      linkEntityId: testBlockLink3.metadata.recordId.entityId,
+      position: {
+        indexPosition: {
+          "https://hash.ai/@hash/types/property-type/fractional-index/":
+            firstKey,
+        },
+      },
     });
 
     const initialBlocks = (
       await getPageBlocks(graphContext, authentication, {
         pageEntityId: testPage.entity.metadata.recordId.entityId,
+        type: "document",
       })
     ).map((contentItem) => contentItem.rightEntity);
-    const expectedInitialBlocks = [testBlock2, testBlock3, testBlock1];
+    const expectedInitialBlocks = [testBlock3, testBlock2, testBlock1];
 
     expect(initialBlocks).toHaveLength(expectedInitialBlocks.length);
     expect(initialBlocks).toEqual(
@@ -253,14 +313,19 @@ describe("Page", () => {
     );
 
     await moveBlockInBlockCollection(graphContext, authentication, {
-      blockCollectionEntity: testPage.entity,
-      currentPosition: 2,
-      newPosition: 0,
+      linkEntityId: testBlockLink1.metadata.recordId.entityId,
+      position: {
+        indexPosition: {
+          "https://hash.ai/@hash/types/property-type/fractional-index/":
+            generateKeyBetween(null, firstKey),
+        },
+      },
     });
 
     const updatedBlocks = (
       await getPageBlocks(graphContext, authentication, {
         pageEntityId: testPage.entity.metadata.recordId.entityId,
+        type: "document",
       })
     ).map((contentItem) => contentItem.rightEntity);
     const expectedUpdatedBlocks = [testBlock1, testBlock2, testBlock3];
@@ -274,13 +339,13 @@ describe("Page", () => {
     const authentication = { actorId: testUser.accountId };
 
     await removeBlockFromBlockCollection(graphContext, authentication, {
-      blockCollectionEntity: testPage.entity,
-      position: 0,
+      linkEntityId: testBlockLink1.metadata.recordId.entityId,
     });
 
     const blocks = (
       await getPageBlocks(graphContext, authentication, {
         pageEntityId: testPage.entity.metadata.recordId.entityId,
+        type: "document",
       })
     ).map((contentItem) => contentItem.rightEntity);
     const expectedBlocks = [testBlock2, testBlock3];

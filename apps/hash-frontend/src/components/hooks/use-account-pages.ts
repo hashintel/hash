@@ -1,5 +1,5 @@
 import { ApolloQueryResult, useQuery } from "@apollo/client";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   SimpleProperties,
@@ -28,6 +28,7 @@ import { useHashInstance } from "./use-hash-instance";
 export type SimplePage = SimpleProperties<PageProperties> & {
   metadata: EntityMetadata;
   parentPage?: { metadata: EntityMetadata } | null;
+  type: "canvas" | "document";
 };
 
 export type AccountPagesInfo = {
@@ -82,6 +83,11 @@ export const useAccountPages = (
         ...simplifyProperties(latestPage.properties as PageProperties),
         metadata: latestPage.metadata,
         parentPage: parentPage ? { metadata: parentPage.metadata } : null,
+        type:
+          latestPage.metadata.entityTypeId ===
+          systemTypes.entityType.canvas.entityTypeId
+            ? "canvas"
+            : "document",
       };
     });
   }, [data]);

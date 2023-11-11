@@ -5,6 +5,7 @@ import {
   TextCell,
 } from "@glideapps/glide-data-grid";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -79,9 +80,8 @@ export const EntitiesTable: FunctionComponent<{
 
   const isViewingPages = useMemo(
     () =>
-      entities?.every(
-        ({ metadata: { entityTypeId } }) =>
-          entityTypeId === systemTypes.entityType.page.entityTypeId,
+      entities?.every(({ metadata: { entityTypeId } }) =>
+        isPageEntityTypeId(entityTypeId),
       ),
     [entities],
   );
@@ -110,8 +110,7 @@ export const EntitiesTable: FunctionComponent<{
               )) &&
           (filterState.includeArchived === undefined ||
           filterState.includeArchived ||
-          entity.metadata.entityTypeId !==
-            systemTypes.entityType.page.entityTypeId
+          !isPageEntityTypeId(entity.metadata.entityTypeId)
             ? true
             : entity.properties[
                 extractBaseUrl(systemTypes.propertyType.archived.propertyTypeId)

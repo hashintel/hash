@@ -5,6 +5,7 @@ import {
 } from "@blockprotocol/type-system";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import {
   BaseUrl,
   Entity,
@@ -154,9 +155,7 @@ export const useEntitiesTable = (params: {
 
             const entityId = entity.metadata.recordId.entityId;
 
-            const isPage =
-              entity.metadata.entityTypeId ===
-              systemTypes.entityType.page.entityTypeId;
+            const isPage = isPageEntityTypeId(entity.metadata.entityTypeId);
 
             /**
              * @todo: consider displaying handling this differently for pages, where

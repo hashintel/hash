@@ -188,34 +188,34 @@ export type UserOutgoingLinkAndTarget =
   | UserCreatedIssueLink;
 
 export type UserOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@linear/types/entity-type/assigned-issue/v/1": UserAssignedIssueLink;
-  "http://localhost:3000/@linear/types/entity-type/created-issue/v/1": UserCreatedIssueLink;
+  "https://hash.ai/@linear/types/entity-type/assigned-issue/v/1": UserAssignedIssueLink;
+  "https://hash.ai/@linear/types/entity-type/created-issue/v/1": UserCreatedIssueLink;
 };
 
 /**
  * A user that has access to the the resources of an organization.
  */
 export type UserProperties = {
-  "http://localhost:3000/@linear/types/property-type/active/": ActivePropertyValue;
-  "http://localhost:3000/@linear/types/property-type/admin/": AdminPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/avatar-url/"?: AvatarURLPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/created-at/": CreatedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/created-issue-count/": CreatedIssueCountPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/description/"?: DescriptionPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/disable-reason/"?: DisableReasonPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/display-name/": DisplayNamePropertyValue;
-  "http://localhost:3000/@linear/types/property-type/email/": EmailPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/guest/": GuestPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/id/": IDPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/invite-hash/": InviteHashPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/is-me/": IsMePropertyValue;
-  "http://localhost:3000/@linear/types/property-type/last-seen/"?: LastSeenPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/name/": NamePropertyValue;
-  "http://localhost:3000/@linear/types/property-type/status-emoji/"?: StatusEmojiPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/status-label/"?: StatusLabelPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/status-until-at/"?: StatusUntilAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/timezone/"?: TimezonePropertyValue;
-  "http://localhost:3000/@linear/types/property-type/updated-at/": UpdatedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/url/": URLPropertyValue;
+  "https://hash.ai/@linear/types/property-type/active/": ActivePropertyValue;
+  "https://hash.ai/@linear/types/property-type/admin/": AdminPropertyValue;
+  "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
+  "https://hash.ai/@linear/types/property-type/avatar-url/"?: AvatarURLPropertyValue;
+  "https://hash.ai/@linear/types/property-type/created-at/": CreatedAtPropertyValue;
+  "https://hash.ai/@linear/types/property-type/created-issue-count/": CreatedIssueCountPropertyValue;
+  "https://hash.ai/@linear/types/property-type/description/"?: DescriptionPropertyValue;
+  "https://hash.ai/@linear/types/property-type/disable-reason/"?: DisableReasonPropertyValue;
+  "https://hash.ai/@linear/types/property-type/display-name/": DisplayNamePropertyValue;
+  "https://hash.ai/@linear/types/property-type/email/": EmailPropertyValue;
+  "https://hash.ai/@linear/types/property-type/guest/": GuestPropertyValue;
+  "https://hash.ai/@linear/types/property-type/id/": IDPropertyValue;
+  "https://hash.ai/@linear/types/property-type/invite-hash/": InviteHashPropertyValue;
+  "https://hash.ai/@linear/types/property-type/is-me/": IsMePropertyValue;
+  "https://hash.ai/@linear/types/property-type/last-seen/"?: LastSeenPropertyValue;
+  "https://hash.ai/@linear/types/property-type/name/": NamePropertyValue;
+  "https://hash.ai/@linear/types/property-type/status-emoji/"?: StatusEmojiPropertyValue;
+  "https://hash.ai/@linear/types/property-type/status-label/"?: StatusLabelPropertyValue;
+  "https://hash.ai/@linear/types/property-type/status-until-at/"?: StatusUntilAtPropertyValue;
+  "https://hash.ai/@linear/types/property-type/timezone/"?: TimezonePropertyValue;
+  "https://hash.ai/@linear/types/property-type/updated-at/": UpdatedAtPropertyValue;
+  "https://hash.ai/@linear/types/property-type/url/": URLPropertyValue;
 };

@@ -1,5 +1,5 @@
 import { gql } from "@apollo/client";
-import { subgraphFieldsFragment } from "@local/hash-graphql-shared/queries/subgraph";
+import { subgraphFieldsFragment } from "@local/hash-isomorphic-utils/graphql/queries/subgraph";
 
 export const getEntityTypeQuery = gql`
   query getEntityType(

@@ -4,7 +4,6 @@ import {
   IconButton,
   LoadingSpinner,
 } from "@hashintel/design-system";
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import {
   createSchema,
   formatKeymap,
@@ -14,6 +13,7 @@ import {
   textBlockNodesFromTokens,
   textBlockNodeToTextTokens,
 } from "@local/hash-isomorphic-utils/text";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { Box } from "@mui/material";
 import { debounce, isEqual } from "lodash";
 import { baseKeymap } from "prosemirror-commands";
@@ -243,7 +243,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
           overflow: "hidden",
           flexGrow: 1,
           fontSize: 14,
-          lineHeight: "150%",
+          lineHeight: 1.7,
           color: palette.gray[90],
         })}
       />

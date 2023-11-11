@@ -1,4 +1,4 @@
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 
 import { getCommentText } from "../../../../graph/knowledge/system-types/comment";
 import { ResolverFn } from "../../../api-types.gen";

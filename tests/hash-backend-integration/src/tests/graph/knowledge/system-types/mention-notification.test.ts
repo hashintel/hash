@@ -32,12 +32,12 @@ import {
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import {
   blockProtocolTypes,
   systemTypes,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { Entity, OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
@@ -102,10 +102,12 @@ describe("Page Mention Notification", () => {
     occurredInEntity = await createPage(graphContext, authentication, {
       title: "Test Page",
       ownedById: triggerUser.accountId as OwnedById,
+      type: "document",
     });
 
     const pageBlocks = await getPageBlocks(graphContext, authentication, {
       pageEntityId: occurredInEntity.entity.metadata.recordId.entityId,
+      type: "document",
     }).then((blocksWithLinks) =>
       blocksWithLinks.map(({ rightEntity }) => rightEntity),
     );

@@ -3,6 +3,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { contentLinkTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import {
   Entity,
   EntityId,
@@ -250,10 +251,7 @@ export const getBlockCollectionByBlock: ImpureGraphFunction<
     query: {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.linkEntityType.contains.schema.$id,
-            { ignoreParents: true },
-          ),
+          contentLinkTypeFilter,
           {
             equal: [
               { path: ["rightEntity", "uuid"] },

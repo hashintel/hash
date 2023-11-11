@@ -2,6 +2,7 @@ import {
   EntityId,
   EntityPropertiesObject,
   OwnedById,
+  Timestamp,
 } from "@local/hash-subgraph";
 import { castDraft, Draft, produce } from "immer";
 import { isEqual } from "lodash";
@@ -10,7 +11,11 @@ import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
 
-import { BlockEntity, getEntityChildEntity, isTextEntity } from "./entity";
+import {
+  BlockEntity,
+  getEntityChildEntity,
+  isRichTextContainingEntity,
+} from "./entity";
 import {
   createEntityStore,
   DraftEntity,
@@ -297,6 +302,36 @@ const entityStoreReducer = (
                 );
               }
             }
+
+            const now = new Date().toISOString();
+
+            /**
+             * When we merge the updated entity store in from the API in createEntityStore, after a save,
+             * we compare the decision time of the local draft entities to that of the API-provided ones to see which to prefer.
+             * Although this is fragile and not a robust solution given the possibility of the API and the frontend having different clocks,
+             * it's better than nothing. We should instead have a proper collaborative server which manages document state.
+             * H-1234
+             */
+            draftEntity.metadata.temporalVersioning = {
+              decisionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: now as Timestamp,
+                },
+                end: {
+                  kind: "unbounded",
+                },
+              },
+              transactionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: now as Timestamp,
+                },
+                end: {
+                  kind: "unbounded",
+                },
+              },
+            };
           },
         );
       });
@@ -587,7 +622,7 @@ class ProsemirrorStateChangeHandler {
     // and we'd like to update the child entity's text contents appropriately.
 
     if (
-      isTextEntity(childEntity) &&
+      isRichTextContainingEntity(childEntity) &&
       node.firstChild &&
       node.firstChild.firstChild &&
       // Check if the next entity node's child is a component node

@@ -10,6 +10,7 @@ import { useCallback } from "react";
 import {
   CreatePageMutation,
   CreatePageMutationVariables,
+  PageType,
   SetParentPageMutation,
   SetParentPageMutationVariables,
 } from "../../graphql/api-types.gen";
@@ -49,13 +50,20 @@ export const useCreateSubPage = ({
     async (
       parentPageEntityId: EntityId,
       prevFractionalIndex: string | null,
+      type: "canvas" | "document",
     ) => {
       if (!ownedById) {
         throw new Error("No ownedById provided to useCreateSubPage");
       }
 
       const response = await createPageFn({
-        variables: { ownedById, properties: { title: "Untitled" } },
+        variables: {
+          ownedById,
+          properties: {
+            title: "Untitled",
+            type: type === "canvas" ? PageType.Canvas : PageType.Document,
+          },
+        },
       });
 
       if (response.data?.createPage) {

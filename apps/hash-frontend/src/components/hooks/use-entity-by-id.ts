@@ -1,10 +1,10 @@
 import { useQuery } from "@apollo/client";
 import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
-  UserPermissionsOnEntities,
-} from "@local/hash-graphql-shared/graphql/types";
-import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
-import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+import { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
 import {
   EntityId,
   EntityRootType,
