@@ -39,7 +39,7 @@ opentelemetry-otlp = "0.13.0"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 regex = "1.10.2"
 semver = { version = "1.0.20", default-features = false, features = ["serde"] }
-sentry = { version = "0.31.7", features = ["tracing", "tower", "tower-http"], default-features = false }
+sentry = { version = "0.31.8", features = ["tracing", "tower", "tower-http"], default-features = false }
 serde_json = { workspace = true }
 tarpc = { version = "0.33", features = ["serde-transport", "tcp"] }
 time = { workspace = true }
