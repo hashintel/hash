@@ -1,6 +1,6 @@
 import { BlockVariant, JsonObject } from "@blockprotocol/core";
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { Node, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
