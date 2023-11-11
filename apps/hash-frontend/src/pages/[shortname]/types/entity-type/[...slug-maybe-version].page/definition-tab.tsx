@@ -10,7 +10,7 @@ import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology
 import { getTypesWithoutMetadata } from "./shared/get-types-without-metadata";
 
 type DefinitionTabProps = {
-  ownedById?: OwnedById;
+  ownedById: OwnedById | null;
   entityTypeAndPropertyTypes: {
     entityType: EntityType;
     propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata>;
@@ -69,7 +69,7 @@ export const DefinitionTab = ({
   );
 
   const ontologyFunctions = useEditorOntologyFunctions(
-    ownedById ?? null,
+    ownedById,
     typesWithMetadata,
   );
 
