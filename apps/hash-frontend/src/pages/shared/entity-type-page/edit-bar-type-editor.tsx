@@ -6,14 +6,14 @@ import {
 } from "@hashintel/type-editor";
 import { useState } from "react";
 
-import { PencilSimpleLine } from "../../../../../shared/icons/svg";
-import { ButtonProps } from "../../../../../shared/ui/button";
+import { PencilSimpleLine } from "../../../shared/icons/svg";
+import { ButtonProps } from "../../../shared/ui/button";
 import {
   EditBarCollapse,
   EditBarContainer,
   EditBarContents,
   useFreezeScrollWhileTransitioning,
-} from "../../../shared/edit-bar";
+} from "../../[shortname]/shared/edit-bar";
 
 const useFrozenValue = <T extends any>(value: T): T => {
   const { isDirty } = useEntityTypeFormState<EntityTypeEditorFormData>();

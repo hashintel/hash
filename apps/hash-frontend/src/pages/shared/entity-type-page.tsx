@@ -1,7 +1,6 @@
-import { Buffer } from "node:buffer";
-
-import { extractVersion, validateEntityType } from "@blockprotocol/type-system";
+import { extractVersion } from "@blockprotocol/type-system";
 import { VersionedUrl } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
+import { EntityType } from "@blockprotocol/type-system/slim";
 import {
   EntityTypeIcon,
   LinkTypeIcon,
@@ -20,36 +19,36 @@ import {
   linkEntityTypeUrl,
   OwnedById,
 } from "@local/hash-subgraph";
-import { Box, Container, Theme } from "@mui/material";
+import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useEffect, useMemo, useState } from "react";
 
-import { PageErrorState } from "../../../../components/page-error-state";
-import { EntityTypeEntitiesContext } from "../../../../shared/entity-type-entities-context";
-import { useEntityTypeEntitiesContextValue } from "../../../../shared/entity-type-entities-context/use-entity-type-entities-context-value";
-import { useIsSpecialEntityType } from "../../../../shared/entity-types-context/hooks";
-import { isTypeArchived } from "../../../../shared/is-archived";
-import { isHrefExternal } from "../../../../shared/is-href-external";
-import { useIsReadonlyModeForType } from "../../../../shared/readonly-mode";
-import { TopContextBar } from "../../../shared/top-context-bar";
-import { ArchiveMenuItem } from "../../shared/archive-menu-item";
-import { ConvertTypeMenuItem } from "./[...slug-maybe-version].page/convert-type-menu-item";
-import { DefinitionTab } from "./[...slug-maybe-version].page/definition-tab";
-import { EditBarTypeEditor } from "./[...slug-maybe-version].page/edit-bar-type-editor";
-import { EntitiesTab } from "./[...slug-maybe-version].page/entities-tab";
-import { EntityTypeTabs } from "./[...slug-maybe-version].page/entity-type-tabs";
-import { FileUploadsTab } from "./[...slug-maybe-version].page/file-uploads-tab";
-import { EntityTypeContext } from "./[...slug-maybe-version].page/shared/entity-type-context";
-import { EntityTypeHeader } from "./[...slug-maybe-version].page/shared/entity-type-header";
-import { useCurrentTab } from "./[...slug-maybe-version].page/shared/tabs";
-import { TypePreviewSlide } from "./[...slug-maybe-version].page/type-preview-slide";
-import { useEntityTypeValue } from "./[...slug-maybe-version].page/use-entity-type-value";
+import { PageErrorState } from "../../components/page-error-state";
+import { EntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
+import { useEntityTypeEntitiesContextValue } from "../../shared/entity-type-entities-context/use-entity-type-entities-context-value";
+import { useIsSpecialEntityType } from "../../shared/entity-types-context/hooks";
+import { isTypeArchived } from "../../shared/is-archived";
+import { isHrefExternal } from "../../shared/is-href-external";
+import { Link } from "../../shared/ui/link";
+import { ArchiveMenuItem } from "../[shortname]/shared/archive-menu-item";
+import { ConvertTypeMenuItem } from "./entity-type-page/convert-type-menu-item";
+import { DefinitionTab } from "./entity-type-page/definition-tab";
+import { EditBarTypeEditor } from "./entity-type-page/edit-bar-type-editor";
+import { EntitiesTab } from "./entity-type-page/entities-tab";
+import { EntityTypeTabs } from "./entity-type-page/entity-type-tabs";
+import { FileUploadsTab } from "./entity-type-page/file-uploads-tab";
+import { EntityTypeContext } from "./entity-type-page/shared/entity-type-context";
+import { EntityTypeHeader } from "./entity-type-page/shared/entity-type-header";
+import { useCurrentTab } from "./entity-type-page/shared/tabs";
+import { TypePreviewSlide } from "./entity-type-page/type-preview-slide";
+import { useEntityTypeValue } from "./entity-type-page/use-entity-type-value";
+import { TopContextBar } from "./top-context-bar";
 
 type EntityTypeProps = {
   accountId?: AccountId | null;
-  draftEntityType?: EntityType;
+  draftEntityType?: EntityType | null;
   entityTypeBaseUrl?: BaseUrl;
   requestedVersion: number | null;
   readonly: boolean;
@@ -75,7 +74,7 @@ export const EntityTypePage = ({
 
   useEffect(() => {
     if (draftEntityType) {
-      reset(getFormDataFromSchema(draftEntityType.schema));
+      reset(getFormDataFromSchema(draftEntityType));
     }
   }, [draftEntityType, reset]);
 
@@ -91,11 +90,6 @@ export const EntityTypePage = ({
     requestedVersion,
     accountId ?? null,
     (fetchedEntityType) => {
-      if (isHrefExternal(fetchedEntityType.schema.$id)) {
-        // In the current routing this should never be the case, but this is a marker to handle it when external types exist
-        window.open(fetchedEntityType.schema.$id);
-      }
-
       // Load the initial form data after the entity type has been fetched
       reset(getFormDataFromSchema(fetchedEntityType.schema));
     },
@@ -109,14 +103,9 @@ export const EntityTypePage = ({
     $id: entityType?.$id,
   });
 
-  // Turn into readonly prop
-  // const userUnauthorized = useIsReadonlyModeForType(
-  //   routeNamespace?.accountId as OwnedById,
-  // );
-
   const isLatest = !requestedVersion || requestedVersion === latestVersion;
 
-  const isReadonly = userUnauthorized || !isLatest;
+  const isReadonly = readonly || !isLatest;
 
   const entityTypeAndPropertyTypes = useMemo(
     () =>
@@ -171,27 +160,38 @@ export const EntityTypePage = ({
     useState<VersionedUrl | null>(null);
 
   const onNavigateToType = (url: VersionedUrl) => {
-    if (isHrefExternal(url)) {
-      window.open(url);
-    } else {
-      setPreviewEntityTypeUrl(url);
-    }
+    setPreviewEntityTypeUrl(url);
   };
 
   if (!entityType) {
     if (loadingRemoteEntityType) {
       return null;
+    } else if (isHrefExternal(entityTypeBaseUrl as string)) {
+      /**
+       * This is a type not owned by this instance of HASH which is not in the database.
+       * This is only possible if someone links to the /types/external/ route with such a type.
+       */
+      const externalHref = `${entityTypeBaseUrl}${
+        requestedVersion ? `/v/${requestedVersion}` : ""
+      }`;
+
+      return (
+        <Container>
+          <Typography variant="h2">
+            External type not found in database
+          </Typography>
+          <Typography>
+            This type wasn't created in this instance of HASH and isn't in use
+            by any types or entities in it.
+          </Typography>
+          <Typography>
+            You can visit the <strong>external site</strong>{" "}
+            <Link href={externalHref}>here</Link>.
+          </Typography>
+        </Container>
+      );
     } else {
       return <PageErrorState />;
-    }
-  }
-
-  // @todo move to slug
-  if (!routeNamespace) {
-    if (loadingNamespace) {
-      return null;
-    } else {
-      throw new Error("Namespace for valid entity somehow missing");
     }
   }
 
@@ -309,7 +309,10 @@ export const EntityTypePage = ({
                     ontologyChip={
                       <OntologyChip
                         domain={new URL(entityType.$id).hostname}
-                        path={`${router.query.shortname}/types/entity-type/${slug}/v/${currentVersion}`}
+                        path={new URL(entityType.$id).pathname.replace(
+                          /\d+$/,
+                          currentVersion.toString(),
+                        )}
                       />
                     }
                     entityType={entityType}
@@ -319,7 +322,7 @@ export const EntityTypePage = ({
                   />
 
                   <EntityTypeTabs
-                    isDraft={draftEntityType}
+                    isDraft={isDraft}
                     isFile={isFile}
                     isImage={isImage}
                   />

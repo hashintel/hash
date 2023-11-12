@@ -15,9 +15,9 @@ import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-pat
 import { Backdrop, Box, Slide } from "@mui/material";
 import { FunctionComponent, useMemo, useState } from "react";
 
-import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { Link } from "../../../../../shared/ui";
-import { useRouteNamespace } from "../../../shared/use-route-namespace";
+import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { Link } from "../../../shared/ui";
+import { useRouteNamespace } from "../../[shortname]/shared/use-route-namespace";
 import { EntityTypeContext } from "./shared/entity-type-context";
 import { EntityTypeHeader } from "./shared/entity-type-header";
 import { getTypesWithoutMetadata } from "./shared/get-types-without-metadata";

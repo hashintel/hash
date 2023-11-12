@@ -29,13 +29,13 @@ import {
   useState,
 } from "react";
 
-import { useBlockProtocolCreateEntityType } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
-import { useBlockProtocolUpdateEntityType } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
+import { useBlockProtocolCreateEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
+import { useBlockProtocolUpdateEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
 import {
   useEntityTypesLoading,
   useEntityTypesSubgraphOptional,
   useFetchEntityTypes,
-} from "../../../../../shared/entity-types-context/hooks";
+} from "../../../shared/entity-types-context/hooks";
 
 /**
  * Adds all property types referenced by the given property reference objects to the provided map,

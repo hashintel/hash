@@ -10,6 +10,7 @@ import NextLink, { LinkProps as NextLinkProps } from "next/link";
 import { useRouter } from "next/router";
 import { forwardRef, isValidElement } from "react";
 
+import { generateExternalTypeUrl } from "../generate-external-type-url";
 import { isHrefExternal } from "../is-href-external";
 import { Button } from "./button";
 
@@ -89,16 +90,34 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
     }
 
     if (typeof href === "string" && isHrefExternal(href)) {
-      other.rel = "noopener";
-      other.target = "_blank";
+      const externalTypeHref = generateExternalTypeUrl(href);
+
+      const possiblyRewrittenHref = externalTypeHref ?? href;
+
+      if (!externalTypeHref) {
+        other.rel = "noopener";
+        other.target = "_blank";
+      }
 
       if (noLinkStyle) {
         return (
-          <Anchor className={className} href={href} ref={ref} {...other} />
+          <Anchor
+            className={className}
+            href={possiblyRewrittenHref}
+            ref={ref}
+            {...other}
+          />
         );
       }
 
-      return <MuiLink className={className} href={href} ref={ref} {...other} />;
+      return (
+        <MuiLink
+          className={className}
+          href={possiblyRewrittenHref}
+          ref={ref}
+          {...other}
+        />
+      );
     }
 
     if (noLinkStyle) {

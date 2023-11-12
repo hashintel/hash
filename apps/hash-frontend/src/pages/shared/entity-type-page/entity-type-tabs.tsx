@@ -3,11 +3,10 @@ import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 import { useRouter } from "next/router";
 
-import { useEntityTypeEntities } from "../../../../../shared/entity-type-entities-context";
-import { TabLink } from "../../../../../shared/ui/tab-link";
-import { Tabs } from "../../../../../shared/ui/tabs";
+import { useEntityTypeEntities } from "../../../shared/entity-type-entities-context";
+import { TabLink } from "../../../shared/ui/tab-link";
+import { Tabs } from "../../../shared/ui/tabs";
 import { useEntityType } from "./shared/entity-type-context";
-import { getEntityTypeBaseUrl } from "./shared/get-entity-type-base-url";
 import { getTabUrl, getTabValue, useCurrentTab } from "./shared/tabs";
 
 export const EntityTypeTabs = ({
@@ -25,11 +24,6 @@ export const EntityTypeTabs = ({
 
   const { entities, loading } = useEntityTypeEntities();
 
-  const baseUrl = getEntityTypeBaseUrl(
-    router.query["slug-maybe-version"]![0] as string,
-    router.query.shortname as `@${string}`,
-  );
-
   const currentTab = useCurrentTab();
 
   return (
@@ -37,7 +31,7 @@ export const EntityTypeTabs = ({
       <Tabs value={router.query.tab ?? ""}>
         <TabLink
           value={getTabValue("definition")}
-          href={isDraft ? router.asPath : getTabUrl(baseUrl, "definition")}
+          href={isDraft ? router.asPath : getTabUrl("definition")}
           label="Definition"
           active={currentTab === "definition"}
         />
@@ -53,7 +47,7 @@ export const EntityTypeTabs = ({
               <TabLink
                 key="entities"
                 value={getTabValue("entities")}
-                href={getTabUrl(baseUrl, "entities")}
+                href={getTabUrl("entities")}
                 label="Entities"
                 loading={loading}
                 count={entities?.length ?? 0}
@@ -64,7 +58,7 @@ export const EntityTypeTabs = ({
                 value={isFile ? "upload" : "create"}
                 href={
                   isFile
-                    ? getTabUrl(baseUrl, "upload")
+                    ? getTabUrl("upload")
                     : `/new/entity?entity-type-id=${encodeURIComponent(
                         entityType.$id,
                       )}`

@@ -1,6 +1,8 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { EntityTypeEditorProps } from "@hashintel/type-editor";
-import { EditorOntologyFunctions } from "@hashintel/type-editor/src/shared/ontology-functions-context";
+import {
+  EditorOntologyFunctions,
+  EntityTypeEditorProps,
+} from "@hashintel/type-editor";
 import {
   EntityTypeWithMetadata,
   OwnedById,
@@ -12,17 +14,17 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { useCallback } from "react";
 
-import { useBlockProtocolCreateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
-import { useBlockProtocolCreatePropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-property-type";
-import { useBlockProtocolGetEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
-import { useBlockProtocolGetPropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-property-type";
-import { useBlockProtocolUpdateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
-import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
-import { useFetchEntityTypes } from "../../../../../../shared/entity-types-context/hooks";
-import { useRefetchPropertyTypes } from "../../../../../../shared/property-types-context";
-import { canUserEditType } from "../../../../../../shared/readonly-mode";
-import { useAuthInfo } from "../../../../../shared/auth-info-context";
-import { useGenerateTypeUrlsForUser } from "../../../../../shared/use-generate-type-urls-for-user";
+import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
+import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-property-type";
+import { useBlockProtocolGetEntityType } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
+import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-property-type";
+import { useBlockProtocolUpdateEntityType } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
+import { useBlockProtocolUpdatePropertyType } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
+import { useFetchEntityTypes } from "../../../../shared/entity-types-context/hooks";
+import { useRefetchPropertyTypes } from "../../../../shared/property-types-context";
+import { canUserEditType } from "../../../../shared/readonly-mode";
+import { useAuthInfo } from "../../auth-info-context";
+import { useGenerateTypeUrlsForUser } from "../../use-generate-type-urls-for-user";
 
 export const useEditorOntologyFunctions = (
   ownedById: OwnedById | null,
@@ -48,7 +50,7 @@ export const useEditorOntologyFunctions = (
     EditorOntologyFunctions["createEntityType"]
   >(
     (args) => {
-      return createEntityType(args as any).then(async (res) => {
+      return createEntityType(args).then(async (res) => {
         await refetchEntityTypes();
         return res;
       });
@@ -60,7 +62,7 @@ export const useEditorOntologyFunctions = (
     EditorOntologyFunctions["updateEntityType"]
   >(
     (args) => {
-      return updateEntityType(args as any).then(async (res) => {
+      return updateEntityType(args).then(async (res) => {
         await refetchEntityTypes();
         return res;
       });

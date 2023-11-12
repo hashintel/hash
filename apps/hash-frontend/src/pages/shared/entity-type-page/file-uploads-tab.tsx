@@ -21,10 +21,10 @@ import { ReactNode, useContext, useState } from "react";
 import {
   useFileUploads,
   useFileUploadsProgress,
-} from "../../../../../shared/file-upload-context";
-import { FileUploadDropzone } from "../../../../settings/shared/file-upload-dropzone";
-import { WorkspaceContext } from "../../../../shared/workspace-context";
-import { SectionWrapper } from "../../../shared/section-wrapper";
+} from "../../../shared/file-upload-context";
+import { SectionWrapper } from "../../[shortname]/shared/section-wrapper";
+import { FileUploadDropzone } from "../../settings/shared/file-upload-dropzone";
+import { WorkspaceContext } from "../workspace-context";
 import { Action } from "./file-uploads-tab/action";
 import { ShowUploadFormButton } from "./file-uploads-tab/show-upload-form-button";
 import { useEntityType } from "./shared/entity-type-context";

@@ -7,8 +7,8 @@ import {
 import { Box, Stack, Tooltip, Typography } from "@mui/material";
 import { ReactNode, useState } from "react";
 
-import { Button, Link, Modal } from "../../../../../../shared/ui";
-import { CreateEntityTypeForm } from "../../../../../shared/create-entity-type-form";
+import { Button, Link, Modal } from "../../../../shared/ui";
+import { CreateEntityTypeForm } from "../../create-entity-type-form";
 import { EntityTypeDescription } from "../entity-type-description";
 
 interface EntityTypeHeaderProps {

@@ -5,10 +5,10 @@ import {
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { Box, Stack, SxProps, Theme, Tooltip } from "@mui/material";
 
-import { useUserOrOrgShortnameByOwnedById } from "../../../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
-import { FileUpload } from "../../../../../../shared/file-upload-context";
-import { DashIcon } from "../../../../../../shared/icons/dash-icon";
-import { Link } from "../../../../../../shared/ui/link";
+import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
+import { FileUpload } from "../../../../shared/file-upload-context";
+import { DashIcon } from "../../../../shared/icons/dash-icon";
+import { Link } from "../../../../shared/ui/link";
 
 const buttonSx: SxProps<Theme> = {
   color: "blue.70",

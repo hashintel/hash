@@ -4,11 +4,11 @@ import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { Box, Paper } from "@mui/material";
 import { FunctionComponent, useContext, useMemo } from "react";
 
-import { useEntityTypeEntities } from "../../../../../shared/entity-type-entities-context";
-import { EntitiesTable } from "../../../../shared/entities-table";
-import { WorkspaceContext } from "../../../../shared/workspace-context";
-import { SectionEmptyState } from "../../../shared/section-empty-state";
-import { SectionWrapper } from "../../../shared/section-wrapper";
+import { useEntityTypeEntities } from "../../../shared/entity-type-entities-context";
+import { SectionEmptyState } from "../../[shortname]/shared/section-empty-state";
+import { SectionWrapper } from "../../[shortname]/shared/section-wrapper";
+import { EntitiesTable } from "../entities-table";
+import { WorkspaceContext } from "../workspace-context";
 import { useEntityType } from "./shared/entity-type-context";
 
 export const EntitiesTab: FunctionComponent = () => {
