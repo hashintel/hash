@@ -18,6 +18,7 @@ import { useEntityById } from "../../../../components/hooks/use-entity-by-id";
 import { generateEntityLabel } from "../../../../lib/entities";
 import { constructPageRelativeUrl } from "../../../../lib/routes";
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { generateLinkParameters } from "../../../../shared/generate-link-parameters";
 import { ArrowUpRightRegularIcon } from "../../../../shared/icons/arrow-up-right-regular-icon";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
 import { Link } from "../../../../shared/ui";
@@ -298,7 +299,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
           }}
         >
           <Link
-            href={entityType?.schema.$id ?? "#"}
+            href={generateLinkParameters(entityType?.schema.$id).href || "#"}
             sx={{
               textDecoration: "none",
               "&:hover > p": {

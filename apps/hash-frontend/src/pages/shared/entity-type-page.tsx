@@ -176,17 +176,18 @@ export const EntityTypePage = ({
       }`;
 
       return (
-        <Container>
-          <Typography variant="h2">
+        <Container sx={{ mt: 8 }}>
+          <Typography variant="h2" mb={4}>
             External type not found in database
           </Typography>
-          <Typography>
+          <Typography mb={3}>
             This type wasn't created in this instance of HASH and isn't in use
             by any types or entities in it.
           </Typography>
           <Typography>
             You can visit the <strong>external site</strong>{" "}
-            <Link href={externalHref}>here</Link>.
+            {/* We don't use the Link component here because it rewrites external type URLs back to this route */}
+            <a href={externalHref}>here</a>.
           </Typography>
         </Container>
       );

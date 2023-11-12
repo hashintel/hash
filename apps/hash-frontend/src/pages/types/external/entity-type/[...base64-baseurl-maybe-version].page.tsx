@@ -11,10 +11,10 @@ const Page: NextPageWithLayout = () => {
   const router = useRouter();
 
   const [base64EncodedBaseUrl, _, requestedVersionString] = router.query[
-    "slug-maybe-version"
+    "base64-baseurl-maybe-version"
   ] as [string, "v" | undefined, `${number}` | undefined]; // @todo validate that the URL is formatted as expected;
 
-  const entityTypeBaseUrl = btoa(base64EncodedBaseUrl) as BaseUrl;
+  const entityTypeBaseUrl = atob(base64EncodedBaseUrl) as BaseUrl;
 
   const requestedVersion = requestedVersionString
     ? parseInt(requestedVersionString, 10)

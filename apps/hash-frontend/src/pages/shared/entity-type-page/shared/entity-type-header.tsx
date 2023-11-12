@@ -7,6 +7,7 @@ import {
 import { Box, Stack, Tooltip, Typography } from "@mui/material";
 import { ReactNode, useState } from "react";
 
+import { generateLinkParameters } from "../../../../shared/generate-link-parameters";
 import { Button, Link, Modal } from "../../../../shared/ui";
 import { CreateEntityTypeForm } from "../../create-entity-type-form";
 import { EntityTypeDescription } from "../entity-type-description";
@@ -44,7 +45,7 @@ export const EntityTypeHeader = ({
 
           {!isLatest && (
             <Link
-              href={latestVersionUrl}
+              href={generateLinkParameters(latestVersionUrl).href}
               sx={{
                 textDecoration: "none",
               }}
