@@ -190,6 +190,12 @@ export const useEntityTypeValue = (
           console.warn(
             `Requested version ${requestedVersion} not found – redirecting to latest.`,
           );
+          void router.replace(
+            window.location.href.replace(
+              `/v/${requestedVersion}`,
+              `/v/${maxVersion}`,
+            ),
+          );
         }
       }
 
@@ -208,6 +214,7 @@ export const useEntityTypeValue = (
     entityTypesSubgraph,
     isDraft,
     requestedVersion,
+    router,
   ]);
 
   const [stateEntityType, setStateEntityType] = useState(contextEntityType);
