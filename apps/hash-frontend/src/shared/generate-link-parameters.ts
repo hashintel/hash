@@ -43,6 +43,8 @@ export const generateLinkParameters = (
 
   const isExternal = isHrefExternal(sanitizedHref);
 
+  const paramsString = sanitizedHref.split("?")[1];
+
   // Check whether this matches a HASH-formatted type URL (BaseUrl or VersionedURL)
   const [, typeBaseUrl, typeVersion] =
     sanitizedHref.split("?")[0]!.match(typeUrlRegExp) ?? [];
@@ -55,7 +57,7 @@ export const generateLinkParameters = (
         isExternal: false, // it's an external type but we're using an internal route
         href: `/types/external/entity-type/${base64EncodedBaseUrl}${
           typeVersion ? `/v/${typeVersion}` : ""
-        }`,
+        }${paramsString ? `?${paramsString}` : ""}`,
       };
     }
 
@@ -72,7 +74,7 @@ export const generateLinkParameters = (
          */
         pathname.startsWith("/discord") || pathname.startsWith("/contact")
           ? href
-          : pathname,
+          : `${pathname}${paramsString ? `?${paramsString}` : ""}`,
     };
   }
 
