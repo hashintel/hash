@@ -44,8 +44,6 @@ export const useGetOwnerForEntity = () => {
           };
         }
 
-        console.log({ entity });
-
         throw new Error(
           `Owner with accountId ${ownedById} not found – possibly a caching issue if it has been created mid-session`,
         );
@@ -56,6 +54,6 @@ export const useGetOwnerForEntity = () => {
         shortname: owner.shortname ?? "incomplete-user-account",
       };
     },
-    [orgs, users],
+    [loading, orgs, users],
   );
 };

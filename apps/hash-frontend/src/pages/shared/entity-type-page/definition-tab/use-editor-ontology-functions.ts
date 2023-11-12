@@ -50,7 +50,7 @@ export const useEditorOntologyFunctions = (
     EditorOntologyFunctions["createEntityType"]
   >(
     (args) => {
-      return createEntityType(args).then(async (res) => {
+      return createEntityType(args as any).then(async (res) => {
         await refetchEntityTypes();
         return res;
       });
@@ -62,7 +62,7 @@ export const useEditorOntologyFunctions = (
     EditorOntologyFunctions["updateEntityType"]
   >(
     (args) => {
-      return updateEntityType(args).then(async (res) => {
+      return updateEntityType(args as any).then(async (res) => {
         await refetchEntityTypes();
         return res;
       });

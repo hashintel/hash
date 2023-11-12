@@ -31,7 +31,6 @@ import { useEntityTypeEntitiesContextValue } from "../../shared/entity-type-enti
 import { useIsSpecialEntityType } from "../../shared/entity-types-context/hooks";
 import { isTypeArchived } from "../../shared/is-archived";
 import { isHrefExternal } from "../../shared/is-href-external";
-import { Link } from "../../shared/ui/link";
 import { ArchiveMenuItem } from "../[shortname]/shared/archive-menu-item";
 import { ConvertTypeMenuItem } from "./entity-type-page/convert-type-menu-item";
 import { DefinitionTab } from "./entity-type-page/definition-tab";
