@@ -51,7 +51,7 @@ export const generateLinkParameters = (
       // If it's an external type, use the type route for loading external types
       const base64EncodedBaseUrl = btoa(typeBaseUrl);
       return {
-        isExternal,
+        isExternal: false, // it's an external type but we're using an internal route
         href: `/types/external/entity-type/${base64EncodedBaseUrl}${
           typeVersion ? `/v/${typeVersion}` : ""
         }`,
