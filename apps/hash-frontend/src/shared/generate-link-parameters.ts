@@ -44,7 +44,8 @@ export const generateLinkParameters = (
   const isExternal = isHrefExternal(sanitizedHref);
 
   // Check whether this matches a HASH-formatted type URL (BaseUrl or VersionedURL)
-  const [, typeBaseUrl, typeVersion] = sanitizedHref.match(typeUrlRegExp) ?? [];
+  const [, typeBaseUrl, typeVersion] =
+    sanitizedHref.split("?")[0]!.match(typeUrlRegExp) ?? [];
 
   if (typeBaseUrl) {
     if (isExternal) {
