@@ -9,14 +9,23 @@ export const useGetOwnerForEntity = () => {
   /*
    * This is a simple way of getting all users and orgs to find an entity's owner's name
    */
-  const { users = [] } = useUsers();
-  const { orgs = [] } = useOrgs();
+  const { users = [], loading: usersLoading } = useUsers();
+  const { orgs = [], loading: orgsLoading } = useOrgs();
+
+  const loading = usersLoading || orgsLoading;
 
   return useCallback(
     (entity: Entity) => {
       const ownedById = extractOwnedByIdFromEntityId(
         entity.metadata.recordId.entityId,
       );
+
+      if (loading) {
+        return {
+          ownedById,
+          shortname: "",
+        };
+      }
 
       const owner =
         users.find((user) => ownedById === user.accountId) ??
@@ -34,6 +43,8 @@ export const useGetOwnerForEntity = () => {
             shortname: "system",
           };
         }
+
+        console.log({ entity });
 
         throw new Error(
           `Owner with accountId ${ownedById} not found – possibly a caching issue if it has been created mid-session`,
