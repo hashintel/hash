@@ -193,13 +193,20 @@ const ProfilePage: NextPageWithLayout = () => {
               metadata.recordId.baseUrl === tab.entityTypeBaseUrl,
           );
 
-          const entityTypeAndDescendants =
-            entityType && entitiesSubgraph
-              ? getEntityTypeAndDescendantsById(
-                  entitiesSubgraph,
-                  entityType.schema.$id,
-                )
-              : [];
+          let entityTypeAndDescendants = entityType ? [entityType] : [];
+          try {
+            entityTypeAndDescendants =
+              entityType && entitiesSubgraph
+                ? getEntityTypeAndDescendantsById(
+                    entitiesSubgraph,
+                    entityType.schema.$id,
+                  )
+                : [];
+          } catch {
+            /**
+             * The entity type is not in the subgraph, which might happen if the user has no entities of that type.
+             */
+          }
 
           const entityTypeBaseUrls = entityTypeAndDescendants.map(
             ({ schema }) => extractBaseUrl(schema.$id),
