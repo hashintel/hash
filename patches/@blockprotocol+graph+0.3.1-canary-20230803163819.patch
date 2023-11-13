@@ -8,8 +8,6 @@ index 5967d3f..1b7f6ee 100644
          initialContext.logDebug(`Fetching ${typeId}...`);
 -        addFetchPromise(fetchTypeAsJson(typeId).then((type) => {
 +
-+        // Rewrite the type ID before attempting to fetch it if a
-+        // `rewriteTypeId` function was provided in the parameters
 +        const rewrittenTypeId = initialContext.parameters.rewriteTypeId
 +            ? initialContext.parameters.rewriteTypeId(typeId)
 +            : typeId;
