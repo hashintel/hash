@@ -13,7 +13,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { CommentNotificationProperties } from "@local/hash-isomorphic-utils/system-types/commentnotification";
 import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import { NotificationProperties } from "@local/hash-isomorphic-utils/system-types/notification";
-import { Entity, EntityId } from "@local/hash-subgraph";
+import { Entity } from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
   getRoots,
@@ -29,7 +29,6 @@ import {
   createEntity,
   CreateEntityParams,
   getEntities,
-  getLatestEntityById,
   updateEntityProperties,
 } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
@@ -39,65 +38,9 @@ import { Page } from "./page";
 import { Text } from "./text";
 import { User } from "./user";
 
-export type Notification = {
+type Notification = {
   archived?: boolean;
   entity: Entity<NotificationProperties>;
-};
-
-export const isEntityNotificationEntity = (
-  entity: Entity,
-): entity is Entity<NotificationProperties> =>
-  entity.metadata.entityTypeId === systemEntityTypes.notification.entityTypeId;
-
-export const getNotificationFromEntity: PureGraphFunction<
-  { entity: Entity },
-  Notification
-> = ({ entity }) => {
-  if (!isEntityNotificationEntity(entity)) {
-    throw new EntityTypeMismatchError(
-      entity.metadata.recordId.entityId,
-      systemEntityTypes.notification.entityTypeId,
-      entity.metadata.entityTypeId,
-    );
-  }
-
-  const { archived } = simplifyProperties(entity.properties);
-
-  return { entity, archived };
-};
-
-/**
- * Create a system notification entity.
- *
- * @see {@link createEntity} for the documentation of the remaining parameters
- */
-export const createNotification: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {},
-  Promise<Notification>
-> = async (ctx, authentication, params) => {
-  const entity = await createEntity(ctx, authentication, {
-    ownedById: params.ownedById,
-    properties: {},
-    entityTypeId: systemEntityTypes.notification.entityTypeId,
-  });
-
-  return getNotificationFromEntity({ entity });
-};
-
-/**
- * Get a system notification entity by its entity id.
- *
- * @param params.entityId - the entity id of the notification
- */
-export const getNotificationById: ImpureGraphFunction<
-  { entityId: EntityId },
-  Promise<Notification>
-> = async (ctx, authentication, { entityId }) => {
-  const entity = await getLatestEntityById(ctx, authentication, {
-    entityId,
-  });
-
-  return getNotificationFromEntity({ entity });
 };
 
 export const archiveNotification: ImpureGraphFunction<
