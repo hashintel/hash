@@ -1,4 +1,4 @@
-import { BaseUrl } from "@local/hash-subgraph/.";
+import { BaseUrl } from "@local/hash-subgraph";
 
 import { AuthenticationContext } from "../../graphql/authentication-context";
 import { ImpureGraphContext } from "../context-types";

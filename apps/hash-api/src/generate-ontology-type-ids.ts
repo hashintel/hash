@@ -8,7 +8,7 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { EntityTypeWithMetadata } from "@local/hash-subgraph/.";
+import { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { publicUserAccountId } from "./auth/public-user-account-id";

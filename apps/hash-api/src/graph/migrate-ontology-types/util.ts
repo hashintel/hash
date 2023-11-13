@@ -8,7 +8,7 @@ import {
   EntityTypeWithMetadata,
   OwnedById,
   PropertyTypeWithMetadata,
-} from "@local/hash-subgraph/.";
+} from "@local/hash-subgraph";
 import {
   extractBaseUrl,
   versionedUrlFromComponents,
