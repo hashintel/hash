@@ -6,6 +6,8 @@ import {
   frontendUrl,
 } from "@local/hash-isomorphic-utils/environment";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
+import { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountId,
   Entity,
@@ -15,7 +17,6 @@ import {
   OwnedById,
   Uuid,
 } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { RequestHandler } from "express";
 
 import { createEntity } from "../../graph/knowledge/primitive/entity";
@@ -216,11 +217,13 @@ export const oAuthLinearCallback: RequestHandler<
       path: vaultPath,
     });
 
-    const secretMetadata = {
-      [extractBaseUrl(systemTypes.propertyType.expiredAt.propertyTypeId)]:
+    const secretMetadata: UserSecretProperties = {
+      /** @todo: verify this is the correct value */
+      "https://hash.ai/@hash/types/property-type/connection-source-name/":
+        "linear",
+      "https://hash.ai/@hash/types/property-type/expired-at/":
         expiredAt.toISOString(),
-      [extractBaseUrl(systemTypes.propertyType.vaultPath.propertyTypeId)]:
-        vaultPath,
+      "https://hash.ai/@hash/types/property-type/vault-path/": vaultPath,
     };
 
     const userAccountId = extractEntityUuidFromEntityId(
@@ -245,9 +248,8 @@ export const oAuthLinearCallback: RequestHandler<
         properties: secretMetadata,
       });
 
-      const linearIntegrationProperties = {
-        [extractBaseUrl(systemTypes.propertyType.linearOrgId.propertyTypeId)]:
-          linearOrgId,
+      const linearIntegrationProperties: LinearIntegrationProperties = {
+        "https://hash.ai/@hash/types/property-type/linear-org-id/": linearOrgId,
       };
 
       const linearIntegrationEntity = await createEntity(

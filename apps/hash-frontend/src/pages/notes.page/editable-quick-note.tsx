@@ -8,6 +8,7 @@ import {
   blockProtocolTypes,
   systemTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { QuickNoteProperties } from "@local/hash-isomorphic-utils/system-types/quicknote";
 import { TextToken } from "@local/hash-isomorphic-utils/types";
 import {
   EntityRootType,
@@ -204,9 +205,8 @@ export const EditableQuickNote: FunctionComponent<{
         entityTypeId: systemTypes.entityType.quickNote.entityTypeId,
         properties: {
           ...quickNoteEntity.properties,
-          [extractBaseUrl(systemTypes.propertyType.archived.propertyTypeId)]:
-            true,
-        },
+          "https://hash.ai/@hash/types/property-type/archived/": true,
+        } as QuickNoteProperties,
       },
     });
     await refetchQuickNotes?.();

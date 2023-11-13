@@ -8,6 +8,7 @@ import { contentLinkTypeFilter } from "@local/hash-isomorphic-utils/page-entity-
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { BlockProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
+  BaseUrl,
   Entity,
   EntityId,
   EntityPropertiesObject,
@@ -15,7 +16,6 @@ import {
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
@@ -97,7 +97,7 @@ export const createBlock: ImpureGraphFunction<
   const { componentId, blockData, ownedById } = params;
 
   const properties: EntityPropertiesObject = {
-    [extractBaseUrl(systemTypes.propertyType.componentId.propertyTypeId)]:
+    [systemTypes.propertyType.componentId.propertyTypeBaseUrl as BaseUrl]:
       componentId,
   };
 

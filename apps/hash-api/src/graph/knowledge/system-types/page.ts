@@ -25,7 +25,6 @@ import {
   Entity,
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
-  EntityPropertiesObject,
   EntityRootType,
   EntityUuid,
   extractEntityUuidFromEntityId,
@@ -140,14 +139,13 @@ export const createPage: ImpureGraphFunction<
 
   const fractionalIndex = generateKeyBetween(prevFractionalIndex ?? null, null);
 
-  const properties: EntityPropertiesObject = {
-    [extractBaseUrl(systemTypes.propertyType.title.propertyTypeId)]: title,
-    [extractBaseUrl(systemTypes.propertyType.fractionalIndex.propertyTypeId)]:
+  const properties: PageProperties = {
+    "https://hash.ai/@hash/types/property-type/title/": title,
+    "https://hash.ai/@hash/types/property-type/fractional-index/":
       fractionalIndex,
     ...(summary
       ? {
-          [extractBaseUrl(systemTypes.propertyType.summary.propertyTypeId)]:
-            summary,
+          "https://hash.ai/@hash/types/property-type/summary/": summary,
         }
       : {}),
   };

@@ -9,7 +9,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { CommentNotificationProperties } from "@local/hash-isomorphic-utils/system-types/commentnotification";
 import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import { NotificationProperties } from "@local/hash-isomorphic-utils/system-types/notification";
-import { Entity, EntityId, EntityPropertiesObject } from "@local/hash-subgraph";
+import { Entity, EntityId } from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
   getRoots,
@@ -66,30 +66,15 @@ export const getNotificationFromEntity: PureGraphFunction<
 /**
  * Create a system notification entity.
  *
- * @param params.title - the title of the notification
- *
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createNotification: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
-    title?: string;
-  },
+  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {},
   Promise<Notification>
 > = async (ctx, authentication, params) => {
-  const { title } = params;
-
-  const properties: EntityPropertiesObject = {
-    ...(title
-      ? {
-          [extractBaseUrl(systemTypes.propertyType.title.propertyTypeId)]:
-            title,
-        }
-      : {}),
-  };
-
   const entity = await createEntity(ctx, authentication, {
     ownedById: params.ownedById,
-    properties,
+    properties: {},
     entityTypeId: systemTypes.entityType.notification.entityTypeId,
   });
 

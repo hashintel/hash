@@ -1,11 +1,11 @@
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   DataTypeWithMetadata,
   Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { isEntityPageEntity, isType } from "./is-of-type";
 
@@ -23,11 +23,11 @@ export const isPageArchived = (pageEntity: Entity) => {
     throw new Error("Not a page entity");
   }
 
-  return (
-    (pageEntity.properties[
-      extractBaseUrl(systemTypes.propertyType.archived.propertyTypeId)
-    ] as boolean | undefined) ?? false
+  const { archived } = simplifyProperties(
+    pageEntity.properties as PageProperties,
   );
+
+  return archived ?? false;
 };
 
 export const isItemArchived = (

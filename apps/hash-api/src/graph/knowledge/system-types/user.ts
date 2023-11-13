@@ -11,7 +11,6 @@ import {
   AccountId,
   Entity,
   EntityId,
-  EntityPropertiesObject,
   EntityRootType,
   EntityUuid,
   extractAccountId,
@@ -301,21 +300,22 @@ export const createUser: ImpureGraphFunction<
     );
   }
 
-  const properties: EntityPropertiesObject = {
-    [extractBaseUrl(systemTypes.propertyType.email.propertyTypeId)]: emails,
-    [extractBaseUrl(systemTypes.propertyType.kratosIdentityId.propertyTypeId)]:
+  const properties: UserProperties = {
+    "https://hash.ai/@hash/types/property-type/email/": emails as [
+      string,
+      ...string[],
+    ],
+    "https://hash.ai/@hash/types/property-type/kratos-identity-id/":
       kratosIdentityId,
     ...(shortname
       ? {
-          [extractBaseUrl(systemTypes.propertyType.shortname.propertyTypeId)]:
-            shortname,
+          "https://hash.ai/@hash/types/property-type/shortname/": shortname,
         }
       : {}),
     ...(preferredName
       ? {
-          [extractBaseUrl(
-            systemTypes.propertyType.preferredName.propertyTypeId,
-          )]: preferredName,
+          "https://hash.ai/@hash/types/property-type/preferred-name/":
+            preferredName,
         }
       : {}),
   };

@@ -6,6 +6,7 @@ import {
   IsMemberOfProperties,
   OrganizationProperties,
   ProfileBioProperties,
+  ServiceAccountProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -31,10 +32,7 @@ import {
   intervalCompareWithInterval,
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
-import {
-  extractBaseUrl,
-  LinkEntity,
-} from "@local/hash-subgraph/type-system-patch";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 export const constructMinimalOrg = (params: {
   orgEntity: Entity<OrganizationProperties>;
@@ -452,16 +450,9 @@ export const constructUser = (params: {
     .map<User["hasServiceAccounts"][number]>(({ linkEntity, rightEntity }) => {
       const serviceAccountEntity = rightEntity[0]!;
 
-      const profileUrl =
-        serviceAccountEntity.properties[
-          extractBaseUrl(systemTypes.propertyType.profileUrl.propertyTypeId)
-        ];
-
-      if (!profileUrl || typeof profileUrl !== "string") {
-        throw new Error(
-          `Service account entity with ID ${serviceAccountEntity.metadata.recordId.entityId} is missing a profile URL`,
-        );
-      }
+      const { profileUrl } = simplifyProperties(
+        serviceAccountEntity.properties as ServiceAccountProperties,
+      );
 
       const kind = Object.entries(systemTypes.entityType).find(
         ([_, type]) =>

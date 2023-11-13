@@ -4,14 +4,16 @@ import {
   fullDecisionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  blockProtocolTypes,
+  systemTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
   EntityId,
   EntityRootType,
-  fileUrlPropertyTypeUrl,
   isEntityId,
   splitEntityId,
 } from "@local/hash-subgraph";
@@ -104,9 +106,10 @@ export const setupStorageProviders = (
 };
 
 const isFileEntity = (entity: Entity): entity is Entity<FileProperties> =>
-  extractBaseUrl(systemTypes.propertyType.fileStorageKey.propertyTypeId) in
+  systemTypes.propertyType.fileStorageKey.propertyTypeBaseUrl in
     entity.properties &&
-  extractBaseUrl(fileUrlPropertyTypeUrl) in entity.properties;
+  blockProtocolTypes.propertyType.fileUrl.propertyTypeBaseUrl in
+    entity.properties;
 
 const isStorageType = (storageType: string): storageType is StorageType =>
   storageTypes.includes(storageType as StorageType);

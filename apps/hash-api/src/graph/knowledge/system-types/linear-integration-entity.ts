@@ -4,6 +4,11 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import {
+  LinearIntegrationProperties,
+  SyncLinearDataWithProperties,
+} from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import {
   AccountId,
   Entity,
@@ -44,14 +49,11 @@ export const getLinearIntegrationFromEntity: PureGraphFunction<
     );
   }
 
-  const linearOrgId = entity.properties[
-    extractBaseUrl(systemTypes.propertyType.linearOrgId.propertyTypeId)
-  ] as string;
+  const { linearOrgId } = simplifyProperties(
+    entity.properties as LinearIntegrationProperties,
+  );
 
-  return {
-    linearOrgId,
-    entity,
-  };
+  return { linearOrgId, entity };
 };
 
 /**
@@ -232,9 +234,9 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
     await updateEntity(context, authentication, {
       entity: existingLinkEntity,
       properties: {
-        [extractBaseUrl(systemTypes.propertyType.linearTeamId.propertyTypeId)]:
+        "https://hash.ai/@hash/types/property-type/linear-team-id/":
           linearTeamIds,
-      },
+      } as SyncLinearDataWithProperties,
     });
   } else {
     await createLinkEntity(context, authentication, {
@@ -244,9 +246,9 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
       leftEntityId: linearIntegrationEntityId,
       rightEntityId: workspaceEntityId,
       properties: {
-        [extractBaseUrl(systemTypes.propertyType.linearTeamId.propertyTypeId)]:
+        "https://hash.ai/@hash/types/property-type/linear-team-id/":
           linearTeamIds,
-      },
+      } as SyncLinearDataWithProperties,
     });
   }
 };

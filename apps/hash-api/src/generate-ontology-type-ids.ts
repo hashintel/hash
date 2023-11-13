@@ -8,8 +8,13 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { EntityTypeWithMetadata } from "@local/hash-subgraph";
+import {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { publicUserAccountId } from "./auth/public-user-account-id";
 import { createGraphClient } from "./graph";
@@ -36,6 +41,16 @@ const convertTitleToCamelCase = (title: string) =>
     )
     // Join all the processed words to get the camelCase result
     .join("");
+
+type OntologyTypeWithMetadata =
+  | EntityTypeWithMetadata
+  | PropertyTypeWithMetadata
+  | DataTypeWithMetadata;
+
+const sortTypeByTitle = (
+  a: OntologyTypeWithMetadata,
+  b: OntologyTypeWithMetadata,
+) => a.schema.title.localeCompare(b.schema.title);
 
 const generateOntologyIds = async () => {
   const logger = new Logger({
@@ -192,78 +207,72 @@ const generateOntologyIds = async () => {
   );
 
   const systemTypes = {
-    entityType: systemEntityTypes
-      .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
-      .reduce(
-        (prev, { schema }) => ({
-          ...prev,
-          [convertTitleToCamelCase(schema.title)]: {
-            entityTypeId: schema.$id,
-          },
-        }),
-        {},
-      ),
-    linkEntityType: systemLinkEntityTypes
-      .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
-      .reduce(
-        (prev, { schema }) => ({
-          ...prev,
-          [convertTitleToCamelCase(schema.title)]: {
-            linkEntityTypeId: schema.$id,
-          },
-        }),
-        {},
-      ),
-    propertyType: systemPropertyTypes
-      .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
-      .reduce(
-        (prev, { schema }) => ({
-          ...prev,
-          [convertTitleToCamelCase(schema.title)]: {
-            propertyTypeId: schema.$id,
-          },
-        }),
-        {},
-      ),
+    entityType: systemEntityTypes.sort(sortTypeByTitle).reduce(
+      (prev, { schema }) => ({
+        ...prev,
+        [convertTitleToCamelCase(schema.title)]: {
+          entityTypeId: schema.$id,
+          entityTypeBaseUrl: extractBaseUrl(schema.$id),
+        },
+      }),
+      {},
+    ),
+    linkEntityType: systemLinkEntityTypes.sort(sortTypeByTitle).reduce(
+      (prev, { schema }) => ({
+        ...prev,
+        [convertTitleToCamelCase(schema.title)]: {
+          linkEntityTypeId: schema.$id,
+          linkEntityTypeBaseUrl: extractBaseUrl(schema.$id),
+        },
+      }),
+      {},
+    ),
+    propertyType: systemPropertyTypes.sort(sortTypeByTitle).reduce(
+      (prev, { schema }) => ({
+        ...prev,
+        [convertTitleToCamelCase(schema.title)]: {
+          propertyTypeId: schema.$id,
+          propertyTypeBaseUrl: extractBaseUrl(schema.$id),
+        },
+      }),
+      {},
+    ),
   };
 
   const blockProtocolTypes = {
-    entityType: blockProtocolEntityTypes
-      .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
-      .reduce(
-        (prev, { schema }) => ({
-          ...prev,
-          [convertTitleToCamelCase(schema.title)]: {
-            entityTypeId: schema.$id,
-          },
-        }),
-        {},
-      ),
-    propertyType: blockProtocolPropertyTypes
-      .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
-      .reduce(
-        (prev, { schema }) => ({
-          ...prev,
-          [convertTitleToCamelCase(schema.title)]: {
-            propertyTypeId: schema.$id,
-          },
-        }),
-        {},
-      ),
+    entityType: blockProtocolEntityTypes.sort(sortTypeByTitle).reduce(
+      (prev, { schema }) => ({
+        ...prev,
+        [convertTitleToCamelCase(schema.title)]: {
+          entityTypeId: schema.$id,
+          entityTypeBaseUrl: extractBaseUrl(schema.$id),
+        },
+      }),
+      {},
+    ),
+    propertyType: blockProtocolPropertyTypes.sort(sortTypeByTitle).reduce(
+      (prev, { schema }) => ({
+        ...prev,
+        [convertTitleToCamelCase(schema.title)]: {
+          propertyTypeId: schema.$id,
+          propertyTypeBaseUrl: extractBaseUrl(schema.$id),
+        },
+      }),
+      {},
+    ),
     /** @todo: fetch the BP data types specifically when we have custom datatypes */
-    dataType: blockProtocolDataTypes
-      .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
-      .reduce(
-        (prev, { schema }) => ({
-          ...prev,
-          [convertTitleToCamelCase(schema.title)]: {
-            dataTypeId: schema.$id,
-            title: schema.title,
-            description: schema.description,
-          },
-        }),
-        {},
-      ),
+    dataType: blockProtocolDataTypes.sort(sortTypeByTitle).reduce(
+      (prev, { schema }) => ({
+        ...prev,
+        [convertTitleToCamelCase(schema.title)]: {
+          dataTypeId: schema.$id,
+          dataTypeBaseUrl: extractBaseUrl(schema.$id),
+          title: schema.title,
+          description: schema.description,
+        },
+      }),
+      {},
+    ),
   };
 
   const outputPath = path.join(

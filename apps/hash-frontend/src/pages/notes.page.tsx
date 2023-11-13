@@ -6,6 +6,8 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { QuickNoteProperties } from "@local/hash-isomorphic-utils/system-types/quicknote";
 import {
   Entity,
   EntityId,
@@ -14,7 +16,6 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getEntityRevision, getRoots } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container } from "@mui/material";
 import {
   differenceInDays,
@@ -119,9 +120,8 @@ const NotesPage: NextPageWithLayout = () => {
          * Because we have to use a fullDecisionTimeAxis to check the createdAt, we may have archived notes to filter out.
          * Once H-1098 exposes createdAt natively, we can switch to a currentTimeInstantTemporalAxes and filter archived in the query.
          */
-        latestEdition.properties[
-          extractBaseUrl(systemTypes.propertyType.archived.propertyTypeId)
-        ]
+        simplifyProperties(latestEdition.properties as QuickNoteProperties)
+          .archived
       ) {
         continue;
       }

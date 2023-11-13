@@ -7,10 +7,10 @@ import {
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import {
+  BaseUrl,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
 import {
@@ -113,7 +113,7 @@ export const EntitiesTable: FunctionComponent<{
           !isPageEntityTypeId(entity.metadata.entityTypeId)
             ? true
             : entity.properties[
-                extractBaseUrl(systemTypes.propertyType.archived.propertyTypeId)
+                systemTypes.propertyType.archived.propertyTypeBaseUrl as BaseUrl
               ] !== true),
       ),
     [entities, filterState, internalWebIds],

@@ -19,7 +19,6 @@ import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import {
@@ -138,19 +137,15 @@ export const createHashInstance: ImpureGraphFunction<
   const entity = await createEntity(ctx, authentication, {
     ownedById: hashInstanceAdmins as OwnedById,
     properties: {
-      [extractBaseUrl(systemTypes.propertyType.pagesAreEnabled.propertyTypeId)]:
+      "https://hash.ai/@hash/types/property-type/pages-are-enabled/":
         params.pagesAreEnabled ?? true,
-      [extractBaseUrl(
-        systemTypes.propertyType.userSelfRegistrationIsEnabled.propertyTypeId,
-      )]: params.userSelfRegistrationIsEnabled ?? true,
-      [extractBaseUrl(
-        systemTypes.propertyType.userRegistrationByInvitationIsEnabled
-          .propertyTypeId,
-      )]: params.userRegistrationByInviteIsEnabled ?? true,
-      [extractBaseUrl(
-        systemTypes.propertyType.orgSelfRegistrationIsEnabled.propertyTypeId,
-      )]: params.orgSelfRegistrationIsEnabled ?? true,
-    },
+      "https://hash.ai/@hash/types/property-type/user-self-registration-is-enabled/":
+        params.userSelfRegistrationIsEnabled ?? true,
+      "https://hash.ai/@hash/types/property-type/user-registration-by-invitation-is-enabled/":
+        params.userRegistrationByInviteIsEnabled ?? true,
+      "https://hash.ai/@hash/types/property-type/org-self-registration-is-enabled/":
+        params.orgSelfRegistrationIsEnabled ?? true,
+    } as HASHInstanceProperties,
     entityTypeId: systemTypes.entityType.hashInstance.entityTypeId,
   });
   await modifyEntityAuthorizationRelationships(ctx, authentication, [

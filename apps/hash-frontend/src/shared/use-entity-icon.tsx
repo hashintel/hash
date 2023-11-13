@@ -2,8 +2,9 @@ import { VersionedUrl } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon } from "@hashintel/design-system";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Entity } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box } from "@mui/material";
 import { ReactNode, useMemo } from "react";
 
@@ -38,10 +39,10 @@ export const useEntityIcon = (params: {
        * consider as part of H-783
        */
       if (isPageEntityTypeId(entity.metadata.entityTypeId)) {
-        const customPageIcon =
-          entity.properties[
-            extractBaseUrl(systemTypes.propertyType.icon.propertyTypeId)
-          ];
+        const { icon: customPageIcon } = simplifyProperties(
+          entity.properties as PageProperties,
+        );
+
         if (typeof customPageIcon === "string") {
           return (
             <Box component="span" sx={{ fontSize: 14 }}>

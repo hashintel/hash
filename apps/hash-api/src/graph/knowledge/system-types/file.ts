@@ -5,7 +5,6 @@ import {
   FileProperties,
 } from "@local/hash-isomorphic-utils/system-types/file";
 import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import mime from "mime-types";
 
 import {
@@ -139,23 +138,15 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
       fileStorageProperties;
 
     const storageProperties: Partial<FileProperties> = {
-      [extractBaseUrl(
-        systemTypes.propertyType.fileStorageBucket.propertyTypeId,
-      )]: bucket,
-      [extractBaseUrl(
-        systemTypes.propertyType.fileStorageEndpoint.propertyTypeId,
-      )]: endpoint,
-      [extractBaseUrl(
-        systemTypes.propertyType.fileStorageForcePathStyle.propertyTypeId,
-      )]: !!forcePathStyle,
-      [extractBaseUrl(systemTypes.propertyType.fileStorageKey.propertyTypeId)]:
-        key,
-      [extractBaseUrl(
-        systemTypes.propertyType.fileStorageProvider.propertyTypeId,
-      )]: provider,
-      [extractBaseUrl(
-        systemTypes.propertyType.fileStorageRegion.propertyTypeId,
-      )]: region,
+      "https://hash.ai/@hash/types/property-type/file-storage-bucket/": bucket,
+      "https://hash.ai/@hash/types/property-type/file-storage-endpoint/":
+        endpoint,
+      "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/":
+        !!forcePathStyle,
+      "https://hash.ai/@hash/types/property-type/file-storage-key/": key,
+      "https://hash.ai/@hash/types/property-type/file-storage-provider/":
+        provider,
+      "https://hash.ai/@hash/types/property-type/file-storage-region/": region,
     };
 
     const properties: FileProperties = {

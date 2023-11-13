@@ -6,7 +6,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { EntityRootType } from "@local/hash-subgraph";
+import { BaseUrl, EntityRootType } from "@local/hash-subgraph";
 import {
   getEntityTypeAndDescendantsById,
   getRoots,
@@ -91,9 +91,9 @@ const ProfilePage: NextPageWithLayout = () => {
 
   const profileNotFound = !profile && !loading;
 
-  const pinnedEntityTypeBaseUrls = useMemo(
+  const pinnedEntityTypeBaseUrls = useMemo<BaseUrl[]>(
     () => [
-      extractBaseUrl(systemTypes.entityType.page.entityTypeId),
+      systemTypes.entityType.page.entityTypeBaseUrl as BaseUrl,
       ...(profile?.pinnedEntityTypeBaseUrls ?? []),
     ],
     [profile],

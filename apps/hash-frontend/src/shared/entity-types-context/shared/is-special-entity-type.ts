@@ -38,16 +38,10 @@ export const isSpecialEntityType = (
   let isLink = false;
 
   for (const id of parentIds) {
-    if (
-      extractBaseUrl(id) ===
-      extractBaseUrl(systemTypes.entityType.file.entityTypeId)
-    ) {
+    if (extractBaseUrl(id) === systemTypes.entityType.file.entityTypeBaseUrl) {
       isFile = true;
     }
-    if (
-      extractBaseUrl(id) ===
-      extractBaseUrl(systemTypes.entityType.image.entityTypeId)
-    ) {
+    if (extractBaseUrl(id) === systemTypes.entityType.image.entityTypeBaseUrl) {
       isImage = true;
     }
     if (extractBaseUrl(id) === extractBaseUrl(linkEntityTypeUrl)) {

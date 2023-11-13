@@ -9,7 +9,6 @@ import {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   Divider,
@@ -236,7 +235,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
 
   const isPagesTab =
     currentTab.entityTypeBaseUrl ===
-    extractBaseUrl(systemTypes.entityType.page.entityTypeId);
+    systemTypes.entityType.page.entityTypeBaseUrl;
 
   return (
     <Box mb={6}>

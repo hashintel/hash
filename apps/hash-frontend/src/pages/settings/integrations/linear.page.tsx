@@ -1,5 +1,7 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Typography } from "@mui/material";
 import {
@@ -83,9 +85,9 @@ const DataAccess: FunctionComponent<{
   const handleSave = useCallback(async () => {
     await Promise.all(
       linearIntegrations.map(({ entity }) => {
-        const linearOrgId = entity.properties[
-          extractBaseUrl(systemTypes.propertyType.linearOrgId.propertyTypeId)
-        ] as string;
+        const { linearOrgId } = simplifyProperties(
+          entity.properties as LinearIntegrationProperties,
+        );
 
         const linearOrganization = linearOrganizations.find(
           ({ id }) => id === linearOrgId,

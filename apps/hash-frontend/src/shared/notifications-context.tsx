@@ -34,7 +34,6 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   createContext,
   FunctionComponent,
@@ -450,9 +449,9 @@ export const NotificationsContextProvider: FunctionComponent<
           entityTypeId: notification.entity.metadata.entityTypeId,
           properties: {
             ...notification.entity.properties,
-            [extractBaseUrl(systemTypes.propertyType.readAt.propertyTypeId)]:
+            "https://hash.ai/@hash/types/property-type/read-at/":
               now.toISOString(),
-          },
+          } as NotificationProperties,
         },
       });
 

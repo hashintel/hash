@@ -5,6 +5,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountId,
@@ -198,13 +199,15 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
     );
   }
 
+  const { linearOrgId } = simplifyProperties(
+    integrationEntity.properties as LinearIntegrationProperties,
+  );
+
   const secretEntity = await getLinearUserSecretByLinearOrgId(
     context,
     authentication,
     {
-      linearOrgId: integrationEntity.properties[
-        extractBaseUrl(systemTypes.propertyType.linearOrgId.propertyTypeId)
-      ] as string,
+      linearOrgId,
       userAccountId: extractOwnedByIdFromEntityId(
         integrationEntity.metadata.recordId.entityId,
       ) as AccountId,

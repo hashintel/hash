@@ -5,8 +5,8 @@ import {
   TextField,
 } from "@hashintel/design-system";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { PageProperties } from "@local/hash-isomorphic-utils/system-types/page";
 import { Entity, OwnedById } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   autocompleteClasses,
   Box,
@@ -94,12 +94,10 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
             .entityId,
         entityTypeId: systemTypes.entityType.document.entityTypeId,
         properties: {
-          [extractBaseUrl(systemTypes.propertyType.title.propertyTypeId)]:
-            title,
-          [extractBaseUrl(
-            systemTypes.propertyType.fractionalIndex.propertyTypeId,
-          )]: fractionalIndex,
-        },
+          "https://hash.ai/@hash/types/property-type/title/": title,
+          "https://hash.ai/@hash/types/property-type/fractional-index/":
+            fractionalIndex,
+        } as PageProperties,
       },
     });
 

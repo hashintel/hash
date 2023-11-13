@@ -11,7 +11,6 @@ import {
   AccountGroupId,
   Entity,
   EntityId,
-  EntityPropertiesObject,
   EntityRootType,
   EntityUuid,
   extractAccountGroupId,
@@ -122,15 +121,12 @@ export const createOrg: ImpureGraphFunction<
     });
   }
 
-  const properties: EntityPropertiesObject = {
-    [extractBaseUrl(systemTypes.propertyType.shortname.propertyTypeId)]:
-      shortname,
-    [extractBaseUrl(systemTypes.propertyType.organizationName.propertyTypeId)]:
-      name,
+  const properties: OrganizationProperties = {
+    "https://hash.ai/@hash/types/property-type/shortname/": shortname,
+    "https://hash.ai/@hash/types/property-type/organization-name/": name,
     ...(websiteUrl
       ? {
-          [extractBaseUrl(systemTypes.propertyType.websiteUrl.propertyTypeId)]:
-            websiteUrl,
+          "https://hash.ai/@hash/types/property-type/website-url/": websiteUrl,
         }
       : {}),
   };
