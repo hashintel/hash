@@ -166,14 +166,6 @@ export const EntityTypePage = ({
     if (loadingRemoteEntityType) {
       return null;
     } else if (isHrefExternal(entityTypeBaseUrl as string)) {
-      /**
-       * This is a type not owned by this instance of HASH which is not in the database.
-       * This is only possible if someone links to the /types/external/ route with such a type.
-       */
-      const externalHref = `${entityTypeBaseUrl}${
-        requestedVersion ? `/v/${requestedVersion}` : ""
-      }`;
-
       return (
         <Container sx={{ mt: 8 }}>
           <Typography variant="h2" mb={4}>
@@ -182,11 +174,6 @@ export const EntityTypePage = ({
           <Typography mb={3}>
             This type wasn't created in this instance of HASH and isn't in use
             by any types or entities in it.
-          </Typography>
-          <Typography>
-            You can visit the <strong>external site</strong>{" "}
-            {/* We don't use the Link component here because it rewrites external type URLs back to this route */}
-            <a href={externalHref}>here</a>.
           </Typography>
         </Container>
       );
