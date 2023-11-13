@@ -1,11 +1,13 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
-import { extractBaseUrl } from "@blockprotocol/type-system";
 import { TextField } from "@hashintel/design-system";
 import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   AccountEntityId,
   EntityRootType,
@@ -28,10 +30,6 @@ import { queryEntitiesQuery } from "../../../../../graphql/queries/knowledge/ent
 import { Org } from "../../../../../lib/user-and-org";
 import { Button } from "../../../../../shared/ui/button";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
-
-const shortnameBaseUrl = extractBaseUrl(
-  systemTypes.propertyType.shortname.propertyTypeId,
-);
 
 export const AddMemberForm = ({ org }: { org: Org }) => {
   const [loading, setLoading] = useState(false);
@@ -84,7 +82,10 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
           multiFilter: {
             filters: [
               {
-                field: ["properties", shortnameBaseUrl],
+                field: [
+                  "properties",
+                  systemPropertyTypes.shortname.propertyTypeBaseUrl,
+                ],
                 value: shortname,
                 operator: "EQUALS",
               },
@@ -117,7 +118,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
     await Promise.all([
       createEntity({
         data: {
-          entityTypeId: systemTypes.linkEntityType.isMemberOf.linkEntityTypeId,
+          entityTypeId: systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
           properties: {},
           linkData: {
             leftEntityId: user.metadata.recordId.entityId,

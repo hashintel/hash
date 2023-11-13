@@ -5,8 +5,8 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  blockProtocolTypes,
-  systemTypes,
+  blockProtocolPropertyTypes,
+  systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -106,10 +106,8 @@ export const setupStorageProviders = (
 };
 
 const isFileEntity = (entity: Entity): entity is Entity<FileProperties> =>
-  systemTypes.propertyType.fileStorageKey.propertyTypeBaseUrl in
-    entity.properties &&
-  blockProtocolTypes.propertyType.fileUrl.propertyTypeBaseUrl in
-    entity.properties;
+  systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl in entity.properties &&
+  blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl in entity.properties;
 
 const isStorageType = (storageType: string): storageType is StorageType =>
   storageTypes.includes(storageType as StorageType);
@@ -138,7 +136,7 @@ const getFileEntity = async (
                 path: [
                   "properties",
                   extractBaseUrl(
-                    systemTypes.propertyType.fileStorageKey.propertyTypeId,
+                    systemPropertyTypes.fileStorageKey.propertyTypeId,
                   ),
                 ],
               },

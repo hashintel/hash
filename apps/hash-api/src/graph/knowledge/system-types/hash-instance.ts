@@ -3,7 +3,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   SimpleProperties,
   simplifyProperties,
@@ -42,12 +42,11 @@ export const getHashInstanceFromEntity: PureGraphFunction<
   HashInstance
 > = ({ entity }) => {
   if (
-    entity.metadata.entityTypeId !==
-    systemTypes.entityType.hashInstance.entityTypeId
+    entity.metadata.entityTypeId !== systemEntityTypes.hashInstance.entityTypeId
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      systemTypes.entityType.hashInstance.entityTypeId,
+      systemEntityTypes.hashInstance.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
@@ -68,7 +67,7 @@ export const getHashInstance: ImpureGraphFunction<
   const entities = await graphApi
     .getEntitiesByQuery(actorId, {
       filter: generateVersionedUrlMatchingFilter(
-        systemTypes.entityType.hashInstance.entityTypeId,
+        systemEntityTypes.hashInstance.entityTypeId,
         { ignoreParents: true },
       ),
       graphResolveDepths: zeroedGraphResolveDepths,
@@ -146,7 +145,7 @@ export const createHashInstance: ImpureGraphFunction<
       "https://hash.ai/@hash/types/property-type/org-self-registration-is-enabled/":
         params.orgSelfRegistrationIsEnabled ?? true,
     } as HASHInstanceProperties,
-    entityTypeId: systemTypes.entityType.hashInstance.entityTypeId,
+    entityTypeId: systemEntityTypes.hashInstance.entityTypeId,
   });
   await modifyEntityAuthorizationRelationships(ctx, authentication, [
     {

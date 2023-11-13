@@ -2,7 +2,10 @@ import { codegen, CodegenParameters } from "@blockprotocol/graph/codegen";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import slugify from "slugify";
 
-import { blockProtocolTypes, systemTypes } from "./ontology-type-ids";
+import {
+  blockProtocolEntityTypes,
+  systemEntityTypes,
+} from "./ontology-type-ids";
 import { linearTypes } from "./ontology-types";
 
 const generateTypes = async (
@@ -54,10 +57,10 @@ const generateTypes = async (
  * you cannot use these types to check the correct value of keys and values that are URLs – they might be different at runtime.
  */
 const generateSystemTypeTypes = async () => {
-  await generateTypes(systemTypes.entityType, "system");
+  await generateTypes(systemEntityTypes, "system");
   await generateTypes(linearTypes.entityType, "linear", "linear");
   await generateTypes(
-    blockProtocolTypes.entityType,
+    blockProtocolEntityTypes,
     "Block Protocol",
     "blockprotocol",
   );

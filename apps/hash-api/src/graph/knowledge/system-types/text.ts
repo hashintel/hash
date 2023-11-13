@@ -3,7 +3,10 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   contentLinkTypeFilter,
   pageEntityTypeFilter,
@@ -35,7 +38,7 @@ export type Text = {
 export const isEntityTextEntity = (
   entity: Entity,
 ): entity is Entity<TextProperties> =>
-  entity.metadata.entityTypeId === systemTypes.entityType.text.entityTypeId;
+  entity.metadata.entityTypeId === systemEntityTypes.text.entityTypeId;
 
 export const getTextFromEntity: PureGraphFunction<{ entity: Entity }, Text> = ({
   entity,
@@ -43,7 +46,7 @@ export const getTextFromEntity: PureGraphFunction<{ entity: Entity }, Text> = ({
   if (!isEntityTextEntity(entity)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      systemTypes.entityType.text.entityTypeId,
+      systemEntityTypes.text.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
@@ -91,7 +94,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
         filter: {
           all: [
             generateVersionedUrlMatchingFilter(
-              systemTypes.linkEntityType.hasData.linkEntityTypeId,
+              systemLinkEntityTypes.hasData.linkEntityTypeId,
               { ignoreParents: true },
             ),
             {
@@ -111,7 +114,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
         filter: {
           all: [
             generateVersionedUrlMatchingFilter(
-              systemTypes.linkEntityType.hasData.linkEntityTypeId,
+              systemLinkEntityTypes.hasData.linkEntityTypeId,
               { ignoreParents: true },
             ),
             {
@@ -221,7 +224,7 @@ export const getCommentByText: ImpureGraphFunction<
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
-            systemTypes.linkEntityType.hasText.linkEntityTypeId,
+            systemLinkEntityTypes.hasText.linkEntityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -231,7 +234,7 @@ export const getCommentByText: ImpureGraphFunction<
             ],
           },
           generateVersionedUrlMatchingFilter(
-            systemTypes.entityType.comment.entityTypeId,
+            systemEntityTypes.comment.entityTypeId,
             { ignoreParents: true, pathPrefix: ["leftEntity"] },
           ),
         ],

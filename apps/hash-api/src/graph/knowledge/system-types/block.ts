@@ -3,15 +3,16 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { contentLinkTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { BlockProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
-  BaseUrl,
   Entity,
   EntityId,
-  EntityPropertiesObject,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
@@ -45,12 +46,10 @@ export const getBlockFromEntity: PureGraphFunction<
   { entity: Entity },
   Block
 > = ({ entity }) => {
-  if (
-    entity.metadata.entityTypeId !== systemTypes.entityType.block.entityTypeId
-  ) {
+  if (entity.metadata.entityTypeId !== systemEntityTypes.block.entityTypeId) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      systemTypes.entityType.block.entityTypeId,
+      systemEntityTypes.block.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
@@ -96,19 +95,18 @@ export const createBlock: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const { componentId, blockData, ownedById } = params;
 
-  const properties: EntityPropertiesObject = {
-    [systemTypes.propertyType.componentId.propertyTypeBaseUrl as BaseUrl]:
-      componentId,
+  const properties: BlockProperties = {
+    "https://hash.ai/@hash/types/property-type/component-id/": componentId,
   };
 
   const entity = await createEntity(ctx, authentication, {
     ownedById,
     properties,
-    entityTypeId: systemTypes.entityType.block.entityTypeId,
+    entityTypeId: systemEntityTypes.block.entityTypeId,
   });
 
   await createLinkEntity(ctx, authentication, {
-    linkEntityTypeId: systemTypes.linkEntityType.hasData.linkEntityTypeId,
+    linkEntityTypeId: systemLinkEntityTypes.hasData.linkEntityTypeId,
     leftEntityId: entity.metadata.recordId.entityId,
     rightEntityId: blockData.metadata.recordId.entityId,
     ownedById,
@@ -132,7 +130,7 @@ export const getBlockData: ImpureGraphFunction<
     {
       entityId: block.entity.metadata.recordId.entityId,
       linkEntityTypeVersionedUrl:
-        systemTypes.linkEntityType.hasData.linkEntityTypeId,
+        systemLinkEntityTypes.hasData.linkEntityTypeId,
     },
   );
 
@@ -170,7 +168,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
     {
       entityId: block.entity.metadata.recordId.entityId,
       linkEntityTypeVersionedUrl:
-        systemTypes.linkEntityType.hasData.linkEntityTypeId,
+        systemLinkEntityTypes.hasData.linkEntityTypeId,
     },
   );
 
@@ -204,7 +202,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
   });
 
   await createLinkEntity(ctx, authentication, {
-    linkEntityTypeId: systemTypes.linkEntityType.hasData.linkEntityTypeId,
+    linkEntityTypeId: systemLinkEntityTypes.hasData.linkEntityTypeId,
     leftEntityId: block.entity.metadata.recordId.entityId,
     rightEntityId: newBlockDataEntity.metadata.recordId.entityId,
     ownedById: extractOwnedByIdFromEntityId(
@@ -224,7 +222,7 @@ export const getBlockComments: ImpureGraphFunction<
 > = async (ctx, authentication, { block }) => {
   const blockCommentLinks = await getEntityIncomingLinks(ctx, authentication, {
     entityId: block.entity.metadata.recordId.entityId,
-    linkEntityTypeId: systemTypes.linkEntityType.hasParent.linkEntityTypeId,
+    linkEntityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
   });
 
   const commentEntities = await Promise.all(
@@ -262,7 +260,7 @@ export const getBlockCollectionByBlock: ImpureGraphFunction<
             ],
           },
           generateVersionedUrlMatchingFilter(
-            systemTypes.entityType.blockCollection.entityTypeId,
+            systemEntityTypes.blockCollection.entityTypeId,
             { ignoreParents: false, pathPrefix: ["leftEntity"] },
           ),
         ],

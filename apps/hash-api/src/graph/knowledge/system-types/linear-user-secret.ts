@@ -3,7 +3,11 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -37,12 +41,11 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
   LinearUserSecret
 > = ({ entity }) => {
   if (
-    entity.metadata.entityTypeId !==
-    systemTypes.entityType.userSecret.entityTypeId
+    entity.metadata.entityTypeId !== systemEntityTypes.userSecret.entityTypeId
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      systemTypes.entityType.userSecret.entityTypeId,
+      systemEntityTypes.userSecret.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
@@ -76,15 +79,15 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
             ],
           },
           generateVersionedUrlMatchingFilter(
-            systemTypes.entityType.userSecret.entityTypeId,
+            systemEntityTypes.userSecret.entityTypeId,
             { ignoreParents: true },
           ),
           generateVersionedUrlMatchingFilter(
-            systemTypes.linkEntityType.usesUserSecret.linkEntityTypeId,
+            systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
             { ignoreParents: true, pathPrefix: ["incomingLinks"] },
           ),
           generateVersionedUrlMatchingFilter(
-            systemTypes.entityType.linearIntegration.entityTypeId,
+            systemEntityTypes.linearIntegration.entityTypeId,
             {
               ignoreParents: true,
               pathPrefix: ["incomingLinks", "leftEntity"],
@@ -98,7 +101,7 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
                   "leftEntity",
                   "properties",
                   extractBaseUrl(
-                    systemTypes.propertyType.linearOrgId.propertyTypeId,
+                    systemPropertyTypes.linearOrgId.propertyTypeId,
                   ),
                 ],
               },
@@ -153,7 +156,7 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
-            systemTypes.linkEntityType.syncLinearDataWith.linkEntityTypeId,
+            systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
             {
               ignoreParents: true,
               pathPrefix: ["outgoingLinks"],

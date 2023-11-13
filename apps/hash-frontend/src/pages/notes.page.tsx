@@ -5,7 +5,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { QuickNoteProperties } from "@local/hash-isomorphic-utils/system-types/quicknote";
 import {
@@ -64,7 +64,7 @@ const NotesPage: NextPageWithLayout = () => {
         filter: {
           all: [
             generateVersionedUrlMatchingFilter(
-              systemTypes.entityType.quickNote.entityTypeId,
+              systemEntityTypes.quickNote.entityTypeId,
             ),
             {
               equal: [

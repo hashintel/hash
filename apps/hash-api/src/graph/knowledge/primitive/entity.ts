@@ -10,7 +10,7 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   UserPermissions,
   UserPermissionsOnEntities,
@@ -775,7 +775,7 @@ export const checkPermissionsOnEntity: ImpureGraphFunction<
 
   const isAccountGroup =
     entity.metadata.entityTypeId ===
-    systemTypes.entityType.organization.entityTypeId;
+    systemEntityTypes.organization.entityTypeId;
 
   const isPublicUser = actorId === publicUserAccountId;
 

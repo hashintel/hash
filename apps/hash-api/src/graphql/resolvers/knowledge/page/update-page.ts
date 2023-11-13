@@ -1,4 +1,4 @@
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { updateEntityProperties } from "../../../../graph/knowledge/primitive/entity";
@@ -33,7 +33,7 @@ export const updatePageResolver: ResolverFn<
       updatedProperties: Object.entries(updatedProperties).map(
         ([propertyName, value]) => ({
           propertyTypeBaseUrl: extractBaseUrl(
-            systemTypes.propertyType[
+            systemPropertyTypes[
               propertyName as keyof MutationUpdatePageArgs["updatedProperties"]
             ].propertyTypeId,
           ),

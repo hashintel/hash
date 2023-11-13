@@ -1,7 +1,7 @@
 import { Chip, Select } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import { EntityId } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   Table,
@@ -102,11 +102,8 @@ export const mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces =
       workspaceEntityIds: params.linearIntegrations
         .find(
           ({ entity }) =>
-            entity.properties[
-              extractBaseUrl(
-                systemTypes.propertyType.linearOrgId.propertyTypeId,
-              )
-            ] === organization.id,
+            simplifyProperties(entity.properties as LinearIntegrationProperties)
+              .linearOrgId === organization.id,
         )!
         .syncedWithWorkspaces.filter(
           ({ linearTeamIds }) =>

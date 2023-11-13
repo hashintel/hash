@@ -1,6 +1,8 @@
 import {
-  blockProtocolTypes,
-  systemTypes,
+  blockProtocolPropertyTypes,
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { CommentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -43,12 +45,10 @@ export const getCommentFromEntity: PureGraphFunction<
   { entity: Entity },
   Comment
 > = ({ entity }) => {
-  if (
-    entity.metadata.entityTypeId !== systemTypes.entityType.comment.entityTypeId
-  ) {
+  if (entity.metadata.entityTypeId !== systemEntityTypes.comment.entityTypeId) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      systemTypes.entityType.comment.entityTypeId,
+      systemEntityTypes.comment.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
@@ -91,8 +91,7 @@ export const getCommentText: ImpureGraphFunction<
 > = async (ctx, authentication, { commentEntityId }) => {
   const hasTextLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: commentEntityId,
-    linkEntityTypeVersionedUrl:
-      systemTypes.linkEntityType.hasText.linkEntityTypeId,
+    linkEntityTypeVersionedUrl: systemLinkEntityTypes.hasText.linkEntityTypeId,
   });
 
   const [hasTextLink, ...unexpectedHasTextLinks] = hasTextLinks;
@@ -140,27 +139,26 @@ export const createComment: ImpureGraphFunction<
     owner: author.accountId,
     properties: {
       [extractBaseUrl(
-        blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+        blockProtocolPropertyTypes.textualContent.propertyTypeId,
       )]: textualContent,
     },
-    entityTypeId: systemTypes.entityType.text.entityTypeId,
+    entityTypeId: systemEntityTypes.text.entityTypeId,
   });
 
   const commentEntity = await createEntity(ctx, authentication, {
     ownedById,
     owner: author.accountId, // the author has ownership permissions (owner), regardless of which web the comment belongs to (ownedById)
     properties: {},
-    entityTypeId: systemTypes.entityType.comment.entityTypeId,
+    entityTypeId: systemEntityTypes.comment.entityTypeId,
     outgoingLinks: [
       {
-        linkEntityTypeId: systemTypes.linkEntityType.hasParent.linkEntityTypeId,
+        linkEntityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
         rightEntityId: parentEntityId,
         ownedById,
         owner: author.accountId,
       },
       {
-        linkEntityTypeId:
-          systemTypes.linkEntityType.authoredBy.linkEntityTypeId,
+        linkEntityTypeId: systemLinkEntityTypes.authoredBy.linkEntityTypeId,
         rightEntityId: author.entity.metadata.recordId.entityId,
         ownedById,
         owner: author.accountId,
@@ -171,7 +169,7 @@ export const createComment: ImpureGraphFunction<
        * `parent` nad `author` link entities.
        */
       {
-        linkEntityTypeId: systemTypes.linkEntityType.hasText.linkEntityTypeId,
+        linkEntityTypeId: systemLinkEntityTypes.hasText.linkEntityTypeId,
         rightEntityId: textEntity.metadata.recordId.entityId,
         ownedById,
         owner: author.accountId,
@@ -236,7 +234,7 @@ export const updateCommentText: ImpureGraphFunction<
   await updateEntityProperty(ctx, authentication, {
     entity: text.entity,
     propertyTypeBaseUrl: extractBaseUrl(
-      blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+      blockProtocolPropertyTypes.textualContent.propertyTypeId,
     ),
     value: textualContent,
   });
@@ -264,7 +262,7 @@ export const deleteComment: ImpureGraphFunction<
       updatedProperties: [
         {
           propertyTypeBaseUrl: extractBaseUrl(
-            systemTypes.propertyType.deletedAt.propertyTypeId,
+            systemPropertyTypes.deletedAt.propertyTypeId,
           ),
           value: new Date().toISOString(),
         },
@@ -287,7 +285,7 @@ export const getCommentParent: ImpureGraphFunction<
   const parentLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: commentEntityId,
     linkEntityTypeVersionedUrl:
-      systemTypes.linkEntityType.hasParent.linkEntityTypeId,
+      systemLinkEntityTypes.hasParent.linkEntityTypeId,
   });
 
   const [parentLink, ...unexpectedParentLinks] = parentLinks;
@@ -321,7 +319,7 @@ export const getCommentAuthor: ImpureGraphFunction<
   const authorLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: commentEntityId,
     linkEntityTypeVersionedUrl:
-      systemTypes.linkEntityType.authoredBy.linkEntityTypeId,
+      systemLinkEntityTypes.authoredBy.linkEntityTypeId,
   });
 
   const [authorLink, ...unexpectedAuthorLinks] = authorLinks;
@@ -356,7 +354,7 @@ export const getCommentReplies: ImpureGraphFunction<
 > = async (ctx, authentication, { commentEntityId }) => {
   const replyLinks = await getEntityIncomingLinks(ctx, authentication, {
     entityId: commentEntityId,
-    linkEntityTypeId: systemTypes.linkEntityType.hasParent.linkEntityTypeId,
+    linkEntityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
   });
 
   return Promise.all(
@@ -387,7 +385,7 @@ export const resolveComment: ImpureGraphFunction<
     updatedProperties: [
       {
         propertyTypeBaseUrl: extractBaseUrl(
-          systemTypes.propertyType.resolvedAt.propertyTypeId,
+          systemPropertyTypes.resolvedAt.propertyTypeId,
         ),
         value: new Date().toISOString(),
       },
@@ -411,8 +409,7 @@ export const getCommentAncestorBlock: ImpureGraphFunction<
   });
 
   if (
-    parentEntity.metadata.entityTypeId ===
-    systemTypes.entityType.block.entityTypeId
+    parentEntity.metadata.entityTypeId === systemEntityTypes.block.entityTypeId
   ) {
     return getBlockFromEntity({ entity: parentEntity });
   } else {

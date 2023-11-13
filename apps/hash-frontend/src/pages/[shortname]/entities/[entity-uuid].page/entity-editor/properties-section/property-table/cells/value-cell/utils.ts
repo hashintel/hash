@@ -1,4 +1,4 @@
-import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPlainObject } from "lodash";
 
 import { editorSpecs } from "./editor-specs";
@@ -12,42 +12,42 @@ export const guessEditorTypeFromValue = (
 ): EditorType => {
   if (
     typeof value === "string" &&
-    expectedTypes.includes(blockProtocolTypes.dataType.text.title)
+    expectedTypes.includes(blockProtocolDataTypes.text.title)
   ) {
     return "text";
   }
 
   if (
     typeof value === "boolean" &&
-    expectedTypes.includes(blockProtocolTypes.dataType.boolean.title)
+    expectedTypes.includes(blockProtocolDataTypes.boolean.title)
   ) {
     return "boolean";
   }
 
   if (
     typeof value === "number" &&
-    expectedTypes.includes(blockProtocolTypes.dataType.number.title)
+    expectedTypes.includes(blockProtocolDataTypes.number.title)
   ) {
     return "number";
   }
 
   if (
     isPlainObject(value) &&
-    expectedTypes.includes(blockProtocolTypes.dataType.object.title)
+    expectedTypes.includes(blockProtocolDataTypes.object.title)
   ) {
     return "object";
   }
 
   if (
     value === null &&
-    expectedTypes.includes(blockProtocolTypes.dataType.null.title)
+    expectedTypes.includes(blockProtocolDataTypes.null.title)
   ) {
     return "null";
   }
 
   if (
     isEmptyArray(value) &&
-    expectedTypes.includes(blockProtocolTypes.dataType.emptyList.title)
+    expectedTypes.includes(blockProtocolDataTypes.emptyList.title)
   ) {
     return "emptyList";
   }
@@ -69,7 +69,7 @@ export const guessEditorTypeFromExpectedType = (type: string): EditorType => {
 };
 
 export const findDataTypeDefinitionByTitle = (title: string) => {
-  const foundDataTypeDef = Object.values(blockProtocolTypes.dataType).find(
+  const foundDataTypeDef = Object.values(blockProtocolDataTypes).find(
     (val) => val.title === title,
   );
 

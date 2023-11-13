@@ -1,4 +1,4 @@
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountEntityId,
@@ -32,11 +32,11 @@ export const getOrgMembershipFromLinkEntity: PureGraphFunction<
 > = ({ linkEntity }) => {
   if (
     linkEntity.metadata.entityTypeId !==
-    systemTypes.linkEntityType.isMemberOf.linkEntityTypeId
+    systemLinkEntityTypes.isMemberOf.linkEntityTypeId
   ) {
     throw new EntityTypeMismatchError(
       linkEntity.metadata.recordId.entityId,
-      systemTypes.linkEntityType.isMemberOf.linkEntityTypeId,
+      systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
       linkEntity.metadata.entityTypeId,
     );
   }
@@ -83,7 +83,7 @@ export const createOrgMembership: ImpureGraphFunction<
   try {
     linkEntity = await createLinkEntity(ctx, authentication, {
       ownedById: orgAccountGroupId as OwnedById,
-      linkEntityTypeId: systemTypes.linkEntityType.isMemberOf.linkEntityTypeId,
+      linkEntityTypeId: systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
       leftEntityId: userEntityId,
       rightEntityId: orgEntityId,
       properties: {},

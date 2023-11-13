@@ -3,7 +3,11 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -66,12 +70,10 @@ export type User = {
 export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
   entity,
 }) => {
-  if (
-    entity.metadata.entityTypeId !== systemTypes.entityType.user.entityTypeId
-  ) {
+  if (entity.metadata.entityTypeId !== systemEntityTypes.user.entityTypeId) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      systemTypes.entityType.user.entityTypeId,
+      systemEntityTypes.user.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
@@ -126,7 +128,7 @@ export const getUserByShortname: ImpureGraphFunction<
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
-            systemTypes.entityType.user.entityTypeId,
+            systemEntityTypes.user.entityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -134,9 +136,7 @@ export const getUserByShortname: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  extractBaseUrl(
-                    systemTypes.propertyType.shortname.propertyTypeId,
-                  ),
+                  extractBaseUrl(systemPropertyTypes.shortname.propertyTypeId),
                 ],
               },
               { parameter: params.shortname },
@@ -180,7 +180,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
-            systemTypes.entityType.user.entityTypeId,
+            systemEntityTypes.user.entityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -189,7 +189,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
                 path: [
                   "properties",
                   extractBaseUrl(
-                    systemTypes.propertyType.kratosIdentityId.propertyTypeId,
+                    systemPropertyTypes.kratosIdentityId.propertyTypeId,
                   ),
                 ],
               },
@@ -326,7 +326,7 @@ export const createUser: ImpureGraphFunction<
     {
       ownedById: userAccountId as OwnedById,
       properties,
-      entityTypeId: systemTypes.entityType.user.entityTypeId,
+      entityTypeId: systemEntityTypes.user.entityTypeId,
       entityUuid: userAccountId as string as EntityUuid,
     },
   );
@@ -449,7 +449,7 @@ export const getUserOrgMemberships: ImpureGraphFunction<
     {
       entityId: userEntityId,
       linkEntityTypeVersionedUrl:
-        systemTypes.linkEntityType.isMemberOf.linkEntityTypeId,
+        systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
     },
   );
 

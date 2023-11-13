@@ -1,6 +1,6 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -13,13 +13,11 @@ import { UserIcon } from "./icons/user-icon";
 import { UsersRegularIcon } from "./icons/users-regular-icon";
 
 export const entityTypeIcons: Record<VersionedUrl, ReactNode> = {
-  [systemTypes.entityType.user.entityTypeId]: (
-    <UserIcon sx={{ fontSize: 12 }} />
-  ),
-  [systemTypes.entityType.organization.entityTypeId]: (
+  [systemEntityTypes.user.entityTypeId]: <UserIcon sx={{ fontSize: 12 }} />,
+  [systemEntityTypes.organization.entityTypeId]: (
     <UsersRegularIcon sx={{ fontSize: 14, position: "relative", top: 1 }} />
   ),
-  [systemTypes.entityType.document.entityTypeId]: (
+  [systemEntityTypes.document.entityTypeId]: (
     <FileRegularIcon sx={{ fontSize: 12 }} />
   ),
   // @todo canvas icon

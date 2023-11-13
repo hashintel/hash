@@ -6,7 +6,7 @@ import {
   GetEntityQueryVariables,
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { EntityRootType, OwnedById } from "@local/hash-subgraph";
 import { Box, Skeleton, Typography } from "@mui/material";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
@@ -83,7 +83,7 @@ export const ProfileBio: FunctionComponent<{
 
     await createEntity({
       data: {
-        entityTypeId: systemTypes.linkEntityType.hasBio.linkEntityTypeId,
+        entityTypeId: systemLinkEntityTypes.hasBio.linkEntityTypeId,
         linkData: {
           leftEntityId: profile.entity.metadata.recordId.entityId,
           rightEntityId: profileBioEntity.metadata.recordId.entityId,

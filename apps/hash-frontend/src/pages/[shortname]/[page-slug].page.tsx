@@ -12,7 +12,10 @@ import {
   GetEntityQueryVariables,
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
@@ -188,7 +191,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
                       path: [
                         "properties",
                         extractBaseUrl(
-                          systemTypes.propertyType.shortname.propertyTypeId,
+                          systemPropertyTypes.shortname.propertyTypeId,
                         ),
                       ],
                     },
@@ -198,11 +201,11 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
                 {
                   any: [
                     generateVersionedUrlMatchingFilter(
-                      systemTypes.entityType.user.entityTypeId,
+                      systemEntityTypes.user.entityTypeId,
                       { ignoreParents: true },
                     ),
                     generateVersionedUrlMatchingFilter(
-                      systemTypes.entityType.organization.entityTypeId,
+                      systemEntityTypes.organization.entityTypeId,
                       { ignoreParents: true },
                     ),
                   ],
@@ -294,7 +297,7 @@ const generateCrumbsFromPages = ({
           size="small"
           isCanvas={
             currentPage.metadata.entityTypeId ===
-            systemTypes.entityType.canvas.entityTypeId
+            systemEntityTypes.canvas.entityTypeId
           }
         />
       ),
@@ -441,7 +444,7 @@ const Page: NextPageWithLayout<PageProps> = ({
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
 
   const isCanvasPage =
-    page.metadata.entityTypeId === systemTypes.entityType.canvas.entityTypeId;
+    page.metadata.entityTypeId === systemEntityTypes.canvas.entityTypeId;
 
   return (
     <>

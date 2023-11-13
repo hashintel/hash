@@ -1,6 +1,9 @@
 import { ApolloQueryResult, useQuery } from "@apollo/client";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   SimpleProperties,
   simplifyProperties,
@@ -74,7 +77,7 @@ export const useAccountPages = (
       const parentLink = pageOutgoingLinks.find(
         ({ linkEntity }) =>
           linkEntity[0]!.metadata.entityTypeId ===
-          systemTypes.linkEntityType.hasParent.linkEntityTypeId,
+          systemLinkEntityTypes.hasParent.linkEntityTypeId,
       );
 
       const parentPage = parentLink?.rightEntity[0] ?? null;
@@ -85,7 +88,7 @@ export const useAccountPages = (
         parentPage: parentPage ? { metadata: parentPage.metadata } : null,
         type:
           latestPage.metadata.entityTypeId ===
-          systemTypes.entityType.canvas.entityTypeId
+          systemEntityTypes.canvas.entityTypeId
             ? "canvas"
             : "document",
       };

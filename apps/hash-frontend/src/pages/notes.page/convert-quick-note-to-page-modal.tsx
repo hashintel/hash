@@ -4,7 +4,10 @@ import {
   Modal,
   TextField,
 } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/page";
 import { Entity, OwnedById } from "@local/hash-subgraph";
 import {
@@ -92,7 +95,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
         entityId:
           quickNoteEntityWithCreatedAt.quickNoteEntity.metadata.recordId
             .entityId,
-        entityTypeId: systemTypes.entityType.document.entityTypeId,
+        entityTypeId: systemEntityTypes.document.entityTypeId,
         properties: {
           "https://hash.ai/@hash/types/property-type/title/": title,
           "https://hash.ai/@hash/types/property-type/fractional-index/":
@@ -108,7 +111,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
     if (parentPage) {
       await createEntity({
         data: {
-          entityTypeId: systemTypes.linkEntityType.hasParent.linkEntityTypeId,
+          entityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
           properties: {},
           linkData: {
             leftEntityId: pageEntity.metadata.recordId.entityId,

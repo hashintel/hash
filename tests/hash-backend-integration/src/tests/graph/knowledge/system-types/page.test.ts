@@ -23,16 +23,13 @@ import {
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
-  blockProtocolTypes,
-  systemTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { HasIndexedContentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+  HasIndexedContentProperties,
+  TextProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import { OwnedById } from "@local/hash-subgraph";
-import {
-  extractBaseUrl,
-  LinkEntity,
-} from "@local/hash-subgraph/type-system-patch";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { generateKeyBetween } from "fractional-indexing";
 
 import { resetGraph } from "../../../test-server";
@@ -74,12 +71,11 @@ describe("Page", () => {
       componentId: "text",
       blockData: await createEntity(graphContext, authentication, {
         ownedById: testUser.accountId as OwnedById,
-        entityTypeId: systemTypes.entityType.text.entityTypeId,
+        entityTypeId: systemEntityTypes.text.entityTypeId,
         properties: {
-          [extractBaseUrl(
-            blockProtocolTypes.propertyType.textualContent.propertyTypeId,
-          )]: [],
-        },
+          "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
+            [],
+        } as TextProperties,
       }),
     });
   };

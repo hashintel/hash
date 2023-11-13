@@ -1,4 +1,4 @@
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { AccountId } from "@local/hash-subgraph";
@@ -110,7 +110,7 @@ const userEntityHookCallback: UpdateEntityHookCallback = async ({
 
 export const beforeUpdateEntityHooks: UpdateEntityHook[] = [
   {
-    entityTypeId: systemTypes.entityType.user.entityTypeId,
+    entityTypeId: systemEntityTypes.user.entityTypeId,
     callback: userEntityHookCallback,
   },
 ];

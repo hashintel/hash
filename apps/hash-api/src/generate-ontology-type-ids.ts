@@ -47,10 +47,32 @@ type OntologyTypeWithMetadata =
   | PropertyTypeWithMetadata
   | DataTypeWithMetadata;
 
-const sortTypeByTitle = (
-  a: OntologyTypeWithMetadata,
-  b: OntologyTypeWithMetadata,
-) => a.schema.title.localeCompare(b.schema.title);
+const serializeTypeIds = (
+  types: OntologyTypeWithMetadata[],
+  isLinkEntityType?: boolean,
+) =>
+  JSON.stringify(
+    types
+      .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
+      .reduce(
+        (prev, { schema }) => ({
+          ...prev,
+          [convertTitleToCamelCase(schema.title)]: {
+            [`${isLinkEntityType ? "linkEntityType" : schema.kind}Id`]:
+              schema.$id,
+            [`${isLinkEntityType ? "linkEntityType" : schema.kind}BaseUrl`]:
+              extractBaseUrl(schema.$id),
+            ...(schema.kind === "dataType"
+              ? {
+                  title: schema.title,
+                  description: schema.description,
+                }
+              : {}),
+          },
+        }),
+        {},
+      ),
+  );
 
 const generateOntologyIds = async () => {
   const logger = new Logger({
@@ -206,75 +228,6 @@ const generateOntologyIds = async () => {
     }),
   );
 
-  const systemTypes = {
-    entityType: systemEntityTypes.sort(sortTypeByTitle).reduce(
-      (prev, { schema }) => ({
-        ...prev,
-        [convertTitleToCamelCase(schema.title)]: {
-          entityTypeId: schema.$id,
-          entityTypeBaseUrl: extractBaseUrl(schema.$id),
-        },
-      }),
-      {},
-    ),
-    linkEntityType: systemLinkEntityTypes.sort(sortTypeByTitle).reduce(
-      (prev, { schema }) => ({
-        ...prev,
-        [convertTitleToCamelCase(schema.title)]: {
-          linkEntityTypeId: schema.$id,
-          linkEntityTypeBaseUrl: extractBaseUrl(schema.$id),
-        },
-      }),
-      {},
-    ),
-    propertyType: systemPropertyTypes.sort(sortTypeByTitle).reduce(
-      (prev, { schema }) => ({
-        ...prev,
-        [convertTitleToCamelCase(schema.title)]: {
-          propertyTypeId: schema.$id,
-          propertyTypeBaseUrl: extractBaseUrl(schema.$id),
-        },
-      }),
-      {},
-    ),
-  };
-
-  const blockProtocolTypes = {
-    entityType: blockProtocolEntityTypes.sort(sortTypeByTitle).reduce(
-      (prev, { schema }) => ({
-        ...prev,
-        [convertTitleToCamelCase(schema.title)]: {
-          entityTypeId: schema.$id,
-          entityTypeBaseUrl: extractBaseUrl(schema.$id),
-        },
-      }),
-      {},
-    ),
-    propertyType: blockProtocolPropertyTypes.sort(sortTypeByTitle).reduce(
-      (prev, { schema }) => ({
-        ...prev,
-        [convertTitleToCamelCase(schema.title)]: {
-          propertyTypeId: schema.$id,
-          propertyTypeBaseUrl: extractBaseUrl(schema.$id),
-        },
-      }),
-      {},
-    ),
-    /** @todo: fetch the BP data types specifically when we have custom datatypes */
-    dataType: blockProtocolDataTypes.sort(sortTypeByTitle).reduce(
-      (prev, { schema }) => ({
-        ...prev,
-        [convertTitleToCamelCase(schema.title)]: {
-          dataTypeId: schema.$id,
-          dataTypeBaseUrl: extractBaseUrl(schema.$id),
-          title: schema.title,
-          description: schema.description,
-        },
-      }),
-      {},
-    ),
-  };
-
   const outputPath = path.join(
     __dirname,
     `../../../libs/@local/hash-isomorphic-utils/src/${outputFileName}`,
@@ -283,9 +236,24 @@ const generateOntologyIds = async () => {
   await writeFile(
     outputPath,
     [
-      `export const systemTypes = ${JSON.stringify(systemTypes)} as const;`,
-      `export const blockProtocolTypes = ${JSON.stringify(
-        blockProtocolTypes,
+      `export const systemEntityTypes = ${serializeTypeIds(
+        systemEntityTypes,
+      )} as const;`,
+      `export const systemLinkEntityTypes = ${serializeTypeIds(
+        systemLinkEntityTypes,
+        true,
+      )} as const;`,
+      `export const systemPropertyTypes = ${serializeTypeIds(
+        systemPropertyTypes,
+      )} as const;`,
+      `export const blockProtocolEntityTypes = ${serializeTypeIds(
+        blockProtocolEntityTypes,
+      )} as const;`,
+      `export const blockProtocolPropertyTypes = ${serializeTypeIds(
+        blockProtocolPropertyTypes,
+      )} as const;`,
+      `export const blockProtocolDataTypes = ${serializeTypeIds(
+        blockProtocolDataTypes,
       )} as const;`,
     ].join("\n\n"),
   );

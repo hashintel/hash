@@ -1,4 +1,4 @@
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
@@ -66,7 +66,7 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
     await updateEntity({
       data: {
         entityId: org.entity.metadata.recordId.entityId,
-        entityTypeId: systemTypes.entityType.organization.entityTypeId,
+        entityTypeId: systemEntityTypes.organization.entityTypeId,
         properties: updatedProperties,
       },
     });

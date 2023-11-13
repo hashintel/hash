@@ -3,7 +3,11 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   LinearIntegrationProperties,
@@ -40,11 +44,11 @@ export const getLinearIntegrationFromEntity: PureGraphFunction<
 > = ({ entity }) => {
   if (
     entity.metadata.entityTypeId !==
-    systemTypes.entityType.linearIntegration.entityTypeId
+    systemEntityTypes.linearIntegration.entityTypeId
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      systemTypes.entityType.linearIntegration.entityTypeId,
+      systemEntityTypes.linearIntegration.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
@@ -71,7 +75,7 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
             equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
           },
           generateVersionedUrlMatchingFilter(
-            systemTypes.entityType.linearIntegration.entityTypeId,
+            systemEntityTypes.linearIntegration.entityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -80,7 +84,7 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
                 path: [
                   "properties",
                   extractBaseUrl(
-                    systemTypes.propertyType.linearOrgId.propertyTypeId,
+                    systemPropertyTypes.linearOrgId.propertyTypeId,
                   ),
                 ],
               },
@@ -134,7 +138,7 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
             equal: [{ path: ["archived"] }, { parameter: false }],
           },
           generateVersionedUrlMatchingFilter(
-            systemTypes.linkEntityType.syncLinearDataWith.linkEntityTypeId,
+            systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -192,7 +196,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
             equal: [{ path: ["archived"] }, { parameter: false }],
           },
           generateVersionedUrlMatchingFilter(
-            systemTypes.linkEntityType.syncLinearDataWith.linkEntityTypeId,
+            systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -242,7 +246,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
     await createLinkEntity(context, authentication, {
       ownedById: extractOwnedByIdFromEntityId(linearIntegrationEntityId),
       linkEntityTypeId:
-        systemTypes.linkEntityType.syncLinearDataWith.linkEntityTypeId,
+        systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
       leftEntityId: linearIntegrationEntityId,
       rightEntityId: workspaceEntityId,
       properties: {

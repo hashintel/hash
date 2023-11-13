@@ -3,7 +3,10 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -52,12 +55,11 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
   entity,
 }) => {
   if (
-    entity.metadata.entityTypeId !==
-    systemTypes.entityType.organization.entityTypeId
+    entity.metadata.entityTypeId !== systemEntityTypes.organization.entityTypeId
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      systemTypes.entityType.organization.entityTypeId,
+      systemEntityTypes.organization.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
@@ -134,7 +136,7 @@ export const createOrg: ImpureGraphFunction<
   const entity = await createEntity(ctx, authentication, {
     ownedById: orgAccountGroupId as OwnedById,
     properties,
-    entityTypeId: systemTypes.entityType.organization.entityTypeId,
+    entityTypeId: systemEntityTypes.organization.entityTypeId,
     entityUuid: orgAccountGroupId as string as EntityUuid,
   });
   await modifyEntityAuthorizationRelationships(ctx, authentication, [
@@ -186,16 +188,14 @@ export const getOrgByShortname: ImpureGraphFunction<
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
-            systemTypes.entityType.organization.entityTypeId,
+            systemEntityTypes.organization.entityTypeId,
           ),
           {
             equal: [
               {
                 path: [
                   "properties",
-                  extractBaseUrl(
-                    systemTypes.propertyType.shortname.propertyTypeId,
-                  ),
+                  extractBaseUrl(systemPropertyTypes.shortname.propertyTypeId),
                 ],
               },
               { parameter: params.shortname },
@@ -257,7 +257,7 @@ export const updateOrgShortname: ImpureGraphFunction<
   return updateEntityProperty(ctx, authentication, {
     entity: org.entity,
     propertyTypeBaseUrl: extractBaseUrl(
-      systemTypes.propertyType.shortname.propertyTypeId,
+      systemPropertyTypes.shortname.propertyTypeId,
     ),
     value: updatedShortname,
   }).then((updatedEntity) => getOrgFromEntity({ entity: updatedEntity }));
@@ -295,7 +295,7 @@ export const updateOrgName: ImpureGraphFunction<
   const updatedEntity = await updateEntityProperty(ctx, authentication, {
     entity: org.entity,
     propertyTypeBaseUrl: extractBaseUrl(
-      systemTypes.propertyType.organizationName.propertyTypeId,
+      systemPropertyTypes.organizationName.propertyTypeId,
     ),
     value: updatedOrgName,
   });

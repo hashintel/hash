@@ -4,10 +4,10 @@ import {
   Item,
   TextCell,
 } from "@glideapps/glide-data-grid";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
-  BaseUrl,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
@@ -112,9 +112,8 @@ export const EntitiesTable: FunctionComponent<{
           filterState.includeArchived ||
           !isPageEntityTypeId(entity.metadata.entityTypeId)
             ? true
-            : entity.properties[
-                systemTypes.propertyType.archived.propertyTypeBaseUrl as BaseUrl
-              ] !== true),
+            : simplifyProperties(entity.properties as PageProperties)
+                .archived !== true),
       ),
     [entities, filterState, internalWebIds],
   );

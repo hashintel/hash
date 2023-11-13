@@ -1,6 +1,9 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   HasSpatiallyPositionedContent,
   HasSpatiallyPositionedContentProperties,
@@ -43,7 +46,7 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
   { blockCollectionEntityId, blockCollectionEntityTypeId },
 ) => {
   const isCanvas =
-    blockCollectionEntityTypeId === systemTypes.entityType.canvas.entityTypeId;
+    blockCollectionEntityTypeId === systemEntityTypes.canvas.entityTypeId;
 
   const outgoingBlockDataLinks = (await getEntityOutgoingLinks(
     ctx,
@@ -51,9 +54,8 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
     {
       entityId: blockCollectionEntityId,
       linkEntityTypeVersionedUrl: isCanvas
-        ? systemTypes.linkEntityType.hasSpatiallyPositionedContent
-            .linkEntityTypeId
-        : systemTypes.linkEntityType.hasIndexedContent.linkEntityTypeId,
+        ? systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId
+        : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
     },
   )) as
     | LinkEntity<HasSpatiallyPositionedContentProperties>[]
@@ -100,9 +102,8 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     leftEntityId: blockCollectionEntityId,
     rightEntityId: block.entity.metadata.recordId.entityId,
     linkEntityTypeId: canvasPosition
-      ? systemTypes.linkEntityType.hasSpatiallyPositionedContent
-          .linkEntityTypeId
-      : systemTypes.linkEntityType.hasIndexedContent.linkEntityTypeId,
+      ? systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId
+      : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
     // assume that link to block is owned by the same account as the blockCollection
     ownedById: extractOwnedByIdFromEntityId(blockCollectionEntityId),
     properties: canvasPosition || indexPosition,

@@ -1,6 +1,10 @@
 import { Select, TextField } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { Entity, OwnedById } from "@local/hash-subgraph";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { BaseUrl, Entity, OwnedById } from "@local/hash-subgraph";
 import {
   extractBaseUrl,
   LinkEntity,
@@ -96,11 +100,10 @@ export const UserProfileInfoForm: FunctionComponent<{
 
       const { data: serviceAccountEntity } = await createEntity({
         data: {
-          entityTypeId: systemTypes.entityType[kind].entityTypeId,
+          entityTypeId: systemEntityTypes[kind].entityTypeId,
           properties: {
-            [extractBaseUrl(
-              systemTypes.propertyType.profileUrl.propertyTypeId,
-            )]: profileUrl,
+            [extractBaseUrl(systemPropertyTypes.profileUrl.propertyTypeId)]:
+              profileUrl,
           },
         },
       });
@@ -116,7 +119,7 @@ export const UserProfileInfoForm: FunctionComponent<{
             rightEntityId: serviceAccountEntity.metadata.recordId.entityId,
           },
           entityTypeId:
-            systemTypes.linkEntityType.hasServiceAccount.linkEntityTypeId,
+            systemLinkEntityTypes.hasServiceAccount.linkEntityTypeId,
           properties: {},
         },
       });
@@ -137,9 +140,8 @@ export const UserProfileInfoForm: FunctionComponent<{
           entityTypeId: existingServiceAccountEntity.metadata.entityTypeId,
           properties: {
             ...existingServiceAccountEntity.properties,
-            [extractBaseUrl(
-              systemTypes.propertyType.profileUrl.propertyTypeId,
-            )]: profileUrl,
+            [systemPropertyTypes.profileUrl.propertyTypeBaseUrl as BaseUrl]:
+              profileUrl,
           },
         },
       });

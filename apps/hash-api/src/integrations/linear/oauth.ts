@@ -5,7 +5,10 @@ import {
   apiOrigin,
   frontendUrl,
 } from "@local/hash-isomorphic-utils/environment";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -243,7 +246,7 @@ export const oAuthLinearCallback: RequestHandler<
       linearIntegration = existingLinearIntegration;
     } else {
       const userSecretEntity = await createEntity(req.context, authentication, {
-        entityTypeId: systemTypes.entityType.userSecret.entityTypeId,
+        entityTypeId: systemEntityTypes.userSecret.entityTypeId,
         ownedById: ownedById as Uuid as OwnedById,
         properties: secretMetadata,
       });
@@ -256,7 +259,7 @@ export const oAuthLinearCallback: RequestHandler<
         req.context,
         authentication,
         {
-          entityTypeId: systemTypes.entityType.linearIntegration.entityTypeId,
+          entityTypeId: systemEntityTypes.linearIntegration.entityTypeId,
           ownedById: ownedById as Uuid as OwnedById,
           properties: linearIntegrationProperties,
         },
@@ -264,8 +267,7 @@ export const oAuthLinearCallback: RequestHandler<
 
       await createLinkEntity(req.context, authentication, {
         ownedById: ownedById as Uuid as OwnedById,
-        linkEntityTypeId:
-          systemTypes.linkEntityType.usesUserSecret.linkEntityTypeId,
+        linkEntityTypeId: systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
         leftEntityId: linearIntegrationEntity.metadata.recordId.entityId,
         rightEntityId: userSecretEntity.metadata.recordId.entityId,
         properties: {},

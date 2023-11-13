@@ -1,6 +1,6 @@
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { fontAwesomeIconClasses, IconButton } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { EntityId } from "@local/hash-subgraph";
 import { iconButtonClasses, SxProps, Theme, Tooltip } from "@mui/material";
 import { SystemStyleObject } from "@mui/system";
@@ -85,7 +85,7 @@ export const PageIconButton = ({
         >
           <PageIcon
             isCanvas={
-              pageEntityTypeId === systemTypes.entityType.canvas.entityTypeId
+              pageEntityTypeId === systemEntityTypes.canvas.entityTypeId
             }
             icon={icon}
             size={size}

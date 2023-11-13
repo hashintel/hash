@@ -1,5 +1,8 @@
 import { TextField } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { PropsWithChildren, useState } from "react";
@@ -154,7 +157,7 @@ export const OrgForm = ({
             }
           : {
               fileEntityCreationInput: {
-                entityTypeId: systemTypes.entityType.image.entityTypeId,
+                entityTypeId: systemEntityTypes.image.entityTypeId,
               },
             }),
       },
@@ -164,7 +167,7 @@ export const OrgForm = ({
             linkedEntityData: {
               linkedEntityId: initialOrg.entity.metadata.recordId.entityId,
               linkEntityTypeId:
-                systemTypes.linkEntityType.hasAvatar.linkEntityTypeId,
+                systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
             },
           }),
     });

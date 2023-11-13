@@ -6,8 +6,10 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  blockProtocolTypes,
-  systemTypes,
+  blockProtocolPropertyTypes,
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   isPageEntityTypeId,
@@ -155,8 +157,8 @@ export const createPage: ImpureGraphFunction<
     properties,
     entityTypeId:
       type === "document"
-        ? systemTypes.entityType.document.entityTypeId
-        : systemTypes.entityType.canvas.entityTypeId,
+        ? systemEntityTypes.document.entityTypeId
+        : systemEntityTypes.canvas.entityTypeId,
   });
 
   const page = getPageFromEntity({ entity });
@@ -172,10 +174,10 @@ export const createPage: ImpureGraphFunction<
               ownedById,
               properties: {
                 [extractBaseUrl(
-                  blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+                  blockProtocolPropertyTypes.textualContent.propertyTypeId,
                 )]: [],
               },
-              entityTypeId: systemTypes.entityType.text.entityTypeId,
+              entityTypeId: systemEntityTypes.text.entityTypeId,
             }),
           }),
         ];
@@ -219,7 +221,7 @@ export const getPageParentPage: ImpureGraphFunction<
   const parentPageLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: page.entity.metadata.recordId.entityId,
     linkEntityTypeVersionedUrl:
-      systemTypes.linkEntityType.hasParent.linkEntityTypeId,
+      systemLinkEntityTypes.hasParent.linkEntityTypeId,
   });
 
   const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
@@ -368,7 +370,7 @@ export const removeParentPage: ImpureGraphFunction<
   const parentPageLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: page.entity.metadata.recordId.entityId,
     linkEntityTypeVersionedUrl:
-      systemTypes.linkEntityType.hasParent.linkEntityTypeId,
+      systemLinkEntityTypes.hasParent.linkEntityTypeId,
   });
 
   const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
@@ -434,7 +436,7 @@ export const setPageParentPage: ImpureGraphFunction<
     }
 
     await createLinkEntity(ctx, authentication, {
-      linkEntityTypeId: systemTypes.linkEntityType.hasParent.linkEntityTypeId,
+      linkEntityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
       leftEntityId: page.entity.metadata.recordId.entityId,
       rightEntityId: parentPage.entity.metadata.recordId.entityId,
       ownedById: authentication.actorId as OwnedById,
@@ -445,7 +447,7 @@ export const setPageParentPage: ImpureGraphFunction<
     const updatedPageEntity = await updateEntityProperty(ctx, authentication, {
       entity: page.entity,
       propertyTypeBaseUrl: extractBaseUrl(
-        systemTypes.propertyType.fractionalIndex.propertyTypeId,
+        systemPropertyTypes.fractionalIndex.propertyTypeId,
       ),
       value: newIndex,
     });
@@ -472,8 +474,8 @@ export const getPageBlocks: ImpureGraphFunction<
       entityId: pageEntityId,
       linkEntityTypeVersionedUrl:
         type === "document"
-          ? systemTypes.linkEntityType.hasIndexedContent.linkEntityTypeId
-          : systemTypes.linkEntityType.hasSpatiallyPositionedContent
+          ? systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId
+          : systemLinkEntityTypes.hasSpatiallyPositionedContent
               .linkEntityTypeId,
     },
   )) as

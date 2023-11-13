@@ -1,5 +1,5 @@
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   File,
   FileProperties,
@@ -66,8 +66,8 @@ const generateCommonParameters = async (
       existingEntity: null,
       entityTypeId:
         fileEntityCreationInput.entityTypeId ?? mimeType.startsWith("image/")
-          ? systemTypes.entityType.image.entityTypeId
-          : systemTypes.entityType.file.entityTypeId,
+          ? systemEntityTypes.image.entityTypeId
+          : systemEntityTypes.file.entityTypeId,
       mimeType,
       ownedById: fileEntityCreationInput.ownedById,
     };

@@ -14,7 +14,7 @@ import {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountGroupId,
@@ -165,7 +165,7 @@ export const ensureAccountGroupOrgsExist = async (params: {
   }
 };
 
-export type PrimitiveDataTypeKey = keyof typeof blockProtocolTypes.dataType;
+export type PrimitiveDataTypeKey = keyof typeof blockProtocolDataTypes;
 
 type PropertyTypeCreatorParams = {
   propertyTypeId: VersionedUrl;
@@ -191,7 +191,7 @@ export const generateSystemPropertyTypeSchema = (
 
       if (primitiveDataType) {
         const dataTypeReference: DataTypeReference = {
-          $ref: blockProtocolTypes.dataType[primitiveDataType].dataTypeId,
+          $ref: blockProtocolDataTypes[primitiveDataType].dataTypeId,
         };
         inner = dataTypeReference;
       } else if (propertyTypeObjectProperties) {

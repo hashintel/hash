@@ -1,5 +1,5 @@
 import { Logger } from "@local/hash-backend-utils/logger";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { AccountId } from "@local/hash-subgraph";
 
 import { publicUserAccountId } from "../auth/public-user-account-id";
@@ -25,7 +25,7 @@ export const ensureSystemAccountExists = async (params: {
   try {
     // The system account is the creator of the system types
     const orgEntityType = await getEntityTypeById(context, authentication, {
-      entityTypeId: systemTypes.entityType.organization.entityTypeId,
+      entityTypeId: systemEntityTypes.organization.entityTypeId,
     });
 
     systemAccountId =

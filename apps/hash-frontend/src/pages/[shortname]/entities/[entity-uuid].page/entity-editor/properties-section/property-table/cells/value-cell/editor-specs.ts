@@ -9,7 +9,7 @@ import {
   faSquareCheck,
   faText,
 } from "@hashintel/design-system";
-import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { EditorType } from "./types";
 
@@ -26,7 +26,7 @@ interface EditorSpec {
 export const editorSpecs: Record<EditorType, EditorSpec> = {
   boolean: {
     icon: faSquareCheck,
-    title: blockProtocolTypes.dataType.boolean.title,
+    title: blockProtocolDataTypes.boolean.title,
     gridIcon: "bpTypeBoolean",
     defaultValue: true,
     arrayEditException: "no-edit-mode",
@@ -34,19 +34,19 @@ export const editorSpecs: Record<EditorType, EditorSpec> = {
   },
   number: {
     icon: fa100,
-    title: blockProtocolTypes.dataType.number.title,
+    title: blockProtocolDataTypes.number.title,
     gridIcon: "bpTypeNumber",
     valueToString: (value: number) => String(value),
   },
   text: {
     icon: faText,
-    title: blockProtocolTypes.dataType.text.title,
+    title: blockProtocolDataTypes.text.title,
     gridIcon: "bpTypeText",
     valueToString: (value: string) => value,
   },
   object: {
     icon: faBracketsCurly,
-    title: blockProtocolTypes.dataType.object.title,
+    title: blockProtocolDataTypes.object.title,
     gridIcon: "bpBracketsCurly",
     arrayEditException: "no-save-and-discard-buttons",
     valueToString: () => "Object",
@@ -54,7 +54,7 @@ export const editorSpecs: Record<EditorType, EditorSpec> = {
   },
   emptyList: {
     icon: faBracketsSquare,
-    title: blockProtocolTypes.dataType.emptyList.title,
+    title: blockProtocolDataTypes.emptyList.title,
     gridIcon: "bpBracketsSquare",
     defaultValue: [],
     arrayEditException: "no-edit-mode",
@@ -63,7 +63,7 @@ export const editorSpecs: Record<EditorType, EditorSpec> = {
   },
   null: {
     icon: faEmptySet,
-    title: blockProtocolTypes.dataType.null.title,
+    title: blockProtocolDataTypes.null.title,
     gridIcon: "bpEmptySet",
     defaultValue: null,
     arrayEditException: "no-edit-mode",
