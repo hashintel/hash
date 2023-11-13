@@ -1,6 +1,6 @@
 import { faCheck, faFile } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import {
   Box,
@@ -131,7 +131,7 @@ export const TopContextBar = ({
   const isCanvasPage =
     item &&
     "entityTypeId" in item &&
-    item.entityTypeId === systemTypes.entityType.canvas.entityTypeId;
+    item.entityTypeId === systemEntityTypes.canvas.entityTypeId;
 
   // @todo make 'additional buttons' a prop and move this to the page page
   const setCanvasLockState = (shouldLock: boolean) => {

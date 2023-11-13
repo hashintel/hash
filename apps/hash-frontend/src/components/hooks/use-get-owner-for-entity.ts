@@ -1,4 +1,4 @@
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
@@ -26,7 +26,7 @@ export const useGetOwnerForEntity = () => {
         // The HASH Instance is owned by an account group without an org
         if (
           entity.metadata.entityTypeId ===
-          systemTypes.entityType.hashInstance.entityTypeId
+          systemEntityTypes.hashInstance.entityTypeId
         ) {
           return {
             ownedById,

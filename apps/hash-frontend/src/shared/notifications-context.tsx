@@ -11,7 +11,10 @@ import {
   notArchivedFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   SimpleProperties,
   simplifyProperties,
@@ -34,7 +37,6 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   createContext,
   FunctionComponent,
@@ -135,7 +137,7 @@ export const NotificationsContextProvider: FunctionComponent<
           ],
         },
         generateVersionedUrlMatchingFilter(
-          systemTypes.entityType.notification.entityTypeId,
+          systemEntityTypes.notification.entityTypeId,
           { ignoreParents: false },
         ),
         notArchivedFilter,
@@ -255,30 +257,29 @@ export const NotificationsContextProvider: FunctionComponent<
           );
 
           if (
-            entityTypeId ===
-            systemTypes.entityType.mentionNotification.entityTypeId
+            entityTypeId === systemEntityTypes.mentionNotification.entityTypeId
           ) {
             const occurredInEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                systemTypes.linkEntityType.occurredInEntity.linkEntityTypeId,
+                systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
             const occurredInBlock = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                systemTypes.linkEntityType.occurredInBlock.linkEntityTypeId,
+                systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
             const occurredInText = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                systemTypes.linkEntityType.occurredInText.linkEntityTypeId,
+                systemLinkEntityTypes.occurredInText.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
             const triggeredByUserEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                systemTypes.linkEntityType.triggeredByUser.linkEntityTypeId,
+                systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
@@ -299,7 +300,7 @@ export const NotificationsContextProvider: FunctionComponent<
 
             const occurredInComment = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                systemTypes.linkEntityType.occurredInComment.linkEntityTypeId,
+                systemLinkEntityTypes.occurredInComment.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
@@ -329,30 +330,29 @@ export const NotificationsContextProvider: FunctionComponent<
               triggeredByUser,
             } satisfies PageMentionNotification;
           } else if (
-            entityTypeId ===
-            systemTypes.entityType.commentNotification.entityTypeId
+            entityTypeId === systemEntityTypes.commentNotification.entityTypeId
           ) {
             const occurredInEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                systemTypes.linkEntityType.occurredInEntity.linkEntityTypeId,
+                systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
             const occurredInBlock = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                systemTypes.linkEntityType.occurredInBlock.linkEntityTypeId,
+                systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
             const triggeredByComment = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                systemTypes.linkEntityType.triggeredByComment.linkEntityTypeId,
+                systemLinkEntityTypes.triggeredByComment.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
             const triggeredByUserEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                systemTypes.linkEntityType.triggeredByUser.linkEntityTypeId,
+                systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
@@ -373,7 +373,7 @@ export const NotificationsContextProvider: FunctionComponent<
 
             const repliedToComment = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                systemTypes.linkEntityType.repliedToComment.linkEntityTypeId,
+                systemLinkEntityTypes.repliedToComment.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
@@ -450,9 +450,9 @@ export const NotificationsContextProvider: FunctionComponent<
           entityTypeId: notification.entity.metadata.entityTypeId,
           properties: {
             ...notification.entity.properties,
-            [extractBaseUrl(systemTypes.propertyType.readAt.propertyTypeId)]:
+            "https://hash.ai/@hash/types/property-type/read-at/":
               now.toISOString(),
-          },
+          } as NotificationProperties,
         },
       });
 

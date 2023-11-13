@@ -83,7 +83,7 @@ export type CommentOutgoingLinksByLinkEntityTypeId = {
 };
 
 /**
- * A comment.
+ * Comment associated with the issue.
  */
 export type CommentProperties = {
   "https://hash.ai/@hash/types/property-type/deleted-at/"?: DeletedAtPropertyValue;
@@ -482,7 +482,7 @@ export type OrganizationOutgoingLinksByLinkEntityTypeId = {
 };
 
 /**
- * An organization in the HASH application.
+ * An organization. Organizations are root-level objects that contain user accounts and teams.
  */
 export type OrganizationProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
@@ -646,7 +646,7 @@ export type TextOutgoingLinkAndTarget = never;
 export type TextOutgoingLinksByLinkEntityTypeId = {};
 
 /**
- * Textual data.
+ * An ordered sequence of characters.
  */
 export type TextProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": TextualContentPropertyValue;

@@ -45,7 +45,7 @@ import {
   UpdateBlockCollectionContentsMutationVariables,
   UpdateBlockCollectionContentsResultPlaceholder,
 } from "./graphql/api-types.gen";
-import { systemTypes } from "./ontology-types";
+import { systemEntityTypes, systemLinkEntityTypes } from "./ontology-type-ids";
 import { isEntityNode } from "./prosemirror";
 import {
   BlockProperties,
@@ -431,9 +431,7 @@ const mapEntityToGqlBlock = (
   entity: Entity<BlockProperties>,
   entitySubgraph: Subgraph<EntityRootType>,
 ): GqlBlock => {
-  if (
-    entity.metadata.entityTypeId !== systemTypes.entityType.block.entityTypeId
-  ) {
+  if (entity.metadata.entityTypeId !== systemEntityTypes.block.entityTypeId) {
     throw new Error(
       `Entity with type ${entity.metadata.entityTypeId} is not a block`,
     );
@@ -446,7 +444,7 @@ const mapEntityToGqlBlock = (
     ({ linkEntity: linkEntityRevisions }) =>
       linkEntityRevisions[0] &&
       linkEntityRevisions[0].metadata.entityTypeId ===
-        systemTypes.linkEntityType.hasData.linkEntityTypeId,
+        systemLinkEntityTypes.hasData.linkEntityTypeId,
   )?.rightEntity[0];
 
   if (!blockChildEntity) {
@@ -515,10 +513,10 @@ export const save = async ({
           }) =>
             linkEntityRevisions[0] &&
             linkEntityRevisions[0].metadata.entityTypeId ===
-              systemTypes.linkEntityType.hasIndexedContent.linkEntityTypeId &&
+              systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId &&
             rightEntityRevisions[0] &&
             rightEntityRevisions[0].metadata.entityTypeId ===
-              systemTypes.entityType.block.entityTypeId,
+              systemEntityTypes.block.entityTypeId,
         )
         .sort(({ linkEntity: a }, { linkEntity: b }) =>
           sortBlockCollectionLinks(a[0]!, b[0]!),

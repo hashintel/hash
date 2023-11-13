@@ -1,10 +1,13 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-export const pageEntityTypeIds = [
-  systemTypes.entityType.canvas.entityTypeId,
-  systemTypes.entityType.document.entityTypeId,
+export const pageEntityTypeIds: VersionedUrl[] = [
+  systemEntityTypes.canvas.entityTypeId,
+  systemEntityTypes.document.entityTypeId,
 ];
 
 /**
@@ -37,9 +40,9 @@ export const pageEntityTypeFilter = {
   ),
 };
 
-export const contentLinkEntityTypeIds = [
-  systemTypes.linkEntityType.hasIndexedContent.linkEntityTypeId,
-  systemTypes.linkEntityType.hasSpatiallyPositionedContent.linkEntityTypeId,
+export const contentLinkEntityTypeIds: VersionedUrl[] = [
+  systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
+  systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId,
 ];
 
 export const isContentLinkEntityTypeId = (entityTypeId: VersionedUrl) =>

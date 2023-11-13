@@ -1,8 +1,10 @@
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
-  blockProtocolTypes,
-  systemTypes,
-} from "@local/hash-isomorphic-utils/ontology-types";
+  blockProtocolPropertyTypes,
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { BlockCollectionProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -23,7 +25,7 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
         await Promise.all([
           createEntity({
             data: {
-              entityTypeId: systemTypes.entityType[kind].entityTypeId,
+              entityTypeId: systemEntityTypes[kind].entityTypeId,
               properties: {} satisfies BlockCollectionProperties,
             },
           }).then(({ data }) => {
@@ -35,10 +37,10 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
           }),
           createEntity({
             data: {
-              entityTypeId: systemTypes.entityType.block.entityTypeId,
+              entityTypeId: systemEntityTypes.block.entityTypeId,
               properties: {
                 [extractBaseUrl(
-                  systemTypes.propertyType.componentId.propertyTypeId,
+                  systemPropertyTypes.componentId.propertyTypeId,
                 )]: paragraphBlockComponentId,
               },
             },
@@ -51,10 +53,10 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
           }),
           createEntity({
             data: {
-              entityTypeId: systemTypes.entityType.text.entityTypeId,
+              entityTypeId: systemEntityTypes.text.entityTypeId,
               properties: {
                 [extractBaseUrl(
-                  blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+                  blockProtocolPropertyTypes.textualContent.propertyTypeId,
                 )]: [],
               },
             },
@@ -71,21 +73,21 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
         createEntity({
           data: {
             entityTypeId:
-              systemTypes.linkEntityType.hasIndexedContent.linkEntityTypeId,
+              systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
             linkData: {
               leftEntityId: blockCollectionEntity.metadata.recordId.entityId,
               rightEntityId: blockEntity.metadata.recordId.entityId,
             },
             properties: {
               [extractBaseUrl(
-                systemTypes.propertyType.fractionalIndex.propertyTypeId,
+                systemPropertyTypes.fractionalIndex.propertyTypeId,
               )]: generateKeyBetween(null, null),
             },
           },
         }),
         createEntity({
           data: {
-            entityTypeId: systemTypes.linkEntityType.hasData.linkEntityTypeId,
+            entityTypeId: systemLinkEntityTypes.hasData.linkEntityTypeId,
             linkData: {
               leftEntityId: blockEntity.metadata.recordId.entityId,
               rightEntityId: textEntity.metadata.recordId.entityId,

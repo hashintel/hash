@@ -1,12 +1,14 @@
 import { useQuery } from "@apollo/client";
-import { extractBaseUrl } from "@blockprotocol/type-system";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   OrganizationProperties,
   UserProperties,
@@ -55,9 +57,7 @@ export const useUserOrOrg = (
                       {
                         path: [
                           "properties",
-                          extractBaseUrl(
-                            systemTypes.propertyType.shortname.propertyTypeId,
-                          ),
+                          systemPropertyTypes.shortname.propertyTypeBaseUrl,
                         ],
                       },
                       { parameter: params.shortname },
@@ -77,11 +77,11 @@ export const useUserOrOrg = (
             {
               any: [
                 generateVersionedUrlMatchingFilter(
-                  systemTypes.entityType.user.entityTypeId,
+                  systemEntityTypes.user.entityTypeId,
                   { ignoreParents: true },
                 ),
                 generateVersionedUrlMatchingFilter(
-                  systemTypes.entityType.org.entityTypeId,
+                  systemEntityTypes.organization.entityTypeId,
                   { ignoreParents: true },
                 ),
               ],

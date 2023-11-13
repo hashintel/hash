@@ -1,6 +1,6 @@
 import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, Select, SelectProps } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import {
   Entity,
@@ -9,7 +9,6 @@ import {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   Divider,
@@ -73,8 +72,7 @@ const EntityRow: FunctionComponent<{
   const icon = useEntityIcon({
     entity,
     pageIcon:
-      entity.metadata.entityTypeId ===
-      systemTypes.entityType.canvas.entityTypeId ? (
+      entity.metadata.entityTypeId === systemEntityTypes.canvas.entityTypeId ? (
         <CanvasIcon
           sx={{ fontSize: 20, fill: ({ palette }) => palette.gray[40] }}
         />
@@ -235,8 +233,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
   );
 
   const isPagesTab =
-    currentTab.entityTypeBaseUrl ===
-    extractBaseUrl(systemTypes.entityType.page.entityTypeId);
+    currentTab.entityTypeBaseUrl === systemEntityTypes.page.entityTypeBaseUrl;
 
   return (
     <Box mb={6}>

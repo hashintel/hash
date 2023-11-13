@@ -7,7 +7,7 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   isPageEntityTypeId,
   pageEntityTypeIds,
@@ -154,11 +154,11 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               }),
             ),
             generateVersionedUrlMatchingFilter(
-              systemTypes.entityType.user.entityTypeId,
+              systemEntityTypes.user.entityTypeId,
               { ignoreParents: true },
             ),
             generateVersionedUrlMatchingFilter(
-              systemTypes.entityType.org.entityTypeId,
+              systemEntityTypes.organization.entityTypeId,
               { ignoreParents: true },
             ),
           ],
@@ -302,8 +302,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
 
               const nextPriority = Object.values(customOrder).length;
 
-              customOrder[systemTypes.entityType.user.entityTypeId] =
-                nextPriority;
+              customOrder[systemEntityTypes.user.entityTypeId] = nextPriority;
 
               const fallbackPriority = nextPriority + 1;
 
@@ -521,7 +520,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
           }
         } else if (isPageEntityTypeId(entityTypeId)) {
           onChange({ kind: "page", entityId });
-        } else if (entityTypeId === systemTypes.entityType.user.entityTypeId) {
+        } else if (entityTypeId === systemEntityTypes.user.entityTypeId) {
           onChange({ kind: "user", entityId });
         } else {
           onChange({ kind: "entity", entityId });

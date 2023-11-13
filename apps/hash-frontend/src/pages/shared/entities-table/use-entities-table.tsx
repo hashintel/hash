@@ -4,8 +4,9 @@ import {
   PropertyType,
 } from "@blockprotocol/type-system";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   BaseUrl,
   Entity,
@@ -183,11 +184,8 @@ export const useEntitiesTable = (params: {
                 : "",
               namespace: `@${entityNamespace}`,
               archived: isPage
-                ? (entity.properties[
-                    extractBaseUrl(
-                      systemTypes.propertyType.archived.propertyTypeId,
-                    )
-                  ] as boolean)
+                ? simplifyProperties(entity.properties as PageProperties)
+                    .archived
                 : undefined,
               lastEdited,
               lastEditedBy,

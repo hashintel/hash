@@ -20,7 +20,7 @@ import {
 } from "@local/hash-subgraph/type-system-patch";
 
 import { SubgraphFieldsFragment } from "./graphql/api-types.gen";
-import { systemTypes } from "./ontology-types";
+import { systemPropertyTypes } from "./ontology-type-ids";
 
 export const zeroedGraphResolveDepths: GraphResolveDepths = {
   inheritsFrom: { outgoing: 0 },
@@ -141,7 +141,7 @@ export const generateVersionedUrlMatchingFilter = (
 };
 
 const archivedBaseUrl = extractBaseUrl(
-  systemTypes.propertyType.archived.propertyTypeId,
+  systemPropertyTypes.archived.propertyTypeId,
 );
 
 export const notArchivedFilter: Filter = {

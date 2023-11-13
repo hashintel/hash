@@ -8,6 +8,7 @@
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch ./src/index.ts",
     "fix:eslint": "eslint --fix .",
+    "generate-ontology-type-ids": "tsx ./src/generate-ontology-type-ids.ts; yarn prettier --write ../../libs/@local/hash-isomorphic-utils/src/ontology-type-ids.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts",

@@ -1,9 +1,10 @@
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  blockProtocolTypes,
-  systemTypes,
-} from "@local/hash-isomorphic-utils/ontology-types";
+  blockProtocolPropertyTypes,
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
 import {
   BlockProperties,
@@ -67,12 +68,10 @@ export const isBlockCollectionContentsEmpty = (params: {
   if (
     contents.length === 1 &&
     contents[0]!.rightEntity.blockChildEntity.metadata.entityTypeId ===
-      systemTypes.entityType.text.entityTypeId
+      systemEntityTypes.text.entityTypeId
   ) {
     const textualContent = contents[0]!.rightEntity.blockChildEntity.properties[
-      extractBaseUrl(
-        blockProtocolTypes.propertyType.textualContent.propertyTypeId,
-      )
+      extractBaseUrl(blockProtocolPropertyTypes.textualContent.propertyTypeId)
     ] as TextToken[];
 
     return textualContent.length === 0;
@@ -90,7 +89,7 @@ export const getBlockCollectionContents = (params: {
   const blockCollection = getRoots(blockCollectionSubgraph)[0]!;
   const isCanvas =
     blockCollection.metadata.entityTypeId ===
-    systemTypes.entityType.canvas.entityTypeId;
+    systemEntityTypes.canvas.entityTypeId;
 
   const outgoingContentLinks = getOutgoingLinkAndTargetEntities<
     {
@@ -105,9 +104,9 @@ export const getBlockCollectionContents = (params: {
         linkEntityRevisions[0] &&
         linkEntityRevisions[0].metadata.entityTypeId ===
           (isCanvas
-            ? systemTypes.linkEntityType.hasSpatiallyPositionedContent
+            ? systemLinkEntityTypes.hasSpatiallyPositionedContent
                 .linkEntityTypeId
-            : systemTypes.linkEntityType.hasIndexedContent.linkEntityTypeId),
+            : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId),
     )
     .sort((a, b) =>
       sortBlockCollectionLinks(a.linkEntity[0]!, b.linkEntity[0]!),
@@ -132,7 +131,7 @@ export const getBlockCollectionContents = (params: {
         ({ linkEntity: linkEntityRevisions }) =>
           linkEntityRevisions[0] &&
           linkEntityRevisions[0].metadata.entityTypeId ===
-            systemTypes.linkEntityType.hasData.linkEntityTypeId,
+            systemLinkEntityTypes.hasData.linkEntityTypeId,
       )?.rightEntity[0];
 
       if (!blockChildEntity) {

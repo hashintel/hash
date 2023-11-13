@@ -1,27 +1,27 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Entity } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box } from "@mui/material";
-import { useMemo } from "react";
+import { ReactNode, useMemo } from "react";
 
 import { FileRegularIcon } from "./icons/file-regular-icon";
 import { UserIcon } from "./icons/user-icon";
 import { UsersRegularIcon } from "./icons/users-regular-icon";
 
-export const entityTypeIcons = {
-  [systemTypes.entityType.user.entityTypeId]: (
-    <UserIcon sx={{ fontSize: 12 }} />
-  ),
-  [systemTypes.entityType.org.entityTypeId]: (
+export const entityTypeIcons: Record<VersionedUrl, ReactNode> = {
+  [systemEntityTypes.user.entityTypeId]: <UserIcon sx={{ fontSize: 12 }} />,
+  [systemEntityTypes.organization.entityTypeId]: (
     <UsersRegularIcon sx={{ fontSize: 14, position: "relative", top: 1 }} />
   ),
-  [systemTypes.entityType.document.entityTypeId]: (
+  [systemEntityTypes.document.entityTypeId]: (
     <FileRegularIcon sx={{ fontSize: 12 }} />
   ),
   // @todo canvas icon
-} as const;
+};
 
 export const useEntityIcon = (params: {
   entity?: Entity;
@@ -37,10 +37,10 @@ export const useEntityIcon = (params: {
        * consider as part of H-783
        */
       if (isPageEntityTypeId(entity.metadata.entityTypeId)) {
-        const customPageIcon =
-          entity.properties[
-            extractBaseUrl(systemTypes.propertyType.icon.propertyTypeId)
-          ];
+        const { icon: customPageIcon } = simplifyProperties(
+          entity.properties as PageProperties,
+        );
+
         if (typeof customPageIcon === "string") {
           return (
             <Box component="span" sx={{ fontSize: 14 }}>

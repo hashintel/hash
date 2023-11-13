@@ -5,8 +5,8 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityRootType } from "@local/hash-subgraph";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { BaseUrl, EntityRootType } from "@local/hash-subgraph";
 import {
   getEntityTypeAndDescendantsById,
   getRoots,
@@ -91,9 +91,9 @@ const ProfilePage: NextPageWithLayout = () => {
 
   const profileNotFound = !profile && !loading;
 
-  const pinnedEntityTypeBaseUrls = useMemo(
+  const pinnedEntityTypeBaseUrls = useMemo<BaseUrl[]>(
     () => [
-      extractBaseUrl(systemTypes.entityType.page.entityTypeId),
+      systemEntityTypes.page.entityTypeBaseUrl as BaseUrl,
       ...(profile?.pinnedEntityTypeBaseUrls ?? []),
     ],
     [profile],

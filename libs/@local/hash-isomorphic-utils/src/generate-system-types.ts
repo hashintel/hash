@@ -1,15 +1,15 @@
 import { codegen, CodegenParameters } from "@blockprotocol/graph/codegen";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import slugify from "slugify";
 
 import {
-  blockProtocolTypes,
-  EntityTypeDefinition,
-  linearTypes,
-  systemTypes,
-} from "./ontology-types";
+  blockProtocolEntityTypes,
+  systemEntityTypes,
+} from "./ontology-type-ids";
+import { linearTypes } from "./ontology-types";
 
 const generateTypes = async (
-  typeMap: Record<string, EntityTypeDefinition>,
+  typeMap: Record<string, { entityTypeId: VersionedUrl }>,
   label: string,
   subFolder?: string,
 ) => {
@@ -33,6 +33,17 @@ const generateTypes = async (
   await codegen({
     outputFolder: `src/system-types${subFolder ? `/${subFolder}` : ""}`,
     targets,
+    rewriteTypeId: (typeId) => {
+      if (typeId.startsWith("https://hash.ai/")) {
+        const rewrittenTypeId = typeId.replace(
+          "https://hash.ai/",
+          "http://localhost:3000/",
+        ) as VersionedUrl;
+
+        return rewrittenTypeId;
+      }
+      return typeId;
+    },
   });
 
   // eslint-disable-next-line no-console
@@ -46,10 +57,10 @@ const generateTypes = async (
  * you cannot use these types to check the correct value of keys and values that are URLs – they might be different at runtime.
  */
 const generateSystemTypeTypes = async () => {
-  await generateTypes(systemTypes.entityType, "system");
+  await generateTypes(systemEntityTypes, "system");
   await generateTypes(linearTypes.entityType, "linear", "linear");
   await generateTypes(
-    blockProtocolTypes.entityType,
+    blockProtocolEntityTypes,
     "Block Protocol",
     "blockprotocol",
   );
