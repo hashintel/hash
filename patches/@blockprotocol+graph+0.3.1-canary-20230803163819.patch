@@ -1,13 +1,15 @@
 diff --git a/node_modules/@blockprotocol/graph/dist/cjs/codegen.cjs b/node_modules/@blockprotocol/graph/dist/cjs/codegen.cjs
-index 5967d3f..1b7f6ee 100644
+index 5967d3f..cf40920 100644
 --- a/node_modules/@blockprotocol/graph/dist/cjs/codegen.cjs
 +++ b/node_modules/@blockprotocol/graph/dist/cjs/codegen.cjs
-@@ -709,7 +709,12 @@ const traverseAndCollateSchemas = async (initialContext) => {
+@@ -709,7 +709,14 @@ const traverseAndCollateSchemas = async (initialContext) => {
              continue;
          }
          initialContext.logDebug(`Fetching ${typeId}...`);
 -        addFetchPromise(fetchTypeAsJson(typeId).then((type) => {
 +
++        // Rewrite the type ID before attempting to fetch it if a
++        // `rewriteTypeId` function was provided in the parameters
 +        const rewrittenTypeId = initialContext.parameters.rewriteTypeId
 +            ? initialContext.parameters.rewriteTypeId(typeId)
 +            : typeId;
