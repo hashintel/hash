@@ -1,4 +1,4 @@
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { Node, Schema } from "prosemirror-model";
 
 import { TextEntityType, TextProperties } from "./entity";

@@ -23,7 +23,7 @@ export const createPageResolver: ResolverFn<
   MutationCreatePageArgs
 > = async (
   _,
-  { ownedById, properties: { title, prevFractionalIndex } },
+  { ownedById, properties: { title, prevFractionalIndex, type } },
   { dataSources, authentication },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
@@ -32,6 +32,7 @@ export const createPageResolver: ResolverFn<
     ownedById,
     title,
     prevFractionalIndex: prevFractionalIndex ?? undefined,
+    type,
   });
 
   return mapPageToGQL(page);

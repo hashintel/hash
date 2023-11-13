@@ -50,10 +50,12 @@ describe("Comment", () => {
     testPage = await createPage(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       title: "test page",
+      type: "document",
     });
 
     const pageBlocks = await getPageBlocks(graphContext, authentication, {
       pageEntityId: testPage.entity.metadata.recordId.entityId,
+      type: "document",
     });
 
     testBlock = pageBlocks[0]!.rightEntity;

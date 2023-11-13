@@ -4,6 +4,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { contentLinkTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { BlockProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -253,10 +254,7 @@ export const getBlockCollectionByBlock: ImpureGraphFunction<
     query: {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemTypes.linkEntityType.contains.linkEntityTypeId,
-            { ignoreParents: true },
-          ),
+          contentLinkTypeFilter,
           {
             equal: [
               { path: ["rightEntity", "uuid"] },

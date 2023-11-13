@@ -1,17 +1,24 @@
+import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import {
   currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolTypes,
   systemTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
-  ContainsProperties,
+  isPageEntityTypeId,
+  pageEntityTypeFilter,
+  pageEntityTypeIds,
+} from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
+import {
+  HasDataProperties,
+  HasIndexedContentProperties,
   PageProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -73,12 +80,10 @@ export type Page = {
 export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
   entity,
 }) => {
-  if (
-    entity.metadata.entityTypeId !== systemTypes.entityType.page.entityTypeId
-  ) {
+  if (!isPageEntityTypeId(entity.metadata.entityTypeId)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      systemTypes.entityType.page.entityTypeId,
+      pageEntityTypeIds,
       entity.metadata.entityTypeId,
     );
   }
@@ -127,10 +132,11 @@ export const createPage: ImpureGraphFunction<
     summary?: string;
     prevFractionalIndex?: string;
     initialBlocks?: Block[];
+    type: "canvas" | "document";
   },
   Promise<Page>
 > = async (ctx, authentication, params): Promise<Page> => {
-  const { title, summary, prevFractionalIndex, ownedById } = params;
+  const { title, type, summary, prevFractionalIndex, ownedById } = params;
 
   const fractionalIndex = generateKeyBetween(prevFractionalIndex ?? null, null);
 
@@ -149,7 +155,10 @@ export const createPage: ImpureGraphFunction<
   const entity = await createEntity(ctx, authentication, {
     ownedById,
     properties,
-    entityTypeId: systemTypes.entityType.page.entityTypeId,
+    entityTypeId:
+      type === "document"
+        ? systemTypes.entityType.document.entityTypeId
+        : systemTypes.entityType.canvas.entityTypeId,
   });
 
   const page = getPageFromEntity({ entity });
@@ -175,8 +184,25 @@ export const createPage: ImpureGraphFunction<
 
   for (const block of initialBlocks) {
     await addBlockToBlockCollection(ctx, authentication, {
-      blockCollectionEntity: page.entity,
+      blockCollectionEntityId: page.entity.metadata.recordId.entityId,
       block,
+      position:
+        type === "document"
+          ? {
+              indexPosition: {
+                "https://hash.ai/@hash/types/property-type/fractional-index/":
+                  generateKeyBetween(null, null),
+              },
+            }
+          : {
+              canvasPosition: {
+                "https://hash.ai/@hash/types/property-type/x-position/": 0,
+                "https://hash.ai/@hash/types/property-type/y-position/": 0,
+                "https://hash.ai/@hash/types/property-type/width-in-pixels/": 500,
+                "https://hash.ai/@hash/types/property-type/height-in-pixels/": 200,
+                "https://hash.ai/@hash/types/property-type/rotation-in-rads/": 0,
+              },
+            },
     });
   }
 
@@ -255,11 +281,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
     .getEntitiesByQuery(authentication.actorId, {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemTypes.entityType.page.entityTypeId,
-            // ignoreParents assumes we don't have types which are children of Page which should be returned here
-            { ignoreParents: true },
-          ),
+          pageEntityTypeFilter,
           {
             equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
           },
@@ -442,39 +464,27 @@ export const setPageParentPage: ImpureGraphFunction<
  * @param params.page - the page
  */
 export const getPageBlocks: ImpureGraphFunction<
-  { pageEntityId: EntityId },
-  Promise<{ linkEntity: LinkEntity<ContainsProperties>; rightEntity: Block }[]>
-> = async (ctx, authentication, { pageEntityId }) => {
+  { pageEntityId: EntityId; type: "canvas" | "document" },
+  Promise<{ linkEntity: LinkEntity<HasDataProperties>; rightEntity: Block }[]>
+> = async (ctx, authentication, { pageEntityId, type }) => {
   const outgoingBlockDataLinks = (await getEntityOutgoingLinks(
     ctx,
     authentication,
     {
       entityId: pageEntityId,
       linkEntityTypeVersionedUrl:
-        systemTypes.linkEntityType.contains.linkEntityTypeId,
+        type === "document"
+          ? systemTypes.linkEntityType.hasIndexedContent.linkEntityTypeId
+          : systemTypes.linkEntityType.hasSpatiallyPositionedContent
+              .linkEntityTypeId,
     },
-  )) as LinkEntity<ContainsProperties>[];
+  )) as
+    | LinkEntity<HasIndexedContentProperties>[]
+    | LinkEntity<HasSpatiallyPositionedContentProperties>[];
 
   return await Promise.all(
     outgoingBlockDataLinks
-      .sort((a, b) => {
-        const { numericIndex: aNumericIndex } = simplifyProperties(
-          a.properties,
-        );
-        const { numericIndex: bNumericIndex } = simplifyProperties(
-          b.properties,
-        );
-
-        return (
-          (aNumericIndex ?? 0) - (bNumericIndex ?? 0) ||
-          a.metadata.recordId.entityId.localeCompare(
-            b.metadata.recordId.entityId,
-          ) ||
-          a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
-            b.metadata.temporalVersioning.decisionTime.start.limit,
-          )
-        );
-      })
+      .sort(sortBlockCollectionLinks)
       .map(async (linkEntity) => ({
         linkEntity,
         rightEntity: await getLinkEntityRightEntity(ctx, authentication, {
@@ -495,6 +505,7 @@ export const getPageComments: ImpureGraphFunction<
 > = async (ctx, authentication, { pageEntityId }) => {
   const blocks = await getPageBlocks(ctx, authentication, {
     pageEntityId,
+    type: "document", // @todo this will need updating to implement commenting on canvas pages
   });
 
   const comments = await Promise.all(

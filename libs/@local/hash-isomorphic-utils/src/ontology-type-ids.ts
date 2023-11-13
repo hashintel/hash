@@ -7,12 +7,18 @@ export const systemTypes = {
       entityTypeId:
         "https://hash.ai/@hash/types/entity-type/block-collection/v/1",
     },
+    canvas: {
+      entityTypeId: "https://hash.ai/@hash/types/entity-type/canvas/v/1",
+    },
     comment: {
       entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/1",
     },
     commentNotification: {
       entityTypeId:
         "https://hash.ai/@hash/types/entity-type/comment-notification/v/1",
+    },
+    document: {
+      entityTypeId: "https://hash.ai/@hash/types/entity-type/document/v/1",
     },
     facebookAccount: {
       entityTypeId:
@@ -81,9 +87,6 @@ export const systemTypes = {
       linkEntityTypeId:
         "https://hash.ai/@hash/types/entity-type/authored-by/v/1",
     },
-    contains: {
-      linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/contains/v/1",
-    },
     hasAvatar: {
       linkEntityTypeId:
         "https://hash.ai/@hash/types/entity-type/has-avatar/v/1",
@@ -98,6 +101,10 @@ export const systemTypes = {
     hasData: {
       linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/has-data/v/1",
     },
+    hasIndexedContent: {
+      linkEntityTypeId:
+        "https://hash.ai/@hash/types/entity-type/has-indexed-content/v/1",
+    },
     hasParent: {
       linkEntityTypeId:
         "https://hash.ai/@hash/types/entity-type/has-parent/v/1",
@@ -105,6 +112,10 @@ export const systemTypes = {
     hasServiceAccount: {
       linkEntityTypeId:
         "https://hash.ai/@hash/types/entity-type/has-service-account/v/1",
+    },
+    hasSpatiallyPositionedContent: {
+      linkEntityTypeId:
+        "https://hash.ai/@hash/types/entity-type/has-spatially-positioned-content/v/1",
     },
     hasText: {
       linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/has-text/v/1",
@@ -201,6 +212,10 @@ export const systemTypes = {
       propertyTypeId:
         "https://hash.ai/@hash/types/property-type/fractional-index/v/1",
     },
+    heightInPixels: {
+      propertyTypeId:
+        "https://hash.ai/@hash/types/property-type/height-in-pixels/v/1",
+    },
     icon: {
       propertyTypeId: "https://hash.ai/@hash/types/property-type/icon/v/1",
     },
@@ -218,10 +233,6 @@ export const systemTypes = {
     },
     location: {
       propertyTypeId: "https://hash.ai/@hash/types/property-type/location/v/1",
-    },
-    numericIndex: {
-      propertyTypeId:
-        "https://hash.ai/@hash/types/property-type/numeric-index/v/1",
     },
     orgSelfRegistrationIsEnabled: {
       propertyTypeId:
@@ -258,6 +269,10 @@ export const systemTypes = {
       propertyTypeId:
         "https://hash.ai/@hash/types/property-type/resolved-at/v/1",
     },
+    rotationInRads: {
+      propertyTypeId:
+        "https://hash.ai/@hash/types/property-type/rotation-in-rads/v/1",
+    },
     shortname: {
       propertyTypeId: "https://hash.ai/@hash/types/property-type/shortname/v/1",
     },
@@ -282,6 +297,18 @@ export const systemTypes = {
     websiteUrl: {
       propertyTypeId:
         "https://hash.ai/@hash/types/property-type/website-url/v/1",
+    },
+    widthInPixels: {
+      propertyTypeId:
+        "https://hash.ai/@hash/types/property-type/width-in-pixels/v/1",
+    },
+    xPosition: {
+      propertyTypeId:
+        "https://hash.ai/@hash/types/property-type/x-position/v/1",
+    },
+    yPosition: {
+      propertyTypeId:
+        "https://hash.ai/@hash/types/property-type/y-position/v/1",
     },
   },
 } as const;

@@ -232,10 +232,15 @@ export const componentIdBase = `https://blockprotocol${
 
 export const paragraphBlockComponentId = `${componentIdBase}/blocks/hash/paragraph`;
 
-const textBlockComponentIds = new Set([
+const richTextBlockComponentIds = new Set([
   paragraphBlockComponentId,
   `${componentIdBase}/blocks/hash/heading`,
   `${componentIdBase}/blocks/hash/callout`,
+]);
+
+const componentIdsWithTextualContentProperty = new Set([
+  ...Array.from(richTextBlockComponentIds),
+  `${componentIdBase}/blocks/hash/code`,
 ]);
 
 /**
@@ -247,7 +252,7 @@ const textBlockComponentIds = new Set([
  *    we currently store this in localStorage - see UserBlocksProvider.
  */
 export const defaultBlockComponentIds = [
-  ...Array.from(textBlockComponentIds),
+  ...Array.from(richTextBlockComponentIds),
   `${componentIdBase}/blocks/hash/person`,
   `${componentIdBase}/blocks/hash/image`,
   `${componentIdBase}/blocks/hash/table`,
@@ -262,7 +267,10 @@ export const defaultBlockComponentIds = [
  * text block to another
  */
 export const isHashTextBlock = (componentId: string) =>
-  textBlockComponentIds.has(componentId);
+  richTextBlockComponentIds.has(componentId);
+
+export const isBlockWithTextualContentProperty = (componentId: string) =>
+  componentIdsWithTextualContentProperty.has(componentId);
 
 /**
  * In some places, we need to know if the current component and a target
@@ -278,5 +286,5 @@ export const areComponentsCompatible = (
   currentComponentId &&
   targetComponentId &&
   (currentComponentId === targetComponentId ||
-    (isHashTextBlock(currentComponentId) &&
-      isHashTextBlock(targetComponentId)));
+    (isBlockWithTextualContentProperty(currentComponentId) &&
+      isBlockWithTextualContentProperty(targetComponentId)));

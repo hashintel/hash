@@ -7,14 +7,14 @@ import {
   ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
 import {
-  UserPermissions,
-  UserPermissionsOnEntities,
-} from "@local/hash-graphql-shared/graphql/types";
-import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  UserPermissions,
+  UserPermissionsOnEntities,
+} from "@local/hash-isomorphic-utils/types";
 import {
   AccountGroupId,
   AccountId,

@@ -1,13 +1,16 @@
 import { useQuery } from "@apollo/client";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getEntityTypeAndDescendantsById,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
@@ -137,7 +140,7 @@ const ProfilePage: NextPageWithLayout = () => {
               any:
                 includeEntityTypeIds?.map((entityTypeId) =>
                   generateVersionedUrlMatchingFilter(entityTypeId, {
-                    ignoreParents: true,
+                    ignoreParents: false,
                   }),
                 ) ?? [],
             },
@@ -160,6 +163,7 @@ const ProfilePage: NextPageWithLayout = () => {
         },
         graphResolveDepths: {
           ...zeroedGraphResolveDepths,
+          inheritsFrom: { outgoing: 255 },
           isOfType: { outgoing: 1 },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
@@ -189,15 +193,28 @@ const ProfilePage: NextPageWithLayout = () => {
               metadata.recordId.baseUrl === tab.entityTypeBaseUrl,
           );
 
+          const entityTypeAndDescendants =
+            entityType && entitiesSubgraph
+              ? getEntityTypeAndDescendantsById(
+                  entitiesSubgraph,
+                  entityType.schema.$id,
+                )
+              : [];
+
+          const entityTypeBaseUrls = entityTypeAndDescendants.map(
+            ({ schema }) => extractBaseUrl(schema.$id),
+          );
+
           const title = entityType?.schema.title;
 
           const pluralTitle = title ? pluralize(title) : undefined;
 
           return {
             ...tab,
-            entities: allPinnedEntities?.filter(
-              ({ metadata }) =>
-                extractBaseUrl(metadata.entityTypeId) === tab.entityTypeBaseUrl,
+            entities: allPinnedEntities?.filter(({ metadata }) =>
+              entityTypeBaseUrls.includes(
+                extractBaseUrl(metadata.entityTypeId),
+              ),
             ),
             entitiesSubgraph,
             title: entityType?.schema.title,

@@ -49,13 +49,22 @@ export const pageTypedef = gql`
     ): [Comment!]!
   }
 
+  enum PageType {
+    canvas
+    document
+  }
+
   input PageCreationData {
     """
     The page title.
     """
     title: String!
     """
-    The fractional index of the page that is before the current.
+    The type of page
+    """
+    type: PageType!
+    """
+    The fractional index of the page that is before the current in the account page tree.
     """
     prevFractionalIndex: String
   }

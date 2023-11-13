@@ -28,16 +28,9 @@ export type Block = Entity<BlockProperties>;
 
 export type BlockCollection = Entity<BlockCollectionProperties>;
 
-export type BlockCollectionContainsLink = {
-  linkEntity: Contains;
-  rightEntity: Block;
-};
+export type BlockCollectionOutgoingLinkAndTarget = never;
 
-export type BlockCollectionOutgoingLinkAndTarget = BlockCollectionContainsLink;
-
-export type BlockCollectionOutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@hash/types/entity-type/contains/v/1": BlockCollectionContainsLink;
-};
+export type BlockCollectionOutgoingLinksByLinkEntityTypeId = {};
 
 /**
  * A collection of blocks.
@@ -106,22 +99,6 @@ export type ComponentIdPropertyValue = TextDataType;
  * The name of the connection source.
  */
 export type ConnectionSourceNamePropertyValue = TextDataType;
-
-export type Contains = Entity<ContainsProperties> & { linkData: LinkData };
-
-export type ContainsOutgoingLinkAndTarget = never;
-
-export type ContainsOutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * What something contains
- */
-export type ContainsProperties = ContainsProperties1 & ContainsProperties2;
-export type ContainsProperties1 = LinkProperties;
-
-export type ContainsProperties2 = {
-  "https://hash.ai/@hash/types/property-type/numeric-index/"?: NumericIndexPropertyValue;
-};
 
 /**
  * Stringified timestamp of when something was deleted.
@@ -290,6 +267,25 @@ export type HasDataProperties1 = LinkProperties;
 
 export type HasDataProperties2 = {};
 
+export type HasIndexedContent = Entity<HasIndexedContentProperties> & {
+  linkData: LinkData;
+};
+
+export type HasIndexedContentOutgoingLinkAndTarget = never;
+
+export type HasIndexedContentOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Something contained at an index by something
+ */
+export type HasIndexedContentProperties = HasIndexedContentProperties1 &
+  HasIndexedContentProperties2;
+export type HasIndexedContentProperties1 = LinkProperties;
+
+export type HasIndexedContentProperties2 = {
+  "https://hash.ai/@hash/types/property-type/fractional-index/": FractionalIndexPropertyValue;
+};
+
 export type HasParent = Entity<HasParentProperties> & { linkData: LinkData };
 
 export type HasParentOutgoingLinkAndTarget = never;
@@ -412,11 +408,6 @@ export type NotificationProperties = {
  * An arithmetical value (in the Real number system)
  */
 export type NumberDataType = number;
-
-/**
- * The numeric index indicating the current position of something.
- */
-export type NumericIndexPropertyValue = NumberDataType;
 
 /**
  * An opaque, untyped JSON object
@@ -585,9 +576,16 @@ export type PreferredPronounsPropertyValue = TextDataType;
 
 export type ProfileBio = Entity<ProfileBioProperties>;
 
-export type ProfileBioOutgoingLinkAndTarget = never;
+export type ProfileBioHasIndexedContentLink = {
+  linkEntity: HasIndexedContent;
+  rightEntity: Block;
+};
 
-export type ProfileBioOutgoingLinksByLinkEntityTypeId = {};
+export type ProfileBioOutgoingLinkAndTarget = ProfileBioHasIndexedContentLink;
+
+export type ProfileBioOutgoingLinksByLinkEntityTypeId = {
+  "https://hash.ai/@hash/types/entity-type/has-indexed-content/v/1": ProfileBioHasIndexedContentLink;
+};
 
 /**
  * A biography for display on someone or something's profile.

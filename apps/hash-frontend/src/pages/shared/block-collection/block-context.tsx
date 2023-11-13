@@ -1,4 +1,4 @@
-import { UserPermissionsOnEntities } from "@local/hash-graphql-shared/graphql/types";
+import { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
 import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   createContext,

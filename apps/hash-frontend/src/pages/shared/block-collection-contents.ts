@@ -1,18 +1,26 @@
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolTypes,
   systemTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { ContainsProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
 import {
+  BlockProperties,
+  HasIndexedContentProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
+import {
+  Entity,
   EntityId,
   EntityRootType,
   GraphResolveDepths,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import {
   extractBaseUrl,
   LinkEntity,
@@ -78,37 +86,32 @@ export const getBlockCollectionContents = (params: {
   blockCollectionEntityId: EntityId;
 }): BlockCollectionContentItem[] => {
   const { blockCollectionEntityId, blockCollectionSubgraph } = params;
-  const outgoingContentLinks = getOutgoingLinkAndTargetEntities(
-    blockCollectionSubgraph,
-    blockCollectionEntityId,
-  )
+
+  const blockCollection = getRoots(blockCollectionSubgraph)[0]!;
+  const isCanvas =
+    blockCollection.metadata.entityTypeId ===
+    systemTypes.entityType.canvas.entityTypeId;
+
+  const outgoingContentLinks = getOutgoingLinkAndTargetEntities<
+    {
+      linkEntity:
+        | LinkEntity<HasIndexedContentProperties>[]
+        | LinkEntity<HasSpatiallyPositionedContentProperties>[];
+      rightEntity: Entity<BlockProperties>[];
+    }[]
+  >(blockCollectionSubgraph, blockCollectionEntityId)
     .filter(
       ({ linkEntity: linkEntityRevisions }) =>
         linkEntityRevisions[0] &&
         linkEntityRevisions[0].metadata.entityTypeId ===
-          systemTypes.linkEntityType.contains.linkEntityTypeId,
+          (isCanvas
+            ? systemTypes.linkEntityType.hasSpatiallyPositionedContent
+                .linkEntityTypeId
+            : systemTypes.linkEntityType.hasIndexedContent.linkEntityTypeId),
     )
-    .sort((a, b) => {
-      const aLinkEntity = a.linkEntity[0] as LinkEntity<ContainsProperties>;
-      const bLinkEntity = b.linkEntity[0] as LinkEntity<ContainsProperties>;
-
-      const { numericIndex: aNumericIndex } = simplifyProperties(
-        aLinkEntity.properties,
-      );
-      const { numericIndex: bNumericIndex } = simplifyProperties(
-        bLinkEntity.properties,
-      );
-
-      return (
-        (aNumericIndex ?? 0) - (bNumericIndex ?? 0) ||
-        aLinkEntity.metadata.recordId.entityId.localeCompare(
-          bLinkEntity.metadata.recordId.entityId,
-        ) ||
-        aLinkEntity.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
-          bLinkEntity.metadata.temporalVersioning.decisionTime.start.limit,
-        )
-      );
-    });
+    .sort((a, b) =>
+      sortBlockCollectionLinks(a.linkEntity[0]!, b.linkEntity[0]!),
+    );
 
   return outgoingContentLinks.map<BlockCollectionContentItem>(
     ({
@@ -117,9 +120,10 @@ export const getBlockCollectionContents = (params: {
     }) => {
       const rightEntity = rightEntityRevisions[0]!;
 
-      const componentId = rightEntity.properties[
-        extractBaseUrl(systemTypes.propertyType.componentId.propertyTypeId)
-      ] as string;
+      const componentId =
+        rightEntity.properties[
+          "https://hash.ai/@hash/types/property-type/component-id/"
+        ];
 
       const blockChildEntity = getOutgoingLinkAndTargetEntities(
         blockCollectionSubgraph,

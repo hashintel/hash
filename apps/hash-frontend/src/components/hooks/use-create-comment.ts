@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { EntityId } from "@local/hash-subgraph";
 import { useCallback } from "react";
 

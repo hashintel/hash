@@ -1,10 +1,10 @@
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import {
   blockProtocolTypes,
   systemTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { CommentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { AccountGroupId, Entity, EntityId } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 

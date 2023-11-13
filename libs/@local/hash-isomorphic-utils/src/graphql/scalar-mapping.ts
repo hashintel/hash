@@ -8,21 +8,25 @@ export const scalars = {
   VersionedUrl: "@blockprotocol/type-system#VersionedUrl",
 
   UnknownEntityProperties:
-    "@local/hash-graphql-shared/graphql/types#UnknownEntityProperties",
-  CanvasPosition: "@local/hash-graphql-shared/graphql/types#CanvasPosition",
-  TextToken: "@local/hash-graphql-shared/graphql/types#TextToken",
+    "@local/hash-isomorphic-utils/types#UnknownEntityProperties",
+  TextToken: "@local/hash-isomorphic-utils/types#TextToken",
+
+  HasIndexedContentProperties:
+    "@local/hash-isomorphic-utils/system-types/shared#HasIndexedContentProperties",
+  HasSpatiallyPositionedContentProperties:
+    "@local/hash-isomorphic-utils/system-types/canvas#HasSpatiallyPositionedContentProperties",
 
   DataTypeWithMetadata: "@local/hash-subgraph#DataTypeWithMetadata",
   ConstructDataTypeParams:
-    "@local/hash-graphql-shared/graphql/types#ConstructDataTypeParams",
+    "@local/hash-isomorphic-utils/types#ConstructDataTypeParams",
 
   EntityTypeWithMetadata: "@local/hash-subgraph#EntityTypeWithMetadata",
   ConstructEntityTypeParams:
-    "@local/hash-graphql-shared/graphql/types#ConstructEntityTypeParams",
+    "@local/hash-isomorphic-utils/types#ConstructEntityTypeParams",
 
   PropertyTypeWithMetadata: "@local/hash-subgraph#PropertyTypeWithMetadata",
   ConstructPropertyTypeParams:
-    "@local/hash-graphql-shared/graphql/types#ConstructPropertyTypeParams",
+    "@local/hash-isomorphic-utils/types#ConstructPropertyTypeParams",
 
   Entity: "@local/hash-subgraph#Entity",
   EntityRecordId: "@local/hash-subgraph#EntityRecordId",
@@ -33,8 +37,8 @@ export const scalars = {
   EntityPropertiesObject: "@local/hash-subgraph#EntityPropertiesObject",
 
   UserPermissionsOnEntities:
-    "@local/hash-graphql-shared/graphql/types#UserPermissionsOnEntities",
-  UserPermissions: "@local/hash-graphql-shared/graphql/types#UserPermissions",
+    "@local/hash-isomorphic-utils/types#UserPermissionsOnEntities",
+  UserPermissions: "@local/hash-isomorphic-utils/types#UserPermissions",
 
   GraphElementVertexId: "@local/hash-subgraph#GraphElementVertexId",
   Edges: "@local/hash-subgraph#Edges",

@@ -115,6 +115,13 @@ const restoreDraftId = (
 };
 
 /**
+ * Creates an entity store from a list of entities and a list of draft entities.
+ *
+ * This is used to create the initial state of the entity store, and also in response to update the contents in the API.
+ * The latter is a source of bugs, because more recent local updates can be overwritten by stale data from the API.
+ *
+ * This would be solved by having a collaborative editing server which managed document state centrally. H-1234
+ *
  * @todo this should be flat – so that we don't have to traverse links
  * @todo clean up
  */
@@ -168,6 +175,11 @@ export const createEntityStore = (
       { ...entity, draftId },
       (draftEntity: Draft<DraftEntity>) => {
         if (draftData[draftId]) {
+          /**
+           * If we have a local draft of this entity, and it's recorded as being updated more recently than the API-provided one,
+           * we prefer the local entity. We set the decision time manually in the entityStoreReducer when updating properties.
+           * This is not a good long-term solution – we need a collaborative editing server to manage document state. H-1234
+           */
           if (
             new Date(
               draftData[draftId]!.metadata.temporalVersioning?.decisionTime

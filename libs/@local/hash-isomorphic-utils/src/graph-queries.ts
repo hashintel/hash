@@ -8,12 +8,18 @@ import {
   PropertyTypeQueryToken,
   Selector,
 } from "@local/hash-graph-client";
-import { QueryTemporalAxesUnresolved, Timestamp } from "@local/hash-subgraph";
+import {
+  QueryTemporalAxesUnresolved,
+  Subgraph,
+  SubgraphRootType,
+  Timestamp,
+} from "@local/hash-subgraph";
 import {
   componentsFromVersionedUrl,
   extractBaseUrl,
 } from "@local/hash-subgraph/type-system-patch";
 
+import { SubgraphFieldsFragment } from "./graphql/api-types.gen";
 import { systemTypes } from "./ontology-type-ids";
 
 export const zeroedGraphResolveDepths: GraphResolveDepths = {
@@ -159,3 +165,8 @@ export const notArchivedFilter: Filter = {
     },
   ],
 };
+export const mapGqlSubgraphFieldsFragmentToSubgraph = <
+  RootType extends SubgraphRootType,
+>(
+  subgraph: SubgraphFieldsFragment,
+) => subgraph as Subgraph<RootType>;

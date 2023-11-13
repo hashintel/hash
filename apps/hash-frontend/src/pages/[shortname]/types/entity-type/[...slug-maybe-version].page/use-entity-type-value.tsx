@@ -4,7 +4,7 @@ import {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { ConstructEntityTypeParams } from "@local/hash-graphql-shared/graphql/types";
+import { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
   AccountId,
   BaseUrl,

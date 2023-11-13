@@ -6,6 +6,7 @@ import {
 import { BlockCollectionProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import { generateKeyBetween } from "fractional-indexing";
 import { useCallback } from "react";
 
 import { useBlockProtocolCreateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
@@ -69,15 +70,16 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
       await Promise.all([
         createEntity({
           data: {
-            entityTypeId: systemTypes.linkEntityType.contains.linkEntityTypeId,
+            entityTypeId:
+              systemTypes.linkEntityType.hasIndexedContent.linkEntityTypeId,
             linkData: {
               leftEntityId: blockCollectionEntity.metadata.recordId.entityId,
               rightEntityId: blockEntity.metadata.recordId.entityId,
             },
             properties: {
               [extractBaseUrl(
-                systemTypes.propertyType.numericIndex.propertyTypeId,
-              )]: 0,
+                systemTypes.propertyType.fractionalIndex.propertyTypeId,
+              )]: generateKeyBetween(null, null),
             },
           },
         }),

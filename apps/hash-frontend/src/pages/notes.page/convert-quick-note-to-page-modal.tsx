@@ -92,7 +92,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
         entityId:
           quickNoteEntityWithCreatedAt.quickNoteEntity.metadata.recordId
             .entityId,
-        entityTypeId: systemTypes.entityType.page.entityTypeId,
+        entityTypeId: systemTypes.entityType.document.entityTypeId,
         properties: {
           [extractBaseUrl(systemTypes.propertyType.title.propertyTypeId)]:
             title,
@@ -125,6 +125,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
       title,
       fractionalIndex,
       parentPage,
+      type: "document",
       ...pageEntity,
     });
     onClose();

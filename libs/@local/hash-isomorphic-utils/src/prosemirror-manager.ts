@@ -1,4 +1,6 @@
 import { BlockVariant, JsonObject } from "@blockprotocol/core";
+import { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { Node, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
@@ -8,9 +10,14 @@ import {
   areComponentsCompatible,
   fetchBlock,
   HashBlock,
+  isBlockWithTextualContentProperty,
   prepareBlockCache,
 } from "./blocks";
-import { BlockEntity, getBlockChildEntity, isTextEntity } from "./entity";
+import {
+  BlockEntity,
+  getBlockChildEntity,
+  isRichTextContainingEntity,
+} from "./entity";
 import {
   createEntityStore,
   DraftEntity,
@@ -18,6 +25,7 @@ import {
   EntityStoreType,
   isBlockEntity,
   isDraftBlockEntity,
+  textualContentPropertyTypeBaseUrl,
 } from "./entity-store";
 import {
   addEntityStoreAction,
@@ -164,7 +172,7 @@ export class ProsemirrorManager {
         : null;
 
     const content =
-      blockData && isTextEntity(blockData)
+      blockData && isRichTextContainingEntity(blockData)
         ? childrenForTextEntity(blockData, this.schema)
         : [];
 
@@ -299,7 +307,10 @@ export class ProsemirrorManager {
 
     const { tr } = this.view.state;
 
-    const entityProperties = targetVariant?.properties ?? {};
+    const entityProperties = targetVariant?.properties
+      ? JSON.parse(JSON.stringify(targetVariant.properties))
+      : {};
+
     const entityStoreState = entityStorePluginState(this.view.state);
     const blockEntity = draftBlockId
       ? entityStoreState.store.draft[draftBlockId]
@@ -330,12 +341,33 @@ export class ProsemirrorManager {
         });
         targetBlockId = blockEntity.draftId;
       } else {
-        /**
-         * @todo fix data retention when swapping blocks
-         *   – this currently doesn't take account of different properties for Heading, Text etc
-         */
-
         const newBlockProperties = entityProperties;
+
+        // Retain any text from the old entity if we have some and we know it accepts textual-content
+        if (isBlockWithTextualContentProperty(targetComponentId)) {
+          const existingTextContent = blockEntity.blockChildEntity?.properties[
+            textualContentPropertyTypeBaseUrl
+          ] as TextualContentPropertyValue | undefined;
+
+          const newTextContent =
+            newBlockProperties[textualContentPropertyTypeBaseUrl];
+
+          if (
+            existingTextContent &&
+            (!newTextContent ||
+              (Array.isArray(newTextContent) && !newTextContent[0]))
+          ) {
+            const textAsTokens =
+              typeof existingTextContent === "string"
+                ? ([
+                    { tokenType: "text", text: existingTextContent },
+                  ] satisfies TextToken[])
+                : existingTextContent;
+
+            newBlockProperties[textualContentPropertyTypeBaseUrl] =
+              textAsTokens;
+          }
+        }
 
         targetBlockId = this.createBlockEntity(
           tr,

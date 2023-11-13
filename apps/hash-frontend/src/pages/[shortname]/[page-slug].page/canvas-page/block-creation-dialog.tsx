@@ -1,11 +1,9 @@
 import { useMutation } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
-import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
-import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
+import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { OwnedById } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useApp } from "@tldraw/editor";
 import { DialogProps } from "@tldraw/tldraw";
 import { useCallback, useState } from "react";
@@ -40,8 +38,6 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
 
   const createBlock = useCallback(
     async (blockMeta: HashBlockMeta) => {
-      const position = app.getShapesInPage(app.pages[0]!.id).length;
-
       const blockEntityTypeId = blockMeta.schema as VersionedUrl;
 
       const width = defaultBlockWidth;
@@ -68,18 +64,17 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
                   entityProperties: {},
                 },
                 ownedById: accountId as OwnedById,
-                position,
-                // These defaults will be overridden when the user draws the shape on the canvas
-                canvasPosition: {
-                  "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/":
-                    width,
-                  "https://blockprotocol.org/@hash/types/property-type/height-in-pixels/":
-                    height,
-                  "https://blockprotocol.org/@hash/types/property-type/x-position/":
-                    x,
-                  "https://blockprotocol.org/@hash/types/property-type/y-position/":
-                    y,
-                  "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/": 0,
+                position: {
+                  // These defaults will be overridden when the user draws the shape on the canvas
+                  canvasPosition: {
+                    "https://hash.ai/@hash/types/property-type/width-in-pixels/":
+                      width,
+                    "https://hash.ai/@hash/types/property-type/height-in-pixels/":
+                      height,
+                    "https://hash.ai/@hash/types/property-type/x-position/": x,
+                    "https://hash.ai/@hash/types/property-type/y-position/": y,
+                    "https://hash.ai/@hash/types/property-type/rotation-in-rads/": 0,
+                  },
                 },
               },
             },
@@ -103,23 +98,21 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
 
       const { blockCollection } = data.updateBlockCollectionContents;
 
-      const newBlock = blockCollection.contents.find(
-        (contentItem) =>
-          contentItem.linkEntity.properties[
-            extractBaseUrl(systemTypes.propertyType.numericIndex.propertyTypeId)
-          ] === position,
-      )!.rightEntity;
+      const newBlock = blockCollection.contents.sort((a, b) =>
+        a.linkEntity.metadata.temporalVersioning.transactionTime.start.limit.localeCompare(
+          b.linkEntity.metadata.temporalVersioning.transactionTime.start.limit,
+        ),
+      )[0]!;
 
-      const wrappingEntityId = newBlock.metadata.recordId.entityId;
-      const blockEntityId =
-        newBlock.blockChildEntity.metadata.recordId.entityId;
+      const wrappingEntityId = newBlock.rightEntity.metadata.recordId.entityId;
+      const blockEntityId = newBlock.rightEntity.metadata.recordId.entityId;
 
       const blockShapeProps: BlockShape["props"] = {
         w: width,
         h: height,
         opacity: "1",
-        indexPosition: position,
         pageEntityId,
+        linkEntityId: newBlock.linkEntity.metadata.recordId.entityId,
         blockLoaderProps: {
           blockEntityId,
           blockEntityTypeId,

@@ -2,6 +2,8 @@ import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, BoxProps } from "@mui/material";
 
+import { CanvasIcon } from "../shared/icons/canvas-icon";
+
 export type SizeVariant = "small" | "medium";
 
 export const pageIconVariantSizes: Record<
@@ -13,12 +15,18 @@ export const pageIconVariantSizes: Record<
 };
 
 interface PageIconProps {
+  isCanvas?: boolean;
   icon?: string | null;
   size?: SizeVariant;
   sx?: BoxProps["sx"];
 }
 
-export const PageIcon = ({ icon, size = "medium", sx = [] }: PageIconProps) => {
+export const PageIcon = ({
+  isCanvas,
+  icon,
+  size = "medium",
+  sx = [],
+}: PageIconProps) => {
   const sizes = pageIconVariantSizes[size];
 
   return (
@@ -36,15 +44,23 @@ export const PageIcon = ({ icon, size = "medium", sx = [] }: PageIconProps) => {
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
-      {icon ?? (
-        <FontAwesomeIcon
-          icon={faFile}
-          sx={(theme) => ({
-            fontSize: `${sizes.font}px !important`,
-            color: theme.palette.gray[40],
-          })}
-        />
-      )}
+      {icon ??
+        (isCanvas ? (
+          <CanvasIcon
+            sx={{
+              fill: ({ palette }) => palette.gray[40],
+              fontSize: sizes.font + 2,
+            }}
+          />
+        ) : (
+          <FontAwesomeIcon
+            icon={faFile}
+            sx={(theme) => ({
+              fontSize: `${sizes.font}px !important`,
+              color: theme.palette.gray[40],
+            })}
+          />
+        ))}
     </Box>
   );
 };

@@ -1,5 +1,7 @@
 /* eslint-disable import/first */
 // @todo have webpack polyfill this
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+
 require("setimmediate");
 
 import "./globals.scss";
@@ -9,7 +11,6 @@ import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import wasm from "@blockprotocol/type-system/type-system.wasm";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/design-system/theme";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";

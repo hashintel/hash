@@ -25,7 +25,19 @@ export const blockCollectionTypedef = gql`
     properties: EntityPropertiesObject!
   }
 
-  scalar CanvasPosition
+  scalar HasIndexedContentProperties
+  scalar HasSpatiallyPositionedContentProperties
+
+  input PositionInput @oneOf {
+    """
+    Indexed positioning of the block among other blocks in an indexed block collection
+    """
+    indexPosition: HasIndexedContentProperties
+    """
+    Spatial positioning data for blocks in a canvas view
+    """
+    canvasPosition: HasSpatiallyPositionedContentProperties
+  }
 
   """
   Insert a block into a block collection with a corresponding entity.
@@ -36,13 +48,9 @@ export const blockCollectionTypedef = gql`
     """
     ownedById: OwnedById!
     """
-    The index of the block among other blocks in the block collection (to be stored on the link between the two)
+    The position of the block in the block collection
     """
-    position: Int!
-    """
-    Additional positioning data for blocks in a canvas view (to be stored on the link between the two)
-    """
-    canvasPosition: CanvasPosition
+    position: PositionInput!
     """
     The block componentId.
     """
@@ -71,9 +79,9 @@ export const blockCollectionTypedef = gql`
   """
   input RemoveBlockAction {
     """
-    The position of the block to remove from the block collection.
+    The EntityId of the link between the block collection and the block
     """
-    position: Int!
+    linkEntityId: EntityId!
   }
 
   """
@@ -81,17 +89,13 @@ export const blockCollectionTypedef = gql`
   """
   input MoveBlockAction {
     """
-    The current position of the block.
+    The EntityId of the link between the block collection and the block
     """
-    currentPosition: Int!
+    linkEntityId: EntityId!
     """
-    The position to move the block to.
+    The position of the block in the block collection
     """
-    newPosition: Int!
-    """
-    Additional positioning data for blocks in a canvas view (to be stored on the link between the two)
-    """
-    canvasPosition: CanvasPosition
+    position: PositionInput!
   }
 
   """

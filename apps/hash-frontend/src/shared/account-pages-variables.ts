@@ -1,10 +1,9 @@
 import {
   currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
   notArchivedFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { pageEntityTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { OwnedById } from "@local/hash-subgraph";
 
 export const getAccountPagesVariables = ({
@@ -17,11 +16,7 @@ export const getAccountPagesVariables = ({
   query: {
     filter: {
       all: [
-        generateVersionedUrlMatchingFilter(
-          systemTypes.entityType.page.entityTypeId,
-          // ignoreParents assumes we don't have types which are children of Page which should be returned here
-          { ignoreParents: true },
-        ),
+        pageEntityTypeFilter,
         {
           equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
         },

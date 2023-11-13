@@ -1,4 +1,5 @@
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
@@ -64,8 +65,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
 
     if (
       blockCollectionEntity &&
-      blockCollectionEntity.metadata.entityTypeId ===
-        systemTypes.entityType.page.entityTypeId
+      isPageEntityTypeId(blockCollectionEntity.metadata.entityTypeId)
     ) {
       const occurredInEntity = getPageFromEntity({
         entity: blockCollectionEntity,
@@ -125,8 +125,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
 
     if (
       blockCollectionEntity &&
-      blockCollectionEntity.metadata.entityTypeId ===
-        systemTypes.entityType.page.entityTypeId
+      isPageEntityTypeId(blockCollectionEntity.metadata.entityTypeId)
     ) {
       const occurredInEntity = getPageFromEntity({
         entity: blockCollectionEntity,

@@ -1,4 +1,4 @@
-import { apiOrigin } from "@local/hash-graphql-shared/environment";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   File,

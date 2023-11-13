@@ -10,6 +10,7 @@ import { useCallback } from "react";
 import {
   CreatePageMutation,
   CreatePageMutationVariables,
+  PageType,
 } from "../../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { createPage } from "../../graphql/queries/page.queries";
@@ -46,7 +47,7 @@ export const useCreatePage = ({
   });
 
   const createUntitledPage = useCallback(
-    async (prevFractionalIndex: string | null) => {
+    async (prevFractionalIndex: string | null, type: "canvas" | "document") => {
       if (!ownedById) {
         throw new Error("No ownedById provided to useCreatePage");
       }
@@ -54,7 +55,11 @@ export const useCreatePage = ({
       const response = await createPageFn({
         variables: {
           ownedById,
-          properties: { title: "", prevFractionalIndex },
+          properties: {
+            title: "",
+            prevFractionalIndex,
+            type: type === "canvas" ? PageType.Canvas : PageType.Document,
+          },
         },
       });
 

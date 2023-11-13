@@ -8,7 +8,6 @@ import {
   ArchivedPropertyValue,
   Block,
   BlockCollection,
-  BlockCollectionContainsLink,
   BlockCollectionOutgoingLinkAndTarget,
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
@@ -18,20 +17,19 @@ import {
   BlockProperties,
   BooleanDataType,
   ComponentIdPropertyValue,
-  Contains,
-  ContainsOutgoingLinkAndTarget,
-  ContainsOutgoingLinksByLinkEntityTypeId,
-  ContainsProperties,
+  FractionalIndexPropertyValue,
   HasData,
   HasDataOutgoingLinkAndTarget,
   HasDataOutgoingLinksByLinkEntityTypeId,
   HasDataProperties,
+  HasIndexedContent,
+  HasIndexedContentOutgoingLinkAndTarget,
+  HasIndexedContentOutgoingLinksByLinkEntityTypeId,
+  HasIndexedContentProperties,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
-  NumberDataType,
-  NumericIndexPropertyValue,
   TextDataType,
 } from "./shared";
 
@@ -39,7 +37,6 @@ export type {
   ArchivedPropertyValue,
   Block,
   BlockCollection,
-  BlockCollectionContainsLink,
   BlockCollectionOutgoingLinkAndTarget,
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
@@ -49,28 +46,34 @@ export type {
   BlockProperties,
   BooleanDataType,
   ComponentIdPropertyValue,
-  Contains,
-  ContainsOutgoingLinkAndTarget,
-  ContainsOutgoingLinksByLinkEntityTypeId,
-  ContainsProperties,
+  FractionalIndexPropertyValue,
   HasData,
   HasDataOutgoingLinkAndTarget,
   HasDataOutgoingLinksByLinkEntityTypeId,
   HasDataProperties,
+  HasIndexedContent,
+  HasIndexedContentOutgoingLinkAndTarget,
+  HasIndexedContentOutgoingLinksByLinkEntityTypeId,
+  HasIndexedContentProperties,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
-  NumberDataType,
-  NumericIndexPropertyValue,
   TextDataType,
 };
 
 export type QuickNote = Entity<QuickNoteProperties>;
 
-export type QuickNoteOutgoingLinkAndTarget = never;
+export type QuickNoteHasIndexedContentLink = {
+  linkEntity: HasIndexedContent;
+  rightEntity: Block;
+};
 
-export type QuickNoteOutgoingLinksByLinkEntityTypeId = {};
+export type QuickNoteOutgoingLinkAndTarget = QuickNoteHasIndexedContentLink;
+
+export type QuickNoteOutgoingLinksByLinkEntityTypeId = {
+  "https://hash.ai/@hash/types/entity-type/has-indexed-content/v/1": QuickNoteHasIndexedContentLink;
+};
 
 /**
  * A (usually) quick or short note.

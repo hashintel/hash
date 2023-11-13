@@ -3,14 +3,7 @@ import {
   EntityType,
   PropertyType,
 } from "@blockprotocol/type-system/slim";
-import {
-  BaseUrl,
-  EntityId,
-  Subgraph,
-  SubgraphRootType,
-} from "@local/hash-subgraph";
-
-import { SubgraphFieldsFragment } from "./api-types.gen";
+import { BaseUrl, EntityId } from "@local/hash-subgraph";
 
 export type TextToken =
   | {
@@ -36,31 +29,6 @@ export type TextToken =
       propertyTypeBaseUrl?: BaseUrl;
       linkEntityTypeBaseUrl?: BaseUrl;
     };
-
-const fakeXPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/x-position/";
-const fakeYPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/y-position/";
-const fakeWidthPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/";
-const fakeHeightPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/height-in-pixels/";
-const fakeRotationPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/";
-
-/**
- * Temporary type for canvas position properties
- * In future, we may want to move this either to be:
- * 1. Hosted on Block Protocol
- * 2. Defined as a system type in HASH
- */
-export type CanvasPosition = {
-  [fakeXPropertyBaseUrl]: number;
-  [fakeYPropertyBaseUrl]: number;
-  [fakeWidthPropertyBaseUrl]: number;
-  [fakeHeightPropertyBaseUrl]: number;
-  [fakeRotationPropertyBaseUrl]: number;
-};
 
 export type UnknownEntityProperties = {};
 
@@ -94,9 +62,3 @@ export type UserPermissions = {
 export type UserPermissionsOnEntities = {
   [key: EntityId]: UserPermissions | undefined;
 };
-
-export const mapGqlSubgraphFieldsFragmentToSubgraph = <
-  RootType extends SubgraphRootType,
->(
-  subgraph: SubgraphFieldsFragment,
-) => subgraph as Subgraph<RootType>;

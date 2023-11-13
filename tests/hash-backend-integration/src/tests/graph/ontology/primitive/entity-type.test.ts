@@ -17,13 +17,13 @@ import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
-  ConstructEntityTypeParams,
-  SystemDefinedProperties,
-} from "@local/hash-graphql-shared/graphql/types";
-import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  ConstructEntityTypeParams,
+  SystemDefinedProperties,
+} from "@local/hash-isomorphic-utils/types";
 import {
   EntityTypeWithMetadata,
   isOwnedOntologyElementMetadata,

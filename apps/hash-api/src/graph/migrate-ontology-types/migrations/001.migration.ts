@@ -300,43 +300,6 @@ const migrate: MigrationFunction = async ({
 
   /** Block Collection entity type */
 
-  const numericIndexPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Numeric Index",
-        description:
-          "The numeric index indicating the current position of something.",
-        possibleValues: [{ primitiveDataType: "number" }],
-      },
-      migrationState,
-    },
-  );
-
-  /**
-   * @todo this 'contains' link type is used to link a page to blocks it contains
-   *     for both canvas and document mode. We probably want to split these out into two links,
-   *     and maybe even split a Page into two types. @see https://app.asana.com/0/1204355839255041/1204504514595841/f
-   */
-  const containsLinkEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Contains",
-        description: "What something contains",
-        allOf: [linkEntityTypeUrl],
-        properties: [
-          {
-            propertyType: numericIndexPropertyType,
-          },
-        ],
-      },
-      migrationState,
-    },
-  );
-
   const blockCollectionEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
@@ -344,20 +307,42 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Block Collection",
         description: "A collection of blocks.",
-        outgoingLinks: [
-          {
-            linkEntityType: containsLinkEntityType,
-            destinationEntityTypes: [blockEntityType],
-            minItems: 1,
-            ordered: true,
-          },
-        ],
       },
       migrationState,
     },
   );
 
   /** Profile Bio entity type */
+
+  const fractionalIndexPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Fractional Index",
+        description:
+          "The fractional index indicating the current position of something.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+    },
+  );
+
+  const hasIndexedContentLinkEntityType =
+    await createSystemEntityTypeIfNotExists(context, authentication, {
+      entityTypeDefinition: {
+        allOf: [linkEntityTypeUrl],
+        title: "Has Indexed Content",
+        description: "Something contained at an index by something",
+        properties: [
+          {
+            propertyType: fractionalIndexPropertyType,
+            required: true,
+          },
+        ],
+      },
+      migrationState,
+    });
 
   const profileBioEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -368,6 +353,13 @@ const migrate: MigrationFunction = async ({
         title: "Profile Bio",
         description:
           "A biography for display on someone or something's profile.",
+        outgoingLinks: [
+          {
+            linkEntityType: hasIndexedContentLinkEntityType,
+            destinationEntityTypes: [blockEntityType],
+            minItems: 1,
+          },
+        ],
       },
       migrationState,
     },
@@ -835,20 +827,6 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const fractionalIndexPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Fractional Index",
-        description:
-          "The fractional index indicating the current position of something.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-    },
-  );
-
   const iconPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
@@ -915,6 +893,149 @@ const migrate: MigrationFunction = async ({
     },
   );
 
+  /** Document entity type */
+
+  const _documentEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        title: "Document",
+        description:
+          "A page in document format, with content arranged in columns.",
+        allOf: [pageEntityType.schema.$id],
+        outgoingLinks: [
+          {
+            linkEntityType: hasIndexedContentLinkEntityType,
+            destinationEntityTypes: [blockEntityType],
+            minItems: 0,
+          },
+        ],
+      },
+      migrationState,
+    },
+  );
+
+  /** Canvas entity type */
+
+  const xPositionPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "X Position",
+        description: "The position of something on the x axis.",
+        possibleValues: [{ primitiveDataType: "number" }],
+      },
+      migrationState,
+    },
+  );
+
+  const yPositionPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Y Position",
+        description: "The position of something on the y axis.",
+        possibleValues: [{ primitiveDataType: "number" }],
+      },
+      migrationState,
+    },
+  );
+
+  const heightInPixelsPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Height In Pixels",
+        description: "The height of something in pixels.",
+        possibleValues: [{ primitiveDataType: "number" }],
+      },
+      migrationState,
+    },
+  );
+
+  const widthInPixelsPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Width In Pixels",
+        description: "The width of something in pixels.",
+        possibleValues: [{ primitiveDataType: "number" }],
+      },
+      migrationState,
+    },
+  );
+
+  const rotationInRadsPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Rotation In Rads",
+        description: "The rotation of something in radians.",
+        possibleValues: [{ primitiveDataType: "number" }],
+      },
+      migrationState,
+    },
+  );
+
+  const hasSpatiallyPositionedContentLinkEntityType =
+    await createSystemEntityTypeIfNotExists(context, authentication, {
+      entityTypeDefinition: {
+        allOf: [linkEntityTypeUrl],
+        title: "Has Spatially Positioned Content",
+        description: "Something contained at a spatial position by something",
+        properties: [
+          {
+            propertyType: xPositionPropertyType,
+            required: true,
+          },
+          {
+            propertyType: yPositionPropertyType,
+            required: true,
+          },
+          {
+            propertyType: heightInPixelsPropertyType,
+            required: true,
+          },
+          {
+            propertyType: widthInPixelsPropertyType,
+            required: true,
+          },
+          {
+            propertyType: rotationInRadsPropertyType,
+            required: true,
+          },
+        ],
+      },
+      migrationState,
+    });
+
+  const _canvasEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        title: "Canvas",
+        description:
+          "A page in canvas format, with content in a free-form arrangement.",
+        allOf: [pageEntityType.schema.$id],
+        outgoingLinks: [
+          {
+            linkEntityType: hasSpatiallyPositionedContentLinkEntityType,
+            destinationEntityTypes: [blockEntityType],
+            minItems: 0,
+          },
+        ],
+      },
+      migrationState,
+    },
+  );
+
   /** Quick Note entity */
 
   const _quickNoteEntityType = await createSystemEntityTypeIfNotExists(
@@ -926,6 +1047,13 @@ const migrate: MigrationFunction = async ({
         title: "Quick Note",
         description: "A (usually) quick or short note.",
         properties: [{ propertyType: archivedPropertyType }],
+        outgoingLinks: [
+          {
+            linkEntityType: hasIndexedContentLinkEntityType,
+            destinationEntityTypes: [blockEntityType],
+            minItems: 1,
+          },
+        ],
       },
       migrationState,
     },

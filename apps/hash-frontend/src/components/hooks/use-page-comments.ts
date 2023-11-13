@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import {
   Entity,
   EntityId,
@@ -38,6 +38,7 @@ export const usePageComments = (pageEntityId: EntityId): PageCommentsInfo => {
     GetPageCommentsQueryVariables
   >(getPageComments, {
     variables: { entityId: pageEntityId },
+    pollInterval: 5_000,
   });
 
   return { data: data?.pageComments ?? emptyComments, loading };
