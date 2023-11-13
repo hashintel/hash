@@ -3,6 +3,7 @@ import { OntologyChip } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
+import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import { useRouter } from "next/router";
@@ -15,7 +16,6 @@ import {
   useLatestEntityTypesOptional,
 } from "../../../../shared/entity-types-context/hooks";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
-import { QUERY_PROPERTY_TYPE_BASE_URL } from "./create-entity-page";
 import { EntityEditorProps } from "./entity-editor";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { TypesSection } from "./entity-editor/types-section";
@@ -57,7 +57,7 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
 
   const entity = getRoots(entityEditorProps.entitySubgraph)[0];
   const defaultValue = (entity?.properties as any)[
-    QUERY_PROPERTY_TYPE_BASE_URL
+    blockProtocolPropertyTypes.query.propertyTypeBaseUrl
   ];
 
   const handleQueryEntities = useCallback(
