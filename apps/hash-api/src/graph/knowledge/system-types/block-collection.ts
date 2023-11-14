@@ -1,6 +1,10 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
   HasSpatiallyPositionedContent,
   HasSpatiallyPositionedContentProperties,
 } from "@local/hash-isomorphic-utils/system-types/canvas";
@@ -13,7 +17,6 @@ import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 import { PositionInput } from "../../../graphql/api-types.gen";
 import { ImpureGraphFunction } from "../../context-types";
-import { SYSTEM_TYPES } from "../../system-types";
 import {
   archiveEntity,
   getEntityOutgoingLinks,
@@ -43,7 +46,7 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
   { blockCollectionEntityId, blockCollectionEntityTypeId },
 ) => {
   const isCanvas =
-    blockCollectionEntityTypeId === SYSTEM_TYPES.entityType.canvas.schema.$id;
+    blockCollectionEntityTypeId === systemEntityTypes.canvas.entityTypeId;
 
   const outgoingBlockDataLinks = (await getEntityOutgoingLinks(
     ctx,
@@ -51,8 +54,8 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
     {
       entityId: blockCollectionEntityId,
       linkEntityTypeVersionedUrl: isCanvas
-        ? SYSTEM_TYPES.linkEntityType.hasSpatiallyPositionedContent.schema.$id
-        : SYSTEM_TYPES.linkEntityType.hasIndexedContent.schema.$id,
+        ? systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId
+        : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
     },
   )) as
     | LinkEntity<HasSpatiallyPositionedContentProperties>[]
@@ -98,9 +101,9 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
   const linkEntity: LinkEntity = await createLinkEntity(ctx, authentication, {
     leftEntityId: blockCollectionEntityId,
     rightEntityId: block.entity.metadata.recordId.entityId,
-    linkEntityType: canvasPosition
-      ? SYSTEM_TYPES.linkEntityType.hasSpatiallyPositionedContent
-      : SYSTEM_TYPES.linkEntityType.hasIndexedContent,
+    linkEntityTypeId: canvasPosition
+      ? systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId
+      : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
     // assume that link to block is owned by the same account as the blockCollection
     ownedById: extractOwnedByIdFromEntityId(blockCollectionEntityId),
     properties: canvasPosition || indexPosition,

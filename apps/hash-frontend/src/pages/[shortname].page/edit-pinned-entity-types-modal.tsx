@@ -4,7 +4,10 @@ import {
   IconButton,
   Modal,
 } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { EntityTypeWithMetadata, OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
@@ -154,7 +157,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
         updatedProperties: {
           ...profile.entity.properties,
           [extractBaseUrl(
-            systemTypes.propertyType.pinnedEntityTypeBaseUrl.propertyTypeId,
+            systemPropertyTypes.pinnedEntityTypeBaseUrl.propertyTypeId,
           )]: updatedPinnedEntityTypeBaseUrls,
         },
       },
@@ -392,7 +395,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
               <EntityTypeSelector
                 excludeEntityTypeIds={[
                   ...fields.map(({ schema }) => schema.$id),
-                  systemTypes.entityType.page.entityTypeId,
+                  systemEntityTypes.page.entityTypeId,
                 ]}
                 disableCreateNewEmpty
                 onSelect={(entityType) => {

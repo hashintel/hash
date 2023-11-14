@@ -4,6 +4,16 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import {
+  LinearIntegrationProperties,
+  SyncLinearDataWithProperties,
+} from "@local/hash-isomorphic-utils/system-types/linearintegration";
+import {
   AccountId,
   Entity,
   EntityId,
@@ -16,10 +26,10 @@ import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import { SYSTEM_TYPES } from "../../system-types";
 import { getLatestEntityById, updateEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 
@@ -34,23 +44,20 @@ export const getLinearIntegrationFromEntity: PureGraphFunction<
 > = ({ entity }) => {
   if (
     entity.metadata.entityTypeId !==
-    SYSTEM_TYPES.entityType.linearIntegration.schema.$id
+    systemEntityTypes.linearIntegration.entityTypeId
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
+      systemEntityTypes.linearIntegration.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
 
-  const linearOrgId = entity.properties[
-    SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl
-  ] as string;
+  const { linearOrgId } = simplifyProperties(
+    entity.properties as LinearIntegrationProperties,
+  );
 
-  return {
-    linearOrgId,
-    entity,
-  };
+  return { linearOrgId, entity };
 };
 
 /**
@@ -68,7 +75,7 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
             equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
           },
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
+            systemEntityTypes.linearIntegration.entityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -76,8 +83,9 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId
-                    .baseUrl,
+                  extractBaseUrl(
+                    systemPropertyTypes.linearOrgId.propertyTypeId,
+                  ),
                 ],
               },
               { parameter: linearOrgId },
@@ -130,7 +138,7 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
             equal: [{ path: ["archived"] }, { parameter: false }],
           },
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
+            systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -188,7 +196,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
             equal: [{ path: ["archived"] }, { parameter: false }],
           },
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
+            systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -230,20 +238,21 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
     await updateEntity(context, authentication, {
       entity: existingLinkEntity,
       properties: {
-        [SYSTEM_TYPES.propertyType.linearTeamId.metadata.recordId.baseUrl]:
+        "https://hash.ai/@hash/types/property-type/linear-team-id/":
           linearTeamIds,
-      },
+      } as SyncLinearDataWithProperties,
     });
   } else {
     await createLinkEntity(context, authentication, {
       ownedById: extractOwnedByIdFromEntityId(linearIntegrationEntityId),
-      linkEntityType: SYSTEM_TYPES.linkEntityType.syncLinearDataWith,
+      linkEntityTypeId:
+        systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
       leftEntityId: linearIntegrationEntityId,
       rightEntityId: workspaceEntityId,
       properties: {
-        [SYSTEM_TYPES.propertyType.linearTeamId.metadata.recordId.baseUrl]:
+        "https://hash.ai/@hash/types/property-type/linear-team-id/":
           linearTeamIds,
-      },
+      } as SyncLinearDataWithProperties,
     });
   }
 };

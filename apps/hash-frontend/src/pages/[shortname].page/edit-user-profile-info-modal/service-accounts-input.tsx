@@ -16,12 +16,12 @@ import { UserProfileFormData } from "./user-profile-info-form";
 import { urlRegex } from "./util";
 
 const serviceAccountKindOptions: Record<ServiceAccountKind, string> = {
-  linkedInAccount: "LinkedIn",
+  linkedinAccount: "LinkedIn",
   twitterAccount: "Twitter",
-  tikTokAccount: "TikTok",
+  tiktokAccount: "TikTok",
   facebookAccount: "Facebook",
   instagramAccount: "Instagram",
-  gitHubAccount: "GitHub",
+  githubAccount: "GitHub",
 };
 
 export const ServiceAccountsInput: FunctionComponent = () => {

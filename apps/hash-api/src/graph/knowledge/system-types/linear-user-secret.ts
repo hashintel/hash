@@ -4,6 +4,14 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
+import { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import {
   AccountId,
   Entity,
   EntityId,
@@ -16,11 +24,11 @@ import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import { VaultClient } from "../../../vault";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import { SYSTEM_TYPES } from "../../system-types";
 
 export type LinearUserSecret = {
   connectionSourceName: string;
@@ -33,23 +41,18 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
   LinearUserSecret
 > = ({ entity }) => {
   if (
-    entity.metadata.entityTypeId !==
-    SYSTEM_TYPES.entityType.userSecret.schema.$id
+    entity.metadata.entityTypeId !== systemEntityTypes.userSecret.entityTypeId
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.userSecret.schema.$id,
+      systemEntityTypes.userSecret.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
 
-  const connectionSourceName = entity.properties[
-    SYSTEM_TYPES.propertyType.connectionSourceName.metadata.recordId.baseUrl
-  ] as string;
-
-  const vaultPath = entity.properties[
-    SYSTEM_TYPES.propertyType.vaultPath.metadata.recordId.baseUrl
-  ] as string;
+  const { connectionSourceName, vaultPath } = simplifyProperties(
+    entity.properties as UserSecretProperties,
+  );
 
   return {
     connectionSourceName,
@@ -76,15 +79,15 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
             ],
           },
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.entityType.userSecret.schema.$id,
+            systemEntityTypes.userSecret.entityTypeId,
             { ignoreParents: true },
           ),
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.linkEntityType.usesUserSecret.schema.$id,
+            systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
             { ignoreParents: true, pathPrefix: ["incomingLinks"] },
           ),
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
+            systemEntityTypes.linearIntegration.entityTypeId,
             {
               ignoreParents: true,
               pathPrefix: ["incomingLinks", "leftEntity"],
@@ -97,8 +100,9 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
                   "incomingLinks",
                   "leftEntity",
                   "properties",
-                  SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId
-                    .baseUrl,
+                  extractBaseUrl(
+                    systemPropertyTypes.linearOrgId.propertyTypeId,
+                  ),
                 ],
               },
               { parameter: linearOrgId },
@@ -152,7 +156,7 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
+            systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
             {
               ignoreParents: true,
               pathPrefix: ["outgoingLinks"],
@@ -198,13 +202,15 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
     );
   }
 
+  const { linearOrgId } = simplifyProperties(
+    integrationEntity.properties as LinearIntegrationProperties,
+  );
+
   const secretEntity = await getLinearUserSecretByLinearOrgId(
     context,
     authentication,
     {
-      linearOrgId: integrationEntity.properties[
-        SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl
-      ] as string,
+      linearOrgId,
       userAccountId: extractOwnedByIdFromEntityId(
         integrationEntity.metadata.recordId.entityId,
       ) as AccountId,

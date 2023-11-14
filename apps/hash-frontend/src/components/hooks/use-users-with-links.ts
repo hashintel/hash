@@ -4,7 +4,7 @@ import {
   generateVersionedUrlMatchingFilter,
   mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { AccountId, EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
@@ -56,7 +56,7 @@ export const useUsersWithLinks = ({
                 ]
               : []),
             generateVersionedUrlMatchingFilter(
-              systemTypes.entityType.user.entityTypeId,
+              systemEntityTypes.user.entityTypeId,
               { ignoreParents: true },
             ),
           ],

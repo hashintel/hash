@@ -1,7 +1,7 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import { EntityId } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -69,9 +69,10 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
         void router.push("/account/integrations");
         return;
       }
-      const linearOrgId = linearIntegration.entity.properties[
-        extractBaseUrl(systemTypes.propertyType.linearOrgId.propertyTypeId)
-      ] as string;
+
+      const { linearOrgId } = simplifyProperties(
+        linearIntegration.entity.properties as LinearIntegrationProperties,
+      );
 
       const { data } = await getLinearOrganization({
         variables: { linearOrgId },

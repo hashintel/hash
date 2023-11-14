@@ -4,13 +4,13 @@ import {
   Item,
   TextCell,
 } from "@glideapps/glide-data-grid";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
 import {
@@ -112,9 +112,8 @@ export const EntitiesTable: FunctionComponent<{
           filterState.includeArchived ||
           !isPageEntityTypeId(entity.metadata.entityTypeId)
             ? true
-            : entity.properties[
-                extractBaseUrl(systemTypes.propertyType.archived.propertyTypeId)
-              ] !== true),
+            : simplifyProperties(entity.properties as PageProperties)
+                .archived !== true),
       ),
     [entities, filterState, internalWebIds],
   );

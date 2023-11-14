@@ -1,4 +1,4 @@
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Entity } from "@local/hash-subgraph";
 
 import { getPageBlocks } from "../../../../graph/knowledge/system-types/page";
@@ -23,7 +23,7 @@ export const pageContents: ResolverFn<
   const contentItems = await getPageBlocks(context, authentication, {
     pageEntityId: page.metadata.recordId.entityId,
     type:
-      page.metadata.entityTypeId === systemTypes.entityType.canvas.entityTypeId
+      page.metadata.entityTypeId === systemEntityTypes.canvas.entityTypeId
         ? "canvas"
         : "document",
   });

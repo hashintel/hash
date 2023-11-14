@@ -14,11 +14,8 @@ import {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import {
-  PrimitiveDataTypeKey,
-  systemTypes,
-  SystemTypeWebShortname,
-} from "@local/hash-isomorphic-utils/ontology-types";
+import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountGroupId,
   EntityTypeWithMetadata,
@@ -46,7 +43,7 @@ import {
 import { systemAccountId } from "./system-account";
 
 // Whether this is a self-hosted instance, rather than the central HASH hosted instance
-const isSelfHostedInstance =
+export const isSelfHostedInstance =
   process.env.SELF_HOSTED_HASH === "true" ||
   !["http://localhost:3000", "https://app.hash.ai", "https://hash.ai"].includes(
     frontendUrl,
@@ -73,7 +70,7 @@ const owningWebs: Record<
   },
 };
 
-const getOrCreateOwningAccountGroupId = async (
+export const getOrCreateOwningAccountGroupId = async (
   context: ImpureGraphContext,
   webShortname: SystemTypeWebShortname,
 ) => {
@@ -168,6 +165,8 @@ export const ensureAccountGroupOrgsExist = async (params: {
   }
 };
 
+export type PrimitiveDataTypeKey = keyof typeof blockProtocolDataTypes;
+
 type PropertyTypeCreatorParams = {
   propertyTypeId: VersionedUrl;
   title: string;
@@ -183,7 +182,7 @@ type PropertyTypeCreatorParams = {
 /**
  * Helper method for generating a property type schema for the Graph API.
  */
-const generateSystemPropertyTypeSchema = (
+export const generateSystemPropertyTypeSchema = (
   params: Omit<PropertyTypeCreatorParams, "webShortname">,
 ): PropertyType => {
   const possibleValues: PropertyValues[] = params.possibleValues.map(
@@ -192,7 +191,7 @@ const generateSystemPropertyTypeSchema = (
 
       if (primitiveDataType) {
         const dataTypeReference: DataTypeReference = {
-          $ref: systemTypes.dataType[primitiveDataType].dataTypeId,
+          $ref: blockProtocolDataTypes[primitiveDataType].dataTypeId,
         };
         inner = dataTypeReference;
       } else if (propertyTypeObjectProperties) {
@@ -352,7 +351,7 @@ export const propertyTypeInitializer = (
   };
 };
 
-type LinkDestinationConstraint =
+export type LinkDestinationConstraint =
   | EntityTypeWithMetadata
   | VersionedUrl
   // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
@@ -488,7 +487,7 @@ type LinkEntityTypeCreatorParams = Omit<
 /**
  * Helper method for generating a link entity type schema for the Graph API.
  */
-const generateSystemLinkEntityTypeSchema = (
+export const generateSystemLinkEntityTypeSchema = (
   params: Omit<LinkEntityTypeCreatorParams, "webShortname">,
 ): EntityType => {
   const baseSchema = generateSystemEntityTypeSchema({

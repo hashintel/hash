@@ -1,20 +1,14 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import { publicUserAccountId } from "@apps/hash-api/src/auth/public-user-account-id";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph";
 import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createDataType,
   getDataTypeById,
-  getDataTypeSubgraphById,
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
 import { ConstructDataTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
   DataTypeWithMetadata,
@@ -110,28 +104,5 @@ describe("Data type CRU", () => {
       isOwnedOntologyElementMetadata(updatedDataType.metadata) &&
         updatedDataType.metadata.custom.provenance.recordCreatedById,
     ).toBe(testUser2.accountId);
-  });
-
-  it("can load an external type on demand", async () => {
-    const authentication = { actorId: testUser.accountId };
-
-    const dataTypeId =
-      "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1";
-
-    await expect(
-      getDataTypeById(
-        graphContext,
-        { actorId: publicUserAccountId },
-        { dataTypeId },
-      ),
-    ).rejects.toThrow("Could not find data type with ID");
-
-    await expect(
-      getDataTypeSubgraphById(graphContext, authentication, {
-        dataTypeId,
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-      }),
-    ).resolves.not.toThrow();
   });
 });

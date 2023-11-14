@@ -340,12 +340,14 @@ export type CommentNotificationOutgoingLinkAndTarget =
   | CommentNotificationOccurredInBlockLink
   | CommentNotificationOccurredInEntityLink
   | CommentNotificationRepliedToCommentLink
+  | CommentNotificationTriggeredByCommentLink
   | CommentNotificationTriggeredByUserLink;
 
 export type CommentNotificationOutgoingLinksByLinkEntityTypeId = {
   "https://hash.ai/@hash/types/entity-type/occurred-in-block/v/1": CommentNotificationOccurredInBlockLink;
   "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/1": CommentNotificationOccurredInEntityLink;
   "https://hash.ai/@hash/types/entity-type/replied-to-comment/v/1": CommentNotificationRepliedToCommentLink;
+  "https://hash.ai/@hash/types/entity-type/triggered-by-comment/v/1": CommentNotificationTriggeredByCommentLink;
   "https://hash.ai/@hash/types/entity-type/triggered-by-user/v/1": CommentNotificationTriggeredByUserLink;
 };
 
@@ -360,6 +362,11 @@ export type CommentNotificationProperties2 = {};
 
 export type CommentNotificationRepliedToCommentLink = {
   linkEntity: RepliedToComment;
+  rightEntity: Comment;
+};
+
+export type CommentNotificationTriggeredByCommentLink = {
+  linkEntity: TriggeredByComment;
   rightEntity: Comment;
 };
 
@@ -384,3 +391,20 @@ export type RepliedToCommentProperties = RepliedToCommentProperties1 &
 export type RepliedToCommentProperties1 = LinkProperties;
 
 export type RepliedToCommentProperties2 = {};
+
+export type TriggeredByComment = Entity<TriggeredByCommentProperties> & {
+  linkData: LinkData;
+};
+
+export type TriggeredByCommentOutgoingLinkAndTarget = never;
+
+export type TriggeredByCommentOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A comment that triggered something.
+ */
+export type TriggeredByCommentProperties = TriggeredByCommentProperties1 &
+  TriggeredByCommentProperties2;
+export type TriggeredByCommentProperties1 = LinkProperties;
+
+export type TriggeredByCommentProperties2 = {};

@@ -1,6 +1,5 @@
-import { EntityPropertiesObject } from "@blockprotocol/graph";
-import { extractBaseUrl } from "@blockprotocol/type-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useRef } from "react";
@@ -39,32 +38,27 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
   }
 
   const updateOrg = async (orgData: OrgFormData) => {
-    const updatedProperties: EntityPropertiesObject = {
+    const updatedProperties: OrganizationProperties = {
+      "https://hash.ai/@hash/types/property-type/shortname/": org.shortname,
+      "https://hash.ai/@hash/types/property-type/organization-name/":
+        orgData.name,
       // @todo this is tedious, either enable TS's exact-optional-property-types or allow 'undefined' as a value in EntityPropertiesObject
-      ...(orgData.name
-        ? {
-            [extractBaseUrl(systemTypes.propertyType.orgName.propertyTypeId)]:
-              orgData.name,
-          }
-        : {}),
       ...(orgData.description
         ? {
-            [extractBaseUrl(
-              systemTypes.propertyType.description.propertyTypeId,
-            )]: orgData.description,
+            "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
+              orgData.description,
           }
         : {}),
       ...(orgData.location
         ? {
-            [extractBaseUrl(systemTypes.propertyType.location.propertyTypeId)]:
+            "https://hash.ai/@hash/types/property-type/location/":
               orgData.location,
           }
         : {}),
       ...(orgData.websiteUrl
         ? {
-            [extractBaseUrl(
-              systemTypes.propertyType.websiteUrl.propertyTypeId,
-            )]: orgData.websiteUrl,
+            "https://hash.ai/@hash/types/property-type/website-url/":
+              orgData.websiteUrl,
           }
         : {}),
     };
@@ -72,13 +66,8 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
     await updateEntity({
       data: {
         entityId: org.entity.metadata.recordId.entityId,
-        entityTypeId: systemTypes.entityType.org.entityTypeId,
-        properties: {
-          // @todo allow partial property updates, or spread the existing entity's properties here
-          [extractBaseUrl(systemTypes.propertyType.shortname.propertyTypeId)]:
-            org.shortname,
-          ...updatedProperties,
-        },
+        entityTypeId: systemEntityTypes.organization.entityTypeId,
+        properties: updatedProperties,
       },
     });
 

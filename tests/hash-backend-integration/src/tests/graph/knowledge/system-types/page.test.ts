@@ -21,16 +21,15 @@ import {
   setPageParentPage,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
-import { HasIndexedContentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { OwnedById } from "@local/hash-subgraph";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
-  extractBaseUrl,
-  LinkEntity,
-} from "@local/hash-subgraph/type-system-patch";
+  HasIndexedContentProperties,
+  TextProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
+import { OwnedById } from "@local/hash-subgraph";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { generateKeyBetween } from "fractional-indexing";
 
 import { resetGraph } from "../../../test-server";
@@ -72,12 +71,11 @@ describe("Page", () => {
       componentId: "text",
       blockData: await createEntity(graphContext, authentication, {
         ownedById: testUser.accountId as OwnedById,
-        entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
+        entityTypeId: systemEntityTypes.text.entityTypeId,
         properties: {
-          [extractBaseUrl(
-            blockProtocolTypes.propertyType.textualContent.propertyTypeId,
-          )]: [],
-        },
+          "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
+            [],
+        } as TextProperties,
       }),
     });
   };

@@ -12,12 +12,12 @@ import { Draft, produce } from "immer";
 
 import { BlockEntity } from "./entity";
 import { generateDraftIdForEntity } from "./entity-store-plugin";
-import { blockProtocolTypes } from "./ontology-types";
+import { blockProtocolPropertyTypes } from "./ontology-type-ids";
 
 export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
 
 export const textualContentPropertyTypeBaseUrl = extractBaseUrl(
-  blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+  blockProtocolPropertyTypes.textualContent.propertyTypeId,
 );
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {

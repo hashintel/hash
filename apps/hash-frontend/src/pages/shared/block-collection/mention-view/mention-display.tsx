@@ -1,6 +1,7 @@
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -136,14 +137,13 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
       if (mention.kind === "user" || mention.kind === "entity") {
         if (
           entity.metadata.entityTypeId ===
-            systemTypes.entityType.user.entityTypeId ||
+            systemEntityTypes.user.entityTypeId ||
           entity.metadata.entityTypeId ===
-            systemTypes.entityType.org.entityTypeId
+            systemEntityTypes.organization.entityTypeId
         ) {
-          const shortname =
-            entity.properties[
-              extractBaseUrl(systemTypes.propertyType.shortname.propertyTypeId)
-            ];
+          const { shortname } = simplifyProperties(
+            entity.properties as UserProperties,
+          );
           return `/@${shortname}`;
         }
         return entityHref;
