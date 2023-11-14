@@ -50,7 +50,7 @@ export const FilterRow = ({
       gap={1.5}
       sx={{ alignItems: "center", fontSize: 14 }}
     >
-      <Box sx={{ width: 80 }}>
+      <Box>
         {isFirstOne ? (
           "Where"
         ) : isSecondOne ? (
