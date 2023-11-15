@@ -2,20 +2,27 @@ import { Box, Typography } from "@mui/material";
 import { FunctionComponent } from "react";
 
 import { useBlockContext } from "../../pages/shared/block-collection/block-context";
-import { Button } from "../../shared/ui";
 
 export const AddLinkedQueryPrompt: FunctionComponent<{ blockName: string }> = ({
   blockName,
 }) => {
   const { setBlockQueryEditorIsOpen } = useBlockContext();
   return (
-    <Box>
-      <Typography gutterBottom>
-        The "{blockName}" block requires data to be selected.
+    <Box
+      onClick={() => setBlockQueryEditorIsOpen(true)}
+      sx={{
+        "&:hover": {
+          cursor: "pointer",
+        },
+      }}
+    >
+      <Typography gutterBottom textAlign="center">
+        No data has been selected.
       </Typography>
-      <Button size="xs" onClick={() => setBlockQueryEditorIsOpen(true)}>
-        Select data
-      </Button>
+      <Typography textAlign="center">
+        Click here to choose which data to display in this{" "}
+        {blockName.toLowerCase()} block.
+      </Typography>
     </Box>
   );
 };
