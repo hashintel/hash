@@ -30,6 +30,7 @@
     "@mui/material": "5.14.11",
     "echarts": "^5.3.2",
     "lodash.debounce": "4.0.8",
+    "pluralize": "8.0.0",
     "react-hook-form": "7.48.2"
   },
   "devDependencies": {
@@ -76,7 +77,7 @@
     "examples": [
       {}
     ],
-    "icon": "public/omega.svg",
+    "icon": "public/chart-line-regular.svg",
     "image": "public/block-preview.svg"
   }
 }
