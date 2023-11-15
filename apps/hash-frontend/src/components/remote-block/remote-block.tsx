@@ -196,6 +196,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
   if (blockHasMissingHasQueryLinks) {
     return (
       <AddLinkedQueryPrompt
+        blockIconSrc={blockMetadata.icon ?? undefined}
         blockName={blockMetadata.displayName ?? blockMetadata.name}
       />
     );

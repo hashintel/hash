@@ -2,27 +2,50 @@ import { Box, Typography } from "@mui/material";
 import { FunctionComponent } from "react";
 
 import { useBlockContext } from "../../pages/shared/block-collection/block-context";
+import { Button } from "../../shared/ui";
 
-export const AddLinkedQueryPrompt: FunctionComponent<{ blockName: string }> = ({
-  blockName,
-}) => {
+export const AddLinkedQueryPrompt: FunctionComponent<{
+  blockIconSrc?: string;
+  blockName: string;
+}> = ({ blockIconSrc, blockName }) => {
   const { setBlockQueryEditorIsOpen } = useBlockContext();
+
   return (
     <Box
-      onClick={() => setBlockQueryEditorIsOpen(true)}
       sx={{
-        "&:hover": {
-          cursor: "pointer",
-        },
+        borderColor: ({ palette }) => palette.gray[30],
+        borderWidth: 1,
+        borderStyle: "solid",
+        borderRadius: "10px",
+        padding: ({ spacing }) => spacing(3.5, 4),
+        background: ({ palette }) => palette.gray[10],
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
       }}
     >
+      {blockIconSrc ? (
+        <Box
+          component="img"
+          sx={{
+            height: 42,
+            width: 42,
+            marginBottom: 1,
+          }}
+          src={blockIconSrc}
+        />
+      ) : null}
       <Typography gutterBottom textAlign="center">
-        No data has been selected.
+        The <strong>{blockName.toLowerCase()} block</strong> needs to know what
+        information to display
       </Typography>
-      <Typography textAlign="center">
-        Click here to choose which data to display in this{" "}
-        {blockName.toLowerCase()} block.
-      </Typography>
+      <Button
+        variant="tertiary"
+        onClick={() => setBlockQueryEditorIsOpen(true)}
+        size="small"
+      >
+        Click here to select data
+      </Button>
     </Box>
   );
 };
