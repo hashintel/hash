@@ -147,7 +147,7 @@ export const App: BlockComponent<BlockEntity> = ({
   return (
     <Box ref={blockRootRef}>
       <EditableChartTitle
-        title={title ?? "Untitled"}
+        title={title ?? "Untitled Chart"}
         updateTitle={updateTitle}
       />
       {chartDefinition ? (

@@ -1,7 +1,6 @@
 import { MultiFilter } from "@blockprotocol/graph";
-import { Modal, ModalProps } from "@hashintel/design-system";
+import { IconButton, Modal, ModalProps } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
-import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
@@ -10,14 +9,14 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { FunctionComponent, useCallback, useMemo } from "react";
 
 import { useFetchBlockSubgraph } from "../../../../blocks/use-fetch-block-subgraph";
 import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
-import { useBlockProtocolQueryEntities } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useLatestEntityTypesOptional } from "../../../../shared/entity-types-context/hooks";
+import { XMarkRegularIcon } from "../../../../shared/icons/x-mark-regular-icon";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
 import { useAuthenticatedUser } from "../../auth-info-context";
 import { useBlockContext } from "../block-context";
@@ -142,27 +141,26 @@ export const BlockQueryEditorModal: FunctionComponent<
     [createEntity, blockDataEntity, refetchBlockSubgraph],
   );
 
-  const handleDiscardQuery = useCallback(() => {}, []);
+  /** @todo: consider bringing back ability to query entities */
+  // const { queryEntities } = useBlockProtocolQueryEntities();
 
-  const { queryEntities } = useBlockProtocolQueryEntities();
+  // const handleQueryEntities = useCallback(
+  //   async (multiFilter: MultiFilter) => {
+  //     const res = await queryEntities({
+  //       data: {
+  //         operation: { multiFilter },
+  //         graphResolveDepths: zeroedGraphResolveDepths,
+  //       },
+  //     });
 
-  const handleQueryEntities = useCallback(
-    async (multiFilter: MultiFilter) => {
-      const res = await queryEntities({
-        data: {
-          operation: { multiFilter },
-          graphResolveDepths: zeroedGraphResolveDepths,
-        },
-      });
+  //     if (!res.data) {
+  //       throw new Error(res.errors?.[0]?.message ?? "Unknown error");
+  //     }
 
-      if (!res.data) {
-        throw new Error(res.errors?.[0]?.message ?? "Unknown error");
-      }
-
-      return getRoots(res.data);
-    },
-    [queryEntities],
-  );
+  //     return getRoots(res.data);
+  //   },
+  //   [queryEntities],
+  // );
 
   const entityTypeSchemas = useMemo(
     () => entityTypes?.map((type) => type.schema) ?? [],
@@ -185,7 +183,34 @@ export const BlockQueryEditorModal: FunctionComponent<
       }}
       onClose={onClose}
     >
-      <Box>
+      <Box paddingX={3} paddingY={2}>
+        <Box display="flex" justifyContent="space-between" marginBottom={2}>
+          <Box>
+            <Typography
+              gutterBottom
+              sx={{
+                fontSize: 16,
+                fontWeight: 500,
+                color: ({ palette }) => palette.gray[80],
+              }}
+            >
+              Select display data
+            </Typography>
+            <Typography
+              sx={{ fontSize: 14, color: ({ palette }) => palette.gray[80] }}
+            >
+              Define a query to select the data for the block
+            </Typography>
+          </Box>
+          <Box>
+            <IconButton
+              onClick={onClose}
+              sx={{ marginRight: -2, marginTop: -1 }}
+            >
+              <XMarkRegularIcon />
+            </IconButton>
+          </Box>
+        </Box>
         {existingQueries?.map((queryEntity) => (
           <EntityQueryEditor
             key={queryEntity.metadata.recordId.entityId}
@@ -195,9 +220,8 @@ export const BlockQueryEditorModal: FunctionComponent<
               simplifyProperties(queryEntity.properties).query as MultiFilter
             }
             onSave={updateQueryEntityQuery(queryEntity)}
-            /** @todo: figure out what to put here */
-            onDiscard={() => {}}
-            queryEntities={handleQueryEntities}
+            saveTitle="Update Query"
+            discardTitle="Discard changes"
           />
         ))}
         {/* @todo: allow for creation of multiple queries */}
@@ -206,8 +230,8 @@ export const BlockQueryEditorModal: FunctionComponent<
             entityTypes={entityTypeSchemas}
             propertyTypes={propertyTypeSchemas}
             onSave={handleSaveNewQuery}
-            onDiscard={handleDiscardQuery}
-            queryEntities={handleQueryEntities}
+            saveTitle="Create Query"
+            discardTitle="Reset Query"
           />
         ) : null}
       </Box>
