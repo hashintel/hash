@@ -201,6 +201,8 @@ const ProfilePage: NextPageWithLayout = () => {
                     entitiesSubgraph,
                     entityType.schema.$id,
                   )
+                : entityType
+                ? [entityType]
                 : [];
           } catch {
             /**
