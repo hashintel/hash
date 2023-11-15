@@ -62,13 +62,13 @@ export const BarChart: FunctionComponent<{
       xAxis: {
         type: "category",
         data: Object.keys(entitiesByProperty ?? []),
-        name: "X Axis Label",
+        name: definition.xAxisLabel,
         nameLocation: "middle",
         nameGap: 25,
       },
       yAxis: {
         type: "value",
-        name: "Y Axis Label",
+        name: definition.yAxisLabel,
         nameLocation: "middle",
         nameGap: 25,
       },
@@ -79,7 +79,7 @@ export const BarChart: FunctionComponent<{
         type: "bar",
       },
     }),
-    [entitiesByProperty],
+    [entitiesByProperty, definition],
   );
 
   return <EChart options={eChartOptions} />;

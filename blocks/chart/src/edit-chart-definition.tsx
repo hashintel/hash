@@ -17,8 +17,10 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  TextField,
   Typography,
 } from "@mui/material";
+import pluralize from "pluralize";
 import { FunctionComponent, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 
@@ -70,15 +72,18 @@ export const EditChartDefinition: FunctionComponent<{
   queryResults: Record<EntityId, Subgraph<EntityRootType>>;
   onSubmit: (updatedChartDefinition: ChartDefinition) => void;
 }> = ({ initialChartDefinition, queryResults, onSubmit }) => {
-  const { control, watch, handleSubmit } = useForm<ChartDefinition>({
-    defaultValues: initialChartDefinition ?? {
-      /** @todo: make these configurable when we support additional chart kinds/variants */
-      kind: "bar-chart",
-      variant: "group-by-property",
-      entityTypeId: "" as VersionedUrl,
-      groupByPropertyTypeId: "" as VersionedUrl,
-    },
-  });
+  const { control, watch, handleSubmit, register, formState, setValue } =
+    useForm<ChartDefinition>({
+      defaultValues: initialChartDefinition ?? {
+        /** @todo: make these configurable when we support additional chart kinds/variants */
+        kind: "bar-chart",
+        variant: "group-by-property",
+        entityTypeId: "" as VersionedUrl,
+        groupByPropertyTypeId: "" as VersionedUrl,
+        xAxisLabel: "",
+        yAxisLabel: "",
+      },
+    });
 
   // Get all entity types for entities in the query results
   const entityTypes = useMemo(
@@ -138,9 +143,16 @@ export const EditChartDefinition: FunctionComponent<{
   const innerSubmit = handleSubmit((data) => {
     onSubmit(data);
   });
+  const isSubmitDisabled =
+    Object.keys(formState.errors).length > 0 ||
+    Object.keys(formState.dirtyFields).length === 0;
 
   return (
-    <Box component="form" onSubmit={innerSubmit}>
+    <Box
+      component="form"
+      onSubmit={innerSubmit}
+      sx={{ display: "flex", flexDirection: "column", rowGap: 2 }}
+    >
       <Typography variant="h5" marginBottom={2}>
         Configure group entities by property bar graph
       </Typography>
@@ -153,6 +165,22 @@ export const EditChartDefinition: FunctionComponent<{
               <InputLabel id="entity-type">Entity type</InputLabel>
               <Select
                 {...field}
+                onChange={(event) => {
+                  const selectedEntityType = entityTypes.find(
+                    ({ $id }) => event.target.value === $id,
+                  );
+
+                  if (selectedEntityType) {
+                    setValue(
+                      "yAxisLabel",
+                      `Number of ${pluralize(
+                        selectedEntityType.title.toLowerCase(),
+                      )}`,
+                    );
+                  }
+
+                  field.onChange(event);
+                }}
                 labelId="entity-type"
                 label="Entity type"
                 required
@@ -167,31 +195,65 @@ export const EditChartDefinition: FunctionComponent<{
           )}
         />
       ) : null}
-      {entityTypePropertyTypes ? (
-        <Controller
-          control={control}
-          name="groupByPropertyTypeId"
-          render={({ field }) => (
-            <FormControl sx={{ minWidth: 200 }}>
-              <InputLabel id="group-by-property">Group by property</InputLabel>
-              <Select
-                {...field}
-                labelId="group-by-property"
-                label="Group by property"
-                required
-              >
-                {entityTypePropertyTypes.map(({ $id, title }) => (
-                  <MenuItem key={$id} value={$id}>
-                    {title}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
-        />
-      ) : null}
+      <Controller
+        control={control}
+        name="groupByPropertyTypeId"
+        disabled={!entityTypePropertyTypes}
+        render={({ field }) => (
+          <FormControl sx={{ minWidth: 200 }}>
+            <InputLabel id="group-by-property">Group by property</InputLabel>
+            <Select
+              {...field}
+              // prevent MUI from logging a warning
+              value={entityTypePropertyTypes ? field.value : ""}
+              onChange={(event) => {
+                const groupByPropertyType = entityTypePropertyTypes?.find(
+                  ({ $id }) => $id === event.target.value,
+                );
 
-      <Button type="submit">Submit</Button>
+                if (entityType && groupByPropertyType) {
+                  setValue(
+                    "xAxisLabel",
+                    `${
+                      entityType.title
+                    } ${groupByPropertyType.title.toLowerCase()}`,
+                  );
+                }
+
+                field.onChange(event);
+              }}
+              labelId="group-by-property"
+              label="Group by property"
+              required
+            >
+              {entityTypePropertyTypes?.map(({ $id, title }) => (
+                <MenuItem key={$id} value={$id}>
+                  {title}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+      />
+      <TextField
+        id="x-axis-label"
+        fullWidth
+        label="X Axis Label"
+        /** @todo: figure out why the label isn't shrinking when the value is updated programmatically */
+        InputLabelProps={{ shrink: true }}
+        {...register("xAxisLabel")}
+      />
+      <TextField
+        id="y-axis-label"
+        fullWidth
+        label="Y Axis Label"
+        /** @todo: figure out why the label isn't shrinking when the value is updated programmatically */
+        InputLabelProps={{ shrink: true }}
+        {...register("yAxisLabel")}
+      />
+      <Button type="submit" disabled={isSubmitDisabled}>
+        Update Chart
+      </Button>
     </Box>
   );
 };

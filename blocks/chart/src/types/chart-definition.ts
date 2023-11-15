@@ -4,6 +4,8 @@ export type BarChartDefinitionVariant = {
   variant: "group-by-property";
   entityTypeId: VersionedUrl;
   groupByPropertyTypeId: VersionedUrl;
+  xAxisLabel?: string;
+  yAxisLabel?: string;
 };
 
 export type ChartDefinitions = {
