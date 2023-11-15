@@ -56,11 +56,15 @@ const BlockContextMenu: ForwardRefRenderFunction<
   { blockEntity, deleteBlock, openConfigMenu, popupState, canSwap },
   ref,
 ) => {
-  const { blockSubgraph, setBlockSubgraph } = useBlockContext();
+  const {
+    blockSubgraph,
+    setBlockSubgraph,
+    blockQueryEditorIsOpen,
+    setBlockQueryEditorIsOpen,
+  } = useBlockContext();
   const fetchBlockSubgraph = useFetchBlockSubgraph();
 
   const [entityEditorOpen, setEntityEditorOpen] = useState(false);
-  const [blockQueryEditorOpen, setBlockQueryEditorOpen] = useState(false);
 
   const { users: _users } = useUsers();
   const setEntityMenuItemRef = useRef<HTMLLIElement>(null);
@@ -127,7 +131,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
               key: "query-editor",
               title: "Configure queries",
               icon: <ChartNetworkRegularIcon />,
-              onClick: () => setBlockQueryEditorOpen(true),
+              onClick: () => setBlockQueryEditorIsOpen(true),
             },
           ]
         : []),
@@ -199,6 +203,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
     entityId,
     deleteBlock,
     openConfigMenu,
+    setBlockQueryEditorIsOpen,
     popupState,
     canSwap,
     compatibleBlocks,
@@ -240,8 +245,8 @@ const BlockContextMenu: ForwardRefRenderFunction<
     <>
       {blockSchemaHasHasQueryLink ? (
         <BlockQueryEditorModal
-          open={blockQueryEditorOpen}
-          onClose={() => setBlockQueryEditorOpen(false)}
+          open={blockQueryEditorIsOpen}
+          onClose={() => setBlockQueryEditorIsOpen(false)}
         />
       ) : null}
       {blockSubgraph && (

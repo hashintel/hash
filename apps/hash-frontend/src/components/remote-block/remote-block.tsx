@@ -4,12 +4,19 @@ import {
   GraphEmbedderMessageCallbacks,
 } from "@blockprotocol/graph/temporal";
 import { useGraphEmbedderModule } from "@blockprotocol/graph/temporal/react";
+import {
+  getOutgoingLinksForEntity,
+  getRoots,
+} from "@blockprotocol/graph/temporal/stdlib";
 import { useHookEmbedderModule } from "@blockprotocol/hook/react";
 import { textualContentPropertyTypeBaseUrl } from "@local/hash-isomorphic-utils/entity-store";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Skeleton, SkeletonProps } from "@mui/material";
-import { FunctionComponent, useEffect, useRef } from "react";
+import { FunctionComponent, useEffect, useMemo, useRef } from "react";
 import { v4 as uuid } from "uuid";
 
+import { useUserBlocks } from "../../blocks/user-blocks";
+import { AddLinkedQueryPrompt } from "./add-linked-query-prompt";
 import { BlockRenderer } from "./block-renderer";
 import { useRemoteBlock } from "./use-remote-block";
 
@@ -76,6 +83,8 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
   graphProperties,
   onBlockLoaded,
 }) => {
+  const { value: userBlocks } = useUserBlocks();
+
   const [loading, err, blockSource] = useRemoteBlock(
     blockMetadata.source,
     crossFrame,
@@ -138,8 +147,58 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     });
   }, [graphProperties.readonly, graphModule]);
 
+  const blockSchema = useMemo(() => {
+    const blockSchemaId = blockMetadata.schema;
+
+    return Object.values(userBlocks).find(
+      ({ schema }) => schema && schema.$id === blockSchemaId,
+    )?.schema;
+  }, [userBlocks, blockMetadata]);
+
+  const blockSchemaRequiresOutgoingHasQueryLinks = useMemo(() => {
+    if (blockSchema) {
+      return Object.entries(blockSchema.links ?? {}).some(
+        ([linkEntityTypeId, value]) =>
+          linkEntityTypeId === blockProtocolEntityTypes.hasQuery.entityTypeId &&
+          value.minItems &&
+          value.minItems > 0,
+      );
+    }
+
+    return false;
+  }, [blockSchema]);
+
+  const blockHasMissingHasQueryLinks = useMemo(() => {
+    if (blockSchemaRequiresOutgoingHasQueryLinks) {
+      const blockEntity = getRoots(graphProperties.blockEntitySubgraph)[0];
+
+      if (blockEntity) {
+        const outgoingLinks = getOutgoingLinksForEntity(
+          graphProperties.blockEntitySubgraph,
+          blockEntity.metadata.recordId.entityId,
+        );
+
+        return !outgoingLinks.some(
+          (link) =>
+            link.metadata.entityTypeId ===
+            blockProtocolEntityTypes.hasQuery.entityTypeId,
+        );
+      }
+    }
+
+    return false;
+  }, [graphProperties, blockSchemaRequiresOutgoingHasQueryLinks]);
+
   if (loading) {
     return <BlockLoadingIndicator />;
+  }
+
+  if (blockHasMissingHasQueryLinks) {
+    return (
+      <AddLinkedQueryPrompt
+        blockName={blockMetadata.displayName ?? blockMetadata.name}
+      />
+    );
   }
 
   if (!blockSource) {
