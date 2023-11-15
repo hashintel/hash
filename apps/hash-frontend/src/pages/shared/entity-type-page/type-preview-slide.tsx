@@ -16,7 +16,6 @@ import { Backdrop, Box, Slide } from "@mui/material";
 import { FunctionComponent, useMemo, useState } from "react";
 
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { Link } from "../../../shared/ui";
 import { useRouteNamespace } from "../../[shortname]/shared/use-route-namespace";
 import { EntityTypeContext } from "./shared/entity-type-context";
@@ -146,10 +145,7 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
                     }
                     ontologyChip={
                       <Link
-                        href={
-                          generateLinkParameters(remoteEntityType.schema.$id)
-                            .href
-                        }
+                        href={remoteEntityType.schema.$id}
                         target="_blank"
                         style={{ textDecoration: "none" }}
                       >
