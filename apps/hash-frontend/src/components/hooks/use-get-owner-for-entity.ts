@@ -9,14 +9,23 @@ export const useGetOwnerForEntity = () => {
   /*
    * This is a simple way of getting all users and orgs to find an entity's owner's name
    */
-  const { users = [] } = useUsers();
-  const { orgs = [] } = useOrgs();
+  const { users = [], loading: usersLoading } = useUsers();
+  const { orgs = [], loading: orgsLoading } = useOrgs();
+
+  const loading = usersLoading || orgsLoading;
 
   return useCallback(
     (entity: Entity) => {
       const ownedById = extractOwnedByIdFromEntityId(
         entity.metadata.recordId.entityId,
       );
+
+      if (loading) {
+        return {
+          ownedById,
+          shortname: "",
+        };
+      }
 
       const owner =
         users.find((user) => ownedById === user.accountId) ??
@@ -45,6 +54,6 @@ export const useGetOwnerForEntity = () => {
         shortname: owner.shortname ?? "incomplete-user-account",
       };
     },
-    [orgs, users],
+    [loading, orgs, users],
   );
 };

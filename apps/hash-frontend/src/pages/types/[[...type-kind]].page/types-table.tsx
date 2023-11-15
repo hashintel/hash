@@ -25,6 +25,7 @@ import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
 import { extractOwnedById } from "../../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { isTypeArchived } from "../../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import {
@@ -208,7 +209,8 @@ export const TypesTable: FunctionComponent<{
                 kind: "text-icon-cell",
                 icon: "bpAsterisk",
                 value: row.title,
-                onClick: () => router.push(row.typeId),
+                onClick: () =>
+                  router.push(generateLinkParameters(row.typeId).href),
               },
             };
           case "kind":

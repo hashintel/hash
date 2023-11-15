@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { useAccountPages } from "../../../../components/hooks/use-account-pages";
 import { useCreatePage } from "../../../../components/hooks/use-create-page";
 import { useActiveWorkspace } from "../../../../pages/shared/workspace-context";
+import { CanvasIcon } from "../../../icons/canvas-icon";
 import { FilesLinesRegularIcon } from "../../../icons/file-lines-regular-icon";
 import { MenuItem } from "../../../ui/menu-item";
 
@@ -54,7 +55,7 @@ export const CreatePageMenuItems = ({ onClick }: { onClick: () => void }) => {
         }}
       >
         <ListItemIcon>
-          <FilesLinesRegularIcon />
+          <CanvasIcon />
         </ListItemIcon>
         <ListItemText primary="Canvas" />
       </MenuItem>

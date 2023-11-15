@@ -114,7 +114,7 @@ export const TypesSection = () => {
       <Box display="flex" gap={2}>
         <TypeCard
           LinkComponent={Link}
-          url={entityTypeBaseUrl}
+          url={entityTypeId}
           title={entityTypeTitle}
           version={currentVersion}
           newVersionConfig={

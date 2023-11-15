@@ -4,13 +4,13 @@ import { EntityTypeEditor } from "@hashintel/type-editor";
 import { OwnedById, PropertyTypeWithMetadata } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
-import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { usePropertyTypes } from "../../../../../shared/property-types-context";
+import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { usePropertyTypes } from "../../../shared/property-types-context";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
 import { getTypesWithoutMetadata } from "./shared/get-types-without-metadata";
 
 type DefinitionTabProps = {
-  ownedById?: OwnedById;
+  ownedById: OwnedById | null;
   entityTypeAndPropertyTypes: {
     entityType: EntityType;
     propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata>;
@@ -69,7 +69,7 @@ export const DefinitionTab = ({
   );
 
   const ontologyFunctions = useEditorOntologyFunctions(
-    ownedById ?? null,
+    ownedById,
     typesWithMetadata,
   );
 

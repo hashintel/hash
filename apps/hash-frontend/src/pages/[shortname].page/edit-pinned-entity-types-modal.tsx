@@ -45,6 +45,7 @@ import {
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { Org, User } from "../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
 import { CustomLinkIcon } from "../../shared/icons/custom-link-icon";
 import { GripDotsVerticalRegularIcon } from "../../shared/icons/grip-dots-vertical-regular-icon";
@@ -321,7 +322,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                           <Link
                             noLinkStyle
                             target="_blank"
-                            href={field.schema.$id}
+                            href={generateLinkParameters(field.schema.$id).href}
                             sx={{ flexGrow: 1, marginLeft: 1 }}
                           >
                             <Box
