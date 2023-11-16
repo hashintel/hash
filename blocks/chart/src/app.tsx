@@ -15,7 +15,10 @@ import { Box, Divider } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BarChart } from "./bar-chart";
-import { EditChartDefinition } from "./edit-chart-definition";
+import {
+  EditChartDefinition,
+  generateInitialChartDefinition,
+} from "./edit-chart-definition";
 import { EditableChartTitle } from "./edit-chart-title";
 import { ChartDefinition } from "./types/chart-definition";
 import {
@@ -105,7 +108,7 @@ export const App: BlockComponent<BlockEntity> = ({
     "https://blockprotocol.org/@benwerner/types/property-type/chart-definition/"
   ] as ChartDefinition | undefined;
 
-  const handleChartSubmissionChange = useCallback(
+  const updateChartDefinition = useCallback(
     async (updatedChartDefinition: ChartDefinition) => {
       await graphModule.updateEntity({
         data: {
@@ -144,6 +147,28 @@ export const App: BlockComponent<BlockEntity> = ({
     [graphModule, blockEntity],
   );
 
+  const allQueriesAreFetched = useMemo(
+    () => Object.keys(queryResults).length === linkedQueryEntities.length,
+    [linkedQueryEntities, queryResults],
+  );
+
+  useEffect(() => {
+    if (allQueriesAreFetched && !chartDefinition) {
+      const generatedChartDefinition = generateInitialChartDefinition({
+        queryResults,
+      });
+
+      if (generatedChartDefinition) {
+        void updateChartDefinition(generatedChartDefinition);
+      }
+    }
+  }, [
+    queryResults,
+    allQueriesAreFetched,
+    updateChartDefinition,
+    chartDefinition,
+  ]);
+
   return (
     <Box ref={blockRootRef}>
       <EditableChartTitle
@@ -155,11 +180,14 @@ export const App: BlockComponent<BlockEntity> = ({
       ) : null}
       <Divider />
       <Box marginTop={2}>
-        <EditChartDefinition
-          initialChartDefinition={chartDefinition}
-          queryResults={queryResults}
-          onSubmit={handleChartSubmissionChange}
-        />
+        {allQueriesAreFetched ? (
+          <EditChartDefinition
+            key={blockEntity.metadata.recordId.editionId}
+            initialChartDefinition={chartDefinition}
+            queryResults={queryResults}
+            onSubmit={updateChartDefinition}
+          />
+        ) : null}
       </Box>
     </Box>
   );

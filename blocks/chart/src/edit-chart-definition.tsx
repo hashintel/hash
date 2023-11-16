@@ -1,4 +1,9 @@
-import { EntityType, PropertyType, VersionedUrl } from "@blockprotocol/graph";
+import {
+  EntityType,
+  extractBaseUrl,
+  PropertyType,
+  VersionedUrl,
+} from "@blockprotocol/graph";
 import {
   EntityId,
   EntityRootType,
@@ -67,24 +72,98 @@ const getEntityTypePropertyTypes = (
   ];
 };
 
+const findSubgraphWhichContainsEntityType = (params: {
+  subgraphs: Subgraph[];
+  entityTypeId: VersionedUrl;
+}) => {
+  const subgraphWithEntityType = params.subgraphs.find((subgraph) => {
+    const entityType = getEntityTypeById(subgraph, params.entityTypeId);
+
+    return !!entityType;
+  });
+
+  return subgraphWithEntityType;
+};
+
+const generateXAxisLabel = (params: {
+  entityType: EntityType;
+  groupByPropertyType: PropertyType;
+}) =>
+  `${
+    params.entityType.title
+  } ${params.groupByPropertyType.title.toLowerCase()}`;
+
+const generateYAxisLabel = (params: { entityType: EntityType }) =>
+  `Number of ${pluralize(params.entityType.title.toLowerCase())}`;
+
+export const generateInitialChartDefinition = (params: {
+  queryResults: Record<EntityId, Subgraph<EntityRootType>>;
+}): ChartDefinition | undefined => {
+  const subgraphWithResults = Object.values(params.queryResults).find(
+    (subgraph) => getRoots(subgraph).length > 0,
+  );
+
+  if (!subgraphWithResults) {
+    return undefined;
+  }
+
+  const resultEntity = getRoots(subgraphWithResults)[0]!;
+
+  const entityType = getEntityTypeById(
+    subgraphWithResults,
+    resultEntity.metadata.entityTypeId,
+  )?.schema;
+
+  if (!entityType) {
+    return undefined;
+  }
+
+  const propertyTypes = getEntityTypePropertyTypes(
+    subgraphWithResults,
+    entityType,
+  );
+
+  const resultPropertyTypeWithTextValue = propertyTypes.find(
+    ({ $id, oneOf }) =>
+      Object.keys(resultEntity.properties).some(
+        (propertyTypeBaseUrl) => extractBaseUrl($id) === propertyTypeBaseUrl,
+      ) &&
+      oneOf.some(
+        (value) =>
+          "$ref" in value &&
+          value.$ref ===
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+      ),
+    [],
+  );
+
+  const groupByPropertyType =
+    resultPropertyTypeWithTextValue ?? propertyTypes[0];
+
+  if (!groupByPropertyType) {
+    return undefined;
+  }
+
+  return {
+    kind: "bar-chart",
+    variant: "group-by-property",
+    entityTypeId: entityType.$id,
+    groupByPropertyTypeId: groupByPropertyType.$id,
+    xAxisLabel: generateXAxisLabel({
+      entityType,
+      groupByPropertyType,
+    }),
+    yAxisLabel: generateYAxisLabel({
+      entityType,
+    }),
+  };
+};
+
 export const EditChartDefinition: FunctionComponent<{
   initialChartDefinition?: ChartDefinition;
   queryResults: Record<EntityId, Subgraph<EntityRootType>>;
   onSubmit: (updatedChartDefinition: ChartDefinition) => void;
 }> = ({ initialChartDefinition, queryResults, onSubmit }) => {
-  const { control, watch, handleSubmit, register, formState, setValue } =
-    useForm<ChartDefinition>({
-      defaultValues: initialChartDefinition ?? {
-        /** @todo: make these configurable when we support additional chart kinds/variants */
-        kind: "bar-chart",
-        variant: "group-by-property",
-        entityTypeId: "" as VersionedUrl,
-        groupByPropertyTypeId: "" as VersionedUrl,
-        xAxisLabel: "",
-        yAxisLabel: "",
-      },
-    });
-
   // Get all entity types for entities in the query results
   const entityTypes = useMemo(
     () =>
@@ -116,6 +195,66 @@ export const EditChartDefinition: FunctionComponent<{
     [queryResults],
   );
 
+  const defaultEntityType = useMemo(
+    () => (entityTypes.length === 1 ? entityTypes[0] : undefined),
+    [entityTypes],
+  );
+
+  const defaultGroupByPropertyType = useMemo(() => {
+    if (defaultEntityType) {
+      const subgraphWithEntityType = findSubgraphWhichContainsEntityType({
+        subgraphs: Object.values(queryResults),
+        entityTypeId: defaultEntityType.$id,
+      });
+
+      if (subgraphWithEntityType) {
+        const propertyTypes = getEntityTypePropertyTypes(
+          subgraphWithEntityType,
+          defaultEntityType,
+        );
+
+        const propertyTypeWithTextValue = propertyTypes.find(
+          ({ oneOf }) =>
+            oneOf.some(
+              (value) =>
+                "$ref" in value &&
+                value.$ref ===
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            ),
+          [],
+        );
+
+        if (propertyTypeWithTextValue) {
+          return propertyTypeWithTextValue;
+        }
+
+        return propertyTypes[0];
+      }
+    }
+  }, [queryResults, defaultEntityType]);
+
+  const { control, watch, handleSubmit, register, formState, setValue } =
+    useForm<ChartDefinition>({
+      defaultValues: initialChartDefinition ?? {
+        /** @todo: make these configurable when we support additional chart kinds/variants */
+        kind: "bar-chart",
+        variant: "group-by-property",
+        entityTypeId: defaultEntityType?.$id ?? ("" as VersionedUrl),
+        groupByPropertyTypeId:
+          defaultGroupByPropertyType?.$id ?? ("" as VersionedUrl),
+        xAxisLabel:
+          defaultEntityType && defaultGroupByPropertyType
+            ? generateXAxisLabel({
+                entityType: defaultEntityType,
+                groupByPropertyType: defaultGroupByPropertyType,
+              })
+            : "",
+        yAxisLabel: defaultEntityType
+          ? generateYAxisLabel({ entityType: defaultEntityType })
+          : "",
+      },
+    });
+
   const entityTypeId = watch("entityTypeId");
 
   const entityType = useMemo(
@@ -132,10 +271,19 @@ export const EditChartDefinition: FunctionComponent<{
       return undefined;
     }
 
-    /** @todo: we need some way of knowing which subgraph the type came from */
-    const subgraph = Object.values(queryResults)[0]!;
+    const subgraphWithEntityType = findSubgraphWhichContainsEntityType({
+      subgraphs: Object.values(queryResults),
+      entityTypeId: entityType.$id,
+    });
 
-    const propertyTypes = getEntityTypePropertyTypes(subgraph, entityType);
+    if (!subgraphWithEntityType) {
+      throw new Error("Could not find query subgraph with entity type");
+    }
+
+    const propertyTypes = getEntityTypePropertyTypes(
+      subgraphWithEntityType,
+      entityType,
+    );
 
     return propertyTypes;
   }, [entityType, queryResults]);
@@ -173,9 +321,7 @@ export const EditChartDefinition: FunctionComponent<{
                   if (selectedEntityType) {
                     setValue(
                       "yAxisLabel",
-                      `Number of ${pluralize(
-                        selectedEntityType.title.toLowerCase(),
-                      )}`,
+                      generateYAxisLabel({ entityType: selectedEntityType }),
                     );
                   }
 
@@ -214,9 +360,7 @@ export const EditChartDefinition: FunctionComponent<{
                 if (entityType && groupByPropertyType) {
                   setValue(
                     "xAxisLabel",
-                    `${
-                      entityType.title
-                    } ${groupByPropertyType.title.toLowerCase()}`,
+                    generateXAxisLabel({ entityType, groupByPropertyType }),
                   );
                 }
 
