@@ -451,11 +451,22 @@ export const systemPropertyTypes = {
 } as const;
 
 export const blockProtocolEntityTypes = {
+  hasQuery: {
+    entityTypeId:
+      "https://blockprotocol.org/@hash/types/entity-type/has-query/v/1",
+    entityTypeBaseUrl:
+      "https://blockprotocol.org/@hash/types/entity-type/has-query/",
+  },
   link: {
     entityTypeId:
       "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
     entityTypeBaseUrl:
       "https://blockprotocol.org/@blockprotocol/types/entity-type/link/",
+  },
+  query: {
+    entityTypeId: "https://blockprotocol.org/@hash/types/entity-type/query/v/1",
+    entityTypeBaseUrl:
+      "https://blockprotocol.org/@hash/types/entity-type/query/",
   },
 } as const;
 
@@ -519,6 +530,12 @@ export const blockProtocolPropertyTypes = {
       "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/v/1",
     propertyTypeBaseUrl:
       "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/",
+  },
+  query: {
+    propertyTypeId:
+      "https://blockprotocol.org/@hash/types/property-type/query/v/1",
+    propertyTypeBaseUrl:
+      "https://blockprotocol.org/@hash/types/property-type/query/",
   },
   textualContent: {
     propertyTypeId:

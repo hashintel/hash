@@ -29,7 +29,7 @@
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:black": "turbo fix:black",
     "@TODO.1": "Upgrade or remove these blocks and remove the --ignore-package options (also @TODO.2)",
-    "fix:dependency-version-consistency": "check-dependency-version-consistency --fix . --ignore-package=@apps/hashdotdev --ignore-package=@blocks/chart --ignore-package=@blocks/embed --ignore-package=@blocks/person",
+    "fix:dependency-version-consistency": "check-dependency-version-consistency --fix . --ignore-package=@apps/hashdotdev --ignore-package=@blocks/embed --ignore-package=@blocks/person",
     "fix:eslint": "turbo --continue fix:eslint --",
     "fix:lock-files": "turbo fix:lock-files",
     "fix:markdownlint": "markdownlint --dot --fix .",

@@ -8,7 +8,6 @@ import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { QueryForm } from "./entity-query-editor/query-form";
 import { QueryPreview } from "./entity-query-editor/query-preview";
 import { ReadonlyContextProvider } from "./entity-query-editor/readonly-context";
-import { EditorTitle } from "./entity-query-editor/title";
 import { FormValues, QueryEntitiesFunc } from "./entity-query-editor/types";
 import {
   mapFormValuesToMultiFilter,
@@ -18,13 +17,13 @@ import {
 export interface EntityQueryEditorProps {
   onSave: (value: MultiFilter) => Promise<void>;
   saveTitle?: string;
-  onDiscard: () => void;
+  onDiscard?: () => void;
   discardTitle?: string;
   sx?: BoxProps["sx"];
   entityTypes: EntityType[];
   propertyTypes: PropertyType[];
   defaultValue?: MultiFilter;
-  queryEntities: QueryEntitiesFunc;
+  queryEntities?: QueryEntitiesFunc;
   readonly?: boolean;
 }
 
@@ -76,36 +75,29 @@ export const EntityQueryEditor = ({
     setShowPreview(false);
   }
 
+  const handleDiscard = () => {
+    form.reset();
+    onDiscard?.();
+  };
+
   return (
     <ReadonlyContextProvider readonly={!!readonly}>
       <FormProvider {...form}>
-        <Stack
-          gap={2.5}
-          sx={[
-            {
-              border: ({ palette }) => `1px solid ${palette.gray[30]}`,
-              p: 2.5,
-              borderRadius: 2,
-              background: "white",
-              overflowX: "auto",
-            },
-            ...(Array.isArray(sx) ? sx : [sx]),
-          ]}
-        >
-          <EditorTitle />
-
+        <Stack gap={2.5} sx={sx}>
           <QueryForm entityTypes={entityTypes} propertyTypes={propertyTypes} />
 
           <Stack direction="row" gap={1}>
-            <Button
-              onClick={
-                showPreview
-                  ? () => setShowPreview(false)
-                  : form.handleSubmit(onSubmitPreview)
-              }
-            >
-              {showPreview ? "Hide preview" : "Preview query"}
-            </Button>
+            {queryEntities ? (
+              <Button
+                onClick={
+                  showPreview
+                    ? () => setShowPreview(false)
+                    : form.handleSubmit(onSubmitPreview)
+                }
+              >
+                {showPreview ? "Hide preview" : "Preview query"}
+              </Button>
+            ) : null}
             {!readonly && (
               <Button
                 onClick={form.handleSubmit(onSubmitSave)}
@@ -117,13 +109,17 @@ export const EntityQueryEditor = ({
               </Button>
             )}
             {!readonly && (
-              <Button variant="tertiary" onClick={onDiscard} disabled={saving}>
+              <Button
+                variant="tertiary"
+                onClick={handleDiscard}
+                disabled={saving}
+              >
                 {discardTitle ?? "Discard query"}
               </Button>
             )}
           </Stack>
 
-          {showPreview && multiFilter && (
+          {showPreview && multiFilter && queryEntities && (
             <QueryPreview query={multiFilter} queryEntities={queryEntities} />
           )}
         </Stack>

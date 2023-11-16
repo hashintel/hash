@@ -43,7 +43,7 @@ You can live preview most of these on the [`@hash`](https://blockprotocol.org/@h
 | [`ai-image`]     | 0.3         | **Maintained** | [@hash/blocks/ai-image](https://blockprotocol.org/@hash/blocks/ai-image)         |             |
 | [`ai-text`]      | 0.3         | **Maintained** | [@hash/blocks/ai-text](https://blockprotocol.org/@hash/blocks/ai-text)           |             |
 | [`callout`]      | 0.3         | **Maintained** | [@hash/blocks/callout](https://blockprotocol.org/@hash/blocks/callout)           |             |
-| [`chart`]        | 0.1         | Pending Update |                                                                                  |             |
+| [`chart`]        | 0.1         | **Maintained** | [@hash/blocks/callout](https://blockprotocol.org/@hash/blocks/chart)             |             |
 | [`code`]         | 0.3         | **Maintained** | [@hash/blocks/code](https://blockprotocol.org/@hash/blocks/code)                 |             |
 | [`countdown`]    | 0.3         | **Maintained** | [@hash/blocks/countdown](https://blockprotocol.org/@hash/blocks/countdown)       |             |
 | [`divider`]      | 0.3         | **Maintained** | [@hash/blocks/divider](https://blockprotocol.org/@hash/blocks/divider)           |             |

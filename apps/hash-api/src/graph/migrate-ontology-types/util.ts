@@ -85,6 +85,74 @@ export const loadExternalDataTypeIfNotExists: ImpureGraphFunction<
   return await getDataTypeById(context, authentication, { dataTypeId });
 };
 
+export const loadExternalPropertyTypeIfNotExists: ImpureGraphFunction<
+  {
+    propertyTypeId: VersionedUrl;
+    migrationState: MigrationState;
+  },
+  Promise<PropertyTypeWithMetadata>
+> = async (context, authentication, { propertyTypeId, migrationState }) => {
+  const baseUrl = extractBaseUrl(propertyTypeId);
+  const versionNumber = extractVersion(propertyTypeId);
+
+  migrationState.propertyTypeVersions[baseUrl] = versionNumber;
+
+  const existingPropertyType = await getPropertyTypeById(
+    context,
+    authentication,
+    {
+      propertyTypeId,
+    },
+  ).catch((error: Error) => {
+    if (error instanceof NotFoundError) {
+      return null;
+    }
+    throw error;
+  });
+
+  if (existingPropertyType) {
+    return existingPropertyType;
+  }
+
+  await context.graphApi.loadExternalPropertyType(authentication.actorId, {
+    propertyTypeId,
+  });
+
+  return await getPropertyTypeById(context, authentication, { propertyTypeId });
+};
+
+export const loadExternalEntityTypeIfNotExists: ImpureGraphFunction<
+  {
+    entityTypeId: VersionedUrl;
+    migrationState: MigrationState;
+  },
+  Promise<EntityTypeWithMetadata>
+> = async (context, authentication, { entityTypeId, migrationState }) => {
+  const baseUrl = extractBaseUrl(entityTypeId);
+  const versionNumber = extractVersion(entityTypeId);
+
+  migrationState.propertyTypeVersions[baseUrl] = versionNumber;
+
+  const existingEntityType = await getEntityTypeById(context, authentication, {
+    entityTypeId,
+  }).catch((error: Error) => {
+    if (error instanceof NotFoundError) {
+      return null;
+    }
+    throw error;
+  });
+
+  if (existingEntityType) {
+    return existingEntityType;
+  }
+
+  await context.graphApi.loadExternalEntityType(authentication.actorId, {
+    entityTypeId,
+  });
+
+  return await getEntityTypeById(context, authentication, { entityTypeId });
+};
+
 export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
   {
     propertyTypeDefinition: {

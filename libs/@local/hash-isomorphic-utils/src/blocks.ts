@@ -1,5 +1,5 @@
 import { BlockMetadata, BlockVariant } from "@blockprotocol/core";
-import { VersionedUrl } from "@blockprotocol/type-system";
+import { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 
 /** @todo: might need refactor: https://github.com/hashintel/dev/pull/206#discussion_r723210329 */
 // eslint-disable-next-line global-require
@@ -12,6 +12,7 @@ export interface HashBlockMeta extends BlockMetadata {
 
 export type HashBlock = {
   meta: HashBlockMeta;
+  schema?: EntityType | null;
 };
 
 export type ComponentIdHashBlockMap = Record<string, HashBlock>;
