@@ -2632,7 +2632,7 @@
   resolved "https://registry.yarnpkg.com/@emoji-mart/react/-/react-1.0.1.tgz#46b6a2e92faf16fa9b7f9471f137fa2e3d1e8ac3"
   integrity "sha1-Rrai6S+vFvqbf5Rx8Tf6Lj0eisM= sha512-ALhLD96BOL5w+a4NI5NpmfqfF1aVjjj2qJE0dLst/OhjBfVmpteWNgn/h8LZy9ulU6AnbeS+13KnPFzDjCvRRw=="
 
-"@emotion/babel-plugin@^11.0.0", "@emotion/babel-plugin@^11.11.0", "@emotion/babel-plugin@^11.7.1":
+"@emotion/babel-plugin@^11.0.0", "@emotion/babel-plugin@^11.11.0":
   version "11.11.0"
   resolved "https://registry.yarnpkg.com/@emotion/babel-plugin/-/babel-plugin-11.11.0.tgz#c2d872b6a7767a9d176d007f5b31f7d504bb5d6c"
   integrity sha512-m4HEDZleaaCH+XgDDsPF15Ht6wTLsgDTeR3WYj9Q/k76JtWhrJjcP4+/XlG8LGT/Rol9qUfOIztXeA84ATpqPQ==
@@ -2649,7 +2649,7 @@
     source-map "^0.5.7"
     stylis "4.2.0"
 
-"@emotion/cache@11.11.0", "@emotion/cache@^11.1.3", "@emotion/cache@^11.11.0", "@emotion/cache@^11.7.1":
+"@emotion/cache@11.11.0", "@emotion/cache@^11.1.3", "@emotion/cache@^11.11.0":
   version "11.11.0"
   resolved "https://registry.yarnpkg.com/@emotion/cache/-/cache-11.11.0.tgz#809b33ee6b1cb1a625fef7a45bc568ccd9b8f3ff"
   integrity sha512-P34z9ssTCBi3e9EI1ZsWpNHcfY1r09ZO0rZbRO2ob3ZQMnFI35jB536qoXbkdesr5EUhYi22anuEJuyxifaqAQ==
@@ -2683,7 +2683,7 @@
   dependencies:
     "@emotion/memoize" "0.7.4"
 
-"@emotion/is-prop-valid@^1.1.2", "@emotion/is-prop-valid@^1.2.0", "@emotion/is-prop-valid@^1.2.1":
+"@emotion/is-prop-valid@^1.2.0", "@emotion/is-prop-valid@^1.2.1":
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/@emotion/is-prop-valid/-/is-prop-valid-1.2.1.tgz#23116cf1ed18bfeac910ec6436561ecb1a3885cc"
   integrity sha512-61Mf7Ufx4aDxx1xlDeOm8aFFigGHE4z+0sKCa+IHCeZKiyP9RLD0Mmx7m8b9/Cf37f7NAvQOOJAbQQGVr5uERw==
@@ -2714,20 +2714,7 @@
     "@emotion/weak-memoize" "^0.3.1"
     hoist-non-react-statics "^3.3.1"
 
-"@emotion/react@11.9.0":
-  version "11.9.0"
-  resolved "https://registry.yarnpkg.com/@emotion/react/-/react-11.9.0.tgz#b6d42b1db3bd7511e7a7c4151dc8bc82e14593b8"
-  integrity "sha1-ttQrHbO9dRHnp8QVHci8guFFk7g= sha512-lBVSF5d0ceKtfKCDQJveNAtkC7ayxpVlgOohLgXqRwqWr9bOf4TZAFFyIcNngnV6xK6X4x2ZeXq7vliHkoVkxQ=="
-  dependencies:
-    "@babel/runtime" "^7.13.10"
-    "@emotion/babel-plugin" "^11.7.1"
-    "@emotion/cache" "^11.7.1"
-    "@emotion/serialize" "^1.0.3"
-    "@emotion/utils" "^1.1.0"
-    "@emotion/weak-memoize" "^0.2.5"
-    hoist-non-react-statics "^3.3.1"
-
-"@emotion/serialize@^1.0.0", "@emotion/serialize@^1.0.2", "@emotion/serialize@^1.0.3", "@emotion/serialize@^1.1.2":
+"@emotion/serialize@^1.0.0", "@emotion/serialize@^1.1.2":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@emotion/serialize/-/serialize-1.1.2.tgz#017a6e4c9b8a803bd576ff3d52a0ea6fa5a62b51"
   integrity sha512-zR6a/fkFP4EAcCMQtLOhIgpprZOwNmCldtpaISpvz348+DP4Mz8ZoKaGGCQpbzepNIUWbq4w6hNZkwDyKoS+HA==
@@ -2765,17 +2752,6 @@
     "@emotion/use-insertion-effect-with-fallbacks" "^1.0.1"
     "@emotion/utils" "^1.2.1"
 
-"@emotion/styled@11.8.1":
-  version "11.8.1"
-  resolved "https://registry.yarnpkg.com/@emotion/styled/-/styled-11.8.1.tgz#856f6f63aceef0eb783985fa2322e2bf66d04e17"
-  integrity "sha1-hW9vY6zu8Ot4OYX6IyLiv2bQThc= sha512-OghEVAYBZMpEquHZwuelXcRjRJQOVayvbmNR0zr174NHdmMgrNkLC6TljKC5h9lZLkN5WGrdUcrKlOJ4phhoTQ=="
-  dependencies:
-    "@babel/runtime" "^7.13.10"
-    "@emotion/babel-plugin" "^11.7.1"
-    "@emotion/is-prop-valid" "^1.1.2"
-    "@emotion/serialize" "^1.0.2"
-    "@emotion/utils" "^1.1.0"
-
 "@emotion/unitless@^0.8.0", "@emotion/unitless@^0.8.1":
   version "0.8.1"
   resolved "https://registry.yarnpkg.com/@emotion/unitless/-/unitless-0.8.1.tgz#182b5a4704ef8ad91bde93f7a860a88fd92c79a3"
@@ -2786,15 +2762,10 @@
   resolved "https://registry.yarnpkg.com/@emotion/use-insertion-effect-with-fallbacks/-/use-insertion-effect-with-fallbacks-1.0.1.tgz#08de79f54eb3406f9daaf77c76e35313da963963"
   integrity sha512-jT/qyKZ9rzLErtrjGgdkMBn2OP8wl0G3sQlBb3YPryvKHsjvINUhVaPFfP+fpBcOkmrVOVEEHQFJ7nbj2TH2gw==
 
-"@emotion/utils@^1.0.0", "@emotion/utils@^1.1.0", "@emotion/utils@^1.2.1":
+"@emotion/utils@^1.0.0", "@emotion/utils@^1.2.1":
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/@emotion/utils/-/utils-1.2.1.tgz#bbab58465738d31ae4cb3dbb6fc00a5991f755e4"
   integrity sha512-Y2tGf3I+XVnajdItskUCn6LX+VUDmP6lTL4fcqsXAv43dnlbZiuW4MWQW38rW/BVWSE7Q/7+XQocmpnRYILUmg==
-
-"@emotion/weak-memoize@^0.2.5":
-  version "0.2.5"
-  resolved "https://registry.yarnpkg.com/@emotion/weak-memoize/-/weak-memoize-0.2.5.tgz#8eed982e2ee6f7f4e44c253e12962980791efd46"
-  integrity "sha1-ju2YLi7m9/TkTCU+EpYpgHke/UY= sha512-6U71C2Wp7r5XtFtQzYrW5iKFT67OixrSxjI4MptCHzdSVlgabczzqLe0ZSgnub/5Kp4hSbpDB1tMytZY9pwxxA=="
 
 "@emotion/weak-memoize@^0.3.1":
   version "0.3.1"
@@ -9843,41 +9814,6 @@ block-scripts@0.0.14:
     webpack-cli "^4.9.2"
     webpack-dev-server "^4.8.1"
     yargs-parser "21.0.1"
-
-block-scripts@0.3.0:
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/block-scripts/-/block-scripts-0.3.0.tgz#07ce19c92101552e33000f03b7dd05aa600131c4"
-  integrity sha512-xoD83zpVMeKHs98v3pjoXA9Zbopz4eQho4RjqbKfxP/ytJLlZnWPWOZUzrGI7TNRdcmwzjuQQ54LHCqHLRFKEA==
-  dependencies:
-    "@babel/core" "^7.21.0"
-    "@babel/plugin-proposal-class-properties" "^7.18.6"
-    "@babel/plugin-proposal-decorators" "^7.21.0"
-    "@babel/plugin-transform-runtime" "^7.21.0"
-    "@babel/preset-env" "^7.20.2"
-    "@babel/preset-react" "^7.18.6"
-    "@babel/preset-typescript" "^7.21.0"
-    "@babel/runtime" "^7.21.0"
-    "@blockprotocol/graph" "0.3.0"
-    "@blockprotocol/type-system" "0.1.1"
-    babel-loader "^9.1.2"
-    chalk "5.2.0"
-    copy-webpack-plugin "10.2.4"
-    core-js "^3.26.1"
-    css-loader "^6.7.1"
-    dotenv-webpack "^8.0.1"
-    fs-extra "^10.1.0"
-    html-webpack-plugin "^5.5.0"
-    sass "^1.52.3"
-    sass-loader "^12.6.0"
-    serve-handler "^6.1.3"
-    style-loader "^3.3.1"
-    typescript "4.9.4"
-    typescript-json-schema "^0.55.0"
-    webpack "^5.76.0"
-    webpack-assets-manifest "^5.1.0"
-    webpack-bundle-analyzer "^4.8.0"
-    webpack-dev-server "^4.11.1"
-    yargs-parser "21.1.1"
 
 block-scripts@0.3.1:
   version "0.3.1"
@@ -18073,32 +18009,6 @@ mock-block-dock@0.0.38:
     use-local-storage-state "^18.1.1"
     uuid "^8.3.2"
 
-mock-block-dock@0.1.5:
-  version "0.1.5"
-  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.1.5.tgz#b7a57152c9ea75b9eee7063164fe3fe710c30db3"
-  integrity sha512-0Yx0LTHB8U+fhZFgytwvyuK5MsPKiEI0uWx9az6oDfAeVUE54huZ7NNDXBA6U/TarGBNZDZ3oT0g5p79aFPOww==
-  dependencies:
-    "@blockprotocol/core" "0.1.2"
-    "@blockprotocol/graph" "0.3.0"
-    "@blockprotocol/hook" "0.1.4"
-    "@blockprotocol/service" "0.1.3"
-    "@emotion/react" "^11.10.0"
-    "@emotion/styled" "^11.10.0"
-    "@lit-labs/react" "1.1.1"
-    "@mui/material" "5.11.8"
-    ajv "^8.11.2"
-    axios "^1.3.2"
-    dotenv-webpack "^8.0.1"
-    echarts "5.4.1"
-    mime "^3.0.0"
-    react-json-view "^1.21.3"
-    react-resizable "^3.0.4"
-    slate "^0.82.1"
-    slate-react "^0.83.1"
-    styled-jsx "^5.1.0"
-    use-local-storage-state "^18.1.1"
-    uuid "^8.3.2"
-
 mock-block-dock@0.1.6:
   version "0.1.6"
   resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.1.6.tgz#3532feb4c900e12befff7bf901a16194b7d1ddf7"
@@ -20336,11 +20246,6 @@ react-full-screen@1.1.1:
   integrity sha512-xoEgkoTiN0dw9cjYYGViiMCBYbkS97BYb4bHPhQVWXj1UnOs8PZ1rPzpX+2HMhuvQV1jA5AF9GaRbO3fA5aZtg==
   dependencies:
     fscreen "^1.0.2"
-
-react-hook-form@7.46.1:
-  version "7.46.1"
-  resolved "https://registry.yarnpkg.com/react-hook-form/-/react-hook-form-7.46.1.tgz#39347dbff19d980cb41087ac32a57abdc6045bb3"
-  integrity sha512-0GfI31LRTBd5tqbXMGXT1Rdsv3rnvy0FjEk8Gn9/4tp6+s77T7DPZuGEpBRXOauL+NhyGT5iaXzdIM2R6F/E+w==
 
 react-hook-form@7.48.2:
   version "7.48.2"
