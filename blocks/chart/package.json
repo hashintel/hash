@@ -57,7 +57,7 @@
     "port": 63212
   },
   "blockprotocol": {
-    "name": "@ben/chart",
+    "name": "@hash/chart",
     "displayName": "Chart",
     "blockType": {
       "entryPoint": "react"
