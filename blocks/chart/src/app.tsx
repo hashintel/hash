@@ -10,7 +10,6 @@ import {
   Subgraph,
 } from "@blockprotocol/graph/temporal";
 import { getOutgoingLinkAndTargetEntities } from "@blockprotocol/graph/temporal/stdlib";
-import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { Box, Divider } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -69,7 +68,6 @@ export const App: BlockComponent<BlockEntity> = ({
             ] as MultiFilter,
           },
           graphResolveDepths: {
-            ...zeroedGraphResolveDepths,
             inheritsFrom: { outgoing: 255 },
             isOfType: { outgoing: 1 },
             constrainsPropertiesOn: { outgoing: 255 },
