@@ -1,6 +1,6 @@
 {
   "name": "@blocks/chart",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "A block for plotting entities in a 2D chart",
   "keywords": [
