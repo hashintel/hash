@@ -105,7 +105,7 @@ export const App: BlockComponent<BlockEntity> = ({
   }, [linkedQueryEntities, queryResults, fetchQueryEntityResults]);
 
   const chartDefinition = blockEntity.properties[
-    "https://blockprotocol.org/@benwerner/types/property-type/chart-definition/"
+    "https://blockprotocol.org/@hash/types/property-type/chart-defintion/"
   ] as ChartDefinition | undefined;
 
   const updateChartDefinition = useCallback(

@@ -55,10 +55,8 @@ const getEntityTypePropertyTypes = (
     ...propertyTypes,
     ...(entityType.allOf
       ?.map(({ $ref }) => {
-        const inheritsFromEntityType = getEntityTypeById(
-          subgraph,
-          $ref,
-        )?.schema;
+        const inheritsFromEntityType = getEntityTypeById(subgraph, $ref)
+          ?.schema;
 
         if (!inheritsFromEntityType) {
           throw new Error(
