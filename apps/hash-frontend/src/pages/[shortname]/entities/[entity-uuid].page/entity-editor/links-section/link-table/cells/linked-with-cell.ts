@@ -13,6 +13,7 @@ import {
 import { drawCellFadeOutGradient } from "../../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
 import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/draw-chip-with-icon";
 import { InteractableManager } from "../../../../../../../../components/grid/utils/interactable-manager";
+import { Interactable } from "../../../../../../../../components/grid/utils/interactable-manager/types";
 import { generateEntityLabel } from "../../../../../../../../lib/entities";
 import { getImageUrlFromEntityProperties } from "../../../../../../../shared/get-image-url-from-properties";
 import { LinkRow } from "../types";
@@ -38,6 +39,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     const {
       linkAndTargetEntities,
       markLinkAsArchived,
+      onEntityClick,
       isFile,
       isList,
       isLoading,
@@ -75,6 +77,8 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       linkAndTargetEntities,
     );
 
+    const entityChipInteractables: Interactable[] = [];
+
     // draw linked entity chips
     for (const { rightEntity, sourceSubgraph } of sortedLinkedEntities) {
       const label = generateEntityLabel(sourceSubgraph, rightEntity);
@@ -88,8 +92,26 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
         text: label,
         left: accumulatedLeft,
       });
+
+      entityChipInteractables.push(
+        InteractableManager.create(args, {
+          id: rightEntity.metadata.recordId.entityId,
+          pos: {
+            left: accumulatedLeft,
+            right: accumulatedLeft + chipWidth,
+            top: yCenter - 16,
+            bottom: yCenter + 16,
+          },
+          onClick: () => {
+            onEntityClick({ entity: rightEntity });
+          },
+        }),
+      );
+
       accumulatedLeft += chipWidth + chipGap;
     }
+
+    InteractableManager.setInteractablesForCell(args, entityChipInteractables);
 
     // do not draw delete button if multiple links are allowed
     if (isList) {
@@ -154,7 +176,10 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       hoverAmount > 0 ? hoverAmount : highlighted ? 1 : 0,
     );
 
-    InteractableManager.setInteractablesForCell(args, [deleteButton]);
+    InteractableManager.setInteractablesForCell(args, [
+      deleteButton,
+      ...entityChipInteractables,
+    ]);
   },
   provideEditor: () => {
     return {

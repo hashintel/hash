@@ -26,6 +26,7 @@ export type LinkRow = {
   })[];
   entitySubgraph: Subgraph<EntityRootType>;
   markLinkAsArchived: (linkEntityId: EntityId) => void;
+  onEntityClick: (params: { entity: Entity }) => void;
 };
 
 export type LinkColumnKey = "linkTitle" | "linkedWith" | "expectedEntityTypes";
