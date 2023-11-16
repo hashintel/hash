@@ -252,7 +252,7 @@ export const EditChartDefinition: FunctionComponent<{
         {...register("yAxisLabel")}
       />
       <Button type="submit" disabled={isSubmitDisabled}>
-        Update Chart
+        {initialChartDefinition ? "Update" : "Create"} Chart
       </Button>
     </Box>
   );
