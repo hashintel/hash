@@ -1,4 +1,4 @@
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { User } from "@local/hash-isomorphic-utils/system-types/shared";
 import { EntityRootType } from "@local/hash-subgraph";

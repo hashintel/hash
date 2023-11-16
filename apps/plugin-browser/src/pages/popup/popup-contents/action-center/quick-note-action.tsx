@@ -1,9 +1,19 @@
-import { extractBaseUrl, VersionedUrl } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { Button } from "@hashintel/design-system";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  BlockProperties,
+  HasIndexedContentProperties,
+  TextProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { Entity, EntityPropertiesObject, LinkData } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
+import { generateKeyBetween } from "fractional-indexing";
 
 import {
   CreateEntityMutation,
@@ -15,30 +25,6 @@ import { useSessionStorage } from "../../../shared/use-storage-sync";
 import { Action } from "./action";
 import { QuickNoteIcon } from "./quick-note-action/quick-note-icon";
 import { TextFieldWithDarkMode } from "./text-field-with-dark-mode";
-
-const quickNoteEntityTypeId =
-  "https://hash.ai/@hash/types/entity-type/quick-note/v/1" as const;
-
-const containsLinkEntityTypeId =
-  "https://hash.ai/@hash/types/entity-type/contains/v/1" as const;
-
-const numericIndexPropertyTypeId =
-  "https://hash.ai/@hash/types/property-type/numeric-index/v/1" as const;
-
-const blockEntityTypeId =
-  "https://hash.ai/@hash/types/entity-type/block/v/1" as const;
-
-const componentIdPropertyTypeId =
-  "https://hash.ai/@hash/types/property-type/component-id/v/1" as const;
-
-const blockDataLinkEntityTypeId =
-  "https://hash.ai/@hash/types/entity-type/block-data/v/1" as const;
-
-const textEntityTypeId =
-  "https://hash.ai/@hash/types/entity-type/text/v/1" as const;
-
-const textualContentPropertyTypeId =
-  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/v/2" as const;
 
 const createEntity = (params: {
   entityTypeId: VersionedUrl;
@@ -69,30 +55,29 @@ const createQuickNote = async (text: string) => {
 
   const [quickNoteEntity, ...blockEntities] = await Promise.all([
     createEntity({
-      entityTypeId: quickNoteEntityTypeId,
+      entityTypeId: systemEntityTypes.quickNote.entityTypeId,
       properties: {},
     }),
     ...paragraphs.map(async (paragraph) => {
       const [textEntity, blockEntity] = await Promise.all([
         createEntity({
-          entityTypeId: textEntityTypeId,
+          entityTypeId: systemEntityTypes.text.entityTypeId,
           properties: {
-            [extractBaseUrl(textualContentPropertyTypeId)]: [
-              { tokenType: "text", text: paragraph },
-            ] satisfies TextToken[],
-          },
+            "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
+              [{ tokenType: "text", text: paragraph }] satisfies TextToken[],
+          } as TextProperties,
         }),
         createEntity({
-          entityTypeId: blockEntityTypeId,
+          entityTypeId: systemEntityTypes.block.entityTypeId,
           properties: {
-            [extractBaseUrl(componentIdPropertyTypeId)]:
+            "https://hash.ai/@hash/types/property-type/component-id/":
               paragraphBlockComponentId,
-          },
+          } as BlockProperties,
         }),
       ]);
 
       await createEntity({
-        entityTypeId: blockDataLinkEntityTypeId,
+        entityTypeId: systemLinkEntityTypes.hasData.linkEntityTypeId,
         properties: {},
         linkData: {
           leftEntityId: blockEntity.metadata.recordId.entityId,
@@ -104,13 +89,20 @@ const createQuickNote = async (text: string) => {
     }),
   ]);
 
+  const fractionalIndexes = blockEntities.reduce<string[]>((prev) => {
+    const previousFractionalIndex = prev[prev.length - 1] ?? null;
+
+    return [...prev, generateKeyBetween(previousFractionalIndex, null)];
+  }, []);
+
   await Promise.all(
     blockEntities.map(async (blockEntity, index) =>
       createEntity({
-        entityTypeId: containsLinkEntityTypeId,
+        entityTypeId: systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
         properties: {
-          [extractBaseUrl(numericIndexPropertyTypeId)]: index,
-        },
+          "https://hash.ai/@hash/types/property-type/fractional-index/":
+            fractionalIndexes[index]!,
+        } as HasIndexedContentProperties,
         linkData: {
           leftEntityId: quickNoteEntity.metadata.recordId.entityId,
           rightEntityId: blockEntity.metadata.recordId.entityId,
