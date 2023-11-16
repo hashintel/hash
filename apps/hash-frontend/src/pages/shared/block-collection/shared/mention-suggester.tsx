@@ -1,13 +1,17 @@
 import { useQuery } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  isPageEntityTypeId,
+  pageEntityTypeIds,
+} from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import {
   BaseUrl,
   Entity,
@@ -150,11 +154,11 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               }),
             ),
             generateVersionedUrlMatchingFilter(
-              systemTypes.entityType.user.entityTypeId,
+              systemEntityTypes.user.entityTypeId,
               { ignoreParents: true },
             ),
             generateVersionedUrlMatchingFilter(
-              systemTypes.entityType.org.entityTypeId,
+              systemEntityTypes.organization.entityTypeId,
               { ignoreParents: true },
             ),
           ],
@@ -290,14 +294,21 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
             })
             // Sort the sections to ensure page entities and user entities are displayed first
             .sort((a, b) => {
-              const customOrder = {
-                [systemTypes.entityType.page.entityTypeId]: 0,
-                [systemTypes.entityType.user.entityTypeId]: 1,
-              };
+              const customOrder: { [key: VersionedUrl]: number } = {};
+
+              for (const versionedUrl of pageEntityTypeIds) {
+                customOrder[versionedUrl] = 0;
+              }
+
+              const nextPriority = Object.values(customOrder).length;
+
+              customOrder[systemEntityTypes.user.entityTypeId] = nextPriority;
+
+              const fallbackPriority = nextPriority + 1;
 
               return (
-                (customOrder[a.entityType.schema.$id] ?? 2) -
-                (customOrder[b.entityType.schema.$id] ?? 2)
+                (customOrder[a.entityType.schema.$id] ?? fallbackPriority) -
+                (customOrder[b.entityType.schema.$id] ?? fallbackPriority)
               );
             })
         : undefined,
@@ -507,9 +518,9 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               propertyTypeBaseUrl,
             });
           }
-        } else if (entityTypeId === systemTypes.entityType.page.entityTypeId) {
+        } else if (isPageEntityTypeId(entityTypeId)) {
           onChange({ kind: "page", entityId });
-        } else if (entityTypeId === systemTypes.entityType.user.entityTypeId) {
+        } else if (entityTypeId === systemEntityTypes.user.entityTypeId) {
           onChange({ kind: "user", entityId });
         } else {
           onChange({ kind: "entity", entityId });

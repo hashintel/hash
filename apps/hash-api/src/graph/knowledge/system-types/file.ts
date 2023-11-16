@@ -1,5 +1,5 @@
-import { apiOrigin } from "@local/hash-graphql-shared/environment";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   File,
   FileProperties,
@@ -15,7 +15,6 @@ import { AuthenticationContext } from "../../../graphql/authentication-context";
 import { PresignedPutUpload } from "../../../storage/storage-provider";
 import { genId } from "../../../util";
 import { ImpureGraphContext, ImpureGraphFunction } from "../../context-types";
-import { SYSTEM_TYPES } from "../../system-types";
 import {
   createEntity,
   getLatestEntityById,
@@ -67,8 +66,8 @@ const generateCommonParameters = async (
       existingEntity: null,
       entityTypeId:
         fileEntityCreationInput.entityTypeId ?? mimeType.startsWith("image/")
-          ? systemTypes.entityType.imageFile.entityTypeId
-          : systemTypes.entityType.file.entityTypeId,
+          ? systemEntityTypes.image.entityTypeId
+          : systemEntityTypes.file.entityTypeId,
       mimeType,
       ownedById: fileEntityCreationInput.ownedById,
     };
@@ -135,18 +134,19 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
         expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
       });
 
-    const { propertyType } = SYSTEM_TYPES;
     const { bucket, endpoint, forcePathStyle, provider, region } =
       fileStorageProperties;
 
     const storageProperties: Partial<FileProperties> = {
-      [propertyType.fileStorageBucket.metadata.recordId.baseUrl]: bucket,
-      [propertyType.fileStorageEndpoint.metadata.recordId.baseUrl]: endpoint,
-      [propertyType.fileStorageForcePathStyle.metadata.recordId.baseUrl]:
+      "https://hash.ai/@hash/types/property-type/file-storage-bucket/": bucket,
+      "https://hash.ai/@hash/types/property-type/file-storage-endpoint/":
+        endpoint,
+      "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/":
         !!forcePathStyle,
-      [propertyType.fileStorageKey.metadata.recordId.baseUrl]: key,
-      [propertyType.fileStorageProvider.metadata.recordId.baseUrl]: provider,
-      [propertyType.fileStorageRegion.metadata.recordId.baseUrl]: region,
+      "https://hash.ai/@hash/types/property-type/file-storage-key/": key,
+      "https://hash.ai/@hash/types/property-type/file-storage-provider/":
+        provider,
+      "https://hash.ai/@hash/types/property-type/file-storage-region/": region,
     };
 
     const properties: FileProperties = {

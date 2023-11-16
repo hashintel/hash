@@ -1,8 +1,8 @@
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import {
-  blockProtocolTypes,
-  systemTypes,
-} from "@local/hash-isomorphic-utils/ontology-types";
+  blockProtocolPropertyTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
@@ -53,9 +53,7 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
   const previousTextualContent = text.textualContent;
 
   const updatedTextualContent = updatedProperties[
-    extractBaseUrl(
-      blockProtocolTypes.propertyType.textualContent.propertyTypeId,
-    )
+    extractBaseUrl(blockProtocolPropertyTypes.textualContent.propertyTypeId)
   ] as TextToken[];
 
   /** @todo: check whether textual content has changed before performing expensive operations */
@@ -169,7 +167,7 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
 
 export const afterUpdateEntityHooks: UpdateEntityHook[] = [
   {
-    entityTypeId: systemTypes.entityType.text.entityTypeId,
+    entityTypeId: systemEntityTypes.text.entityTypeId,
     callback: textEntityUpdateHookCallback,
   },
 ];

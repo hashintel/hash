@@ -1,13 +1,16 @@
 import { useQuery } from "@apollo/client";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { BaseUrl, EntityRootType } from "@local/hash-subgraph";
+import {
+  getEntityTypeAndDescendantsById,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
@@ -88,9 +91,9 @@ const ProfilePage: NextPageWithLayout = () => {
 
   const profileNotFound = !profile && !loading;
 
-  const pinnedEntityTypeBaseUrls = useMemo(
+  const pinnedEntityTypeBaseUrls = useMemo<BaseUrl[]>(
     () => [
-      extractBaseUrl(systemTypes.entityType.page.entityTypeId),
+      systemEntityTypes.page.entityTypeBaseUrl as BaseUrl,
       ...(profile?.pinnedEntityTypeBaseUrls ?? []),
     ],
     [profile],
@@ -137,7 +140,7 @@ const ProfilePage: NextPageWithLayout = () => {
               any:
                 includeEntityTypeIds?.map((entityTypeId) =>
                   generateVersionedUrlMatchingFilter(entityTypeId, {
-                    ignoreParents: true,
+                    ignoreParents: false,
                   }),
                 ) ?? [],
             },
@@ -160,6 +163,7 @@ const ProfilePage: NextPageWithLayout = () => {
         },
         graphResolveDepths: {
           ...zeroedGraphResolveDepths,
+          inheritsFrom: { outgoing: 255 },
           isOfType: { outgoing: 1 },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
@@ -189,15 +193,37 @@ const ProfilePage: NextPageWithLayout = () => {
               metadata.recordId.baseUrl === tab.entityTypeBaseUrl,
           );
 
+          let entityTypeAndDescendants = entityType ? [entityType] : [];
+          try {
+            entityTypeAndDescendants =
+              entityType && entitiesSubgraph
+                ? getEntityTypeAndDescendantsById(
+                    entitiesSubgraph,
+                    entityType.schema.$id,
+                  )
+                : entityType
+                ? [entityType]
+                : [];
+          } catch {
+            /**
+             * The entity type is not in the subgraph, which might happen if the user has no entities of that type.
+             */
+          }
+
+          const entityTypeBaseUrls = entityTypeAndDescendants.map(
+            ({ schema }) => extractBaseUrl(schema.$id),
+          );
+
           const title = entityType?.schema.title;
 
           const pluralTitle = title ? pluralize(title) : undefined;
 
           return {
             ...tab,
-            entities: allPinnedEntities?.filter(
-              ({ metadata }) =>
-                extractBaseUrl(metadata.entityTypeId) === tab.entityTypeBaseUrl,
+            entities: allPinnedEntities?.filter(({ metadata }) =>
+              entityTypeBaseUrls.includes(
+                extractBaseUrl(metadata.entityTypeId),
+              ),
             ),
             entitiesSubgraph,
             title: entityType?.schema.title,

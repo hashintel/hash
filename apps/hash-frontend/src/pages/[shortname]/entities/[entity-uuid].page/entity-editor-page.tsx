@@ -1,11 +1,11 @@
 import { OntologyChip } from "@hashintel/design-system";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
+import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
 import { NextSeo } from "next-seo";
 import { ReactNode, useState } from "react";
 
 import { useSnackbar } from "../../../../components/hooks/use-snackbar";
-import { QUERY_PROPERTY_TYPE_BASE_URL } from "./create-entity-page";
 import { EntityEditor, EntityEditorProps } from "./entity-editor";
 import { EntityPageWrapper } from "./entity-page-wrapper";
 import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
@@ -54,7 +54,7 @@ export const EntityEditorPage = ({
           mode={isDraft ? "create" : "edit"}
           handleSaveQuery={async (value) => {
             const properties = {
-              [QUERY_PROPERTY_TYPE_BASE_URL]: value,
+              [blockProtocolPropertyTypes.query.propertyTypeBaseUrl]: value,
             };
 
             await handleSaveChanges(properties);

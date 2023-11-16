@@ -1,6 +1,7 @@
 import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, Select, SelectProps } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import {
   Entity,
   EntityRootType,
@@ -8,7 +9,6 @@ import {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   Divider,
@@ -41,6 +41,7 @@ import { generateEntityLabel } from "../../lib/entities";
 import { Org, User } from "../../lib/user-and-org";
 import { ArrowDownAZRegularIcon } from "../../shared/icons/arrow-down-a-z-regular-icon";
 import { ArrowUpZARegularIcon } from "../../shared/icons/arrow-up-a-z-regular-icon";
+import { CanvasIcon } from "../../shared/icons/canvas-icon";
 import { ClockRegularIcon } from "../../shared/icons/clock-regular-icon";
 import { PageLightIcon } from "../../shared/icons/page-light-icon";
 import { PlusRegularIcon } from "../../shared/icons/plus-regular";
@@ -57,9 +58,7 @@ const EntityRow: FunctionComponent<{
   const label = generateEntityLabel(entitiesSubgraph, entity);
 
   const href = `/@${profile.shortname}/${
-    entity.metadata.entityTypeId === systemTypes.entityType.page.entityTypeId
-      ? ""
-      : "entities/"
+    isPageEntityTypeId(entity.metadata.entityTypeId) ? "" : "entities/"
   }${extractEntityUuidFromEntityId(entity.metadata.recordId.entityId)}`;
 
   const updatedAt = new Date(
@@ -72,7 +71,14 @@ const EntityRow: FunctionComponent<{
 
   const icon = useEntityIcon({
     entity,
-    pageIcon: <PageLightIcon sx={{ fontSize: 18 }} />,
+    pageIcon:
+      entity.metadata.entityTypeId === systemEntityTypes.canvas.entityTypeId ? (
+        <CanvasIcon
+          sx={{ fontSize: 20, fill: ({ palette }) => palette.gray[40] }}
+        />
+      ) : (
+        <PageLightIcon sx={{ fontSize: 18 }} />
+      ),
   });
 
   return (
@@ -192,7 +198,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
   });
 
   const createPage = useCallback(async () => {
-    await createUntitledPage(lastRootPageIndex);
+    await createUntitledPage(lastRootPageIndex, "document");
   }, [lastRootPageIndex, createUntitledPage]);
 
   const sortedEntities = useMemo(
@@ -227,11 +233,10 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
   );
 
   const isPagesTab =
-    currentTab.entityTypeBaseUrl ===
-    extractBaseUrl(systemTypes.entityType.page.entityTypeId);
+    currentTab.entityTypeBaseUrl === systemEntityTypes.page.entityTypeBaseUrl;
 
   return (
-    <Box>
+    <Box mb={6}>
       <Box display="flex" alignItems="center" columnGap={1.5} marginBottom={1}>
         <ProfileSectionHeading>{currentTab.pluralTitle}</ProfileSectionHeading>
         <Box display="flex" alignItems="center" columnGap={1}>

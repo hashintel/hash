@@ -1,7 +1,9 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   ModifyRelationshipOperation,
   WebPermission,
 } from "@local/hash-graph-client";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
@@ -13,6 +15,14 @@ import {
 import { ImpureGraphFunction } from "../../context-types";
 import { getOrgById } from "../../knowledge/system-types/org";
 import { getUserById } from "../../knowledge/system-types/user";
+
+export const isExternalTypeId = (typeId: VersionedUrl) =>
+  !typeId.startsWith(frontendUrl) &&
+  // To be removed in H-1172: Temporary provision to serve types with a https://hash.ai URL from https://app.hash.ai
+  !(
+    ["https://app.hash.ai", "http://localhost:3000"].includes(frontendUrl) &&
+    new URL(typeId).hostname === "hash.ai"
+  );
 
 /**
  * Get the web shortname of an account or account group by its id

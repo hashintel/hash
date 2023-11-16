@@ -1,3 +1,45 @@
+diff --git a/node_modules/@blockprotocol/graph/dist/cjs/codegen.cjs b/node_modules/@blockprotocol/graph/dist/cjs/codegen.cjs
+index 5967d3f..cf40920 100644
+--- a/node_modules/@blockprotocol/graph/dist/cjs/codegen.cjs
++++ b/node_modules/@blockprotocol/graph/dist/cjs/codegen.cjs
+@@ -709,7 +709,14 @@ const traverseAndCollateSchemas = async (initialContext) => {
+             continue;
+         }
+         initialContext.logDebug(`Fetching ${typeId}...`);
+-        addFetchPromise(fetchTypeAsJson(typeId).then((type) => {
++
++        // Rewrite the type ID before attempting to fetch it if a
++        // `rewriteTypeId` function was provided in the parameters
++        const rewrittenTypeId = initialContext.parameters.rewriteTypeId
++            ? initialContext.parameters.rewriteTypeId(typeId)
++            : typeId;
++            
++        addFetchPromise(fetchTypeAsJson(rewrittenTypeId).then((type) => {
+             if (isDataType(type)) {
+                 initialContext.addDataType(type);
+             }
+diff --git a/node_modules/@blockprotocol/graph/dist/cjs/codegen/parameters.d.ts b/node_modules/@blockprotocol/graph/dist/cjs/codegen/parameters.d.ts
+index c46b522..ad04489 100644
+--- a/node_modules/@blockprotocol/graph/dist/cjs/codegen/parameters.d.ts
++++ b/node_modules/@blockprotocol/graph/dist/cjs/codegen/parameters.d.ts
+@@ -17,6 +17,7 @@ export type CodegenParameters = {
+     typeNameOverrides?: {
+         [sourceTypeId: string]: string;
+     };
++    rewriteTypeId?: (typeId: VersionedUrl) => VersionedUrl;
+     /** Generate look-up maps with aliases for all type URLs */
+     typeIdAliases?: {
+         enabled: false;
+@@ -32,7 +33,8 @@ export type CodegenParameters = {
+ export declare const validateCodegenParameters: (parameters: unknown) => {
+     errors: string[];
+ } | undefined;
+-export type ProcessedCodegenParameters = Omit<Required<CodegenParameters>, "targets"> & {
++export type ProcessedCodegenParameters = Omit<Required<CodegenParameters>, "targets" | "rewriteTypeId"> & {
++    rewriteTypeId: CodegenParameters["rewriteTypeId"];
+     targets: {
+         [fileName: string]: {
+             sourceTypeIds: VersionedUrl[];
 diff --git a/node_modules/@blockprotocol/graph/dist/es/stdlib-temporal.js b/node_modules/@blockprotocol/graph/dist/es/stdlib-temporal.js
 index b911b36..bb1b719 100644
 --- a/node_modules/@blockprotocol/graph/dist/es/stdlib-temporal.js

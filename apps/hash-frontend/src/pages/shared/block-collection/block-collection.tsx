@@ -88,7 +88,7 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
       renderPortal,
       ownedById,
       pageEntityId: entityId,
-      blocks: () => currentBlocks.current,
+      getBlocksMap: () => currentBlocks.current,
       readonly,
       pageTitleRef,
       getLastSavedValue: () =>

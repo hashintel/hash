@@ -1,6 +1,7 @@
 import { extractBaseUrl, PropertyType } from "@blockprotocol/graph";
 import { MenuItem } from "@hashintel/design-system";
 import { FormControl } from "@mui/material";
+import { useMemo } from "react";
 import { FieldErrorsImpl, useFormContext } from "react-hook-form";
 
 import { useReadonlyContext } from "../../readonly-context";
@@ -16,6 +17,11 @@ export const PropertyTypeSelector = ({
 }) => {
   const readonly = useReadonlyContext();
   const { control, formState, setValue } = useFormContext<FormValues>();
+
+  const sortedPropertyTypes = useMemo(
+    () => propertyTypes.sort((a, b) => a.title.localeCompare(b.title)),
+    [propertyTypes],
+  );
 
   const filterErrors = formState.errors.filters?.[index] as
     | FieldErrorsImpl<PropertyFilter>
@@ -62,7 +68,7 @@ export const PropertyTypeSelector = ({
         <MenuItem disabled noSelectBackground>
           Choose
         </MenuItem>
-        {propertyTypes.map(({ title, $id }) => {
+        {sortedPropertyTypes.map(({ title, $id }) => {
           const baseUrl = extractBaseUrl($id);
 
           /**

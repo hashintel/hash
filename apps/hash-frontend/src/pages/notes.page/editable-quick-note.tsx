@@ -1,21 +1,22 @@
 import { useMutation, useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
+import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import {
-  blockProtocolTypes,
-  systemTypes,
-} from "@local/hash-isomorphic-utils/ontology-types";
+  blockProtocolPropertyTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { QuickNoteProperties } from "@local/hash-isomorphic-utils/system-types/quicknote";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import {
+  BaseUrl,
   EntityRootType,
   extractEntityUuidFromEntityId,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Fade, Skeleton, Tooltip, Typography } from "@mui/material";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
@@ -67,9 +68,7 @@ const parseTextFromTextBlock = ({
   rightEntity,
 }: BlockCollectionContentItem) => {
   const textTokens = rightEntity.blockChildEntity.properties[
-    extractBaseUrl(
-      blockProtocolTypes.propertyType.textualContent.propertyTypeId,
-    )
+    blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl as BaseUrl
   ] as TextToken[] | undefined;
 
   return (
@@ -201,12 +200,11 @@ export const EditableQuickNote: FunctionComponent<{
     await updateEntity({
       data: {
         entityId: quickNoteEntity.metadata.recordId.entityId,
-        entityTypeId: systemTypes.entityType.quickNote.entityTypeId,
+        entityTypeId: systemEntityTypes.quickNote.entityTypeId,
         properties: {
           ...quickNoteEntity.properties,
-          [extractBaseUrl(systemTypes.propertyType.archived.propertyTypeId)]:
-            true,
-        },
+          "https://hash.ai/@hash/types/property-type/archived/": true,
+        } as QuickNoteProperties,
       },
     });
     await refetchQuickNotes?.();
@@ -229,7 +227,7 @@ export const EditableQuickNote: FunctionComponent<{
     await updateEntity({
       data: {
         entityId: blockCollectionEntityId,
-        entityTypeId: systemTypes.entityType.quickNote.entityTypeId,
+        entityTypeId: systemEntityTypes.quickNote.entityTypeId,
         properties: {},
       },
     });

@@ -1,6 +1,6 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -90,35 +90,35 @@ export const useUpdateAuthenticatedUser = () => {
               ...(params.shortname
                 ? {
                     [extractBaseUrl(
-                      systemTypes.propertyType.shortname.propertyTypeId,
+                      systemPropertyTypes.shortname.propertyTypeId,
                     )]: params.shortname,
                   }
                 : {}),
               ...(params.preferredName
                 ? {
                     [extractBaseUrl(
-                      systemTypes.propertyType.preferredName.propertyTypeId,
+                      systemPropertyTypes.preferredName.propertyTypeId,
                     )]: params.preferredName,
                   }
                 : {}),
               ...(typeof params.location !== "undefined"
                 ? {
                     [extractBaseUrl(
-                      systemTypes.propertyType.location.propertyTypeId,
+                      systemPropertyTypes.location.propertyTypeId,
                     )]: params.location,
                   }
                 : {}),
               ...(typeof params.websiteUrl !== "undefined"
                 ? {
                     [extractBaseUrl(
-                      systemTypes.propertyType.websiteUrl.propertyTypeId,
+                      systemPropertyTypes.websiteUrl.propertyTypeId,
                     )]: params.websiteUrl,
                   }
                 : {}),
               ...(typeof params.preferredPronouns !== "undefined"
                 ? {
                     [extractBaseUrl(
-                      systemTypes.propertyType.preferredPronouns.propertyTypeId,
+                      systemPropertyTypes.preferredPronouns.propertyTypeId,
                     )]: params.preferredPronouns,
                   }
                 : {}),

@@ -1,5 +1,7 @@
-import { apiOrigin } from "@local/hash-graphql-shared/environment";
-import { oryKratosPublicUrl } from "@local/hash-isomorphic-utils/environment";
+import {
+  apiOrigin,
+  oryKratosPublicUrl,
+} from "@local/hash-isomorphic-utils/environment";
 import {
   Configuration,
   FrontendApi,

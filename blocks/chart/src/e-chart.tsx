@@ -1,4 +1,6 @@
 import {
+  BarChart,
+  BarSeriesOption,
   LineChart,
   LineSeriesOption,
   ScatterChart,
@@ -9,13 +11,16 @@ import * as echarts from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
 import { FunctionComponent, useEffect, useRef, useState } from "react";
 
-export type SeriesOption = LineSeriesOption | ScatterSeriesOption;
+export type SeriesOption =
+  | LineSeriesOption
+  | ScatterSeriesOption
+  | BarSeriesOption;
 
 // Combine an Option type with only required components and charts via ComposeOption
 export type ECOption = echarts.ComposeOption<SeriesOption>;
 
 // Register the required components
-echarts.use([LineChart, ScatterChart, GridComponent, SVGRenderer]);
+echarts.use([LineChart, BarChart, ScatterChart, GridComponent, SVGRenderer]);
 
 type GraphProps = {
   options: ECOption;

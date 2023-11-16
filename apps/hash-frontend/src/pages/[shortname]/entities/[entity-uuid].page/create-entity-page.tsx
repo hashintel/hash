@@ -1,4 +1,5 @@
-import { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   EntityPropertiesObject,
   extractEntityUuidFromEntityId,
@@ -22,12 +23,6 @@ import { useDraftLinkState } from "./shared/use-draft-link-state";
 interface CreateEntityPageProps {
   entityTypeId: VersionedUrl;
 }
-
-/** @todo replace these with published system types */
-export const QUERY_ENTITY_TYPE_ID =
-  "http://localhost:3000/@alice/types/entity-type/query/v/2" as VersionedUrl;
-export const QUERY_PROPERTY_TYPE_BASE_URL =
-  "http://localhost:3000/@alice/types/property-type/query-object/" as BaseUrl;
 
 export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   const router = useRouter();
@@ -109,7 +104,8 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   const entityLabel = generateEntityLabel(draftEntitySubgraph);
 
-  const isQueryEntity = entityTypeId === QUERY_ENTITY_TYPE_ID;
+  const isQueryEntity =
+    entityTypeId === blockProtocolEntityTypes.query.entityTypeId;
 
   return (
     <EntityEditorPage

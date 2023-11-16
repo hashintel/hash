@@ -1,21 +1,32 @@
+import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import {
   currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
-  BlockDataProperties,
-  ContainsProperties,
+  blockProtocolPropertyTypes,
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  isPageEntityTypeId,
+  pageEntityTypeFilter,
+  pageEntityTypeIds,
+} from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
+import {
+  HasDataProperties,
+  HasIndexedContentProperties,
+  PageProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
-  EntityPropertiesObject,
   EntityRootType,
   EntityUuid,
   extractEntityUuidFromEntityId,
@@ -35,7 +46,6 @@ import { generateKeyBetween } from "fractional-indexing";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import { SYSTEM_TYPES } from "../../system-types";
 import {
   archiveEntity,
   createEntity,
@@ -71,35 +81,16 @@ export type Page = {
 export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
   entity,
 }) => {
-  if (
-    entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.page.schema.$id
-  ) {
+  if (!isPageEntityTypeId(entity.metadata.entityTypeId)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.page.schema.$id,
+      pageEntityTypeIds,
       entity.metadata.entityTypeId,
     );
   }
 
-  const title = entity.properties[
-    SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUrl
-  ] as string;
-
-  const summary = entity.properties[
-    SYSTEM_TYPES.propertyType.summary.metadata.recordId.baseUrl
-  ] as string | undefined;
-
-  const fractionalIndex = entity.properties[
-    SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl
-  ] as string | undefined;
-
-  const icon = entity.properties[
-    SYSTEM_TYPES.propertyType.icon.metadata.recordId.baseUrl
-  ] as string | undefined;
-
-  const archived = entity.properties[
-    SYSTEM_TYPES.propertyType.archived.metadata.recordId.baseUrl
-  ] as boolean | undefined;
+  const { title, summary, fractionalIndex, icon, archived } =
+    simplifyProperties(entity.properties as PageProperties);
 
   return {
     title,
@@ -142,21 +133,21 @@ export const createPage: ImpureGraphFunction<
     summary?: string;
     prevFractionalIndex?: string;
     initialBlocks?: Block[];
+    type: "canvas" | "document";
   },
   Promise<Page>
 > = async (ctx, authentication, params): Promise<Page> => {
-  const { title, summary, prevFractionalIndex, ownedById } = params;
+  const { title, type, summary, prevFractionalIndex, ownedById } = params;
 
   const fractionalIndex = generateKeyBetween(prevFractionalIndex ?? null, null);
 
-  const properties: EntityPropertiesObject = {
-    [SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUrl]: title,
-    [SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl]:
+  const properties: PageProperties = {
+    "https://hash.ai/@hash/types/property-type/title/": title,
+    "https://hash.ai/@hash/types/property-type/fractional-index/":
       fractionalIndex,
     ...(summary
       ? {
-          [SYSTEM_TYPES.propertyType.summary.metadata.recordId.baseUrl]:
-            summary,
+          "https://hash.ai/@hash/types/property-type/summary/": summary,
         }
       : {}),
   };
@@ -164,7 +155,10 @@ export const createPage: ImpureGraphFunction<
   const entity = await createEntity(ctx, authentication, {
     ownedById,
     properties,
-    entityTypeId: SYSTEM_TYPES.entityType.page.schema.$id,
+    entityTypeId:
+      type === "document"
+        ? systemEntityTypes.document.entityTypeId
+        : systemEntityTypes.canvas.entityTypeId,
   });
 
   const page = getPageFromEntity({ entity });
@@ -180,18 +174,35 @@ export const createPage: ImpureGraphFunction<
               ownedById,
               properties: {
                 [extractBaseUrl(
-                  blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+                  blockProtocolPropertyTypes.textualContent.propertyTypeId,
                 )]: [],
               },
-              entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
+              entityTypeId: systemEntityTypes.text.entityTypeId,
             }),
           }),
         ];
 
   for (const block of initialBlocks) {
     await addBlockToBlockCollection(ctx, authentication, {
-      blockCollectionEntity: page.entity,
+      blockCollectionEntityId: page.entity.metadata.recordId.entityId,
       block,
+      position:
+        type === "document"
+          ? {
+              indexPosition: {
+                "https://hash.ai/@hash/types/property-type/fractional-index/":
+                  generateKeyBetween(null, null),
+              },
+            }
+          : {
+              canvasPosition: {
+                "https://hash.ai/@hash/types/property-type/x-position/": 0,
+                "https://hash.ai/@hash/types/property-type/y-position/": 0,
+                "https://hash.ai/@hash/types/property-type/width-in-pixels/": 500,
+                "https://hash.ai/@hash/types/property-type/height-in-pixels/": 200,
+                "https://hash.ai/@hash/types/property-type/rotation-in-rads/": 0,
+              },
+            },
     });
   }
 
@@ -210,7 +221,7 @@ export const getPageParentPage: ImpureGraphFunction<
   const parentPageLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: page.entity.metadata.recordId.entityId,
     linkEntityTypeVersionedUrl:
-      SYSTEM_TYPES.linkEntityType.hasParent.schema.$id,
+      systemLinkEntityTypes.hasParent.linkEntityTypeId,
   });
 
   const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
@@ -270,11 +281,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
     .getEntitiesByQuery(authentication.actorId, {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.entityType.page.schema.$id,
-            // ignoreParents assumes we don't have types which are children of Page which should be returned here
-            { ignoreParents: true },
-          ),
+          pageEntityTypeFilter,
           {
             equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
           },
@@ -363,7 +370,7 @@ export const removeParentPage: ImpureGraphFunction<
   const parentPageLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: page.entity.metadata.recordId.entityId,
     linkEntityTypeVersionedUrl:
-      SYSTEM_TYPES.linkEntityType.hasParent.schema.$id,
+      systemLinkEntityTypes.hasParent.linkEntityTypeId,
   });
 
   const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
@@ -429,7 +436,7 @@ export const setPageParentPage: ImpureGraphFunction<
     }
 
     await createLinkEntity(ctx, authentication, {
-      linkEntityType: SYSTEM_TYPES.linkEntityType.hasParent,
+      linkEntityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
       leftEntityId: page.entity.metadata.recordId.entityId,
       rightEntityId: parentPage.entity.metadata.recordId.entityId,
       ownedById: authentication.actorId as OwnedById,
@@ -439,8 +446,9 @@ export const setPageParentPage: ImpureGraphFunction<
   if (page.fractionalIndex !== newIndex) {
     const updatedPageEntity = await updateEntityProperty(ctx, authentication, {
       entity: page.entity,
-      propertyTypeBaseUrl:
-        SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl,
+      propertyTypeBaseUrl: extractBaseUrl(
+        systemPropertyTypes.fractionalIndex.propertyTypeId,
+      ),
       value: newIndex,
     });
 
@@ -456,39 +464,27 @@ export const setPageParentPage: ImpureGraphFunction<
  * @param params.page - the page
  */
 export const getPageBlocks: ImpureGraphFunction<
-  { pageEntityId: EntityId },
-  Promise<{ linkEntity: LinkEntity<BlockDataProperties>; rightEntity: Block }[]>
-> = async (ctx, authentication, { pageEntityId }) => {
+  { pageEntityId: EntityId; type: "canvas" | "document" },
+  Promise<{ linkEntity: LinkEntity<HasDataProperties>; rightEntity: Block }[]>
+> = async (ctx, authentication, { pageEntityId, type }) => {
   const outgoingBlockDataLinks = (await getEntityOutgoingLinks(
     ctx,
     authentication,
     {
       entityId: pageEntityId,
       linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.contains.schema.$id,
+        type === "document"
+          ? systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId
+          : systemLinkEntityTypes.hasSpatiallyPositionedContent
+              .linkEntityTypeId,
     },
-  )) as LinkEntity<ContainsProperties>[];
+  )) as
+    | LinkEntity<HasIndexedContentProperties>[]
+    | LinkEntity<HasSpatiallyPositionedContentProperties>[];
 
   return await Promise.all(
     outgoingBlockDataLinks
-      .sort((a, b) => {
-        const { numericIndex: aNumericIndex } = simplifyProperties(
-          a.properties,
-        );
-        const { numericIndex: bNumericIndex } = simplifyProperties(
-          b.properties,
-        );
-
-        return (
-          (aNumericIndex ?? 0) - (bNumericIndex ?? 0) ||
-          a.metadata.recordId.entityId.localeCompare(
-            b.metadata.recordId.entityId,
-          ) ||
-          a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
-            b.metadata.temporalVersioning.decisionTime.start.limit,
-          )
-        );
-      })
+      .sort(sortBlockCollectionLinks)
       .map(async (linkEntity) => ({
         linkEntity,
         rightEntity: await getLinkEntityRightEntity(ctx, authentication, {
@@ -509,6 +505,7 @@ export const getPageComments: ImpureGraphFunction<
 > = async (ctx, authentication, { pageEntityId }) => {
   const blocks = await getPageBlocks(ctx, authentication, {
     pageEntityId,
+    type: "document", // @todo this will need updating to implement commenting on canvas pages
   });
 
   const comments = await Promise.all(

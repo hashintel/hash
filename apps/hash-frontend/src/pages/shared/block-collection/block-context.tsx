@@ -1,4 +1,4 @@
-import { UserPermissionsOnEntities } from "@local/hash-graphql-shared/graphql/types";
+import { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
 import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   createContext,
@@ -13,6 +13,8 @@ import {
 export type BlockContextType = {
   error: boolean;
   setError: (error: boolean) => void;
+  blockSelectDataModalIsOpen: boolean;
+  setBlockSelectDataModalIsOpen: (isOpen: boolean) => void;
   blockSubgraph: Subgraph<EntityRootType> | undefined;
   setBlockSubgraph: Dispatch<
     SetStateAction<Subgraph<EntityRootType> | undefined>
@@ -41,11 +43,15 @@ export const BlockContextProvider = ({ children }: PropsWithChildren) => {
   const [userPermissions, setUserPermissions] = useState<
     UserPermissionsOnEntities | undefined
   >();
+  const [blockSelectDataModalIsOpen, setBlockSelectDataModalIsOpen] =
+    useState(false);
 
   const context = useMemo<BlockContextType>(
     () => ({
       error,
       setError,
+      blockSelectDataModalIsOpen,
+      setBlockSelectDataModalIsOpen,
       blockSubgraph,
       setBlockSubgraph,
       userPermissions,
@@ -55,6 +61,8 @@ export const BlockContextProvider = ({ children }: PropsWithChildren) => {
       error,
       setError,
       blockSubgraph,
+      blockSelectDataModalIsOpen,
+      setBlockSelectDataModalIsOpen,
       setBlockSubgraph,
       userPermissions,
       setUserPermissions,

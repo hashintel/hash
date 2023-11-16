@@ -1,6 +1,7 @@
 import { EntityType } from "@blockprotocol/graph";
 import { MenuItem } from "@hashintel/design-system";
 import { FormControl } from "@mui/material";
+import { useMemo } from "react";
 import { useFormContext } from "react-hook-form";
 
 import { useReadonlyContext } from "../../readonly-context";
@@ -19,6 +20,11 @@ export const EntityTypeSelector = ({
 
   const hasError = !!formState.errors.filters?.[index]?.value;
 
+  const sortedEntityTypes = useMemo(
+    () => entityTypes.sort((a, b) => a.title.localeCompare(b.title)),
+    [entityTypes],
+  );
+
   return (
     <FormControl>
       <RHFSelect
@@ -36,7 +42,7 @@ export const EntityTypeSelector = ({
         <MenuItem value="" disabled noSelectBackground>
           Choose
         </MenuItem>
-        {entityTypes.map(({ title, $id }) => (
+        {sortedEntityTypes.map(({ title, $id }) => (
           <MenuItem key={$id} value={$id}>
             {title}
           </MenuItem>

@@ -7,7 +7,7 @@ The HASH Backend API service is configured using the following environment varia
 - `NODE_ENV`: ("development" or "production") the runtime environment. Controls
   default logging levels and output formatting.
 - `PORT`: the port number the API will listen on.
-- `SELF_HOSTED_HOST`: if `"true"` forces self-hosted behavior, which e.g. loads system types as external types.
+- `SELF_HOSTED_HASH`: if `"true"` forces self-hosted behavior, which e.g. loads system types as external types.
 - `AWS_REGION`: the AWS region to use (for the Simple Email Service (SES) provider, and as a fallback for other AWS services)
 - `FILE_UPLOAD_PROVIDER`: where to store user file uploads. Currently supported values are:
   - `LOCAL_FILE_SYSTEM`: (default) use the local filesystem for file uploads – **not recommended for production use**

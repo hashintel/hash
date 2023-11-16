@@ -5,8 +5,10 @@ import {
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
-import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  mapGqlSubgraphFieldsFragmentToSubgraph,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { EntityRootType } from "@local/hash-subgraph";
 import {
   getEntityTypeAndParentsById,

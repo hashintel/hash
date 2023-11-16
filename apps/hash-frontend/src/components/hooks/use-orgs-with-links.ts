@@ -1,10 +1,10 @@
 import { ApolloQueryResult, useQuery } from "@apollo/client";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { AccountGroupId, EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
@@ -52,7 +52,7 @@ export const useOrgsWithLinks = ({
                 ]
               : []),
             generateVersionedUrlMatchingFilter(
-              systemTypes.entityType.org.entityTypeId,
+              systemEntityTypes.organization.entityTypeId,
               { ignoreParents: true },
             ),
           ],

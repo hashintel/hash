@@ -1,18 +1,21 @@
 import { useQuery } from "@apollo/client";
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import {
-  GetEntityQuery,
-  GetEntityQueryVariables,
-} from "@local/hash-graphql-shared/graphql/api-types.gen";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
-import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  GetEntityQuery,
+  GetEntityQueryVariables,
+} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+import {
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
@@ -188,7 +191,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
                       path: [
                         "properties",
                         extractBaseUrl(
-                          systemTypes.propertyType.shortname.propertyTypeId,
+                          systemPropertyTypes.shortname.propertyTypeId,
                         ),
                       ],
                     },
@@ -198,11 +201,11 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
                 {
                   any: [
                     generateVersionedUrlMatchingFilter(
-                      systemTypes.entityType.user.entityTypeId,
+                      systemEntityTypes.user.entityTypeId,
                       { ignoreParents: true },
                     ),
                     generateVersionedUrlMatchingFilter(
-                      systemTypes.entityType.org.entityTypeId,
+                      systemEntityTypes.organization.entityTypeId,
                       { ignoreParents: true },
                     ),
                   ],
@@ -288,7 +291,16 @@ const generateCrumbsFromPages = ({
         pageEntityUuid,
       }),
       id: currentPageEntityId,
-      icon: <PageIcon icon={currentPage.icon} size="small" />,
+      icon: (
+        <PageIcon
+          icon={currentPage.icon}
+          size="small"
+          isCanvas={
+            currentPage.metadata.entityTypeId ===
+            systemEntityTypes.canvas.entityTypeId
+          }
+        />
+      ),
     });
 
     if (currentPage.parentPage) {
@@ -312,8 +324,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 }) => {
   const pageOwnedById = extractOwnedByIdFromEntityId(pageEntityId);
 
-  const { asPath, query } = useRouter();
-  const canvasPage = query.canvas;
+  const { asPath } = useRouter();
 
   const routeHash = asPath.split("#")[1] ?? "";
 
@@ -432,6 +443,9 @@ const Page: NextPageWithLayout<PageProps> = ({
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
 
+  const isCanvasPage =
+    page.metadata.entityTypeId === systemEntityTypes.canvas.entityTypeId;
+
   return (
     <>
       <NextSeo
@@ -480,7 +494,7 @@ const Page: NextPageWithLayout<PageProps> = ({
           />
         </Box>
 
-        {!canvasPage && (
+        {!isCanvasPage && (
           <PageSectionContainer
             {...pageSectionContainerProps}
             readonly={!canUserEdit}
@@ -488,6 +502,7 @@ const Page: NextPageWithLayout<PageProps> = ({
             <Box position="relative">
               <PageIconButton
                 entityId={pageEntityId}
+                pageEntityTypeId={page.metadata.entityTypeId}
                 icon={icon}
                 readonly={!canUserEdit}
                 sx={({ breakpoints }) => ({
@@ -551,45 +566,46 @@ const Page: NextPageWithLayout<PageProps> = ({
         <CollabPositionProvider value={[]}>
           <UserBlocksProvider value={blocksMap}>
             <BlockLoadedProvider routeHash={routeHash}>
-              {canvasPage ? (
-                <CanvasPageBlock contents={contents} />
-              ) : (
-                <Box marginTop={5} position="relative">
-                  {!!canUserEdit && pageComments.length > 0 ? (
-                    <PageSectionContainer
-                      pageComments={pageComments}
-                      readonly={!canUserEdit}
-                      sx={{
-                        position: "absolute",
-                        top: 0,
-                        right: 0,
-                        left: 0,
-                        width: "100%",
-                      }}
-                    >
-                      <Box width="100%" position="relative">
-                        <Box
-                          sx={{
-                            position: "absolute",
-                            left: "calc(100% + 48px)",
-                            zIndex: 1,
-                          }}
-                        >
-                          {pageComments.map((comment) => (
-                            <CommentThread
-                              key={comment.metadata.recordId.entityId}
-                              pageId={pageEntityId}
-                              comment={comment}
-                            />
-                          ))}
+              <BlockCollectionContextProvider
+                blockCollectionSubgraph={pageSubgraph}
+                userPermissionsOnEntities={userPermissionsOnEntities}
+              >
+                {isCanvasPage ? (
+                  <CanvasPageBlock contents={contents} />
+                ) : (
+                  <Box marginTop={5} position="relative">
+                    {!!canUserEdit && pageComments.length > 0 ? (
+                      <PageSectionContainer
+                        pageComments={pageComments}
+                        readonly={!canUserEdit}
+                        sx={{
+                          position: "absolute",
+                          top: 0,
+                          right: 0,
+                          left: 0,
+                          width: "100%",
+                        }}
+                      >
+                        <Box width="100%" position="relative">
+                          <Box
+                            sx={{
+                              position: "absolute",
+                              left: "calc(100% + 48px)",
+                              zIndex: 1,
+                            }}
+                          >
+                            {pageComments.map((comment) => (
+                              <CommentThread
+                                key={comment.metadata.recordId.entityId}
+                                pageId={pageEntityId}
+                                comment={comment}
+                              />
+                            ))}
+                          </Box>
                         </Box>
-                      </Box>
-                    </PageSectionContainer>
-                  ) : null}
-                  <BlockCollectionContextProvider
-                    blockCollectionSubgraph={pageSubgraph}
-                    userPermissionsOnEntities={userPermissionsOnEntities}
-                  >
+                      </PageSectionContainer>
+                    ) : null}
+
                     <BlockCollection
                       ownedById={extractOwnedById(pageWorkspace)}
                       contents={contents}
@@ -610,9 +626,9 @@ const Page: NextPageWithLayout<PageProps> = ({
                         },
                       }}
                     />
-                  </BlockCollectionContextProvider>
-                </Box>
-              )}
+                  </Box>
+                )}
+              </BlockCollectionContextProvider>
             </BlockLoadedProvider>
           </UserBlocksProvider>
         </CollabPositionProvider>

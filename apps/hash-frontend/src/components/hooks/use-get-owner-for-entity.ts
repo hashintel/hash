@@ -1,4 +1,4 @@
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
@@ -9,14 +9,23 @@ export const useGetOwnerForEntity = () => {
   /*
    * This is a simple way of getting all users and orgs to find an entity's owner's name
    */
-  const { users = [] } = useUsers();
-  const { orgs = [] } = useOrgs();
+  const { users = [], loading: usersLoading } = useUsers();
+  const { orgs = [], loading: orgsLoading } = useOrgs();
+
+  const loading = usersLoading || orgsLoading;
 
   return useCallback(
     (entity: Entity) => {
       const ownedById = extractOwnedByIdFromEntityId(
         entity.metadata.recordId.entityId,
       );
+
+      if (loading) {
+        return {
+          ownedById,
+          shortname: "",
+        };
+      }
 
       const owner =
         users.find((user) => ownedById === user.accountId) ??
@@ -26,7 +35,7 @@ export const useGetOwnerForEntity = () => {
         // The HASH Instance is owned by an account group without an org
         if (
           entity.metadata.entityTypeId ===
-          systemTypes.entityType.hashInstance.entityTypeId
+          systemEntityTypes.hashInstance.entityTypeId
         ) {
           return {
             ownedById,
@@ -45,6 +54,6 @@ export const useGetOwnerForEntity = () => {
         shortname: owner.shortname ?? "incomplete-user-account",
       };
     },
-    [orgs, users],
+    [loading, orgs, users],
   );
 };

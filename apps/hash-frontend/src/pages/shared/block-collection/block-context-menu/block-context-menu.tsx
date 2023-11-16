@@ -4,7 +4,6 @@ import {
   faPenToSquare,
   faTrashCan,
 } from "@fortawesome/free-regular-svg-icons";
-// import { format } from "date-fns";
 import {
   faAdd,
   faArrowRight,
@@ -16,6 +15,7 @@ import { FontAwesomeIcon } from "@hashintel/design-system";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { DraftEntity } from "@local/hash-isomorphic-utils/entity-store";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";
@@ -32,11 +32,13 @@ import { useFetchBlockSubgraph } from "../../../../blocks/use-fetch-block-subgra
 import { useUserBlocks } from "../../../../blocks/user-blocks";
 import { useUsers } from "../../../../components/hooks/use-users";
 import { getBlockDomId } from "../../../../shared/get-block-dom-id";
+import { ChartNetworkRegularIcon } from "../../../../shared/icons/chart-network-regular-icon";
 import { EditEntityModal } from "../../../[shortname]/entities/[entity-uuid].page/edit-entity-modal";
 import { useBlockContext } from "../block-context";
 import { BlockContextMenuItem } from "./block-context-menu-item";
 import { BlockListMenuContent } from "./block-list-menu-content";
 import { BlockLoaderInput } from "./block-loader-input";
+import { BlockSelectDataModal } from "./block-select-data-modal";
 import { LoadEntityMenuContent } from "./load-entity-menu-content";
 
 type BlockContextMenuProps = {
@@ -54,7 +56,12 @@ const BlockContextMenu: ForwardRefRenderFunction<
   { blockEntity, deleteBlock, openConfigMenu, popupState, canSwap },
   ref,
 ) => {
-  const { blockSubgraph, setBlockSubgraph } = useBlockContext();
+  const {
+    blockSubgraph,
+    setBlockSubgraph,
+    blockSelectDataModalIsOpen,
+    setBlockSelectDataModalIsOpen,
+  } = useBlockContext();
   const fetchBlockSubgraph = useFetchBlockSubgraph();
 
   const [entityEditorOpen, setEntityEditorOpen] = useState(false);
@@ -70,6 +77,23 @@ const BlockContextMenu: ForwardRefRenderFunction<
   const compatibleBlocks = useMemo(() => {
     return Object.values(userBlocks);
   }, [userBlocks]);
+
+  const blockSchema = useMemo(
+    () =>
+      Object.entries(userBlocks).find(
+        ([componentId]) => blockEntity?.componentId === componentId,
+      )?.[1]?.schema,
+    [userBlocks, blockEntity],
+  );
+
+  const blockSchemaHasHasQueryLink = useMemo(
+    () =>
+      blockSchema?.links &&
+      Object.keys(blockSchema.links).includes(
+        blockProtocolEntityTypes.hasQuery.entityTypeId,
+      ),
+    [blockSchema],
+  );
 
   const entityId = blockEntity?.metadata.recordId.entityId ?? null;
 
@@ -98,6 +122,16 @@ const BlockContextMenu: ForwardRefRenderFunction<
                 />
               ),
               subMenuWidth: 280,
+            },
+          ]
+        : []),
+      ...(blockSchemaHasHasQueryLink
+        ? [
+            {
+              key: "select-data",
+              title: "Select Data",
+              icon: <ChartNetworkRegularIcon />,
+              onClick: () => setBlockSelectDataModalIsOpen(true),
             },
           ]
         : []),
@@ -169,9 +203,11 @@ const BlockContextMenu: ForwardRefRenderFunction<
     entityId,
     deleteBlock,
     openConfigMenu,
+    setBlockSelectDataModalIsOpen,
     popupState,
     canSwap,
     compatibleBlocks,
+    blockSchemaHasHasQueryLink,
   ]);
 
   useKey(["Escape"], () => {
@@ -207,6 +243,12 @@ const BlockContextMenu: ForwardRefRenderFunction<
 
   return (
     <>
+      {blockSchemaHasHasQueryLink ? (
+        <BlockSelectDataModal
+          open={blockSelectDataModalIsOpen}
+          onClose={() => setBlockSelectDataModalIsOpen(false)}
+        />
+      ) : null}
       {blockSubgraph && (
         <EditEntityModal
           open={entityEditorOpen}

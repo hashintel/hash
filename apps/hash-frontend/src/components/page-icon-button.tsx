@@ -1,4 +1,6 @@
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { fontAwesomeIconClasses, IconButton } from "@hashintel/design-system";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { EntityId } from "@local/hash-subgraph";
 import { iconButtonClasses, SxProps, Theme, Tooltip } from "@mui/material";
 import { SystemStyleObject } from "@mui/system";
@@ -15,6 +17,7 @@ import { PageIcon, SizeVariant } from "./page-icon";
 
 interface PageIconButtonProps {
   entityId: EntityId;
+  pageEntityTypeId: VersionedUrl;
   icon?: string | null;
   readonly?: boolean;
   size?: SizeVariant;
@@ -26,6 +29,7 @@ interface PageIconButtonProps {
 
 export const PageIconButton = ({
   entityId,
+  pageEntityTypeId,
   icon: iconFromProps,
   readonly = false,
   size = "medium",
@@ -79,7 +83,13 @@ export const PageIconButton = ({
           ]}
           disabled={readonly || updatePageIconLoading}
         >
-          <PageIcon icon={icon} size={size} />
+          <PageIcon
+            isCanvas={
+              pageEntityTypeId === systemEntityTypes.canvas.entityTypeId
+            }
+            icon={icon}
+            size={size}
+          />
         </IconButton>
       </Tooltip>
       <EmojiPicker

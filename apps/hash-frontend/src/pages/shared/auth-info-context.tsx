@@ -1,7 +1,7 @@
 import { useLazyQuery } from "@apollo/client";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
-import { OrgMembershipProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountGroupId,
   EntityRootType,
@@ -86,8 +86,8 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
     ).filter(
       (linkEntity) =>
         linkEntity.metadata.entityTypeId ===
-        systemTypes.linkEntityType.isMemberOf.linkEntityTypeId,
-    ) as LinkEntity<OrgMembershipProperties>[];
+        systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
+    ) as LinkEntity<IsMemberOfProperties>[];
   }, [authenticatedUserSubgraph]);
 
   const { orgs: resolvedOrgs, refetch: refetchOrgs } = useOrgsWithLinks({

@@ -1,4 +1,4 @@
-import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
+import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
 import { Matrix2d, toDomPrecision } from "@tldraw/primitives";
 
 import { BlockLoader } from "../../../../components/block-loader/block-loader";
@@ -38,17 +38,15 @@ export const LockedCanvas = ({ blocks, contents }: CanvasProps) => {
         >
           {contents.map(({ linkEntity, rightEntity: blockEntity }) => {
             const {
-              "https://blockprotocol.org/@hash/types/property-type/x-position/":
-                x,
-              "https://blockprotocol.org/@hash/types/property-type/y-position/":
-                y,
-              "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/":
+              "https://hash.ai/@hash/types/property-type/x-position/": x,
+              "https://hash.ai/@hash/types/property-type/y-position/": y,
+              "https://hash.ai/@hash/types/property-type/width-in-pixels/":
                 width,
-              "https://blockprotocol.org/@hash/types/property-type/height-in-pixels/":
+              "https://hash.ai/@hash/types/property-type/height-in-pixels/":
                 height,
-              "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/":
+              "https://hash.ai/@hash/types/property-type/rotation-in-rads/":
                 rotation,
-            } = linkEntity.properties as CanvasPosition;
+            } = linkEntity.properties as HasSpatiallyPositionedContentProperties;
 
             const matrix = Matrix2d.Compose(
               Matrix2d.Translate(x, y),

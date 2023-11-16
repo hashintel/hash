@@ -27,9 +27,9 @@ async-scoped = { version = "0.7.1", features = ["use-tokio"] }
 axum = "0.6.20"
 bb8-postgres = "0.8.1"
 bytes = { workspace = true }
-clap = { version = "4.4.7", features = ["derive", "env"], optional = true }
+clap = { version = "4.4.8", features = ["derive", "env"], optional = true }
 derivative = "2.2.0"
-dotenv-flow = "0.15.0"
+dotenv-flow = "0.16.0"
 futures = { workspace = true }
 hyper = "0.14.27"
 include_dir = "0.7.3"
@@ -39,7 +39,7 @@ opentelemetry-otlp = "0.13.0"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 regex = "1.10.2"
 semver = { version = "1.0.20", default-features = false, features = ["serde"] }
-sentry = { version = "0.31.7", features = ["tracing", "tower", "tower-http"], default-features = false }
+sentry = { version = "0.31.8", features = ["tracing", "tower", "tower-http"], default-features = false }
 serde_json = { workspace = true }
 tarpc = { version = "0.33", features = ["serde-transport", "tcp"] }
 time = { workspace = true }
@@ -50,10 +50,10 @@ tokio-util = { workspace = true, features = ["io"] }
 tonic = "0.9.2"
 tower = "0.4.13"
 tower-http = { version = "0.4.4", features = ["trace"] }
-tracing-appender = "0.2.2"
+tracing-appender = "0.2.3"
 tracing-error = "0.2.0"
 tracing-opentelemetry = "0.21.0"
-tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
 uuid = { workspace = true, features = ["v4", "v5", "serde"] }
 
 [dev-dependencies]

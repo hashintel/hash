@@ -1,4 +1,5 @@
-import { OrgMembershipProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountEntityId,
   AccountGroupEntityId,
@@ -12,7 +13,6 @@ import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import { SYSTEM_TYPES } from "../../system-types";
 import {
   createLinkEntity,
   CreateLinkEntityParams,
@@ -23,7 +23,7 @@ import { getOrgFromEntity, Org } from "./org";
 import { getUserFromEntity, User } from "./user";
 
 export type OrgMembership = {
-  linkEntity: LinkEntity<OrgMembershipProperties>;
+  linkEntity: LinkEntity<IsMemberOfProperties>;
 };
 
 export const getOrgMembershipFromLinkEntity: PureGraphFunction<
@@ -32,11 +32,11 @@ export const getOrgMembershipFromLinkEntity: PureGraphFunction<
 > = ({ linkEntity }) => {
   if (
     linkEntity.metadata.entityTypeId !==
-    SYSTEM_TYPES.linkEntityType.isMemberOf.schema.$id
+    systemLinkEntityTypes.isMemberOf.linkEntityTypeId
   ) {
     throw new EntityTypeMismatchError(
       linkEntity.metadata.recordId.entityId,
-      SYSTEM_TYPES.linkEntityType.isMemberOf.schema.$id,
+      systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
       linkEntity.metadata.entityTypeId,
     );
   }
@@ -58,7 +58,7 @@ export const createOrgMembership: ImpureGraphFunction<
   Omit<
     CreateLinkEntityParams,
     | "properties"
-    | "linkEntityType"
+    | "linkEntityTypeId"
     | "leftEntityId"
     | "rightEntityId"
     | "ownedById"
@@ -83,7 +83,7 @@ export const createOrgMembership: ImpureGraphFunction<
   try {
     linkEntity = await createLinkEntity(ctx, authentication, {
       ownedById: orgAccountGroupId as OwnedById,
-      linkEntityType: SYSTEM_TYPES.linkEntityType.isMemberOf,
+      linkEntityTypeId: systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
       leftEntityId: userEntityId,
       rightEntityId: orgEntityId,
       properties: {},

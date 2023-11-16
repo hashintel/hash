@@ -32,12 +32,13 @@ import {
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import {
-  blockProtocolTypes,
-  systemTypes,
-} from "@local/hash-isomorphic-utils/ontology-types";
+  blockProtocolPropertyTypes,
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { Entity, OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
@@ -102,10 +103,12 @@ describe("Page Mention Notification", () => {
     occurredInEntity = await createPage(graphContext, authentication, {
       title: "Test Page",
       ownedById: triggerUser.accountId as OwnedById,
+      type: "document",
     });
 
     const pageBlocks = await getPageBlocks(graphContext, authentication, {
       pageEntityId: occurredInEntity.entity.metadata.recordId.entityId,
+      type: "document",
     }).then((blocksWithLinks) =>
       blocksWithLinks.map(({ rightEntity }) => rightEntity),
     );
@@ -117,7 +120,7 @@ describe("Page Mention Notification", () => {
     });
 
     expect(textEntity.metadata.entityTypeId).toBe(
-      systemTypes.entityType.text.entityTypeId,
+      systemEntityTypes.text.entityTypeId,
     );
 
     occurredInText = getTextFromEntity({ entity: textEntity });
@@ -145,7 +148,7 @@ describe("Page Mention Notification", () => {
     const occurredInEntityLinks = outgoingLinks.filter(
       ({ metadata }) =>
         metadata.entityTypeId ===
-        systemTypes.linkEntityType.occurredInEntity.linkEntityTypeId,
+        systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
     );
 
     expect(occurredInEntityLinks).toHaveLength(1);
@@ -159,7 +162,7 @@ describe("Page Mention Notification", () => {
     const occurredInTextLinks = outgoingLinks.filter(
       ({ metadata }) =>
         metadata.entityTypeId ===
-        systemTypes.linkEntityType.occurredInText.linkEntityTypeId,
+        systemLinkEntityTypes.occurredInText.linkEntityTypeId,
     );
 
     expect(occurredInTextLinks).toHaveLength(1);
@@ -173,7 +176,7 @@ describe("Page Mention Notification", () => {
     const triggeredByUserLinks = outgoingLinks.filter(
       ({ metadata }) =>
         metadata.entityTypeId ===
-        systemTypes.linkEntityType.triggeredByUser.linkEntityTypeId,
+        systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
     );
 
     expect(triggeredByUserLinks).toHaveLength(1);
@@ -265,7 +268,7 @@ describe("Page Mention Notification", () => {
         updatedProperties: [
           {
             propertyTypeBaseUrl: extractBaseUrl(
-              blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+              blockProtocolPropertyTypes.textualContent.propertyTypeId,
             ),
             value: updatedTextualContent,
           },
@@ -324,7 +327,7 @@ describe("Page Mention Notification", () => {
         updatedProperties: [
           {
             propertyTypeBaseUrl: extractBaseUrl(
-              blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+              blockProtocolPropertyTypes.textualContent.propertyTypeId,
             ),
             value: updatedTextualContent,
           },
@@ -437,7 +440,7 @@ describe("Page Mention Notification", () => {
         updatedProperties: [
           {
             propertyTypeBaseUrl: extractBaseUrl(
-              blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+              blockProtocolPropertyTypes.textualContent.propertyTypeId,
             ),
             value: updatedCommentTextualContent,
           },

@@ -1,16 +1,19 @@
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import { apiOrigin } from "@local/hash-graphql-shared/environment";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import {
   fullDecisionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  blockProtocolPropertyTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
   EntityId,
   EntityRootType,
-  fileUrlPropertyTypeUrl,
   isEntityId,
   splitEntityId,
 } from "@local/hash-subgraph";
@@ -23,7 +26,6 @@ import { Express } from "express";
 import { getActorIdFromRequest } from "../auth/get-actor-id";
 import { CacheAdapter } from "../cache";
 import { ImpureGraphContext } from "../graph/context-types";
-import { SYSTEM_TYPES } from "../graph/system-types";
 import { AuthenticationContext } from "../graphql/authentication-context";
 import { getAwsS3Config } from "../lib/aws-config";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
@@ -104,9 +106,8 @@ export const setupStorageProviders = (
 };
 
 const isFileEntity = (entity: Entity): entity is Entity<FileProperties> =>
-  SYSTEM_TYPES.propertyType.fileStorageKey.metadata.recordId.baseUrl in
-    entity.properties &&
-  extractBaseUrl(fileUrlPropertyTypeUrl) in entity.properties;
+  systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl in entity.properties &&
+  blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl in entity.properties;
 
 const isStorageType = (storageType: string): storageType is StorageType =>
   storageTypes.includes(storageType as StorageType);
@@ -134,8 +135,9 @@ const getFileEntity = async (
               {
                 path: [
                   "properties",
-                  SYSTEM_TYPES.propertyType.fileStorageKey.metadata.recordId
-                    .baseUrl,
+                  extractBaseUrl(
+                    systemPropertyTypes.fileStorageKey.propertyTypeId,
+                  ),
                 ],
               },
               { parameter: key },

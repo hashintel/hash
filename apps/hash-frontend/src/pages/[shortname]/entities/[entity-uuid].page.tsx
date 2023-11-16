@@ -1,6 +1,7 @@
 import { useLazyQuery } from "@apollo/client";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
-import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
@@ -29,7 +30,6 @@ import {
 } from "../../../shared/layout";
 import { EditBar } from "../shared/edit-bar";
 import { useRouteNamespace } from "../shared/use-route-namespace";
-import { QUERY_ENTITY_TYPE_ID } from "./[entity-uuid].page/create-entity-page";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/update-entity-subgraph-state-by-entity";
@@ -219,7 +219,8 @@ const Page: NextPageWithLayout = () => {
     isDirty || !!draftLinksToCreate.length || !!draftLinksToArchive.length;
 
   const isQueryEntity =
-    draftEntity.metadata.entityTypeId === QUERY_ENTITY_TYPE_ID;
+    draftEntity.metadata.entityTypeId ===
+    blockProtocolEntityTypes.query.entityTypeId;
 
   return (
     <EntityEditorPage

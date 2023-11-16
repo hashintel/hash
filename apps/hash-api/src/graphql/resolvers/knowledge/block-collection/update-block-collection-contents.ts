@@ -1,5 +1,5 @@
 import { Entity } from "@local/hash-subgraph";
-import { ApolloError, UserInputError } from "apollo-server-errors";
+import { UserInputError } from "apollo-server-errors";
 
 import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
 import {
@@ -86,89 +86,66 @@ export const updateBlockCollectionContents: ResolverFn<
     });
   }
 
-  // Create any _new_ blocks
-  const insertedBlocks = await Promise.all(
-    filterForAction(actions, "insertBlock").map(({ action, index }) =>
-      handleInsertNewBlock(context, {
-        user,
-        insertBlockAction: action,
-        index,
-        createEntityWithPlaceholders,
-        placeholderResults,
+  try {
+    const [insertedBlocks, blockCollectionEntity] = await Promise.all([
+      Promise.all(
+        filterForAction(actions, "insertBlock").map(({ action, index }) =>
+          // Create any _new_ blocks
+          handleInsertNewBlock(context, {
+            user,
+            insertBlockAction: action,
+            index,
+            createEntityWithPlaceholders,
+            placeholderResults,
+          }),
+        ),
+      ),
+      getLatestEntityById(context, authentication, {
+        entityId: blockCollectionEntityId,
       }),
-    ),
-  );
+      // Perform any block data swapping updates.
+      ...filterForAction(actions, "swapBlockData").map(({ action }) =>
+        handleSwapBlockData(context, {
+          user,
+          swapBlockDataAction: action,
+        }),
+      ),
+      // Perform any entity updates.
+      ...filterForAction(actions, "updateEntity").map(async ({ action }) =>
+        handleUpdateEntity(context, { user, action, placeholderResults }),
+      ),
+      ...filterForAction(actions, "moveBlock").map(({ action }) =>
+        moveBlockInBlockCollection(context, authentication, {
+          position: action.position,
+          linkEntityId: action.linkEntityId,
+        }),
+      ),
+      ...filterForAction(actions, "removeBlock").map(({ action }) =>
+        removeBlockFromBlockCollection(context, authentication, {
+          linkEntityId: action.linkEntityId,
+        }),
+      ),
+    ]);
 
-  // Perform any block data swapping updates.
-  await Promise.all(
-    filterForAction(actions, "swapBlockData").map(({ action }) =>
-      handleSwapBlockData(context, {
-        user,
-        swapBlockDataAction: action,
-      }),
-    ),
-  );
+    await Promise.all(
+      filterForAction(actions, "insertBlock").map(({ action }, index) =>
+        addBlockToBlockCollection(context, authentication, {
+          blockCollectionEntityId,
+          block: insertedBlocks[index]!,
+          position: action.position,
+        }),
+      ),
+    );
 
-  // Perform any entity updates.
-  await Promise.all(
-    filterForAction(actions, "updateEntity").map(async ({ action }) =>
-      handleUpdateEntity(context, { user, action, placeholderResults }),
-    ),
-  );
-
-  const blockCollectionEntity = await getLatestEntityById(
-    context,
-    authentication,
-    {
-      entityId: blockCollectionEntityId,
-    },
-  );
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-  if (!blockCollectionEntity) {
-    const msg = `BlockCollection with Entity ID ${blockCollectionEntityId}`;
-    throw new ApolloError(msg, "NOT_FOUND");
-  }
-
-  let insertCount = 0;
-  for (const [i, action] of actions.entries()) {
-    try {
-      if (action.insertBlock) {
-        await addBlockToBlockCollection(context, authentication, {
-          blockCollectionEntity,
-          block: insertedBlocks[insertCount]!,
-          canvasPosition: action.insertBlock.canvasPosition ?? undefined,
-          position: action.insertBlock.position,
-        });
-        insertCount += 1;
-      } else if (action.moveBlock) {
-        await moveBlockInBlockCollection(context, authentication, {
-          ...action.moveBlock,
-          canvasPosition: action.moveBlock.canvasPosition ?? undefined,
-          blockCollectionEntity,
-        });
-      } else if (action.removeBlock) {
-        await removeBlockFromBlockCollection(context, authentication, {
-          blockCollectionEntity,
-          position: action.removeBlock.position,
-          allowRemovingFinal: actions
-            .slice(i + 1)
-            .some((actionToFollow) => actionToFollow.insertBlock),
-        });
-      }
-    } catch (error) {
-      if (error instanceof UserInputError) {
-        throw new UserInputError(`action ${i}: ${error}`);
-      } else if (error instanceof Error) {
-        throw new Error(`Could not apply update: ${error.message}`);
-      }
-
-      throw new Error(`Could not apply update: ${JSON.stringify(error)}`);
+    return {
+      blockCollection: blockCollectionEntity,
+      placeholders: placeholderResults.getResults(),
+    };
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Could not apply update: ${error.message}`);
     }
-  }
 
-  return {
-    blockCollection: blockCollectionEntity,
-    placeholders: placeholderResults.getResults(),
-  };
+    throw new Error(`Could not apply update: ${JSON.stringify(error)}`);
+  }
 };

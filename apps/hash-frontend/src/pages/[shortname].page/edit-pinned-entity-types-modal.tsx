@@ -4,7 +4,10 @@ import {
   IconButton,
   Modal,
 } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { EntityTypeWithMetadata, OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
@@ -42,6 +45,7 @@ import {
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { Org, User } from "../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
 import { CustomLinkIcon } from "../../shared/icons/custom-link-icon";
 import { GripDotsVerticalRegularIcon } from "../../shared/icons/grip-dots-vertical-regular-icon";
@@ -153,7 +157,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
         updatedProperties: {
           ...profile.entity.properties,
           [extractBaseUrl(
-            systemTypes.propertyType.pinnedEntityTypeBaseUrl.propertyTypeId,
+            systemPropertyTypes.pinnedEntityTypeBaseUrl.propertyTypeId,
           )]: updatedPinnedEntityTypeBaseUrls,
         },
       },
@@ -318,7 +322,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                           <Link
                             noLinkStyle
                             target="_blank"
-                            href={field.schema.$id}
+                            href={generateLinkParameters(field.schema.$id).href}
                             sx={{ flexGrow: 1, marginLeft: 1 }}
                           >
                             <Box
@@ -391,7 +395,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
               <EntityTypeSelector
                 excludeEntityTypeIds={[
                   ...fields.map(({ schema }) => schema.$id),
-                  systemTypes.entityType.page.entityTypeId,
+                  systemEntityTypes.page.entityTypeId,
                 ]}
                 disableCreateNewEmpty
                 onSelect={(entityType) => {

@@ -1,4 +1,8 @@
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
@@ -52,8 +56,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
 
   // If the parent of the comment is a block, check if we need to create a comment notification
   if (
-    commentParent.metadata.entityTypeId ===
-    systemTypes.entityType.block.entityTypeId
+    commentParent.metadata.entityTypeId === systemEntityTypes.block.entityTypeId
   ) {
     const parentBlock = getBlockFromEntity({ entity: commentParent });
     const blockCollectionEntity = await getBlockCollectionByBlock(
@@ -64,8 +67,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
 
     if (
       blockCollectionEntity &&
-      blockCollectionEntity.metadata.entityTypeId ===
-        systemTypes.entityType.page.entityTypeId
+      isPageEntityTypeId(blockCollectionEntity.metadata.entityTypeId)
     ) {
       const occurredInEntity = getPageFromEntity({
         entity: blockCollectionEntity,
@@ -107,7 +109,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
     // If the parent is another comment check if we need to create a comment reply notification
   } else if (
     commentParent.metadata.entityTypeId ===
-    systemTypes.entityType.comment.entityTypeId
+    systemEntityTypes.comment.entityTypeId
   ) {
     const parentComment = getCommentFromEntity({ entity: commentParent });
 
@@ -125,8 +127,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
 
     if (
       blockCollectionEntity &&
-      blockCollectionEntity.metadata.entityTypeId ===
-        systemTypes.entityType.page.entityTypeId
+      isPageEntityTypeId(blockCollectionEntity.metadata.entityTypeId)
     ) {
       const occurredInEntity = getPageFromEntity({
         entity: blockCollectionEntity,
@@ -266,11 +267,11 @@ const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
 
 export const afterCreateEntityHooks: CreateEntityHook[] = [
   {
-    entityTypeId: systemTypes.entityType.comment.entityTypeId,
+    entityTypeId: systemEntityTypes.comment.entityTypeId,
     callback: commentCreateHookCallback,
   },
   {
-    entityTypeId: systemTypes.linkEntityType.hasText.linkEntityTypeId,
+    entityTypeId: systemLinkEntityTypes.hasText.linkEntityTypeId,
     callback: hasTextCreateHookCallback,
   },
 ];

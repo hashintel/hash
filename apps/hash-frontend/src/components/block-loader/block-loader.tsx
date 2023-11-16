@@ -5,12 +5,10 @@ import {
 } from "@blockprotocol/graph/temporal";
 import { getRoots } from "@blockprotocol/graph/temporal/stdlib";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
-  TextToken,
-  UserPermissionsOnEntities,
-} from "@local/hash-graphql-shared/graphql/types";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { textualContentPropertyTypeBaseUrl } from "@local/hash-isomorphic-utils/entity-store";
+import { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
+import { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
 import {
   Entity,
   EntityId,
@@ -102,43 +100,47 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
    * - fetching the block's subgraph manually
    */
   useEffect(() => {
-    if (blockSubgraph) {
+    if (blockSubgraph || !blockEntityId) {
       return;
     }
 
-    if (
-      !blockEntityId ||
-      !blockCollectionSubgraph ||
-      !userPermissionsOnEntities
-    ) {
-      void fetchBlockSubgraph(blockEntityTypeId, blockEntityId).then(
-        (newBlockSubgraph) => {
-          setBlockSubgraph(newBlockSubgraph.subgraph);
-          setUserPermissions(newBlockSubgraph.userPermissionsOnEntities);
-        },
-      );
-      return;
+    /**
+     * If we have been given the block collection's subgraph or a permissions object, use its data first for quicker loading.
+     * The block and its permissions may not be present in the subgraph if it was just created.
+     */
+    if (blockCollectionSubgraph) {
+      const entityEditionMap = blockCollectionSubgraph.vertices[blockEntityId];
+
+      if (entityEditionMap) {
+        // The block isn't in the page subgraph – it might have just been created
+        const latestEditionId = Object.keys(entityEditionMap).sort().pop()!;
+        const initialBlockSubgraph = {
+          ...blockCollectionSubgraph,
+          roots: [
+            {
+              baseId: blockEntityId,
+              revisionId: latestEditionId as EntityRevisionId,
+            },
+          ],
+        };
+        setBlockSubgraph(initialBlockSubgraph);
+      }
+
+      if (userPermissionsOnEntities) {
+        setUserPermissions(userPermissionsOnEntities);
+      }
     }
 
-    const entityEditionMap = blockCollectionSubgraph.vertices[blockEntityId];
-
-    if (!entityEditionMap) {
-      // The block isn't in the page subgraph – it might have just been created
-      return;
-    }
-
-    const latestEditionId = Object.keys(entityEditionMap).sort().pop()!;
-    const initialBlockSubgraph = {
-      ...blockCollectionSubgraph,
-      roots: [
-        {
-          baseId: blockEntityId,
-          revisionId: latestEditionId as EntityRevisionId,
-        },
-      ],
-    };
-    setBlockSubgraph(initialBlockSubgraph);
-    setUserPermissions(userPermissionsOnEntities);
+    /**
+     * Fetch the block's proper subgraph and permissions to replace any initially loaded data.
+     * When blocks are created mid-session, we cannot rely on their entity or permissions being in the block collection subgraph,
+     */
+    void fetchBlockSubgraph(blockEntityTypeId, blockEntityId).then(
+      (newBlockSubgraph) => {
+        setBlockSubgraph(newBlockSubgraph.subgraph);
+        setUserPermissions(newBlockSubgraph.userPermissionsOnEntities);
+      },
+    );
   }, [
     blockEntityId,
     blockCollectionSubgraph,
@@ -146,8 +148,8 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     blockSubgraph,
     fetchBlockSubgraph,
     setBlockSubgraph,
-    userPermissionsOnEntities,
     setUserPermissions,
+    userPermissionsOnEntities,
   ]);
 
   const functions = useMemo(
@@ -280,9 +282,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
     const textTokens = rootEntity.properties[
       textualContentPropertyTypeBaseUrl
-    ] as TextToken[] | undefined;
+    ] as TextualContentPropertyValue | undefined;
 
-    if (textTokens) {
+    if (textTokens && typeof textTokens !== "string") {
       newProperties[textualContentPropertyTypeBaseUrl] = textTokens
         .map((token) =>
           "text" in token ? token.text : "hardBreak" in token ? "\n" : "",

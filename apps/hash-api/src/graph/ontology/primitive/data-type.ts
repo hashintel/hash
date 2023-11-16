@@ -8,13 +8,12 @@ import {
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
 } from "@local/hash-graph-client";
-import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { ConstructDataTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
   DataTypeAuthorizationRelationship,
   DataTypeRootType,
@@ -32,7 +31,7 @@ import {
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction } from "../../context-types";
-import { getWebShortname } from "./util";
+import { getWebShortname, isExternalTypeId } from "./util";
 
 /**
  * Create a data type.
@@ -164,7 +163,7 @@ export const getDataTypeSubgraphById: ImpureGraphFunction<
     query,
   });
 
-  if (subgraph.roots.length === 0 && !dataTypeId.startsWith(frontendUrl)) {
+  if (subgraph.roots.length === 0 && isExternalTypeId(dataTypeId)) {
     await context.graphApi.loadExternalDataType(authentication.actorId, {
       dataTypeId,
     });

@@ -4,9 +4,15 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { contentLinkTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { BlockProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import {
   Entity,
   EntityId,
-  EntityPropertiesObject,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
@@ -14,7 +20,6 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import { SYSTEM_TYPES } from "../../system-types";
 import {
   archiveEntity,
   createEntity,
@@ -41,19 +46,17 @@ export const getBlockFromEntity: PureGraphFunction<
   { entity: Entity },
   Block
 > = ({ entity }) => {
-  if (
-    entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.block.schema.$id
-  ) {
+  if (entity.metadata.entityTypeId !== systemEntityTypes.block.entityTypeId) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.block.schema.$id,
+      systemEntityTypes.block.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
 
-  const componentId = entity.properties[
-    SYSTEM_TYPES.propertyType.componentId.metadata.recordId.baseUrl
-  ] as string;
+  const { componentId } = simplifyProperties(
+    entity.properties as BlockProperties,
+  );
 
   return {
     componentId,
@@ -92,19 +95,18 @@ export const createBlock: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const { componentId, blockData, ownedById } = params;
 
-  const properties: EntityPropertiesObject = {
-    [SYSTEM_TYPES.propertyType.componentId.metadata.recordId.baseUrl]:
-      componentId,
+  const properties: BlockProperties = {
+    "https://hash.ai/@hash/types/property-type/component-id/": componentId,
   };
 
   const entity = await createEntity(ctx, authentication, {
     ownedById,
     properties,
-    entityTypeId: SYSTEM_TYPES.entityType.block.schema.$id,
+    entityTypeId: systemEntityTypes.block.entityTypeId,
   });
 
   await createLinkEntity(ctx, authentication, {
-    linkEntityType: SYSTEM_TYPES.linkEntityType.hasData,
+    linkEntityTypeId: systemLinkEntityTypes.hasData.linkEntityTypeId,
     leftEntityId: entity.metadata.recordId.entityId,
     rightEntityId: blockData.metadata.recordId.entityId,
     ownedById,
@@ -128,7 +130,7 @@ export const getBlockData: ImpureGraphFunction<
     {
       entityId: block.entity.metadata.recordId.entityId,
       linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.hasData.schema.$id,
+        systemLinkEntityTypes.hasData.linkEntityTypeId,
     },
   );
 
@@ -166,7 +168,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
     {
       entityId: block.entity.metadata.recordId.entityId,
       linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.hasData.schema.$id,
+        systemLinkEntityTypes.hasData.linkEntityTypeId,
     },
   );
 
@@ -200,7 +202,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
   });
 
   await createLinkEntity(ctx, authentication, {
-    linkEntityType: SYSTEM_TYPES.linkEntityType.hasData,
+    linkEntityTypeId: systemLinkEntityTypes.hasData.linkEntityTypeId,
     leftEntityId: block.entity.metadata.recordId.entityId,
     rightEntityId: newBlockDataEntity.metadata.recordId.entityId,
     ownedById: extractOwnedByIdFromEntityId(
@@ -220,7 +222,7 @@ export const getBlockComments: ImpureGraphFunction<
 > = async (ctx, authentication, { block }) => {
   const blockCommentLinks = await getEntityIncomingLinks(ctx, authentication, {
     entityId: block.entity.metadata.recordId.entityId,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.hasParent,
+    linkEntityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
   });
 
   const commentEntities = await Promise.all(
@@ -250,10 +252,7 @@ export const getBlockCollectionByBlock: ImpureGraphFunction<
     query: {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.linkEntityType.contains.schema.$id,
-            { ignoreParents: true },
-          ),
+          contentLinkTypeFilter,
           {
             equal: [
               { path: ["rightEntity", "uuid"] },
@@ -261,7 +260,7 @@ export const getBlockCollectionByBlock: ImpureGraphFunction<
             ],
           },
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.entityType.blockCollection.schema.$id,
+            systemEntityTypes.blockCollection.entityTypeId,
             { ignoreParents: false, pathPrefix: ["leftEntity"] },
           ),
         ],

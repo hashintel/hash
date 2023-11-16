@@ -1,6 +1,9 @@
 import { ApolloQueryResult, useQuery } from "@apollo/client";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   SimpleProperties,
   simplifyProperties,
@@ -28,6 +31,7 @@ import { useHashInstance } from "./use-hash-instance";
 export type SimplePage = SimpleProperties<PageProperties> & {
   metadata: EntityMetadata;
   parentPage?: { metadata: EntityMetadata } | null;
+  type: "canvas" | "document";
 };
 
 export type AccountPagesInfo = {
@@ -73,7 +77,7 @@ export const useAccountPages = (
       const parentLink = pageOutgoingLinks.find(
         ({ linkEntity }) =>
           linkEntity[0]!.metadata.entityTypeId ===
-          systemTypes.linkEntityType.hasParent.linkEntityTypeId,
+          systemLinkEntityTypes.hasParent.linkEntityTypeId,
       );
 
       const parentPage = parentLink?.rightEntity[0] ?? null;
@@ -82,6 +86,11 @@ export const useAccountPages = (
         ...simplifyProperties(latestPage.properties as PageProperties),
         metadata: latestPage.metadata,
         parentPage: parentPage ? { metadata: parentPage.metadata } : null,
+        type:
+          latestPage.metadata.entityTypeId ===
+          systemEntityTypes.canvas.entityTypeId
+            ? "canvas"
+            : "document",
       };
     });
   }, [data]);

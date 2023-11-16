@@ -1,11 +1,11 @@
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import {
   AccountEntityId,
   EntityId,
   extractAccountId,
 } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Box, buttonClasses, Collapse } from "@mui/material";
@@ -72,9 +72,8 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
   const preferredName = useMemo(
     () =>
-      comment.author.properties[
-        extractBaseUrl(systemTypes.propertyType.preferredName.propertyTypeId)
-      ],
+      simplifyProperties(comment.author.properties as UserProperties)
+        .preferredName,
     [comment.author.properties],
   );
 

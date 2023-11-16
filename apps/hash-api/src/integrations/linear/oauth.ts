@@ -1,8 +1,16 @@
 import crypto from "node:crypto";
 
 import { LinearClient } from "@linear/sdk";
-import { apiOrigin } from "@local/hash-graphql-shared/environment";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import {
+  apiOrigin,
+  frontendUrl,
+} from "@local/hash-isomorphic-utils/environment";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
+import { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountId,
   Entity,
@@ -22,7 +30,6 @@ import {
   LinearIntegration,
 } from "../../graph/knowledge/system-types/linear-integration-entity";
 import { isUserMemberOfOrg } from "../../graph/knowledge/system-types/user";
-import { SYSTEM_TYPES } from "../../graph/system-types";
 
 const linearClientId = process.env.LINEAR_CLIENT_ID;
 const linearClientSecret = process.env.LINEAR_CLIENT_SECRET;
@@ -213,11 +220,13 @@ export const oAuthLinearCallback: RequestHandler<
       path: vaultPath,
     });
 
-    const secretMetadata = {
-      [SYSTEM_TYPES.propertyType.expiredAt.metadata.recordId.baseUrl]:
+    const secretMetadata: UserSecretProperties = {
+      /** @todo: verify this is the correct value */
+      "https://hash.ai/@hash/types/property-type/connection-source-name/":
+        "linear",
+      "https://hash.ai/@hash/types/property-type/expired-at/":
         expiredAt.toISOString(),
-      [SYSTEM_TYPES.propertyType.vaultPath.metadata.recordId.baseUrl]:
-        vaultPath,
+      "https://hash.ai/@hash/types/property-type/vault-path/": vaultPath,
     };
 
     const userAccountId = extractEntityUuidFromEntityId(
@@ -237,21 +246,20 @@ export const oAuthLinearCallback: RequestHandler<
       linearIntegration = existingLinearIntegration;
     } else {
       const userSecretEntity = await createEntity(req.context, authentication, {
-        entityTypeId: SYSTEM_TYPES.entityType.userSecret.schema.$id,
+        entityTypeId: systemEntityTypes.userSecret.entityTypeId,
         ownedById: ownedById as Uuid as OwnedById,
         properties: secretMetadata,
       });
 
-      const linearIntegrationProperties = {
-        [SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl]:
-          linearOrgId,
+      const linearIntegrationProperties: LinearIntegrationProperties = {
+        "https://hash.ai/@hash/types/property-type/linear-org-id/": linearOrgId,
       };
 
       const linearIntegrationEntity = await createEntity(
         req.context,
         authentication,
         {
-          entityTypeId: SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
+          entityTypeId: systemEntityTypes.linearIntegration.entityTypeId,
           ownedById: ownedById as Uuid as OwnedById,
           properties: linearIntegrationProperties,
         },
@@ -259,7 +267,7 @@ export const oAuthLinearCallback: RequestHandler<
 
       await createLinkEntity(req.context, authentication, {
         ownedById: ownedById as Uuid as OwnedById,
-        linkEntityType: SYSTEM_TYPES.linkEntityType.usesUserSecret,
+        linkEntityTypeId: systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
         leftEntityId: linearIntegrationEntity.metadata.recordId.entityId,
         rightEntityId: userSecretEntity.metadata.recordId.entityId,
         properties: {},

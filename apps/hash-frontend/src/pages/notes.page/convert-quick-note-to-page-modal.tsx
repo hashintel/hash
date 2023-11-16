@@ -4,9 +4,12 @@ import {
   Modal,
   TextField,
 } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { PageProperties } from "@local/hash-isomorphic-utils/system-types/page";
 import { Entity, OwnedById } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   autocompleteClasses,
   Box,
@@ -92,14 +95,12 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
         entityId:
           quickNoteEntityWithCreatedAt.quickNoteEntity.metadata.recordId
             .entityId,
-        entityTypeId: systemTypes.entityType.page.entityTypeId,
+        entityTypeId: systemEntityTypes.document.entityTypeId,
         properties: {
-          [extractBaseUrl(systemTypes.propertyType.title.propertyTypeId)]:
-            title,
-          [extractBaseUrl(
-            systemTypes.propertyType.fractionalIndex.propertyTypeId,
-          )]: fractionalIndex,
-        },
+          "https://hash.ai/@hash/types/property-type/title/": title,
+          "https://hash.ai/@hash/types/property-type/fractional-index/":
+            fractionalIndex,
+        } as PageProperties,
       },
     });
 
@@ -110,7 +111,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
     if (parentPage) {
       await createEntity({
         data: {
-          entityTypeId: systemTypes.linkEntityType.hasParent.linkEntityTypeId,
+          entityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
           properties: {},
           linkData: {
             leftEntityId: pageEntity.metadata.recordId.entityId,
@@ -125,6 +126,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
       title,
       fractionalIndex,
       parentPage,
+      type: "document",
       ...pageEntity,
     });
     onClose();

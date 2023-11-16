@@ -14,10 +14,10 @@ import {
   IconButton,
   LoadingSpinner,
 } from "@hashintel/design-system";
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { EntityId } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { isEqual } from "lodash";
@@ -134,10 +134,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   });
 
   const preferredName = useMemo(
-    () =>
-      author.properties[
-        extractBaseUrl(systemTypes.propertyType.preferredName.propertyTypeId)
-      ] as string,
+    () => simplifyProperties(author.properties as UserProperties).preferredName,
     [author.properties],
   );
 
@@ -181,7 +178,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
       }}
     >
       <Box display="flex" justifyContent="space-between">
-        {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment */}
+        {}
         <Avatar size={36} title={preferredName ?? "U"} />
         <Box
           sx={{ flexDirection: "column", flex: 1, overflow: "hidden", pl: 1.5 }}

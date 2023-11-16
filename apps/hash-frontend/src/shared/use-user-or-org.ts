@@ -1,14 +1,16 @@
 import { useQuery } from "@apollo/client";
-import { extractBaseUrl } from "@blockprotocol/type-system";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
-  OrgProperties,
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  OrganizationProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -55,9 +57,7 @@ export const useUserOrOrg = (
                       {
                         path: [
                           "properties",
-                          extractBaseUrl(
-                            systemTypes.propertyType.shortname.propertyTypeId,
-                          ),
+                          systemPropertyTypes.shortname.propertyTypeBaseUrl,
                         ],
                       },
                       { parameter: params.shortname },
@@ -77,11 +77,11 @@ export const useUserOrOrg = (
             {
               any: [
                 generateVersionedUrlMatchingFilter(
-                  systemTypes.entityType.user.entityTypeId,
+                  systemEntityTypes.user.entityTypeId,
                   { ignoreParents: true },
                 ),
                 generateVersionedUrlMatchingFilter(
-                  systemTypes.entityType.org.entityTypeId,
+                  systemEntityTypes.organization.entityTypeId,
                   { ignoreParents: true },
                 ),
               ],
@@ -110,7 +110,7 @@ export const useUserOrOrg = (
 
     const rootEntity = subgraph
       ? getRoots(subgraph).reduce<
-          Entity<OrgProperties> | Entity<UserProperties> | undefined
+          Entity<OrganizationProperties> | Entity<UserProperties> | undefined
         >((prev, currentEntity) => {
           if (
             !isEntityUserEntity(currentEntity) &&

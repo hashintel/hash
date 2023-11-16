@@ -5,7 +5,10 @@ import {
   IconButton,
   RotateIconRegular,
 } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { Box, buttonClasses, styled } from "@mui/material";
 import Image from "next/image";
@@ -158,7 +161,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
               }
             : {
                 fileEntityCreationInput: {
-                  entityTypeId: systemTypes.entityType.imageFile.entityTypeId,
+                  entityTypeId: systemEntityTypes.image.entityTypeId,
                 },
               }),
         },
@@ -168,7 +171,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
               linkedEntityData: {
                 linkedEntityId: userProfile.entity.metadata.recordId.entityId,
                 linkEntityTypeId:
-                  systemTypes.linkEntityType.hasCoverImage.linkEntityTypeId,
+                  systemLinkEntityTypes.hasCoverImage.linkEntityTypeId,
               },
             }),
       });

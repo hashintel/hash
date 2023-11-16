@@ -1,3 +1,4 @@
+import { EntityType } from "@blockprotocol/type-system";
 import {
   ComponentIdHashBlockMap,
   fetchBlock,
@@ -8,6 +9,7 @@ import {
   FunctionComponent,
   ReactNode,
   SetStateAction,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -37,6 +39,23 @@ export const UserBlocksProvider: FunctionComponent<{
     },
   );
 
+  const fetchBlockSchema = useCallback(
+    async (params: { schemaId: string }): Promise<EntityType | null> => {
+      try {
+        const response = await fetch(params.schemaId);
+
+        const text = await response.text();
+
+        const schema = await JSON.parse(text);
+
+        return schema;
+      } catch {
+        return null;
+      }
+    },
+    [],
+  );
+
   const { data, error } = useGetBlockProtocolBlocks();
 
   useEffect(() => {
@@ -45,14 +64,21 @@ export const UserBlocksProvider: FunctionComponent<{
         return;
       }
 
-      const apiBlocks = await Promise.all(
-        data.getBlockProtocolBlocks.map(({ componentId }) =>
-          fetchBlock(componentId),
-        ),
+      const apiBlocksWithSchema = await Promise.all(
+        data.getBlockProtocolBlocks.map(async ({ componentId }) => {
+          const fetchedBlock = await fetchBlock(componentId);
+
+          const blockSchema = await fetchBlockSchema({
+            schemaId: fetchedBlock.meta.schema,
+          });
+
+          return { ...fetchedBlock, schema: blockSchema };
+        }),
       );
 
       const apiProvidedBlocksMap: ComponentIdHashBlockMap = {};
-      for (const block of apiBlocks) {
+
+      for (const block of apiBlocksWithSchema) {
         apiProvidedBlocksMap[block.meta.componentId] = block;
       }
 
@@ -71,7 +97,30 @@ export const UserBlocksProvider: FunctionComponent<{
     };
 
     void setInitialBlocks();
-  }, [setValue, data]);
+  }, [setValue, data, fetchBlockSchema]);
+
+  useEffect(() => {
+    const fetchMissingSchemas = async () => {
+      const blocksWithoutSchema = Object.entries(value).filter(
+        ([_, { schema }]) => typeof schema === "undefined",
+      );
+
+      for (const [componentId, { meta }] of blocksWithoutSchema) {
+        const schema = await fetchBlockSchema({
+          schemaId: meta.schema,
+        });
+
+        setValue((prevValue) => {
+          const newValue: ComponentIdHashBlockMap = { ...prevValue };
+
+          newValue[componentId]!.schema = schema;
+
+          return newValue;
+        });
+      }
+    };
+    void fetchMissingSchemas();
+  }, [value, setValue, fetchBlockSchema]);
 
   const state = useMemo(
     () => ({ value, setValue, blockFetchFailed: !!error }),

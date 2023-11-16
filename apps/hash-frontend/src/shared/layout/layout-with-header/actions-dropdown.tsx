@@ -4,7 +4,7 @@ import {
   FontAwesomeIcon,
   LinkIcon,
 } from "@hashintel/design-system";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {
   Box,
@@ -28,7 +28,7 @@ import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { HashtagRegularIcon } from "../../icons/hashtag-regular-icon";
 import { UploadRegularIcon } from "../../icons/upload-regular-icon";
 import { MenuItem } from "../../ui";
-import { CreateDocumentMenuItem } from "./actions-dropdown/create-document-menu-item";
+import { CreatePageMenuItems } from "./actions-dropdown/create-page-menu-items";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
 const ActionsDropdownInner: FunctionComponent = () => {
@@ -93,7 +93,7 @@ const ActionsDropdownInner: FunctionComponent = () => {
           Create New
         </Typography>
         {hashInstance?.properties.pagesAreEnabled ? (
-          <CreateDocumentMenuItem onClick={popupState.close} />
+          <CreatePageMenuItems onClick={popupState.close} />
         ) : null}
         <MenuItem href="/new/entity" onClick={popupState.close}>
           <ListItemIcon>
@@ -118,7 +118,7 @@ const ActionsDropdownInner: FunctionComponent = () => {
         </MenuItem>
         <Divider />
         <MenuItem
-          href={`${systemTypes.entityType.file.entityTypeId}?tab=upload`}
+          href={`${systemEntityTypes.file.entityTypeId}?tab=upload`}
           onClick={popupState.close}
         >
           <ListItemIcon>

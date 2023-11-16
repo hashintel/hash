@@ -3,6 +3,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   SimpleProperties,
   simplifyProperties,
@@ -25,7 +26,6 @@ import {
   createWeb,
 } from "../../account-permission-management";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import { SYSTEM_TYPES } from "../../system-types";
 import {
   createEntity,
   CreateEntityParams,
@@ -42,12 +42,11 @@ export const getHashInstanceFromEntity: PureGraphFunction<
   HashInstance
 > = ({ entity }) => {
   if (
-    entity.metadata.entityTypeId !==
-    SYSTEM_TYPES.entityType.hashInstance.schema.$id
+    entity.metadata.entityTypeId !== systemEntityTypes.hashInstance.entityTypeId
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.hashInstance.schema.$id,
+      systemEntityTypes.hashInstance.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
@@ -68,7 +67,7 @@ export const getHashInstance: ImpureGraphFunction<
   const entities = await graphApi
     .getEntitiesByQuery(actorId, {
       filter: generateVersionedUrlMatchingFilter(
-        SYSTEM_TYPES.entityType.hashInstance.schema.$id,
+        systemEntityTypes.hashInstance.entityTypeId,
         { ignoreParents: true },
       ),
       graphResolveDepths: zeroedGraphResolveDepths,
@@ -137,16 +136,16 @@ export const createHashInstance: ImpureGraphFunction<
   const entity = await createEntity(ctx, authentication, {
     ownedById: hashInstanceAdmins as OwnedById,
     properties: {
-      [SYSTEM_TYPES.propertyType.pagesAreEnabled.metadata.recordId.baseUrl]:
+      "https://hash.ai/@hash/types/property-type/pages-are-enabled/":
         params.pagesAreEnabled ?? true,
-      [SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.metadata.recordId
-        .baseUrl]: params.userSelfRegistrationIsEnabled ?? true,
-      [SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.metadata
-        .recordId.baseUrl]: params.userRegistrationByInviteIsEnabled ?? true,
-      [SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.metadata.recordId
-        .baseUrl]: params.orgSelfRegistrationIsEnabled ?? true,
-    },
-    entityTypeId: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
+      "https://hash.ai/@hash/types/property-type/user-self-registration-is-enabled/":
+        params.userSelfRegistrationIsEnabled ?? true,
+      "https://hash.ai/@hash/types/property-type/user-registration-by-invitation-is-enabled/":
+        params.userRegistrationByInviteIsEnabled ?? true,
+      "https://hash.ai/@hash/types/property-type/org-self-registration-is-enabled/":
+        params.orgSelfRegistrationIsEnabled ?? true,
+    } as HASHInstanceProperties,
+    entityTypeId: systemEntityTypes.hashInstance.entityTypeId,
   });
   await modifyEntityAuthorizationRelationships(ctx, authentication, [
     {

@@ -1,4 +1,4 @@
-import { UserPermissions } from "@local/hash-graphql-shared/graphql/types";
+import { UserPermissions } from "@local/hash-isomorphic-utils/types";
 import { Entity } from "@local/hash-subgraph";
 
 import {

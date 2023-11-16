@@ -4,11 +4,16 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import {
   AccountGroupEntityId,
   AccountGroupId,
   Entity,
   EntityId,
-  EntityPropertiesObject,
   EntityRootType,
   EntityUuid,
   extractAccountGroupId,
@@ -18,6 +23,7 @@ import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import {
@@ -25,7 +31,6 @@ import {
   createWeb,
 } from "../../account-permission-management";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import { SYSTEM_TYPES } from "../../system-types";
 import {
   createEntity,
   CreateEntityParams,
@@ -49,21 +54,19 @@ export type Org = {
 export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
   entity,
 }) => {
-  if (entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.org.schema.$id) {
+  if (
+    entity.metadata.entityTypeId !== systemEntityTypes.organization.entityTypeId
+  ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.org.schema.$id,
+      systemEntityTypes.organization.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
 
-  const orgName = entity.properties[
-    SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUrl
-  ] as string;
-
-  const shortname = entity.properties[
-    SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl
-  ] as string;
+  const { organizationName: orgName, shortname } = simplifyProperties(
+    entity.properties as OrganizationProperties,
+  );
 
   return {
     accountGroupId: extractAccountGroupId(
@@ -120,13 +123,12 @@ export const createOrg: ImpureGraphFunction<
     });
   }
 
-  const properties: EntityPropertiesObject = {
-    [SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl]: shortname,
-    [SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUrl]: name,
+  const properties: OrganizationProperties = {
+    "https://hash.ai/@hash/types/property-type/shortname/": shortname,
+    "https://hash.ai/@hash/types/property-type/organization-name/": name,
     ...(websiteUrl
       ? {
-          [SYSTEM_TYPES.propertyType.websiteUrl.metadata.recordId.baseUrl]:
-            websiteUrl,
+          "https://hash.ai/@hash/types/property-type/website-url/": websiteUrl,
         }
       : {}),
   };
@@ -134,7 +136,7 @@ export const createOrg: ImpureGraphFunction<
   const entity = await createEntity(ctx, authentication, {
     ownedById: orgAccountGroupId as OwnedById,
     properties,
-    entityTypeId: SYSTEM_TYPES.entityType.org.schema.$id,
+    entityTypeId: systemEntityTypes.organization.entityTypeId,
     entityUuid: orgAccountGroupId as string as EntityUuid,
   });
   await modifyEntityAuthorizationRelationships(ctx, authentication, [
@@ -186,14 +188,14 @@ export const getOrgByShortname: ImpureGraphFunction<
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.entityType.org.schema.$id,
+            systemEntityTypes.organization.entityTypeId,
           ),
           {
             equal: [
               {
                 path: [
                   "properties",
-                  SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
+                  extractBaseUrl(systemPropertyTypes.shortname.propertyTypeId),
                 ],
               },
               { parameter: params.shortname },
@@ -254,8 +256,9 @@ export const updateOrgShortname: ImpureGraphFunction<
 
   return updateEntityProperty(ctx, authentication, {
     entity: org.entity,
-    propertyTypeBaseUrl:
-      SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
+    propertyTypeBaseUrl: extractBaseUrl(
+      systemPropertyTypes.shortname.propertyTypeId,
+    ),
     value: updatedShortname,
   }).then((updatedEntity) => getOrgFromEntity({ entity: updatedEntity }));
 };
@@ -291,8 +294,9 @@ export const updateOrgName: ImpureGraphFunction<
 
   const updatedEntity = await updateEntityProperty(ctx, authentication, {
     entity: org.entity,
-    propertyTypeBaseUrl:
-      SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUrl,
+    propertyTypeBaseUrl: extractBaseUrl(
+      systemPropertyTypes.organizationName.propertyTypeId,
+    ),
     value: updatedOrgName,
   });
 
