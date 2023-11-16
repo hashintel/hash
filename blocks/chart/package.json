@@ -39,6 +39,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.debounce": "4.0.7",
+    "@types/pluralize": "0.0.29",
     "@types/react-dom": "18.0.9",
     "@types/react-is": "18.2.0",
     "block-scripts": "0.3.1",
@@ -81,3 +82,4 @@
     "image": "public/block-preview.svg"
   }
 }
+
