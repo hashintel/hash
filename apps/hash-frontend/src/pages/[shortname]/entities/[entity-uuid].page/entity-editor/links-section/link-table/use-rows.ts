@@ -1,5 +1,9 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import { EntityTypeWithMetadata } from "@local/hash-subgraph";
+import {
+  Entity,
+  EntityTypeWithMetadata,
+  extractEntityUuidFromEntityId,
+} from "@local/hash-subgraph";
 import {
   getEntityTypeAndParentsById,
   getEntityTypeById,
@@ -7,8 +11,10 @@ import {
   getRoots,
   intervalCompareWithInterval,
 } from "@local/hash-subgraph/stdlib";
-import { useMemo } from "react";
+import { useRouter } from "next/router";
+import { useCallback, useMemo } from "react";
 
+import { useGetOwnerForEntity } from "../../../../../../../components/hooks/use-get-owner-for-entity";
 import { useEntityTypesContextRequired } from "../../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useFileUploads } from "../../../../../../../shared/file-upload-context";
 import { useMarkLinkEntityToArchive } from "../../../shared/use-mark-link-entity-to-archive";
@@ -16,10 +22,28 @@ import { useEntityEditor } from "../../entity-editor-context";
 import { LinkRow } from "./types";
 
 export const useRows = () => {
+  const router = useRouter();
   const { entitySubgraph, draftLinksToArchive, draftLinksToCreate } =
     useEntityEditor();
 
   const markLinkEntityToArchive = useMarkLinkEntityToArchive();
+
+  const getOwnerForEntity = useGetOwnerForEntity();
+
+  const onEntityClick = useCallback(
+    (params: { entity: Entity }) => {
+      const { entity } = params;
+
+      const { shortname } = getOwnerForEntity(entity);
+
+      void router.push(
+        `/@${shortname}/entities/${extractEntityUuidFromEntityId(
+          entity.metadata.recordId.entityId,
+        )}`,
+      );
+    },
+    [getOwnerForEntity, router],
+  );
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
@@ -168,6 +192,7 @@ export const useRows = () => {
             expectedEntityTypeTitles,
             entitySubgraph,
             markLinkAsArchived: markLinkEntityToArchive,
+            onEntityClick,
           };
         },
       ),
@@ -178,6 +203,7 @@ export const useRows = () => {
     draftLinksToCreate,
     isSpecialEntityTypeLookup,
     markLinkEntityToArchive,
+    onEntityClick,
     uploads,
   ]);
 
