@@ -21,7 +21,7 @@ import { usePropertyTypes } from "../../../../shared/property-types-context";
 import { useAuthenticatedUser } from "../../auth-info-context";
 import { useBlockContext } from "../block-context";
 
-export const BlockQueryEditorModal: FunctionComponent<
+export const BlockSelectDataModal: FunctionComponent<
   Omit<ModalProps, "children" | "onClose"> & {
     onClose: () => void;
   }

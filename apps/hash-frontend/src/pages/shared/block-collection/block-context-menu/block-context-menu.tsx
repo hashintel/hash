@@ -38,7 +38,7 @@ import { useBlockContext } from "../block-context";
 import { BlockContextMenuItem } from "./block-context-menu-item";
 import { BlockListMenuContent } from "./block-list-menu-content";
 import { BlockLoaderInput } from "./block-loader-input";
-import { BlockQueryEditorModal } from "./block-query-editor-modal";
+import { BlockSelectDataModal } from "./block-select-data-modal";
 import { LoadEntityMenuContent } from "./load-entity-menu-content";
 
 type BlockContextMenuProps = {
@@ -59,8 +59,8 @@ const BlockContextMenu: ForwardRefRenderFunction<
   const {
     blockSubgraph,
     setBlockSubgraph,
-    blockQueryEditorIsOpen,
-    setBlockQueryEditorIsOpen,
+    blockSelectDataModalIsOpen,
+    setBlockSelectDataModalIsOpen,
   } = useBlockContext();
   const fetchBlockSubgraph = useFetchBlockSubgraph();
 
@@ -128,10 +128,10 @@ const BlockContextMenu: ForwardRefRenderFunction<
       ...(blockSchemaHasHasQueryLink
         ? [
             {
-              key: "query-editor",
-              title: "Configure queries",
+              key: "select-data",
+              title: "Select Data",
               icon: <ChartNetworkRegularIcon />,
-              onClick: () => setBlockQueryEditorIsOpen(true),
+              onClick: () => setBlockSelectDataModalIsOpen(true),
             },
           ]
         : []),
@@ -203,7 +203,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
     entityId,
     deleteBlock,
     openConfigMenu,
-    setBlockQueryEditorIsOpen,
+    setBlockSelectDataModalIsOpen,
     popupState,
     canSwap,
     compatibleBlocks,
@@ -244,9 +244,9 @@ const BlockContextMenu: ForwardRefRenderFunction<
   return (
     <>
       {blockSchemaHasHasQueryLink ? (
-        <BlockQueryEditorModal
-          open={blockQueryEditorIsOpen}
-          onClose={() => setBlockQueryEditorIsOpen(false)}
+        <BlockSelectDataModal
+          open={blockSelectDataModalIsOpen}
+          onClose={() => setBlockSelectDataModalIsOpen(false)}
         />
       ) : null}
       {blockSubgraph && (

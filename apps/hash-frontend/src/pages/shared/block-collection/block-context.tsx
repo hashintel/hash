@@ -13,8 +13,8 @@ import {
 export type BlockContextType = {
   error: boolean;
   setError: (error: boolean) => void;
-  blockQueryEditorIsOpen: boolean;
-  setBlockQueryEditorIsOpen: (isOpen: boolean) => void;
+  blockSelectDataModalIsOpen: boolean;
+  setBlockSelectDataModalIsOpen: (isOpen: boolean) => void;
   blockSubgraph: Subgraph<EntityRootType> | undefined;
   setBlockSubgraph: Dispatch<
     SetStateAction<Subgraph<EntityRootType> | undefined>
@@ -43,14 +43,15 @@ export const BlockContextProvider = ({ children }: PropsWithChildren) => {
   const [userPermissions, setUserPermissions] = useState<
     UserPermissionsOnEntities | undefined
   >();
-  const [blockQueryEditorIsOpen, setBlockQueryEditorIsOpen] = useState(false);
+  const [blockSelectDataModalIsOpen, setBlockSelectDataModalIsOpen] =
+    useState(false);
 
   const context = useMemo<BlockContextType>(
     () => ({
       error,
       setError,
-      blockQueryEditorIsOpen,
-      setBlockQueryEditorIsOpen,
+      blockSelectDataModalIsOpen,
+      setBlockSelectDataModalIsOpen,
       blockSubgraph,
       setBlockSubgraph,
       userPermissions,
@@ -60,8 +61,8 @@ export const BlockContextProvider = ({ children }: PropsWithChildren) => {
       error,
       setError,
       blockSubgraph,
-      blockQueryEditorIsOpen,
-      setBlockQueryEditorIsOpen,
+      blockSelectDataModalIsOpen,
+      setBlockSelectDataModalIsOpen,
       setBlockSubgraph,
       userPermissions,
       setUserPermissions,

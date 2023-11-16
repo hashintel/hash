@@ -8,7 +8,7 @@ export const AddLinkedQueryPrompt: FunctionComponent<{
   blockIconSrc?: string;
   blockName: string;
 }> = ({ blockIconSrc, blockName }) => {
-  const { setBlockQueryEditorIsOpen } = useBlockContext();
+  const { setBlockSelectDataModalIsOpen } = useBlockContext();
 
   return (
     <Box
@@ -41,7 +41,7 @@ export const AddLinkedQueryPrompt: FunctionComponent<{
       </Typography>
       <Button
         variant="tertiary"
-        onClick={() => setBlockQueryEditorIsOpen(true)}
+        onClick={() => setBlockSelectDataModalIsOpen(true)}
         size="small"
       >
         Click here to select data
