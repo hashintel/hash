@@ -1,7 +1,7 @@
 import { extractBaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import { Button } from "@hashintel/design-system";
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { Entity, EntityPropertiesObject, LinkData } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 
