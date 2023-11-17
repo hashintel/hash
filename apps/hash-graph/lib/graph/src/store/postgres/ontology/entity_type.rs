@@ -478,6 +478,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                         raw_schema,
                         closed_schema,
                         metadata.label_property.as_ref(),
+                        metadata.icon.as_deref(),
                     )
                     .await?;
 
@@ -731,6 +732,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 raw_schema,
                 closed_schema,
                 label_property.as_ref(),
+                icon.as_deref(),
             )
             .await
             .change_context(UpdateError)?;
