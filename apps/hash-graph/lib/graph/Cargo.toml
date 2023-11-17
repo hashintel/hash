@@ -31,7 +31,7 @@ clap = { version = "4.4.8", features = ["derive", "env"], optional = true }
 derivative = "2.2.0"
 dotenv-flow = "0.16.0"
 futures = { workspace = true }
-hyper = "0.14.27"
+hyper = "1.0.1"
 include_dir = "0.7.3"
 mime = "0.3.17"
 opentelemetry = { version = "0.20.0", features = ["rt-tokio"] }
