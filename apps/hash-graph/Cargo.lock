@@ -584,9 +584,9 @@ dependencies = [
 
 [[package]]
 name = "dotenv-flow"
-version = "0.16.0"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4845e7c7a828a6ba44045f7a9940b4febcc6b967a388cb47cf81a0b02bd6d603"
+checksum = "ccff2060df2e1a42732ab1e7af8c5f930ed3d0255aaadfae66e032781e8d271a"
 
 [[package]]
 name = "educe"
