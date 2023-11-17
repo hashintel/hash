@@ -453,13 +453,19 @@ where
         entity_type: raw::EntityType,
         closed_entity_type: raw::EntityType,
         label_property: Option<&BaseUrl>,
+        icon: Option<&str>,
     ) -> Result<Option<OntologyId>, InsertionError> {
         Ok(self
             .as_client()
             .query_opt(
                 "
-                    INSERT INTO entity_types (ontology_id, schema, closed_schema, label_property)
-                    VALUES ($1, $2, $3, $4)
+                    INSERT INTO entity_types (
+                        ontology_id,
+                        schema,
+                        closed_schema,
+                        label_property,
+                        icon
+                    ) VALUES ($1, $2, $3, $4, $5)
                     ON CONFLICT DO NOTHING
                     RETURNING ontology_id;
                 ",
@@ -468,6 +474,7 @@ where
                     &Json(entity_type),
                     &Json(closed_entity_type),
                     &label_property.map(BaseUrl::as_str),
+                    &icon,
                 ],
             )
             .await
