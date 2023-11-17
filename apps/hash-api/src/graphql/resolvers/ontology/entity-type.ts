@@ -159,6 +159,7 @@ export const updateEntityTypeResolver: ResolverFn<
       entityTypeId: params.entityTypeId,
       schema: params.updatedEntityType,
       labelProperty: params.labelProperty ?? undefined,
+      icon: params.icon ?? undefined,
       instantiators: [{ kind: "public" }],
     },
   );

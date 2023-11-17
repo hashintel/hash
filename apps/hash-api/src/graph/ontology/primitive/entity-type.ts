@@ -254,6 +254,7 @@ export const updateEntityType: ImpureGraphFunction<
     schema: ConstructEntityTypeParams;
 
     labelProperty?: BaseUrl;
+    icon?: string;
     instantiators: EntityTypeInstantiatorSubject[];
   },
   Promise<EntityTypeWithMetadata>
@@ -267,6 +268,7 @@ export const updateEntityType: ImpureGraphFunction<
       ...schema,
     },
     labelProperty,
+    icon: params.icon,
   };
 
   const { data: metadata } = await ctx.graphApi.updateEntityType(
