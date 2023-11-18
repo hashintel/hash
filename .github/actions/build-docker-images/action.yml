@@ -58,7 +58,7 @@ runs:
 
     - name: Build hash-graph image
       if: inputs.hash-graph == 'true'
-      uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
+      uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56 # v5.1.0
       with:
         context: .
         file: apps/hash-graph/docker/Dockerfile
@@ -93,7 +93,7 @@ runs:
 
     - name: Build hash-ai-worker-ts image
       if: inputs.hash-ai-worker-ts == 'true'
-      uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
+      uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56 # v5.1.0
       with:
         context: .
         file: apps/hash-ai-worker-ts/docker/Dockerfile
@@ -118,7 +118,7 @@ runs:
 
     - name: Build hash-ai-worker-py image
       if: inputs.hash-ai-worker-py == 'true'
-      uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
+      uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56 # v5.1.0
       with:
         context: .
         file: apps/hash-ai-worker-py/docker/Dockerfile
@@ -143,7 +143,7 @@ runs:
 
     - name: Build hash-integration-worker image
       if: inputs.hash-integration-worker == 'true'
-      uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
+      uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56 # v5.1.0
       with:
         context: .
         file: apps/hash-integration-worker/docker/Dockerfile

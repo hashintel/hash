@@ -54,6 +54,7 @@ export const LinksSection = () => {
     >
       <Paper sx={{ overflow: "hidden" }}>
         <LinkTable
+          key={entity.metadata.recordId.editionId}
           onSearchClose={() => setShowSearch(false)}
           showSearch={showSearch}
         />
