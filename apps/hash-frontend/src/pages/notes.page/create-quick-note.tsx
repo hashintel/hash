@@ -14,10 +14,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { useKeys } from "rooks";
 
 import { useBlockProtocolGetEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { ArrowTurnDownLeftRegularIcon } from "../../shared/icons/arrow-turn-down-left-regular-icon";
+import {
+  useSetKeyboardShortcuts,
+  useUnsetKeyboardShortcuts,
+} from "../../shared/keyboard-shortcuts-context";
 import { Button } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { useCreateBlockCollection } from "../shared/use-create-block-collection";
@@ -123,8 +126,25 @@ export const CreateQuickNote: FunctionComponent<{
     }
   }, [isFocused, handleCreateNew, creatingNewQuickNote]);
 
-  useKeys(["Meta", "Enter"], handleCommandEnter);
-  useKeys(["Control", "Enter"], handleCommandEnter);
+  const setKeyboardShortcuts = useSetKeyboardShortcuts();
+  const unsetKeyboardShortcuts = useUnsetKeyboardShortcuts();
+
+  useEffect(() => {
+    const shortcuts = [
+      {
+        keys: ["Meta", "Enter"],
+        callback: handleCommandEnter,
+      },
+      {
+        keys: ["Control", "Enter"],
+        callback: handleCommandEnter,
+      },
+    ];
+
+    setKeyboardShortcuts(shortcuts);
+
+    return () => unsetKeyboardShortcuts(shortcuts);
+  }, [handleCommandEnter, setKeyboardShortcuts, unsetKeyboardShortcuts]);
 
   const quickNoteEntityWithCreatedAt = useMemo(
     () =>

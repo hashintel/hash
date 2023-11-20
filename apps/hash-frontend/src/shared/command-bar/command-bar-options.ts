@@ -84,7 +84,7 @@ class CommandBarMenu {
     return option;
   }
 
-  addListener(listener: () => void) {
+  addUpdateListener(listener: () => void) {
     this.root.listeners.push(listener);
 
     return () => {
