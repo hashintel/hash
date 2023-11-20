@@ -44,13 +44,21 @@ const generateSnackbarVariants = (
   return Object.fromEntries(entries) as SnackbarVariants;
 };
 
-export const useSnackbar = () => {
-  const { enqueueSnackbar } = useLibSnackbar();
+export type SnackbarManager = {
+  closeSnackbar: (key: string) => void;
+  triggerSnackbar: SnackbarVariants;
+};
 
-  const snackbar = useMemo(
+export const useSnackbar = (): SnackbarManager => {
+  const { closeSnackbar, enqueueSnackbar } = useLibSnackbar();
+
+  const triggerSnackbar = useMemo(
     () => generateSnackbarVariants(enqueueSnackbar),
     [enqueueSnackbar],
   );
 
-  return snackbar;
+  return useMemo(
+    () => ({ closeSnackbar, triggerSnackbar }),
+    [closeSnackbar, triggerSnackbar],
+  );
 };

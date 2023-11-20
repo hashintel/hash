@@ -37,7 +37,7 @@ export const EntityEditorPage = ({
   ...entityEditorProps
 }: EntityEditorPageProps) => {
   const [shouldShowQueryEditor, setShouldShowQueryEditor] = useState(true);
-  const snackbar = useSnackbar();
+  const { triggerSnackbar } = useSnackbar();
 
   return (
     <>
@@ -60,7 +60,7 @@ export const EntityEditorPage = ({
             await handleSaveChanges(properties);
 
             if (!isDraft) {
-              snackbar.success("Changes saved successfully");
+              triggerSnackbar.success("Changes saved successfully");
             }
           }}
           entityLabel={entityLabel}

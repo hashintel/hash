@@ -22,7 +22,7 @@ import { PropertiesSectionEmptyState } from "./shared/properties-section-empty-s
 
 export const SelectEntityTypePage = () => {
   const router = useRouter();
-  const snackbar = useSnackbar();
+  const { triggerSnackbar } = useSnackbar();
   const [isSelectingType, setIsSelectingType] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -109,7 +109,7 @@ export const SelectEntityTypePage = () => {
                         )}`,
                       );
                     } catch (error: any) {
-                      snackbar.error(error.message);
+                      triggerSnackbar.error(error.message);
                     } finally {
                       setLoading(false);
                     }

@@ -19,6 +19,7 @@ import { Plugin, PluginKey } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { RefObject } from "react";
 
+import { SnackbarManager } from "../../../components/hooks/use-snackbar";
 import { RenderPortal } from "./block-portals";
 import { BlockView } from "./block-view";
 import { EditorConnection } from "./collab/editor-connection";
@@ -37,6 +38,8 @@ const createSavePlugin = (
   pageEntityId: EntityId,
   getBlocksMap: () => ComponentIdHashBlockMap,
   client: ApolloClient<unknown>,
+  onSuccess: () => void,
+  onError: (message: string) => void,
 ) => {
   let saveQueue = Promise.resolve<unknown>(null);
   const pluginKey = new PluginKey<unknown>("save");
@@ -45,28 +48,34 @@ const createSavePlugin = (
 
   const triggerSave = () => {
     saveQueue = saveQueue.catch().then(async () => {
-      const [newContents, newDraftToEntityId] = await save({
-        apolloClient: client,
-        ownedById,
-        blockCollectionEntityId: pageEntityId,
-        doc: view.state.doc,
-        store: entityStorePluginState(view.state).store,
-        getBlocksMap,
-      });
-
-      if (!view.isDestroyed) {
-        const { tr } = view.state;
-        addEntityStoreAction(view.state, tr, {
-          type: "mergeNewPageContents",
-          payload: {
-            blocks: newContents,
-            presetDraftIds: newDraftToEntityId,
-          },
+      try {
+        const [newContents, newDraftToEntityId] = await save({
+          apolloClient: client,
+          ownedById,
+          blockCollectionEntityId: pageEntityId,
+          doc: view.state.doc,
+          store: entityStorePluginState(view.state).store,
+          getBlocksMap,
         });
 
-        tr.setMeta(pluginKey, { skipSave: true });
+        if (!view.isDestroyed) {
+          const { tr } = view.state;
+          addEntityStoreAction(view.state, tr, {
+            type: "mergeNewPageContents",
+            payload: {
+              blocks: newContents,
+              presetDraftIds: newDraftToEntityId,
+            },
+          });
 
-        view.dispatch(tr);
+          tr.setMeta(pluginKey, { skipSave: true });
+
+          view.dispatch(tr);
+        }
+
+        onSuccess();
+      } catch (err) {
+        onError(`Could not save work: ${(err as Error).message}`);
       }
     });
   };
@@ -130,35 +139,39 @@ const createSavePlugin = (
  * @see https://prosemirror.net/docs/ref/#view.EditorView
  */
 export const createEditorView = (params: {
-  renderNode: HTMLElement;
-  renderPortal: RenderPortal;
+  autoFocus: boolean;
+  client: ApolloClient<unknown>;
+  getBlocksMap: () => ComponentIdHashBlockMap;
+  getLastSavedValue: () => BlockEntity[];
+  isCommentingEnabled: boolean;
   ownedById: OwnedById;
   pageEntityId: EntityId;
-  getBlocksMap: () => ComponentIdHashBlockMap;
-  readonly: boolean;
   pageTitleRef?: RefObject<HTMLTextAreaElement>;
-  getLastSavedValue: () => BlockEntity[];
-  client: ApolloClient<unknown>;
-  isCommentingEnabled: boolean;
-  autoFocus: boolean;
+  readonly: boolean;
+  renderNode: HTMLElement;
+  renderPortal: RenderPortal;
+  snackbarManager: SnackbarManager;
 }) => {
   const {
-    renderNode,
-    renderPortal,
+    autoFocus,
+    client,
+    getBlocksMap,
+    getLastSavedValue,
+    isCommentingEnabled,
     ownedById,
     pageEntityId,
-    getBlocksMap,
-    readonly,
     pageTitleRef,
-    getLastSavedValue,
-    client,
-    isCommentingEnabled,
-    autoFocus,
+    readonly,
+    renderNode,
+    renderPortal,
+    snackbarManager,
   } = params;
 
   let manager: ProsemirrorManager;
 
   const [errorPlugin, _onError] = createErrorPlugin(renderPortal);
+
+  const errorSnackbarKey = "editor-saving-error-snackbar";
 
   const plugins: Plugin<unknown>[] = readonly
     ? []
@@ -168,7 +181,19 @@ export const createEditorView = (params: {
         createPlaceholderPlugin(renderPortal),
         errorPlugin,
         ...(pageTitleRef ? [createFocusPageTitlePlugin(pageTitleRef)] : []),
-        createSavePlugin(ownedById, pageEntityId, getBlocksMap, client),
+        createSavePlugin(
+          ownedById,
+          pageEntityId,
+          getBlocksMap,
+          client,
+          () => snackbarManager.closeSnackbar(errorSnackbarKey),
+          (message: string) =>
+            snackbarManager.triggerSnackbar.error(message, {
+              key: errorSnackbarKey,
+              persist: true,
+              preventDuplicate: true,
+            }),
+        ),
       ];
 
   const state = createProseMirrorState({ ownedById, plugins });
