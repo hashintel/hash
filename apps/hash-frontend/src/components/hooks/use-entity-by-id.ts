@@ -22,10 +22,12 @@ export const useEntityById = ({
   entityId,
   graphResolveDepths,
   includePermissions = false,
+  pollInterval,
 }: {
   entityId: EntityId;
   graphResolveDepths?: GraphResolveDepths;
   includePermissions?: boolean;
+  pollInterval?: number;
 }): {
   loading: boolean;
   entitySubgraph?: Subgraph<EntityRootType>;
@@ -41,6 +43,7 @@ export const useEntityById = ({
         includePermissions,
       },
       fetchPolicy: "cache-and-network",
+      pollInterval,
     },
   );
 
