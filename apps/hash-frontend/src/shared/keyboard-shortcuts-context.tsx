@@ -62,6 +62,13 @@ export const KeyboardShortcutsContextProvider: FunctionComponent<
   const setKeyboardShortcuts: SetKeyboardShortcutsFunction = useCallback(
     (shortcutsToRegister) => {
       setKeyboardShortcutsState((currentShortcuts) => {
+        /**
+         * This approach means that if Shortcut A's key combination is overridden in some context by Shortcut B,
+         * and then Shortcut B is unset, Shortcut A will no longer be in the list of shortcuts either.
+         * If we ever need to introduce shortcuts with duplicate keys we should change this, and figure out
+         * a way of setting the priority of shortcuts with duplicate keys.
+         * Similarly, {@link unsetKeyboardShortcuts} would need updating to not wipe out all shortcuts for the given keys.
+         */
         const currentShortcutsWithoutDuplicates = currentShortcuts.filter(
           (existingShortcut) =>
             !shortcutsToRegister.some(
@@ -134,9 +141,9 @@ export const KeyboardShortcutsContextProvider: FunctionComponent<
  * - CANNOT handle shortcuts which involve multiple non-modifier keys being pressed (e.g. K + P, W + 1, I + ;)
  *
  * An alternative approach would be to maintain a manual mapping of which keys have been held down or released,
- * which could distinguish between modifier keys, but JavaScript execution can be interrupted by OS shortcuts / actions.
- * and therefore are situations in which the manual keyup handler will not fire, and therefore may still record
- * a modifier as being pressed when it is not.
+ * which could distinguish between modifier keys, but OS shortcuts / actions can take window focus without triggering
+ * 'keyup' or 'blur' event listeners, and therefore there are situations in which the manual keyup handler will not fire,
+ * and any manual map may still record a key as being pressed when it is not.
  *
  * If it is ever important that we handle shortcuts which cannot be detected from a single KeyboardEvent, we should:
  * - manually maintain a mapping of which keys are currently pressed based on keydown and keyup handlers
