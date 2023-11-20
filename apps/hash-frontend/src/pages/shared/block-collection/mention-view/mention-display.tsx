@@ -48,6 +48,8 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
       hasLeftEntity: { incoming: 1, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 1 },
     },
+    // Poll for the latest version every 5 seconds
+    pollInterval: 5_000,
   });
   const contentRef = useRef<HTMLDivElement>(null);
   const { propertyTypes } = usePropertyTypes({ latestOnly: true });
