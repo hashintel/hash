@@ -130,11 +130,15 @@ const UserProfileWebsSection: FunctionComponent<{ userProfile: User }> = ({
     ),
   });
 
+  if (!orgs || orgs.length === 0) {
+    return null;
+  }
+
   return (
     <Box>
       <ProfileSectionHeading marginBottom={1.5}>Webs</ProfileSectionHeading>
       <Box display="flex" flexWrap="wrap" gap={1.5}>
-        {orgs?.map((org) => {
+        {orgs.map((org) => {
           const avatarSrc = org.hasAvatar
             ? getImageUrlFromEntityProperties(
                 org.hasAvatar.imageEntity.properties,
