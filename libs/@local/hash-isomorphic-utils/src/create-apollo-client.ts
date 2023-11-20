@@ -20,13 +20,20 @@ const errorLink = onError(({ graphQLErrors, operation }) => {
   if (graphQLErrors) {
     for (const { message, extensions, path } of graphQLErrors) {
       Sentry.withScope((scope) => {
+        if (extensions.code === "FORBIDDEN") {
+          return;
+        }
+
         const error = new Error(
           `GraphQL Error: ${path?.[0]?.toString() ?? "?"}`,
         );
         scope.setExtra("Exception", extensions.exception);
         scope.setExtra("Location", path);
         scope.setExtra("Query", operation.query.loc?.source.body);
-        scope.setExtra("Variables", operation.variables);
+        scope.setExtra(
+          "Variables",
+          JSON.stringify(operation.variables, undefined, 2),
+        );
         error.message = `GraphQL error - ${
           path?.[0]?.toString() ?? "undefined"
         } - ${message}`;
