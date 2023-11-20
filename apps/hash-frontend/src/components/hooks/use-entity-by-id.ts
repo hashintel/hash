@@ -40,6 +40,7 @@ export const useEntityById = ({
         entityId,
         includePermissions,
       },
+      fetchPolicy: "cache-and-network",
     },
   );
 
