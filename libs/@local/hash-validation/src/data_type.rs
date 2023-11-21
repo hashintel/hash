@@ -92,7 +92,7 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
                         actual: JsonSchemaValueType::from(value),
                         expected: JsonSchemaValueType::Null,
                     }
-                )
+                );
             }
             "boolean" => {
                 ensure!(
@@ -101,7 +101,7 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
                         actual: JsonSchemaValueType::from(value),
                         expected: JsonSchemaValueType::Boolean,
                     }
-                )
+                );
             }
 
             "number" => {
@@ -111,7 +111,7 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
                         actual: JsonSchemaValueType::from(value),
                         expected: JsonSchemaValueType::Number,
                     }
-                )
+                );
             }
             "integer" => ensure!(
                 value.is_i64() || value.is_u64(),
@@ -127,7 +127,7 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
                         actual: JsonSchemaValueType::from(value),
                         expected: JsonSchemaValueType::String,
                     }
-                )
+                );
             }
             "array" => {
                 ensure!(
@@ -136,7 +136,7 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
                         actual: JsonSchemaValueType::from(value),
                         expected: JsonSchemaValueType::Array,
                     }
-                )
+                );
             }
             "object" => {
                 ensure!(
@@ -145,7 +145,7 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
                         actual: JsonSchemaValueType::from(value),
                         expected: JsonSchemaValueType::Object,
                     }
-                )
+                );
             }
             _ => {
                 bail!(DataValidationError::UnknownType {
