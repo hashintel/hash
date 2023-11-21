@@ -71,6 +71,18 @@ pub enum DataTypeQueryPath<'p> {
     /// [`DataType`]: type_system::DataType
     Version,
     /// The [`VersionedUrl`] of the [`DataType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// let path = DataTypeQueryPath::deserialize(json!(["versionedUrl"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::VersionedUrl);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`VersionedUrl`]: type_system::url::VersionedUrl
+    /// [`DataType`]: type_system::DataType
     VersionedUrl,
     /// The transaction time of the [`DataType`].
     ///
@@ -361,9 +373,9 @@ mod tests {
     use super::*;
 
     fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> DataTypeQueryPath<'p> {
-        DataTypeQueryPath::deserialize(
-            de::value::SeqDeserializer::<_, de::value::Error>::new(segments.into_iter())
-        )
+        DataTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
+            segments.into_iter(),
+        ))
         .expect("could not deserialize path")
     }
 
@@ -381,9 +393,9 @@ mod tests {
         assert_eq!(deserialize(["description"]), DataTypeQueryPath::Description);
 
         assert_eq!(
-            DataTypeQueryPath::deserialize(
-                de::value::SeqDeserializer::<_, de::value::Error>::new(once("ontology_id"))
-            )
+            DataTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
+                once("ontology_id")
+            ))
             .expect_err(
                 "managed to convert data type query path with hidden token when it should have \
                  errored"
@@ -396,9 +408,9 @@ mod tests {
         );
 
         assert_eq!(
-            DataTypeQueryPath::deserialize(
-                de::value::SeqDeserializer::<_, de::value::Error>::new(once("schema"))
-            )
+            DataTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
+                once("schema")
+            ))
             .expect_err(
                 "managed to convert data type query path with hidden token when it should have \
                  errored"

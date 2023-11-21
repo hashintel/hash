@@ -187,6 +187,15 @@ pub enum EntityTypeQueryPath<'p> {
     /// [`EntityType::required()`]: type_system::EntityType::required
     Required,
     /// The label property metadata of the entity type.
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["labelProperty"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::LabelProperty);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     LabelProperty,
     /// The icon of the entity type.
     ///
@@ -200,6 +209,65 @@ pub enum EntityTypeQueryPath<'p> {
     /// ```
     Icon,
     /// An edge to a [`PropertyType`] using an [`OntologyEdgeKind`].
+    ///
+    /// The corresponding reversed edge is [`PropertyTypeQueryPath::EntityTypeEdge`].
+    ///
+    /// Allowed edge kinds are:
+    /// - [`ConstrainsPropertiesOn`]
+    ///
+    /// [`PropertyType`]: type_system::PropertyType
+    /// [`EntityType`]: type_system::EntityType
+    /// [`ConstrainsPropertiesOn`]: OntologyEdgeKind::ConstrainsPropertiesOn
+    ///
+    ///
+    /// ## Constraining property types
+    ///
+    /// As an [`EntityType`] can have multiple [`PropertyType`]s, the deserialized path requires an
+    /// additional selector to identify the [`PropertyType`] to query. Currently, only the `*`
+    /// selector is available, so the path will be deserialized as `["properties", "*", ...]`
+    /// where `...` is the path to the desired field of the [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::{EntityTypeQueryPath, PropertyTypeQueryPath};
+    /// # use graph::subgraph::edges::OntologyEdgeKind;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["properties", "*", "baseUrl"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     EntityTypeQueryPath::PropertyTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+    ///         path: PropertyTypeQueryPath::BaseUrl,
+    ///         inheritance_depth: None,
+    ///     }
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// ### Specifying the inheritance depth
+    ///
+    /// By passing `inheritanceDepth` as a parameter it's possible to limit the searched depth:
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::{EntityTypeQueryPath, PropertyTypeQueryPath};
+    /// # use graph::subgraph::edges::OntologyEdgeKind;
+    /// let path = EntityTypeQueryPath::deserialize(json!([
+    ///     "properties(inheritanceDepth=10)",
+    ///     "*",
+    ///     "baseUrl"
+    /// ]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     EntityTypeQueryPath::PropertyTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+    ///         path: PropertyTypeQueryPath::BaseUrl,
+    ///         inheritance_depth: Some(10),
+    ///     }
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     PropertyTypeEdge {
         edge_kind: OntologyEdgeKind,
         path: PropertyTypeQueryPath<'p>,
@@ -278,12 +346,11 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use serde_json::json;
     /// # use graph::ontology::EntityTypeQueryPath;
     /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
-    /// let path =
-    ///     EntityTypeQueryPath::deserialize(json!([
-    ///         "inheritsFrom(inheritanceDepth=10)",
-    ///         "*",
-    ///         "baseUrl"
-    ///     ]))?;
+    /// let path = EntityTypeQueryPath::deserialize(json!([
+    ///     "inheritsFrom(inheritanceDepth=10)",
+    ///     "*",
+    ///     "baseUrl"
+    /// ]))?;
     /// assert_eq!(
     ///     path,
     ///     EntityTypeQueryPath::EntityTypeEdge {
@@ -589,11 +656,10 @@ pub struct EntityTypeQueryPathVisitor {
 }
 
 impl EntityTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `baseUrl`, `version`, `versionedUrl`, \
-                                         `ownedById`, `recordCreatedById`, `recordArchivedById`, \
-                                         `title`, `description`, `examples`, `properties`, \
-                                         `required`, `labelProperty`, `icon`, `links`, \
-                                         `inheritsFrom`, `children`";
+    pub const EXPECTING: &'static str =
+        "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `recordCreatedById`, \
+         `recordArchivedById`, `title`, `description`, `examples`, `properties`, `required`, \
+         `labelProperty`, `icon`, `links`, `inheritsFrom`, `children`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -750,9 +816,9 @@ mod tests {
     use super::*;
 
     fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> EntityTypeQueryPath<'p> {
-        EntityTypeQueryPath::deserialize(
-            de::value::SeqDeserializer::<_, de::value::Error>::new(segments.into_iter())
-        )
+        EntityTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
+            segments.into_iter(),
+        ))
         .expect("could not deserialize path")
     }
 

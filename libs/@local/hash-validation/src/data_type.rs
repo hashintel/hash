@@ -85,34 +85,28 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
         _provider: &'a P,
     ) -> Result<(), Report<DataValidationError>> {
         match self.json_type() {
-            "null" => {
-                ensure!(
-                    value.is_null(),
-                    DataValidationError::InvalidType {
-                        actual: JsonSchemaValueType::from(value),
-                        expected: JsonSchemaValueType::Null,
-                    }
-                )
-            }
-            "boolean" => {
-                ensure!(
-                    value.is_boolean(),
-                    DataValidationError::InvalidType {
-                        actual: JsonSchemaValueType::from(value),
-                        expected: JsonSchemaValueType::Boolean,
-                    }
-                )
-            }
+            "null" => ensure!(
+                value.is_null(),
+                DataValidationError::InvalidType {
+                    actual: JsonSchemaValueType::from(value),
+                    expected: JsonSchemaValueType::Null,
+                }
+            ),
+            "boolean" => ensure!(
+                value.is_boolean(),
+                DataValidationError::InvalidType {
+                    actual: JsonSchemaValueType::from(value),
+                    expected: JsonSchemaValueType::Boolean,
+                }
+            ),
 
-            "number" => {
-                ensure!(
-                    value.is_number(),
-                    DataValidationError::InvalidType {
-                        actual: JsonSchemaValueType::from(value),
-                        expected: JsonSchemaValueType::Number,
-                    }
-                )
-            }
+            "number" => ensure!(
+                value.is_number(),
+                DataValidationError::InvalidType {
+                    actual: JsonSchemaValueType::from(value),
+                    expected: JsonSchemaValueType::Number,
+                }
+            ),
             "integer" => ensure!(
                 value.is_i64() || value.is_u64(),
                 DataValidationError::InvalidType {
@@ -120,33 +114,27 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
                     expected: JsonSchemaValueType::Integer,
                 }
             ),
-            "string" => {
-                ensure!(
-                    value.is_string(),
-                    DataValidationError::InvalidType {
-                        actual: JsonSchemaValueType::from(value),
-                        expected: JsonSchemaValueType::String,
-                    }
-                )
-            }
-            "array" => {
-                ensure!(
-                    value.is_array(),
-                    DataValidationError::InvalidType {
-                        actual: JsonSchemaValueType::from(value),
-                        expected: JsonSchemaValueType::Array,
-                    }
-                )
-            }
-            "object" => {
-                ensure!(
-                    value.is_object(),
-                    DataValidationError::InvalidType {
-                        actual: JsonSchemaValueType::from(value),
-                        expected: JsonSchemaValueType::Object,
-                    }
-                )
-            }
+            "string" => ensure!(
+                value.is_string(),
+                DataValidationError::InvalidType {
+                    actual: JsonSchemaValueType::from(value),
+                    expected: JsonSchemaValueType::String,
+                }
+            ),
+            "array" => ensure!(
+                value.is_array(),
+                DataValidationError::InvalidType {
+                    actual: JsonSchemaValueType::from(value),
+                    expected: JsonSchemaValueType::Array,
+                }
+            ),
+            "object" => ensure!(
+                value.is_object(),
+                DataValidationError::InvalidType {
+                    actual: JsonSchemaValueType::from(value),
+                    expected: JsonSchemaValueType::Object,
+                }
+            ),
             _ => {
                 bail!(DataValidationError::UnknownType {
                     schema: self.json_type().to_owned()
