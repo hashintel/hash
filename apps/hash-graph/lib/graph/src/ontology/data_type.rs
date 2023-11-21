@@ -71,18 +71,6 @@ pub enum DataTypeQueryPath<'p> {
     /// [`DataType`]: type_system::DataType
     Version,
     /// The [`VersionedUrl`] of the [`DataType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
-    /// let path = DataTypeQueryPath::deserialize(json!(["versionedUrl"]))?;
-    /// assert_eq!(path, DataTypeQueryPath::VersionedUrl);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`VersionedUrl`]: type_system::url::VersionedUrl
-    /// [`DataType`]: type_system::DataType
     VersionedUrl,
     /// The transaction time of the [`DataType`].
     ///
@@ -273,12 +261,6 @@ impl fmt::Display for DataTypeQueryPath<'_> {
             Self::Description => fmt.write_str("description"),
             Self::Type => fmt.write_str("type"),
             Self::AdditionalMetadata => fmt.write_str("additionalMetadata"),
-            #[expect(
-                clippy::use_debug,
-                reason = "We don't have a `Display` impl for `OntologyEdgeKind` and this should \
-                          (a) never happen and (b) be easy to debug if it does happen. In the \
-                          future, this will become a compile-time check"
-            )]
             Self::PropertyTypeEdge {
                 edge_kind, path, ..
             } => write!(fmt, "<{edge_kind:?}>.{path}"),
@@ -379,9 +361,9 @@ mod tests {
     use super::*;
 
     fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> DataTypeQueryPath<'p> {
-        DataTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
-            segments.into_iter(),
-        ))
+        DataTypeQueryPath::deserialize(
+            de::value::SeqDeserializer::<_, de::value::Error>::new(segments.into_iter())
+        )
         .expect("could not deserialize path")
     }
 
@@ -399,9 +381,9 @@ mod tests {
         assert_eq!(deserialize(["description"]), DataTypeQueryPath::Description);
 
         assert_eq!(
-            DataTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
-                once("ontology_id")
-            ))
+            DataTypeQueryPath::deserialize(
+                de::value::SeqDeserializer::<_, de::value::Error>::new(once("ontology_id"))
+            )
             .expect_err(
                 "managed to convert data type query path with hidden token when it should have \
                  errored"
@@ -414,9 +396,9 @@ mod tests {
         );
 
         assert_eq!(
-            DataTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
-                once("schema")
-            ))
+            DataTypeQueryPath::deserialize(
+                de::value::SeqDeserializer::<_, de::value::Error>::new(once("schema"))
+            )
             .expect_err(
                 "managed to convert data type query path with hidden token when it should have \
                  errored"

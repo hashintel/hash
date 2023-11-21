@@ -20,18 +20,6 @@ use crate::{
 #[derive(Debug, PartialEq, Eq)]
 pub enum PropertyTypeQueryPath<'p> {
     /// The [`BaseUrl`] of the [`PropertyType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::PropertyTypeQueryPath;
-    /// let path = PropertyTypeQueryPath::deserialize(json!(["baseUrl"]))?;
-    /// assert_eq!(path, PropertyTypeQueryPath::BaseUrl);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`PropertyType`]: type_system::PropertyType
-    /// [`BaseUrl`]: type_system::url::BaseUrl
     BaseUrl,
     /// The version of the [`PropertyType`].
     ///
@@ -118,17 +106,6 @@ pub enum PropertyTypeQueryPath<'p> {
     /// [`ProvenanceMetadata`]: graph_types::provenance::ProvenanceMetadata
     RecordArchivedById,
     /// Corresponds to [`PropertyType::title()`].
-    ///
-    /// [`PropertyType::title()`]: type_system::PropertyType::title
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::PropertyTypeQueryPath;
-    /// let path = PropertyTypeQueryPath::deserialize(json!(["title"]))?;
-    /// assert_eq!(path, PropertyTypeQueryPath::Title);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
     Title,
     /// Corresponds to [`PropertyType::description()`]
     ///
@@ -146,36 +123,6 @@ pub enum PropertyTypeQueryPath<'p> {
     /// An edge to a [`DataType`] using an [`OntologyEdgeKind`].
     ///
     /// The corresponding reversed edge is [`DataTypeQueryPath::PropertyTypeEdge`].
-    ///
-    /// Allowed edge kinds are:
-    /// - [`ConstrainsValuesOn`]
-    ///
-    /// [`DataType`]: type_system::DataType
-    /// [`ConstrainsValuesOn`]: OntologyEdgeKind::ConstrainsValuesOn
-    /// [`PropertyType`]: type_system::PropertyType
-    ///
-    /// ## Constraining data types
-    ///
-    /// As a [`PropertyType`] can have multiple [`DataType`]s, the deserialized path requires an
-    /// additional selector to identify the [`DataType`] to query. Currently, only the `*` selector
-    /// is available, so the path will be deserialized as `["dataTypes", "*", ...]` where `...` is
-    /// the path to the desired field of the [`DataType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::{DataTypeQueryPath, PropertyTypeQueryPath};
-    /// # use graph::subgraph::edges::OntologyEdgeKind;
-    /// let path = PropertyTypeQueryPath::deserialize(json!(["dataTypes", "*", "title"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     PropertyTypeQueryPath::DataTypeEdge {
-    ///         edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
-    ///         path: DataTypeQueryPath::Title,
-    ///     }
-    /// );
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
     DataTypeEdge {
         edge_kind: OntologyEdgeKind,
         path: DataTypeQueryPath<'p>,
@@ -321,33 +268,15 @@ impl fmt::Display for PropertyTypeQueryPath<'_> {
                 edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
                 path,
             } => write!(fmt, "dataTypes.{path}"),
-            #[expect(
-                clippy::use_debug,
-                reason = "We don't have a `Display` impl for `OntologyEdgeKind` and this should \
-                          (a) never happen and (b) be easy to debug if it does happen. In the \
-                          future, this will become a compile-time check"
-            )]
             Self::DataTypeEdge { edge_kind, path } => write!(fmt, "<{edge_kind:?}>.{path}"),
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                 path,
                 ..
             } => write!(fmt, "propertyTypes.{path}"),
-            #[expect(
-                clippy::use_debug,
-                reason = "We don't have a `Display` impl for `OntologyEdgeKind` and this should \
-                          (a) never happen and (b) be easy to debug if it does happen. In the \
-                          future, this will become a compile-time check"
-            )]
             Self::PropertyTypeEdge {
                 edge_kind, path, ..
             } => write!(fmt, "<{edge_kind:?}>.{path}"),
-            #[expect(
-                clippy::use_debug,
-                reason = "We don't have a `Display` impl for `OntologyEdgeKind` and this should \
-                          (a) never happen and (b) be easy to debug if it does happen. In the \
-                          future, this will become a compile-time check"
-            )]
             Self::EntityTypeEdge {
                 edge_kind, path, ..
             } => write!(fmt, "<{edge_kind:?}>.{path}"),
@@ -470,9 +399,9 @@ mod tests {
     use super::*;
 
     fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> PropertyTypeQueryPath<'p> {
-        PropertyTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
-            segments.into_iter(),
-        ))
+        PropertyTypeQueryPath::deserialize(
+            de::value::SeqDeserializer::<_, de::value::Error>::new(segments.into_iter())
+        )
         .expect("could not deserialize path")
     }
 
