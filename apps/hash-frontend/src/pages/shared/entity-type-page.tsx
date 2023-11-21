@@ -90,7 +90,10 @@ export const EntityTypePage = ({
     accountId ?? null,
     (fetchedEntityType) => {
       // Load the initial form data after the entity type has been fetched
-      reset(getFormDataFromSchema(fetchedEntityType.schema));
+      reset({
+        ...getFormDataFromSchema(fetchedEntityType.schema),
+        icon: fetchedEntityType.metadata.icon,
+      });
     },
   );
 
@@ -135,18 +138,24 @@ export const EntityTypePage = ({
     const entityTypeSchema = getSchemaFromFormData(data);
 
     if (draftEntityType) {
-      await publishDraft({
-        ...draftEntityType,
-        ...entityTypeSchema,
-      });
+      await publishDraft(
+        {
+          ...draftEntityType,
+          ...entityTypeSchema,
+        },
+        { icon: data.icon },
+      );
       reset(data);
     } else {
-      const res = await updateEntityType({
-        ...entityTypeSchema,
-      });
+      const res = await updateEntityType(
+        {
+          ...entityTypeSchema,
+        },
+        { icon: data.icon },
+      );
 
       if (!res.errors?.length && res.data) {
-        void router.push(res.data.schema.$id);
+        void router.push(res.data.updateEntityType.schema.$id);
       } else {
         throw new Error("Could not publish changes");
       }
@@ -187,13 +196,16 @@ export const EntityTypePage = ({
   const convertToLinkType = wrapHandleSubmit(async (data) => {
     const entityTypeSchema = getSchemaFromFormData(data);
 
-    const res = await updateEntityType({
-      ...entityTypeSchema,
-      allOf: [{ $ref: linkEntityTypeUrl }],
-    });
+    const res = await updateEntityType(
+      {
+        ...entityTypeSchema,
+        allOf: [{ $ref: linkEntityTypeUrl }],
+      },
+      { icon: data.icon },
+    );
 
     if (!res.errors?.length && res.data) {
-      void router.push(res.data.schema.$id);
+      void router.push(res.data.updateEntityType.schema.$id);
     } else {
       throw new Error("Could not publish changes");
     }

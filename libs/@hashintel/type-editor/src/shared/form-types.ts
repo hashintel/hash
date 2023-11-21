@@ -21,4 +21,5 @@ export type EntityTypeEditorFormData = {
   description: string;
   properties: EntityTypeEditorPropertyData[];
   links: EntityTypeEditorLinkData[];
+  icon?: string | null;
 };
