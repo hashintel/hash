@@ -2,7 +2,7 @@ import * as Sentry from "@sentry/node";
 
 import { isProdEnv } from "./lib/env-config";
 
-const sentryDsn = process.env.NODE_SENTRY_DSN;
+const sentryDsn = process.env.NODE_API_SENTRY_DSN;
 
 export const initSentry = () => {
   Sentry.init({
