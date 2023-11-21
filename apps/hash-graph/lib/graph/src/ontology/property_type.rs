@@ -321,15 +321,33 @@ impl fmt::Display for PropertyTypeQueryPath<'_> {
                 edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
                 path,
             } => write!(fmt, "dataTypes.{path}"),
+            #[expect(
+                clippy::use_debug,
+                reason = "We don't have a `Display` impl for `OntologyEdgeKind` and this should \
+                          (a) never happen and (b) be easy to debug if it does happen. In the \
+                          future, this will become a compile-time check"
+            )]
             Self::DataTypeEdge { edge_kind, path } => write!(fmt, "<{edge_kind:?}>.{path}"),
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                 path,
                 ..
             } => write!(fmt, "propertyTypes.{path}"),
+            #[expect(
+                clippy::use_debug,
+                reason = "We don't have a `Display` impl for `OntologyEdgeKind` and this should \
+                          (a) never happen and (b) be easy to debug if it does happen. In the \
+                          future, this will become a compile-time check"
+            )]
             Self::PropertyTypeEdge {
                 edge_kind, path, ..
             } => write!(fmt, "<{edge_kind:?}>.{path}"),
+            #[expect(
+                clippy::use_debug,
+                reason = "We don't have a `Display` impl for `OntologyEdgeKind` and this should \
+                          (a) never happen and (b) be easy to debug if it does happen. In the \
+                          future, this will become a compile-time check"
+            )]
             Self::EntityTypeEdge {
                 edge_kind, path, ..
             } => write!(fmt, "<{edge_kind:?}>.{path}"),
