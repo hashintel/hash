@@ -212,18 +212,18 @@ const main = async () => {
             : undefined,
         })
       : process.env.AWS_REGION
-      ? new AwsSesEmailTransporter({
-          from: `${getRequiredEnv(
-            "SYSTEM_EMAIL_SENDER_NAME",
-          )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
-          region: getAwsRegion(),
-          subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
-        })
-      : ({
-          sendMail: (mail) => {
-            logger.info(`Tried to send mail to ${mail.to}:\n${mail.html}`);
-          },
-        } as EmailTransporter);
+        ? new AwsSesEmailTransporter({
+            from: `${getRequiredEnv(
+              "SYSTEM_EMAIL_SENDER_NAME",
+            )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
+            region: getAwsRegion(),
+            subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
+          })
+        : ({
+            sendMail: (mail) => {
+              logger.info(`Tried to send mail to ${mail.to}:\n${mail.html}`);
+            },
+          } as EmailTransporter);
 
   let search: OpenSearch | undefined;
   if (process.env.HASH_OPENSEARCH_ENABLED === "true") {

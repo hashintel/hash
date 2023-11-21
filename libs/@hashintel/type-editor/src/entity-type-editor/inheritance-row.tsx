@@ -77,8 +77,8 @@ export const InheritanceRow = ({
     const typesArray = isLinkType
       ? linkTypeOptions
       : directParentEntityTypeIds.length
-      ? entityTypeOptions
-      : [...entityTypeOptions, ...linkTypeOptions];
+        ? entityTypeOptions
+        : [...entityTypeOptions, ...linkTypeOptions];
 
     const parents = typesArray.filter(
       (type) =>

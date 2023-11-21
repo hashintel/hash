@@ -167,8 +167,8 @@ export const TypesTable: FunctionComponent<{
                   ? "link-type"
                   : "entity-type"
                 : type.schema.kind === "propertyType"
-                ? "property-type"
-                : "data-type",
+                  ? "property-type"
+                  : "data-type",
             external: isExternal,
             webShortname,
             archived: isTypeArchived(type),

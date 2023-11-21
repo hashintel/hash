@@ -237,10 +237,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
         userEntity: pageWorkspaceEntity,
       })
     : isEntityOrgEntity(pageWorkspaceEntity)
-    ? constructMinimalOrg({
-        orgEntity: pageWorkspaceEntity,
-      })
-    : undefined;
+      ? constructMinimalOrg({
+          orgEntity: pageWorkspaceEntity,
+        })
+      : undefined;
 
   if (!pageWorkspace) {
     throw new Error(

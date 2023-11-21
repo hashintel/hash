@@ -45,14 +45,14 @@ export const useEntityTypeEntitiesContextValue = (params: {
                   },
                 ]
               : entityTypeId
-              ? [
-                  {
-                    field: ["metadata", "entityTypeId"],
-                    operator: "EQUALS" as const,
-                    value: entityTypeId,
-                  },
-                ]
-              : []),
+                ? [
+                    {
+                      field: ["metadata", "entityTypeId"],
+                      operator: "EQUALS" as const,
+                      value: entityTypeId,
+                    },
+                  ]
+                : []),
           ],
           operator: "AND",
         },

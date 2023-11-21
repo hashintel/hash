@@ -115,8 +115,8 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             backgroundColor: selected
               ? palette.gray[30]
               : hovered
-              ? palette.gray[20]
-              : "none",
+                ? palette.gray[20]
+                : "none",
           })}
           ref={ref}
           {...listeners}

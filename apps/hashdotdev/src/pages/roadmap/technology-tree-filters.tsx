@@ -140,8 +140,8 @@ export const TechnologyTreeFilters: FunctionComponent<{
               ? `translateX(calc(100% - ${spacing(0.5)}))`
               : "translateX(0%)"
             : open
-            ? "translateX(0%)"
-            : "translateX(100%)",
+              ? "translateX(0%)"
+              : "translateX(100%)",
         height: isWideScreen ? "100%" : "unset",
         maxHeight: ({ spacing }) =>
           isWideScreen ? "unset" : `calc(100% - ${spacing(4)})`,

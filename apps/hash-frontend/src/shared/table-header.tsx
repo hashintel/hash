@@ -150,8 +150,8 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
               extractOwnedByIdFromEntityId(metadata.recordId.entityId),
             )
           : isExternalOntologyElementMetadata(metadata)
-          ? false
-          : internalWebIds.includes(metadata.custom.ownedById),
+            ? false
+            : internalWebIds.includes(metadata.custom.ownedById),
       ).length,
     [items, internalWebIds],
   );

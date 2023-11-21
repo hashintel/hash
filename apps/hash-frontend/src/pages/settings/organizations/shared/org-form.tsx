@@ -255,10 +255,10 @@ export const OrgForm = ({
                           shortnameError
                             ? palette.red[80]
                             : initialOrg
-                            ? palette.gray[50]
-                            : shortnameWatcher === ""
-                            ? "#9CA3AF"
-                            : palette.gray[80],
+                              ? palette.gray[50]
+                              : shortnameWatcher === ""
+                                ? "#9CA3AF"
+                                : palette.gray[80],
                       }}
                     >
                       @

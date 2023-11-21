@@ -59,10 +59,10 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       const text = isLoading
         ? "Uploading file, please stay on the page..."
         : isFile
-        ? `No file${isList ? "s" : ""}`
-        : isList
-        ? "No entities"
-        : "No entity";
+          ? `No file${isList ? "s" : ""}`
+          : isList
+            ? "No entities"
+            : "No entity";
       ctx.fillText(text, left, yCenter);
 
       // before returning, set interactables to empty array to clear any stale interactables saved on previous draw

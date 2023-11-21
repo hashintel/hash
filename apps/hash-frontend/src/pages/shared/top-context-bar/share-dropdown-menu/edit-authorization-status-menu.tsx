@@ -195,8 +195,8 @@ export const EditAuthorizationStatusMenu: FunctionComponent<{
         {authorizationStatus === "private"
           ? "Private"
           : authorizationStatus === "public"
-          ? "Public"
-          : "Shared with others"}
+            ? "Public"
+            : "Shared with others"}
       </Button>
       <Menu {...bindMenu(privacyStatusPopupState)}>
         {menuItems.map(

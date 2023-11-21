@@ -65,15 +65,15 @@ export const useUserOrOrg = (
                   },
                 ]
               : "accountOrAccountGroupId" in params
-              ? [
-                  {
-                    equal: [
-                      { path: ["uuid"] },
-                      { parameter: params.accountOrAccountGroupId },
-                    ],
-                  },
-                ]
-              : []),
+                ? [
+                    {
+                      equal: [
+                        { path: ["uuid"] },
+                        { parameter: params.accountOrAccountGroupId },
+                      ],
+                    },
+                  ]
+                : []),
             {
               any: [
                 generateVersionedUrlMatchingFilter(
