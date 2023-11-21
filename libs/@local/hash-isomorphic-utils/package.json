@@ -25,7 +25,7 @@
   "dependencies": {
     "@apollo/client": "3.6.9",
     "@blockprotocol/core": "0.1.2",
-    "@blockprotocol/graph": "0.3.1-canary-20230803163819",
+    "@blockprotocol/graph": "0.3.1-canary-20231120181031",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@sentry/browser": "7.74.1",

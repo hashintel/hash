@@ -33,7 +33,7 @@ const generateTypes = async (
   await codegen({
     outputFolder: `src/system-types${subFolder ? `/${subFolder}` : ""}`,
     targets,
-    rewriteTypeId: (typeId) => {
+    getFetchUrlFromTypeId: (typeId) => {
       if (typeId.startsWith("https://hash.ai/")) {
         const rewrittenTypeId = typeId.replace(
           "https://hash.ai/",

@@ -31,6 +31,12 @@ import { useBlockLoadedContext } from "../../blocks/on-block-loaded";
 import { useFetchBlockSubgraph } from "../../blocks/use-fetch-block-subgraph";
 import { useBlockContext } from "../../pages/shared/block-collection/block-context";
 import { WorkspaceContext } from "../../pages/shared/workspace-context";
+import {
+  ArchiveEntityMessageCallback,
+  CreateEntityMessageCallback,
+  UpdateEntityMessageCallback,
+  UploadFileRequestCallback,
+} from "../hooks/block-protocol-functions/knowledge/knowledge-shim";
 import { useBlockProtocolArchiveEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
 import { useBlockProtocolCreateEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { useBlockProtocolFileUpload } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
@@ -153,6 +159,22 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     userPermissionsOnEntities,
   ]);
 
+  const refetchSubgraph = useCallback(async () => {
+    const newBlockSubgraph = await fetchBlockSubgraph(
+      blockEntityTypeId,
+      blockEntityId,
+    );
+
+    setBlockSubgraph(newBlockSubgraph.subgraph);
+    setUserPermissions(newBlockSubgraph.userPermissionsOnEntities);
+  }, [
+    blockEntityId,
+    blockEntityTypeId,
+    fetchBlockSubgraph,
+    setBlockSubgraph,
+    setUserPermissions,
+  ]);
+
   const functions = useMemo(
     () => ({
       queryEntities,
@@ -161,48 +183,60 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
        * @see https://app.asana.com/0/1200211978612931/1202509819279267/f
        */
       getEmbedBlock: fetchEmbedCode,
-      createEntity,
-      deleteEntity,
+      createEntity: async (
+        ...args: Parameters<GraphEmbedderMessageCallbacks["createEntity"]>
+      ) => {
+        const res = await createEntity(
+          args[0] as Parameters<CreateEntityMessageCallback>[0],
+        );
+
+        await refetchSubgraph();
+
+        return res;
+      },
+      deleteEntity: async (
+        ...args: Parameters<GraphEmbedderMessageCallbacks["deleteEntity"]>
+      ) => {
+        const res = await deleteEntity(
+          args[0] as Parameters<ArchiveEntityMessageCallback>[0],
+        );
+
+        await refetchSubgraph();
+
+        return res;
+      },
       getEntity,
-      uploadFile,
+      uploadFile: async (
+        ...args: Parameters<GraphEmbedderMessageCallbacks["uploadFile"]>
+      ) => {
+        const res = await uploadFile(
+          args[0] as Parameters<UploadFileRequestCallback>[0],
+        );
+
+        await refetchSubgraph();
+
+        return res;
+      },
       updateEntity: async (
         ...args: Parameters<GraphEmbedderMessageCallbacks["updateEntity"]>
       ) => {
-        const [messageData] = args;
         const res = await updateEntity(
-          messageData.data
-            ? {
-                data: {
-                  ...messageData.data,
-                  entityId: messageData.data.entityId as EntityId,
-                },
-              }
-            : {},
+          args[0] as Parameters<UpdateEntityMessageCallback>[0],
         );
 
-        const newBlockSubgraph = await fetchBlockSubgraph(
-          blockEntityTypeId,
-          blockEntityId,
-        );
-
-        setBlockSubgraph(newBlockSubgraph.subgraph);
-        setUserPermissions(newBlockSubgraph.userPermissionsOnEntities);
+        await refetchSubgraph();
 
         return res;
       },
     }),
     [
       queryEntities,
-      setBlockSubgraph,
-      fetchBlockSubgraph,
-      setUserPermissions,
       createEntity,
       deleteEntity,
       getEntity,
       updateEntity,
-      blockEntityId,
-      blockEntityTypeId,
       uploadFile,
+      refetchSubgraph,
     ],
   );
 
