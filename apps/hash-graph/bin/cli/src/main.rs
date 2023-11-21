@@ -12,7 +12,6 @@ use error_stack::Result;
 use graph::load_env;
 
 use self::{args::Args, error::GraphError};
-use crate::args::SentryEnvironment;
 
 fn main() -> Result<(), GraphError> {
     load_env(None);
@@ -40,12 +39,7 @@ fn main() -> Result<(), GraphError> {
                 1.0
             }
         })),
-        environment: sentry_environment.map(|env| {
-            Cow::Borrowed(match env {
-                SentryEnvironment::Development => "development",
-                SentryEnvironment::Production => "production",
-            })
-        }),
+        environment: Some(Cow::Owned(sentry_environment.to_string())),
 
         ..Default::default()
     });
