@@ -2321,10 +2321,10 @@
     node-fetch "^3.3.0"
     typescript "4.9.4"
 
-"@blockprotocol/graph@0.3.1-canary-20230803163819":
-  version "0.3.1-canary-20230803163819"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.3.1-canary-20230803163819.tgz#7384178d88e5b917f2748d3e2850ff1f8ebc7738"
-  integrity sha512-yKtTAJqbGV42iOa23bcGNRbaEVXVH3rlF0v3Nw7ds7SToXx1i20VGPmkX6xbyR7Gl5jjqMyTOCR6xeXNG6ZSXg==
+"@blockprotocol/graph@0.3.1-canary-20231120181031":
+  version "0.3.1-canary-20231120181031"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.3.1-canary-20231120181031.tgz#bd75a617efb9eab3cc92c8a38b27705a8a7d7eab"
+  integrity sha512-9oypfKwOInP9OoSCEKnVxX2VxDaeyiHjJROyisr8qxcRIacK/LmAr8UkT/7bxF7JW3ga4D2BUPUpTHaEZ1eaZg==
   dependencies:
     "@blockprotocol/core" "0.1.2"
     "@blockprotocol/type-system" "0.1.1"
@@ -2332,6 +2332,7 @@
     ajv-formats "^2.1.1"
     json-schema-to-typescript "^11.0.2"
     lit "^2.4.1"
+    node-fetch "^3.3.0"
     typescript "4.9.4"
 
 "@blockprotocol/hook@0.0.8":
