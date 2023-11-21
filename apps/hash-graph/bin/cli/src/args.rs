@@ -1,8 +1,12 @@
-use std::borrow::Cow;
-
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 
 use crate::{parser::OptionalSentryDsnParser, subcommand::Subcommand};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum SentryEnvironment {
+    Development,
+    Production,
+}
 
 /// Arguments passed to the program.
 #[derive(Debug, Parser)]
@@ -14,7 +18,7 @@ pub struct Args {
     pub sentry_dsn: core::option::Option<sentry::types::Dsn>,
 
     #[arg(long, env = "HASH_GRAPH_SENTRY_ENVIRONMENT")]
-    pub sentry_environment: Option<Cow<'static, str>>,
+    pub sentry_environment: Option<SentryEnvironment>,
 
     /// Specify a subcommand to run.
     #[command(subcommand)]
