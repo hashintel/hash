@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use clap::Parser;
 
 use crate::{parser::OptionalSentryDsnParser, subcommand::Subcommand};
@@ -10,6 +12,9 @@ pub struct Args {
     // the `value_parser` on the internal `sentry::types::Dsn`, failing.
     #[arg(long, env = "HASH_GRAPH_SENTRY_DSN", value_parser = OptionalSentryDsnParser, default_value = "")]
     pub sentry_dsn: core::option::Option<sentry::types::Dsn>,
+
+    #[arg(long, env = "HASH_GRAPH_SENTRY_ENVIRONMENT")]
+    pub sentry_environment: Option<Cow<'static, str>>,
 
     /// Specify a subcommand to run.
     #[command(subcommand)]

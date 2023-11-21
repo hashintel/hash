@@ -19,6 +19,7 @@ fn main() -> Result<(), GraphError> {
 
     let Args {
         sentry_dsn,
+        sentry_environment,
         subcommand,
     } = Args::parse_args();
 
@@ -38,6 +39,7 @@ fn main() -> Result<(), GraphError> {
                 1.0
             }
         })),
+        environment: sentry_environment,
         ..Default::default()
     });
 
