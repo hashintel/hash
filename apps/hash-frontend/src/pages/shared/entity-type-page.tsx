@@ -69,7 +69,7 @@ export const EntityTypePage = ({
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
     defaultValues: { allOf: [], properties: [], links: [] },
   });
-  const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
+  const { handleSubmit: wrapHandleSubmit, reset, watch } = formMethods;
 
   useEffect(() => {
     if (draftEntityType) {
@@ -211,6 +211,8 @@ export const EntityTypePage = ({
     }
   });
 
+  const icon = watch("icon");
+
   return (
     <>
       <NextSeo title={`${entityType.title} | Entity Type`} />
@@ -256,19 +258,21 @@ export const EntityTypePage = ({
                     title: entityType.title,
                     href: "#",
                     id: entityType.$id,
-                    icon: isLink ? (
-                      <LinkTypeIcon
-                        sx={({ palette }) => ({
-                          stroke: palette.gray[50],
-                        })}
-                      />
-                    ) : (
-                      <EntityTypeIcon
-                        sx={({ palette }) => ({
-                          fill: palette.gray[50],
-                        })}
-                      />
-                    ),
+                    icon:
+                      icon ??
+                      (isLink ? (
+                        <LinkTypeIcon
+                          sx={({ palette }) => ({
+                            stroke: palette.gray[50],
+                          })}
+                        />
+                      ) : (
+                        <EntityTypeIcon
+                          sx={({ palette }) => ({
+                            fill: palette.gray[50],
+                          })}
+                        />
+                      )),
                   },
                 ]}
                 scrollToTop={() => {}}
