@@ -126,10 +126,7 @@ export const AccountEntityTypeList: FunctionComponent<
           <TransitionGroup>
             {filteredEntityTypes.map((root) => (
               <Collapse key={root.schema.$id}>
-                <EntityTypeItem
-                  title={root.schema.title}
-                  entityTypeId={root.schema.$id}
-                />
+                <EntityTypeItem {...root} />
               </Collapse>
             ))}
           </TransitionGroup>

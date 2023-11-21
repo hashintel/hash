@@ -1,19 +1,19 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import { IconButton } from "@hashintel/design-system";
+import {
+  EntityTypeIcon,
+  IconButton,
+  LinkTypeIcon,
+} from "@hashintel/design-system";
+import { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, BoxProps, styled, Tooltip, Typography } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
 import { FunctionComponent, useRef } from "react";
 
+import { useIsSpecialEntityType } from "../../../entity-types-context/hooks";
 import { EllipsisRegularIcon } from "../../../icons/ellipsis-regular-icon";
 import { Link } from "../../../ui";
 import { EntityTypeMenu } from "./entity-type-menu";
-
-type EntityTypeItemProps = {
-  entityTypeId: VersionedUrl;
-  title: string;
-};
 
 const Container = styled((props: BoxProps & { selected: boolean }) => (
   <Box component="li" {...props} />
@@ -49,9 +49,9 @@ const Container = styled((props: BoxProps & { selected: boolean }) => (
   },
 }));
 
-export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
-  entityTypeId,
-  title,
+export const EntityTypeItem: FunctionComponent<EntityTypeWithMetadata> = ({
+  metadata: { icon },
+  schema: { title, $id: entityTypeId, allOf },
 }) => {
   const entityMenuTriggerRef = useRef(null);
   const popupState = usePopupState({
@@ -69,6 +69,11 @@ export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
     router.route === "/[shortname]/types/entity-type/[entity-type-id]" &&
     urlBase === baseUrl;
 
+  const { isLink } = useIsSpecialEntityType({
+    allOf,
+    $id: entityTypeId,
+  });
+
   return (
     <Container component="li" tabIndex={0} selected={selected}>
       <Link tabIndex={-1} sx={{ flex: 1 }} noLinkStyle href={baseUrl} flex={1}>
@@ -80,6 +85,28 @@ export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
             fontWeight: 500,
           }}
         >
+          <Box component="span" marginRight={1}>
+            {icon ??
+              (isLink ? (
+                <LinkTypeIcon
+                  sx={({ palette }) => ({
+                    position: "relative",
+                    top: 2,
+                    fontSize: 14,
+                    stroke: palette.gray[50],
+                  })}
+                />
+              ) : (
+                <EntityTypeIcon
+                  sx={({ palette }) => ({
+                    position: "relative",
+                    top: 2,
+                    fontSize: 14,
+                    fill: palette.gray[50],
+                  })}
+                />
+              ))}
+          </Box>
           {title}
         </Typography>
       </Link>
