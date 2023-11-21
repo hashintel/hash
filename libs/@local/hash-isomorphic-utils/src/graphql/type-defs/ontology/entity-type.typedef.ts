@@ -46,6 +46,10 @@ export const entityTypeTypedef = gql`
       The property which should be used as the label for entities of this type.
       """
       labelProperty: BaseUrl
+      """
+      The icon to use for the entity type.
+      """
+      icon: String
     ): EntityTypeWithMetadata!
 
     """
