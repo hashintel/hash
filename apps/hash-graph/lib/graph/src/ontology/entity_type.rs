@@ -499,12 +499,6 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
                 path,
                 inheritance_depth: None,
             } => write!(fmt, "properties.{path}"),
-            #[expect(
-                clippy::use_debug,
-                reason = "We don't have a `Display` impl for `OntologyEdgeKind` and this should \
-                          (a) never happen and (b) be easy to debug if it does happen. In the \
-                          future, this will become a compile-time check"
-            )]
             Self::PropertyTypeEdge {
                 edge_kind, path, ..
             } => write!(fmt, "<{edge_kind:?}>.{path}"),
