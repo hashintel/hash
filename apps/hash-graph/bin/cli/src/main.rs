@@ -6,12 +6,13 @@ mod error;
 mod parser;
 mod subcommand;
 
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use error_stack::Result;
 use graph::load_env;
 
 use self::{args::Args, error::GraphError};
+use crate::args::SentryEnvironment;
 
 fn main() -> Result<(), GraphError> {
     load_env(None);
@@ -19,6 +20,7 @@ fn main() -> Result<(), GraphError> {
 
     let Args {
         sentry_dsn,
+        sentry_environment,
         subcommand,
     } = Args::parse_args();
 
@@ -38,6 +40,13 @@ fn main() -> Result<(), GraphError> {
                 1.0
             }
         })),
+        environment: sentry_environment.map(|env| {
+            Cow::Borrowed(match env {
+                SentryEnvironment::Development => "development",
+                SentryEnvironment::Production => "production",
+            })
+        }),
+
         ..Default::default()
     });
 

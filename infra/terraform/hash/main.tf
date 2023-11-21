@@ -236,6 +236,8 @@ module "application" {
     { name = "HASH_SPICEDB_HOST", secret = false, value = "http://127.0.0.1" },
     { name = "HASH_SPICEDB_HTTP_PORT", secret = false, value = "8443" },
     { name = "HASH_SPICEDB_GRPC_PRESHARED_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["spicedb_grpc_preshared_key"]) },
+    { name = "HASH_GRAPH_SENTRY_DSN", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["graph_sentry_dsn"]) },
+    { name = "HASH_GRAPH_SENTRY_ENVIRONMENT", secret = false, value = "production" },
   ])
   # The type fetcher uses the same image as the graph right now
   type_fetcher_image = module.graph_ecr
