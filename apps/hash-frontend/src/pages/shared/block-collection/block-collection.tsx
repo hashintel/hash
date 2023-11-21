@@ -9,6 +9,7 @@ import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
 
 import { useUserBlocks } from "../../../blocks/user-blocks";
+import { useSnackbar } from "../../../components/hooks/use-snackbar";
 import { BlockCollectionContentItem } from "../../../graphql/api-types.gen";
 import { Button } from "../../../shared/ui";
 import { usePortals } from "./block-portals";
@@ -70,6 +71,8 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
 
   const { pageTitleRef, setEditorContext } = pageContext ?? {};
 
+  const snackbarManager = useSnackbar();
+
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
    * responsible for setting the contents of the prosemirror document
@@ -84,18 +87,19 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
      * child
      */
     const { view, connection, manager } = createEditorView({
-      renderNode: node,
-      renderPortal,
-      ownedById,
-      pageEntityId: entityId,
+      autoFocus,
+      client,
       getBlocksMap: () => currentBlocks.current,
-      readonly,
-      pageTitleRef,
       getLastSavedValue: () =>
         currentContents.current.map((contentItem) => contentItem.rightEntity),
-      client,
       isCommentingEnabled: enableCommenting,
-      autoFocus,
+      ownedById,
+      pageEntityId: entityId,
+      pageTitleRef,
+      readonly,
+      renderNode: node,
+      renderPortal,
+      snackbarManager,
     });
 
     if (setEditorContext) {
@@ -134,6 +138,7 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
     client,
     enableCommenting,
     autoFocus,
+    snackbarManager,
   ]);
 
   return (

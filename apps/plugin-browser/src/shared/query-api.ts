@@ -1,6 +1,12 @@
 import { GraphQLError } from "graphql";
 
-export const queryApi = (query: string, variables?: Record<string, unknown>) =>
+export const queryApi = <
+  Query extends any,
+  Variables extends Record<string, unknown>,
+>(
+  query: string,
+  variables?: Variables,
+): Promise<{ data: Query }> =>
   fetch(`${API_ORIGIN}/graphql`, {
     method: "POST",
     body: JSON.stringify({

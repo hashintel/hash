@@ -236,6 +236,8 @@ module "application" {
     { name = "HASH_SPICEDB_HOST", secret = false, value = "http://127.0.0.1" },
     { name = "HASH_SPICEDB_HTTP_PORT", secret = false, value = "8443" },
     { name = "HASH_SPICEDB_GRPC_PRESHARED_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["spicedb_grpc_preshared_key"]) },
+    { name = "HASH_GRAPH_SENTRY_DSN", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["graph_sentry_dsn"]) },
+    { name = "HASH_GRAPH_SENTRY_ENVIRONMENT", secret = false, value = "production" },
   ])
   # The type fetcher uses the same image as the graph right now
   type_fetcher_image = module.graph_ecr
@@ -269,6 +271,7 @@ module "application" {
 #    { name = "LINEAR_CLIENT_ID", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_id"]) },
 #    { name = "LINEAR_CLIENT_SECRET", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_secret"]) },
     { name = "LINEAR_WEBHOOK_SECRET", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_webhook_secret"]) },
+    { name = "NODE_API_SENTRY_DSN", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["node_api_sentry_dsn"]) }
   ])
   temporal_worker_ai_ts_image = module.temporal_worker_ai_ts_ecr
   temporal_worker_ai_ts_env_vars = [

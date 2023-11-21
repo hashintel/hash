@@ -29,7 +29,7 @@ bb8-postgres = "0.8.1"
 bytes = { workspace = true }
 clap = { version = "4.4.8", features = ["derive", "env"], optional = true }
 derivative = "2.2.0"
-dotenv-flow = "0.16.0"
+dotenv-flow = "0.16.2"
 futures = { workspace = true }
 hyper = "0.14.27"
 include_dir = "0.7.3"

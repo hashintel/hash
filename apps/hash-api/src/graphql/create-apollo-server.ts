@@ -4,6 +4,7 @@ import { makeExecutableSchema } from "@graphql-tools/schema";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
 import { schema } from "@local/hash-isomorphic-utils/graphql/type-defs/schema";
+import * as Sentry from "@sentry/node";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 import { ApolloServer } from "apollo-server-express";
 import { StatsD } from "hot-shots";
@@ -83,7 +84,45 @@ export const createApolloServer = ({
         requestDidStart: async (ctx) => {
           ctx.logger = ctx.context.logger as Logger;
           const startedAt = performance.now();
+
           return {
+            async didEncounterErrors(errorContext) {
+              const user: Express.Request["user"] = errorContext.context.user;
+
+              for (const err of errorContext.errors) {
+                // Don't send ForbiddenErrors to Sentry – we can add more here as needed
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this may be undefined
+                if (err.extensions?.code === "FORBIDDEN") {
+                  continue;
+                }
+
+                Sentry.withScope((scope) => {
+                  // Annotate whether failing operation was query/mutation/subscription
+                  scope.setTag("kind", errorContext.operation?.operation);
+
+                  scope.setExtra("query", errorContext.request.query);
+                  scope.setExtra("variables", errorContext.request.variables);
+
+                  if (user) {
+                    scope.setUser({
+                      id: user.entity.metadata.recordId.entityId,
+                      email: user.emails[0],
+                      shortname: user.shortname,
+                    });
+                  }
+
+                  if (err.path) {
+                    scope.addBreadcrumb({
+                      category: "query-path",
+                      message: err.path.join(" > "),
+                    });
+                  }
+
+                  Sentry.captureException(err);
+                });
+              }
+            },
+
             didResolveOperation: async (didResolveOperationCtx) => {
               if (didResolveOperationCtx.operationName) {
                 statsd?.increment(didResolveOperationCtx.operationName, [

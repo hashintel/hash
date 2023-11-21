@@ -65,6 +65,12 @@ impl Sink<Owner> for OwnerSender {
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send account"),
             Owner::AccountGroup(account_group) => {
+                self.account_group_id
+                    .start_send_unpin(AccountGroupRow {
+                        account_group_id: account_group.id,
+                    })
+                    .change_context(SnapshotRestoreError::Read)
+                    .attach_printable("could not send account group")?;
                 for relation in account_group.relations {
                     self.account_group_relations
                         .start_send_unpin((account_group.id, relation))

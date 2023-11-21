@@ -30,7 +30,7 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
             },
           }).then(({ data }) => {
             if (!data) {
-              throw new Error("Error creating profile bio entity");
+              throw new Error(`Error creating ${kind} entity`);
             }
 
             return data;
@@ -62,7 +62,7 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
             },
           }).then(({ data }) => {
             if (!data) {
-              throw new Error("Error creating block entity");
+              throw new Error("Error creating text entity");
             }
 
             return data;

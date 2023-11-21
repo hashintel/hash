@@ -34,6 +34,7 @@ import { apolloClient } from "../lib/apollo-client";
 import { constructMinimalUser } from "../lib/user-and-org";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { FileUploadsProvider } from "../shared/file-upload-context";
+import { KeyboardShortcutsContextProvider } from "../shared/keyboard-shortcuts-context";
 import {
   getLayoutWithSidebar,
   getPlainLayout,
@@ -141,30 +142,32 @@ const App: FunctionComponent<AppProps> = ({
             <CssBaseline />
             <RoutePageInfoProvider>
               <WorkspaceContextProvider>
-                <SnackbarProvider maxSnack={3}>
-                  <NotificationsContextProvider>
-                    <EntityTypesContextProvider>
-                      <PropertyTypesContextProvider includeArchived>
-                        <FileUploadsProvider>
-                          <SidebarContextProvider>
-                            <ErrorBoundary
-                              beforeCapture={(scope) => {
-                                scope.setTag("error-boundary", "_app");
-                              }}
-                              fallback={(props) =>
-                                getLayoutWithSidebar(
-                                  <ErrorFallback {...props} />,
-                                )
-                              }
-                            >
-                              {getLayout(<Component {...pageProps} />)}
-                            </ErrorBoundary>
-                          </SidebarContextProvider>
-                        </FileUploadsProvider>
-                      </PropertyTypesContextProvider>
-                    </EntityTypesContextProvider>
-                  </NotificationsContextProvider>
-                </SnackbarProvider>
+                <KeyboardShortcutsContextProvider>
+                  <SnackbarProvider maxSnack={3}>
+                    <NotificationsContextProvider>
+                      <EntityTypesContextProvider>
+                        <PropertyTypesContextProvider includeArchived>
+                          <FileUploadsProvider>
+                            <SidebarContextProvider>
+                              <ErrorBoundary
+                                beforeCapture={(scope) => {
+                                  scope.setTag("error-boundary", "_app");
+                                }}
+                                fallback={(props) =>
+                                  getLayoutWithSidebar(
+                                    <ErrorFallback {...props} />,
+                                  )
+                                }
+                              >
+                                {getLayout(<Component {...pageProps} />)}
+                              </ErrorBoundary>
+                            </SidebarContextProvider>
+                          </FileUploadsProvider>
+                        </PropertyTypesContextProvider>
+                      </EntityTypesContextProvider>
+                    </NotificationsContextProvider>
+                  </SnackbarProvider>
+                </KeyboardShortcutsContextProvider>
               </WorkspaceContextProvider>
             </RoutePageInfoProvider>
           </ThemeProvider>
