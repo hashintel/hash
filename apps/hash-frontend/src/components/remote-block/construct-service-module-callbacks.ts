@@ -38,10 +38,10 @@ const callExternalApiMethod = async (params: {
             status === 401
               ? "FORBIDDEN"
               : status === 403
-              ? "UNAUTHORIZED"
-              : status === 429
-              ? "TOO_MANY_REQUESTS"
-              : "INTERNAL_ERROR",
+                ? "UNAUTHORIZED"
+                : status === 429
+                  ? "TOO_MANY_REQUESTS"
+                  : "INTERNAL_ERROR",
         },
       ],
     };
