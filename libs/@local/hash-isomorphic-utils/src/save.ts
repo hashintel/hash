@@ -280,8 +280,8 @@ const calculateSaveActions = (
     const previousFractionalIndex = oldValue?.[1]?.fractionalIndex;
     if (
       previousFractionalIndex &&
-      (i < 0 || previousFractionalIndex > newFractionalIndexSeries[i - 1]!) &&
-      (i >= newFractionalIndexSeries.length ||
+      (i === 0 || previousFractionalIndex > newFractionalIndexSeries[i - 1]!) &&
+      (i + 1 >= newFractionalIndexSeries.length ||
         previousFractionalIndex < newFractionalIndexSeries[i + 1]!)
     ) {
       // No moving action required
