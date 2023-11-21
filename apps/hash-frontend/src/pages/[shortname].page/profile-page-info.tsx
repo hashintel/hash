@@ -121,20 +121,14 @@ const ProfileTabInfoSection: FunctionComponent<{ profile?: User | Org }> = ({
   );
 };
 
-const UserProfileWebsSection: FunctionComponent<{ userProfile: User }> = ({
-  userProfile,
+const UserProfileWebsSection: FunctionComponent<{ webs: Org[] }> = ({
+  webs,
 }) => {
-  const { orgs } = useOrgsWithLinks({
-    orgAccountGroupIds: userProfile.memberOf.map(
-      ({ org }) => org.accountGroupId,
-    ),
-  });
-
   return (
     <Box>
       <ProfileSectionHeading marginBottom={1.5}>Webs</ProfileSectionHeading>
       <Box display="flex" flexWrap="wrap" gap={1.5}>
-        {orgs?.map((org) => {
+        {webs.map((org) => {
           const avatarSrc = org.hasAvatar
             ? getImageUrlFromEntityProperties(
                 org.hasAvatar.imageEntity.properties,
@@ -149,7 +143,6 @@ const UserProfileWebsSection: FunctionComponent<{ userProfile: User }> = ({
             >
               <Link
                 href={`/@${org.shortname}`}
-                target="_blank"
                 sx={{
                   opacity: 1,
                   transition: ({ transitions }) =>
@@ -242,6 +235,13 @@ export const ProfilePageInfo: FunctionComponent<{
   setDisplayEditUserProfileInfoModal,
   currentTab,
 }) => {
+  const { orgs: webs } = useOrgsWithLinks({
+    orgAccountGroupIds:
+      profile?.kind === "user"
+        ? profile.memberOf.map(({ org }) => org.accountGroupId)
+        : [],
+  });
+
   return (
     <Box display="flex" flexDirection="column" rowGap={2.25}>
       <Box>
@@ -284,10 +284,10 @@ export const ProfilePageInfo: FunctionComponent<{
           <PinnedEntityTypeTabInfo {...currentTab} />
         )}
       </Box>
-      {profile?.kind === "user" ? (
+      {profile?.kind === "user" && webs && webs.length > 0 ? (
         <>
           <Divider sx={{ borderColor: ({ palette }) => palette.gray[20] }} />
-          <UserProfileWebsSection userProfile={profile} />
+          <UserProfileWebsSection webs={webs} />
         </>
       ) : null}
     </Box>

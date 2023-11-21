@@ -112,6 +112,7 @@ module.exports = withSentryConfig(
       },
 
       transpilePackages: [
+        "@blockprotocol/service",
         "@blockprotocol/core",
         "@blockprotocol/graph",
         "@blockprotocol/hook",

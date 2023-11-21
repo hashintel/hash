@@ -9,6 +9,7 @@ import {
   getRoots,
 } from "@blockprotocol/graph/temporal/stdlib";
 import { useHookEmbedderModule } from "@blockprotocol/hook/react";
+import { useServiceEmbedderModule } from "@blockprotocol/service/react";
 import { textualContentPropertyTypeBaseUrl } from "@local/hash-isomorphic-utils/entity-store";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Skeleton, SkeletonProps } from "@mui/material";
@@ -18,6 +19,7 @@ import { v4 as uuid } from "uuid";
 import { useUserBlocks } from "../../blocks/user-blocks";
 import { AddLinkedQueryPrompt } from "./add-linked-query-prompt";
 import { BlockRenderer } from "./block-renderer";
+import { serviceModuleCallbacks } from "./construct-service-module-callbacks";
 import { useRemoteBlock } from "./use-remote-block";
 
 type RemoteBlockProps = {
@@ -101,6 +103,8 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
   useEffect(() => {
     graphModule.registerCallbacks(graphCallbacks);
   }, [graphCallbacks, graphModule]);
+
+  useServiceEmbedderModule(wrapperRef, { callbacks: serviceModuleCallbacks });
 
   useHookEmbedderModule(wrapperRef, {
     callbacks: {

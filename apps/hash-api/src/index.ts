@@ -23,6 +23,7 @@ import { createHttpTerminator } from "http-terminator";
 import { customAlphabet } from "nanoid";
 
 import setupAuth from "./auth";
+import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { RedisCache } from "./cache";
 import {
   AwsSesEmailTransporter,
@@ -268,6 +269,8 @@ const main = async () => {
   });
 
   setupFileDownloadProxyHandler(app, redis);
+
+  setupBlockProtocolExternalServiceMethodProxy(app);
 
   app.get("/", (_, res) => res.send("Hello World"));
 

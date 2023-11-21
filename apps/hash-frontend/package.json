@@ -18,6 +18,7 @@
     "@blockprotocol/core": "0.1.2",
     "@blockprotocol/graph": "0.3.1-canary-20230803163819",
     "@blockprotocol/hook": "0.1.3",
+    "@blockprotocol/service": "0.1.3",
     "@blockprotocol/type-system": "0.1.1",
     "@dnd-kit/core": "6.0.8",
     "@dnd-kit/sortable": "7.0.2",
