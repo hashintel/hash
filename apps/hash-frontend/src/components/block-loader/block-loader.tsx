@@ -97,10 +97,10 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   /**
    * Set the initial block data from either:
    * - the block collection subgraph and permissions on entities in it, if provided
-   * - fetching the block's subgraph manually
+   * - via useFetchBlockSubgraph, which will fetch the block's data from the API if we have an entityId, or set a placeholder
    */
   useEffect(() => {
-    if (blockSubgraph || !blockEntityId) {
+    if (blockSubgraph) {
       return;
     }
 
@@ -108,7 +108,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
      * If we have been given the block collection's subgraph or a permissions object, use its data first for quicker loading.
      * The block and its permissions may not be present in the subgraph if it was just created.
      */
-    if (blockCollectionSubgraph) {
+    if (blockEntityId && blockCollectionSubgraph) {
       const entityEditionMap = blockCollectionSubgraph.vertices[blockEntityId];
 
       if (entityEditionMap) {
@@ -132,8 +132,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     }
 
     /**
-     * Fetch the block's proper subgraph and permissions to replace any initially loaded data.
-     * When blocks are created mid-session, we cannot rely on their entity or permissions being in the block collection subgraph,
+     * Fetch the block's subgraph and permissions to replace any initially loaded data.
+     * When blocks are created mid-session, we cannot rely on their entity or permissions being in the block collection subgraph.
+     * If we don't yet have a blockEntityId, fetchBlockSubgraph will provide a default.
      */
     void fetchBlockSubgraph(blockEntityTypeId, blockEntityId).then(
       (newBlockSubgraph) => {
@@ -239,9 +240,13 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
         ? {
             readonly:
               readonly || // is the entire page readonly?
-              !blockEntityId ||
-              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive on unsafe index access
-              !userPermissions?.[blockEntityId]?.edit, // does the user lack edit permissions on the block entity?
+              /**
+               * If we have a blockEntityId, check if the user lacks edit permissions on the block entity.
+               * If we don't have a blockEntityId, this is a newly created entity which the user should have edit permissions on.
+               */
+              (blockEntityId &&
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive on unsafe index access
+                !userPermissions?.[blockEntityId]?.edit),
             blockEntitySubgraph:
               blockSubgraph as unknown as BpSubgraph<EntityRootType>,
           }
