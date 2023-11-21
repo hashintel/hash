@@ -57,12 +57,19 @@ export const EntityTypeSelector: FunctionComponent<{
         variant: "entity type",
       }}
       options={filteredEntityTypes ?? []}
-      optionToRenderData={({ schema: { $id, title, description } }) => ({
+      optionToRenderData={({
+        schema: { $id, title, description },
+        metadata: { icon },
+      }) => ({
         uniqueId: $id,
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo why this false positive?
-        Icon: isSpecialEntityTypeLookup?.[$id]?.isLink
-          ? LinkTypeIcon
-          : EntityTypeIcon,
+        icon:
+          icon ??
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo why this false positive?
+          (isSpecialEntityTypeLookup?.[$id]?.isLink ? (
+            <LinkTypeIcon />
+          ) : (
+            <EntityTypeIcon />
+          )),
         typeId: $id,
         title,
         description,

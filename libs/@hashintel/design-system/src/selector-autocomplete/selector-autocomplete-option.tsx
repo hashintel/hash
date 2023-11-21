@@ -1,16 +1,8 @@
 import { BaseUrl, EntityPropertiesObject } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
-  Box,
-  Paper,
-  Popper,
-  Stack,
-  SvgIconProps,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, Paper, Popper, Stack, Tooltip, Typography } from "@mui/material";
 import clsx from "clsx";
-import { FunctionComponent, HTMLAttributes, useRef, useState } from "react";
+import { HTMLAttributes, ReactNode, useRef, useState } from "react";
 
 import { Chip } from "../chip";
 import { GRID_CLICK_IGNORE_CLASS } from "../constants";
@@ -34,7 +26,7 @@ export type SelectorAutocompleteOptionProps = {
   liProps: HTMLAttributes<HTMLLIElement>;
   description?: string;
   entityProperties?: EntityPropertiesObject;
-  Icon: FunctionComponent<SvgIconProps> | null;
+  icon: ReactNode | null;
   title: string;
   /** the typeId associated with this entity type or entity, displayed as a chip in the option */
   typeId: VersionedUrl;
@@ -53,7 +45,7 @@ export const SelectorAutocompleteOption = ({
   liProps,
   description,
   entityProperties,
-  Icon,
+  icon,
   title,
   typeId,
 }: SelectorAutocompleteOptionProps) => {
@@ -141,7 +133,7 @@ export const SelectorAutocompleteOption = ({
               alignItems="center"
               maxWidth="50%"
             >
-              {Icon ? (
+              {icon ? (
                 <Stack
                   direction="row"
                   sx={({ palette }) => ({
@@ -161,9 +153,13 @@ export const SelectorAutocompleteOption = ({
                       display: "flex",
                       px: 1.2,
                       height: "100%",
+                      fontSize: 14,
+                      "> svg": {
+                        fontSize: 14,
+                      },
                     })}
                   >
-                    <Icon sx={{ fontSize: 14 }} />
+                    {icon}
                   </Box>
                   <Typography
                     variant="smallTextLabels"
