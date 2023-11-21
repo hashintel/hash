@@ -350,22 +350,23 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                                   justifyContent: "center",
                                 }}
                               >
-                                {isSpecialEntityTypeLookup?.[field.schema.$id]
-                                  ?.isLink ? (
-                                  <CustomLinkIcon
-                                    sx={{
-                                      fontSize: 22,
-                                      marginLeft: -0.75,
-                                      marginRight: -0.75,
-                                    }}
-                                  />
-                                ) : (
-                                  entityTypeIcons[field.schema.$id] ?? (
-                                    <AsteriskRegularIcon
-                                      sx={{ fontSize: 12 }}
+                                {field.metadata.icon ??
+                                  (isSpecialEntityTypeLookup?.[field.schema.$id]
+                                    ?.isLink ? (
+                                    <CustomLinkIcon
+                                      sx={{
+                                        fontSize: 22,
+                                        marginLeft: -0.75,
+                                        marginRight: -0.75,
+                                      }}
                                     />
-                                  )
-                                )}
+                                  ) : (
+                                    entityTypeIcons[field.schema.$id] ?? (
+                                      <AsteriskRegularIcon
+                                        sx={{ fontSize: 12 }}
+                                      />
+                                    )
+                                  ))}
                               </Box>
                               <Typography
                                 sx={{

@@ -27,7 +27,7 @@ import {
   constructUser,
   isEntityUserEntity,
 } from "../lib/user-and-org";
-import { useEntityTypesContextRequired } from "../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { useLatestEntityTypesOptional } from "../shared/entity-types-context/hooks";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { useUserOrOrg } from "../shared/use-user-or-org";
 import { EditUserProfileInfoModal } from "./[shortname].page/edit-user-profile-info-modal";
@@ -40,7 +40,7 @@ import {
 
 const ProfilePage: NextPageWithLayout = () => {
   const router = useRouter();
-  const { entityTypes } = useEntityTypesContextRequired();
+  const entityTypes = useLatestEntityTypesOptional();
 
   const { profileShortname, currentTabTitle } = parseProfilePageUrlQueryParams(
     router.query,
