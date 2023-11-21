@@ -143,7 +143,6 @@ const UserProfileWebsSection: FunctionComponent<{ webs: Org[] }> = ({
             >
               <Link
                 href={`/@${org.shortname}`}
-                target="_blank"
                 sx={{
                   opacity: 1,
                   transition: ({ transitions }) =>
