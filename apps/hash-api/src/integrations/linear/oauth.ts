@@ -279,6 +279,6 @@ export const oAuthLinearCallback: RequestHandler<
     }
 
     res.redirect(
-      `${frontendUrl}/account/integrations/linear/new?linearIntegrationEntityId=${linearIntegration.entity.metadata.recordId.entityId}`,
+      `${frontendUrl}/settings/integrations/linear/new?linearIntegrationEntityId=${linearIntegration.entity.metadata.recordId.entityId}`,
     );
   };
