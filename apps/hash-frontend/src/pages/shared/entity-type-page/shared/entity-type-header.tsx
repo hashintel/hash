@@ -75,7 +75,7 @@ export const EntityTypeHeader = ({
               render={({ field }) => (
                 <EditIconButton
                   icon={field.value}
-                  readonly={isReadonly}
+                  disabled={isReadonly}
                   onChange={(updatedIcon) => field.onChange(updatedIcon)}
                   defaultIcon={
                     isLink ? (

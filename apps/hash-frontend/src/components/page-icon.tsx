@@ -2,17 +2,11 @@ import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, BoxProps } from "@mui/material";
 
-import { CanvasIcon } from "../shared/icons/canvas-icon";
-
-export type SizeVariant = "small" | "medium";
-
-export const pageIconVariantSizes: Record<
+import {
+  iconVariantSizes,
   SizeVariant,
-  { container: number; font: number }
-> = {
-  small: { container: 20, font: 14 },
-  medium: { container: 44, font: 36 },
-};
+} from "../pages/shared/edit-icon-button";
+import { CanvasIcon } from "../shared/icons/canvas-icon";
 
 interface PageIconProps {
   isCanvas?: boolean;
@@ -27,7 +21,7 @@ export const PageIcon = ({
   size = "medium",
   sx = [],
 }: PageIconProps) => {
-  const sizes = pageIconVariantSizes[size];
+  const sizes = iconVariantSizes[size];
 
   return (
     <Box

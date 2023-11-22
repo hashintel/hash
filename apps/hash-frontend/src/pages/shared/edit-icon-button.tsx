@@ -35,8 +35,8 @@ export const iconVariantSizes: Record<
 interface EditIconButtonProps {
   icon?: string | null;
   defaultIcon?: ReactNode;
-  onChange: (updatedIcon: string | null) => Promise<void> | void;
-  readonly?: boolean;
+  onChange: (updatedIcon: string) => Promise<void> | void;
+  disabled?: boolean;
   size?: SizeVariant;
   hasDarkBg?: boolean;
   onClick?: MouseEventHandler<HTMLButtonElement>;
@@ -46,7 +46,7 @@ interface EditIconButtonProps {
 
 export const EditIconButton: FunctionComponent<EditIconButtonProps> = ({
   icon: iconFromProps,
-  readonly = false,
+  disabled = false,
   defaultIcon,
   onChange,
   size = "medium",
@@ -115,7 +115,7 @@ export const EditIconButton: FunctionComponent<EditIconButtonProps> = ({
             },
             ...(Array.isArray(sx) ? sx : [sx]),
           ]}
-          disabled={readonly || loading}
+          disabled={disabled || loading}
         >
           <Box
             sx={[

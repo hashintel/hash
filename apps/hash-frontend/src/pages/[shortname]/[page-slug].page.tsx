@@ -44,7 +44,7 @@ import {
   PageThread,
   usePageComments,
 } from "../../components/hooks/use-page-comments";
-import { PageIcon, pageIconVariantSizes } from "../../components/page-icon";
+import { PageIcon } from "../../components/page-icon";
 import { PageIconButton } from "../../components/page-icon-button";
 import { PageLoadingState } from "../../components/page-loading-state";
 import { CollabPositionProvider } from "../../contexts/collab-position-context";
@@ -79,6 +79,7 @@ import {
   getBlockCollectionContents,
 } from "../shared/block-collection-contents";
 import { BlockCollectionContextProvider } from "../shared/block-collection-context";
+import { iconVariantSizes } from "../shared/edit-icon-button";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
@@ -521,7 +522,7 @@ const Page: NextPageWithLayout<PageProps> = ({
                   scrollMarginTop:
                     HEADER_HEIGHT +
                     TOP_CONTEXT_BAR_HEIGHT +
-                    pageIconVariantSizes.medium.container,
+                    iconVariantSizes.medium.container,
                 }}
               >
                 <PageTitle

@@ -1,21 +1,22 @@
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { fontAwesomeIconClasses, IconButton } from "@hashintel/design-system";
+import { faFile } from "@fortawesome/free-regular-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/design-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { EntityId } from "@local/hash-subgraph";
-import { iconButtonClasses, SxProps, Theme, Tooltip } from "@mui/material";
-import { SystemStyleObject } from "@mui/system";
-import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import { MouseEventHandler } from "react";
+import { SxProps, Theme } from "@mui/material";
+import { MouseEventHandler, useCallback } from "react";
 
 import {
-  EmojiPicker,
-  EmojiPickerPopoverProps,
-} from "./emoji-picker/emoji-picker";
+  EditIconButton,
+  iconVariantSizes,
+  SizeVariant,
+} from "../pages/shared/edit-icon-button";
+import { CanvasIcon } from "../shared/icons/canvas-icon";
+import { EmojiPickerPopoverProps } from "./emoji-picker/emoji-picker";
 import { useDefaultState } from "./hooks/use-default-state";
 import { useUpdatePageIcon } from "./hooks/use-update-page-icon";
-import { PageIcon, SizeVariant } from "./page-icon";
 
-interface PageIconButtonProps {
+type PageIconButtonProps = {
   entityId: EntityId;
   pageEntityTypeId: VersionedUrl;
   icon?: string | null;
@@ -25,81 +26,53 @@ interface PageIconButtonProps {
   onClick?: MouseEventHandler<HTMLButtonElement>;
   popoverProps?: EmojiPickerPopoverProps;
   sx?: SxProps<Theme>;
-}
+};
 
 export const PageIconButton = ({
   entityId,
   pageEntityTypeId,
   icon: iconFromProps,
-  readonly = false,
   size = "medium",
-  hasDarkBg,
-  onClick,
-  popoverProps,
-  sx = [],
+  ...remainingProps
 }: PageIconButtonProps) => {
   const [icon, setIcon] = useDefaultState(iconFromProps);
 
-  const popupState = usePopupState({
-    variant: "popover",
-    popupId: "emoji-picker",
-  });
+  const [updatePageIcon] = useUpdatePageIcon();
 
-  const [updatePageIcon, { updatePageIconLoading }] = useUpdatePageIcon();
+  const isCanvas = pageEntityTypeId === systemEntityTypes.canvas.entityTypeId;
 
-  const trigger = bindTrigger(popupState);
+  const handleChange = useCallback(
+    async (updatedIcon: string) => {
+      await updatePageIcon(updatedIcon, entityId);
+      setIcon(updatedIcon);
+    },
+    [updatePageIcon, setIcon, entityId],
+  );
 
   return (
-    <>
-      <Tooltip title="Change icon" placement="bottom">
-        <IconButton
-          {...trigger}
-          onClick={(event) => {
-            onClick?.(event);
-            trigger.onClick(event);
-          }}
-          sx={[
-            ({ palette }) => {
-              const background = hasDarkBg
-                ? palette.gray[40]
-                : palette.gray[30];
-
-              const hoverState: SystemStyleObject = {
-                background,
-                ...(hasDarkBg && {
-                  [`.${fontAwesomeIconClasses.icon}`]: {
-                    color: palette.gray[50],
-                  },
-                }),
-              };
-              return {
-                p: 0,
-                ...(popupState.isOpen && hoverState),
-                "&:focus-visible, &:hover": hoverState,
-                [`&.${iconButtonClasses.disabled}`]: { color: "unset" },
-              };
-            },
-            ...(Array.isArray(sx) ? sx : [sx]),
-          ]}
-          disabled={readonly || updatePageIconLoading}
-        >
-          <PageIcon
-            isCanvas={
-              pageEntityTypeId === systemEntityTypes.canvas.entityTypeId
-            }
-            icon={icon}
-            size={size}
+    <EditIconButton
+      icon={icon}
+      size={size}
+      onChange={handleChange}
+      defaultIcon={
+        isCanvas ? (
+          <CanvasIcon
+            sx={{
+              fill: ({ palette }) => palette.gray[40],
+              fontSize: iconVariantSizes[size].font + 2,
+            }}
           />
-        </IconButton>
-      </Tooltip>
-      <EmojiPicker
-        popoverProps={popoverProps}
-        popupState={popupState}
-        onEmojiSelect={(emoji) => {
-          void updatePageIcon(emoji.native, entityId);
-          setIcon(emoji.native);
-        }}
-      />
-    </>
+        ) : (
+          <FontAwesomeIcon
+            icon={faFile}
+            sx={(theme) => ({
+              fontSize: `${iconVariantSizes[size].font}px !important`,
+              color: theme.palette.gray[40],
+            })}
+          />
+        )
+      }
+      {...remainingProps}
+    />
   );
 };
