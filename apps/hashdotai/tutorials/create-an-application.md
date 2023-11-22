@@ -7,9 +7,14 @@ description: Creating a simple application in HASH
 
 # Create a simple application {#create-a-simple-application}
 
-Let’s explore how HASH works by building a simple application. We’re going to model our business’ projects in HASH and render our project data in a Table Block.
 
-1.  Sign up at [hash.ai/signup](https://app.hash.ai/signup).
+**Full tool-building capabilities -- including programmable buttons, dropdowns, radio buttons/checkboxes and other UI elements -- are planned in HASH. In the meantime, you can codelessly assemble existing blocks to create interfaces useful in everyday tasks.**
+
+# Example: modeling a business' projects
+
+You can render any kind of entity in HASH using blocks such as the Kanban and Table block.
+
+In this example, you'll be shown how to create a new entity type, instantiate entities of that type, and display them in a table for easy management. You'll also be introduced to **flows**, which an be used to automate certain kinds of actions (both when triggered manually, or in response)
 
 **Creating the “Project” Entity Type**
 
