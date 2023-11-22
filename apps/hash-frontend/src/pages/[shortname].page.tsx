@@ -202,8 +202,8 @@ const ProfilePage: NextPageWithLayout = () => {
                     entityType.schema.$id,
                   )
                 : entityType
-                ? [entityType]
-                : [];
+                  ? [entityType]
+                  : [];
           } catch {
             /**
              * The entity type is not in the subgraph, which might happen if the user has no entities of that type.

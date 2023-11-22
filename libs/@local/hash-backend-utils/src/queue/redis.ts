@@ -184,14 +184,14 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
           ? // Non-blocking
             await this.client.rpoplpush(name, processingName)
           : // Block indefinitely
-          timeoutMs === 0
-          ? await this.client.brpoplpush(name, processingName, 0)
-          : // Block with timeout
-            await this.client.brpoplpush(
-              name,
-              processingName,
-              timeoutMs / 1000,
-            );
+            timeoutMs === 0
+            ? await this.client.brpoplpush(name, processingName, 0)
+            : // Block with timeout
+              await this.client.brpoplpush(
+                name,
+                processingName,
+                timeoutMs / 1000,
+              );
     }
 
     if (!item) {

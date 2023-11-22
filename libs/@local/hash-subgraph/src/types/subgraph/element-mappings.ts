@@ -73,10 +73,10 @@ type RecursiveSelect<T, U, Reversed extends boolean = false> = T extends U
     ? T
     : U
   : T extends { [key in keyof U]: unknown }
-  ? T extends { [key in keyof U]: RecursiveSelect<U[key], T[key], true> }
-    ? T
-    : never
-  : never;
+    ? T extends { [key in keyof U]: RecursiveSelect<U[key], T[key], true> }
+      ? T
+      : never
+    : never;
 
 /**
  * Helper type which returns the potential ways of identifying a given element of the graph by looking up the associated

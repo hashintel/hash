@@ -107,11 +107,11 @@ export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
           {isDefinedBlock
             ? "Re-load block"
             : !isValidBlockUrl
-            ? "Invalid URL"
-            : // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-            error
-            ? "An error occurred"
-            : "Load Block"}
+              ? "Invalid URL"
+              : // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+                error
+                ? "An error occurred"
+                : "Load Block"}
         </Button>
       </Collapse>
     </Box>

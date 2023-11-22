@@ -207,8 +207,8 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
             isItemEntityType(item)
               ? "type"
               : isEntityPageEntity(item)
-              ? "page"
-              : "entity"
+                ? "page"
+                : "entity"
           }`}
         </Button>
       </Container>

@@ -136,12 +136,12 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
       currentTab === "all"
         ? allTypes
         : currentTab === "entity-type"
-        ? latestNonLinkEntityTypes
-        : currentTab === "link-type"
-        ? latestLinkEntityTypes
-        : currentTab === "property-type"
-        ? latestPropertyTypes
-        : latestDataTypes,
+          ? latestNonLinkEntityTypes
+          : currentTab === "link-type"
+            ? latestLinkEntityTypes
+            : currentTab === "property-type"
+              ? latestPropertyTypes
+              : latestDataTypes,
     [
       currentTab,
       allTypes,

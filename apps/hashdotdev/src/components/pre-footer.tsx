@@ -281,8 +281,8 @@ const BlogPost: FunctionComponent<{
           all.length - 1 === i
             ? name
             : all.length - 2 === i
-            ? `${name} & `
-            : `${name}, `,
+              ? `${name} & `
+              : `${name}, `,
         )
         .join("")}
     </Typography>

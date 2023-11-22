@@ -12,8 +12,8 @@ type ObjectEntry<T extends {}> = T extends object
       ? K extends string
         ? [K, V]
         : K extends number
-        ? [`${K}`, V]
-        : never
+          ? [`${K}`, V]
+          : never
       : never
     : never
   : never;
@@ -22,8 +22,8 @@ type ObjectEntry<T extends {}> = T extends object
 export type Entry<T extends {}> = T extends readonly [unknown, ...unknown[]]
   ? TupleEntry<T>
   : T extends ReadonlyArray<infer U>
-  ? [`${number}`, U]
-  : ObjectEntry<T>;
+    ? [`${number}`, U]
+    : ObjectEntry<T>;
 
 /** `Object.values` analogue which returns a well-typed array */
 export const typedValues = <T extends {}>(object: T): Entry<T>[1][] => {
