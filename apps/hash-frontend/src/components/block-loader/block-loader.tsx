@@ -197,7 +197,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
         : null;
 
       const draftEntityEditionTimestamp =
-        entityInStore?.metadata.temporalVersioning?.decisionTime.start.limit;
+        entityInStore?.metadata.temporalVersioning.decisionTime.start.limit;
 
       const draftEntityIsNewer =
         draftEntityEditionTimestamp &&
