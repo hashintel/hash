@@ -992,16 +992,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let link_data = transaction
             .as_client()
             .query_opt(
-                "
-                        SELECT
-                            left_web_id,
-                            left_entity_uuid,
-                            right_web_id,
-                            right_entity_uuid
-                         FROM entity_has_left_entity
-                         JOIN entity_has_right_entity USING (web_id, entity_uuid)
-                         WHERE web_id = $1 AND entity_uuid = $2;
-                    ",
+                "SELECT left_web_id, left_entity_uuid, right_web_id, right_entity_uuid
+                 FROM entity_has_left_entity
+                 JOIN entity_has_right_entity USING (web_id, entity_uuid)
+                 WHERE web_id = $1 AND entity_uuid = $2;",
                 &[&entity_id.owned_by_id, &entity_id.entity_uuid],
             )
             .await
