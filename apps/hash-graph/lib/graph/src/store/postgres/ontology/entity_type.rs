@@ -51,7 +51,10 @@ use crate::{
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::{EntityTypeVertexId, PropertyTypeVertexId},
         query::StructuralQuery,
-        temporal_axes::{QueryTemporalAxesUnresolved, VariableAxis},
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableAxis,
+            VariableTemporalAxisUnresolved,
+        },
         Subgraph,
     },
 };
@@ -376,7 +379,13 @@ impl<C: AsClient> PostgresStore<C> {
                     FilterExpression::Path(EntityTypeQueryPath::OntologyId),
                     ParameterList::Uuid(&parent_entity_type_ids),
                 ),
-                Some(&QueryTemporalAxesUnresolved::default().resolve()),
+                Some(
+                    &QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    }
+                    .resolve(),
+                ),
             )
             .await?
             .map_ok(|(id, schema)| (EntityTypeId::from(id), schema))

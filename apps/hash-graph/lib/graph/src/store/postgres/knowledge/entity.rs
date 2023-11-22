@@ -11,7 +11,8 @@ use authorization::{
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
 };
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{ensure, Report, Result, ResultExt};
+use futures::TryStreamExt;
 use graph_types::{
     account::AccountId,
     knowledge::{
@@ -36,13 +37,16 @@ use validation::Validate;
 #[cfg(hash_graph_test_environment)]
 use crate::store::error::DeletionError;
 use crate::{
+    ontology::EntityTypeQueryPath,
     store::{
         crud::Read,
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
+        knowledge::EntityValidationType,
         postgres::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
             TraversalContext,
         },
+        query::{Filter, FilterExpression, Parameter},
         validation::StoreProvider,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
@@ -50,7 +54,10 @@ use crate::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
         identifier::{EntityIdWithInterval, EntityVertexId},
         query::StructuralQuery,
-        temporal_axes::VariableAxis,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableAxis,
+            VariableTemporalAxisUnresolved,
+        },
         Subgraph,
     },
 };
@@ -527,6 +534,106 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         }
     }
 
+    async fn validate_entity<A: AuthorizationApi + Sync>(
+        &self,
+        actor_id: AccountId,
+        authorization_api: &A,
+        consistency: Consistency<'static>,
+        entity_type: EntityValidationType<'_>,
+        properties: &EntityProperties,
+        // TODO: validate links
+        //   see https://linear.app/hash/issue/H-972
+        _link_data: Option<&LinkData>,
+    ) -> Result<(), QueryError> {
+        enum MaybeBorrowed<'a, T> {
+            Borrowed(&'a T),
+            Owned(T),
+        }
+
+        let validator_provider = StoreProvider {
+            store: self,
+            actor_id,
+            authorization_api,
+            consistency: Consistency::FullyConsistent,
+        };
+
+        let schema = match entity_type {
+            EntityValidationType::Schema(schema) => MaybeBorrowed::Borrowed(schema),
+            EntityValidationType::Id(entity_type_url) => {
+                let entity_type_id = EntityTypeId::from_url(entity_type_url);
+
+                authorization_api
+                    .check_entity_type_permission(
+                        actor_id,
+                        EntityTypePermission::View,
+                        entity_type_id,
+                        consistency,
+                    )
+                    .await
+                    .change_context(QueryError)?
+                    .assert_permission()
+                    .change_context(QueryError)
+                    .attach(StatusCode::PermissionDenied)?;
+
+                let mut closed_schemas = self
+                    .read_closed_schemas(
+                        &Filter::Equal(
+                            Some(FilterExpression::Path(EntityTypeQueryPath::OntologyId)),
+                            Some(FilterExpression::Parameter(Parameter::Uuid(
+                                entity_type_id.into_uuid(),
+                            ))),
+                        ),
+                        Some(
+                            &QueryTemporalAxesUnresolved::DecisionTime {
+                                pinned: PinnedTemporalAxisUnresolved::new(None),
+                                variable: VariableTemporalAxisUnresolved::new(None, None),
+                            }
+                            .resolve(),
+                        ),
+                    )
+                    .await
+                    .change_context(QueryError)?
+                    .and_then(|(_, raw_type)| async move {
+                        // TODO: Distinguish between format validation and content validation so
+                        //       it's possible to directly use the correct type.
+                        //   see https://linear.app/hash/issue/BP-33
+                        EntityType::try_from(raw_type).change_context(QueryError)
+                    })
+                    .try_collect::<Vec<EntityType>>()
+                    .await?;
+
+                ensure!(
+                    closed_schemas.len() <= 1,
+                    Report::new(QueryError).attach_printable(format!(
+                        "Expected exactly one closed schema to be returned from the query but {} \
+                         were returned",
+                        closed_schemas.len(),
+                    ))
+                );
+                MaybeBorrowed::Owned(closed_schemas.pop().ok_or_else(|| {
+                    Report::new(QueryError).attach_printable(
+                        "Expected exactly one closed schema to be returned from the query but \
+                         none was returned",
+                    )
+                })?)
+            }
+        };
+
+        properties
+            .validate(
+                match &schema {
+                    MaybeBorrowed::Borrowed(schema) => schema,
+                    MaybeBorrowed::Owned(schema) => schema,
+                },
+                &validator_provider,
+            )
+            .await
+            .change_context(QueryError)
+            .attach(StatusCode::InvalidArgument)?;
+
+        Ok(())
+    }
+
     #[doc(hidden)]
     #[cfg(hash_graph_test_environment)]
     #[expect(clippy::too_many_lines)]
@@ -900,15 +1007,15 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             ),
         };
 
-        let validator_provider = StoreProvider {
-            store: &transaction,
-            actor_id,
-            authorization_api,
-            consistency: Consistency::FullyConsistent,
-        };
-
-        entity
-            .validate(&closed_schema, &validator_provider)
+        transaction
+            .validate_entity(
+                actor_id,
+                authorization_api,
+                Consistency::FullyConsistent,
+                EntityValidationType::Schema(&closed_schema),
+                &entity.properties,
+                entity.link_data.as_ref(),
+            )
             .await
             .change_context(UpdateError)
             .attach(StatusCode::InvalidArgument)?;
