@@ -45,7 +45,7 @@ import {
   usePageComments,
 } from "../../components/hooks/use-page-comments";
 import { PageIcon } from "../../components/page-icon";
-import { PageIconButton } from "../../components/page-icon-button";
+import { PageIconButton } from "../../shared/page-icon-button";
 import { PageLoadingState } from "../../components/page-loading-state";
 import { CollabPositionProvider } from "../../contexts/collab-position-context";
 import {
@@ -79,7 +79,7 @@ import {
   getBlockCollectionContents,
 } from "../shared/block-collection-contents";
 import { BlockCollectionContextProvider } from "../shared/block-collection-context";
-import { iconVariantSizes } from "../shared/edit-icon-button";
+import { iconVariantSizes } from "../../shared/edit-icon-button";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,

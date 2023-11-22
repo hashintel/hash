@@ -6,15 +6,15 @@ import { EntityId } from "@local/hash-subgraph";
 import { SxProps, Theme } from "@mui/material";
 import { MouseEventHandler, useCallback } from "react";
 
+import { useDefaultState } from "../components/hooks/use-default-state";
 import {
   EditIconButton,
   iconVariantSizes,
   SizeVariant,
-} from "../pages/shared/edit-icon-button";
-import { CanvasIcon } from "../shared/icons/canvas-icon";
-import { EmojiPickerPopoverProps } from "./emoji-picker/emoji-picker";
-import { useDefaultState } from "./hooks/use-default-state";
-import { useUpdatePageIcon } from "./hooks/use-update-page-icon";
+} from "./edit-icon-button";
+import { EmojiPickerPopoverProps } from "./edit-icon-button/emoji-picker/emoji-picker";
+import { CanvasIcon } from "./icons/canvas-icon";
+import { useUpdatePageIcon } from "./use-update-page-icon";
 
 type PageIconButtonProps = {
   entityId: EntityId;

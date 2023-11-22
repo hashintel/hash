@@ -16,7 +16,7 @@ import {
   useState,
 } from "react";
 
-import { useDefaultState } from "../../components/hooks/use-default-state";
+import { useDefaultState } from "../components/hooks/use-default-state";
 import {
   EmojiPicker,
   EmojiPickerPopoverProps,

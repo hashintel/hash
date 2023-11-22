@@ -7,7 +7,7 @@ import { Box, PopoverPosition, Tooltip, Typography } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { CSSProperties, forwardRef, MouseEvent, useState } from "react";
 
-import { PageIconButton } from "../../../../components/page-icon-button";
+import { PageIconButton } from "../../../page-icon-button";
 import { PAGE_TITLE_PLACEHOLDER } from "../../../../pages/shared/block-collection/page-title/page-title";
 import { Link } from "../../../ui";
 import { PageMenu } from "./page-menu";

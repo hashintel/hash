@@ -11,7 +11,7 @@ import { Controller } from "react-hook-form";
 
 import { Button, Link, Modal } from "../../../../shared/ui";
 import { CreateEntityTypeForm } from "../../create-entity-type-form";
-import { EditIconButton } from "../../edit-icon-button";
+import { EditIconButton } from "../../../../shared/edit-icon-button";
 import { EntityTypeDescription } from "../entity-type-description";
 
 interface EntityTypeHeaderProps {
