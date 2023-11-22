@@ -24,6 +24,7 @@ import {
   getDraftEntityByEntityId,
   isBlockEntity,
   isDraftBlockEntity,
+  textualContentPropertyTypeBaseUrl,
 } from "./entity-store";
 import {
   ComponentNode,
@@ -209,11 +210,7 @@ const setBlockChildEntity = (
       targetEntity.metadata.recordId.entityId,
     );
     targetDraftEntity = {
-      metadata: {
-        recordId: {
-          entityId: targetEntity.metadata.recordId.entityId,
-        },
-      },
+      metadata: targetEntity.metadata,
       draftId: targetEntityDraftId,
       properties: targetEntity.properties,
       /** @todo use the actual updated date here https://app.asana.com/0/0/1203099452204542/f */
@@ -375,10 +372,34 @@ const entityStoreReducer = (
           draftState.trackedActions.push({ action, id: uuid() });
         }
 
+        const now = new Date().toISOString();
+
         draftState.store.draft[action.payload.draftId] = {
           metadata: {
+            archived: false,
             recordId: {
               entityId: action.payload.entityId,
+              editionId: now,
+            },
+            temporalVersioning: {
+              decisionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: now as Timestamp,
+                },
+                end: {
+                  kind: "unbounded",
+                },
+              },
+              transactionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: now as Timestamp,
+                },
+                end: {
+                  kind: "unbounded",
+                },
+              },
             },
           },
           draftId: action.payload.draftId,
@@ -628,15 +649,22 @@ class ProsemirrorStateChangeHandler {
       // Check if the next entity node's child is a component node
       isComponentNode(node.firstChild.firstChild)
     ) {
-      const nextProps = textBlockNodeToEntityProperties(node.firstChild);
+      const nextTextProperties = textBlockNodeToEntityProperties(
+        node.firstChild,
+      );
 
-      if (!isEqual(childEntity.properties, nextProps)) {
+      if (
+        !isEqual(
+          childEntity.properties[textualContentPropertyTypeBaseUrl],
+          nextTextProperties[textualContentPropertyTypeBaseUrl],
+        )
+      ) {
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
-            merge: false,
+            merge: true,
             draftId: childEntity.draftId,
-            properties: nextProps,
+            properties: nextTextProperties,
           },
         });
       }

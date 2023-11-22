@@ -314,6 +314,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
                 title={title}
                 itemKey={key}
                 icon={icon}
+                closeMenu={() => popupState.close()}
                 onClick={() => {
                   onClick?.();
                   popupState.close();
