@@ -649,15 +649,22 @@ class ProsemirrorStateChangeHandler {
       // Check if the next entity node's child is a component node
       isComponentNode(node.firstChild.firstChild)
     ) {
-      const nextProps = textBlockNodeToEntityProperties(node.firstChild);
+      const nextTextProperties = textBlockNodeToEntityProperties(
+        node.firstChild,
+      );
 
-      if (!isEqual(childEntity.properties, nextProps)) {
+      if (
+        !isEqual(
+          childEntity.properties[textualContentPropertyTypeBaseUrl],
+          nextTextProperties[textualContentPropertyTypeBaseUrl],
+        )
+      ) {
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
-            merge: false,
+            merge: true,
             draftId: childEntity.draftId,
-            properties: nextProps,
+            properties: nextTextProperties,
           },
         });
       }
