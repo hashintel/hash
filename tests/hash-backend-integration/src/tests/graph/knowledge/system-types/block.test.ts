@@ -10,8 +10,8 @@ import {
   updateBlockDataEntity,
 } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/migrate-ontology-types/util";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
-import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";

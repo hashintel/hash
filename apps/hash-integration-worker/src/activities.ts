@@ -9,7 +9,7 @@ import {
 import { PartialEntity } from "@local/hash-backend-utils/temporal-workflow-types";
 import { GraphApi } from "@local/hash-graph-client";
 import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
-import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   AccountId,
   EntityPropertiesObject,
@@ -43,9 +43,9 @@ const createOrUpdateHashEntity = async (params: {
   entity: PartialEntity;
   workspaceOwnedById?: OwnedById;
 }): Promise<void> => {
-  const idBaseUrl = extractBaseUrl(linearTypes.propertyType.id.propertyTypeId);
+  const idBaseUrl = extractBaseUrl(linearPropertyTypes.id.propertyTypeId);
   const updatedAtBaseUrl = extractBaseUrl(
-    linearTypes.propertyType.updatedAt.propertyTypeId,
+    linearPropertyTypes.updatedAt.propertyTypeId,
   );
   const linearId = params.entity.properties[idBaseUrl];
   const updatedAt = params.entity.properties[updatedAtBaseUrl];

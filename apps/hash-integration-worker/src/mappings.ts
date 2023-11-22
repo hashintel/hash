@@ -14,7 +14,12 @@ import {
   User,
 } from "@linear/sdk";
 import { PartialEntity } from "@local/hash-backend-utils/temporal-workflow-types";
-import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  blockProtocolPropertyTypes,
+  linearEntityTypes,
+  linearPropertyTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { EntityPropertiesObject } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
@@ -27,46 +32,41 @@ const toIsoString = (date: string | Date): string => {
 
 export const userToEntity = (user: User): PartialEntity => {
   return {
-    entityTypeId: linearTypes.entityType.user.entityTypeId,
+    entityTypeId: linearEntityTypes.user.entityTypeId,
     properties: {
-      [extractBaseUrl(linearTypes.propertyType.active.propertyTypeId)]:
-        user.active,
-      [extractBaseUrl(linearTypes.propertyType.admin.propertyTypeId)]:
-        user.admin,
-      [extractBaseUrl(linearTypes.propertyType.archivedAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.active.propertyTypeId)]: user.active,
+      [extractBaseUrl(linearPropertyTypes.admin.propertyTypeId)]: user.admin,
+      [extractBaseUrl(linearPropertyTypes.archivedAt.propertyTypeId)]:
         user.archivedAt ? toIsoString(user.archivedAt) : undefined,
-      [extractBaseUrl(linearTypes.propertyType.avatarUrl.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.avatarUrl.propertyTypeId)]:
         user.avatarUrl,
-      [extractBaseUrl(linearTypes.propertyType.createdAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.createdAt.propertyTypeId)]:
         toIsoString(user.createdAt),
-      [extractBaseUrl(
-        linearTypes.propertyType.createdIssueCount.propertyTypeId,
-      )]: user.createdIssueCount,
-      [extractBaseUrl(linearTypes.propertyType.description.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.createdIssueCount.propertyTypeId)]:
+        user.createdIssueCount,
+      [extractBaseUrl(blockProtocolPropertyTypes.description.propertyTypeId)]:
         user.description,
-      [extractBaseUrl(linearTypes.propertyType.disableReason.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.disableReason.propertyTypeId)]:
         user.disableReason,
-      [extractBaseUrl(linearTypes.propertyType.displayName.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.displayName.propertyTypeId)]:
         user.displayName,
-      [extractBaseUrl(linearTypes.propertyType.email.propertyTypeId)]:
-        user.email,
-      [extractBaseUrl(linearTypes.propertyType.guest.propertyTypeId)]:
-        user.guest,
-      [extractBaseUrl(linearTypes.propertyType.id.propertyTypeId)]: user.id,
-      [extractBaseUrl(linearTypes.propertyType.isMe.propertyTypeId)]: user.isMe,
-      [extractBaseUrl(linearTypes.propertyType.lastSeen.propertyTypeId)]:
+      [extractBaseUrl(systemPropertyTypes.email.propertyTypeId)]: user.email,
+      [extractBaseUrl(linearPropertyTypes.guest.propertyTypeId)]: user.guest,
+      [extractBaseUrl(linearPropertyTypes.id.propertyTypeId)]: user.id,
+      [extractBaseUrl(linearPropertyTypes.isMe.propertyTypeId)]: user.isMe,
+      [extractBaseUrl(linearPropertyTypes.lastSeen.propertyTypeId)]:
         user.lastSeen ? toIsoString(user.lastSeen) : undefined,
-      [extractBaseUrl(linearTypes.propertyType.statusEmoji.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.statusEmoji.propertyTypeId)]:
         user.statusEmoji,
-      [extractBaseUrl(linearTypes.propertyType.statusLabel.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.statusLabel.propertyTypeId)]:
         user.statusLabel,
-      [extractBaseUrl(linearTypes.propertyType.statusUntilAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.statusUntilAt.propertyTypeId)]:
         user.statusUntilAt ? toIsoString(user.statusUntilAt) : undefined,
-      [extractBaseUrl(linearTypes.propertyType.timezone.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.timezone.propertyTypeId)]:
         user.timezone,
-      [extractBaseUrl(linearTypes.propertyType.updatedAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.updatedAt.propertyTypeId)]:
         toIsoString(user.updatedAt),
-      [extractBaseUrl(linearTypes.propertyType.url.propertyTypeId)]: user.url,
+      [extractBaseUrl(linearPropertyTypes.profileUrl.propertyTypeId)]: user.url,
     },
   };
 };
@@ -75,64 +75,57 @@ export const organizationToEntity = (
   organization: Organization,
 ): PartialEntity => {
   return {
-    entityTypeId: linearTypes.entityType.organization.entityTypeId,
+    entityTypeId: linearEntityTypes.organization.entityTypeId,
     properties: {
-      [extractBaseUrl(
-        linearTypes.propertyType.allowedAuthService.propertyTypeId,
-      )]: organization.allowedAuthServices,
-      [extractBaseUrl(linearTypes.propertyType.archivedAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.allowedAuthService.propertyTypeId)]:
+        organization.allowedAuthServices,
+      [extractBaseUrl(linearPropertyTypes.archivedAt.propertyTypeId)]:
         organization.archivedAt
           ? toIsoString(organization.archivedAt)
           : undefined,
-      [extractBaseUrl(linearTypes.propertyType.createdAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.createdAt.propertyTypeId)]:
         toIsoString(organization.createdAt),
-      [extractBaseUrl(
-        linearTypes.propertyType.createdIssueCount.propertyTypeId,
-      )]: organization.createdIssueCount,
-      [extractBaseUrl(
-        linearTypes.propertyType.deletionRequestedAt.propertyTypeId,
-      )]: organization.deletionRequestedAt
-        ? toIsoString(organization.deletionRequestedAt)
-        : undefined,
-      [extractBaseUrl(linearTypes.propertyType.gitBranchFormat.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.createdIssueCount.propertyTypeId)]:
+        organization.createdIssueCount,
+      [extractBaseUrl(linearPropertyTypes.deletionRequestedAt.propertyTypeId)]:
+        organization.deletionRequestedAt
+          ? toIsoString(organization.deletionRequestedAt)
+          : undefined,
+      [extractBaseUrl(linearPropertyTypes.gitBranchFormat.propertyTypeId)]:
         organization.gitBranchFormat,
       [extractBaseUrl(
-        linearTypes.propertyType.gitLinkbackMessagesEnabled.propertyTypeId,
+        linearPropertyTypes.gitLinkbackMessagesEnabled.propertyTypeId,
       )]: organization.gitLinkbackMessagesEnabled,
       [extractBaseUrl(
-        linearTypes.propertyType.gitPublicLinkbackMessagesEnabled
-          .propertyTypeId,
+        linearPropertyTypes.gitPublicLinkbackMessagesEnabled.propertyTypeId,
       )]: organization.gitPublicLinkbackMessagesEnabled,
-      [extractBaseUrl(linearTypes.propertyType.id.propertyTypeId)]:
-        organization.id,
-      [extractBaseUrl(linearTypes.propertyType.logoUrl.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.id.propertyTypeId)]: organization.id,
+      [extractBaseUrl(linearPropertyTypes.logoUrl.propertyTypeId)]:
         organization.logoUrl,
-      [extractBaseUrl(linearTypes.propertyType.name.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.name.propertyTypeId)]:
         organization.name,
+      [extractBaseUrl(linearPropertyTypes.periodUploadVolume.propertyTypeId)]:
+        organization.periodUploadVolume,
+      [extractBaseUrl(linearPropertyTypes.previousUrlKeys.propertyTypeId)]:
+        organization.previousUrlKeys,
       [extractBaseUrl(
-        linearTypes.propertyType.periodUploadVolume.propertyTypeId,
-      )]: organization.periodUploadVolume,
-      [extractBaseUrl(
-        linearTypes.propertyType.previousIdentifier.propertyTypeId,
-      )]: organization.previousUrlKeys,
-      [extractBaseUrl(
-        linearTypes.propertyType.projectUpdateRemindersHour.propertyTypeId,
+        linearPropertyTypes.projectUpdateRemindersHour.propertyTypeId,
       )]: organization.projectUpdateRemindersHour,
-      [extractBaseUrl(linearTypes.propertyType.roadmapEnabled.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.roadmapEnabled.propertyTypeId)]:
         organization.roadmapEnabled,
-      [extractBaseUrl(linearTypes.propertyType.samlEnabled.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.samlEnabled.propertyTypeId)]:
         organization.samlEnabled,
-      [extractBaseUrl(linearTypes.propertyType.scimEnabled.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.scimEnabled.propertyTypeId)]:
         organization.scimEnabled,
-      [extractBaseUrl(linearTypes.propertyType.trialEndsAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.trialEndsAt.propertyTypeId)]:
         organization.trialEndsAt
           ? toIsoString(organization.trialEndsAt)
           : undefined,
-      [extractBaseUrl(linearTypes.propertyType.updatedAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.updatedAt.propertyTypeId)]:
         toIsoString(organization.updatedAt),
-      [extractBaseUrl(linearTypes.propertyType.urlKey.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.urlKey.propertyTypeId)]:
         organization.urlKey,
-      [extractBaseUrl(linearTypes.propertyType.userCount.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.userCount.propertyTypeId)]:
         organization.userCount,
     },
   };
@@ -149,84 +142,77 @@ export const entityPropertiesToIssueUpdate = (
 ): LinearDocument.IssueUpdateInput => {
   return {
     description: properties[
-      extractBaseUrl(linearTypes.propertyType.description.propertyTypeId)
+      extractBaseUrl(blockProtocolPropertyTypes.description.propertyTypeId)
     ] as string,
     dueDate:
-      properties[
-        extractBaseUrl(linearTypes.propertyType.dueDate.propertyTypeId)
-      ],
+      properties[extractBaseUrl(linearPropertyTypes.dueDate.propertyTypeId)],
     estimate: properties[
-      extractBaseUrl(linearTypes.propertyType.estimate.propertyTypeId)
+      extractBaseUrl(linearPropertyTypes.estimate.propertyTypeId)
     ] as number,
     priority: properties[
-      extractBaseUrl(linearTypes.propertyType.priority.propertyTypeId)
+      extractBaseUrl(linearPropertyTypes.priority.propertyTypeId)
     ] as number,
     title: properties[
-      extractBaseUrl(linearTypes.propertyType.title.propertyTypeId)
+      extractBaseUrl(linearPropertyTypes.title.propertyTypeId)
     ] as string,
   };
 };
 
 export const issueToEntity = (issue: Issue): PartialEntity => {
   return {
-    entityTypeId: linearTypes.entityType.issue.entityTypeId,
+    entityTypeId: linearEntityTypes.issue.entityTypeId,
     properties: {
-      [extractBaseUrl(linearTypes.propertyType.archivedAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.archivedAt.propertyTypeId)]:
         issue.archivedAt ? toIsoString(issue.archivedAt) : undefined,
-      [extractBaseUrl(linearTypes.propertyType.autoArchivedAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.autoArchivedAt.propertyTypeId)]:
         issue.autoArchivedAt ? toIsoString(issue.autoArchivedAt) : undefined,
-      [extractBaseUrl(linearTypes.propertyType.autoClosedAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.autoClosedAt.propertyTypeId)]:
         issue.autoClosedAt ? toIsoString(issue.autoClosedAt) : undefined,
-      [extractBaseUrl(linearTypes.propertyType.branchName.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.branchName.propertyTypeId)]:
         issue.branchName,
-      [extractBaseUrl(linearTypes.propertyType.canceledAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.canceledAt.propertyTypeId)]:
         issue.canceledAt ? toIsoString(issue.canceledAt) : undefined,
-      [extractBaseUrl(linearTypes.propertyType.completedAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.completedAt.propertyTypeId)]:
         issue.completedAt ? toIsoString(issue.completedAt) : undefined,
-      [extractBaseUrl(linearTypes.propertyType.createdAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.createdAt.propertyTypeId)]:
         toIsoString(issue.createdAt),
-      [extractBaseUrl(
-        linearTypes.propertyType.customerTicketCount.propertyTypeId,
-      )]: issue.customerTicketCount,
-      [extractBaseUrl(
-        linearTypes.propertyType.markdownDescription.propertyTypeId,
-      )]: issue.description,
-      [extractBaseUrl(linearTypes.propertyType.dueDate.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.customerTicketCount.propertyTypeId)]:
+        issue.customerTicketCount,
+      [extractBaseUrl(linearPropertyTypes.markdownDescription.propertyTypeId)]:
+        issue.description,
+      [extractBaseUrl(linearPropertyTypes.dueDate.propertyTypeId)]:
         issue.dueDate as string,
-      [extractBaseUrl(linearTypes.propertyType.estimate.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.estimate.propertyTypeId)]:
         issue.estimate,
-      [extractBaseUrl(linearTypes.propertyType.id.propertyTypeId)]: issue.id,
-      [extractBaseUrl(linearTypes.propertyType.identifier.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.id.propertyTypeId)]: issue.id,
+      [extractBaseUrl(linearPropertyTypes.identifier.propertyTypeId)]:
         issue.identifier,
-      [extractBaseUrl(linearTypes.propertyType.number.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.issueNumber.propertyTypeId)]:
         issue.number,
-      [extractBaseUrl(
-        linearTypes.propertyType.previousIdentifier.propertyTypeId,
-      )]: issue.previousIdentifiers,
-      [extractBaseUrl(linearTypes.propertyType.priority.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.previousIdentifier.propertyTypeId)]:
+        issue.previousIdentifiers,
+      [extractBaseUrl(linearPropertyTypes.priority.propertyTypeId)]:
         issue.priority,
-      [extractBaseUrl(linearTypes.propertyType.priorityLabel.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.priorityLabel.propertyTypeId)]:
         issue.priorityLabel,
-      [extractBaseUrl(linearTypes.propertyType.snoozedUntilAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.snoozedUntilAt.propertyTypeId)]:
         issue.snoozedUntilAt ? toIsoString(issue.snoozedUntilAt) : undefined,
-      [extractBaseUrl(linearTypes.propertyType.sortOrder.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.sortOrder.propertyTypeId)]:
         issue.sortOrder,
-      [extractBaseUrl(linearTypes.propertyType.startedAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.startedAt.propertyTypeId)]:
         issue.startedAt ? toIsoString(issue.startedAt) : undefined,
-      [extractBaseUrl(linearTypes.propertyType.startedTriageAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.startedTriageAt.propertyTypeId)]:
         issue.startedTriageAt ? toIsoString(issue.startedTriageAt) : undefined,
-      [extractBaseUrl(
-        linearTypes.propertyType.subIssueSortOrder.propertyTypeId,
-      )]: issue.subIssueSortOrder,
-      [extractBaseUrl(linearTypes.propertyType.title.propertyTypeId)]:
-        issue.title,
-      [extractBaseUrl(linearTypes.propertyType.trashed.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.subIssueSortOrder.propertyTypeId)]:
+        issue.subIssueSortOrder,
+      [extractBaseUrl(linearPropertyTypes.title.propertyTypeId)]: issue.title,
+      [extractBaseUrl(linearPropertyTypes.trashed.propertyTypeId)]:
         issue.trashed,
-      [extractBaseUrl(linearTypes.propertyType.triagedAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.triagedAt.propertyTypeId)]:
         issue.triagedAt ? toIsoString(issue.triagedAt) : undefined,
-      [extractBaseUrl(linearTypes.propertyType.updatedAt.propertyTypeId)]:
+      [extractBaseUrl(linearPropertyTypes.updatedAt.propertyTypeId)]:
         toIsoString(issue.updatedAt),
-      [extractBaseUrl(linearTypes.propertyType.url.propertyTypeId)]: issue.url,
+      [extractBaseUrl(linearPropertyTypes.issueUrl.propertyTypeId)]: issue.url,
     },
   };
 };

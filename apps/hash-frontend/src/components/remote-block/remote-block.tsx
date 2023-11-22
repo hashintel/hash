@@ -10,7 +10,7 @@ import {
 } from "@blockprotocol/graph/temporal/stdlib";
 import { useHookEmbedderModule } from "@blockprotocol/hook/react";
 import { textualContentPropertyTypeBaseUrl } from "@local/hash-isomorphic-utils/entity-store";
-import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { blockProtocolLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Skeleton, SkeletonProps } from "@mui/material";
 import { FunctionComponent, useEffect, useMemo, useRef } from "react";
 import { v4 as uuid } from "uuid";
@@ -159,7 +159,8 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     if (blockSchema) {
       return Object.entries(blockSchema.links ?? {}).some(
         ([linkEntityTypeId, value]) =>
-          linkEntityTypeId === blockProtocolEntityTypes.hasQuery.entityTypeId &&
+          linkEntityTypeId ===
+            blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId &&
           value.minItems &&
           value.minItems > 0,
       );
@@ -181,7 +182,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
         return !outgoingLinks.some(
           (link) =>
             link.metadata.entityTypeId ===
-            blockProtocolEntityTypes.hasQuery.entityTypeId,
+            blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
         );
       }
     }

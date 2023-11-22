@@ -1,12 +1,13 @@
 import { codegen, CodegenParameters } from "@blockprotocol/graph/codegen";
 import { VersionedUrl } from "@blockprotocol/type-system";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import slugify from "slugify";
 
 import {
   blockProtocolEntityTypes,
+  linearEntityTypes,
   systemEntityTypes,
 } from "./ontology-type-ids";
-import { linearTypes } from "./ontology-types";
 
 const generateTypes = async (
   typeMap: Record<string, { entityTypeId: VersionedUrl }>,
@@ -25,6 +26,18 @@ const generateTypes = async (
   );
 
   for (const [name, { entityTypeId }] of typesToGenerate) {
+    if (entityTypeId === linkEntityTypeUrl) {
+      /**
+       * We don't have a use-case for generating the TS types
+       * for the link entity type yet, but this also breaks the
+       * codegen script because it throws an error when consuming
+       * entity types with no properties.
+       *
+       * @todo fix the codegen script to gracefully handle entity types with no properties
+       * @see https://linear.app/hash/issue/H-1402/fix-the-codegen-script-to-handle-entity-types-with-no-properties
+       */
+      continue;
+    }
     targets[`${slugify(name, { strict: true, lower: true })}.ts`] = [
       { sourceTypeId: entityTypeId },
     ];
@@ -58,7 +71,7 @@ const generateTypes = async (
  */
 const generateSystemTypeTypes = async () => {
   await generateTypes(systemEntityTypes, "system");
-  await generateTypes(linearTypes.entityType, "linear", "linear");
+  await generateTypes(linearEntityTypes, "linear", "linear");
   await generateTypes(
     blockProtocolEntityTypes,
     "Block Protocol",
