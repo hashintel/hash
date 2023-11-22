@@ -220,7 +220,7 @@ module "application" {
   prefix                       = local.prefix
   param_prefix                 = local.param_prefix
   cpu                          = 512
-  memory                       = 1024
+  memory                       = 2048
   worker_cpu                   = 256
   worker_memory                = 512
   ses_verified_domain_identity = var.ses_verified_domain_identity
