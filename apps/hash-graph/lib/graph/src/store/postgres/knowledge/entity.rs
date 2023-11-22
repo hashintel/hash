@@ -32,7 +32,7 @@ use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp}
 use tokio_postgres::GenericClient;
 use type_system::{raw, url::VersionedUrl, EntityType};
 use uuid::Uuid;
-use validation::Validate;
+use validation::{EntityValidationError, Validate};
 
 #[cfg(hash_graph_test_environment)]
 use crate::store::error::DeletionError;
@@ -541,9 +541,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         consistency: Consistency<'static>,
         entity_type: EntityValidationType<'_>,
         properties: &EntityProperties,
-        // TODO: validate links
-        //   see https://linear.app/hash/issue/H-972
-        _link_data: Option<&LinkData>,
+        link_data: Option<&LinkData>,
     ) -> Result<(), QueryError> {
         enum MaybeBorrowed<'a, T> {
             Borrowed(&'a T),
@@ -619,19 +617,32 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             }
         };
 
-        properties
-            .validate(
-                match &schema {
-                    MaybeBorrowed::Borrowed(schema) => schema,
-                    MaybeBorrowed::Owned(schema) => schema,
-                },
-                &validator_provider,
-            )
-            .await
-            .change_context(QueryError)
-            .attach(StatusCode::InvalidArgument)?;
+        let schema = match &schema {
+            MaybeBorrowed::Borrowed(schema) => *schema,
+            MaybeBorrowed::Owned(schema) => schema,
+        };
 
-        Ok(())
+        let mut status: Result<(), EntityValidationError> = Ok(());
+
+        if let Err(error) = properties.validate(schema, &validator_provider).await {
+            if let Err(ref mut report) = status {
+                report.extend_one(error);
+            } else {
+                status = Err(error);
+            }
+        }
+
+        if let Err(error) = link_data.validate(schema, &validator_provider).await {
+            if let Err(ref mut report) = status {
+                report.extend_one(error);
+            } else {
+                status = Err(error);
+            }
+        }
+
+        status
+            .change_context(QueryError)
+            .attach(StatusCode::InvalidArgument)
     }
 
     #[doc(hidden)]
