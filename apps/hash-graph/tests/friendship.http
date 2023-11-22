@@ -1251,7 +1251,7 @@ Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "entityTypeId": "https://hash.ai/@hash/types/entity-type/user/v/1",
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1",
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice"
   },
@@ -1276,7 +1276,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "http://localhost:3000/@alice/types/property-type/name/": "Alice"
   },
   "owner": "{{account_id}}",
-  "entityTypeId": "https://hash.ai/@hash/types/entity-type/user/v/1"
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
 }
 
 > {%

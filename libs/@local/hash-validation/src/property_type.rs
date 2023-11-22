@@ -306,8 +306,8 @@ where
         let mut status: Result<(), Report<Self::Error>> = Ok(());
 
         for (key, property) in value {
-            if let Some(object_schema) = self.properties().get(key) {
-                if let Err(report) = object_schema.validate_value(property, provider).await {
+            if let Some(property_schema) = self.properties().get(key) {
+                if let Err(report) = property_schema.validate_value(property, provider).await {
                     extend_report!(status, report);
                 }
             } else {
