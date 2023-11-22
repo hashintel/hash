@@ -1,6 +1,10 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { UpdateLinearIssueWorkflow } from "@local/hash-backend-utils/temporal-workflow-types";
 import { GraphApi } from "@local/hash-graph-client";
-import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  linearEntityTypes,
+  linearPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   Entity,
   entityIdFromOwnedByIdAndEntityUuid,
@@ -17,8 +21,8 @@ import { createTemporalClient } from "../../temporal";
 import { genId } from "../../util";
 import { createVaultClient } from "../../vault";
 
-export const supportedTypeIds = Object.values(linearTypes.entityType).map(
-  (entityType) => entityType.entityTypeId,
+export const supportedTypeIds = Object.values(linearEntityTypes).map(
+  ({ entityTypeId }) => entityTypeId as VersionedUrl,
 );
 
 export const processEntityChange = async (
@@ -72,12 +76,10 @@ export const processEntityChange = async (
   );
 
   const resourceId =
-    entity.properties[
-      extractBaseUrl(linearTypes.propertyType.id.propertyTypeId)
-    ];
+    entity.properties[extractBaseUrl(linearPropertyTypes.id.propertyTypeId)];
 
   switch (entityTypeId) {
-    case linearTypes.entityType.issue.entityTypeId: {
+    case linearEntityTypes.issue.entityTypeId: {
       await temporalClient.workflow.start<UpdateLinearIssueWorkflow>(
         "updateLinearIssue",
         {

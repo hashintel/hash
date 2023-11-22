@@ -15,7 +15,7 @@ import { FontAwesomeIcon } from "@hashintel/design-system";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { DraftEntity } from "@local/hash-isomorphic-utils/entity-store";
-import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { blockProtocolLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";
@@ -90,7 +90,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
     () =>
       blockSchema?.links &&
       Object.keys(blockSchema.links).includes(
-        blockProtocolEntityTypes.hasQuery.entityTypeId,
+        blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
       ),
     [blockSchema],
   );
