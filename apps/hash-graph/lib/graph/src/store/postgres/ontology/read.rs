@@ -499,13 +499,10 @@ impl<C: AsClient> PostgresStore<C> {
             .query_raw(&statement, parameters.iter().copied())
             .await
             .change_context(QueryError)?
-            .map(|row| row.change_context(QueryError))
-            .and_then(move |row| async move {
-                Ok((
-                    row.get(ontology_id_index),
-                    serde_json::from_value(row.get(closed_schema_index))
-                        .change_context(QueryError)?,
-                ))
+            .map(move |row| {
+                let row = row.change_context(QueryError)?;
+                let Json(schema) = row.get(closed_schema_index);
+                Ok((row.get(ontology_id_index), schema))
             }))
     }
 

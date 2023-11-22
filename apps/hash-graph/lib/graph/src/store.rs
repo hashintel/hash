@@ -24,7 +24,7 @@ pub use self::{
         UpdateError,
     },
     fetcher::{FetchingPool, TypeFetcher},
-    knowledge::EntityStore,
+    knowledge::{EntityStore, EntityValidationType},
     migration::{Migration, MigrationState, StoreMigration},
     ontology::{DataTypeStore, EntityTypeStore, PropertyTypeStore},
     pool::StorePool,
