@@ -10,7 +10,7 @@ type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "b
 temporal-versioning = { path = "../../temporal-versioning" }
 
 bytes = { version = "1.5.0" }
-serde = { version = "1.0.192", features = ["derive"] }
+serde = { version = "1.0.193", features = ["derive"] }
 serde_json = { version = "1.0.108" }
 utoipa = { version = "4.1.0", optional = true }
 postgres-types = { version = "0.2.6", default-features = false, features = ["derive", "with-uuid-1",  "with-serde_json-1"], optional = true }
