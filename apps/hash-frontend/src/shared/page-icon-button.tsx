@@ -8,11 +8,11 @@ import { MouseEventHandler, useCallback } from "react";
 
 import { useDefaultState } from "../components/hooks/use-default-state";
 import {
-  EditIconButton,
+  EditEmojiIconButton,
   iconVariantSizes,
   SizeVariant,
-} from "./edit-icon-button";
-import { EmojiPickerPopoverProps } from "./edit-icon-button/emoji-picker/emoji-picker";
+} from "./edit-emoji-icon-button";
+import { EmojiPickerPopoverProps } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
 import { CanvasIcon } from "./icons/canvas-icon";
 import { useUpdatePageIcon } from "./use-update-page-icon";
 
@@ -50,7 +50,7 @@ export const PageIconButton = ({
   );
 
   return (
-    <EditIconButton
+    <EditEmojiIconButton
       icon={icon}
       size={size}
       onChange={handleChange}

@@ -11,7 +11,7 @@ import { Controller } from "react-hook-form";
 
 import { Button, Link, Modal } from "../../../../shared/ui";
 import { CreateEntityTypeForm } from "../../create-entity-type-form";
-import { EditIconButton } from "../../../../shared/edit-icon-button";
+import { EditEmojiIconButton } from "../../../../shared/edit-emoji-icon-button";
 import { EntityTypeDescription } from "../entity-type-description";
 
 interface EntityTypeHeaderProps {
@@ -73,7 +73,7 @@ export const EntityTypeHeader = ({
               control={control}
               name="icon"
               render={({ field }) => (
-                <EditIconButton
+                <EditEmojiIconButton
                   icon={field.value}
                   disabled={isReadonly}
                   onChange={(updatedIcon) => field.onChange(updatedIcon)}

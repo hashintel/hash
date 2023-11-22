@@ -6,7 +6,7 @@ import {
   PAGE_TITLE_FONT_SIZE,
   PAGE_TITLE_LINE_HEIGHT,
 } from "../pages/shared/block-collection/page-title/page-title";
-import { iconVariantSizes } from "../shared/edit-icon-button";
+import { iconVariantSizes } from "../shared/edit-emoji-icon-button";
 
 export const PageLoadingState = () => {
   return (

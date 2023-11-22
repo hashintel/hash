@@ -20,7 +20,7 @@ import { useDefaultState } from "../components/hooks/use-default-state";
 import {
   EmojiPicker,
   EmojiPickerPopoverProps,
-} from "./edit-icon-button/emoji-picker/emoji-picker";
+} from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
 
 export type SizeVariant = "small" | "medium";
 
@@ -32,7 +32,7 @@ export const iconVariantSizes: Record<
   medium: { container: 44, font: 36 },
 };
 
-interface EditIconButtonProps {
+interface EditEmojiIconButtonProps {
   icon?: string | null;
   defaultIcon?: ReactNode;
   onChange: (updatedIcon: string) => Promise<void> | void;
@@ -44,7 +44,9 @@ interface EditIconButtonProps {
   sx?: SxProps<Theme>;
 }
 
-export const EditIconButton: FunctionComponent<EditIconButtonProps> = ({
+export const EditEmojiIconButton: FunctionComponent<
+  EditEmojiIconButtonProps
+> = ({
   icon: iconFromProps,
   disabled = false,
   defaultIcon,

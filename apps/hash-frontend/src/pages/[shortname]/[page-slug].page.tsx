@@ -79,7 +79,7 @@ import {
   getBlockCollectionContents,
 } from "../shared/block-collection-contents";
 import { BlockCollectionContextProvider } from "../shared/block-collection-context";
-import { iconVariantSizes } from "../../shared/edit-icon-button";
+import { iconVariantSizes } from "../../shared/edit-emoji-icon-button";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
