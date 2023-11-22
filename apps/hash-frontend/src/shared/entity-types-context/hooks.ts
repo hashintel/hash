@@ -27,9 +27,10 @@ export const useLatestEntityTypesOptional = (params?: {
 }) => {
   const { includeArchived = false } = params ?? {};
 
-  const entityTypes = useEntityTypesOptional();
+  const { entityTypes, isSpecialEntityTypeLookup } =
+    useEntityTypesContextRequired();
 
-  return useMemo(() => {
+  const latestEntityTypes = useMemo(() => {
     if (!entityTypes) {
       return null;
     }
@@ -50,12 +51,16 @@ export const useLatestEntityTypesOptional = (params?: {
       }
     }
 
-    const latestEntityTypes = Array.from(latestEntityTypesMap.values());
+    const latestEntityTypesArray = Array.from(latestEntityTypesMap.values());
 
     return includeArchived
-      ? latestEntityTypes
-      : latestEntityTypes.filter((entityType) => !isTypeArchived(entityType));
+      ? latestEntityTypesArray
+      : latestEntityTypesArray.filter(
+          (entityType) => !isTypeArchived(entityType),
+        );
   }, [entityTypes, includeArchived]);
+
+  return { latestEntityTypes, isSpecialEntityTypeLookup };
 };
 
 /**

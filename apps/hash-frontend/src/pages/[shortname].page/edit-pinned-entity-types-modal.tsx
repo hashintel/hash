@@ -44,7 +44,7 @@ import {
 } from "../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { Org, User } from "../../lib/user-and-org";
-import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
 import { CustomLinkIcon } from "../../shared/icons/custom-link-icon";
@@ -102,8 +102,8 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
   }
 > = ({ profile, onClose, refetchProfile, ...modalProps }) => {
   const { authenticatedUser } = useAuthenticatedUser();
-  const { entityTypes, isSpecialEntityTypeLookup } =
-    useEntityTypesContextRequired();
+  const { latestEntityTypes, isSpecialEntityTypeLookup } =
+    useLatestEntityTypesOptional();
 
   const [displayEntityTypesSearch, setDisplayEntityTypesSearch] =
     useState(false);
@@ -127,8 +127,8 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
   const initializedFields = useRef(false);
 
   useEffect(() => {
-    if (entityTypes && !initializedFields.current) {
-      const initialPinnedEntityTypes = entityTypes.filter(
+    if (latestEntityTypes && !initializedFields.current) {
+      const initialPinnedEntityTypes = latestEntityTypes.filter(
         ({ metadata }) =>
           profile.pinnedEntityTypeBaseUrls?.includes(metadata.recordId.baseUrl),
       );
@@ -136,7 +136,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
       initializedFields.current = true;
       reset({ pinnedEntityTypes: initialPinnedEntityTypes });
     }
-  }, [entityTypes, profile.pinnedEntityTypeBaseUrls, reset]);
+  }, [latestEntityTypes, profile.pinnedEntityTypeBaseUrls, reset]);
 
   const { fields, append, remove, replace } = useFieldArray({
     control,

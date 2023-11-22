@@ -66,7 +66,7 @@ const EntitiesPage: NextPageWithLayout = () => {
     await createUntitledPage(lastRootPageIndex, "document");
   }, [lastRootPageIndex, createUntitledPage]);
 
-  const latestEntityTypes = useLatestEntityTypesOptional({
+  const { latestEntityTypes } = useLatestEntityTypesOptional({
     includeArchived: true,
   });
 

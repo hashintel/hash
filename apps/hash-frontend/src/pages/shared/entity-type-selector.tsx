@@ -29,14 +29,14 @@ export const EntityTypeSelector: FunctionComponent<{
   const [search, setSearch] = useState("");
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
-  const entityTypes = useLatestEntityTypesOptional();
+  const { latestEntityTypes } = useLatestEntityTypesOptional();
 
   const filteredEntityTypes = useMemo(
     () =>
-      entityTypes?.filter(
+      latestEntityTypes?.filter(
         ({ schema }) => !excludeEntityTypeIds?.includes(schema.$id),
       ),
-    [excludeEntityTypeIds, entityTypes],
+    [excludeEntityTypeIds, latestEntityTypes],
   );
 
   const [open, setOpen] = useState(false);

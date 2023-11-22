@@ -27,7 +27,7 @@ export const BlockSelectDataModal: FunctionComponent<
   }
 > = ({ onClose, ...modalProps }) => {
   const { propertyTypes } = usePropertyTypes({ latestOnly: true });
-  const entityTypes = useLatestEntityTypesOptional();
+  const { latestEntityTypes } = useLatestEntityTypesOptional();
 
   const { blockSubgraph, setBlockSubgraph } = useBlockContext();
   const fetchBlockSubgraph = useFetchBlockSubgraph();
@@ -163,8 +163,8 @@ export const BlockSelectDataModal: FunctionComponent<
   // );
 
   const entityTypeSchemas = useMemo(
-    () => entityTypes?.map((type) => type.schema) ?? [],
-    [entityTypes],
+    () => latestEntityTypes?.map((type) => type.schema) ?? [],
+    [latestEntityTypes],
   );
 
   const propertyTypeSchemas = useMemo(
