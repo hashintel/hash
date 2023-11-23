@@ -35,7 +35,7 @@ pub use self::{
         PropertyTypeSubjectId, PropertyTypeSubjectSet, PropertyTypeViewerSubject,
     },
     web::{
-        WebNamespace, WebOwnerSubject, WebPermission, WebRelationAndSubject, WebResourceRelation,
-        WebSubject, WebSubjectId, WebSubjectSet,
+        WebEntityCreatorSubject, WebNamespace, WebOwnerSubject, WebPermission,
+        WebRelationAndSubject, WebResourceRelation, WebSubject, WebSubjectId, WebSubjectSet,
     },
 };

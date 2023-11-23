@@ -391,6 +391,20 @@ class ValidationOperation(RootModel[Literal['all']]):
     model_config = ConfigDict(populate_by_name=True)
     root: Literal['all']
 
+class WebEntityCreatorSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['account']
+    subject_id: AccountId = Field(..., alias='subjectId')
+
+class WebEntityCreatorSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['accountGroup']
+    subject_id: AccountGroupId = Field(..., alias='subjectId')
+
+class WebEntityCreatorSubject(RootModel[WebEntityCreatorSubjectItem | WebEntityCreatorSubjectItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: WebEntityCreatorSubjectItem | WebEntityCreatorSubjectItem1 = Field(..., discriminator='kind')
+
 class WebOwnerSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     kind: Literal['account']
@@ -417,9 +431,14 @@ class WebRelationAndSubjectItem(BaseModel):
     relation: Literal['owner']
     subject: WebOwnerSubject
 
-class WebRelationAndSubject(RootModel[WebRelationAndSubjectItem]):
+class WebRelationAndSubjectItem1(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    root: WebRelationAndSubjectItem = Field(..., discriminator='relation')
+    relation: Literal['entityCreator']
+    subject: WebEntityCreatorSubject
+
+class WebRelationAndSubject(RootModel[WebRelationAndSubjectItem | WebRelationAndSubjectItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: WebRelationAndSubjectItem | WebRelationAndSubjectItem1 = Field(..., discriminator='relation')
 
 class UpdateDataType(BaseModel):
     """

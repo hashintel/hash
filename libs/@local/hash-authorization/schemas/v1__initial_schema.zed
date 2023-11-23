@@ -21,10 +21,11 @@ definition graph/entity {
 
 definition graph/web {
 	relation level_00_owner: graph/account | graph/account_group#member
+	relation level_00_entity_creator: graph/account | graph/account_group#member
 
 	permission update = level_00_owner
 
-	permission create_entity = level_00_owner
+	permission create_entity = level_00_owner + level_00_entity_creator
 	permission create_entity_type = level_00_owner
 	permission create_property_type = level_00_owner
 	permission create_data_type = level_00_owner - level_00_owner
