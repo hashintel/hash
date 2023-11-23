@@ -32,7 +32,7 @@ use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp}
 use tokio_postgres::GenericClient;
 use type_system::{raw, url::VersionedUrl, EntityType};
 use uuid::Uuid;
-use validation::Validate;
+use validation::{EntityValidationError, Validate};
 
 #[cfg(hash_graph_test_environment)]
 use crate::store::error::DeletionError;
@@ -464,27 +464,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(InsertionError)?
         };
 
-        let entity = Entity {
-            properties,
-            link_data,
-            metadata: EntityMetadata::new(
-                EntityRecordId {
-                    entity_id,
-                    edition_id,
-                },
-                EntityTemporalMetadata {
-                    decision_time: row.get(0),
-                    transaction_time: row.get(1),
-                },
-                entity_type_url,
-                ProvenanceMetadata {
-                    record_created_by_id: RecordCreatedById::new(actor_id),
-                    record_archived_by_id: None,
-                },
-                archived,
-            ),
-        };
-
         authorization_api
             .modify_entity_relations([(
                 ModifyRelationshipOperation::Create,
@@ -497,15 +476,15 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .await
             .change_context(InsertionError)?;
 
-        let validator_provider = StoreProvider {
-            store: &transaction,
-            actor_id,
-            authorization_api,
-            consistency: Consistency::FullyConsistent,
-        };
-
-        entity
-            .validate(&closed_schema, &validator_provider)
+        transaction
+            .validate_entity(
+                actor_id,
+                authorization_api,
+                Consistency::FullyConsistent,
+                EntityValidationType::Schema(&closed_schema),
+                &properties,
+                link_data.as_ref(),
+            )
             .await
             .change_context(InsertionError)
             .attach(StatusCode::InvalidArgument)?;
@@ -530,7 +509,22 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
             Err(error)
         } else {
-            Ok(entity.metadata)
+            Ok(EntityMetadata::new(
+                EntityRecordId {
+                    entity_id,
+                    edition_id,
+                },
+                EntityTemporalMetadata {
+                    decision_time: row.get(0),
+                    transaction_time: row.get(1),
+                },
+                entity_type_url,
+                ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(actor_id),
+                    record_archived_by_id: None,
+                },
+                archived,
+            ))
         }
     }
 
@@ -541,9 +535,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         consistency: Consistency<'static>,
         entity_type: EntityValidationType<'_>,
         properties: &EntityProperties,
-        // TODO: validate links
-        //   see https://linear.app/hash/issue/H-972
-        _link_data: Option<&LinkData>,
+        link_data: Option<&LinkData>,
     ) -> Result<(), QueryError> {
         enum MaybeBorrowed<'a, T> {
             Borrowed(&'a T),
@@ -619,19 +611,32 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             }
         };
 
-        properties
-            .validate(
-                match &schema {
-                    MaybeBorrowed::Borrowed(schema) => schema,
-                    MaybeBorrowed::Owned(schema) => schema,
-                },
-                &validator_provider,
-            )
-            .await
-            .change_context(QueryError)
-            .attach(StatusCode::InvalidArgument)?;
+        let schema = match &schema {
+            MaybeBorrowed::Borrowed(schema) => *schema,
+            MaybeBorrowed::Owned(schema) => schema,
+        };
 
-        Ok(())
+        let mut status: Result<(), EntityValidationError> = Ok(());
+
+        if let Err(error) = properties.validate(schema, &validator_provider).await {
+            if let Err(ref mut report) = status {
+                report.extend_one(error);
+            } else {
+                status = Err(error);
+            }
+        }
+
+        if let Err(error) = link_data.validate(schema, &validator_provider).await {
+            if let Err(ref mut report) = status {
+                report.extend_one(error);
+            } else {
+                status = Err(error);
+            }
+        }
+
+        status
+            .change_context(QueryError)
+            .attach(StatusCode::InvalidArgument)
     }
 
     #[doc(hidden)]
@@ -984,28 +989,28 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(UpdateError)
         })?;
 
-        let entity = Entity {
-            properties,
-            // TODO: Use correct link data for validation
-            //   see https://linear.app/hash/issue/H-972
-            link_data: None,
-            metadata: EntityMetadata::new(
-                EntityRecordId {
-                    entity_id,
-                    edition_id,
+        let link_data = transaction
+            .as_client()
+            .query_opt(
+                "SELECT left_web_id, left_entity_uuid, right_web_id, right_entity_uuid
+                 FROM entity_has_left_entity
+                 JOIN entity_has_right_entity USING (web_id, entity_uuid)
+                 WHERE web_id = $1 AND entity_uuid = $2;",
+                &[&entity_id.owned_by_id, &entity_id.entity_uuid],
+            )
+            .await
+            .change_context(UpdateError)?
+            .map(|row| LinkData {
+                left_entity_id: EntityId {
+                    owned_by_id: row.get(0),
+                    entity_uuid: row.get(1),
                 },
-                EntityTemporalMetadata {
-                    decision_time: row.get(0),
-                    transaction_time: row.get(1),
+                right_entity_id: EntityId {
+                    owned_by_id: row.get(2),
+                    entity_uuid: row.get(3),
                 },
-                entity_type_url,
-                ProvenanceMetadata {
-                    record_created_by_id: RecordCreatedById::new(actor_id),
-                    record_archived_by_id: None,
-                },
-                archived,
-            ),
-        };
+                order: link_order,
+            });
 
         transaction
             .validate_entity(
@@ -1013,8 +1018,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 authorization_api,
                 Consistency::FullyConsistent,
                 EntityValidationType::Schema(&closed_schema),
-                &entity.properties,
-                entity.link_data.as_ref(),
+                &properties,
+                link_data.as_ref(),
             )
             .await
             .change_context(UpdateError)
@@ -1022,7 +1027,22 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         transaction.commit().await.change_context(UpdateError)?;
 
-        Ok(entity.metadata)
+        Ok(EntityMetadata::new(
+            EntityRecordId {
+                entity_id,
+                edition_id,
+            },
+            EntityTemporalMetadata {
+                decision_time: row.get(0),
+                transaction_time: row.get(1),
+            },
+            entity_type_url,
+            ProvenanceMetadata {
+                record_created_by_id: RecordCreatedById::new(actor_id),
+                record_archived_by_id: None,
+            },
+            archived,
+        ))
     }
 }
 
