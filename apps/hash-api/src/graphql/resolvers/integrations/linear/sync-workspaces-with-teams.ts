@@ -14,6 +14,8 @@ import {
   linkIntegrationToWorkspace,
 } from "../../../../graph/knowledge/system-types/linear-integration-entity";
 import { getLinearUserSecretByLinearOrgId } from "../../../../graph/knowledge/system-types/linear-user-secret";
+import { modifyWebAuthorizationRelationships } from "../../../../graph/ontology/primitive/util";
+import { systemAccountId } from "../../../../graph/system-account";
 import { Linear } from "../../../../integrations/linear";
 import {
   MutationSyncLinearIntegrationWithWorkspacesArgs,
@@ -86,18 +88,69 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
   );
 
   await Promise.all([
-    ...removedSyncedWorkspaces.map(({ syncLinearDataWithLinkEntity }) =>
-      archiveEntity(dataSources, authentication, {
-        entity: syncLinearDataWithLinkEntity,
-      }),
+    ...removedSyncedWorkspaces.map(
+      async ({ syncLinearDataWithLinkEntity, workspaceEntity }) => {
+        const workspaceOwnedById = extractOwnedByIdFromEntityId(
+          workspaceEntity.metadata.recordId.entityId,
+        );
+
+        console.log("deleting relation: ", {
+          systemAccountId,
+          workspaceOwnedById,
+        });
+        // Remove the system account as an owner of the workspace's web
+        await modifyWebAuthorizationRelationships(dataSources, authentication, [
+          {
+            operation: "delete",
+            relationship: {
+              subject: {
+                kind: "account",
+                subjectId: systemAccountId,
+              },
+              resource: {
+                kind: "web",
+                resourceId: workspaceOwnedById,
+              },
+              relation: "owner",
+            },
+          },
+        ]);
+
+        return archiveEntity(dataSources, authentication, {
+          entity: syncLinearDataWithLinkEntity,
+        });
+      },
     ),
     ...syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) => {
       const workspaceOwnedById = extractEntityUuidFromEntityId(
         workspaceEntityId,
       ) as Uuid as OwnedById;
+
+      console.log("creating relation: ", {
+        systemAccountId,
+        workspaceOwnedById,
+      });
+      // Make the system account an owner of the workspace's web
+      await modifyWebAuthorizationRelationships(dataSources, authentication, [
+        {
+          operation: "create",
+          relationship: {
+            subject: {
+              kind: "account",
+              subjectId: systemAccountId,
+            },
+            resource: {
+              kind: "web",
+              resourceId: workspaceOwnedById,
+            },
+            relation: "owner",
+          },
+        },
+      ]);
+
       return Promise.all([
         linearClient.triggerWorkspaceSync({
-          authentication,
+          authentication: { actorId: systemAccountId },
           workspaceOwnedById,
           teamIds: linearTeamIds,
         }),

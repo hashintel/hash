@@ -57,6 +57,8 @@ const createOrUpdateHashEntity = async (params: {
     throw new Error(`No linear id found.`);
   }
 
+  console.log({ linearId });
+
   const filters = [
     generateVersionedUrlMatchingFilter(params.entity.entityTypeId, {
       ignoreParents: true,
@@ -92,6 +94,8 @@ const createOrUpdateHashEntity = async (params: {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
       return getRoots(subgraph);
     });
+
+  console.log({ entities, params });
 
   for (const existingEntity of entities) {
     if (

@@ -6,6 +6,7 @@ import { OwnedById } from "@local/hash-subgraph";
 import { RequestHandler } from "express";
 
 import { publicUserAccountId } from "../../auth/public-user-account-id";
+import { systemAccountId } from "../../graph/system-account";
 import { logger } from "../../logger";
 import { createTemporalClient } from "../../temporal";
 import { genId } from "../../util";
@@ -70,14 +71,15 @@ export const linearWebhook: RequestHandler<{}, string, string> = async (
     const workflow =
       `${payload.action}Hash${payload.type}` as const satisfies keyof WorkflowTypeMap;
 
+    console.log({ systemAccountId });
+
     await temporalClient.workflow.start<WorkflowTypeMap[typeof workflow]>(
       workflow,
       {
         taskQueue: "integration",
         args: [
           {
-            // @todo Use correct account IDs
-            authentication: { actorId: publicUserAccountId },
+            authentication: { actorId: systemAccountId },
             ownedById: publicUserAccountId as OwnedById,
             payload: payload.data,
           },
