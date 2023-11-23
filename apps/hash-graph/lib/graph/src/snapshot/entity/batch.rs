@@ -1,17 +1,24 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use authorization::{backend::ZanzibarBackend, schema::EntityRelationAndSubject};
+use authorization::{
+    backend::ZanzibarBackend,
+    schema::{EntityRelationAndSubject, EntityTypeId},
+    NoAuthorization,
+};
 use error_stack::{Result, ResultExt};
-use graph_types::knowledge::entity::EntityUuid;
+use futures::TryStreamExt;
+use graph_types::knowledge::entity::{Entity, EntityUuid};
 use tokio_postgres::GenericClient;
+use type_system::EntityType;
+use validation::Validate;
 
 use crate::{
     snapshot::{
         entity::{EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityTemporalMetadataRow},
         WriteBatch,
     },
-    store::{AsClient, InsertionError, PostgresStore},
+    store::{crud::Read, query::Filter, AsClient, InsertionError, PostgresStore, StoreProvider},
 };
 
 pub enum EntityRowBatch {
@@ -200,6 +207,42 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             )
             .await
             .change_context(InsertionError)?;
+
+        let entities = Read::<Entity>::read_vec(postgres_client, &Filter::All(Vec::new()), None)
+            .await
+            .change_context(InsertionError)?;
+
+        let schemas = postgres_client
+            .read_closed_schemas(&Filter::All(Vec::new()), None)
+            .await
+            .change_context(InsertionError)?
+            .map_ok(|(id, schema)| {
+                // TODO: Distinguish between format validation and content validation so it's
+                //       possible to directly use the correct type.
+                //   see https://linear.app/hash/issue/BP-33
+                let entity_type = EntityType::try_from(schema).expect(
+                    "could not convert raw entity type to entity type from schema in database",
+                );
+                (id, entity_type)
+            })
+            .try_collect::<HashMap<_, _>>()
+            .await
+            .change_context(InsertionError)?;
+
+        let validator_provider = StoreProvider::<_, NoAuthorization> {
+            store: postgres_client,
+            authorization: None,
+        };
+
+        for entity in entities {
+            let entity_type_id = EntityTypeId::from_url(entity.metadata.entity_type_id());
+            let schema = schemas.get(&entity_type_id).ok_or(InsertionError)?;
+            entity
+                .validate(schema, &validator_provider)
+                .await
+                .change_context(InsertionError)?;
+        }
+
         Ok(())
     }
 }

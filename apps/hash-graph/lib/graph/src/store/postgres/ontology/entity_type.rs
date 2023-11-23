@@ -388,7 +388,6 @@ impl<C: AsClient> PostgresStore<C> {
                 ),
             )
             .await?
-            .map_ok(|(id, schema)| (EntityTypeId::from(id), schema))
             .try_collect::<Vec<_>>()
             .await?;
 
