@@ -50,9 +50,13 @@ export const userToEntity = (user: User): PartialEntity => {
         user.disableReason,
       [extractBaseUrl(linearPropertyTypes.displayName.propertyTypeId)]:
         user.displayName,
+
       [extractBaseUrl(systemPropertyTypes.email.propertyTypeId)]: user.email,
+      [extractBaseUrl(linearPropertyTypes.fullName.propertyTypeId)]: user.name,
       [extractBaseUrl(linearPropertyTypes.guest.propertyTypeId)]: user.guest,
       [extractBaseUrl(linearPropertyTypes.id.propertyTypeId)]: user.id,
+      [extractBaseUrl(linearPropertyTypes.inviteHash.propertyTypeId)]:
+        user.inviteHash,
       [extractBaseUrl(linearPropertyTypes.isMe.propertyTypeId)]: user.isMe,
       [extractBaseUrl(linearPropertyTypes.lastSeen.propertyTypeId)]:
         user.lastSeen ? toIsoString(user.lastSeen) : undefined,
