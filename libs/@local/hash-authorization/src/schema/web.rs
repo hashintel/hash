@@ -44,7 +44,7 @@ impl Resource for WebId {
 #[serde(rename_all = "snake_case")]
 pub enum WebResourceRelation {
     Owner,
-    Editor,
+    EntityCreator,
 }
 
 impl Relation<WebId> for WebResourceRelation {}
@@ -196,7 +196,7 @@ impl Relationship for (WebId, WebRelationAndSubject) {
                         return Err(InvalidRelationship::invalid_subject_set(parts));
                     }
                 },
-                WebResourceRelation::Editor => match (parts.subject, parts.subject_set) {
+                WebResourceRelation::EntityCreator => match (parts.subject, parts.subject_set) {
                     (WebSubject::Account(id), None) => WebRelationAndSubject::EntityCreator {
                         subject: WebEntityCreatorSubject::Account { id },
                         level: parts.relation.level,
@@ -235,7 +235,7 @@ impl Relationship for (WebId, WebRelationAndSubject) {
             ),
             WebRelationAndSubject::EntityCreator { subject, level } => (
                 LeveledRelation {
-                    name: WebResourceRelation::Editor,
+                    name: WebResourceRelation::EntityCreator,
                     level,
                 },
                 match subject {
