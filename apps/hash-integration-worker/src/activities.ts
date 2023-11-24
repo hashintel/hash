@@ -102,11 +102,29 @@ const createOrUpdateHashEntity = async (params: {
       continue;
     }
 
+    /** @todo: check which values have changed in a more sophisticated manor */
+    const mergedProperties = {
+      ...existingEntity.properties,
+      // Ensure we don't accidentally set required properties to `undefined` by disabling
+      // the ability to set properties to `undefined`
+      ...Object.entries(params.entity.properties).reduce(
+        (acc, [propertyTypeUrl, value]) => ({
+          ...acc,
+          ...(typeof value === "undefined"
+            ? {}
+            : {
+                [propertyTypeUrl]: value,
+              }),
+        }),
+        {},
+      ),
+    };
+
     await params.graphApiClient.updateEntity(params.authentication.actorId, {
       archived: false,
       entityId: existingEntity.metadata.recordId.entityId,
       entityTypeId: existingEntity.metadata.entityTypeId,
-      properties: params.entity.properties,
+      properties: mergedProperties,
     });
   }
 
