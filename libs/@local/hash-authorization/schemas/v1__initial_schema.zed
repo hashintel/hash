@@ -10,17 +10,11 @@ definition graph/account_group {
 	permission member = level_00_owner + level_00_member
 }
 
-definition graph/entity {
-	relation level_00_owner: graph/account | graph/account_group#member
-	relation level_00_editor: graph/account | graph/account_group#member
-	relation level_00_viewer: graph/account | graph/account_group#member | graph/account:*
-
-	permission update = level_00_owner + level_00_editor
-	permission view = level_00_viewer + update
-}
-
 definition graph/web {
 	relation level_00_owner: graph/account | graph/account_group#member
+
+	relation level_00_entity_editor: graph/account | graph/account_group#member
+	relation level_00_entity_viewer: graph/account | graph/account_group#member
 
 	permission update = level_00_owner
 
@@ -30,7 +24,20 @@ definition graph/web {
 	permission create_data_type = level_00_owner - level_00_owner
 }
 
+definition graph/entity {
+    relation level_00_web: graph/web
+
+	relation level_00_owner: graph/account | graph/account_group#member
+	relation level_00_editor: graph/account | graph/account_group#member
+	relation level_00_viewer: graph/account | graph/account_group#member | graph/account:*
+
+	permission update = level_00_owner + level_00_editor + level_00_web->level_00_entity_editor
+	permission view = level_00_viewer + level_00_web->level_00_entity_viewer + update
+}
+
 definition graph/entity_type {
+    relation level_00_web: graph/web
+
 	relation level_00_owner: graph/account | graph/account_group#member
 	relation level_00_viewer: graph/account:*
 	relation level_00_instantiator: graph/account | graph/account_group#member | graph/account:*
@@ -41,6 +48,8 @@ definition graph/entity_type {
 }
 
 definition graph/property_type {
+    relation level_00_web: graph/web
+
 	relation level_00_owner: graph/account | graph/account_group#member
 	relation level_00_viewer: graph/account:*
 
@@ -49,6 +58,8 @@ definition graph/property_type {
 }
 
 definition graph/data_type {
+    relation level_00_web: graph/web
+
 	relation level_00_owner: graph/account | graph/account_group#member
 	relation level_00_viewer: graph/account:*
 

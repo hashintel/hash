@@ -8,7 +8,8 @@ use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
         EntityTypeId, EntityTypeInstantiatorSubject, EntityTypeOwnerSubject, EntityTypePermission,
-        EntityTypeRelationAndSubject, EntityTypeSubjectSet, EntityTypeViewerSubject, WebPermission,
+        EntityTypeRelationAndSubject, EntityTypeSubjectSet, EntityTypeViewerSubject,
+        EntityTypeWebSubject, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -464,6 +465,14 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                     .change_context(InsertionError)?
                     .assert_permission()
                     .change_context(InsertionError)?;
+
+                relationships.push((
+                    EntityTypeId::from_url(insertion.schema.id()),
+                    EntityTypeRelationAndSubject::Web {
+                        subject: EntityTypeWebSubject::Web { id: *owned_by_id },
+                        level: 0,
+                    },
+                ));
             }
 
             let EntityTypeInsertion {

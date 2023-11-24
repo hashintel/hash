@@ -2641,6 +2641,24 @@
               "relation": {
                 "type": "string",
                 "enum": [
+                  "web"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/DataTypeWebSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
                   "owner"
                 ]
               },
@@ -2723,6 +2741,31 @@
             }
           }
         ]
+      },
+      "DataTypeWebSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "web"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/OwnedById"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
       },
       "DataTypeWithMetadata": {
         "type": "object",
@@ -3019,6 +3062,24 @@
               "relation": {
                 "type": "string",
                 "enum": [
+                  "web"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/EntityWebSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
                   "owner"
                 ]
               },
@@ -3271,6 +3332,24 @@
               "relation": {
                 "type": "string",
                 "enum": [
+                  "web"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/EntityTypeWebSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
                   "owner"
                 ]
               },
@@ -3372,6 +3451,31 @@
           }
         ]
       },
+      "EntityTypeWebSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "web"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/OwnedById"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
       "EntityTypeWithMetadata": {
         "type": "object",
         "required": [
@@ -3455,6 +3559,31 @@
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountGroupId"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "EntityWebSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "web"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/OwnedById"
               }
             }
           }
@@ -4429,6 +4558,24 @@
               "relation": {
                 "type": "string",
                 "enum": [
+                  "web"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/PropertyTypeWebSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
                   "owner"
                 ]
               },
@@ -4511,6 +4658,31 @@
             }
           }
         ]
+      },
+      "PropertyTypeWebSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "web"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/OwnedById"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
       },
       "PropertyTypeWithMetadata": {
         "type": "object",
@@ -5080,6 +5252,92 @@
           }
         }
       },
+      "WebEntityEditorSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "accountGroup"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "WebEntityViewerSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "accountGroup"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
       "WebOwnerSubject": {
         "oneOf": [
           {
@@ -5150,6 +5408,42 @@
               },
               "subject": {
                 "$ref": "#/components/schemas/WebOwnerSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "entityEditor"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/WebEntityEditorSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "entityViewer"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/WebEntityViewerSubject"
               }
             }
           }

@@ -6,7 +6,7 @@ use authorization::{
     schema::{
         PropertyTypeId, PropertyTypeOwnerSubject, PropertyTypePermission,
         PropertyTypeRelationAndSubject, PropertyTypeSubjectSet, PropertyTypeViewerSubject,
-        WebPermission,
+        PropertyTypeWebSubject, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -288,6 +288,14 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     .change_context(InsertionError)?
                     .assert_permission()
                     .change_context(InsertionError)?;
+
+                relationships.push((
+                    PropertyTypeId::from_url(schema.id()),
+                    PropertyTypeRelationAndSubject::Web {
+                        subject: PropertyTypeWebSubject::Web { id: *owned_by_id },
+                        level: 0,
+                    },
+                ));
             }
 
             if let Some((ontology_id, transaction_time, owner)) = transaction

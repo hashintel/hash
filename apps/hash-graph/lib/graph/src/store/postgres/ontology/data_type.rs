@@ -5,7 +5,7 @@ use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
         DataTypeId, DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject,
-        DataTypeSubjectSet, DataTypeViewerSubject, WebPermission,
+        DataTypeSubjectSet, DataTypeViewerSubject, DataTypeWebSubject, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -166,6 +166,14 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     .change_context(InsertionError)?
                     .assert_permission()
                     .change_context(InsertionError)?;
+
+                relationships.push((
+                    DataTypeId::from_url(schema.id()),
+                    DataTypeRelationAndSubject::Web {
+                        subject: DataTypeWebSubject::Web { id: *owned_by_id },
+                        level: 0,
+                    },
+                ));
             }
 
             if let Some((ontology_id, transaction_time, owner)) = transaction

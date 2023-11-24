@@ -6,7 +6,7 @@ use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
         EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, EntityTypeId,
-        EntityTypePermission, WebPermission,
+        EntityTypePermission, EntityWebSubject, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -465,14 +465,24 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         };
 
         authorization_api
-            .modify_entity_relations([(
-                ModifyRelationshipOperation::Create,
-                entity_id,
-                EntityRelationAndSubject::Owner {
-                    subject: owner,
-                    level: 0,
-                },
-            )])
+            .modify_entity_relations([
+                (
+                    ModifyRelationshipOperation::Create,
+                    entity_id,
+                    EntityRelationAndSubject::Web {
+                        subject: EntityWebSubject::Web { id: owned_by_id },
+                        level: 0,
+                    },
+                ),
+                (
+                    ModifyRelationshipOperation::Create,
+                    entity_id,
+                    EntityRelationAndSubject::Owner {
+                        subject: owner,
+                        level: 0,
+                    },
+                ),
+            ])
             .await
             .change_context(InsertionError)?;
 

@@ -1,6 +1,9 @@
 use std::error::Error;
 
-use graph_types::account::{AccountGroupId, AccountId};
+use graph_types::{
+    account::{AccountGroupId, AccountId},
+    provenance::OwnedById,
+};
 use serde::{Deserialize, Serialize};
 use type_system::url::VersionedUrl;
 use uuid::Uuid;
@@ -73,6 +76,7 @@ impl Resource for DataTypeId {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DataTypeResourceRelation {
+    Web,
     Owner,
     Viewer,
 }
@@ -92,6 +96,7 @@ impl Permission<DataTypeId> for DataTypePermission {}
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum DataTypeSubject {
+    Web(OwnedById),
     Public,
     Account(AccountId),
     AccountGroup(AccountGroupId),
@@ -108,6 +113,8 @@ impl Relation<DataTypeSubject> for DataTypeSubjectSet {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DataTypeSubjectNamespace {
+    #[serde(rename = "graph/web")]
+    Web,
     #[serde(rename = "graph/account")]
     Account,
     #[serde(rename = "graph/account_group")]
@@ -127,6 +134,9 @@ impl Resource for DataTypeSubject {
 
     fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
         Ok(match (kind, id) {
+            (DataTypeSubjectNamespace::Web, DataTypeSubjectId::Uuid(id)) => {
+                Self::Web(OwnedById::new(id))
+            }
             (
                 DataTypeSubjectNamespace::Account,
                 DataTypeSubjectId::Asteriks(PublicAccess::Public),
@@ -138,7 +148,7 @@ impl Resource for DataTypeSubject {
                 Self::AccountGroup(AccountGroupId::new(id))
             }
             (
-                DataTypeSubjectNamespace::AccountGroup,
+                DataTypeSubjectNamespace::Web | DataTypeSubjectNamespace::AccountGroup,
                 DataTypeSubjectId::Asteriks(PublicAccess::Public),
             ) => {
                 return Err(InvalidResource::<Self>::invalid_id(kind, id));
@@ -148,6 +158,10 @@ impl Resource for DataTypeSubject {
 
     fn into_parts(self) -> (Self::Kind, Self::Id) {
         match self {
+            Self::Web(id) => (
+                DataTypeSubjectNamespace::Web,
+                DataTypeSubjectId::Uuid(id.into_uuid()),
+            ),
             Self::Public => (
                 DataTypeSubjectNamespace::Account,
                 DataTypeSubjectId::Asteriks(PublicAccess::Public),
@@ -166,6 +180,15 @@ impl Resource for DataTypeSubject {
     fn to_parts(&self) -> (Self::Kind, Self::Id) {
         Resource::into_parts(*self)
     }
+}
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
+pub enum DataTypeWebSubject {
+    Web {
+        #[serde(rename = "subjectId")]
+        id: OwnedById,
+    },
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -195,6 +218,11 @@ pub enum DataTypeViewerSubject {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation")]
 pub enum DataTypeRelationAndSubject {
+    Web {
+        subject: DataTypeWebSubject,
+        #[serde(skip)]
+        level: u8,
+    },
     Owner {
         subject: DataTypeOwnerSubject,
         #[serde(skip)]
@@ -217,6 +245,23 @@ impl Relationship for (DataTypeId, DataTypeRelationAndSubject) {
         Ok((
             parts.resource,
             match parts.relation.name {
+                DataTypeResourceRelation::Web => match (parts.subject, parts.subject_set) {
+                    (DataTypeSubject::Web(id), None) => DataTypeRelationAndSubject::Web {
+                        subject: DataTypeWebSubject::Web { id },
+                        level: parts.relation.level,
+                    },
+                    (
+                        DataTypeSubject::Public
+                        | DataTypeSubject::Account(_)
+                        | DataTypeSubject::AccountGroup(_),
+                        _subject_set,
+                    ) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                    }
+                    (DataTypeSubject::Web(_), _subject_set) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
+                    }
+                },
                 DataTypeResourceRelation::Owner => match (parts.subject, parts.subject_set) {
                     (DataTypeSubject::Account(id), None) => DataTypeRelationAndSubject::Owner {
                         subject: DataTypeOwnerSubject::Account { id },
@@ -228,7 +273,7 @@ impl Relationship for (DataTypeId, DataTypeRelationAndSubject) {
                             level: parts.relation.level,
                         }
                     }
-                    (DataTypeSubject::Public, _subject_set) => {
+                    (DataTypeSubject::Web(_) | DataTypeSubject::Public, _subject_set) => {
                         return Err(InvalidRelationship::<Self>::invalid_subject(parts));
                     }
                     (
@@ -243,6 +288,9 @@ impl Relationship for (DataTypeId, DataTypeRelationAndSubject) {
                         subject: DataTypeViewerSubject::Public,
                         level: parts.relation.level,
                     },
+                    (DataTypeSubject::Web(_), _subject_set) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                    }
                     (
                         DataTypeSubject::Account(_)
                         | DataTypeSubject::AccountGroup(_)
@@ -262,6 +310,15 @@ impl Relationship for (DataTypeId, DataTypeRelationAndSubject) {
 
     fn into_parts(self) -> RelationshipParts<Self> {
         let (relation, (subject, subject_set)) = match self.1 {
+            DataTypeRelationAndSubject::Web { subject, level } => (
+                LeveledRelation {
+                    name: DataTypeResourceRelation::Web,
+                    level,
+                },
+                match subject {
+                    DataTypeWebSubject::Web { id } => (DataTypeSubject::Web(id), None),
+                },
+            ),
             DataTypeRelationAndSubject::Owner { subject, level } => (
                 LeveledRelation {
                     name: DataTypeResourceRelation::Owner,

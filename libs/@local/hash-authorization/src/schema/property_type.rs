@@ -1,6 +1,9 @@
 use std::error::Error;
 
-use graph_types::account::{AccountGroupId, AccountId};
+use graph_types::{
+    account::{AccountGroupId, AccountId},
+    provenance::OwnedById,
+};
 use serde::{Deserialize, Serialize};
 use type_system::url::VersionedUrl;
 use uuid::Uuid;
@@ -73,6 +76,7 @@ impl Resource for PropertyTypeId {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PropertyTypeResourceRelation {
+    Web,
     Owner,
     Viewer,
 }
@@ -92,6 +96,7 @@ impl Permission<PropertyTypeId> for PropertyTypePermission {}
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum PropertyTypeSubject {
+    Web(OwnedById),
     Public,
     Account(AccountId),
     AccountGroup(AccountGroupId),
@@ -108,6 +113,8 @@ impl Relation<PropertyTypeSubject> for PropertyTypeSubjectSet {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PropertyTypeSubjectNamespace {
+    #[serde(rename = "graph/web")]
+    Web,
     #[serde(rename = "graph/account")]
     Account,
     #[serde(rename = "graph/account_group")]
@@ -127,6 +134,9 @@ impl Resource for PropertyTypeSubject {
 
     fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
         Ok(match (kind, id) {
+            (PropertyTypeSubjectNamespace::Web, PropertyTypeSubjectId::Uuid(id)) => {
+                Self::Web(OwnedById::new(id))
+            }
             (
                 PropertyTypeSubjectNamespace::Account,
                 PropertyTypeSubjectId::Asteriks(PublicAccess::Public),
@@ -138,7 +148,7 @@ impl Resource for PropertyTypeSubject {
                 Self::AccountGroup(AccountGroupId::new(id))
             }
             (
-                PropertyTypeSubjectNamespace::AccountGroup,
+                PropertyTypeSubjectNamespace::Web | PropertyTypeSubjectNamespace::AccountGroup,
                 PropertyTypeSubjectId::Asteriks(PublicAccess::Public),
             ) => {
                 return Err(InvalidResource::<Self>::invalid_id(kind, id));
@@ -148,6 +158,10 @@ impl Resource for PropertyTypeSubject {
 
     fn into_parts(self) -> (Self::Kind, Self::Id) {
         match self {
+            Self::Web(id) => (
+                PropertyTypeSubjectNamespace::Web,
+                PropertyTypeSubjectId::Uuid(id.into_uuid()),
+            ),
             Self::Public => (
                 PropertyTypeSubjectNamespace::Account,
                 PropertyTypeSubjectId::Asteriks(PublicAccess::Public),
@@ -166,6 +180,15 @@ impl Resource for PropertyTypeSubject {
     fn to_parts(&self) -> (Self::Kind, Self::Id) {
         Resource::into_parts(*self)
     }
+}
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
+pub enum PropertyTypeWebSubject {
+    Web {
+        #[serde(rename = "subjectId")]
+        id: OwnedById,
+    },
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -195,6 +218,11 @@ pub enum PropertyTypeViewerSubject {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation")]
 pub enum PropertyTypeRelationAndSubject {
+    Web {
+        subject: PropertyTypeWebSubject,
+        #[serde(skip)]
+        level: u8,
+    },
     Owner {
         subject: PropertyTypeOwnerSubject,
         #[serde(skip)]
@@ -217,6 +245,23 @@ impl Relationship for (PropertyTypeId, PropertyTypeRelationAndSubject) {
         Ok((
             parts.resource,
             match parts.relation.name {
+                PropertyTypeResourceRelation::Web => match (parts.subject, parts.subject_set) {
+                    (PropertyTypeSubject::Web(id), None) => PropertyTypeRelationAndSubject::Web {
+                        subject: PropertyTypeWebSubject::Web { id },
+                        level: parts.relation.level,
+                    },
+                    (
+                        PropertyTypeSubject::Public
+                        | PropertyTypeSubject::Account(_)
+                        | PropertyTypeSubject::AccountGroup(_),
+                        _subject_set,
+                    ) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                    }
+                    (PropertyTypeSubject::Web(_), _subject_set) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
+                    }
+                },
                 PropertyTypeResourceRelation::Owner => match (parts.subject, parts.subject_set) {
                     (PropertyTypeSubject::Account(id), None) => {
                         PropertyTypeRelationAndSubject::Owner {
@@ -230,7 +275,7 @@ impl Relationship for (PropertyTypeId, PropertyTypeRelationAndSubject) {
                             level: parts.relation.level,
                         }
                     }
-                    (PropertyTypeSubject::Public, _subject_set) => {
+                    (PropertyTypeSubject::Web(_) | PropertyTypeSubject::Public, _subject_set) => {
                         return Err(InvalidRelationship::<Self>::invalid_subject(parts));
                     }
                     (
@@ -245,6 +290,9 @@ impl Relationship for (PropertyTypeId, PropertyTypeRelationAndSubject) {
                         subject: PropertyTypeViewerSubject::Public,
                         level: parts.relation.level,
                     },
+                    (PropertyTypeSubject::Web(_), _subject_set) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                    }
                     (
                         PropertyTypeSubject::Account(_)
                         | PropertyTypeSubject::AccountGroup(_)
@@ -264,6 +312,15 @@ impl Relationship for (PropertyTypeId, PropertyTypeRelationAndSubject) {
 
     fn into_parts(self) -> RelationshipParts<Self> {
         let (relation, (subject, subject_set)) = match self.1 {
+            PropertyTypeRelationAndSubject::Web { subject, level } => (
+                LeveledRelation {
+                    name: PropertyTypeResourceRelation::Web,
+                    level,
+                },
+                match subject {
+                    PropertyTypeWebSubject::Web { id } => (PropertyTypeSubject::Web(id), None),
+                },
+            ),
             PropertyTypeRelationAndSubject::Owner { subject, level } => (
                 LeveledRelation {
                     name: PropertyTypeResourceRelation::Owner,

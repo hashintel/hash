@@ -6,7 +6,10 @@ use std::sync::Arc;
 
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
-    schema::{WebOwnerSubject, WebPermission, WebRelationAndSubject},
+    schema::{
+        WebEntityEditorSubject, WebEntityViewerSubject, WebOwnerSubject, WebPermission,
+        WebRelationAndSubject,
+    },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
 };
@@ -43,6 +46,8 @@ use crate::{
             WebRelationAndSubject,
             WebPermission,
             WebOwnerSubject,
+            WebEntityEditorSubject,
+            WebEntityViewerSubject,
             ModifyWebAuthorizationRelationship,
         ),
     ),

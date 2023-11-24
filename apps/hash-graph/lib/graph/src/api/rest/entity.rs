@@ -8,7 +8,7 @@ use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
         EntityEditorSubject, EntityOwnerSubject, EntityPermission, EntityRelationAndSubject,
-        EntitySubjectSet, EntityViewerSubject, WebSubject,
+        EntitySubjectSet, EntityViewerSubject, EntityWebSubject, WebSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
@@ -77,6 +77,7 @@ use crate::{
 
             EntityRelationAndSubject,
             EntityPermission,
+            EntityWebSubject,
             EntityOwnerSubject,
             EntityEditorSubject,
             EntityViewerSubject,

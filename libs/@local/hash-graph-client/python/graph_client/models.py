@@ -391,6 +391,34 @@ class ValidationOperation(RootModel[Literal['all']]):
     model_config = ConfigDict(populate_by_name=True)
     root: Literal['all']
 
+class WebEntityEditorSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['account']
+    subject_id: AccountId = Field(..., alias='subjectId')
+
+class WebEntityEditorSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['accountGroup']
+    subject_id: AccountGroupId = Field(..., alias='subjectId')
+
+class WebEntityEditorSubject(RootModel[WebEntityEditorSubjectItem | WebEntityEditorSubjectItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: WebEntityEditorSubjectItem | WebEntityEditorSubjectItem1 = Field(..., discriminator='kind')
+
+class WebEntityViewerSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['account']
+    subject_id: AccountId = Field(..., alias='subjectId')
+
+class WebEntityViewerSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['accountGroup']
+    subject_id: AccountGroupId = Field(..., alias='subjectId')
+
+class WebEntityViewerSubject(RootModel[WebEntityViewerSubjectItem | WebEntityViewerSubjectItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: WebEntityViewerSubjectItem | WebEntityViewerSubjectItem1 = Field(..., discriminator='kind')
+
 class WebOwnerSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     kind: Literal['account']
@@ -417,9 +445,19 @@ class WebRelationAndSubjectItem(BaseModel):
     relation: Literal['owner']
     subject: WebOwnerSubject
 
-class WebRelationAndSubject(RootModel[WebRelationAndSubjectItem]):
+class WebRelationAndSubjectItem1(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    root: WebRelationAndSubjectItem = Field(..., discriminator='relation')
+    relation: Literal['entityEditor']
+    subject: WebEntityEditorSubject
+
+class WebRelationAndSubjectItem2(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: Literal['entityViewer']
+    subject: WebEntityViewerSubject
+
+class WebRelationAndSubject(RootModel[WebRelationAndSubjectItem | WebRelationAndSubjectItem1 | WebRelationAndSubjectItem2]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: WebRelationAndSubjectItem | WebRelationAndSubjectItem1 | WebRelationAndSubjectItem2 = Field(..., discriminator='relation')
 
 class UpdateDataType(BaseModel):
     """

@@ -3,6 +3,7 @@ use std::error::Error;
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::EntityUuid,
+    provenance::OwnedById,
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -46,6 +47,7 @@ impl Resource for EntityUuid {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EntityResourceRelation {
+    Web,
     Owner,
     Editor,
     Viewer,
@@ -66,6 +68,7 @@ impl Permission<EntityUuid> for EntityPermission {}
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum EntitySubject {
+    Web(OwnedById),
     Public,
     Account(AccountId),
     AccountGroup(AccountGroupId),
@@ -82,6 +85,8 @@ impl Relation<EntitySubject> for EntitySubjectSet {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EntitySubjectNamespace {
+    #[serde(rename = "graph/web")]
+    Web,
     #[serde(rename = "graph/account")]
     Account,
     #[serde(rename = "graph/account_group")]
@@ -101,6 +106,9 @@ impl Resource for EntitySubject {
 
     fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
         Ok(match (kind, id) {
+            (EntitySubjectNamespace::Web, EntitySubjectId::Uuid(id)) => {
+                Self::Web(OwnedById::new(id))
+            }
             (EntitySubjectNamespace::Account, EntitySubjectId::Asteriks(PublicAccess::Public)) => {
                 Self::Public
             }
@@ -111,7 +119,7 @@ impl Resource for EntitySubject {
                 Self::AccountGroup(AccountGroupId::new(id))
             }
             (
-                EntitySubjectNamespace::AccountGroup,
+                EntitySubjectNamespace::Web | EntitySubjectNamespace::AccountGroup,
                 EntitySubjectId::Asteriks(PublicAccess::Public),
             ) => {
                 return Err(InvalidResource::<Self>::invalid_id(kind, id));
@@ -121,6 +129,10 @@ impl Resource for EntitySubject {
 
     fn into_parts(self) -> (Self::Kind, Self::Id) {
         match self {
+            Self::Web(id) => (
+                EntitySubjectNamespace::Web,
+                EntitySubjectId::Uuid(id.into_uuid()),
+            ),
             Self::Public => (
                 EntitySubjectNamespace::Account,
                 EntitySubjectId::Asteriks(PublicAccess::Public),
@@ -139,6 +151,15 @@ impl Resource for EntitySubject {
     fn to_parts(&self) -> (Self::Kind, Self::Id) {
         Resource::into_parts(*self)
     }
+}
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
+pub enum EntityWebSubject {
+    Web {
+        #[serde(rename = "subjectId")]
+        id: OwnedById,
+    },
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -194,6 +215,11 @@ pub enum EntityViewerSubject {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation")]
 pub enum EntityRelationAndSubject {
+    Web {
+        subject: EntityWebSubject,
+        #[serde(skip)]
+        level: u8,
+    },
     Owner {
         subject: EntityOwnerSubject,
         #[serde(skip)]
@@ -221,6 +247,23 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
         Ok((
             parts.resource,
             match parts.relation.name {
+                EntityResourceRelation::Web => match (parts.subject, parts.subject_set) {
+                    (EntitySubject::Web(id), None) => EntityRelationAndSubject::Web {
+                        subject: EntityWebSubject::Web { id },
+                        level: parts.relation.level,
+                    },
+                    (
+                        EntitySubject::Public
+                        | EntitySubject::Account(_)
+                        | EntitySubject::AccountGroup(_),
+                        _subject_set,
+                    ) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                    }
+                    (EntitySubject::Web(_), _subject_set) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
+                    }
+                },
                 EntityResourceRelation::Owner => match (parts.subject, parts.subject_set) {
                     (EntitySubject::Account(id), None) => EntityRelationAndSubject::Owner {
                         subject: EntityOwnerSubject::Account { id },
@@ -232,7 +275,7 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
                             level: parts.relation.level,
                         }
                     }
-                    (EntitySubject::Public, _subject_set) => {
+                    (EntitySubject::Web(_) | EntitySubject::Public, _subject_set) => {
                         return Err(InvalidRelationship::<Self>::invalid_subject(parts));
                     }
                     (EntitySubject::Account(_) | EntitySubject::AccountGroup(_), _subject_set) => {
@@ -250,7 +293,7 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
                             level: parts.relation.level,
                         }
                     }
-                    (EntitySubject::Public, _subject_set) => {
+                    (EntitySubject::Web(_) | EntitySubject::Public, _subject_set) => {
                         return Err(InvalidRelationship::<Self>::invalid_subject(parts));
                     }
                     (EntitySubject::Account(_) | EntitySubject::AccountGroup(_), _subject_set) => {
@@ -272,6 +315,9 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
                             level: parts.relation.level,
                         }
                     }
+                    (EntitySubject::Web(_), _subject_set) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                    }
                     (
                         EntitySubject::Account(_)
                         | EntitySubject::AccountGroup(_)
@@ -291,6 +337,15 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
 
     fn into_parts(self) -> RelationshipParts<Self> {
         let (relation, (subject, subject_set)) = match self.1 {
+            EntityRelationAndSubject::Web { subject, level } => (
+                LeveledRelation {
+                    name: EntityResourceRelation::Web,
+                    level,
+                },
+                match subject {
+                    EntityWebSubject::Web { id } => (EntitySubject::Web(id), None),
+                },
+            ),
             EntityRelationAndSubject::Owner { subject, level } => (
                 LeveledRelation {
                     name: EntityResourceRelation::Owner,

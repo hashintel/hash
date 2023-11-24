@@ -44,6 +44,8 @@ impl Resource for WebId {
 #[serde(rename_all = "snake_case")]
 pub enum WebResourceRelation {
     Owner,
+    EntityEditor,
+    EntityViewer,
 }
 
 impl Relation<WebId> for WebResourceRelation {}
@@ -142,10 +144,52 @@ pub enum WebOwnerSubject {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
+pub enum WebEntityEditorSubject {
+    Account {
+        #[serde(rename = "subjectId")]
+        id: AccountId,
+    },
+    AccountGroup {
+        #[serde(rename = "subjectId")]
+        id: AccountGroupId,
+        #[serde(skip)]
+        set: WebSubjectSet,
+    },
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
+pub enum WebEntityViewerSubject {
+    Account {
+        #[serde(rename = "subjectId")]
+        id: AccountId,
+    },
+    AccountGroup {
+        #[serde(rename = "subjectId")]
+        id: AccountGroupId,
+        #[serde(skip)]
+        set: WebSubjectSet,
+    },
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation")]
 pub enum WebRelationAndSubject {
     Owner {
         subject: WebOwnerSubject,
+        #[serde(skip)]
+        level: u8,
+    },
+    EntityEditor {
+        subject: WebEntityEditorSubject,
+        #[serde(skip)]
+        level: u8,
+    },
+    EntityViewer {
+        subject: WebEntityViewerSubject,
         #[serde(skip)]
         level: u8,
     },
@@ -174,6 +218,36 @@ impl Relationship for (WebId, WebRelationAndSubject) {
                         return Err(InvalidRelationship::invalid_subject_set(parts));
                     }
                 },
+                WebResourceRelation::EntityEditor => match (parts.subject, parts.subject_set) {
+                    (WebSubject::Account(id), None) => WebRelationAndSubject::EntityEditor {
+                        subject: WebEntityEditorSubject::Account { id },
+                        level: parts.relation.level,
+                    },
+                    (WebSubject::AccountGroup(id), Some(set)) => {
+                        WebRelationAndSubject::EntityEditor {
+                            subject: WebEntityEditorSubject::AccountGroup { id, set },
+                            level: parts.relation.level,
+                        }
+                    }
+                    (WebSubject::Account(_) | WebSubject::AccountGroup(_), _subject_set) => {
+                        return Err(InvalidRelationship::invalid_subject_set(parts));
+                    }
+                },
+                WebResourceRelation::EntityViewer => match (parts.subject, parts.subject_set) {
+                    (WebSubject::Account(id), None) => WebRelationAndSubject::EntityViewer {
+                        subject: WebEntityViewerSubject::Account { id },
+                        level: parts.relation.level,
+                    },
+                    (WebSubject::AccountGroup(id), Some(set)) => {
+                        WebRelationAndSubject::EntityViewer {
+                            subject: WebEntityViewerSubject::AccountGroup { id, set },
+                            level: parts.relation.level,
+                        }
+                    }
+                    (WebSubject::Account(_) | WebSubject::AccountGroup(_), _subject_set) => {
+                        return Err(InvalidRelationship::invalid_subject_set(parts));
+                    }
+                },
             },
         ))
     }
@@ -192,6 +266,30 @@ impl Relationship for (WebId, WebRelationAndSubject) {
                 match subject {
                     WebOwnerSubject::Account { id } => (WebSubject::Account(id), None),
                     WebOwnerSubject::AccountGroup { id, set } => {
+                        (WebSubject::AccountGroup(id), Some(set))
+                    }
+                },
+            ),
+            WebRelationAndSubject::EntityEditor { subject, level } => (
+                LeveledRelation {
+                    name: WebResourceRelation::EntityEditor,
+                    level,
+                },
+                match subject {
+                    WebEntityEditorSubject::Account { id } => (WebSubject::Account(id), None),
+                    WebEntityEditorSubject::AccountGroup { id, set } => {
+                        (WebSubject::AccountGroup(id), Some(set))
+                    }
+                },
+            ),
+            WebRelationAndSubject::EntityViewer { subject, level } => (
+                LeveledRelation {
+                    name: WebResourceRelation::EntityViewer,
+                    level,
+                },
+                match subject {
+                    WebEntityViewerSubject::Account { id } => (WebSubject::Account(id), None),
+                    WebEntityViewerSubject::AccountGroup { id, set } => {
                         (WebSubject::AccountGroup(id), Some(set))
                     }
                 },

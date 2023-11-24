@@ -8,7 +8,7 @@ use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
         DataTypeId, DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject,
-        DataTypeViewerSubject,
+        DataTypeViewerSubject, DataTypeWebSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
@@ -73,6 +73,7 @@ use crate::{
         schemas(
             DataTypeWithMetadata,
 
+            DataTypeWebSubject,
             DataTypeViewerSubject,
             DataTypeOwnerSubject,
             DataTypePermission,
