@@ -207,9 +207,26 @@ where
                 .ok();
 
             if let Some(left_entity_type) = left_entity_type {
-                if let Some(maybe_allowed_targets) =
-                    left_entity_type.borrow().links().get(self.id())
-                {
+                let mut maybe_allowed_targets = left_entity_type.borrow().links().get(self.id());
+                if maybe_allowed_targets.is_none() {
+                    // No exact match found, so we look up parent types
+                    for (link_type, allowed_targets) in left_entity_type.borrow().links() {
+                        if provider
+                            .is_parent_of(self.id(), link_type)
+                            .await
+                            .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
+                                id: self.id().clone(),
+                            })
+                            .map_err(|error| extend_report!(status, error))
+                            .unwrap_or(false)
+                        {
+                            maybe_allowed_targets = Some(allowed_targets);
+                            break;
+                        }
+                    }
+                }
+
+                if let Some(maybe_allowed_targets) = maybe_allowed_targets {
                     if let (Some(allowed_targets), Some(right_entity_type_id)) =
                         (maybe_allowed_targets.array().items(), right_entity_type_id)
                     {
