@@ -112,6 +112,7 @@ where
             .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
                 id: schema.id().clone(),
             })
+            .map_err(|error| extend_report!(status, error))
             .unwrap_or(
                 // We were not able to check if the entity type is a link, so we assume it is. The
                 // validation already failed anyway. This way we don't pollute the error report
