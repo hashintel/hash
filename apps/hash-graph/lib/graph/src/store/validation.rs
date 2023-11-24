@@ -18,7 +18,9 @@ use validation::{EntityProvider, EntityTypeProvider, OntologyTypeProvider};
 
 use crate::{
     store::{crud::Read, query::Filter, AsClient, PostgresStore, QueryError},
-    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    },
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -176,7 +178,13 @@ where
         self.store
             .read_one(
                 &Filter::<S::Record>::for_entity_by_entity_id(entity_id),
-                Some(&QueryTemporalAxesUnresolved::default().resolve()),
+                Some(
+                    &QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    }
+                    .resolve(),
+                ),
             )
             .await
     }

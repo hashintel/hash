@@ -989,41 +989,59 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(UpdateError)
         })?;
 
-        let link_data = transaction
-            .as_client()
-            .query_opt(
-                "SELECT left_web_id, left_entity_uuid, right_web_id, right_entity_uuid
-                 FROM entity_has_left_entity
-                 JOIN entity_has_right_entity USING (web_id, entity_uuid)
-                 WHERE web_id = $1 AND entity_uuid = $2;",
-                &[&entity_id.owned_by_id, &entity_id.entity_uuid],
-            )
-            .await
-            .change_context(UpdateError)?
-            .map(|row| LinkData {
-                left_entity_id: EntityId {
-                    owned_by_id: row.get(0),
-                    entity_uuid: row.get(1),
-                },
-                right_entity_id: EntityId {
-                    owned_by_id: row.get(2),
-                    entity_uuid: row.get(3),
-                },
-                order: link_order,
-            });
+        // let link_data = transaction
+        //     .as_client()
+        //     .query_opt(
+        //         "SELECT left_web_id, left_entity_uuid, right_web_id, right_entity_uuid
+        //          FROM entity_has_left_entity
+        //          JOIN entity_has_right_entity USING (web_id, entity_uuid)
+        //          WHERE web_id = $1 AND entity_uuid = $2;",
+        //         &[&entity_id.owned_by_id, &entity_id.entity_uuid],
+        //     )
+        //     .await
+        //     .change_context(UpdateError)?
+        //     .map(|row| LinkData {
+        //         left_entity_id: EntityId {
+        //             owned_by_id: row.get(0),
+        //             entity_uuid: row.get(1),
+        //         },
+        //         right_entity_id: EntityId {
+        //             owned_by_id: row.get(2),
+        //             entity_uuid: row.get(3),
+        //         },
+        //         order: link_order,
+        //     });
 
-        transaction
-            .validate_entity(
-                actor_id,
-                authorization_api,
-                Consistency::FullyConsistent,
-                EntityValidationType::Schema(&closed_schema),
-                &properties,
-                link_data.as_ref(),
+        // TODO: Validate source and target entities when updating a link.
+        //   see https://linear.app/hash/issue/H-1413
+        properties
+            .validate(
+                &closed_schema,
+                &StoreProvider {
+                    store: &transaction,
+                    authorization: Some((
+                        authorization_api,
+                        actor_id,
+                        Consistency::FullyConsistent,
+                    )),
+                },
             )
             .await
             .change_context(UpdateError)
             .attach(StatusCode::InvalidArgument)?;
+
+        // transaction
+        //     .validate_entity(
+        //         actor_id,
+        //         authorization_api,
+        //         Consistency::FullyConsistent,
+        //         EntityValidationType::Schema(&closed_schema),
+        //         &properties,
+        //         link_data.as_ref(),
+        //     )
+        //     .await
+        //     .change_context(UpdateError)
+        //     .attach(StatusCode::InvalidArgument)?;
 
         transaction.commit().await.change_context(UpdateError)?;
 
