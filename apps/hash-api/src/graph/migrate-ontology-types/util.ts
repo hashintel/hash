@@ -449,8 +449,8 @@ export const generateSystemEntityTypeSchema = (
                       entityTypeIdOrReference === "SELF_REFERENCE"
                         ? params.entityTypeId
                         : typeof entityTypeIdOrReference === "object"
-                        ? entityTypeIdOrReference.schema.$id
-                        : entityTypeIdOrReference,
+                          ? entityTypeIdOrReference.schema.$id
+                          : entityTypeIdOrReference,
                   }),
                 ),
               }
