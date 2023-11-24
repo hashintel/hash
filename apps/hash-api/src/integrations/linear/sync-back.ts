@@ -10,7 +10,6 @@ import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   extractOwnedByIdFromEntityId,
-  OwnedById,
   Uuid,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -57,20 +56,26 @@ export const processEntityChange = async (
     entity.metadata.recordId.entityId,
   );
 
-  // @todo: Figure out who the actor should be
-  //    see https://linear.app/hash/issue/H-756
-  const authentication = {
-    actorId: entity.metadata.provenance.recordCreatedById,
-  };
+  /**
+   * This assumes the web of the entity is an org web, not a user web.
+   *
+   * @todo: fix this so that it works for users and orgs
+   */
+  const hashWorkspaceEntityId = entityIdFromOwnedByIdAndEntityUuid(
+    owningAccountUuId,
+    owningAccountUuId as Uuid as EntityUuid,
+  );
 
   const linearApiKey = await getLinearSecretValueByHashWorkspaceId(
     { graphApi },
-    authentication,
+    /**
+     * We currently assign the integration permissions to the system account ID,
+     * in the `syncLinearIntegrationWithWorkspaces` resolver, so we user the
+     * `systemAccountId` here for now.
+     */
+    { actorId: systemAccountId },
     {
-      hashWorkspaceEntityId: entityIdFromOwnedByIdAndEntityUuid(
-        systemAccountId as OwnedById,
-        owningAccountUuId as Uuid as EntityUuid,
-      ),
+      hashWorkspaceEntityId,
       vaultClient,
     },
   );

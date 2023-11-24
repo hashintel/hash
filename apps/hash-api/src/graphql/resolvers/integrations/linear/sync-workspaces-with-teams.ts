@@ -14,6 +14,7 @@ import { addAccountGroupMember } from "../../../../graph/account-permission-mana
 import {
   archiveEntity,
   getLatestEntityById,
+  modifyEntityAuthorizationRelationships,
 } from "../../../../graph/knowledge/primitive/entity";
 import {
   getLinearIntegrationById,
@@ -72,6 +73,24 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
     secretMountPath: "secret",
     path: linearUserSecret.vaultPath,
   });
+
+  await Promise.all(
+    [
+      linearIntegration.entity.metadata.recordId.entityId,
+      linearUserSecret.entity.metadata.recordId.entityId,
+    ].map((entityId) =>
+      modifyEntityAuthorizationRelationships(dataSources, authentication, [
+        {
+          operation: "touch",
+          relationship: {
+            resource: { kind: "entity", resourceId: entityId },
+            relation: "viewer",
+            subject: { kind: "account", subjectId: systemAccountId },
+          },
+        },
+      ]),
+    ),
+  );
 
   const apiKey = vaultSecret.data.value;
 
