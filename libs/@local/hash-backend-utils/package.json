@@ -39,7 +39,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/dotenv-flow": "3.2.0",
-    "@types/jest": "29.5.9",
+    "@types/jest": "29.5.10",
     "@types/node": "18.15.13",
     "@types/redis": "2.8.32",
     "@types/wait-on": "5.3.1",
