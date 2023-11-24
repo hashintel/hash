@@ -15,6 +15,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { oryKratosPublicUrl } from "@local/hash-isomorphic-utils/environment";
@@ -38,8 +39,8 @@ import {
   DummyEmailTransporter,
   EmailTransporter,
 } from "./email/transporters";
-import { createGraphClient, ensureSystemGraphIsInitialized } from "./graph";
 import { ImpureGraphContext } from "./graph/context-types";
+import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { User } from "./graph/knowledge/system-types/user";
 import { ensureLinearTypesExist } from "./graph/linear-types";
 import { createApolloServer } from "./graphql/create-apollo-server";

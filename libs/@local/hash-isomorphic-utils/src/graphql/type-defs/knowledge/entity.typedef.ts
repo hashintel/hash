@@ -282,7 +282,6 @@ export const entityTypedef = gql`
     Does NOT persist the entities – callers are responsible for doing something with the proposed entities.
     """
     inferEntities(
-      # Keep this in sync with the InferEntitiesWorkflowParameter type in apps/hash-ai-worker-py
       """
       A string of text to infer entities from, e.g. a page of text.
       """
@@ -299,10 +298,6 @@ export const entityTypedef = gql`
       The maximum amount of tokens to generate. '0' means that the model's limit will be used.
       """
       maxTokens: Int!
-      """
-      Whether to allow empty results.
-      """
-      allowEmptyResults: Boolean!
       """
       The validation to apply to the inferred entities.
       """

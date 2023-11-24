@@ -3,6 +3,7 @@ import "@local/hash-backend-utils/environment";
 import { writeFile } from "node:fs/promises";
 import * as path from "node:path";
 
+import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
   currentTimeInstantTemporalAxes,
@@ -17,7 +18,6 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { publicUserAccountId } from "./auth/public-user-account-id";
-import { createGraphClient } from "./graph";
 import { getOrgByShortname } from "./graph/knowledge/system-types/org";
 import { getDataTypes } from "./graph/ontology/primitive/data-type";
 import {

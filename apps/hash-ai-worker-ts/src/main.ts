@@ -1,11 +1,13 @@
 import * as http from "node:http";
 import * as path from "node:path";
 
+import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+import { Logger } from "@local/hash-backend-utils/logger";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
-import * as activities from "./activities";
-import { createImpureGraphContext } from "./activities";
+import { createAiActivities } from "./activities";
 
 export const monorepoRootDir = path.resolve(__dirname, "../../..");
 
@@ -44,11 +46,22 @@ const workflowOption = () =>
       }
     : { workflowsPath: require.resolve("./workflows") };
 
+const logger = new Logger({
+  mode: process.env.NODE_ENV === "production" ? "prod" : "dev",
+  serviceName: "api",
+});
+
 async function run() {
-  const graphContext = createImpureGraphContext();
+  const graphApiClient = createGraphClient(logger, {
+    host: getRequiredEnv("HASH_GRAPH_API_HOST"),
+    port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
+  });
+
   const worker = await Worker.create({
     ...workflowOption(),
-    activities: activities.createGraphActivities({ graphContext }),
+    activities: createAiActivities({
+      graphApiClient,
+    }),
     connection: await NativeConnection.connect({
       address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
     }),
