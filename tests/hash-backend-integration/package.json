@@ -35,7 +35,7 @@
     "@graphql-codegen/typescript-resolvers": "2.7.12",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/jest": "29.5.8",
+    "@types/jest": "29.5.9",
     "eslint": "8.33.0",
     "jest": "29.7.0",
     "rimraf": "^5.0.5",
