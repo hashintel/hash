@@ -10,18 +10,18 @@ import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import OpenAI from "openai";
 
-import {
-  MutationInferEntitiesArgs,
-  ProposedEntity,
-} from "../graphql/api-types.gen";
-import {
-  createFunctions,
-  FunctionName,
-} from "./infer-entities/create-functions";
+import { MutationInferEntitiesArgs } from "../graphql/api-types.gen";
+import { createEntities } from "./infer-entities/create-entities";
 import {
   DereferencedEntityType,
   dereferenceEntityType,
 } from "./infer-entities/dereference-entity-type";
+import {
+  FunctionName,
+  generateFunctions,
+  ProposedEntitiesByType,
+  validateProposedEntitiesByType,
+} from "./infer-entities/generate-functions";
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error("OPENAI_API_KEY environment variable not set.");
@@ -62,17 +62,24 @@ export type InferEntitiesCallerParams = {
   userArguments: MutationInferEntitiesArgs;
 };
 
+/**
+ * Infer and create entities of the requested types from the provided text input.
+ * @param authentication information on the user making the request
+ * @param graphApiClient
+ * @param userArguments
+ */
 export const inferEntities = async ({
   authentication,
   graphApiClient,
   userArguments,
 }: InferEntitiesCallerParams & { graphApiClient: GraphApi }): Promise<
-  Status<Entity[]>
+  Status<Entity>
 > => {
   const {
     entityTypeIds,
     maxTokens,
     model,
+    ownedById,
     temperature,
     textInput,
     validation: _validation,
@@ -94,12 +101,19 @@ export const inferEntities = async ({
       temporalAxes: currentTimeInstantTemporalAxes,
     });
 
-  const entityTypes: { isLink: boolean; schema: DereferencedEntityType }[] =
-    entityTypeIds.map((entityTypeId) =>
-      dereferenceEntityType(entityTypeId, entityTypesSubgraph as Subgraph),
-    );
+  const entityTypes: Record<
+    VersionedUrl,
+    { isLink: boolean; schema: DereferencedEntityType }
+  > = {};
 
-  const functions = createFunctions(entityTypes);
+  for (const entityTypeId of entityTypeIds) {
+    entityTypes[entityTypeId] = dereferenceEntityType(
+      entityTypeId,
+      entityTypesSubgraph as Subgraph,
+    );
+  }
+
+  const functions = generateFunctions(Object.values(entityTypes));
 
   const openApiPayload: OpenAI.ChatCompletionCreateParams = {
     max_tokens: maxTokens,
@@ -122,7 +136,7 @@ export const inferEntities = async ({
 
   if (!response) {
     // @todo better error handling in case unauthenticated, network timeout, etc
-    throw new Error("No response from OpenAI API.");
+    throw new Error("No response from AI Model.");
   }
 
   const { finish_reason, message } = response;
@@ -137,7 +151,7 @@ export const inferEntities = async ({
       return {
         code: StatusCode.Unknown,
         contents: [],
-        message: `OpenAI API returned 'stop' finish reason, with message: ${
+        message: `AI Model returned 'stop' finish reason, with message: ${
           message.content ?? "no message"
         }`,
       };
@@ -159,7 +173,7 @@ export const inferEntities = async ({
         return {
           code: StatusCode.Internal,
           contents: [],
-          message: `OpenAI API returned 'function_call' finish reason, but no function name.`,
+          message: `AI Model returned 'function_call' finish reason, but no function name.`,
         };
       }
       if (functionName === "could_not_infer_entities") {
@@ -175,7 +189,7 @@ export const inferEntities = async ({
           return {
             code: StatusCode.Internal,
             contents: [],
-            message: `OpenAI API returned 'function_call' finish reason, but more than one tool call was provided in message.tool_calls.`,
+            message: `AI Model returned 'function_call' finish reason, but more than one tool call was provided in message.tool_calls.`,
           };
         }
 
@@ -185,14 +199,63 @@ export const inferEntities = async ({
           return {
             code: StatusCode.Internal,
             contents: [],
-            message: `OpenAI API returned 'function_call' finish reason, but no argument was provided in message.tool_calls.`,
+            message: `AI Model returned 'function_call' finish reason, but no argument was provided in message.tool_calls.`,
           };
         }
 
-        const createdEntitiesMap = JSON.parse(modelProvidedArgument) as Record<
-          VersionedUrl,
-          ProposedEntity[]
-        >;
+        let proposedEntitiesByType: ProposedEntitiesByType;
+        try {
+          proposedEntitiesByType = JSON.parse(
+            modelProvidedArgument,
+          ) as ProposedEntitiesByType;
+          validateProposedEntitiesByType(proposedEntitiesByType);
+        } catch (err) {
+          return {
+            code: StatusCode.Internal,
+            contents: [],
+            message: `AI Model called create_entities with invalid argument: ${
+              (err as Error).message
+            }`,
+          };
+        }
+
+        const providedEntityTypes = Object.keys(proposedEntitiesByType);
+        const notRequestedTypes = providedEntityTypes.filter(
+          (providedEntityTypeId) =>
+            !entityTypeIds.includes(providedEntityTypeId as VersionedUrl),
+        );
+        if (notRequestedTypes.length > 0) {
+          return {
+            code: StatusCode.Internal,
+            contents: [],
+            message: `AI Model provided entities of types ${notRequestedTypes.join(
+              ", ",
+            )}, which were not requested.`,
+          };
+        }
+
+        const { createdEntities, creationFailures } = await createEntities({
+          actorId: authentication.actorId,
+          graphApiClient,
+          ownedById,
+          proposedEntitiesByType,
+          requestedEntityTypes: entityTypes,
+        });
+
+        // @todo go back to the AI to ask it to fix creation failures
+
+        return {
+          code: StatusCode.Ok,
+          contents: createdEntities,
+          message: `Successfully created ${createdEntities.length} entities, with ${creationFailures.length} failures.`,
+        };
       }
+
+    default:
+      return {
+        code: StatusCode.Internal,
+        contents: [],
+        message: `AI Model returned unhandled finish reason: ${finish_reason}`,
+      };
   }
 };
