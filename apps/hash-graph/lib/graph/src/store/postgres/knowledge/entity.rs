@@ -542,13 +542,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             Owned(T),
         }
 
-        let validator_provider = StoreProvider {
-            store: self,
-            actor_id,
-            authorization_api,
-            consistency: Consistency::FullyConsistent,
-        };
-
         let schema = match entity_type {
             EntityValidationType::Schema(schema) => MaybeBorrowed::Borrowed(schema),
             EntityValidationType::Id(entity_type_url) => {
@@ -617,6 +610,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         };
 
         let mut status: Result<(), EntityValidationError> = Ok(());
+
+        let validator_provider = StoreProvider {
+            store: self,
+            authorization: Some((authorization_api, actor_id, Consistency::FullyConsistent)),
+        };
 
         if let Err(error) = properties.validate(schema, &validator_provider).await {
             if let Err(ref mut report) = status {

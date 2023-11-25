@@ -27,9 +27,7 @@ use crate::{
 #[derive(Debug, Copy, Clone)]
 pub struct StoreProvider<'a, S, A> {
     pub store: &'a S,
-    pub actor_id: AccountId,
-    pub authorization_api: &'a A,
-    pub consistency: Consistency<'static>,
+    pub authorization: Option<(&'a A, AccountId, Consistency<'static>)>,
 }
 
 impl<S, A> OntologyTypeProvider<DataType> for StoreProvider<'_, S, A>
@@ -40,17 +38,19 @@ where
     #[expect(refining_impl_trait)]
     async fn provide_type(&self, type_id: &VersionedUrl) -> Result<DataType, Report<QueryError>> {
         let data_type_id = DataTypeId::from_url(type_id);
-        self.authorization_api
-            .check_data_type_permission(
-                self.actor_id,
-                DataTypePermission::View,
-                data_type_id,
-                self.consistency,
-            )
-            .await
-            .change_context(QueryError)?
-            .assert_permission()
-            .change_context(QueryError)?;
+        if let Some((authorization_api, actor_id, consistency)) = self.authorization {
+            authorization_api
+                .check_data_type_permission(
+                    actor_id,
+                    DataTypePermission::View,
+                    data_type_id,
+                    consistency,
+                )
+                .await
+                .change_context(QueryError)?
+                .assert_permission()
+                .change_context(QueryError)?;
+        }
 
         self.store
             .read_one(
@@ -73,17 +73,19 @@ where
         type_id: &VersionedUrl,
     ) -> Result<PropertyType, Report<QueryError>> {
         let data_type_id = PropertyTypeId::from_url(type_id);
-        self.authorization_api
-            .check_property_type_permission(
-                self.actor_id,
-                PropertyTypePermission::View,
-                data_type_id,
-                self.consistency,
-            )
-            .await
-            .change_context(QueryError)?
-            .assert_permission()
-            .change_context(QueryError)?;
+        if let Some((authorization_api, actor_id, consistency)) = self.authorization {
+            authorization_api
+                .check_property_type_permission(
+                    actor_id,
+                    PropertyTypePermission::View,
+                    data_type_id,
+                    consistency,
+                )
+                .await
+                .change_context(QueryError)?
+                .assert_permission()
+                .change_context(QueryError)?;
+        }
 
         self.store
             .read_one(
@@ -103,17 +105,19 @@ where
     #[expect(refining_impl_trait)]
     async fn provide_type(&self, type_id: &VersionedUrl) -> Result<EntityType, Report<QueryError>> {
         let entity_type_id = EntityTypeId::from_url(type_id);
-        self.authorization_api
-            .check_entity_type_permission(
-                self.actor_id,
-                EntityTypePermission::View,
-                entity_type_id,
-                self.consistency,
-            )
-            .await
-            .change_context(QueryError)?
-            .assert_permission()
-            .change_context(QueryError)?;
+        if let Some((authorization_api, actor_id, consistency)) = self.authorization {
+            authorization_api
+                .check_entity_type_permission(
+                    actor_id,
+                    EntityTypePermission::View,
+                    entity_type_id,
+                    consistency,
+                )
+                .await
+                .change_context(QueryError)?
+                .assert_permission()
+                .change_context(QueryError)?;
+        }
 
         let mut schemas = self
             .store
@@ -188,17 +192,14 @@ where
 {
     #[expect(refining_impl_trait)]
     async fn provide_entity(&self, entity_id: EntityId) -> Result<Entity, Report<QueryError>> {
-        self.authorization_api
-            .check_entity_permission(
-                self.actor_id,
-                EntityPermission::View,
-                entity_id,
-                self.consistency,
-            )
-            .await
-            .change_context(QueryError)?
-            .assert_permission()
-            .change_context(QueryError)?;
+        if let Some((authorization_api, actor_id, consistency)) = self.authorization {
+            authorization_api
+                .check_entity_permission(actor_id, EntityPermission::View, entity_id, consistency)
+                .await
+                .change_context(QueryError)?
+                .assert_permission()
+                .change_context(QueryError)?;
+        }
 
         self.store
             .read_one(
