@@ -177,9 +177,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 )
                 .await?
             {
-                transaction
-                    .insert_with_id(ontology_id, schema.clone())
-                    .await?;
+                transaction.insert_with_id(ontology_id, &schema).await?;
                 inserted_data_type_metadata.push(OntologyElementMetadata::from_partial(
                     metadata,
                     provenance,
@@ -375,7 +373,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         let (ontology_id, metadata, owner) = transaction
-            .update::<DataType>(data_type, RecordCreatedById::new(actor_id))
+            .update::<DataType>(&data_type, RecordCreatedById::new(actor_id))
             .await?;
 
         let owner = match owner {

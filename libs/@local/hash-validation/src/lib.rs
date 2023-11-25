@@ -104,7 +104,7 @@ mod tests {
     use graph_types::knowledge::entity::{EntityId, EntityProperties};
     use serde_json::Value as JsonValue;
     use thiserror::Error;
-    use type_system::{raw, DataType, EntityType, PropertyType};
+    use type_system::{DataType, EntityType, PropertyType};
 
     use super::*;
     use crate::{
@@ -248,27 +248,19 @@ mod tests {
 
         let provider = Provider::new(
             entities,
-            entity_types.into_iter().map(|entity_type_id| {
-                let raw_entity_type = serde_json::from_str::<raw::EntityType>(entity_type_id)
-                    .expect("failed to read entity type string");
-                EntityType::try_from(raw_entity_type).expect("failed to parse entity type")
+            entity_types.into_iter().map(|entity_type| {
+                serde_json::from_str(entity_type).expect("failed to parse entity type")
             }),
-            property_types.into_iter().map(|property_type_id| {
-                let raw_property_type = serde_json::from_str::<raw::PropertyType>(property_type_id)
-                    .expect("failed to read property type string");
-                PropertyType::try_from(raw_property_type).expect("failed to parse property type")
+            property_types.into_iter().map(|property_type| {
+                serde_json::from_str(property_type).expect("failed to parse property type")
             }),
-            data_types.into_iter().map(|data_type_id| {
-                let raw_data_type = serde_json::from_str::<raw::DataType>(data_type_id)
-                    .expect("failed to read data type string");
-                DataType::try_from(raw_data_type).expect("failed to parse data type")
+            data_types.into_iter().map(|data_type| {
+                serde_json::from_str(data_type).expect("failed to parse data type")
             }),
         );
 
-        let raw_entity_type = serde_json::from_str::<raw::EntityType>(entity_type)
-            .expect("failed to read entity type string");
-        let entity_type =
-            EntityType::try_from(raw_entity_type).expect("failed to parse entity type");
+        let entity_type: EntityType =
+            serde_json::from_str(entity_type).expect("failed to parse entity type");
 
         let entity =
             serde_json::from_str::<EntityProperties>(entity).expect("failed to read entity string");
@@ -287,22 +279,16 @@ mod tests {
         let provider = Provider::new(
             [],
             [],
-            property_types.into_iter().map(|property_type_id| {
-                let raw_property_type = serde_json::from_str::<raw::PropertyType>(property_type_id)
-                    .expect("failed to read property type string");
-                PropertyType::try_from(raw_property_type).expect("failed to parse property type")
+            property_types.into_iter().map(|property_type| {
+                serde_json::from_str(property_type).expect("failed to parse property type")
             }),
-            data_types.into_iter().map(|data_type_id| {
-                let raw_data_type = serde_json::from_str::<raw::DataType>(data_type_id)
-                    .expect("failed to read data type string");
-                DataType::try_from(raw_data_type).expect("failed to parse data type")
+            data_types.into_iter().map(|data_type| {
+                serde_json::from_str(data_type).expect("failed to parse data type")
             }),
         );
 
-        let raw_property_type = serde_json::from_str::<raw::PropertyType>(property_type)
-            .expect("failed to read property type string");
-        let property_type =
-            PropertyType::try_from(raw_property_type).expect("failed to parse property type");
+        let property_type: PropertyType =
+            serde_json::from_str(property_type).expect("failed to parse property type");
 
         property.validate(&property_type, &provider).await
     }
@@ -313,9 +299,8 @@ mod tests {
     ) -> Result<(), Report<DataValidationError>> {
         install_error_stack_hooks();
 
-        let raw_data_type = serde_json::from_str::<raw::DataType>(data_type)
-            .expect("failed to read data type string");
-        let data_type = DataType::try_from(raw_data_type).expect("failed to parse data type");
+        let data_type: DataType =
+            serde_json::from_str(data_type).expect("failed to parse data type");
 
         data.validate(&data_type, &()).await
     }

@@ -299,9 +299,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 )
                 .await?
             {
-                transaction
-                    .insert_with_id(ontology_id, schema.clone())
-                    .await?;
+                transaction.insert_with_id(ontology_id, &schema).await?;
 
                 inserted_property_types.push((ontology_id, schema));
                 inserted_property_type_metadata.push(OntologyElementMetadata::from_partial(
@@ -517,7 +515,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_property_type_references` taking `&property_type`
         let (ontology_id, metadata, owner) = transaction
-            .update::<PropertyType>(property_type.clone(), RecordCreatedById::new(actor_id))
+            .update::<PropertyType>(&property_type, RecordCreatedById::new(actor_id))
             .await?;
 
         transaction

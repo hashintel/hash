@@ -12,7 +12,6 @@ use futures::{
 };
 use graph_types::ontology::OntologyTypeVersion;
 use postgres_types::Json;
-use type_system::PropertyType;
 use uuid::Uuid;
 
 use crate::snapshot::{
@@ -69,10 +68,6 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
         mut self: Pin<&mut Self>,
         property_type: PropertyTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
-        let schema = PropertyType::try_from(property_type.schema)
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not convert schema to property type")?;
-
         let record_id = property_type.metadata.record_id.to_string();
         let ontology_id = Uuid::new_v5(&Uuid::NAMESPACE_URL, record_id.as_bytes());
 
@@ -80,7 +75,8 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
             .start_send_unpin((ontology_id, property_type.metadata))
             .attach_printable("could not send metadata")?;
 
-        let values: Vec<_> = schema
+        let values: Vec<_> = property_type
+            .schema
             .data_type_references()
             .into_iter()
             .map(|data_type_ref| {
@@ -99,7 +95,8 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
                 .attach_printable("could not send constrains values edge")?;
         }
 
-        let properties: Vec<_> = schema
+        let properties: Vec<_> = property_type
+            .schema
             .property_type_references()
             .into_iter()
             .map(|property_type_ref| {
@@ -121,7 +118,7 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
         self.schema
             .start_send_unpin(PropertyTypeRow {
                 ontology_id,
-                schema: Json(schema.into()),
+                schema: Json(property_type.schema),
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;

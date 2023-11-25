@@ -9,13 +9,12 @@ use type_system::{DataType, EntityType, PropertyType};
 #[serde(
     rename_all = "camelCase",
     bound(
-        serialize = "T::Representation: Serialize, T::Metadata: Serialize, R: Serialize",
-        deserialize = "T::Representation: Deserialize<'de>, T::Metadata: Deserialize<'de>, R: \
-                       Deserialize<'de>"
+        serialize = "T: Serialize, T::Metadata: Serialize, R: Serialize",
+        deserialize = "T: Deserialize<'de>, T::Metadata: Deserialize<'de>, R: Deserialize<'de>"
     )
 )]
 pub struct OntologyTypeSnapshotRecord<T: OntologyType, R> {
-    pub schema: T::Representation,
+    pub schema: T,
     pub metadata: T::Metadata,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub relations: Vec<R>,

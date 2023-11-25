@@ -305,9 +305,7 @@ where
 
             for (ontology_type, fetched_at) in ontology_types {
                 match ontology_type {
-                    OntologyTypeRepr::DataType(data_type_repr) => {
-                        let data_type =
-                            DataType::try_from(data_type_repr).change_context(StoreError)?;
+                    OntologyTypeRepr::DataType(data_type) => {
                         let metadata = PartialOntologyElementMetadata {
                             record_id: data_type.id().clone().into(),
                             custom: PartialCustomOntologyMetadata::External { fetched_at },
@@ -334,8 +332,6 @@ where
                             .push((data_type, metadata));
                     }
                     OntologyTypeRepr::PropertyType(property_type) => {
-                        let property_type =
-                            PropertyType::try_from(property_type).change_context(StoreError)?;
                         let metadata = PartialOntologyElementMetadata {
                             record_id: property_type.id().clone().into(),
                             custom: PartialCustomOntologyMetadata::External { fetched_at },
@@ -362,8 +358,6 @@ where
                             .push((property_type, metadata));
                     }
                     OntologyTypeRepr::EntityType(entity_type) => {
-                        let entity_type =
-                            EntityType::try_from(entity_type).change_context(StoreError)?;
                         let metadata = PartialOntologyElementMetadata {
                             record_id: entity_type.id().clone().into(),
                             custom: PartialCustomOntologyMetadata::External { fetched_at },

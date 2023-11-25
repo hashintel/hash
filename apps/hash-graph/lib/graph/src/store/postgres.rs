@@ -5,6 +5,9 @@ mod migration;
 mod pool;
 mod query;
 mod traversal_context;
+
+use std::fmt::Debug;
+
 use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
@@ -30,6 +33,7 @@ use graph_types::{
     web::WebId,
 };
 use postgres_types::Json;
+use serde::Serialize;
 #[cfg(hash_graph_test_environment)]
 use temporal_versioning::{DecisionTime, Timestamp};
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
@@ -38,7 +42,6 @@ use time::OffsetDateTime;
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
 use tokio_postgres::{error::SqlState, GenericClient};
 use type_system::{
-    raw,
     url::{BaseUrl, VersionedUrl},
     DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
 };
@@ -410,14 +413,11 @@ where
     async fn insert_with_id<T>(
         &self,
         ontology_id: OntologyId,
-        database_type: T,
+        database_type: &T,
     ) -> Result<Option<OntologyId>, InsertionError>
     where
-        T: OntologyDatabaseType + Send,
-        T::Representation: Send,
+        T: OntologyDatabaseType + Serialize + Debug + Sync,
     {
-        let value_repr = T::Representation::from(database_type);
-        let value = serde_json::to_value(value_repr).change_context(InsertionError)?;
         // Generally bad practice to construct a query without preparation, but it's not possible to
         // pass a table name as a parameter and `T::table()` is well-defined, so this is a safe
         // usage.
@@ -433,7 +433,7 @@ where
                     "#,
                     T::table()
                 ),
-                &[&ontology_id, &value],
+                &[&ontology_id, &Json(database_type)],
             )
             .await
             .change_context(InsertionError)?
@@ -450,8 +450,8 @@ where
     async fn insert_entity_type_with_id(
         &self,
         ontology_id: OntologyId,
-        entity_type: raw::EntityType,
-        closed_entity_type: raw::EntityType,
+        entity_type: &EntityType,
+        closed_entity_type: &EntityType,
         label_property: Option<&BaseUrl>,
         icon: Option<&str>,
     ) -> Result<Option<OntologyId>, InsertionError> {
@@ -815,12 +815,11 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[tracing::instrument(level = "info", skip(self, database_type))]
     async fn update<T>(
         &self,
-        database_type: T,
+        database_type: &T,
         record_created_by_id: RecordCreatedById,
     ) -> Result<(OntologyId, OntologyElementMetadata, OntologyTypeSubject), UpdateError>
     where
-        T: OntologyDatabaseType + Send,
-        T::Representation: Send,
+        T: OntologyDatabaseType + Serialize + Debug + Sync,
     {
         let url = database_type.id();
         let record_id = OntologyTypeRecordId::from(url.clone());

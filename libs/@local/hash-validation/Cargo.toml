@@ -7,7 +7,7 @@ publish = false
 [dependencies]
 error-stack = { version = "0.4.1", features = ["spantrace"] }
 graph-types = { path = "../hash-graph-types/rust" }
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "b63f923" }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "d199607" }
 thiserror = "1.0.50"
 serde_json = { version = "1.0.108" }
 
