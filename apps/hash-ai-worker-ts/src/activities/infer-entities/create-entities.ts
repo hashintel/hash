@@ -55,7 +55,7 @@ export const createEntities = async ({
           const { properties } = proposedEntity;
 
           try {
-            await graphApiClient.validateEntity({
+            await graphApiClient.validateEntity(actorId, {
               entityTypeId,
               operations: new Set(["all"]),
               properties,
@@ -176,7 +176,7 @@ export const createEntities = async ({
           };
 
           try {
-            await graphApiClient.validateEntity({
+            await graphApiClient.validateEntity(actorId, {
               entityTypeId,
               operations: new Set(["all"]),
               linkData,
