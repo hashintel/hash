@@ -28,7 +28,7 @@ impl fmt::Display for FetcherError {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum OntologyTypeRepr {
+pub enum FetchedOntologyType {
     DataType(DataType),
     PropertyType(PropertyType),
     EntityType(EntityType),
@@ -39,5 +39,5 @@ pub trait Fetcher {
     /// Fetch a list of ontology types identified by their [`VersionedUrl]` and returns them.
     async fn fetch_ontology_types(
         ontology_type_urls: Vec<VersionedUrl>,
-    ) -> Result<Vec<(OntologyTypeRepr, OffsetDateTime)>, FetcherError>;
+    ) -> Result<Vec<(FetchedOntologyType, OffsetDateTime)>, FetcherError>;
 }

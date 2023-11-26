@@ -25,7 +25,7 @@ use tarpc::context;
 use temporal_versioning::{DecisionTime, Timestamp};
 use tokio::net::ToSocketAddrs;
 use tokio_serde::formats::Json;
-use type_fetcher::fetcher::{FetcherClient, OntologyTypeRepr};
+use type_fetcher::fetcher::{FetchedOntologyType, FetcherClient};
 use type_system::{
     url::{BaseUrl, VersionedUrl},
     DataType, EntityType, EntityTypeReference, PropertyType,
@@ -305,7 +305,7 @@ where
 
             for (ontology_type, fetched_at) in ontology_types {
                 match ontology_type {
-                    OntologyTypeRepr::DataType(data_type) => {
+                    FetchedOntologyType::DataType(data_type) => {
                         let metadata = PartialOntologyElementMetadata {
                             record_id: data_type.id().clone().into(),
                             custom: PartialCustomOntologyMetadata::External { fetched_at },
@@ -331,7 +331,7 @@ where
                             .data_types
                             .push((data_type, metadata));
                     }
-                    OntologyTypeRepr::PropertyType(property_type) => {
+                    FetchedOntologyType::PropertyType(property_type) => {
                         let metadata = PartialOntologyElementMetadata {
                             record_id: property_type.id().clone().into(),
                             custom: PartialCustomOntologyMetadata::External { fetched_at },
@@ -357,7 +357,7 @@ where
                             .property_types
                             .push((property_type, metadata));
                     }
-                    OntologyTypeRepr::EntityType(entity_type) => {
+                    FetchedOntologyType::EntityType(entity_type) => {
                         let metadata = PartialOntologyElementMetadata {
                             record_id: entity_type.id().clone().into(),
                             custom: PartialCustomOntologyMetadata::External { fetched_at },
