@@ -25,7 +25,6 @@
   "scripts": {
     "build": "tsc --build && yarn exe ./scripts/bundle-workflow-code.ts",
     "build:docker": "docker buildx build --tag hash-ai-worker-ts --file ./docker/Dockerfile ../../ --load",
-    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "node --max-old-space-size=2048 ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/main.ts",
     "exe": "ts-node --transpile-only",
     "fix:eslint": "eslint --fix .",
@@ -36,7 +35,9 @@
   },
   "dependencies": {
     "@blockprotocol/type-system": "0.1.1",
+    "@local/advanced-types": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
+    "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/status": "0.0.0-private",
     "@temporalio/activity": "1.8.1",
     "@temporalio/worker": "1.8.1",
@@ -50,6 +51,8 @@
   "devDependencies": {
     "@apps/hash-graph": "0.0.0-private",
     "@local/eslint-config": "0.0.0-private",
+    "@local/hash-graph-client": "0.0.0-private",
+    "@local/hash-subgraph": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/dotenv-flow": "3.2.0",
     "eslint": "8.33.0",

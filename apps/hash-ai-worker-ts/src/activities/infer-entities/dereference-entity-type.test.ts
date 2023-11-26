@@ -1,5 +1,5 @@
 import type { Subgraph as ApiClientSubgraph } from "@local/hash-graph-client";
-import { Subgraph } from "@local/hash-subgraph";
+import type { Subgraph } from "@local/hash-subgraph";
 
 import { dereferenceEntityType } from "./dereference-entity-type";
 

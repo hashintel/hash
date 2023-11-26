@@ -1,5 +1,5 @@
 import type { GraphApi } from "@local/hash-graph-client";
-import {
+import type {
   InferEntitiesCallerParams,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/temporal-types";

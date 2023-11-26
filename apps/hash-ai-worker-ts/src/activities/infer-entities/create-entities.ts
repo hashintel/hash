@@ -7,8 +7,11 @@ import type {
   OwnedById,
 } from "@local/hash-subgraph";
 
-import { DereferencedEntityType } from "./dereference-entity-type";
-import { ProposedEntitiesByType, ProposedEntity } from "./generate-functions";
+import type { DereferencedEntityType } from "./dereference-entity-type";
+import type {
+  ProposedEntitiesByType,
+  ProposedEntity,
+} from "./generate-functions";
 
 type CreationFailure = {
   proposedEntity: ProposedEntity;

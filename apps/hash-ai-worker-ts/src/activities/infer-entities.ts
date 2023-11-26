@@ -1,14 +1,14 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import {
+import type {
   InferEntitiesCallerParams,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/temporal-types";
-import { Subgraph } from "@local/hash-subgraph";
+import type { Subgraph } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import OpenAI from "openai";

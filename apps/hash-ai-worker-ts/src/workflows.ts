@@ -1,4 +1,4 @@
-import { InferEntitiesCallerParams } from "@local/hash-isomorphic-utils/temporal-types";
+import type { InferEntitiesCallerParams } from "@local/hash-isomorphic-utils/temporal-types";
 import { proxyActivities } from "@temporalio/workflow";
 
 import { createAiActivities } from "./activities";

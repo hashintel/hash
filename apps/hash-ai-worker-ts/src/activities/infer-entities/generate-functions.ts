@@ -1,9 +1,9 @@
 import type { JsonObject } from "@blockprotocol/core";
 import { validateVersionedUrl, VersionedUrl } from "@blockprotocol/type-system";
-import { Subtype } from "@local/advanced-types/subtype";
-import { BaseUrl, EntityPropertyValue } from "@local/hash-subgraph";
+import type { Subtype } from "@local/advanced-types/subtype";
+import type { BaseUrl, EntityPropertyValue } from "@local/hash-subgraph";
 import OpenAI from "openai";
-import { JSONSchema } from "openai/lib/jsonschema";
+import type { JSONSchema } from "openai/lib/jsonschema";
 
 import { DereferencedEntityType } from "./dereference-entity-type";
 
