@@ -114,7 +114,12 @@ where
                 .change_context_lazy(|| PropertyValidationError::PropertyTypeRetrieval {
                     id: self.url().clone(),
                 })?;
-        property_type.borrow().validate_value(value, provider).await
+        property_type
+            .borrow()
+            .validate_value(value, provider)
+            .await
+            .attach_lazy(|| Expected::PropertyType(property_type.borrow().clone()))
+            .attach_lazy(|| Actual::Json(value.clone()))
     }
 }
 

@@ -6,7 +6,8 @@ use authorization::{
     zanzibar::Consistency,
     AuthorizationApi,
 };
-use error_stack::{Report, ResultExt};
+use error_stack::{ensure, Report, ResultExt};
+use futures::TryStreamExt;
 use graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},
@@ -18,7 +19,9 @@ use validation::{EntityProvider, EntityTypeProvider, OntologyTypeProvider};
 
 use crate::{
     store::{crud::Read, query::Filter, AsClient, PostgresStore, QueryError},
-    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    },
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -94,9 +97,9 @@ where
     }
 }
 
-impl<S, A> OntologyTypeProvider<EntityType> for StoreProvider<'_, S, A>
+impl<C, A> OntologyTypeProvider<EntityType> for StoreProvider<'_, PostgresStore<C>, A>
 where
-    S: Read<EntityTypeWithMetadata, Record = EntityTypeWithMetadata>,
+    C: AsClient,
     A: AuthorizationApi + Sync,
 {
     #[expect(refining_impl_trait)]
@@ -116,13 +119,37 @@ where
                 .change_context(QueryError)?;
         }
 
-        self.store
-            .read_one(
-                &Filter::<S::Record>::for_versioned_url(type_id),
+        let mut schemas = self
+            .store
+            .read_closed_schemas(
+                &Filter::<EntityTypeWithMetadata>::for_versioned_url(type_id),
                 Some(&QueryTemporalAxesUnresolved::default().resolve()),
             )
             .await
-            .map(|entity_type| entity_type.schema)
+            .change_context(QueryError)?
+            .map_ok(|(_, entity_type)| entity_type)
+            .try_collect::<Vec<_>>()
+            .await
+            .change_context(QueryError)?;
+
+        ensure!(
+            schemas.len() <= 1,
+            Report::new(QueryError).attach_printable(format!(
+                "Expected exactly one closed schema to be returned from the query but {} were \
+                 returned",
+                schemas.len(),
+            ))
+        );
+        let schema = schemas.pop().ok_or_else(|| {
+            Report::new(QueryError).attach_printable(
+                "Expected exactly one closed schema to be returned from the query but none was \
+                 returned",
+            )
+        })?;
+        // TODO: Distinguish between format validation and content validation so it's possible
+        //       to directly use the correct type.
+        //   see https://linear.app/hash/issue/BP-33
+        EntityType::try_from(schema).change_context(QueryError)
     }
 }
 
@@ -177,7 +204,13 @@ where
         self.store
             .read_one(
                 &Filter::<S::Record>::for_entity_by_entity_id(entity_id),
-                Some(&QueryTemporalAxesUnresolved::default().resolve()),
+                Some(
+                    &QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    }
+                    .resolve(),
+                ),
             )
             .await
     }

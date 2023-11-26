@@ -1425,7 +1425,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "http://localhost:3000/@alice/types/property-type/name/": "Bob"
   },
   "owner": "{{account_id}}",
-  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2"
 }
 
 > {%
