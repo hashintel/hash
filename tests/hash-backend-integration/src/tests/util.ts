@@ -8,6 +8,7 @@ import { migrateOntologyTypes } from "@apps/hash-api/src/graph/migrate-ontology-
 import { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
 import { getRequiredEnv } from "@apps/hash-api/src/util";
 import { VersionedUrl } from "@blockprotocol/type-system";
+import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { Logger } from "@local/hash-backend-utils/logger";
 
 export const textDataTypeId =

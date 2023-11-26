@@ -116,13 +116,11 @@ export const createEntities = async ({
             const sourceFailure = creationFailuresByTemporaryId[sourceEntityId];
 
             if (!sourceFailure) {
-              const sourcePropposedEntity = Object.values(
-                proposedEntitiesByType,
-              )
+              const sourceProposedEntity = Object.values(proposedEntitiesByType)
                 .flat()
                 .find((entity) => entity.entityId === sourceEntityId);
 
-              const reason = sourcePropposedEntity
+              const reason = sourceProposedEntity
                 ? `source with temporaryId ${sourceEntityId} was proposed but not created, and no creation error is recorded`
                 : `source with temporaryId ${sourceEntityId} not found in proposed entities`;
 

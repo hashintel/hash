@@ -1,11 +1,10 @@
 import type { GraphApi } from "@local/hash-graph-client";
-import { Entity } from "@local/hash-subgraph";
-import { Status } from "@local/status";
-
 import {
-  inferEntities,
   InferEntitiesCallerParams,
-} from "./activities/infer-entities";
+  InferEntitiesReturn,
+} from "@local/hash-isomorphic-utils/temporal-types";
+
+import { inferEntities } from "./activities/infer-entities";
 
 export const createAiActivities = ({
   graphApiClient,
@@ -14,11 +13,15 @@ export const createAiActivities = ({
 }) => ({
   async inferEntitiesActivity(
     params: InferEntitiesCallerParams,
-  ): Promise<Status<Entity[]>> {
+  ): Promise<InferEntitiesReturn> {
     const status = await inferEntities({ ...params, graphApiClient });
+
     if (status.code !== "OK") {
-      // @todo how to return something but also register an error in Temporal?
+      throw new Error(status.message, {
+        cause: status,
+      });
     }
+
     return status;
   },
 });

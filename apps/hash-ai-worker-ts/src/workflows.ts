@@ -1,8 +1,7 @@
-import { Status } from "@local/status";
+import { InferEntitiesCallerParams } from "@local/hash-isomorphic-utils/temporal-types";
 import { proxyActivities } from "@temporalio/workflow";
 
 import { createAiActivities } from "./activities";
-import { InferEntitiesCallerParams } from "./activities/infer-entities";
 
 const aiActivities = proxyActivities<ReturnType<typeof createAiActivities>>({
   startToCloseTimeout: "600 second",
@@ -11,6 +10,5 @@ const aiActivities = proxyActivities<ReturnType<typeof createAiActivities>>({
   },
 });
 
-export const inferEntities = (
-  params: InferEntitiesCallerParams,
-): Promise<Status<any[]>> => aiActivities.inferEntitiesActivity(params);
+export const inferEntities = (params: InferEntitiesCallerParams) =>
+  aiActivities.inferEntitiesActivity(params);

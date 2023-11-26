@@ -4,13 +4,15 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { AccountId, Entity, Subgraph } from "@local/hash-subgraph";
-import type { Status } from "@local/status";
+import {
+  InferEntitiesCallerParams,
+  InferEntitiesReturn,
+} from "@local/hash-isomorphic-utils/temporal-types";
+import { Subgraph } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import OpenAI from "openai";
 
-import { MutationInferEntitiesArgs } from "../graphql/api-types.gen";
 import { createEntities } from "./infer-entities/create-entities";
 import {
   DereferencedEntityType,
@@ -55,13 +57,6 @@ const systemMessage: OpenAI.ChatCompletionSystemMessageParam = {
   `),
 };
 
-export type InferEntitiesCallerParams = {
-  authentication: {
-    actorId: AccountId;
-  };
-  userArguments: MutationInferEntitiesArgs;
-};
-
 /**
  * Infer and create entities of the requested types from the provided text input.
  * @param authentication information on the user making the request
@@ -72,9 +67,9 @@ export const inferEntities = async ({
   authentication,
   graphApiClient,
   userArguments,
-}: InferEntitiesCallerParams & { graphApiClient: GraphApi }): Promise<
-  Status<Entity>
-> => {
+}: InferEntitiesCallerParams & {
+  graphApiClient: GraphApi;
+}): Promise<InferEntitiesReturn> => {
   const {
     entityTypeIds,
     maxTokens,
@@ -169,6 +164,7 @@ export const inferEntities = async ({
         message: `The content filter was triggered`,
       };
     case "function_call":
+    case "tool_calls":
       if (!functionName) {
         return {
           code: StatusCode.Internal,
@@ -250,12 +246,12 @@ export const inferEntities = async ({
           message: `Successfully created ${createdEntities.length} entities, with ${creationFailures.length} failures.`,
         };
       }
-
-    default:
-      return {
-        code: StatusCode.Internal,
-        contents: [],
-        message: `AI Model returned unhandled finish reason: ${finish_reason}`,
-      };
+      break;
   }
+
+  return {
+    code: StatusCode.Internal,
+    contents: [],
+    message: `AI Model returned unhandled finish reason: ${finish_reason}`,
+  };
 };

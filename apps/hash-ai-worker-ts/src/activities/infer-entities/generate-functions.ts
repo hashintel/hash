@@ -145,14 +145,20 @@ export const generateFunctions = (
                 description: schema.description,
                 properties: {
                   entityId: {
+                    description:
+                      "A numerical identifier for the entity, unique among the inferred entities",
                     type: "number",
                   },
                   ...(isLink
                     ? {
                         sourceEntityId: {
+                          description:
+                            "The entityId of the source entity of the link",
                           type: "number",
                         },
                         targetEntityId: {
+                          description:
+                            "The entityId of the target entity of the link",
                           type: "number",
                         },
                       }

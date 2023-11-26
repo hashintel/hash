@@ -31,6 +31,7 @@ import { StatsD } from "hot-shots";
 import { createHttpTerminator } from "http-terminator";
 import { customAlphabet } from "nanoid";
 
+import { inferEntitiesController } from "./ai/infer-entities";
 import setupAuth from "./auth";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { RedisCache } from "./cache";
@@ -362,6 +363,8 @@ const main = async () => {
   app.get("/oauth/linear", oAuthLinear);
   app.get("/oauth/linear/callback", oAuthLinearCallback);
   app.post("/webhooks/linear", linearWebhook);
+
+  app.post("/entities/infer", inferEntitiesController);
 
   /**
    * This middleware MUST:

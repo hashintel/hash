@@ -137,26 +137,6 @@ function dereferencePropertyType(
   };
 }
 
-const entityIdProperty = {
-  entityId: {
-    description:
-      "A numerical identifier for the entity, unique among the inferred entities",
-
-    type: "number",
-  },
-};
-
-const linkProperties = {
-  sourceEntityId: {
-    description: "The entityId of the source entity of the link",
-    type: "number",
-  },
-  targetEntityId: {
-    description: "The entityId of the target entity of the link",
-    type: "number",
-  },
-};
-
 /**
  * For a given entityTypeId and a subgraph containing all its dependencies, return a single JSON schema with the following resolved:
  * 1. its parent types
