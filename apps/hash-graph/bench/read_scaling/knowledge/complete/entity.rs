@@ -81,6 +81,7 @@ async fn seed_db(
         [
             entity_type::LINK_V1,
             entity_type::link::FRIEND_OF_V1,
+            entity_type::link::ACQUAINTANCE_OF_V1,
             entity_type::link::WRITTEN_BY_V1,
             entity_type::PERSON_V1,
             entity_type::BOOK_V1,

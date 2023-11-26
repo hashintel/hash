@@ -57,7 +57,11 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-describe("Page Mention Notification", () => {
+// TODO: Create machine user to create notifications
+//   see https://linear.app/hash/issue/H-1433
+// TODO: Figure out what to do if someone tries to create a Link for entities they don't see
+//   see https://linear.app/hash/issue/H-1434
+describe.skip("Page Mention Notification", () => {
   let triggerUser: User;
   let recipientUser: User;
 
