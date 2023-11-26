@@ -857,3 +857,17 @@ export const getEntityAuthorizationRelationships: ImpureGraphFunction<
           }) as EntityAuthorizationRelationship,
       ),
     );
+
+export const validateEntity: ImpureGraphFunction<
+  {
+    entityTypeId: VersionedUrl;
+    properties: Entity["properties"];
+    linkData?: Entity["linkData"];
+  },
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.validateEntity(actorId, {
+    operations: new Set(["all"]),
+    ...params,
+  });
+};

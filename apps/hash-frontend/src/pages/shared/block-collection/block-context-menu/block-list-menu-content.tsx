@@ -17,13 +17,14 @@ import { useBlockView } from "../block-view";
 import { useFilteredBlocks } from "../shared/use-filtered-blocks";
 
 type BlockListMenuContentProps = {
+  closeMenu?: () => void;
   popupState?: PopupState;
   compatibleBlocks: HashBlock[];
 };
 
 export const BlockListMenuContent: FunctionComponent<
   BlockListMenuContentProps
-> = ({ compatibleBlocks, popupState }) => {
+> = ({ closeMenu, compatibleBlocks, popupState }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const blocks = useFilteredBlocks(searchQuery, compatibleBlocks);
@@ -79,7 +80,10 @@ export const BlockListMenuContent: FunctionComponent<
       )}
       {blocks.map((option) => (
         <MenuItem
-          onClick={() => blockView.onBlockChange(option.variant, option.meta)}
+          onClick={() => {
+            blockView.onBlockChange(option.variant, option.meta);
+            closeMenu?.();
+          }}
           key={`${option.meta.componentId}/${option.variant.name}`}
         >
           <ListItemIcon>

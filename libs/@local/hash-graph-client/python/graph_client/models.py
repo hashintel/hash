@@ -387,6 +387,10 @@ class TransactionTime(RootModel[Literal['transactionTime']]):
     model_config = ConfigDict(populate_by_name=True)
     root: Literal['transactionTime'] = Field(..., description='Time axis for the transaction time.\n\nThis is used as the generic argument to time-related structs and can be used as tag value.')
 
+class ValidationOperation(RootModel[Literal['all']]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: Literal['all']
+
 class WebOwnerSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     kind: Literal['account']
@@ -759,6 +763,13 @@ class UpdateEntityRequest(EntityLinkOrder):
     archived: bool
     entity_id: EntityId = Field(..., alias='entityId')
     entity_type_id: VersionedURL = Field(..., alias='entityTypeId')
+    properties: EntityProperties
+
+class ValidateEntityRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    entity_type_id: VersionedURL = Field(..., alias='entityTypeId')
+    link_data: LinkData | None = Field(None, alias='linkData')
+    operations: list[ValidationOperation]
     properties: EntityProperties
 
 class PropertyTypeObjectItem(BaseModel):

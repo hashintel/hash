@@ -5,6 +5,7 @@ import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/ent
 import {
   Entity,
   EntityId,
+  EntityPropertiesObject,
   EntityRevisionId,
   EntityRootType,
   GraphResolveDepths,
@@ -24,6 +25,7 @@ import {
 export const useFetchBlockSubgraph = (): ((
   blockEntityTypeId: VersionedUrl,
   blockEntityId?: EntityId,
+  fallbackBlockProperties?: EntityPropertiesObject,
 ) => Promise<
   Omit<SubgraphAndPermissions, "subgraph"> & {
     subgraph: Subgraph<EntityRootType>;
@@ -37,7 +39,11 @@ export const useFetchBlockSubgraph = (): ((
   );
 
   const fetchBlockSubgraph = useCallback(
-    async (blockEntityTypeId: VersionedUrl, blockEntityId?: EntityId) => {
+    async (
+      blockEntityTypeId: VersionedUrl,
+      blockEntityId?: EntityId,
+      fallbackBlockProperties?: EntityPropertiesObject,
+    ) => {
       const depths: GraphResolveDepths = {
         constrainsValuesOn: { outgoing: 255 },
         constrainsPropertiesOn: { outgoing: 255 },
@@ -93,7 +99,7 @@ export const useFetchBlockSubgraph = (): ((
               recordCreatedById: "placeholder-account" as RecordCreatedById,
             },
           },
-          properties: {},
+          properties: fallbackBlockProperties ?? {},
         } as const;
 
         const subgraphTemporalAxes = {

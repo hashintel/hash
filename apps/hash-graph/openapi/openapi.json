@@ -868,6 +868,50 @@
         }
       }
     },
+    "/entities/validate": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "validate_entity",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateEntityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The validation passed"
+          },
+          "400": {
+            "description": "The entity validation failed"
+          },
+          "404": {
+            "description": "Entity Type URL was not found"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/entities/{entity_id}/editors/{editor}": {
       "post": {
         "tags": [
@@ -4972,6 +5016,43 @@
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
+      },
+      "ValidateEntityRequest": {
+        "type": "object",
+        "required": [
+          "entityTypeId",
+          "properties",
+          "operations"
+        ],
+        "properties": {
+          "entityTypeId": {
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+          },
+          "linkData": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LinkData"
+              }
+            ],
+            "nullable": true
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationOperation"
+            },
+            "uniqueItems": true
+          },
+          "properties": {
+            "$ref": "#/components/schemas/EntityProperties"
+          }
+        }
+      },
+      "ValidationOperation": {
+        "type": "string",
+        "enum": [
+          "all"
+        ]
       },
       "Vertex": {
         "oneOf": [

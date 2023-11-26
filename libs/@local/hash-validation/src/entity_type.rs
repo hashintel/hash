@@ -1,20 +1,42 @@
 use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt};
-use graph_types::knowledge::entity::{Entity, EntityProperties};
+use graph_types::knowledge::{
+    entity::{Entity, EntityProperties},
+    link::LinkData,
+};
 use serde_json::Value as JsonValue;
 use thiserror::Error;
-use type_system::{url::BaseUrl, DataType, EntityType, Object, PropertyType};
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    DataType, EntityType, Object, PropertyType,
+};
 
 use crate::{
     error::{Actual, Expected},
-    OntologyTypeProvider, Schema, Validate,
+    EntityTypeProvider, OntologyTypeProvider, Schema, Validate,
 };
+
+macro_rules! extend_report {
+    ($status:ident, $error:expr $(,)?) => {
+        if let Err(ref mut report) = $status {
+            report.extend_one(error_stack::report!($error))
+        } else {
+            $status = Err(error_stack::report!($error))
+        }
+    };
+}
 
 #[derive(Debug, Error)]
 pub enum EntityValidationError {
     #[error("The properties of the entity do not match the schema")]
     InvalidProperties,
+    #[error("The entity is not a link but contains link data")]
+    UnexpectedLinkData,
+    #[error("The entity is a link but does not contain link data")]
+    MissingLinkData,
+    #[error("the validator was unable to read the entity type `{id}`")]
+    EntityTypeRetrieval { id: VersionedUrl },
 }
 
 impl<P> Schema<HashMap<BaseUrl, JsonValue>, P> for EntityType
@@ -52,14 +74,90 @@ where
     }
 }
 
-impl<P> Validate<EntityType, P> for Entity
+impl<P> Validate<EntityType, P> for Option<&LinkData>
 where
-    P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
+    P: EntityTypeProvider
+        + OntologyTypeProvider<PropertyType>
+        + OntologyTypeProvider<DataType>
+        + Sync,
 {
     type Error = EntityValidationError;
 
     async fn validate(&self, schema: &EntityType, provider: &P) -> Result<(), Report<Self::Error>> {
-        self.properties.validate(schema, provider).await
+        let mut status: Result<(), Report<EntityValidationError>> = Ok(());
+
+        let is_link = provider
+            .is_parent_of(
+                schema.id(),
+                // TODO: The link type should be a const but the type system crate does not allow
+                //       to make this a `const` variable.
+                //   see https://linear.app/hash/issue/BP-57
+                &VersionedUrl {
+                    base_url: BaseUrl::new(
+                        "https://blockprotocol.org/@blockprotocol/types/entity-type/link/"
+                            .to_owned(),
+                    )
+                    .expect("Not a valid URL"),
+                    version: 1,
+                },
+            )
+            .await
+            .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
+                id: schema.id().clone(),
+            })?;
+        if let Some(link_data) = self {
+            if !is_link {
+                extend_report!(status, EntityValidationError::UnexpectedLinkData);
+            }
+
+            if let Err(error) = schema.validate_value(*link_data, provider).await {
+                extend_report!(status, error);
+            }
+        } else if is_link {
+            extend_report!(status, EntityValidationError::MissingLinkData);
+        }
+
+        status
+    }
+}
+
+impl<P> Validate<EntityType, P> for Entity
+where
+    P: EntityTypeProvider
+        + OntologyTypeProvider<PropertyType>
+        + OntologyTypeProvider<DataType>
+        + Sync,
+{
+    type Error = EntityValidationError;
+
+    async fn validate(&self, schema: &EntityType, provider: &P) -> Result<(), Report<Self::Error>> {
+        let mut status: Result<(), Report<EntityValidationError>> = Ok(());
+
+        if let Err(error) = self.properties.validate(schema, provider).await {
+            extend_report!(status, error);
+        }
+        if let Err(error) = self.link_data.as_ref().validate(schema, provider).await {
+            extend_report!(status, error);
+        }
+
+        status
+    }
+}
+
+impl<P> Schema<LinkData, P> for EntityType
+where
+    P: EntityTypeProvider + Sync,
+{
+    type Error = EntityValidationError;
+
+    // TODO: validate link data
+    //   see https://linear.app/hash/issue/H-972
+    async fn validate_value<'a>(
+        &'a self,
+        _link_data: &'a LinkData,
+        _provider: &'a P,
+    ) -> Result<(), Report<EntityValidationError>> {
+        Ok(())
     }
 }
 
