@@ -172,7 +172,7 @@ where
             .query_one(
                 "
                     SELECT EXISTS (
-                        SELECT 1 FROM closed_entity_type_inherits_from
+                        SELECT 1 FROM entity_type_inherits_from
                         WHERE source_entity_type_ontology_id = $1
                           AND target_entity_type_ontology_id = $2
                     );

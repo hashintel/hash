@@ -5,11 +5,14 @@ mod migration;
 mod pool;
 mod query;
 mod traversal_context;
+
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        AccountGroupOwnerSubject, AccountGroupRelationAndSubject, WebOwnerSubject,
+        AccountGroupOwnerSubject, AccountGroupRelationAndSubject, EntityTypeId, WebOwnerSubject,
         WebRelationAndSubject, WebSubject,
     },
     AuthorizationApi,
@@ -42,6 +45,7 @@ use type_system::{
     url::{BaseUrl, VersionedUrl},
     DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
 };
+use uuid::Uuid;
 
 pub use self::{
     ontology::OntologyTypeSubject,
@@ -541,7 +545,8 @@ where
     async fn insert_entity_type_references(
         &self,
         entity_type: &EntityType,
-        ontology_id: OntologyId,
+        entity_type_id: EntityTypeId,
+        inheritance_depths: HashMap<EntityTypeId, i64>,
     ) -> Result<(), InsertionError> {
         for property_type in entity_type.property_type_references() {
             self.as_client()
@@ -557,7 +562,7 @@ where
                         ) RETURNING source_entity_type_ontology_id;
                     ",
                     &[
-                        &ontology_id,
+                        entity_type_id.as_uuid(),
                         &property_type.url().base_url.as_str(),
                         &OntologyTypeVersion::new(property_type.url().version),
                     ],
@@ -566,28 +571,28 @@ where
                 .change_context(InsertionError)?;
         }
 
-        for inherits_from in entity_type.inherits_from().all_of() {
-            self.as_client()
-                .query_one(
-                    "
+        let (targets, depths): (Vec<Uuid>, Vec<_>) = inheritance_depths
+            .into_iter()
+            .filter(|(target, _)| *target != entity_type_id)
+            .map(|(target, depth)| (target.into_uuid(), depth))
+            .unzip();
+        self.as_client()
+            .query(
+                "
                         INSERT INTO entity_type_inherits_from (
                             source_entity_type_ontology_id,
-                            target_entity_type_ontology_id
+                            target_entity_type_ontology_id,
+                            inheritance_depth
                         ) VALUES (
                             $1,
-                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version \
-                     = $3)
-                        ) RETURNING target_entity_type_ontology_id;
+                            UNNEST($2::UUID[]),
+                            UNNEST($3::INT8[])
+                        );
                     ",
-                    &[
-                        &ontology_id,
-                        &inherits_from.url().base_url.as_str(),
-                        &OntologyTypeVersion::new(inherits_from.url().version),
-                    ],
-                )
-                .await
-                .change_context(InsertionError)?;
-        }
+                &[entity_type_id.as_uuid(), &targets, &depths],
+            )
+            .await
+            .change_context(InsertionError)?;
 
         // TODO: should we check that the `link_entity_type_ref` is a link entity type?
         //   see https://app.asana.com/0/0/1203277018227719/f
@@ -605,7 +610,7 @@ where
                         ) RETURNING target_entity_type_ontology_id;
                     ",
                     &[
-                        &ontology_id,
+                        entity_type_id.as_uuid(),
                         &link_reference.url().base_url.as_str(),
                         &OntologyTypeVersion::new(link_reference.url().version),
                     ],
@@ -628,7 +633,7 @@ where
                                     ) RETURNING target_entity_type_ontology_id;
                             ",
                             &[
-                                &ontology_id,
+                                entity_type_id.as_uuid(),
                                 &destination.url().base_url.as_str(),
                                 &OntologyTypeVersion::new(destination.url().version),
                             ],

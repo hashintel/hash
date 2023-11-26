@@ -16,7 +16,8 @@ CREATE TABLE "entity_type_constrains_properties_on" (
 
 CREATE TABLE "entity_type_inherits_from" (
     "source_entity_type_ontology_id" UUID NOT NULL REFERENCES "entity_types",
-    "target_entity_type_ontology_id" UUID NOT NULL REFERENCES "entity_types"
+    "target_entity_type_ontology_id" UUID NOT NULL REFERENCES "entity_types",
+    "inheritance_depth"              INT8 NOT NULL
 );
 
 CREATE TABLE "entity_type_constrains_links_on" (

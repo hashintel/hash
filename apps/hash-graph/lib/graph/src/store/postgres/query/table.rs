@@ -246,10 +246,7 @@ impl ReferenceTable {
             Self::EntityTypeConstrainsPropertiesOn { .. } => {
                 "closed_entity_type_constrains_properties_on"
             }
-            Self::EntityTypeInheritsFrom {
-                inheritance_depth: Some(0),
-            } => "entity_type_inherits_from",
-            Self::EntityTypeInheritsFrom { .. } => "closed_entity_type_inherits_from",
+            Self::EntityTypeInheritsFrom { .. } => "entity_type_inherits_from",
             Self::EntityTypeConstrainsLinksOn {
                 inheritance_depth: Some(0),
             } => "entity_type_constrains_links_on",
