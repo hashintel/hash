@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "d199607" }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "b87db85" }
 temporal-versioning = { path = "../../temporal-versioning" }
 
 bytes = { version = "1.5.0" }

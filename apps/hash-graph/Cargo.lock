@@ -3073,7 +3073,7 @@ dependencies = [
 [[package]]
 name = "type-system"
 version = "0.0.0"
-source = "git+https://github.com/blockprotocol/blockprotocol?rev=d199607#d199607aedaaf44d99f4fb0261b4c4949b12d752"
+source = "git+https://github.com/blockprotocol/blockprotocol?rev=b87db85#b87db85fe4ae2a448aafeaf44d2fca6ec15ce772"
 dependencies = [
  "console_error_panic_hook",
  "serde",
