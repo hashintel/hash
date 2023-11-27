@@ -10,7 +10,7 @@ import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
 import { FunctionComponent, useRef } from "react";
 
-import { useIsSpecialEntityType } from "../../../entity-types-context/hooks";
+import { useEntityTypesContextRequired } from "../../../entity-types-context/hooks/use-entity-types-context-required";
 import { EllipsisRegularIcon } from "../../../icons/ellipsis-regular-icon";
 import { Link } from "../../../ui";
 import { EntityTypeMenu } from "./entity-type-menu";
@@ -51,7 +51,7 @@ const Container = styled((props: BoxProps & { selected: boolean }) => (
 
 export const EntityTypeItem: FunctionComponent<EntityTypeWithMetadata> = ({
   metadata: { icon },
-  schema: { title, $id: entityTypeId, allOf },
+  schema: { title, $id: entityTypeId },
 }) => {
   const entityMenuTriggerRef = useRef(null);
   const popupState = usePopupState({
@@ -69,10 +69,9 @@ export const EntityTypeItem: FunctionComponent<EntityTypeWithMetadata> = ({
     router.route === "/[shortname]/types/entity-type/[entity-type-id]" &&
     urlBase === baseUrl;
 
-  const { isLink } = useIsSpecialEntityType({
-    allOf,
-    $id: entityTypeId,
-  });
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+
+  const { isLink } = isSpecialEntityTypeLookup?.[entityTypeId] ?? {};
 
   return (
     <Container component="li" tabIndex={0} selected={selected}>
