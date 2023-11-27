@@ -5,8 +5,8 @@ import {
   extractBaseUrl,
   Subgraph,
   VersionedUrl,
-} from "@blockprotocol/graph/temporal";
-import { getRoots } from "@blockprotocol/graph/temporal/stdlib";
+} from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import { EChart, ECOption } from "@hashintel/design-system";
 import { FunctionComponent, useMemo } from "react";
 

@@ -1,19 +1,17 @@
 import {
+  EntityId,
+  EntityRootType,
   EntityType,
   extractBaseUrl,
   PropertyType,
+  Subgraph,
   VersionedUrl,
 } from "@blockprotocol/graph";
-import {
-  EntityId,
-  EntityRootType,
-  Subgraph,
-} from "@blockprotocol/graph/temporal";
 import {
   getEntityTypeById,
   getPropertyTypeById,
   getRoots,
-} from "@blockprotocol/graph/temporal/stdlib";
+} from "@blockprotocol/graph/stdlib";
 import {
   Box,
   // eslint-disable-next-line no-restricted-imports

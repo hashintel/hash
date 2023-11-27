@@ -1,15 +1,15 @@
 import {
-  type BlockComponent,
-  useEntitySubgraph,
-  useGraphBlockModule,
-} from "@blockprotocol/graph/react";
-import {
   EntityId,
   EntityRootType,
   MultiFilter,
   Subgraph,
-} from "@blockprotocol/graph/temporal";
-import { getOutgoingLinkAndTargetEntities } from "@blockprotocol/graph/temporal/stdlib";
+} from "@blockprotocol/graph";
+import {
+  type BlockComponent,
+  useEntitySubgraph,
+  useGraphBlockModule,
+} from "@blockprotocol/graph/react";
+import { getOutgoingLinkAndTargetEntities } from "@blockprotocol/graph/stdlib";
 import { Box, Divider } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -45,12 +45,12 @@ export const App: BlockComponent<BlockEntity> = ({
     )
       .filter(
         ({ linkEntity: linkEntityRevisions }) =>
-          linkEntityRevisions[0]!.metadata.entityTypeId ===
+          linkEntityRevisions.metadata.entityTypeId ===
           "https://blockprotocol.org/@hash/types/entity-type/has-query/v/1",
       )
       .map(
         ({ rightEntity: rightEntityRevisions }) =>
-          rightEntityRevisions[0] as unknown as Query,
+          rightEntityRevisions as unknown as Query,
       );
   }, [blockEntity, blockEntitySubgraph]);
 
