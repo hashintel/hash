@@ -1,8 +1,8 @@
-use std::fmt;
+use std::fmt::{self, Write};
 
 use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
-    Deserialize,
+    Deserialize, Serialize,
 };
 use utoipa::ToSchema;
 
@@ -273,15 +273,13 @@ impl fmt::Display for DataTypeQueryPath<'_> {
             Self::Description => fmt.write_str("description"),
             Self::Type => fmt.write_str("type"),
             Self::AdditionalMetadata => fmt.write_str("additionalMetadata"),
-            #[expect(
-                clippy::use_debug,
-                reason = "We don't have a `Display` impl for `OntologyEdgeKind` and this should \
-                          (a) never happen and (b) be easy to debug if it does happen. In the \
-                          future, this will become a compile-time check"
-            )]
             Self::PropertyTypeEdge {
                 edge_kind, path, ..
-            } => write!(fmt, "<{edge_kind:?}>.{path}"),
+            } => {
+                fmt.write_char('<')?;
+                edge_kind.serialize(&mut *fmt)?;
+                write!(fmt, ">.{path}")
+            }
         }
     }
 }

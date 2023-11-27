@@ -168,8 +168,7 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
 impl Validate<DataType, ()> for JsonValue {
     type Error = DataValidationError;
 
-    #[expect(clippy::let_underscore_untyped, reason = "false positive")]
-    async fn validate(&self, schema: &DataType, _: &()) -> Result<(), Report<Self::Error>> {
+    async fn validate(&self, schema: &DataType, (): &()) -> Result<(), Report<Self::Error>> {
         schema.validate_value(self, &()).await
     }
 }

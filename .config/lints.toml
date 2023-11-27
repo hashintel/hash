@@ -23,6 +23,7 @@ allow = [
     "clippy::absolute_paths",
     "clippy::default_numeric_fallback",
     "clippy::impl_trait_in_params",
+    "clippy::iter_over_hash_type",
     "clippy::min_ident_chars",
     "clippy::multiple_unsafe_ops_per_block",
     "clippy::pattern_type_mismatch",

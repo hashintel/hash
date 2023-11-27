@@ -867,7 +867,6 @@ export const validateEntity: ImpureGraphFunction<
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.validateEntity(actorId, {
-    // @ts-expect-error -- H-1441 will fix the type, which should not be a Set
     operations: ["all"],
     ...params,
   });
