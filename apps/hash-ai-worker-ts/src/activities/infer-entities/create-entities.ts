@@ -56,7 +56,6 @@ export const createEntities = async ({
           try {
             await graphApiClient.validateEntity(actorId, {
               entityTypeId,
-              // @ts-expect-error -- H-1441 will fix the type, which should not be a Set
               operations: ["all"],
               properties,
             });
@@ -182,7 +181,6 @@ export const createEntities = async ({
           try {
             await graphApiClient.validateEntity(actorId, {
               entityTypeId,
-              // @ts-expect-error -- H-1441 will fix the type, which should not be a Set
               operations: ["all"],
               linkData,
               properties,
