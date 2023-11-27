@@ -48,7 +48,8 @@ use crate::{
         },
         query::{Filter, FilterExpression, Parameter},
         validation::StoreProvider,
-        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
+        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, StoreCache,
+        UpdateError,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
@@ -608,6 +609,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let validator_provider = StoreProvider {
             store: self,
+            cache: StoreCache::new(),
             authorization: Some((authorization_api, actor_id, Consistency::FullyConsistent)),
         };
 
@@ -1012,6 +1014,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 &closed_schema,
                 &StoreProvider {
                     store: &transaction,
+                    cache: StoreCache::new(),
                     authorization: Some((
                         authorization_api,
                         actor_id,

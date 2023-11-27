@@ -30,7 +30,7 @@ pub use self::{
     pool::StorePool,
     postgres::{AsClient, PostgresStore, PostgresStorePool},
     record::Record,
-    validation::StoreProvider,
+    validation::{StoreCache, StoreProvider},
 };
 
 /// Describes the API of a store implementation.

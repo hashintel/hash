@@ -1,4 +1,7 @@
+use std::{collections::HashMap, fmt::Debug, hash::Hash, sync::Arc};
+
 use authorization::{
+    backend::PermissionAssertion,
     schema::{
         DataTypeId, DataTypePermission, EntityPermission, EntityTypeId, EntityTypePermission,
         PropertyTypeId, PropertyTypePermission,
@@ -13,6 +16,7 @@ use graph_types::{
     knowledge::entity::{Entity, EntityId},
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };
+use tokio::sync::RwLock;
 use tokio_postgres::GenericClient;
 use type_system::{url::VersionedUrl, DataType, EntityType, PropertyType};
 use validation::{EntityProvider, EntityTypeProvider, OntologyTypeProvider};
@@ -24,26 +28,99 @@ use crate::{
     },
 };
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
+enum Access<T> {
+    Granted(T),
+    Denied,
+    Malformed,
+}
+
+// TODO: potentially add a cache eviction policy
+#[derive(Debug)]
+struct CacheHashMap<K, V> {
+    inner: RwLock<HashMap<K, Access<Arc<V>>>>,
+}
+
+impl<K, V> CacheHashMap<K, V> {
+    fn new() -> Self {
+        Self {
+            inner: RwLock::new(HashMap::new()),
+        }
+    }
+}
+
+impl<K, V> CacheHashMap<K, V>
+where
+    K: Eq + Hash + Debug,
+{
+    async fn get(&self, key: &K) -> Option<Result<Arc<V>, Report<QueryError>>> {
+        match self.inner.read().await.get(key)? {
+            Access::Granted(value) => Some(Ok(Arc::clone(value))),
+            Access::Denied => Some(Err(
+                Report::new(PermissionAssertion).change_context(QueryError)
+            )),
+            Access::Malformed => Some(Err(Report::new(QueryError).attach_printable(format!(
+                "The entry in the cache for key {key:?} is malformed. This means that a previous \
+                 fetch involving this key failed."
+            )))),
+        }
+    }
+
+    async fn grant(&self, key: K, value: V) -> Arc<V> {
+        let value = Arc::new(value);
+        self.inner
+            .write()
+            .await
+            .insert(key, Access::Granted(Arc::clone(&value)));
+
+        value
+    }
+
+    async fn deny(&self, key: K) {
+        self.inner.write().await.insert(key, Access::Denied);
+    }
+
+    async fn malformed(&self, key: K) {
+        self.inner.write().await.insert(key, Access::Malformed);
+    }
+}
+
+#[derive(Debug)]
+pub struct StoreCache {
+    data_types: CacheHashMap<DataTypeId, DataType>,
+    property_types: CacheHashMap<PropertyTypeId, PropertyType>,
+    entity_types: CacheHashMap<EntityTypeId, EntityType>,
+}
+
+impl StoreCache {
+    pub fn new() -> Self {
+        Self {
+            data_types: CacheHashMap::new(),
+            property_types: CacheHashMap::new(),
+            entity_types: CacheHashMap::new(),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct StoreProvider<'a, S, A> {
     pub store: &'a S,
+    pub cache: StoreCache,
     pub authorization: Option<(&'a A, AccountId, Consistency<'static>)>,
 }
 
-impl<S, A> OntologyTypeProvider<DataType> for StoreProvider<'_, S, A>
+impl<'a, S, A> StoreProvider<'a, S, A>
 where
     S: Read<DataTypeWithMetadata, Record = DataTypeWithMetadata>,
     A: AuthorizationApi + Sync,
 {
-    #[expect(refining_impl_trait)]
-    async fn provide_type(&self, type_id: &VersionedUrl) -> Result<DataType, Report<QueryError>> {
-        let data_type_id = DataTypeId::from_url(type_id);
+    async fn authorize_data_type(&self, type_id: DataTypeId) -> Result<(), Report<QueryError>> {
         if let Some((authorization_api, actor_id, consistency)) = self.authorization {
             authorization_api
                 .check_data_type_permission(
                     actor_id,
                     DataTypePermission::View,
-                    data_type_id,
+                    type_id,
                     consistency,
                 )
                 .await
@@ -52,13 +129,70 @@ where
                 .change_context(QueryError)?;
         }
 
-        self.store
+        Ok(())
+    }
+}
+
+impl<S, A> OntologyTypeProvider<DataType> for StoreProvider<'_, S, A>
+where
+    S: Read<DataTypeWithMetadata, Record = DataTypeWithMetadata>,
+    A: AuthorizationApi + Sync,
+{
+    #[expect(refining_impl_trait)]
+    async fn provide_type(
+        &self,
+        type_id: &VersionedUrl,
+    ) -> Result<Arc<DataType>, Report<QueryError>> {
+        let data_type_id = DataTypeId::from_url(type_id);
+
+        if let Some(cached) = self.cache.data_types.get(&data_type_id).await {
+            return cached;
+        }
+
+        if let Err(error) = self.authorize_data_type(data_type_id).await {
+            self.cache.data_types.deny(data_type_id).await;
+            return Err(error);
+        }
+
+        let type_ = self
+            .store
             .read_one(
                 &Filter::<S::Record>::for_versioned_url(type_id),
                 Some(&QueryTemporalAxesUnresolved::default().resolve()),
             )
             .await
-            .map(|data_type| data_type.schema)
+            .map(|data_type| data_type.schema)?;
+
+        let type_ = self.cache.data_types.grant(data_type_id, type_).await;
+
+        Ok(type_)
+    }
+}
+
+impl<'a, S, A> StoreProvider<'a, S, A>
+where
+    S: Read<PropertyTypeWithMetadata, Record = PropertyTypeWithMetadata>,
+    A: AuthorizationApi + Sync,
+{
+    async fn authorize_property_type(
+        &self,
+        type_id: PropertyTypeId,
+    ) -> Result<(), Report<QueryError>> {
+        if let Some((authorization_api, actor_id, consistency)) = self.authorization {
+            authorization_api
+                .check_property_type_permission(
+                    actor_id,
+                    PropertyTypePermission::View,
+                    type_id,
+                    consistency,
+                )
+                .await
+                .change_context(QueryError)?
+                .assert_permission()
+                .change_context(QueryError)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -71,46 +205,49 @@ where
     async fn provide_type(
         &self,
         type_id: &VersionedUrl,
-    ) -> Result<PropertyType, Report<QueryError>> {
-        let data_type_id = PropertyTypeId::from_url(type_id);
-        if let Some((authorization_api, actor_id, consistency)) = self.authorization {
-            authorization_api
-                .check_property_type_permission(
-                    actor_id,
-                    PropertyTypePermission::View,
-                    data_type_id,
-                    consistency,
-                )
-                .await
-                .change_context(QueryError)?
-                .assert_permission()
-                .change_context(QueryError)?;
+    ) -> Result<Arc<PropertyType>, Report<QueryError>> {
+        let property_type_id = PropertyTypeId::from_url(type_id);
+
+        if let Some(cached) = self.cache.property_types.get(&property_type_id).await {
+            return cached;
         }
 
-        self.store
+        if let Err(error) = self.authorize_property_type(property_type_id).await {
+            self.cache.property_types.deny(property_type_id).await;
+            return Err(error);
+        }
+
+        let type_ = self
+            .store
             .read_one(
                 &Filter::<S::Record>::for_versioned_url(type_id),
                 Some(&QueryTemporalAxesUnresolved::default().resolve()),
             )
             .await
-            .map(|data_type| data_type.schema)
+            .map(|data_type| data_type.schema)?;
+
+        let type_ = self
+            .cache
+            .property_types
+            .grant(property_type_id, type_)
+            .await;
+
+        Ok(type_)
     }
 }
 
-impl<C, A> OntologyTypeProvider<EntityType> for StoreProvider<'_, PostgresStore<C>, A>
+impl<C, A> StoreProvider<'_, PostgresStore<C>, A>
 where
     C: AsClient,
     A: AuthorizationApi + Sync,
 {
-    #[expect(refining_impl_trait)]
-    async fn provide_type(&self, type_id: &VersionedUrl) -> Result<EntityType, Report<QueryError>> {
-        let entity_type_id = EntityTypeId::from_url(type_id);
+    async fn authorize_entity_type(&self, type_id: EntityTypeId) -> Result<(), Report<QueryError>> {
         if let Some((authorization_api, actor_id, consistency)) = self.authorization {
             authorization_api
                 .check_entity_type_permission(
                     actor_id,
                     EntityTypePermission::View,
-                    entity_type_id,
+                    type_id,
                     consistency,
                 )
                 .await
@@ -119,6 +256,13 @@ where
                 .change_context(QueryError)?;
         }
 
+        Ok(())
+    }
+
+    async fn fetch_entity_type(
+        &self,
+        type_id: &VersionedUrl,
+    ) -> Result<EntityType, Report<QueryError>> {
         let mut schemas = self
             .store
             .read_closed_schemas(
@@ -140,12 +284,47 @@ where
                 schemas.len(),
             ))
         );
+
         schemas.pop().ok_or_else(|| {
             Report::new(QueryError).attach_printable(
                 "Expected exactly one closed schema to be returned from the query but none was \
                  returned",
             )
         })
+    }
+}
+
+impl<C, A> OntologyTypeProvider<EntityType> for StoreProvider<'_, PostgresStore<C>, A>
+where
+    C: AsClient,
+    A: AuthorizationApi + Sync,
+{
+    #[expect(refining_impl_trait)]
+    async fn provide_type(
+        &self,
+        type_id: &VersionedUrl,
+    ) -> Result<Arc<EntityType>, Report<QueryError>> {
+        let entity_type_id = EntityTypeId::from_url(type_id);
+
+        if let Some(cached) = self.cache.entity_types.get(&entity_type_id).await {
+            return cached;
+        }
+
+        if let Err(error) = self.authorize_entity_type(entity_type_id).await {
+            self.cache.entity_types.deny(entity_type_id).await;
+            return Err(error);
+        }
+
+        let schema = match self.fetch_entity_type(type_id).await {
+            Ok(schema) => schema,
+            Err(error) => {
+                self.cache.entity_types.malformed(entity_type_id).await;
+                return Err(error);
+            }
+        };
+
+        let schema = self.cache.entity_types.grant(entity_type_id, schema).await;
+        Ok(schema)
     }
 }
 
