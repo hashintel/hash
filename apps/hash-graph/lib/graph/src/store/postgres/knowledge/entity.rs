@@ -609,7 +609,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let validator_provider = StoreProvider {
             store: self,
-            cache: StoreCache::new(),
+            cache: StoreCache::default(),
             authorization: Some((authorization_api, actor_id, Consistency::FullyConsistent)),
         };
 
@@ -1014,7 +1014,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 &closed_schema,
                 &StoreProvider {
                     store: &transaction,
-                    cache: StoreCache::new(),
+                    cache: StoreCache::default(),
                     authorization: Some((
                         authorization_api,
                         actor_id,

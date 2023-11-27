@@ -224,7 +224,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
 
         let validator_provider = StoreProvider::<_, NoAuthorization> {
             store: postgres_client,
-            cache: StoreCache::new(),
+            cache: StoreCache::default(),
             authorization: None,
         };
 
