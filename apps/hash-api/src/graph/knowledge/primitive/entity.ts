@@ -867,7 +867,7 @@ export const validateEntity: ImpureGraphFunction<
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.validateEntity(actorId, {
-    operations: new Set(["all"]),
+    operations: ["all"],
     ...params,
   });
 };
