@@ -1,7 +1,10 @@
 import { MultiFilter } from "@blockprotocol/graph";
 import { IconButton, Modal, ModalProps } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
-import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  blockProtocolEntityTypes,
+  blockProtocolLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 import { Entity, OwnedById } from "@local/hash-subgraph";
@@ -63,7 +66,7 @@ export const BlockSelectDataModal: FunctionComponent<
       .filter(
         ({ linkEntity: linkEntityRevisions }) =>
           linkEntityRevisions[0]?.metadata.entityTypeId ===
-          blockProtocolEntityTypes.hasQuery.entityTypeId,
+          blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
       )
       .sort(
         (
@@ -127,7 +130,7 @@ export const BlockSelectDataModal: FunctionComponent<
 
       await createEntity({
         data: {
-          entityTypeId: blockProtocolEntityTypes.hasQuery.entityTypeId,
+          entityTypeId: blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
           linkData: {
             leftEntityId: blockDataEntity.metadata.recordId.entityId,
             rightEntityId: queryEntity.metadata.recordId.entityId,

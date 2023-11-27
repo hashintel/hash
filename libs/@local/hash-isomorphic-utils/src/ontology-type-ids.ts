@@ -450,13 +450,485 @@ export const systemPropertyTypes = {
   },
 } as const;
 
-export const blockProtocolEntityTypes = {
-  hasQuery: {
-    entityTypeId:
-      "https://blockprotocol.org/@hash/types/entity-type/has-query/v/1",
-    entityTypeBaseUrl:
-      "https://blockprotocol.org/@hash/types/entity-type/has-query/",
+export const linearEntityTypes = {
+  attachment: {
+    entityTypeId: "https://hash.ai/@linear/types/entity-type/attachment/v/1",
+    entityTypeBaseUrl: "https://hash.ai/@linear/types/entity-type/attachment/",
   },
+  issue: {
+    entityTypeId: "https://hash.ai/@linear/types/entity-type/issue/v/1",
+    entityTypeBaseUrl: "https://hash.ai/@linear/types/entity-type/issue/",
+  },
+  organization: {
+    entityTypeId: "https://hash.ai/@linear/types/entity-type/organization/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@linear/types/entity-type/organization/",
+  },
+  user: {
+    entityTypeId: "https://hash.ai/@linear/types/entity-type/user/v/1",
+    entityTypeBaseUrl: "https://hash.ai/@linear/types/entity-type/user/",
+  },
+  workflowState: {
+    entityTypeId:
+      "https://hash.ai/@linear/types/entity-type/workflow-state/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@linear/types/entity-type/workflow-state/",
+  },
+} as const;
+
+export const linearLinkEntityTypes = {
+  associatedWithCycle: {
+    linkEntityTypeId:
+      "https://hash.ai/@linear/types/entity-type/associated-with-cycle/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@linear/types/entity-type/associated-with-cycle/",
+  },
+  belongsToIssue: {
+    linkEntityTypeId:
+      "https://hash.ai/@linear/types/entity-type/belongs-to-issue/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@linear/types/entity-type/belongs-to-issue/",
+  },
+  belongsToOrganization: {
+    linkEntityTypeId:
+      "https://hash.ai/@linear/types/entity-type/belongs-to-organization/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@linear/types/entity-type/belongs-to-organization/",
+  },
+  hasAssignee: {
+    linkEntityTypeId:
+      "https://hash.ai/@linear/types/entity-type/has-assignee/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@linear/types/entity-type/has-assignee/",
+  },
+  hasCreator: {
+    linkEntityTypeId:
+      "https://hash.ai/@linear/types/entity-type/has-creator/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@linear/types/entity-type/has-creator/",
+  },
+  hasSubscriber: {
+    linkEntityTypeId:
+      "https://hash.ai/@linear/types/entity-type/has-subscriber/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@linear/types/entity-type/has-subscriber/",
+  },
+  parent: {
+    linkEntityTypeId: "https://hash.ai/@linear/types/entity-type/parent/v/1",
+    linkEntityTypeBaseUrl: "https://hash.ai/@linear/types/entity-type/parent/",
+  },
+  snoozedBy: {
+    linkEntityTypeId:
+      "https://hash.ai/@linear/types/entity-type/snoozed-by/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@linear/types/entity-type/snoozed-by/",
+  },
+  state: {
+    linkEntityTypeId: "https://hash.ai/@linear/types/entity-type/state/v/1",
+    linkEntityTypeBaseUrl: "https://hash.ai/@linear/types/entity-type/state/",
+  },
+} as const;
+
+export const linearPropertyTypes = {
+  active: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/active/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@linear/types/property-type/active/",
+  },
+  admin: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/admin/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@linear/types/property-type/admin/",
+  },
+  allowMembersToInvite: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/allow-members-to-invite/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/allow-members-to-invite/",
+  },
+  allowedAuthService: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/allowed-auth-service/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/allowed-auth-service/",
+  },
+  archivedAt: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/archived-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/archived-at/",
+  },
+  attachmentUrl: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/attachment-url/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/attachment-url/",
+  },
+  autoArchivedAt: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/auto-archived-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/auto-archived-at/",
+  },
+  autoClosedAt: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/auto-closed-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/auto-closed-at/",
+  },
+  avatarUrl: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/avatar-url/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/avatar-url/",
+  },
+  branchName: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/branch-name/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/branch-name/",
+  },
+  canceledAt: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/canceled-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/canceled-at/",
+  },
+  completedAt: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/completed-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/completed-at/",
+  },
+  createdAt: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/created-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/created-at/",
+  },
+  createdIssueCount: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/created-issue-count/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/created-issue-count/",
+  },
+  customerTicketCount: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/customer-ticket-count/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/customer-ticket-count/",
+  },
+  deletionRequestedAt: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/deletion-requested-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/deletion-requested-at/",
+  },
+  disableReason: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/disable-reason/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/disable-reason/",
+  },
+  displayName: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/display-name/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/display-name/",
+  },
+  dueDate: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/due-date/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/due-date/",
+  },
+  estimate: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/estimate/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/estimate/",
+  },
+  fullName: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/full-name/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/full-name/",
+  },
+  gitBranchFormat: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/git-branch-format/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/git-branch-format/",
+  },
+  gitLinkbackMessagesEnabled: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/git-linkback-messages-enabled/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/git-linkback-messages-enabled/",
+  },
+  gitPublicLinkbackMessagesEnabled: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/git-public-linkback-messages-enabled/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/git-public-linkback-messages-enabled/",
+  },
+  groupBySource: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/group-by-source/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/group-by-source/",
+  },
+  guest: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/guest/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@linear/types/property-type/guest/",
+  },
+  id: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/id/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@linear/types/property-type/id/",
+  },
+  identifier: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/identifier/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/identifier/",
+  },
+  integrationSourceType: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/integration-source-type/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/integration-source-type/",
+  },
+  inviteHash: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/invite-hash/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/invite-hash/",
+  },
+  isMe: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/is-me/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@linear/types/property-type/is-me/",
+  },
+  issueNumber: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/issue-number/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/issue-number/",
+  },
+  issueUrl: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/issue-url/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/issue-url/",
+  },
+  lastSeen: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/last-seen/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/last-seen/",
+  },
+  logoUrl: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/logo-url/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/logo-url/",
+  },
+  markdownDescription: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/markdown-description/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/markdown-description/",
+  },
+  metadata: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/metadata/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/metadata/",
+  },
+  name: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/name/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@linear/types/property-type/name/",
+  },
+  periodUploadVolume: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/period-upload-volume/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/period-upload-volume/",
+  },
+  previousIdentifier: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/previous-identifier/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/previous-identifier/",
+  },
+  previousUrlKeys: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/previous-url-keys/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/previous-url-keys/",
+  },
+  priority: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/priority/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/priority/",
+  },
+  priorityLabel: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/priority-label/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/priority-label/",
+  },
+  profileUrl: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/profile-url/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/profile-url/",
+  },
+  projectUpdateRemindersDay: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/project-update-reminders-day/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/project-update-reminders-day/",
+  },
+  projectUpdateRemindersHour: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/project-update-reminders-hour/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/project-update-reminders-hour/",
+  },
+  projectUpdatesReminderFrequency: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/project-updates-reminder-frequency/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/project-updates-reminder-frequency/",
+  },
+  releaseChannel: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/release-channel/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/release-channel/",
+  },
+  roadmapEnabled: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/roadmap-enabled/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/roadmap-enabled/",
+  },
+  samlEnabled: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/saml-enabled/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/saml-enabled/",
+  },
+  scimEnabled: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/scim-enabled/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/scim-enabled/",
+  },
+  slaDayCount: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/sla-day-count/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/sla-day-count/",
+  },
+  snoozedUntilAt: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/snoozed-until-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/snoozed-until-at/",
+  },
+  sortOrder: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/sort-order/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/sort-order/",
+  },
+  source: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/source/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@linear/types/property-type/source/",
+  },
+  sourceType: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/source-type/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/source-type/",
+  },
+  startedAt: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/started-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/started-at/",
+  },
+  startedTriageAt: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/started-triage-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/started-triage-at/",
+  },
+  statusEmoji: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/status-emoji/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/status-emoji/",
+  },
+  statusLabel: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/status-label/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/status-label/",
+  },
+  statusUntilAt: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/status-until-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/status-until-at/",
+  },
+  subIssueSortOrder: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/sub-issue-sort-order/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/sub-issue-sort-order/",
+  },
+  subtitle: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/subtitle/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/subtitle/",
+  },
+  timezone: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/timezone/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/timezone/",
+  },
+  title: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/title/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@linear/types/property-type/title/",
+  },
+  trashed: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/trashed/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@linear/types/property-type/trashed/",
+  },
+  triagedAt: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/triaged-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/triaged-at/",
+  },
+  trialEndsAt: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/trial-ends-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/trial-ends-at/",
+  },
+  updatedAt: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/updated-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/updated-at/",
+  },
+  urlKey: {
+    propertyTypeId: "https://hash.ai/@linear/types/property-type/url-key/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@linear/types/property-type/url-key/",
+  },
+  userCount: {
+    propertyTypeId:
+      "https://hash.ai/@linear/types/property-type/user-count/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@linear/types/property-type/user-count/",
+  },
+} as const;
+
+export const blockProtocolEntityTypes = {
   link: {
     entityTypeId:
       "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
@@ -467,6 +939,15 @@ export const blockProtocolEntityTypes = {
     entityTypeId: "https://blockprotocol.org/@hash/types/entity-type/query/v/1",
     entityTypeBaseUrl:
       "https://blockprotocol.org/@hash/types/entity-type/query/",
+  },
+} as const;
+
+export const blockProtocolLinkEntityTypes = {
+  hasQuery: {
+    linkEntityTypeId:
+      "https://blockprotocol.org/@hash/types/entity-type/has-query/v/1",
+    linkEntityTypeBaseUrl:
+      "https://blockprotocol.org/@hash/types/entity-type/has-query/",
   },
 } as const;
 

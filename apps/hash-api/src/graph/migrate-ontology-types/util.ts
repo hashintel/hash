@@ -1,7 +1,25 @@
 /* eslint-disable no-param-reassign */
-import { extractVersion, VersionedUrl } from "@blockprotocol/type-system";
-import { SchemaKind } from "@local/hash-isomorphic-utils/ontology-types";
-import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
+import {
+  Array,
+  DataTypeReference,
+  ENTITY_TYPE_META_SCHEMA,
+  EntityType,
+  extractVersion,
+  Object as ObjectSchema,
+  OneOf,
+  PROPERTY_TYPE_META_SCHEMA,
+  PropertyType,
+  PropertyTypeReference,
+  PropertyValues,
+  ValueOrArray,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  generateTypeBaseUrl,
+  SchemaKind,
+  SystemTypeWebShortname,
+} from "@local/hash-isomorphic-utils/ontology-types";
 import {
   BaseUrl,
   DataTypeWithMetadata,
@@ -29,29 +47,29 @@ import {
 } from "../ontology/primitive/property-type";
 import { systemAccountId } from "../system-account";
 import {
-  generateSystemEntityTypeSchema,
-  generateSystemPropertyTypeSchema,
   getOrCreateOwningAccountGroupId,
   isSelfHostedInstance,
-  LinkDestinationConstraint,
   PrimitiveDataTypeKey,
 } from "../util";
 import { MigrationState } from "./types";
 
 const systemTypeDomain = "https://hash.ai";
 
-const systemTypeWebShortname = "hash";
-
 const generateSystemTypeBaseUrl = ({
   kind,
   title,
+  shortname,
 }: {
   kind: SchemaKind;
   title: string;
+  shortname: SystemTypeWebShortname;
 }): BaseUrl =>
-  `${systemTypeDomain}/@${systemTypeWebShortname}/types/${kind}/${slugifyTypeTitle(
+  generateTypeBaseUrl({
+    kind,
     title,
-  )}/` as const as BaseUrl;
+    webShortname: shortname,
+    domain: systemTypeDomain,
+  });
 
 export const loadExternalDataTypeIfNotExists: ImpureGraphFunction<
   {
@@ -153,29 +171,92 @@ export const loadExternalEntityTypeIfNotExists: ImpureGraphFunction<
   return await getEntityTypeById(context, authentication, { entityTypeId });
 };
 
+type PropertyTypeDefinition = {
+  propertyTypeId: VersionedUrl;
+  title: string;
+  description?: string;
+  possibleValues: {
+    primitiveDataType?: PrimitiveDataTypeKey;
+    propertyTypeObjectProperties?: { [_ in string]: { $ref: VersionedUrl } };
+    array?: boolean;
+  }[];
+};
+
+/**
+ * Helper method for generating a property type schema for the Graph API.
+ */
+export const generateSystemPropertyTypeSchema = (
+  params: PropertyTypeDefinition,
+): PropertyType => {
+  const possibleValues: PropertyValues[] = params.possibleValues.map(
+    ({ array, primitiveDataType, propertyTypeObjectProperties }) => {
+      let inner: PropertyValues;
+
+      if (primitiveDataType) {
+        const dataTypeReference: DataTypeReference = {
+          $ref: blockProtocolDataTypes[primitiveDataType].dataTypeId,
+        };
+        inner = dataTypeReference;
+      } else if (propertyTypeObjectProperties) {
+        const propertyTypeObject: ObjectSchema<
+          ValueOrArray<PropertyTypeReference>
+        > = {
+          type: "object" as const,
+          properties: propertyTypeObjectProperties,
+        };
+        inner = propertyTypeObject;
+      } else {
+        throw new Error(
+          "Please provide either a primitiveDataType or propertyTypeObjectProperties to generateSystemPropertyTypeSchema",
+        );
+      }
+
+      // Optionally wrap inner in an array
+      if (array) {
+        const arrayOfPropertyValues: Array<OneOf<PropertyValues>> = {
+          type: "array",
+          items: {
+            oneOf: [inner],
+          },
+        };
+        return arrayOfPropertyValues;
+      } else {
+        return inner;
+      }
+    },
+  );
+
+  return {
+    $schema: PROPERTY_TYPE_META_SCHEMA,
+    kind: "propertyType",
+    $id: params.propertyTypeId,
+    title: params.title,
+    description: params.description,
+    oneOf: possibleValues as [PropertyValues, ...PropertyValues[]],
+  };
+};
+
+type BaseCreateTypeIfNotExistsParameters = {
+  webShortname: SystemTypeWebShortname;
+  migrationState: MigrationState;
+};
+
 export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
   {
-    propertyTypeDefinition: {
-      title: string;
-      description?: string;
-      possibleValues: {
-        primitiveDataType?: PrimitiveDataTypeKey;
-        propertyTypeObjectProperties?: {
-          [_ in string]: { $ref: VersionedUrl };
-        };
-        array?: boolean;
-      }[];
-    };
-    migrationState: MigrationState;
-  },
+    propertyTypeDefinition: Omit<PropertyTypeDefinition, "propertyTypeId">;
+  } & BaseCreateTypeIfNotExistsParameters,
   Promise<PropertyTypeWithMetadata>
 > = async (
   context,
   authentication,
-  { propertyTypeDefinition, migrationState },
+  { propertyTypeDefinition, migrationState, webShortname },
 ) => {
   const { title } = propertyTypeDefinition;
-  const baseUrl = generateSystemTypeBaseUrl({ kind: "property-type", title });
+  const baseUrl = generateSystemTypeBaseUrl({
+    kind: "property-type",
+    title,
+    shortname: webShortname,
+  });
 
   const versionNumber = 1;
 
@@ -217,7 +298,7 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
     // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
     const accountGroupId = await getOrCreateOwningAccountGroupId(
       context,
-      systemTypeWebShortname,
+      webShortname,
     );
     const createdPropertyType = await createPropertyType(
       context,
@@ -225,7 +306,7 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
       {
         ownedById: accountGroupId as OwnedById,
         schema: propertyTypeSchema,
-        webShortname: systemTypeWebShortname,
+        webShortname,
       },
     ).catch((createError) => {
       // logger.warn(`Failed to create property type: ${propertyTypeId}`);
@@ -272,38 +353,147 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
   }
 };
 
+type LinkDestinationConstraint =
+  | EntityTypeWithMetadata
+  | VersionedUrl
+  // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
+  | "SELF_REFERENCE";
+
+export type EntityTypeDefinition = {
+  allOf?: VersionedUrl[];
+  entityTypeId: VersionedUrl;
+  title: string;
+  description?: string;
+  properties?: {
+    propertyType: PropertyTypeWithMetadata | VersionedUrl;
+    required?: boolean;
+    array?: { minItems?: number; maxItems?: number } | boolean;
+  }[];
+  outgoingLinks?: {
+    linkEntityType: EntityTypeWithMetadata | VersionedUrl;
+    destinationEntityTypes?: [
+      LinkDestinationConstraint,
+      ...LinkDestinationConstraint[],
+    ];
+    minItems?: number;
+    maxItems?: number;
+    ordered?: boolean;
+  }[];
+};
+
+/**
+ * Helper method for generating an entity type schema for the Graph API.
+ */
+export const generateSystemEntityTypeSchema = (
+  params: EntityTypeDefinition,
+): EntityType => {
+  /** @todo - clean this up to be more readable: https://app.asana.com/0/1202805690238892/1202931031833226/f */
+  const properties =
+    params.properties?.reduce(
+      (prev, { propertyType, array }) => ({
+        ...prev,
+        [typeof propertyType === "object"
+          ? propertyType.metadata.recordId.baseUrl
+          : extractBaseUrl(propertyType)]: array
+          ? {
+              type: "array",
+              items: {
+                $ref:
+                  typeof propertyType === "object"
+                    ? propertyType.schema.$id
+                    : propertyType,
+              },
+              ...(array === true ? {} : array),
+            }
+          : {
+              $ref:
+                typeof propertyType === "object"
+                  ? propertyType.schema.$id
+                  : propertyType,
+            },
+      }),
+      {},
+    ) ?? {};
+
+  const requiredProperties = params.properties
+    ?.filter(({ required }) => !!required)
+    .map(({ propertyType }) =>
+      typeof propertyType === "object"
+        ? propertyType.metadata.recordId.baseUrl
+        : extractBaseUrl(propertyType),
+    );
+
+  const links =
+    params.outgoingLinks?.reduce<EntityType["links"]>(
+      (
+        prev,
+        {
+          linkEntityType,
+          destinationEntityTypes,
+          ordered = false,
+          minItems,
+          maxItems,
+        },
+      ): EntityType["links"] => ({
+        ...prev,
+        [typeof linkEntityType === "object"
+          ? linkEntityType.schema.$id
+          : linkEntityType]: {
+          type: "array",
+          ordered,
+          items: destinationEntityTypes
+            ? {
+                oneOf: destinationEntityTypes.map(
+                  (entityTypeIdOrReference) => ({
+                    $ref:
+                      entityTypeIdOrReference === "SELF_REFERENCE"
+                        ? params.entityTypeId
+                        : typeof entityTypeIdOrReference === "object"
+                          ? entityTypeIdOrReference.schema.$id
+                          : entityTypeIdOrReference,
+                  }),
+                ),
+              }
+            : {},
+          minItems,
+          maxItems,
+        },
+      }),
+      {},
+    ) ?? undefined;
+
+  const allOf = params.allOf?.map((url) => ({ $ref: url }));
+
+  return {
+    $schema: ENTITY_TYPE_META_SCHEMA,
+    kind: "entityType",
+    $id: params.entityTypeId,
+    allOf,
+    title: params.title,
+    description: params.description,
+    type: "object",
+    properties,
+    required: requiredProperties,
+    links,
+  };
+};
+
 export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
   {
-    entityTypeDefinition: {
-      allOf?: VersionedUrl[];
-      title: string;
-      description?: string;
-      properties?: {
-        propertyType: PropertyTypeWithMetadata | VersionedUrl;
-        required?: boolean;
-        array?: { minItems?: number; maxItems?: number } | boolean;
-      }[];
-      outgoingLinks?: {
-        linkEntityType: EntityTypeWithMetadata | VersionedUrl;
-        destinationEntityTypes?: [
-          LinkDestinationConstraint,
-          ...LinkDestinationConstraint[],
-        ];
-        minItems?: number;
-        maxItems?: number;
-        ordered?: boolean;
-      }[];
-    };
-    migrationState: MigrationState;
-  },
+    entityTypeDefinition: Omit<EntityTypeDefinition, "entityTypeId">;
+  } & BaseCreateTypeIfNotExistsParameters,
   Promise<EntityTypeWithMetadata>
 > = async (
   context,
   authentication,
-  { entityTypeDefinition, migrationState },
+  { entityTypeDefinition, migrationState, webShortname },
 ) => {
   const { title } = entityTypeDefinition;
-  const baseUrl = generateSystemTypeBaseUrl({ kind: "entity-type", title });
+  const baseUrl = generateSystemTypeBaseUrl({
+    kind: "entity-type",
+    title,
+    shortname: webShortname,
+  });
 
   const versionNumber = 1;
 
@@ -344,12 +534,12 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
     // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
     const accountGroupId = await getOrCreateOwningAccountGroupId(
       context,
-      systemTypeWebShortname,
+      webShortname,
     );
     const createdEntityType = await createEntityType(context, authentication, {
       ownedById: accountGroupId as OwnedById,
       schema: entityTypeSchema,
-      webShortname: systemTypeWebShortname,
+      webShortname,
       instantiators: [],
     }).catch((createError) => {
       // logger.warn(`Failed to create entity type: ${entityTypeSchema.$id}`);

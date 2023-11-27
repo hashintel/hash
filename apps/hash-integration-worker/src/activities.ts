@@ -8,8 +8,12 @@ import {
 } from "@linear/sdk";
 import { PartialEntity } from "@local/hash-backend-utils/temporal-workflow-types";
 import { GraphApi } from "@local/hash-graph-client";
-import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
-import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   AccountId,
   EntityPropertiesObject,
@@ -43,9 +47,9 @@ const createOrUpdateHashEntity = async (params: {
   entity: PartialEntity;
   workspaceOwnedById?: OwnedById;
 }): Promise<void> => {
-  const idBaseUrl = extractBaseUrl(linearTypes.propertyType.id.propertyTypeId);
+  const idBaseUrl = extractBaseUrl(linearPropertyTypes.id.propertyTypeId);
   const updatedAtBaseUrl = extractBaseUrl(
-    linearTypes.propertyType.updatedAt.propertyTypeId,
+    linearPropertyTypes.updatedAt.propertyTypeId,
   );
   const linearId = params.entity.properties[idBaseUrl];
   const updatedAt = params.entity.properties[updatedAtBaseUrl];
@@ -81,29 +85,8 @@ const createOrUpdateHashEntity = async (params: {
       filter: {
         all: filters,
       },
-      graphResolveDepths: {
-        inheritsFrom: { outgoing: 0 },
-        constrainsValuesOn: { outgoing: 0 },
-        constrainsPropertiesOn: { outgoing: 0 },
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        isOfType: { outgoing: 0 },
-        hasLeftEntity: { incoming: 0, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 0 },
-      },
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
@@ -119,11 +102,29 @@ const createOrUpdateHashEntity = async (params: {
       continue;
     }
 
+    /** @todo: check which values have changed in a more sophisticated manor */
+    const mergedProperties = {
+      ...existingEntity.properties,
+      // Ensure we don't accidentally set required properties to `undefined` by disabling
+      // the ability to set properties to `undefined`
+      ...Object.entries(params.entity.properties).reduce(
+        (acc, [propertyTypeUrl, value]) => ({
+          ...acc,
+          ...(typeof value === "undefined"
+            ? {}
+            : {
+                [propertyTypeUrl]: value,
+              }),
+        }),
+        {},
+      ),
+    };
+
     await params.graphApiClient.updateEntity(params.authentication.actorId, {
       archived: false,
       entityId: existingEntity.metadata.recordId.entityId,
       entityTypeId: existingEntity.metadata.entityTypeId,
-      properties: params.entity.properties,
+      properties: mergedProperties,
     });
   }
 

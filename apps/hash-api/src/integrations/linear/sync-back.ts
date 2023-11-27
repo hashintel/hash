@@ -1,12 +1,15 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { UpdateLinearIssueWorkflow } from "@local/hash-backend-utils/temporal-workflow-types";
 import { GraphApi } from "@local/hash-graph-client";
-import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  linearEntityTypes,
+  linearPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   Entity,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   extractOwnedByIdFromEntityId,
-  OwnedById,
   Uuid,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -17,8 +20,8 @@ import { createTemporalClient } from "../../temporal";
 import { genId } from "../../util";
 import { createVaultClient } from "../../vault";
 
-export const supportedTypeIds = Object.values(linearTypes.entityType).map(
-  (entityType) => entityType.entityTypeId,
+export const supportedTypeIds = Object.values(linearEntityTypes).map(
+  ({ entityTypeId }) => entityTypeId as VersionedUrl,
 );
 
 export const processEntityChange = async (
@@ -53,31 +56,35 @@ export const processEntityChange = async (
     entity.metadata.recordId.entityId,
   );
 
-  // @todo: Figure out who the actor should be
-  //    see https://linear.app/hash/issue/H-756
-  const authentication = {
-    actorId: entity.metadata.provenance.recordCreatedById,
-  };
+  /**
+   * This assumes the web of the entity is an org web, not a user web.
+   *
+   * @todo: fix this so that it works for users and orgs
+   */
+  const hashWorkspaceEntityId = entityIdFromOwnedByIdAndEntityUuid(
+    owningAccountUuId,
+    owningAccountUuId as Uuid as EntityUuid,
+  );
 
   const linearApiKey = await getLinearSecretValueByHashWorkspaceId(
     { graphApi },
-    authentication,
+    /**
+     * We currently assign the integration permissions to the system account ID,
+     * in the `syncLinearIntegrationWithWorkspaces` resolver, so we user the
+     * `systemAccountId` here for now.
+     */
+    { actorId: systemAccountId },
     {
-      hashWorkspaceEntityId: entityIdFromOwnedByIdAndEntityUuid(
-        systemAccountId as OwnedById,
-        owningAccountUuId as Uuid as EntityUuid,
-      ),
+      hashWorkspaceEntityId,
       vaultClient,
     },
   );
 
   const resourceId =
-    entity.properties[
-      extractBaseUrl(linearTypes.propertyType.id.propertyTypeId)
-    ];
+    entity.properties[extractBaseUrl(linearPropertyTypes.id.propertyTypeId)];
 
   switch (entityTypeId) {
-    case linearTypes.entityType.issue.entityTypeId: {
+    case linearEntityTypes.issue.entityTypeId: {
       await temporalClient.workflow.start<UpdateLinearIssueWorkflow>(
         "updateLinearIssue",
         {
