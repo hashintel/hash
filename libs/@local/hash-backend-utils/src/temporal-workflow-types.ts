@@ -12,15 +12,28 @@ export type PartialEntity = {
   entityTypeId: VersionedUrl;
 };
 
-export type CreateHashIssueWorkflow = (params: {
+export type LinearWebhookPayload = {
+  Issue: Issue;
+  User: User;
+};
+
+export type LinearWebhookPayloadKind = keyof LinearWebhookPayload;
+
+export type CreateHashEntityFromLinearData = <
+  K extends LinearWebhookPayloadKind = LinearWebhookPayloadKind,
+>(params: {
   authentication: { actorId: AccountId };
-  payload: Issue;
+  payload: LinearWebhookPayload[K];
+  payloadKind: K;
   ownedById: OwnedById;
 }) => Promise<void>;
 
-export type CreateHashUserWorkflow = (params: {
+export type UpdateHashEntityFromLinearData = <
+  K extends LinearWebhookPayloadKind = LinearWebhookPayloadKind,
+>(params: {
   authentication: { actorId: AccountId };
-  payload: User;
+  payload: LinearWebhookPayload[K];
+  payloadKind: K;
   ownedById: OwnedById;
 }) => Promise<void>;
 
@@ -35,28 +48,19 @@ export type SyncWorkspaceWorkflow = (params: {
   teamIds: string[];
 }) => Promise<void>;
 
-export type UpdateHashIssueWorkflow = (params: {
-  authentication: { actorId: AccountId };
-  payload: Issue;
-}) => Promise<void>;
-
 export type UpdateLinearIssueWorkflow = (params: {
   apiKey: string;
   issueId: Issue["id"];
   payload: EntityPropertiesObject;
 }) => Promise<void>;
 
-export type UpdateHashUserWorkflow = (params: {
-  authentication: { actorId: AccountId };
-  payload: User;
-}) => Promise<void>;
-
 export type WorkflowTypeMap = {
-  createHashIssue: CreateHashIssueWorkflow;
-  createHashUser: CreateHashUserWorkflow;
-  readLinearTeams: ReadLinearTeamsWorkflow;
   syncWorkspace: SyncWorkspaceWorkflow;
-  updateHashIssue: UpdateHashIssueWorkflow;
-  updateHashUser: UpdateHashUserWorkflow;
+  readLinearTeams: ReadLinearTeamsWorkflow;
+
+  createHashEntityFromLinearData: CreateHashEntityFromLinearData;
+  updateHashEntityFromLinearData: UpdateHashEntityFromLinearData;
+
+  /** @todo: replace these with a generic `updateLinearData` workflow */
   updateLinearIssue: UpdateLinearIssueWorkflow;
 };

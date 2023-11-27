@@ -1,10 +1,8 @@
 import {
-  CreateHashIssueWorkflow,
-  CreateHashUserWorkflow,
+  CreateHashEntityFromLinearData,
   ReadLinearTeamsWorkflow,
   SyncWorkspaceWorkflow,
-  UpdateHashIssueWorkflow,
-  UpdateHashUserWorkflow,
+  UpdateHashEntityFromLinearData,
   UpdateLinearIssueWorkflow,
 } from "@local/hash-backend-utils/temporal-workflow-types";
 import { proxyActivities } from "@temporalio/workflow";
@@ -56,33 +54,25 @@ export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
   await Promise.all([organization, users, ...issues]);
 };
 
-export const createHashUser: CreateHashUserWorkflow = async (params) => {
-  await linear.createHashUser({
-    authentication: params.authentication,
-    user: params.payload,
-    workspaceOwnedById: params.ownedById,
-  });
-};
+export const createHashEntityFromLinearData: CreateHashEntityFromLinearData =
+  async (params) => {
+    await linear.createHashEntityFromLinearData({
+      authentication: params.authentication,
+      payload: params.payload,
+      payloadKind: params.payloadKind,
+      ownedById: params.ownedById,
+    });
+  };
 
-export const updateHashUser: UpdateHashUserWorkflow = async (params) =>
-  linear.updateHashUser({
-    authentication: params.authentication,
-    user: params.payload,
-  });
-
-export const createHashIssue: CreateHashIssueWorkflow = async (params) => {
-  await linear.createHashIssue({
-    authentication: params.authentication,
-    issue: params.payload,
-    workspaceOwnedById: params.ownedById,
-  });
-};
-
-export const updateHashIssue: UpdateHashIssueWorkflow = async (params) =>
-  linear.updateHashIssue({
-    authentication: params.authentication,
-    issue: params.payload,
-  });
+export const updateHashEntityFromLinearData: UpdateHashEntityFromLinearData =
+  async (params) => {
+    await linear.updateHashEntityFromLinearData({
+      authentication: params.authentication,
+      payload: params.payload,
+      payloadKind: params.payloadKind,
+      ownedById: params.ownedById,
+    });
+  };
 
 export const readLinearTeams: ReadLinearTeamsWorkflow = async ({ apiKey }) =>
   linear.readLinearTeams({ apiKey });

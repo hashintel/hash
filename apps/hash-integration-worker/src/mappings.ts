@@ -479,20 +479,11 @@ const typeMappings = [
   },
 ];
 
-export const mapLinearDataToEntityWithOutgoingLinks = async <
-  T extends SupportedLinearTypeNames,
+const getMapping = <
+  T extends SupportedLinearTypeNames = SupportedLinearTypeNames,
 >(params: {
-  graphApiClient: GraphApi;
-  authentication: { actorId: AccountId };
   linearType: T;
-  linearData: SupportedLinearTypes[T];
-}): Promise<{
-  partialEntity: PartialEntity;
-  outgoingLinks: {
-    linkEntityTypeId: VersionedUrl;
-    destinationEntityId: EntityId;
-  }[];
-}> => {
+}): LinearMapping<T> => {
   const mapping = typeMappings.find(
     ({ linearType }) => linearType === params.linearType,
   ) as LinearMapping<T> | undefined;
@@ -502,6 +493,19 @@ export const mapLinearDataToEntityWithOutgoingLinks = async <
       `Could not find mapping for linear type ${params.linearType}`,
     );
   }
+
+  return mapping;
+};
+
+export const mapLinearDataToEntity = <
+  T extends SupportedLinearTypeNames,
+>(params: {
+  linearType: T;
+  linearData: SupportedLinearTypes[T];
+}): PartialEntity => {
+  const { linearType } = params;
+
+  const mapping = getMapping({ linearType });
 
   const properties: EntityPropertiesObject = {};
 
@@ -525,6 +529,32 @@ export const mapLinearDataToEntityWithOutgoingLinks = async <
 
     properties[extractBaseUrl(hashPropertyTypeId)] = mappedValue;
   }
+
+  return {
+    entityTypeId: mapping.hashEntityTypeId,
+    properties,
+  };
+};
+
+export const mapLinearDataToEntityWithOutgoingLinks = async <
+  T extends SupportedLinearTypeNames,
+>(params: {
+  graphApiClient: GraphApi;
+  authentication: { actorId: AccountId };
+  linearType: T;
+  linearData: SupportedLinearTypes[T];
+}): Promise<{
+  partialEntity: PartialEntity;
+  outgoingLinks: {
+    linkEntityTypeId: VersionedUrl;
+    destinationEntityId: EntityId;
+  }[];
+}> => {
+  const { linearType } = params;
+
+  const mapping = getMapping({ linearType });
+
+  const partialEntity = mapLinearDataToEntity(params);
 
   const outgoingLinks = await Promise.all(
     mapping.outgoingLinkMappings.map<
@@ -564,10 +594,7 @@ export const mapLinearDataToEntityWithOutgoingLinks = async <
   ).then((outgoingLinksByType) => outgoingLinksByType.flat());
 
   return {
-    partialEntity: {
-      entityTypeId: linearEntityTypes.issue.entityTypeId,
-      properties,
-    },
+    partialEntity,
     outgoingLinks,
   };
 };

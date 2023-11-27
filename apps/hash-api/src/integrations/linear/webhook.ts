@@ -68,7 +68,7 @@ export const linearWebhook: RequestHandler<{}, string, string> = async (
     }
 
     const workflow =
-      `${payload.action}Hash${payload.type}` as const satisfies keyof WorkflowTypeMap;
+      `${payload.action}HashEntityFromLinearData` as const satisfies keyof WorkflowTypeMap;
 
     await temporalClient.workflow.start<WorkflowTypeMap[typeof workflow]>(
       workflow,
@@ -77,8 +77,9 @@ export const linearWebhook: RequestHandler<{}, string, string> = async (
         args: [
           {
             authentication: { actorId: systemAccountId },
-            ownedById: systemAccountId as OwnedById,
+            payloadKind: payload.type,
             payload: payload.data,
+            ownedById: systemAccountId as OwnedById,
           },
         ],
         workflowId: `${workflow}-${genId()}`,
