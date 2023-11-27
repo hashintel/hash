@@ -26,12 +26,8 @@ impl<'p> JsonPath<'p> {
         writer.write_char('$')?;
         for token in &self.path {
             match token {
-                #[expect(
-                    clippy::use_debug,
-                    reason = "Debug string is escaped, Display string is not"
-                )]
                 PathToken::Field(field) => {
-                    write!(writer, ".{field:?}")?;
+                    write!(writer, ".\"{}\"", field.replace('"', "\\\""))?;
                 }
                 PathToken::Index(index) => {
                     write!(writer, "[{index}]")?;
