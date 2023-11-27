@@ -160,8 +160,8 @@ const LinkTypeRow = ({
     return !canEdit?.allowed
       ? canEdit?.message
       : currentVersion !== latestVersion
-      ? "Update the link type to the latest version to edit"
-      : undefined;
+        ? "Update the link type to the latest version to edit"
+        : undefined;
   }, [ontologyFunctions, link, currentVersion, latestVersion]);
 
   return (

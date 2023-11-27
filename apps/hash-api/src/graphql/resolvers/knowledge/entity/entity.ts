@@ -588,8 +588,8 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
       relation === "editor"
         ? EntityAuthorizationRelation.Editor
         : relation === "owner"
-        ? EntityAuthorizationRelation.Owner
-        : EntityAuthorizationRelation.Viewer,
+          ? EntityAuthorizationRelation.Owner
+          : EntityAuthorizationRelation.Viewer,
     subject:
       subject.kind === "accountGroup"
         ? {
@@ -597,7 +597,7 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
             relation: AccountGroupAuthorizationSubjectRelation.Member,
           }
         : subject.kind === "account"
-        ? { accountId: subject.subjectId }
-        : { public: true },
+          ? { accountId: subject.subjectId }
+          : { public: true },
   }));
 };

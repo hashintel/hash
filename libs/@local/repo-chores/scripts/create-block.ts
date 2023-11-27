@@ -45,9 +45,8 @@ const script = async () => {
     directory: `blocks/${blockName}`,
   };
 
-  (
-    packageJson.blockprotocol as JsonObject
-  ).displayName = `${blockName[0]!.toUpperCase()}${blockName.slice(1)}`;
+  (packageJson.blockprotocol as JsonObject).displayName =
+    `${blockName[0]!.toUpperCase()}${blockName.slice(1)}`;
   (packageJson.blockprotocol as JsonObject).name = `@hash/${blockName}`;
 
   (packageJson.scripts as JsonObject)["fix:eslint"] = "eslint --fix .";

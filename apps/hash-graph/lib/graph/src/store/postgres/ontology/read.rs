@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use async_trait::async_trait;
+use authorization::schema::EntityTypeId;
 use error_stack::{Result, ResultExt};
 use futures::{Stream, StreamExt, TryStreamExt};
 use graph_types::{
@@ -479,7 +480,7 @@ impl<C: AsClient> PostgresStore<C> {
         &self,
         filter: &Filter<'_, EntityTypeWithMetadata>,
         temporal_axes: Option<&QueryTemporalAxes>,
-    ) -> Result<impl Stream<Item = Result<(OntologyId, raw::EntityType), QueryError>>, QueryError>
+    ) -> Result<impl Stream<Item = Result<(EntityTypeId, raw::EntityType), QueryError>>, QueryError>
     {
         let mut compiler = SelectCompiler::new(temporal_axes);
 
@@ -499,13 +500,10 @@ impl<C: AsClient> PostgresStore<C> {
             .query_raw(&statement, parameters.iter().copied())
             .await
             .change_context(QueryError)?
-            .map(|row| row.change_context(QueryError))
-            .and_then(move |row| async move {
-                Ok((
-                    row.get(ontology_id_index),
-                    serde_json::from_value(row.get(closed_schema_index))
-                        .change_context(QueryError)?,
-                ))
+            .map(move |row| {
+                let row = row.change_context(QueryError)?;
+                let Json(schema) = row.get(closed_schema_index);
+                Ok((EntityTypeId::new(row.get(ontology_id_index)), schema))
             }))
     }
 

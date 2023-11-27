@@ -278,8 +278,8 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
               editable
                 ? styles.Comment__TextField_editable
                 : collapsed
-                ? styles.Comment__TextField_collapsed!
-                : ""
+                  ? styles.Comment__TextField_collapsed!
+                  : ""
             }`}
             editable={editable}
             readOnly={!editable}

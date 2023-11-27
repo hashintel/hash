@@ -120,8 +120,8 @@ export const returnTypeAsJson = async (request: NextRequest) => {
     "getDataType" in data
       ? data.getDataType
       : "getEntityType" in data
-      ? data.getEntityType
-      : data.getPropertyType;
+        ? data.getEntityType
+        : data.getPropertyType;
 
   const root = roots[0] as OntologyTypeVertexId | undefined;
   if (!root) {

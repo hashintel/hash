@@ -196,10 +196,10 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
         {kind === "new-comment"
           ? "commented on "
           : kind === "comment-reply"
-          ? "replied to your comment on "
-          : kind === "page-mention"
-          ? "mentioned you in "
-          : "mentioned you in a comment on "}
+            ? "replied to your comment on "
+            : kind === "page-mention"
+              ? "mentioned you in "
+              : "mentioned you in a comment on "}
         <Link
           noLinkStyle
           href={pageHref ?? ""}

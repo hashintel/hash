@@ -6,7 +6,8 @@ use authorization::{
     zanzibar::Consistency,
     AuthorizationApi,
 };
-use error_stack::{Report, ResultExt};
+use error_stack::{ensure, Report, ResultExt};
+use futures::TryStreamExt;
 use graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},
@@ -18,15 +19,15 @@ use validation::{EntityProvider, EntityTypeProvider, OntologyTypeProvider};
 
 use crate::{
     store::{crud::Read, query::Filter, AsClient, PostgresStore, QueryError},
-    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    },
 };
 
 #[derive(Debug, Copy, Clone)]
 pub struct StoreProvider<'a, S, A> {
     pub store: &'a S,
-    pub actor_id: AccountId,
-    pub authorization_api: &'a A,
-    pub consistency: Consistency<'static>,
+    pub authorization: Option<(&'a A, AccountId, Consistency<'static>)>,
 }
 
 impl<S, A> OntologyTypeProvider<DataType> for StoreProvider<'_, S, A>
@@ -37,17 +38,19 @@ where
     #[expect(refining_impl_trait)]
     async fn provide_type(&self, type_id: &VersionedUrl) -> Result<DataType, Report<QueryError>> {
         let data_type_id = DataTypeId::from_url(type_id);
-        self.authorization_api
-            .check_data_type_permission(
-                self.actor_id,
-                DataTypePermission::View,
-                data_type_id,
-                self.consistency,
-            )
-            .await
-            .change_context(QueryError)?
-            .assert_permission()
-            .change_context(QueryError)?;
+        if let Some((authorization_api, actor_id, consistency)) = self.authorization {
+            authorization_api
+                .check_data_type_permission(
+                    actor_id,
+                    DataTypePermission::View,
+                    data_type_id,
+                    consistency,
+                )
+                .await
+                .change_context(QueryError)?
+                .assert_permission()
+                .change_context(QueryError)?;
+        }
 
         self.store
             .read_one(
@@ -70,17 +73,19 @@ where
         type_id: &VersionedUrl,
     ) -> Result<PropertyType, Report<QueryError>> {
         let data_type_id = PropertyTypeId::from_url(type_id);
-        self.authorization_api
-            .check_property_type_permission(
-                self.actor_id,
-                PropertyTypePermission::View,
-                data_type_id,
-                self.consistency,
-            )
-            .await
-            .change_context(QueryError)?
-            .assert_permission()
-            .change_context(QueryError)?;
+        if let Some((authorization_api, actor_id, consistency)) = self.authorization {
+            authorization_api
+                .check_property_type_permission(
+                    actor_id,
+                    PropertyTypePermission::View,
+                    data_type_id,
+                    consistency,
+                )
+                .await
+                .change_context(QueryError)?
+                .assert_permission()
+                .change_context(QueryError)?;
+        }
 
         self.store
             .read_one(
@@ -92,33 +97,59 @@ where
     }
 }
 
-impl<S, A> OntologyTypeProvider<EntityType> for StoreProvider<'_, S, A>
+impl<C, A> OntologyTypeProvider<EntityType> for StoreProvider<'_, PostgresStore<C>, A>
 where
-    S: Read<EntityTypeWithMetadata, Record = EntityTypeWithMetadata>,
+    C: AsClient,
     A: AuthorizationApi + Sync,
 {
     #[expect(refining_impl_trait)]
     async fn provide_type(&self, type_id: &VersionedUrl) -> Result<EntityType, Report<QueryError>> {
         let entity_type_id = EntityTypeId::from_url(type_id);
-        self.authorization_api
-            .check_entity_type_permission(
-                self.actor_id,
-                EntityTypePermission::View,
-                entity_type_id,
-                self.consistency,
-            )
-            .await
-            .change_context(QueryError)?
-            .assert_permission()
-            .change_context(QueryError)?;
+        if let Some((authorization_api, actor_id, consistency)) = self.authorization {
+            authorization_api
+                .check_entity_type_permission(
+                    actor_id,
+                    EntityTypePermission::View,
+                    entity_type_id,
+                    consistency,
+                )
+                .await
+                .change_context(QueryError)?
+                .assert_permission()
+                .change_context(QueryError)?;
+        }
 
-        self.store
-            .read_one(
-                &Filter::<S::Record>::for_versioned_url(type_id),
+        let mut schemas = self
+            .store
+            .read_closed_schemas(
+                &Filter::<EntityTypeWithMetadata>::for_versioned_url(type_id),
                 Some(&QueryTemporalAxesUnresolved::default().resolve()),
             )
             .await
-            .map(|entity_type| entity_type.schema)
+            .change_context(QueryError)?
+            .map_ok(|(_, entity_type)| entity_type)
+            .try_collect::<Vec<_>>()
+            .await
+            .change_context(QueryError)?;
+
+        ensure!(
+            schemas.len() <= 1,
+            Report::new(QueryError).attach_printable(format!(
+                "Expected exactly one closed schema to be returned from the query but {} were \
+                 returned",
+                schemas.len(),
+            ))
+        );
+        let schema = schemas.pop().ok_or_else(|| {
+            Report::new(QueryError).attach_printable(
+                "Expected exactly one closed schema to be returned from the query but none was \
+                 returned",
+            )
+        })?;
+        // TODO: Distinguish between format validation and content validation so it's possible
+        //       to directly use the correct type.
+        //   see https://linear.app/hash/issue/BP-33
+        EntityType::try_from(schema).change_context(QueryError)
     }
 }
 
@@ -161,22 +192,25 @@ where
 {
     #[expect(refining_impl_trait)]
     async fn provide_entity(&self, entity_id: EntityId) -> Result<Entity, Report<QueryError>> {
-        self.authorization_api
-            .check_entity_permission(
-                self.actor_id,
-                EntityPermission::View,
-                entity_id,
-                self.consistency,
-            )
-            .await
-            .change_context(QueryError)?
-            .assert_permission()
-            .change_context(QueryError)?;
+        if let Some((authorization_api, actor_id, consistency)) = self.authorization {
+            authorization_api
+                .check_entity_permission(actor_id, EntityPermission::View, entity_id, consistency)
+                .await
+                .change_context(QueryError)?
+                .assert_permission()
+                .change_context(QueryError)?;
+        }
 
         self.store
             .read_one(
                 &Filter::<S::Record>::for_entity_by_entity_id(entity_id),
-                Some(&QueryTemporalAxesUnresolved::default().resolve()),
+                Some(
+                    &QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    }
+                    .resolve(),
+                ),
             )
             .await
     }

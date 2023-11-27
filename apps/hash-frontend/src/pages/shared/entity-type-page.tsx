@@ -29,6 +29,7 @@ import { PageErrorState } from "../../components/page-error-state";
 import { EntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
 import { useEntityTypeEntitiesContextValue } from "../../shared/entity-type-entities-context/use-entity-type-entities-context-value";
 import { useIsSpecialEntityType } from "../../shared/entity-types-context/hooks";
+import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { isTypeArchived } from "../../shared/is-archived";
 import { isHrefExternal } from "../../shared/is-href-external";
 import { ArchiveMenuItem } from "../[shortname]/shared/archive-menu-item";
@@ -155,7 +156,9 @@ export const EntityTypePage = ({
       );
 
       if (!res.errors?.length && res.data) {
-        void router.push(res.data.updateEntityType.schema.$id);
+        void router.push(
+          generateLinkParameters(res.data.updateEntityType.schema.$id).href,
+        );
       } else {
         throw new Error("Could not publish changes");
       }
@@ -205,7 +208,9 @@ export const EntityTypePage = ({
     );
 
     if (!res.errors?.length && res.data) {
-      void router.push(res.data.updateEntityType.schema.$id);
+      void router.push(
+        generateLinkParameters(res.data.updateEntityType.schema.$id).href,
+      );
     } else {
       throw new Error("Could not publish changes");
     }

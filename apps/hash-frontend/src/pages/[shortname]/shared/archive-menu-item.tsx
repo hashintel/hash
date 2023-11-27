@@ -64,8 +64,8 @@ export const ArchiveMenuItem: FunctionComponent<{
           isItemEntityType(item)
             ? "type"
             : isEntityPageEntity(item)
-            ? "page"
-            : "entity"
+              ? "page"
+              : "entity"
         }`}
       />
     </MenuItem>

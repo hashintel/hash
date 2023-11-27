@@ -26,7 +26,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.1-canary-20230803163819",
+    "@blockprotocol/graph": "0.3.1-canary-20231120181031",
     "prismjs": "1.29.0"
   },
   "devDependencies": {

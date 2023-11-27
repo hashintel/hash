@@ -51,8 +51,8 @@ export const PropertyTypeSelector = ({
                 dataTypeId.includes("data-type/boolean/")
                   ? "boolean"
                   : dataTypeId.includes("data-type/number/")
-                  ? "number"
-                  : "string",
+                    ? "number"
+                    : "string",
               );
             }
           },

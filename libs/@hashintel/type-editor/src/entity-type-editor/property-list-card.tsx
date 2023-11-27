@@ -132,8 +132,8 @@ export const PropertyTypeRow = ({
     return !canEdit?.allowed
       ? canEdit?.message
       : currentVersion !== latestVersion
-      ? "Update the property type to the latest version to edit"
-      : undefined;
+        ? "Update the property type to the latest version to edit"
+        : undefined;
   }, [ontologyFunctions, property, currentVersion, latestVersion]);
 
   return (

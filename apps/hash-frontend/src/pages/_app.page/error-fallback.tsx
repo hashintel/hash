@@ -26,8 +26,7 @@ const CopyableMonospace = ({ text }: { text: string }) => {
           sx={({ palette }) => ({
             background: palette.gray[20],
             border: `1px solid ${palette.gray[50]}`,
-            color: palette.gray[90],
-            fontFamily: "monospace",
+            maxWidth: "100%",
             minHeight: 0,
             py: 0.5,
             px: 1.5,
@@ -36,7 +35,19 @@ const CopyableMonospace = ({ text }: { text: string }) => {
             },
           })}
         >
-          {text}
+          <Typography
+            component="span"
+            sx={({ palette }) => ({
+              color: palette.gray[90],
+              fontFamily: "monospace",
+              fontSize: "0.8rem",
+              maxWidth: "100%",
+              textAlign: "left",
+              whiteSpace: "pre-wrap",
+            })}
+          >
+            {text}
+          </Typography>
         </Button>
       </Tooltip>
     </Box>
@@ -93,6 +104,10 @@ export const ErrorFallback: FallbackRender = ({
           <Box mt={2}>
             <Typography variant="smallCaps">Error message</Typography>
             <CopyableMonospace text={error.message} />
+          </Box>
+          <Box mt={2}>
+            <Typography variant="smallCaps">Stack trace</Typography>
+            <CopyableMonospace text={error.stack ?? ""} />
           </Box>
         </Box>
       </Collapse>

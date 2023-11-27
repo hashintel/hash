@@ -112,8 +112,8 @@ type ReplaceAccountGroup<T extends { kind: "accountGroup" }> = {
 type BrandSubject<T extends object> = T extends { kind: "account" }
   ? ReplaceAccount<T>
   : T extends { kind: "accountGroup" }
-  ? ReplaceAccountGroup<T>
-  : T;
+    ? ReplaceAccountGroup<T>
+    : T;
 
 type BrandRelationship<T extends { subject: object }> = {
   [K in keyof T]: K extends "subject" ? BrandSubject<T[K]> : T[K];

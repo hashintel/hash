@@ -97,8 +97,8 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
     subject.__typename === "AccountAuthorizationSubject"
       ? subject.accountId
       : subject.__typename === "AccountGroupAuthorizationSubject"
-      ? subject.accountGroupId
-      : "public";
+        ? subject.accountGroupId
+        : "public";
 
   const popupState = usePopupState({
     variant: "popover",
@@ -136,9 +136,9 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
         relationship.subject.__typename === "AccountAuthorizationSubject"
           ? relationship.subject.accountId
           : relationship.subject.__typename ===
-            "AccountGroupAuthorizationSubject"
-          ? relationship.subject.accountGroupId
-          : undefined;
+              "AccountGroupAuthorizationSubject"
+            ? relationship.subject.accountGroupId
+            : undefined;
 
       if (relationship.relation === EntityAuthorizationRelation.Viewer) {
         await removeEntityViewer({
@@ -151,9 +151,9 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
                 "AccountAuthorizationSubject"
                   ? AuthorizationSubjectKind.Account
                   : relationship.subject.__typename ===
-                    "AccountGroupAuthorizationSubject"
-                  ? AuthorizationSubjectKind.AccountGroup
-                  : AuthorizationSubjectKind.Public,
+                      "AccountGroupAuthorizationSubject"
+                    ? AuthorizationSubjectKind.AccountGroup
+                    : AuthorizationSubjectKind.Public,
             },
           },
         });

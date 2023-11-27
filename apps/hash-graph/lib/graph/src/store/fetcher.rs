@@ -3,6 +3,7 @@ use std::{collections::HashSet, mem};
 use async_trait::async_trait;
 use authorization::{
     schema::{EntityOwnerSubject, WebOwnerSubject, WebSubject},
+    zanzibar::Consistency,
     AuthorizationApi,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -34,6 +35,7 @@ use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
         crud::Read,
+        knowledge::EntityValidationType,
         query::{Filter, OntologyQueryPath},
         AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
         InsertionError, PropertyTypeStore, QueryError, Record, StoreError, StorePool, UpdateError,
@@ -959,6 +961,27 @@ where
                 decision_time,
                 archived,
                 entity_type_id,
+                properties,
+                link_data,
+            )
+            .await
+    }
+
+    async fn validate_entity<Au: AuthorizationApi + Sync>(
+        &self,
+        actor_id: AccountId,
+        authorization_api: &Au,
+        consistency: Consistency<'static>,
+        entity_type: EntityValidationType<'_>,
+        properties: &EntityProperties,
+        link_data: Option<&LinkData>,
+    ) -> Result<(), QueryError> {
+        self.store
+            .validate_entity(
+                actor_id,
+                authorization_api,
+                consistency,
+                entity_type,
                 properties,
                 link_data,
             )

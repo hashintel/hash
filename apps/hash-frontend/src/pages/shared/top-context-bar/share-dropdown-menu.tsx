@@ -48,8 +48,8 @@ export const ShareDropdownMenu: FunctionComponent<{ entity: Entity }> = ({
         subject.__typename === "AccountAuthorizationSubject"
           ? subject.accountId
           : subject.__typename === "AccountGroupAuthorizationSubject"
-          ? subject.accountGroupId
-          : [],
+            ? subject.accountGroupId
+            : [],
       )
       .flat();
 

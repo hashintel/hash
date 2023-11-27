@@ -1,17 +1,25 @@
-import http from "node:http";
-import path from "node:path";
-import { promisify } from "node:util";
-
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
+/* eslint-disable import/first */
 import {
   monorepoRootDir,
   realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
+
+// eslint-disable-next-line import/order
+import { initSentry } from "./sentry";
+
+initSentry();
+
+import http from "node:http";
+import path from "node:path";
+import { promisify } from "node:util";
+
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { oryKratosPublicUrl } from "@local/hash-isomorphic-utils/environment";
 import { Session } from "@ory/client";
+import * as Sentry from "@sentry/node";
 import type { Client as TemporalClient } from "@temporalio/client";
 import { json } from "body-parser";
 import cors from "cors";
@@ -125,6 +133,12 @@ const main = async () => {
 
   // Configure the Express server
   const app = express();
+  app.use(
+    Sentry.Handlers.requestHandler({
+      ip: true,
+      user: ["emails", "shortname"],
+    }),
+  );
   app.use(cors(CORS_CONFIG));
 
   const redisHost = getRequiredEnv("HASH_REDIS_HOST");
@@ -213,18 +227,18 @@ const main = async () => {
             : undefined,
         })
       : process.env.AWS_REGION
-      ? new AwsSesEmailTransporter({
-          from: `${getRequiredEnv(
-            "SYSTEM_EMAIL_SENDER_NAME",
-          )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
-          region: getAwsRegion(),
-          subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
-        })
-      : ({
-          sendMail: (mail) => {
-            logger.info(`Tried to send mail to ${mail.to}:\n${mail.html}`);
-          },
-        } as EmailTransporter);
+        ? new AwsSesEmailTransporter({
+            from: `${getRequiredEnv(
+              "SYSTEM_EMAIL_SENDER_NAME",
+            )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
+            region: getAwsRegion(),
+            subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
+          })
+        : ({
+            sendMail: (mail) => {
+              logger.info(`Tried to send mail to ${mail.to}:\n${mail.html}`);
+            },
+          } as EmailTransporter);
 
   let search: OpenSearch | undefined;
   if (process.env.HASH_OPENSEARCH_ENABLED === "true") {
@@ -347,6 +361,22 @@ const main = async () => {
   app.get("/oauth/linear", oAuthLinear);
   app.get("/oauth/linear/callback", oAuthLinearCallback);
   app.post("/webhooks/linear", linearWebhook);
+
+  /**
+   * This middleware MUST:
+   * 1. Come AFTER all non-error controllers
+   * 2. Come BEFORE all error controllers/middleware
+   */
+  app.use(
+    Sentry.Handlers.errorHandler({
+      shouldHandleError(_error) {
+        /**
+         * Capture all errors for now – we can selectively filter out errors based on code if needed.
+         */
+        return true;
+      },
+    }),
+  );
 
   // Create the HTTP server.
   // Note: calling `close` on a `http.Server` stops new connections, but it does not

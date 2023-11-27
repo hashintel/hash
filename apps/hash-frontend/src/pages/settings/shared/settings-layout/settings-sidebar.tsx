@@ -73,8 +73,8 @@ const SidebarItem = ({
       ? theme.palette.black
       : theme.palette.primary.main
     : level === 2
-    ? theme.palette.gray[70]
-    : theme.palette.black;
+      ? theme.palette.gray[70]
+      : theme.palette.black;
 
   const borderColor =
     active || (level > 2 && parentActive)
@@ -82,8 +82,8 @@ const SidebarItem = ({
         ? theme.palette.blue[70]
         : theme.palette.blue[20]
       : level === 1
-      ? "transparent"
-      : theme.palette.gray[20];
+        ? "transparent"
+        : theme.palette.gray[20];
 
   const paddingLevels: Record<number, number> = {
     1: 0.5,

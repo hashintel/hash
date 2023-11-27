@@ -2321,10 +2321,10 @@
     node-fetch "^3.3.0"
     typescript "4.9.4"
 
-"@blockprotocol/graph@0.3.1-canary-20230803163819":
-  version "0.3.1-canary-20230803163819"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.3.1-canary-20230803163819.tgz#7384178d88e5b917f2748d3e2850ff1f8ebc7738"
-  integrity sha512-yKtTAJqbGV42iOa23bcGNRbaEVXVH3rlF0v3Nw7ds7SToXx1i20VGPmkX6xbyR7Gl5jjqMyTOCR6xeXNG6ZSXg==
+"@blockprotocol/graph@0.3.1-canary-20231120181031":
+  version "0.3.1-canary-20231120181031"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.3.1-canary-20231120181031.tgz#bd75a617efb9eab3cc92c8a38b27705a8a7d7eab"
+  integrity sha512-9oypfKwOInP9OoSCEKnVxX2VxDaeyiHjJROyisr8qxcRIacK/LmAr8UkT/7bxF7JW3ga4D2BUPUpTHaEZ1eaZg==
   dependencies:
     "@blockprotocol/core" "0.1.2"
     "@blockprotocol/type-system" "0.1.1"
@@ -2332,6 +2332,7 @@
     ajv-formats "^2.1.1"
     json-schema-to-typescript "^11.0.2"
     lit "^2.4.1"
+    node-fetch "^3.3.0"
     typescript "4.9.4"
 
 "@blockprotocol/hook@0.0.8":
@@ -5336,6 +5337,15 @@
     "@sentry/types" "7.77.0"
     "@sentry/utils" "7.77.0"
 
+"@sentry-internal/tracing@7.81.0":
+  version "7.81.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/tracing/-/tracing-7.81.0.tgz#bf63b817f8471462432fcfe466d3e021e84aef1f"
+  integrity sha512-mc3tdOEvAE6kaCvT3BpMwCgfTT2yfXjWpC7g+3N8U/yuQEmQSCDZA/ut7EkzU0DyhG3t8HzT0c+CAG3HtilEAQ==
+  dependencies:
+    "@sentry/core" "7.81.0"
+    "@sentry/types" "7.81.0"
+    "@sentry/utils" "7.81.0"
+
 "@sentry/browser@7.74.1":
   version "7.74.1"
   resolved "https://registry.yarnpkg.com/@sentry/browser/-/browser-7.74.1.tgz#9302d440bbdcb018abd5fee5959dab4b2fe97383"
@@ -5414,6 +5424,14 @@
     "@sentry/types" "7.77.0"
     "@sentry/utils" "7.77.0"
 
+"@sentry/core@7.81.0":
+  version "7.81.0"
+  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-7.81.0.tgz#e72e02dcb175ada154a71cf89599287f9393e787"
+  integrity sha512-FCAKlqo9Z6fku69bkahw1AN+eBfAgRgOL1RpBLZgyG7YBW12vtSkHb5SDvZZTkm541Fo3hhepUTLtX0qmpA4yw==
+  dependencies:
+    "@sentry/types" "7.81.0"
+    "@sentry/utils" "7.81.0"
+
 "@sentry/integrations@7.77.0":
   version "7.77.0"
   resolved "https://registry.yarnpkg.com/@sentry/integrations/-/integrations-7.77.0.tgz#f2717e05cb7c69363316ccd34096b2ea07ae4c59"
@@ -5443,7 +5461,7 @@
     rollup "2.78.0"
     stacktrace-parser "^0.1.10"
 
-"@sentry/node@7.77.0", "@sentry/node@^7.60.0":
+"@sentry/node@7.77.0":
   version "7.77.0"
   resolved "https://registry.yarnpkg.com/@sentry/node/-/node-7.77.0.tgz#a247452779a5bcb55724457707286e3e4a29dbbe"
   integrity sha512-Ob5tgaJOj0OYMwnocc6G/CDLWC7hXfVvKX/ofkF98+BbN/tQa5poL+OwgFn9BA8ud8xKzyGPxGU6LdZ8Oh3z/g==
@@ -5452,6 +5470,17 @@
     "@sentry/core" "7.77.0"
     "@sentry/types" "7.77.0"
     "@sentry/utils" "7.77.0"
+    https-proxy-agent "^5.0.0"
+
+"@sentry/node@7.81.0", "@sentry/node@^7.60.0":
+  version "7.81.0"
+  resolved "https://registry.yarnpkg.com/@sentry/node/-/node-7.81.0.tgz#b911a4eb03bcd230f89da9e2ee3825a311ad5c78"
+  integrity sha512-hFfDxKGB+JhkhpZtM1ntyZDZoMlS8rMsynCSQcqJS39iYcCgdvgy9zOb34mXrX9kXOJNhWWmoloBZGA+KKFTdg==
+  dependencies:
+    "@sentry-internal/tracing" "7.81.0"
+    "@sentry/core" "7.81.0"
+    "@sentry/types" "7.81.0"
+    "@sentry/utils" "7.81.0"
     https-proxy-agent "^5.0.0"
 
 "@sentry/react@7.74.1":
@@ -5504,6 +5533,11 @@
   resolved "https://registry.yarnpkg.com/@sentry/types/-/types-7.77.0.tgz#c5d00fe547b89ccde59cdea59143bf145cee3144"
   integrity sha512-nfb00XRJVi0QpDHg+JkqrmEBHsqBnxJu191Ded+Cs1OJ5oPXEW6F59LVcBScGvMqe+WEk1a73eH8XezwfgrTsA==
 
+"@sentry/types@7.81.0":
+  version "7.81.0"
+  resolved "https://registry.yarnpkg.com/@sentry/types/-/types-7.81.0.tgz#a093286c4016a2ff58aa8408ff873b7952a9386f"
+  integrity sha512-rbYNYSSrrnwNndC7S+eVT84GRLEyCZNh9oXUQqzgSD6ngXCZ0xFJW6si75uv/XQBWIw4rkj9xfRcy8DU0Tj4fg==
+
 "@sentry/utils@7.74.1":
   version "7.74.1"
   resolved "https://registry.yarnpkg.com/@sentry/utils/-/utils-7.74.1.tgz#e9a8453c954d02ebed2fd3dbe7588483d8f6d3cb"
@@ -5512,12 +5546,19 @@
     "@sentry/types" "7.74.1"
     tslib "^2.4.1 || ^1.9.3"
 
-"@sentry/utils@7.77.0", "@sentry/utils@^7.60.0":
+"@sentry/utils@7.77.0":
   version "7.77.0"
   resolved "https://registry.yarnpkg.com/@sentry/utils/-/utils-7.77.0.tgz#1f88501f0b8777de31b371cf859d13c82ebe1379"
   integrity sha512-NmM2kDOqVchrey3N5WSzdQoCsyDkQkiRxExPaNI2oKQ/jMWHs9yt0tSy7otPBcXs0AP59ihl75Bvm1tDRcsp5g==
   dependencies:
     "@sentry/types" "7.77.0"
+
+"@sentry/utils@7.81.0", "@sentry/utils@^7.60.0":
+  version "7.81.0"
+  resolved "https://registry.yarnpkg.com/@sentry/utils/-/utils-7.81.0.tgz#b874664ebc5647eed2d3492ac4171819267262cb"
+  integrity sha512-yC9IvfeVbG4dygi4b+iUUMHp9xeHJfCn6XLbqjJVfq3xjAzBGHgfrpw6fYPNyTljXKb6CTiSXSqaNaQJE4CkPA==
+  dependencies:
+    "@sentry/types" "7.81.0"
 
 "@sentry/vercel-edge@7.77.0":
   version "7.77.0"
@@ -7836,10 +7877,10 @@
   dependencies:
     "@types/istanbul-lib-report" "*"
 
-"@types/jest@29.5.8":
-  version "29.5.8"
-  resolved "https://registry.yarnpkg.com/@types/jest/-/jest-29.5.8.tgz#ed5c256fe2bc7c38b1915ee5ef1ff24a3427e120"
-  integrity sha512-fXEFTxMV2Co8ZF5aYFJv+YeA08RTYJfhtN5c9JSv/mFEMe+xxjufCb+PHL+bJcMs/ebPUsBu+UNTEz+ydXrR6g==
+"@types/jest@29.5.10":
+  version "29.5.10"
+  resolved "https://registry.yarnpkg.com/@types/jest/-/jest-29.5.10.tgz#a10fc5bab9e426081c12b2ef73d24d4f0c9b7f50"
+  integrity sha512-tE4yxKEphEyxj9s4inideLHktW/x6DwesIwWZ9NN1FKf9zbJYsnhBoA9vrHA/IuIOKwPa5PcFBNV4lpMIOEzyQ==
   dependencies:
     expect "^29.0.0"
     pretty-format "^29.0.0"
@@ -19609,10 +19650,10 @@ prettier-plugin-sql@0.12.1:
     sql-formatter "^10.0.0"
     tslib "^2.4.0"
 
-prettier@3.0.3:
-  version "3.0.3"
-  resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.0.3.tgz#432a51f7ba422d1469096c0fdc28e235db8f9643"
-  integrity sha512-L/4pUDMxcNa8R/EthV08Zt42WBO4h1rarVtK0K+QJG0X187OLo7l699jWw0GKuwzkPQ//jMFA/8Xm6Fh3J/DAg==
+prettier@3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.1.0.tgz#c6d16474a5f764ea1a4a373c593b779697744d5e"
+  integrity sha512-TQLvXjq5IAibjh8EpBIkNKxO749UEWABoiIZehEPiY4GNpVdhaFKqSTu+QrlU6D2dPAfubRmtJTi4K4YkQ5eXw==
 
 prettier@^2.3.2, prettier@^2.6.2, prettier@^2.7.1, prettier@^2.8.0:
   version "2.8.2"

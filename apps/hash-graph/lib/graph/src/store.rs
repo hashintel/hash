@@ -24,12 +24,13 @@ pub use self::{
         UpdateError,
     },
     fetcher::{FetchingPool, TypeFetcher},
-    knowledge::EntityStore,
+    knowledge::{EntityStore, EntityValidationType},
     migration::{Migration, MigrationState, StoreMigration},
     ontology::{DataTypeStore, EntityTypeStore, PropertyTypeStore},
     pool::StorePool,
     postgres::{AsClient, PostgresStore, PostgresStorePool},
     record::Record,
+    validation::StoreProvider,
 };
 
 /// Describes the API of a store implementation.

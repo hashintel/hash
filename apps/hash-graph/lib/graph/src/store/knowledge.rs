@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use authorization::{schema::EntityOwnerSubject, AuthorizationApi};
+use authorization::{schema::EntityOwnerSubject, zanzibar::Consistency, AuthorizationApi};
 use error_stack::Result;
 use graph_types::{
     account::AccountId,
@@ -10,12 +10,18 @@ use graph_types::{
     provenance::OwnedById,
 };
 use temporal_versioning::{DecisionTime, Timestamp};
-use type_system::url::VersionedUrl;
+use type_system::{url::VersionedUrl, EntityType};
 
 use crate::{
     store::{crud, InsertionError, QueryError, UpdateError},
     subgraph::{query::StructuralQuery, Subgraph},
 };
+
+#[derive(Debug, Copy, Clone)]
+pub enum EntityValidationType<'a> {
+    Schema(&'a EntityType),
+    Id(&'a VersionedUrl),
+}
 
 /// Describes the API of a store implementation for [Entities].
 ///
@@ -46,6 +52,21 @@ pub trait EntityStore: crud::Read<Entity> {
         properties: EntityProperties,
         link_data: Option<LinkData>,
     ) -> Result<EntityMetadata, InsertionError>;
+
+    /// Validates an [`Entity`].
+    ///
+    /// # Errors:
+    ///
+    /// - if the validation failed
+    async fn validate_entity<A: AuthorizationApi + Sync>(
+        &self,
+        actor_id: AccountId,
+        authorization_api: &A,
+        consistency: Consistency<'static>,
+        entity_type: EntityValidationType<'_>,
+        properties: &EntityProperties,
+        link_data: Option<&LinkData>,
+    ) -> Result<(), QueryError>;
 
     /// Inserts the entities with the specified [`EntityType`] into the `Store`.
     ///

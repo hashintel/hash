@@ -2,7 +2,7 @@
 
 #![expect(clippy::str_to_string)]
 
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
@@ -44,7 +44,7 @@ use crate::{
     knowledge::EntityQueryToken,
     store::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
-        AccountStore, EntityStore, StorePool,
+        AccountStore, EntityStore, EntityValidationType, StorePool,
     },
     subgraph::query::{EntityStructuralQuery, StructuralQuery},
 };
@@ -53,6 +53,7 @@ use crate::{
 #[openapi(
     paths(
         create_entity,
+        validate_entity,
         check_entity_permission,
         get_entities_by_query,
         update_entity,
@@ -68,6 +69,8 @@ use crate::{
     components(
         schemas(
             CreateEntityRequest,
+            ValidateEntityRequest,
+            ValidationOperation,
             UpdateEntityRequest,
             EntityQueryToken,
             EntityStructuralQuery,
@@ -116,6 +119,7 @@ impl RoutedResource for EntityResource {
                     "/relationships",
                     post(modify_entity_authorization_relationships::<A>),
                 )
+                .route("/validate", post(validate_entity::<S, A>))
                 .nest(
                     "/:entity_id",
                     Router::new()
@@ -230,6 +234,81 @@ where
         .await
         .map_err(report_to_response)
         .map(Json)
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+enum ValidationOperation {
+    All,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ValidateEntityRequest {
+    #[schema(value_type = SHARED_VersionedUrl)]
+    entity_type_id: VersionedUrl,
+    properties: EntityProperties,
+    #[serde(default)]
+    link_data: Option<LinkData>,
+    operations: HashSet<ValidationOperation>,
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/validate",
+    request_body = ValidateEntityRequest,
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 204, description = "The validation passed"),
+        (status = 400, content_type = "application/json", description = "The entity validation failed"),
+
+        (status = 404, description = "Entity Type URL was not found"),
+        (status = 500, description = "Store error occurred"),
+    ),
+)]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+async fn validate_entity<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    body: Json<ValidateEntityRequest>,
+) -> Result<StatusCode, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let Json(ValidateEntityRequest {
+        entity_type_id,
+        properties,
+        link_data,
+        operations,
+    }) = body;
+
+    if operations.contains(&ValidationOperation::All) {
+        let store = store_pool.acquire().await.map_err(report_to_response)?;
+        let authorization_api = authorization_api_pool
+            .acquire()
+            .await
+            .map_err(report_to_response)?;
+
+        store
+            .validate_entity(
+                actor_id,
+                &authorization_api,
+                Consistency::FullyConsistent,
+                EntityValidationType::Id(&entity_type_id),
+                &properties,
+                link_data.as_ref(),
+            )
+            .await
+            .attach(hash_status::StatusCode::InvalidArgument)
+            .map_err(report_to_response)?;
+    }
+
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[utoipa::path(

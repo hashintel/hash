@@ -160,63 +160,93 @@ export const useMapbox = (
     [onSelectAddress, serviceModule, sessionToken],
   );
 
+  const [isFetchingImage, setIsFetchingImage] = useState(false);
+
+  const [
+    fetchedImageForSuggestionActionId,
+    setFetchedImageForSuggestionActionId,
+  ] = useState<string>();
+
+  const fetchImage = useCallback(
+    async (params: {
+      longitude: number;
+      latitude: number;
+      mapboxSuggestionActionId: string;
+      zoomLevel: number;
+    }) => {
+      setIsFetchingImage(true);
+      const { data } = await serviceModule.mapboxRetrieveStaticMap({
+        data: {
+          username: "mapbox",
+          style_id: "streets-v11",
+          overlay: `pin-s+555555(${params.longitude},${params.latitude})`,
+          width: 600,
+          height: 400,
+          lon: params.longitude,
+          lat: params.latitude,
+          zoom: params.zoomLevel,
+          logo: false,
+          attribution: false,
+        } as MapboxRetrieveStaticMapData,
+      });
+
+      if (data) {
+        setMapError(false);
+        const blob = new Blob([toArrayBuffer(new Uint8Array(data.data))], {
+          type: "arraybuffer",
+        });
+        const file = new File(
+          [blob],
+          `${params.mapboxSuggestionActionId}_${params.zoomLevel}x.png`,
+        );
+        await uploadMap(file, params.mapboxSuggestionActionId);
+        setFetchedImageForSuggestionActionId(params.mapboxSuggestionActionId);
+      } else {
+        setMapError(true);
+        setFetchedImageForSuggestionActionId(undefined);
+      }
+      setIsFetchingImage(false);
+    },
+    [serviceModule, uploadMap],
+  );
+
   useEffect(() => {
     if (shouldFetchImage && selectedMapboxSuggestionActionId) {
       if (selectedMapboxSuggestion) {
-        const coords = selectedMapboxSuggestion.geometry.coordinates;
+        const [longitude, latitude] =
+          selectedMapboxSuggestion.geometry.coordinates;
 
-        if (coords[0] && coords[1]) {
-          void serviceModule
-            .mapboxRetrieveStaticMap({
-              data: {
-                username: "mapbox",
-                style_id: "streets-v11",
-                overlay: `pin-s+555555(${coords[0]},${coords[1]})`,
-                width: 600,
-                height: 400,
-                lon: coords[0],
-                lat: coords[1],
-                zoom: zoomLevel,
-                logo: false,
-                attribution: false,
-              } as MapboxRetrieveStaticMapData,
-            })
-            .then(({ data, errors }) => {
-              if (errors) {
-                setMapError(true);
-                return;
-              }
-
-              setMapError(false);
-              if (data) {
-                const blob = new Blob(
-                  [toArrayBuffer(new Uint8Array(data.data))],
-                  {
-                    type: "arraybuffer",
-                  },
-                );
-
-                const file = new File(
-                  [blob],
-                  `${selectedMapboxSuggestionActionId}_${zoomLevel}x.png`,
-                );
-
-                void uploadMap(file, selectedMapboxSuggestionActionId);
-              }
-            });
+        if (
+          longitude &&
+          latitude &&
+          // Ensure the image isn't currently being fetched
+          !isFetchingImage &&
+          // Ensure the image hasn't already been fetched
+          (!fetchedImageForSuggestionActionId ||
+            fetchedImageForSuggestionActionId !==
+              selectedMapboxSuggestionActionId)
+        ) {
+          void fetchImage({
+            longitude,
+            latitude,
+            mapboxSuggestionActionId: selectedMapboxSuggestionActionId,
+            zoomLevel,
+          });
         }
       } else {
         selectAddress(selectedMapboxSuggestionActionId);
       }
     }
   }, [
+    isFetchingImage,
     shouldFetchImage,
     selectedMapboxSuggestion,
     selectedMapboxSuggestionActionId,
     zoomLevel,
     selectAddress,
-    serviceModule,
-    uploadMap,
+    fetchedImageForSuggestionActionId,
+    setFetchedImageForSuggestionActionId,
+    fetchImage,
   ]);
 
   return {

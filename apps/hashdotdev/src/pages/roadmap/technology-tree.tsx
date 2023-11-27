@@ -338,8 +338,8 @@ export const TechnologyTree: FunctionComponent = () => {
                         {displayedStatuses.length === 0
                           ? "status"
                           : displayedVariants.length === 0
-                          ? "type"
-                          : "use case"}
+                            ? "type"
+                            : "use case"}
                       </strong>{" "}
                       to view matching deliverables
                     </Typography>

@@ -199,7 +199,6 @@ export class ComponentView implements NodeView {
               <BlockCollectionContext.Consumer>
                 {(collectionContext) => (
                   <BlockLoader
-                    key={entityId} // reset the component state when the entity changes
                     blockCollectionSubgraph={
                       collectionContext?.blockCollectionSubgraph
                     }
@@ -210,9 +209,11 @@ export class ComponentView implements NodeView {
                     } // @todo make this always defined
                     blockEntityTypeId={this.block.meta.schema as VersionedUrl}
                     blockMetadata={this.block.meta}
+                    entityStore={this.store}
                     // @todo uncomment this when sandbox is fixed
                     // shouldSandbox={!this.editable}
                     editableRef={this.editableRef}
+                    fallbackBlockProperties={childEntity?.properties}
                     wrappingEntityId={entityId}
                     onBlockLoaded={this.onBlockLoaded}
                     readonly={this.readonly}

@@ -177,8 +177,8 @@ export const TopContextBar = ({
               isItemEntityType(item)
                 ? "Type"
                 : isEntityPageEntity(item)
-                ? "Page"
-                : "Entity"
+                  ? "Page"
+                  : "Entity"
             } restored!`}</PageRestoredMessageWrapper>
           ) : null}
         </Box>

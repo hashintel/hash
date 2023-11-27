@@ -13,7 +13,7 @@ import {
 Sentry.init({
   dsn: SENTRY_DSN,
   enabled: !!SENTRY_DSN,
-  environment: VERCEL_ENV,
+  environment: VERCEL_ENV || "development",
   integrations: [new Sentry.Replay({ stickySession: true })],
   release: buildStamp,
   replaysOnErrorSampleRate: 1,

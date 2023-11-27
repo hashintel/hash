@@ -1245,6 +1245,25 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     });
 %}
 
+### Validate person entity to insert
+POST http://127.0.0.1:4000/entities/validate
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1",
+  "properties": {
+    "http://localhost:3000/@alice/types/property-type/name/": "Alice"
+  },
+  "operations": ["all"]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 204, "Response status is not 204");
+    });
+%}
+
 ### Insert Person entity
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
@@ -1353,6 +1372,26 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     });
 %}
 
+
+### Validate person entity to update
+POST http://127.0.0.1:4000/entities/validate
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+  "properties": {
+    "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
+  },
+  "operations": ["all"]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 204, "Response status is not 204");
+    });
+%}
+
 ### Update Person entity
 PUT http://127.0.0.1:4000/entities
 Content-Type: application/json
@@ -1386,7 +1425,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "http://localhost:3000/@alice/types/property-type/name/": "Bob"
   },
   "owner": "{{account_id}}",
-  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2"
 }
 
 > {%
@@ -1453,6 +1492,27 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
         client.assert(response.body.roots.length === 2, "Unexpected number of entities");
+    });
+%}
+
+### Validate link to insert between persons
+POST http://127.0.0.1:4000/entities/validate
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "entityTypeId": "{{friendship_link_entity_type_id}}",
+  "properties": {},
+  "linkData": {
+    "leftEntityId": "{{person_a_entity_id}}",
+    "rightEntityId": "{{person_b_entity_id}}"
+  },
+  "operations": ["all"]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 204, "Response status is not 204");
     });
 %}
 

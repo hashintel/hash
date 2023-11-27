@@ -3,7 +3,6 @@ import {
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
-  EntityRevisionId,
   EntityTemporalVersioningMetadata,
   LinkData,
 } from "@local/hash-subgraph";
@@ -22,13 +21,14 @@ export const textualContentPropertyTypeBaseUrl = extractBaseUrl(
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   metadata: {
+    archived: boolean;
     recordId: {
       entityId: EntityId | null;
-      revisionId?: EntityRevisionId;
+      editionId: string;
     };
     entityTypeId?: VersionedUrl | null;
     provenance?: EntityMetadata["provenance"];
-    temporalVersioning?: EntityTemporalVersioningMetadata;
+    temporalVersioning: EntityTemporalVersioningMetadata;
   };
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
   blockChildEntity?: Type & { draftId?: string };
@@ -182,12 +182,12 @@ export const createEntityStore = (
            */
           if (
             new Date(
-              draftData[draftId]!.metadata.temporalVersioning?.decisionTime
-                .start.limit ?? 0,
+              draftData[
+                draftId
+              ]!.metadata.temporalVersioning.decisionTime.start.limit,
             ).getTime() >
             new Date(
-              draftEntity.metadata.temporalVersioning?.decisionTime.start
-                .limit ?? 0,
+              draftEntity.metadata.temporalVersioning.decisionTime.start.limit,
             ).getTime()
           ) {
             Object.assign(draftEntity, draftData[draftId]);
