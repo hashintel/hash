@@ -4,7 +4,7 @@ import { FunctionComponent } from "react";
 import { IconButton } from "./icon-button";
 import { PenRegularIcon } from "./pen-regular-icon";
 
-const EditIconButton = styled(IconButton)(({ theme }) => ({
+const EditEmojiIconButton = styled(IconButton)(({ theme }) => ({
   background: theme.palette.common.white,
   padding: theme.spacing(0.5),
   borderColor: theme.palette.gray[30],
@@ -16,8 +16,8 @@ interface AvatarProps extends BoxProps {
   title?: string;
   size?: number;
   src?: string;
-  onEditIconButtonDisabled?: boolean;
-  onEditIconButtonClick?: () => void;
+  onEditEmojiIconButtonDisabled?: boolean;
+  onEditEmojiIconButtonClick?: () => void;
   borderRadius?: number | string;
 }
 
@@ -25,8 +25,8 @@ export const Avatar: FunctionComponent<AvatarProps> = ({
   title,
   size = 20,
   src,
-  onEditIconButtonDisabled,
-  onEditIconButtonClick,
+  onEditEmojiIconButtonDisabled,
+  onEditEmojiIconButtonClick,
   borderRadius = "50%",
   ...props
 }) => {
@@ -76,18 +76,18 @@ export const Avatar: FunctionComponent<AvatarProps> = ({
           {title ? title.charAt(0).toUpperCase() : undefined}
         </Box>
       )}
-      {onEditIconButtonClick ? (
-        <EditIconButton
+      {onEditEmojiIconButtonClick ? (
+        <EditEmojiIconButton
           sx={{
             position: "absolute",
             top: ({ spacing }) => spacing(1),
             right: ({ spacing }) => spacing(1),
           }}
-          disabled={onEditIconButtonDisabled}
-          onClick={onEditIconButtonClick}
+          disabled={onEditEmojiIconButtonDisabled}
+          onClick={onEditEmojiIconButtonClick}
         >
           <PenRegularIcon sx={{ fontSize: 13 }} />
-        </EditIconButton>
+        </EditEmojiIconButton>
       ) : null}
     </Box>
   );

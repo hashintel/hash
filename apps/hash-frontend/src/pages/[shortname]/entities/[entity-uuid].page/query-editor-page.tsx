@@ -46,10 +46,10 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
 
   const { queryEntities } = useBlockProtocolQueryEntities();
   const { propertyTypes } = usePropertyTypes({ latestOnly: true });
-  const entityTypes = useLatestEntityTypesOptional();
+  const { latestEntityTypes } = useLatestEntityTypesOptional();
   const entityTypesLoading = useEntityTypesLoading();
 
-  const entityTypeSchemas = entityTypes?.map((type) => type.schema) ?? [];
+  const entityTypeSchemas = latestEntityTypes?.map((type) => type.schema) ?? [];
 
   const propertyTypeSchemas = propertyTypes
     ? Object.values(propertyTypes).map((type) => type.schema)

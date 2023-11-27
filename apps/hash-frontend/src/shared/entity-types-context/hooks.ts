@@ -10,16 +10,10 @@ import { isSpecialEntityType } from "./shared/is-special-entity-type";
 export const useEntityTypesLoading = () =>
   useEntityTypesContextRequired().loading;
 
-export const useEntityTypesOptional = (params?: {
-  includeArchived?: boolean;
-}) => {
-  const { includeArchived = false } = params ?? {};
-
+export const useEntityTypesOptional = () => {
   const { entityTypes } = useEntityTypesContextRequired();
 
-  return includeArchived
-    ? entityTypes
-    : entityTypes?.filter((entityType) => !isTypeArchived(entityType));
+  return entityTypes;
 };
 
 export const useEntityTypesSubgraphOptional = () =>
@@ -33,30 +27,40 @@ export const useLatestEntityTypesOptional = (params?: {
 }) => {
   const { includeArchived = false } = params ?? {};
 
-  const entityTypes = useEntityTypesOptional({ includeArchived });
+  const { entityTypes, isSpecialEntityTypeLookup } =
+    useEntityTypesContextRequired();
 
-  return useMemo(() => {
+  const latestEntityTypes = useMemo(() => {
     if (!entityTypes) {
       return null;
     }
 
-    const latestEntityTypes: Map<BaseUrl, EntityTypeWithMetadata> = new Map();
+    const latestEntityTypesMap: Map<BaseUrl, EntityTypeWithMetadata> =
+      new Map();
 
     for (const entityType of entityTypes) {
       const baseUrl = entityType.metadata.recordId.baseUrl;
 
-      const existingEntityType = latestEntityTypes.get(baseUrl);
+      const existingEntityType = latestEntityTypesMap.get(baseUrl);
       if (
         !existingEntityType ||
         existingEntityType.metadata.recordId.version <
           entityType.metadata.recordId.version
       ) {
-        latestEntityTypes.set(baseUrl, entityType);
+        latestEntityTypesMap.set(baseUrl, entityType);
       }
     }
 
-    return Array.from(latestEntityTypes.values());
-  }, [entityTypes]);
+    const latestEntityTypesArray = Array.from(latestEntityTypesMap.values());
+
+    return includeArchived
+      ? latestEntityTypesArray
+      : latestEntityTypesArray.filter(
+          (entityType) => !isTypeArchived(entityType),
+        );
+  }, [entityTypes, includeArchived]);
+
+  return { latestEntityTypes, isSpecialEntityTypeLookup };
 };
 
 /**

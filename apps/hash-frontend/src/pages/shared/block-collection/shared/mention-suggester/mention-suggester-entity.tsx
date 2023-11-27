@@ -123,7 +123,7 @@ export const MentionSuggesterEntity = forwardRef<
       }
     }, [ref]);
 
-    const entityIcon = useEntityIcon({ entity });
+    const entityIcon = useEntityIcon({ entity, entityType });
 
     return (
       <>

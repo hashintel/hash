@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/graph/.";
+import { VersionedUrl } from "@blockprotocol/graph";
 
 export type BarChartDefinitionVariant = {
   variant: "group-by-property";

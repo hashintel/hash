@@ -67,10 +67,17 @@ export const EntityTypePage = ({
     entityTypeBaseUrl,
   });
 
-  const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
+  const formMethods = useEntityTypeForm<
+    /**
+     * @todo add icon support in `@hashintel/type-editor`
+     *
+     * @see https://linear.app/hash/issue/H-1439/move-icon-and-labelproperty-to-the-metadata-types-in-bp-so-that-it-can
+     */
+    EntityTypeEditorFormData & { icon?: string | null }
+  >({
     defaultValues: { allOf: [], properties: [], links: [] },
   });
-  const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
+  const { handleSubmit: wrapHandleSubmit, reset, watch } = formMethods;
 
   useEffect(() => {
     if (draftEntityType) {
@@ -91,7 +98,10 @@ export const EntityTypePage = ({
     accountId ?? null,
     (fetchedEntityType) => {
       // Load the initial form data after the entity type has been fetched
-      reset(getFormDataFromSchema(fetchedEntityType.schema));
+      reset({
+        ...getFormDataFromSchema(fetchedEntityType.schema),
+        icon: fetchedEntityType.metadata.icon,
+      });
     },
   );
 
@@ -136,18 +146,26 @@ export const EntityTypePage = ({
     const entityTypeSchema = getSchemaFromFormData(data);
 
     if (draftEntityType) {
-      await publishDraft({
-        ...draftEntityType,
-        ...entityTypeSchema,
-      });
+      await publishDraft(
+        {
+          ...draftEntityType,
+          ...entityTypeSchema,
+        },
+        { icon: data.icon },
+      );
       reset(data);
     } else {
-      const res = await updateEntityType({
-        ...entityTypeSchema,
-      });
+      const res = await updateEntityType(
+        {
+          ...entityTypeSchema,
+        },
+        { icon: data.icon },
+      );
 
       if (!res.errors?.length && res.data) {
-        void router.push(generateLinkParameters(res.data.schema.$id).href);
+        void router.push(
+          generateLinkParameters(res.data.updateEntityType.schema.$id).href,
+        );
       } else {
         throw new Error("Could not publish changes");
       }
@@ -188,17 +206,24 @@ export const EntityTypePage = ({
   const convertToLinkType = wrapHandleSubmit(async (data) => {
     const entityTypeSchema = getSchemaFromFormData(data);
 
-    const res = await updateEntityType({
-      ...entityTypeSchema,
-      allOf: [{ $ref: linkEntityTypeUrl }],
-    });
+    const res = await updateEntityType(
+      {
+        ...entityTypeSchema,
+        allOf: [{ $ref: linkEntityTypeUrl }],
+      },
+      { icon: data.icon },
+    );
 
     if (!res.errors?.length && res.data) {
-      void router.push(generateLinkParameters(res.data.schema.$id).href);
+      void router.push(
+        generateLinkParameters(res.data.updateEntityType.schema.$id).href,
+      );
     } else {
       throw new Error("Could not publish changes");
     }
   });
+
+  const icon = watch("icon");
 
   return (
     <>
@@ -245,19 +270,21 @@ export const EntityTypePage = ({
                     title: entityType.title,
                     href: "#",
                     id: entityType.$id,
-                    icon: isLink ? (
-                      <LinkTypeIcon
-                        sx={({ palette }) => ({
-                          stroke: palette.gray[50],
-                        })}
-                      />
-                    ) : (
-                      <EntityTypeIcon
-                        sx={({ palette }) => ({
-                          fill: palette.gray[50],
-                        })}
-                      />
-                    ),
+                    icon:
+                      icon ??
+                      (isLink ? (
+                        <LinkTypeIcon
+                          sx={({ palette }) => ({
+                            stroke: palette.gray[50],
+                          })}
+                        />
+                      ) : (
+                        <EntityTypeIcon
+                          sx={({ palette }) => ({
+                            fill: palette.gray[50],
+                          })}
+                        />
+                      )),
                   },
                 ]}
                 scrollToTop={() => {}}

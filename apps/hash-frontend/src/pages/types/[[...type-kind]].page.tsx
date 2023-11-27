@@ -50,7 +50,7 @@ export const getServerSideProps: GetServerSideProps<
 const contentMaxWidth = 1000;
 
 const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
-  const latestEntityTypes = useLatestEntityTypesOptional({
+  const { latestEntityTypes } = useLatestEntityTypesOptional({
     includeArchived: true,
   });
 

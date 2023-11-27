@@ -27,7 +27,7 @@ import {
   constructUser,
   isEntityUserEntity,
 } from "../lib/user-and-org";
-import { useEntityTypesContextRequired } from "../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { useLatestEntityTypesOptional } from "../shared/entity-types-context/hooks";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { useUserOrOrg } from "../shared/use-user-or-org";
 import { EditUserProfileInfoModal } from "./[shortname].page/edit-user-profile-info-modal";
@@ -40,7 +40,7 @@ import {
 
 const ProfilePage: NextPageWithLayout = () => {
   const router = useRouter();
-  const { entityTypes } = useEntityTypesContextRequired();
+  const { latestEntityTypes } = useLatestEntityTypesOptional();
 
   const { profileShortname, currentTabTitle } = parseProfilePageUrlQueryParams(
     router.query,
@@ -115,7 +115,7 @@ const ProfilePage: NextPageWithLayout = () => {
 
   const includeEntityTypeIds = useMemo(
     () =>
-      entityTypes
+      latestEntityTypes
         ?.filter(({ metadata }) =>
           baseTabs.some(
             (tab) =>
@@ -124,7 +124,7 @@ const ProfilePage: NextPageWithLayout = () => {
           ),
         )
         .map(({ schema }) => schema.$id),
-    [entityTypes, baseTabs],
+    [latestEntityTypes, baseTabs],
   );
 
   const { data: pinnedEntityTypesData } = useQuery<
@@ -188,7 +188,7 @@ const ProfilePage: NextPageWithLayout = () => {
     () =>
       baseTabs.map((tab) => {
         if (tab.kind === "pinned-entity-type") {
-          const entityType = entityTypes?.find(
+          const entityType = latestEntityTypes?.find(
             ({ metadata }) =>
               metadata.recordId.baseUrl === tab.entityTypeBaseUrl,
           );
@@ -234,7 +234,7 @@ const ProfilePage: NextPageWithLayout = () => {
 
         return tab;
       }),
-    [baseTabs, allPinnedEntities, entitiesSubgraph, entityTypes],
+    [baseTabs, allPinnedEntities, entitiesSubgraph, latestEntityTypes],
   );
 
   const refetchProfile = useCallback(async () => {

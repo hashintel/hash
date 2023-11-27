@@ -44,8 +44,7 @@ import {
   PageThread,
   usePageComments,
 } from "../../components/hooks/use-page-comments";
-import { PageIcon, pageIconVariantSizes } from "../../components/page-icon";
-import { PageIconButton } from "../../components/page-icon-button";
+import { PageIcon } from "../../components/page-icon";
 import { PageLoadingState } from "../../components/page-loading-state";
 import { CollabPositionProvider } from "../../contexts/collab-position-context";
 import {
@@ -64,8 +63,10 @@ import {
   MinimalOrg,
   MinimalUser,
 } from "../../lib/user-and-org";
+import { iconVariantSizes } from "../../shared/edit-emoji-icon-button";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
+import { PageIconButton } from "../../shared/page-icon-button";
 import {
   isPageParsedUrlQuery,
   parsePageUrlQueryParams,
@@ -521,7 +522,7 @@ const Page: NextPageWithLayout<PageProps> = ({
                   scrollMarginTop:
                     HEADER_HEIGHT +
                     TOP_CONTEXT_BAR_HEIGHT +
-                    pageIconVariantSizes.medium.container,
+                    iconVariantSizes.medium.container,
                 }}
               >
                 <PageTitle

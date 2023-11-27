@@ -93,12 +93,13 @@ export const createEntityType: ImpureGraphFunction<
     ownedById: OwnedById;
     schema: ConstructEntityTypeParams;
     labelProperty?: BaseUrl;
+    icon?: string | null;
     webShortname?: string;
     instantiators: EntityTypeInstantiatorSubject[];
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, labelProperty, webShortname } = params;
+  const { ownedById, labelProperty, icon, webShortname } = params;
 
   const shortname =
     webShortname ??
@@ -127,6 +128,7 @@ export const createEntityType: ImpureGraphFunction<
       ownedById,
       schema,
       labelProperty,
+      icon,
     },
   );
 
@@ -252,13 +254,13 @@ export const updateEntityType: ImpureGraphFunction<
   {
     entityTypeId: VersionedUrl;
     schema: ConstructEntityTypeParams;
-
     labelProperty?: BaseUrl;
+    icon?: string | null;
     instantiators: EntityTypeInstantiatorSubject[];
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { entityTypeId, schema, labelProperty } = params;
+  const { entityTypeId, schema, labelProperty, icon } = params;
   const updateArguments: UpdateEntityTypeRequest = {
     typeToUpdate: entityTypeId,
     schema: {
@@ -267,6 +269,7 @@ export const updateEntityType: ImpureGraphFunction<
       ...schema,
     },
     labelProperty,
+    icon,
   };
 
   const { data: metadata } = await ctx.graphApi.updateEntityType(
