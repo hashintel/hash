@@ -90,7 +90,6 @@ jobs:
           else
             REQUIRES_GRAPH=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-graph" and .task == "build")] != []')
             REQUIRES_AI_WORKER_TS=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
-            REQUIRES_AI_WORKER_PY=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-py" and .task == "build")] != []')
             REQUIRES_INTEGRATION_WORKER=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
           fi
 
@@ -100,9 +99,6 @@ jobs:
           fi
           if [[ $REQUIRES_AI_WORKER_TS == 'true' ]]; then
             DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-ai-worker-ts"]')
-          fi
-          if [[ $REQUIRES_AI_WORKER_PY == 'true' ]]; then
-            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-ai-worker-py"]')
           fi
           if [[ $REQUIRES_INTEGRATION_WORKER == 'true' ]]; then
             DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-integration-worker"]')
@@ -255,7 +251,6 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           hash-graph: ${{ matrix.package == '@apps/hash-graph' }}
           hash-ai-worker-ts: ${{ matrix.package == '@apps/hash-ai-worker-ts' }}
-          hash-ai-worker-py: ${{ matrix.package == '@apps/hash-ai-worker-py' }}
           hash-integration-worker: ${{ matrix.package == '@apps/hash-integration-worker' }}
 
   integration-tests:
@@ -298,7 +293,6 @@ jobs:
           TEST_TASKS=$(turbo run test:integration --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[]')
           REQUIRES_GRAPH=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-graph" and .task == "build")] != []')
           REQUIRES_AI_WORKER_TS=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
-          REQUIRES_AI_WORKER_PY=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-py" and .task == "build")] != []')
           REQUIRES_INTEGRATION_WORKER=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
 
           HAS_PYTHON=$(test -f "${{ matrix.directory }}/pyproject.toml" && echo 'true' || echo 'false')
@@ -321,7 +315,6 @@ jobs:
 
           echo "external-service-graph=$REQUIRES_GRAPH" >> $GITHUB_OUTPUT
           echo "external-service-ai-worker-ts=$REQUIRES_AI_WORKER_TS" >> $GITHUB_OUTPUT
-          echo "external-service-ai-worker-py=$REQUIRES_AI_WORKER_PY" >> $GITHUB_OUTPUT
           echo "external-service-worker-integration=$REQUIRES_INTEGRATION_WORKER" >> $GITHUB_OUTPUT
 
           # If this is a python package we allow CI to fail
@@ -375,7 +368,6 @@ jobs:
         with:
           hash-graph: ${{ steps.tests.outputs.external-service-graph == 'true' }}
           hash-ai-worker-ts: ${{ steps.tests.outputs.external-service-ai-worker-ts == 'true' }}
-          hash-ai-worker-py: ${{ steps.tests.outputs.external-service-ai-worker-py == 'true' }}
           hash-integration-worker: ${{ steps.tests.outputs.external-service-worker-integration == 'true' }}
 
       - name: Show disk usage
@@ -392,9 +384,6 @@ jobs:
           fi
           if [[ ${{ steps.tests.outputs.external-service-ai-worker-ts }} == 'true' ]]; then
               SERVICES="$SERVICES hash-temporal-worker-ts"
-          fi
-          if [[ ${{ steps.tests.outputs.external-service-ai-worker-py }} == 'true' ]]; then
-              SERVICES="$SERVICES hash-temporal-worker-py"
           fi
           if [[ ${{ steps.tests.outputs.external-service-worker-integration }} == 'true' ]]; then
               SERVICES="$SERVICES hash-temporal-worker-integration"
@@ -510,7 +499,6 @@ jobs:
         with:
           hash-graph: true
           hash-ai-worker-ts: true
-          hash-ai-worker-py: true
           hash-integration-worker: true
 
       - name: Show disk usage

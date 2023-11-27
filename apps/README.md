@@ -27,7 +27,7 @@ The application depends on a suite of constituent services, which are briefly de
 
 | Subdirectory                                       | Description                                                                                                                                                                  |
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`hash-ai-worker-py`](hash-ai-worker-py)           | A Python-based [Temporal](temporal.io) worker, tasked with executing AI-powered workflows                                                                                    |
+|  |
 | [`hash-ai-worker-ts`](hash-ai-worker-ts)           | A TypeScript-based [Temporal](temporal.io) worker, tasked with executing AI-powered workflows                                                                                |
 | [`hash-api`](hash-api)                             | The main entrypoint for the Node.js server that serves the core of the backend API of HASH.                                                                                  |
 | [`hash-external-services`](hash-external-services) | Defines the running configurations of external (not internally-developed) services that HASH depends on, such as Postgres, Ory Kratos, and Temporal. _(pending refactoring)_ |

@@ -52,11 +52,6 @@ locals {
   # to easily connect to the Graph API.
   worker_task_defs = [
     {
-      task_def = local.temporal_worker_ai_py_service_container_def
-      env_vars = aws_ssm_parameter.temporal_worker_ai_py_env_vars
-      ecr_arn  = var.temporal_worker_ai_py_image.ecr_arn
-    },
-    {
       task_def = local.temporal_worker_integration_service_container_def
       env_vars = aws_ssm_parameter.temporal_worker_integration_env_vars
       ecr_arn  = var.temporal_worker_integration_image.ecr_arn
