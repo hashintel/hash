@@ -69,9 +69,15 @@ export const createIntegrationSyncBackWatcher = async (
         )[0];
 
         if (!entity) {
-          throw new Error(
-            `Entity with editionId ${entityEdition.entityEditionId} not found in database.`,
-          );
+          /**
+           * The system account ID may not have access to the entity, so
+           * for now let's exit gracefully.
+           *
+           * @todo figure out what the permission model should be for the sync-back watcher
+           *
+           * @see https://linear.app/hash/issue/H-756
+           */
+          return;
         }
 
         sendEntityToRelevantProcessor(entity, graphApiClient);

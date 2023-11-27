@@ -6,7 +6,7 @@ import {
   PAGE_TITLE_FONT_SIZE,
   PAGE_TITLE_LINE_HEIGHT,
 } from "../pages/shared/block-collection/page-title/page-title";
-import { pageIconVariantSizes } from "./page-icon";
+import { iconVariantSizes } from "../shared/edit-emoji-icon-button";
 
 export const PageLoadingState = () => {
   return (
@@ -15,8 +15,8 @@ export const PageLoadingState = () => {
         <Skeleton
           variant="rectangular"
           sx={{
-            width: pageIconVariantSizes.medium.container,
-            height: pageIconVariantSizes.medium.container,
+            width: iconVariantSizes.medium.container,
+            height: iconVariantSizes.medium.container,
             mr: 3,
             borderRadius: 1,
           }}

@@ -43,10 +43,8 @@ import {
 import { ImpureGraphContext } from "./graph/context-types";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { User } from "./graph/knowledge/system-types/user";
-import { ensureLinearTypesExist } from "./graph/linear-types";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
-import { enabledIntegrations } from "./integrations/enabled-integrations";
 import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
 import { linearWebhook } from "./integrations/linear/webhook";
 import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher";
@@ -178,10 +176,6 @@ const main = async () => {
   const context = { graphApi, uploadProvider };
 
   await ensureSystemGraphIsInitialized({ logger, context });
-
-  if (enabledIntegrations.linear) {
-    await ensureLinearTypesExist({ logger, context });
-  }
 
   // This will seed users, an org and pages.
   // Configurable through environment variables.

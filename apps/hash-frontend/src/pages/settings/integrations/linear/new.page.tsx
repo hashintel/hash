@@ -66,7 +66,7 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
       );
 
       if (!linearIntegration) {
-        void router.push("/account/integrations");
+        void router.push("/settings/integrations");
         return;
       }
 
@@ -120,7 +120,7 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
         },
       });
 
-      void router.push("/account/integrations/linear");
+      void router.push("/settings/integrations/linear");
     }
   }, [
     syncLinearIntegrationWithWorkspaces,

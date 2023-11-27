@@ -4,9 +4,15 @@ import {
   EntityTypeIcon,
   LinkTypeIcon,
 } from "@hashintel/design-system";
-import { Box, Stack, Tooltip, Typography } from "@mui/material";
+import {
+  EntityTypeEditorFormData,
+  useEntityTypeFormContext,
+} from "@hashintel/type-editor";
+import { Box, Stack, Typography } from "@mui/material";
 import { ReactNode, useState } from "react";
+import { Controller } from "react-hook-form";
 
+import { EditEmojiIconButton } from "../../../../shared/edit-emoji-icon-button";
 import { Button, Link, Modal } from "../../../../shared/ui";
 import { CreateEntityTypeForm } from "../../create-entity-type-form";
 import { EntityTypeDescription } from "../entity-type-description";
@@ -36,6 +42,15 @@ export const EntityTypeHeader = ({
     !latestVersion || extractVersion(entityType.$id) === latestVersion;
   const latestVersionUrl = entityType.$id.replace(/\d+$/, `${latestVersion}`);
 
+  const { control } = useEntityTypeFormContext<
+    /**
+     * @todo add icon support in `@hashintel/type-editor`
+     *
+     * @see https://linear.app/hash/issue/H-1439/move-icon-and-labelproperty-to-the-metadata-types-in-bp-so-that-it-can
+     */
+    EntityTypeEditorFormData & { icon?: string | null }
+  >();
+
   return (
     <>
       <Box>
@@ -58,40 +73,42 @@ export const EntityTypeHeader = ({
             </Link>
           )}
         </Stack>
-
         <Stack
           direction="row"
           alignItems="center"
           justifyContent="space-between"
         >
-          <Typography variant="h1" fontWeight="bold" my={3}>
-            {isLink ? (
-              <Tooltip
-                title="This is a 'link' entity type. It is used to link other entities together."
-                placement="top"
-              >
-                <Box display="inline-flex">
-                  <LinkTypeIcon
-                    sx={({ palette }) => ({
-                      fontSize: 40,
-                      mr: 2,
-                      stroke: palette.gray[50],
-                    })}
-                  />
-                </Box>
-              </Tooltip>
-            ) : (
-              <EntityTypeIcon
-                sx={({ palette }) => ({
-                  fontSize: 40,
-                  mr: 2,
-                  fill: palette.gray[50],
-                })}
-              />
-            )}
-
-            {entityType.title}
-          </Typography>
+          <Box display="flex" alignItems="flex-end" my={3}>
+            <Controller
+              control={control}
+              name="icon"
+              render={({ field }) => (
+                <EditEmojiIconButton
+                  icon={field.value}
+                  disabled={isReadonly}
+                  onChange={(updatedIcon) => field.onChange(updatedIcon)}
+                  defaultIcon={
+                    isLink ? (
+                      <LinkTypeIcon
+                        sx={({ palette }) => ({
+                          stroke: palette.gray[50],
+                        })}
+                      />
+                    ) : (
+                      <EntityTypeIcon
+                        sx={({ palette }) => ({
+                          fill: palette.gray[50],
+                        })}
+                      />
+                    )
+                  }
+                />
+              )}
+            />
+            <Typography variant="h1" fontWeight="bold" marginLeft={3}>
+              {entityType.title}
+            </Typography>
+          </Box>
           {!isDraft && !isPreviewSlide ? (
             <Button
               onClick={() => setShowExtendTypeModal(true)}

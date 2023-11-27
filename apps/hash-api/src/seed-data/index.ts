@@ -7,8 +7,7 @@ import {
   getOrgByShortname,
   Org,
 } from "../graph/knowledge/system-types/org";
-import { joinOrg } from "../graph/knowledge/system-types/user";
-import { systemAccountId } from "../graph/system-account";
+import { joinOrg, User } from "../graph/knowledge/system-types/user";
 import { PageDefinition, seedPages } from "./seed-pages";
 import { ensureUsersAreSeeded } from "./seed-users";
 
@@ -16,8 +15,9 @@ import { ensureUsersAreSeeded } from "./seed-users";
 const seedOrg = async (params: {
   logger: Logger;
   context: ImpureGraphContext;
+  owner: User;
 }): Promise<Org> => {
-  const authentication = { actorId: systemAccountId };
+  const authentication = { actorId: params.owner.accountId };
   const { logger, context } = params;
 
   const exampleOrgShortname = "example-org";
@@ -71,18 +71,26 @@ export const seedOrgsAndUsers = async (params: {
   context: ImpureGraphContext;
 }): Promise<void> => {
   const { logger, context } = params;
-  const authentication = { actorId: systemAccountId };
 
   const createdUsers = await ensureUsersAreSeeded(params);
 
   if (createdUsers.length > 0) {
-    const sharedOrg = await seedOrg(params);
+    const orgOwner = createdUsers.find(
+      ({ shortname }) => shortname === "alice",
+    )!;
+
+    const sharedOrg = await seedOrg({ ...params, owner: orgOwner });
 
     for (const user of createdUsers) {
-      await joinOrg(context, authentication, {
-        userEntityId: user.entity.metadata.recordId.entityId,
-        orgEntityId: sharedOrg.entity.metadata.recordId.entityId,
-      });
+      await joinOrg(
+        context,
+        /** Only the org owner has permission to add members to the organizations */
+        { actorId: orgOwner.accountId },
+        {
+          userEntityId: user.entity.metadata.recordId.entityId,
+          orgEntityId: sharedOrg.entity.metadata.recordId.entityId,
+        },
+      );
 
       logger.info(
         `User with shortname = "${user.shortname}" joined org with shortname = '${sharedOrg.shortname}'`,

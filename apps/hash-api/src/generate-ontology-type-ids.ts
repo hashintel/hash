@@ -18,7 +18,8 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { publicUserAccountId } from "./auth/public-user-account-id";
-import { getOrgByShortname } from "./graph/knowledge/system-types/org";
+import { ImpureGraphFunction } from "./graph/context-types";
+import { getOrgByShortname, Org } from "./graph/knowledge/system-types/org";
 import { getDataTypes } from "./graph/ontology/primitive/data-type";
 import {
   getEntityTypes,
@@ -74,6 +75,97 @@ const serializeTypeIds = (
       ),
   );
 
+const getLatestTypesInOrganizationQuery = (params: { organization: Org }) => ({
+  filter: {
+    all: [
+      {
+        equal: [{ path: ["version"] }, { parameter: "latest" }],
+      },
+      {
+        equal: [
+          {
+            path: ["ownedById"],
+          },
+          { parameter: params.organization.accountGroupId },
+        ],
+      },
+    ],
+  },
+  graphResolveDepths: zeroedGraphResolveDepths,
+  temporalAxes: currentTimeInstantTemporalAxes,
+});
+
+const getLatestBlockprotocolTypesQuery = {
+  filter: {
+    all: [
+      {
+        equal: [{ path: ["version"] }, { parameter: "latest" }],
+      },
+      {
+        startsWith: [
+          { path: ["versionedUrl"] },
+          { parameter: "https://blockprotocol.org" },
+        ],
+      },
+    ],
+  },
+  graphResolveDepths: zeroedGraphResolveDepths,
+  temporalAxes: currentTimeInstantTemporalAxes,
+};
+
+const serializeTypes: ImpureGraphFunction<
+  {
+    entityTypes: EntityTypeWithMetadata[];
+    propertyTypes: PropertyTypeWithMetadata[];
+    dataTypes?: DataTypeWithMetadata[];
+    prefix: string;
+  },
+  Promise<string>
+> = async (
+  context,
+  authentication,
+  { entityTypes: allEntityTypes, propertyTypes, dataTypes, prefix },
+) => {
+  const entityTypes: EntityTypeWithMetadata[] = [];
+  const linkEntityTypes: EntityTypeWithMetadata[] = [];
+
+  await Promise.all(
+    allEntityTypes.map(async (entityType) => {
+      if (
+        await isEntityTypeLinkEntityType(
+          context,
+          authentication,
+          entityType.schema,
+        )
+      ) {
+        linkEntityTypes.push(entityType);
+      } else {
+        entityTypes.push(entityType);
+      }
+    }),
+  );
+
+  return [
+    `export const ${prefix}EntityTypes = ${serializeTypeIds(
+      entityTypes,
+    )} as const;`,
+    `export const ${prefix}LinkEntityTypes = ${serializeTypeIds(
+      linkEntityTypes,
+      true,
+    )} as const;`,
+    `export const ${prefix}PropertyTypes = ${serializeTypeIds(
+      propertyTypes,
+    )} as const;`,
+    dataTypes
+      ? `export const ${prefix}DataTypes = ${serializeTypeIds(
+          dataTypes,
+        )} as const;`
+      : [],
+  ]
+    .flat()
+    .join("\n\n");
+};
+
 const generateOntologyIds = async () => {
   const logger = new Logger({
     mode: "dev",
@@ -91,142 +183,63 @@ const generateOntologyIds = async () => {
 
   const graphContext = { graphApi };
 
-  const hashOrg = await getOrgByShortname(
-    graphContext,
-    { actorId: publicUserAccountId },
-    { shortname: "hash" },
-  );
+  const [hashOrg, linearOrg] = await Promise.all([
+    getOrgByShortname(
+      graphContext,
+      { actorId: publicUserAccountId },
+      { shortname: "hash" },
+    ),
+    getOrgByShortname(
+      graphContext,
+      { actorId: publicUserAccountId },
+      { shortname: "linear" },
+    ),
+  ]);
 
   if (!hashOrg) {
     throw new Error("HASH org not found");
   }
 
+  if (!linearOrg) {
+    throw new Error("Linear org not found");
+  }
+
   const authentication = { actorId: publicUserAccountId };
 
   const [
-    allSystemEntityTypes,
-    systemPropertyTypes,
+    hashEntityTypes,
+    hashPropertyTypes,
+    linearEntityTypes,
+    linearPropertyTypes,
     blockProtocolEntityTypes,
     blockProtocolPropertyTypes,
     blockProtocolDataTypes,
   ] = await Promise.all([
+    // HASH types
     getEntityTypes(graphContext, authentication, {
-      query: {
-        filter: {
-          all: [
-            {
-              equal: [{ path: ["version"] }, { parameter: "latest" }],
-            },
-            {
-              equal: [
-                {
-                  path: ["ownedById"],
-                },
-                { parameter: hashOrg.accountGroupId },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-      },
+      query: getLatestTypesInOrganizationQuery({ organization: hashOrg }),
     }).then((subgraph) => getRoots(subgraph)),
     getPropertyTypes(graphContext, authentication, {
-      query: {
-        filter: {
-          all: [
-            {
-              equal: [{ path: ["version"] }, { parameter: "latest" }],
-            },
-            {
-              equal: [
-                { path: ["ownedById"] },
-                { parameter: hashOrg.accountGroupId },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-      },
+      query: getLatestTypesInOrganizationQuery({ organization: hashOrg }),
     }).then((subgraph) => getRoots(subgraph)),
+    // Linear types
     getEntityTypes(graphContext, authentication, {
-      query: {
-        filter: {
-          all: [
-            {
-              equal: [{ path: ["version"] }, { parameter: "latest" }],
-            },
-            {
-              startsWith: [
-                { path: ["versionedUrl"] },
-                { parameter: "https://blockprotocol.org" },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-      },
+      query: getLatestTypesInOrganizationQuery({ organization: linearOrg }),
     }).then((subgraph) => getRoots(subgraph)),
     getPropertyTypes(graphContext, authentication, {
-      query: {
-        filter: {
-          all: [
-            {
-              equal: [{ path: ["version"] }, { parameter: "latest" }],
-            },
-            {
-              startsWith: [
-                { path: ["versionedUrl"] },
-                { parameter: "https://blockprotocol.org" },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-      },
+      query: getLatestTypesInOrganizationQuery({ organization: linearOrg }),
+    }).then((subgraph) => getRoots(subgraph)),
+    // BlockProtocol types
+    getEntityTypes(graphContext, authentication, {
+      query: getLatestBlockprotocolTypesQuery,
+    }).then((subgraph) => getRoots(subgraph)),
+    getPropertyTypes(graphContext, authentication, {
+      query: getLatestBlockprotocolTypesQuery,
     }).then((subgraph) => getRoots(subgraph)),
     getDataTypes(graphContext, authentication, {
-      query: {
-        filter: {
-          all: [
-            {
-              equal: [{ path: ["version"] }, { parameter: "latest" }],
-            },
-            {
-              startsWith: [
-                { path: ["versionedUrl"] },
-                { parameter: "https://blockprotocol.org" },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-      },
+      query: getLatestBlockprotocolTypesQuery,
     }).then((subgraph) => getRoots(subgraph)),
   ]);
-
-  const systemEntityTypes: EntityTypeWithMetadata[] = [];
-  const systemLinkEntityTypes: EntityTypeWithMetadata[] = [];
-
-  await Promise.all(
-    allSystemEntityTypes.map(async (entityType) => {
-      if (
-        await isEntityTypeLinkEntityType(
-          graphContext,
-          authentication,
-          entityType.schema,
-        )
-      ) {
-        systemLinkEntityTypes.push(entityType);
-      } else {
-        systemEntityTypes.push(entityType);
-      }
-    }),
-  );
 
   const outputPath = path.join(
     __dirname,
@@ -235,27 +248,25 @@ const generateOntologyIds = async () => {
 
   await writeFile(
     outputPath,
-    [
-      `export const systemEntityTypes = ${serializeTypeIds(
-        systemEntityTypes,
-      )} as const;`,
-      `export const systemLinkEntityTypes = ${serializeTypeIds(
-        systemLinkEntityTypes,
-        true,
-      )} as const;`,
-      `export const systemPropertyTypes = ${serializeTypeIds(
-        systemPropertyTypes,
-      )} as const;`,
-      `export const blockProtocolEntityTypes = ${serializeTypeIds(
-        blockProtocolEntityTypes,
-      )} as const;`,
-      `export const blockProtocolPropertyTypes = ${serializeTypeIds(
-        blockProtocolPropertyTypes,
-      )} as const;`,
-      `export const blockProtocolDataTypes = ${serializeTypeIds(
-        blockProtocolDataTypes,
-      )} as const;`,
-    ].join("\n\n"),
+    await Promise.all([
+      serializeTypes({ graphApi }, authentication, {
+        entityTypes: hashEntityTypes,
+        propertyTypes: hashPropertyTypes,
+        /** @todo: change this to "hash"? */
+        prefix: "system",
+      }),
+      serializeTypes({ graphApi }, authentication, {
+        entityTypes: linearEntityTypes,
+        propertyTypes: linearPropertyTypes,
+        prefix: "linear",
+      }),
+      serializeTypes({ graphApi }, authentication, {
+        entityTypes: blockProtocolEntityTypes,
+        propertyTypes: blockProtocolPropertyTypes,
+        dataTypes: blockProtocolDataTypes,
+        prefix: "blockProtocol",
+      }),
+    ]).then((serializations) => serializations.join("\n\n")),
   );
 };
 

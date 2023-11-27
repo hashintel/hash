@@ -1,19 +1,28 @@
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
+  AccountGroupEntityId,
   AccountId,
   Entity,
+  extractAccountGroupId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
   Uuid,
 } from "@local/hash-subgraph";
 
-import { archiveEntity } from "../../../../graph/knowledge/primitive/entity";
+import { addAccountGroupMember } from "../../../../graph/account-permission-management";
+import {
+  archiveEntity,
+  getLatestEntityById,
+  modifyEntityAuthorizationRelationships,
+} from "../../../../graph/knowledge/primitive/entity";
 import {
   getLinearIntegrationById,
   getSyncedWorkspacesForLinearIntegration,
   linkIntegrationToWorkspace,
 } from "../../../../graph/knowledge/system-types/linear-integration-entity";
 import { getLinearUserSecretByLinearOrgId } from "../../../../graph/knowledge/system-types/linear-user-secret";
+import { systemAccountId } from "../../../../graph/system-account";
 import { Linear } from "../../../../integrations/linear";
 import {
   MutationSyncLinearIntegrationWithWorkspacesArgs,
@@ -65,6 +74,24 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
     path: linearUserSecret.vaultPath,
   });
 
+  await Promise.all(
+    [
+      linearIntegration.entity.metadata.recordId.entityId,
+      linearUserSecret.entity.metadata.recordId.entityId,
+    ].map((entityId) =>
+      modifyEntityAuthorizationRelationships(dataSources, authentication, [
+        {
+          operation: "touch",
+          relationship: {
+            resource: { kind: "entity", resourceId: entityId },
+            relation: "viewer",
+            subject: { kind: "account", subjectId: systemAccountId },
+          },
+        },
+      ]),
+    ),
+  );
+
   const apiKey = vaultSecret.data.value;
 
   const linearClient = new Linear({
@@ -86,18 +113,54 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
   );
 
   await Promise.all([
-    ...removedSyncedWorkspaces.map(({ syncLinearDataWithLinkEntity }) =>
-      archiveEntity(dataSources, authentication, {
-        entity: syncLinearDataWithLinkEntity,
-      }),
+    ...removedSyncedWorkspaces.map(
+      async ({ syncLinearDataWithLinkEntity, workspaceEntity }) => {
+        if (
+          workspaceEntity.metadata.entityTypeId ===
+          systemEntityTypes.organization.entityTypeId
+        ) {
+          /** @todo: remove system account id as account group member if there are no other integrations */
+        }
+
+        return archiveEntity(dataSources, authentication, {
+          entity: syncLinearDataWithLinkEntity,
+        });
+      },
     ),
     ...syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) => {
       const workspaceOwnedById = extractEntityUuidFromEntityId(
         workspaceEntityId,
       ) as Uuid as OwnedById;
+
+      const userOrOrganizationEntity = await getLatestEntityById(
+        dataSources,
+        authentication,
+        { entityId: workspaceEntityId },
+      );
+
+      if (
+        userOrOrganizationEntity.metadata.entityTypeId ===
+        systemEntityTypes.organization.entityTypeId
+      ) {
+        const accountGroupId = extractAccountGroupId(
+          workspaceEntityId as AccountGroupEntityId,
+        );
+
+        await addAccountGroupMember(dataSources, authentication, {
+          accountGroupId,
+          accountId: systemAccountId,
+        });
+      } else {
+        /**
+         * @todo fix this by finding a way of giving the system account
+         * read/write access to specific types in the user's workspace
+         */
+        throw new Error("Cannot sync with user workspace");
+      }
+
       return Promise.all([
         linearClient.triggerWorkspaceSync({
-          authentication,
+          authentication: { actorId: systemAccountId },
           workspaceOwnedById,
           teamIds: linearTeamIds,
         }),

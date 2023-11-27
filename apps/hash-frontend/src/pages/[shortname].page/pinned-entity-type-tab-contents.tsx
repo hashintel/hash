@@ -5,6 +5,7 @@ import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-typ
 import {
   Entity,
   EntityRootType,
+  EntityTypeWithMetadata,
   extractEntityUuidFromEntityId,
   OwnedById,
   Subgraph,
@@ -52,9 +53,10 @@ import { ProfilePageTab } from "./util";
 
 const EntityRow: FunctionComponent<{
   entity: Entity;
+  entityType?: EntityTypeWithMetadata;
   profile: User | Org;
   entitiesSubgraph: Subgraph<EntityRootType>;
-}> = ({ entity, profile, entitiesSubgraph }) => {
+}> = ({ entity, entityType, profile, entitiesSubgraph }) => {
   const label = generateEntityLabel(entitiesSubgraph, entity);
 
   const href = `/@${profile.shortname}/${
@@ -71,6 +73,7 @@ const EntityRow: FunctionComponent<{
 
   const icon = useEntityIcon({
     entity,
+    entityType,
     pageIcon:
       entity.metadata.entityTypeId === systemEntityTypes.canvas.entityTypeId ? (
         <CanvasIcon
@@ -341,6 +344,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
                 <Fragment key={entity.metadata.recordId.entityId}>
                   <EntityRow
                     entity={entity}
+                    entityType={currentTab.entityType}
                     profile={profile}
                     entitiesSubgraph={entitiesSubgraph}
                   />
