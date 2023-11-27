@@ -49,7 +49,6 @@
     "typescript": "5.1.6"
   },
   "devDependencies": {
-    "@apps/hash-graph": "0.0.0-private",
     "@local/eslint-config": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",

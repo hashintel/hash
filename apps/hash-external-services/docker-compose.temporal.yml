@@ -130,10 +130,6 @@ services:
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
       HASH_GRAPH_API_HOST: graph
       HASH_GRAPH_API_PORT: "${HASH_GRAPH_API_PORT}"
-      # TODO: Remove once they're not needed anymore
-      #   see https://linear.app/hash/issue/H-55/avoid-ory-kratos-environment-to-be-required-for-hash-api
-      ORY_KRATOS_PUBLIC_URL: "${ORY_KRATOS_PUBLIC_URL}"
-      ORY_KRATOS_ADMIN_URL: "${ORY_KRATOS_ADMIN_URL}"
     tmpfs:
       - /tmp
     read_only: true
