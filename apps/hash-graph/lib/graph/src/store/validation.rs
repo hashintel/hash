@@ -51,11 +51,12 @@ impl<K, V> CacheHashMap<K, V> {
 
 impl<K, V> CacheHashMap<K, V>
 where
-    K: Eq + Hash + Debug,
+    K: Debug + Eq + Hash + Send + Sync,
+    V: Send + Sync,
 {
     async fn get(&self, key: &K) -> Option<Result<Arc<V>, Report<QueryError>>> {
-        match self.inner.read().await.get(key)? {
-            Access::Granted(value) => Some(Ok(Arc::clone(value))),
+        match self.inner.read().await.get(key).cloned()? {
+            Access::Granted(value) => Some(Ok(value)),
             Access::Denied => Some(Err(
                 Report::new(PermissionAssertion).change_context(QueryError)
             )),
@@ -93,12 +94,19 @@ pub struct StoreCache {
 }
 
 impl StoreCache {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             data_types: CacheHashMap::new(),
             property_types: CacheHashMap::new(),
             entity_types: CacheHashMap::new(),
         }
+    }
+}
+
+impl Default for StoreCache {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
