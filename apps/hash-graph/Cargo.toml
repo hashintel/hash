@@ -25,7 +25,7 @@ validation = { path = "../../libs/@local/hash-validation" }
 authorization = { path = "../../libs/@local/hash-authorization" }
 codec = { path = "../../libs/@local/codec" }
 
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "b63f923" }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "b87db85" }
 hash-status = { path = "../../libs/@local/status/rust" }
 error-stack = { version = "0.4.1", features = ["spantrace", "serde"] }
 

@@ -30,7 +30,7 @@ use postgres_types::Json;
 use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp};
 #[cfg(hash_graph_test_environment)]
 use tokio_postgres::GenericClient;
-use type_system::{raw, url::VersionedUrl, EntityType};
+use type_system::{url::VersionedUrl, EntityType};
 use uuid::Uuid;
 use validation::{EntityValidationError, Validate};
 
@@ -578,12 +578,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     )
                     .await
                     .change_context(QueryError)?
-                    .and_then(|(_, raw_type)| async move {
-                        // TODO: Distinguish between format validation and content validation so
-                        //       it's possible to directly use the correct type.
-                        //   see https://linear.app/hash/issue/BP-33
-                        EntityType::try_from(raw_type).change_context(QueryError)
-                    })
+                    .map_ok(|(_, raw_type)| raw_type)
                     .try_collect::<Vec<EntityType>>()
                     .await?;
 
@@ -1115,7 +1110,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .await
             .change_context(InsertionError)?;
 
-        let entity_schema: Json<raw::EntityType> = self
+        let Json(entity_type) = self
             .as_client()
             .query_one(
                 "SELECT closed_schema FROM entity_types WHERE ontology_id = $1;",
@@ -1124,7 +1119,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .await
             .change_context(InsertionError)?
             .get(0);
-        let entity_type = EntityType::try_from(entity_schema.0).change_context(InsertionError)?;
 
         Ok((edition_id, entity_type))
     }

@@ -9,7 +9,7 @@ use tarpc::context::Context;
 use time::OffsetDateTime;
 use type_system::url::VersionedUrl;
 
-use crate::fetcher::{Fetcher, FetcherError, OntologyTypeRepr};
+use crate::fetcher::{FetchedOntologyType, Fetcher, FetcherError};
 
 #[derive(Clone)]
 pub struct FetchServer {
@@ -22,7 +22,7 @@ impl Fetcher for FetchServer {
         self,
         _context: Context,
         ontology_type_urls: Vec<VersionedUrl>,
-    ) -> Result<Vec<(OntologyTypeRepr, OffsetDateTime)>, FetcherError> {
+    ) -> Result<Vec<(FetchedOntologyType, OffsetDateTime)>, FetcherError> {
         let client = Client::new();
         stream::iter(ontology_type_urls)
             .map(|url| {
@@ -39,7 +39,7 @@ impl Fetcher for FetchServer {
                             tracing::error!(error=?err, %url, "Could not fetch ontology type");
                             FetcherError::NetworkError(format!("Error fetching {url}: {err:?}"))
                         })?
-                        .json::<OntologyTypeRepr>()
+                        .json::<FetchedOntologyType>()
                         .await
                         .map_err(|err| {
                             tracing::error!(error=?err, %url, "Could not deserialize response");

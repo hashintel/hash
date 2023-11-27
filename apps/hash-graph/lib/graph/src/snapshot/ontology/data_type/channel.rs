@@ -11,7 +11,6 @@ use futures::{
     Sink, SinkExt, Stream, StreamExt,
 };
 use postgres_types::Json;
-use type_system::DataType;
 use uuid::Uuid;
 
 use crate::snapshot::{
@@ -55,10 +54,6 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
         mut self: Pin<&mut Self>,
         data_type: DataTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
-        let schema = DataType::try_from(data_type.schema)
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not convert schema to data type")?;
-
         let record_id = data_type.metadata.record_id.to_string();
         let ontology_id = Uuid::new_v5(&Uuid::NAMESPACE_URL, record_id.as_bytes());
 
@@ -68,7 +63,7 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
         self.schema
             .start_send_unpin(DataTypeRow {
                 ontology_id,
-                schema: Json(schema.into()),
+                schema: Json(data_type.schema),
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;

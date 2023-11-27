@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use error_stack::Report;
 use graph_types::knowledge::entity::EntityProperties;
 use serde_json::Value as JsonValue;
-use type_system::{raw, url::VersionedUrl, DataType, EntityType, PropertyType};
+use type_system::{url::VersionedUrl, DataType, EntityType, PropertyType};
 
 pub fn install_error_stack_hooks() {
     Report::install_debug_hook::<Actual>(|actual, context| match actual {
@@ -30,15 +30,9 @@ pub fn install_error_stack_hooks() {
 
         if attach {
             let json = match expected {
-                Expected::EntityType(entity_type) => {
-                    serde_json::to_value(raw::EntityType::from(entity_type.clone()))
-                }
-                Expected::PropertyType(property_type) => {
-                    serde_json::to_value(raw::PropertyType::from(property_type.clone()))
-                }
-                Expected::DataType(data_type) => {
-                    serde_json::to_value(raw::DataType::from(data_type.clone()))
-                }
+                Expected::EntityType(entity_type) => serde_json::to_value(entity_type),
+                Expected::PropertyType(property_type) => serde_json::to_value(property_type),
+                Expected::DataType(data_type) => serde_json::to_value(data_type.clone()),
             };
             if let Ok(json) = json {
                 context.push_appendix(format!("{id}\n{json:#}"));

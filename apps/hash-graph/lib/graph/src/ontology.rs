@@ -9,7 +9,7 @@ use core::fmt;
 
 use error_stack::{Context, Result, ResultExt};
 use graph_types::ontology::{
-    DataTypeWithMetadata, EntityTypeWithMetadata, OntologyType, PropertyTypeWithMetadata,
+    DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
 };
 use serde::Deserialize;
 use serde_json;
@@ -58,10 +58,13 @@ impl fmt::Display for PatchAndParseError {
 /// # Panics
 ///
 /// - if serializing the given [`VersionedUrl`] fails
-pub fn patch_id_and_parse<T: OntologyType>(
+pub fn patch_id_and_parse<T>(
     id: &VersionedUrl,
     mut value: serde_json::Value,
-) -> Result<T, PatchAndParseError> {
+) -> Result<T, PatchAndParseError>
+where
+    for<'de> T: Deserialize<'de>,
+{
     if let Some(object) = value.as_object_mut() {
         if let Some(previous_val) = object.insert(
             "$id".to_owned(),
@@ -77,11 +80,7 @@ pub fn patch_id_and_parse<T: OntologyType>(
             .attach_printable(value);
     }
 
-    let ontology_type_repr: T::Representation =
-        serde_json::from_value(value).change_context(PatchAndParseError)?;
-    let ontology_type = T::try_from(ontology_type_repr).change_context(PatchAndParseError)?;
-
-    Ok(ontology_type)
+    serde_json::from_value(value).change_context(PatchAndParseError)
 }
 
 impl Record for DataTypeWithMetadata {
