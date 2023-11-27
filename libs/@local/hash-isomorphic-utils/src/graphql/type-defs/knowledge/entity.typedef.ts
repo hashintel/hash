@@ -47,43 +47,6 @@ export const entityTypedef = gql`
     linkedEntities: [LinkedEntityDefinition!]
   }
 
-  """
-  The link metadata of a proposed entity.
-  """
-  type ProposedLinkData {
-    # Keep this in sync with the LinkData type in apps/hash-ai-worker-py
-    """
-    The left entity id of the proposed link entity.
-    """
-    leftEntityId: Int!
-    """
-    The right entity id of the proposed link entity.
-    """
-    rightEntityId: Int!
-  }
-  """
-  An entity proposed for creation. The suggested data can be used in further calls, e.g. to createEntity
-  """
-  type ProposedEntity {
-    # Keep this in sync with the ProposedEntity type in apps/hash-ai-worker-py
-    """
-    The entity identifier.
-    """
-    entityId: EntityId!
-    """
-    The type of the proposed entity.
-    """
-    entityTypeId: VersionedUrl!
-    """
-    The suggested properties of the proposed entity.
-    """
-    properties: EntityPropertiesObject!
-    """
-    The link metadata of the entity, if this is proposed as a link entity
-    """
-    linkData: ProposedLinkData
-  }
-
   enum EntityAuthorizationRelation {
     Owner
     Editor
