@@ -41,14 +41,13 @@ struct CacheHashMap<K, V> {
     inner: RwLock<HashMap<K, Access<Arc<V>>>>,
 }
 
-impl<K, V> CacheHashMap<K, V> {
-    fn new() -> Self {
+impl<K, V> Default for CacheHashMap<K, V> {
+    fn default() -> Self {
         Self {
             inner: RwLock::new(HashMap::new()),
         }
     }
 }
-
 impl<K, V> CacheHashMap<K, V>
 where
     K: Debug + Eq + Hash + Send + Sync,
@@ -94,28 +93,11 @@ where
     clippy::struct_field_names,
     reason = "The fields are named after the types they contain"
 )]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct StoreCache {
     data_types: CacheHashMap<DataTypeId, DataType>,
     property_types: CacheHashMap<PropertyTypeId, PropertyType>,
     entity_types: CacheHashMap<EntityTypeId, EntityType>,
-}
-
-impl StoreCache {
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            data_types: CacheHashMap::new(),
-            property_types: CacheHashMap::new(),
-            entity_types: CacheHashMap::new(),
-        }
-    }
-}
-
-impl Default for StoreCache {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 #[derive(Debug)]
@@ -125,7 +107,7 @@ pub struct StoreProvider<'a, S, A> {
     pub authorization: Option<(&'a A, AccountId, Consistency<'static>)>,
 }
 
-impl<'a, S, A> StoreProvider<'a, S, A>
+impl<S, A> StoreProvider<'_, S, A>
 where
     S: Read<DataTypeWithMetadata, Record = DataTypeWithMetadata>,
     A: AuthorizationApi + Sync,
@@ -170,22 +152,28 @@ where
             return Err(error);
         }
 
-        let type_ = self
+        let schema = self
             .store
             .read_one(
                 &Filter::<S::Record>::for_versioned_url(type_id),
-                Some(&QueryTemporalAxesUnresolved::default().resolve()),
+                Some(
+                    &QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    }
+                    .resolve(),
+                ),
             )
             .await
             .map(|data_type| data_type.schema)?;
 
-        let type_ = self.cache.data_types.grant(data_type_id, type_).await;
+        let schema = self.cache.data_types.grant(data_type_id, schema).await;
 
-        Ok(type_)
+        Ok(schema)
     }
 }
 
-impl<'a, S, A> StoreProvider<'a, S, A>
+impl<S, A> StoreProvider<'_, S, A>
 where
     S: Read<PropertyTypeWithMetadata, Record = PropertyTypeWithMetadata>,
     A: AuthorizationApi + Sync,
@@ -233,22 +221,28 @@ where
             return Err(error);
         }
 
-        let type_ = self
+        let schema = self
             .store
             .read_one(
                 &Filter::<S::Record>::for_versioned_url(type_id),
-                Some(&QueryTemporalAxesUnresolved::default().resolve()),
+                Some(
+                    &QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    }
+                    .resolve(),
+                ),
             )
             .await
-            .map(|data_type| data_type.schema)?;
+            .map(|property_type| property_type.schema)?;
 
-        let type_ = self
+        let schema = self
             .cache
             .property_types
-            .grant(property_type_id, type_)
+            .grant(property_type_id, schema)
             .await;
 
-        Ok(type_)
+        Ok(schema)
     }
 }
 
@@ -283,7 +277,13 @@ where
             .store
             .read_closed_schemas(
                 &Filter::<EntityTypeWithMetadata>::for_versioned_url(type_id),
-                Some(&QueryTemporalAxesUnresolved::default().resolve()),
+                Some(
+                    &QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    }
+                    .resolve(),
+                ),
             )
             .await
             .change_context(QueryError)?
