@@ -69,32 +69,42 @@ export const inferEntities = async ({
   const { entityTypeIds, maxTokens, model, ownedById, temperature, textInput } =
     userArguments;
 
-  const { data: entityTypesSubgraph } =
-    await graphApiClient.getEntityTypesByQuery(authentication.actorId, {
-      filter: {
-        any: entityTypeIds.map((entityTypeId) => ({
-          equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
-        })),
-      },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn: { outgoing: 255 },
-        constrainsPropertiesOn: { outgoing: 255 },
-        inheritsFrom: { outgoing: 255 },
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-    });
-
   const entityTypes: Record<
     VersionedUrl,
     { isLink: boolean; schema: DereferencedEntityType }
   > = {};
 
-  for (const entityTypeId of entityTypeIds) {
-    entityTypes[entityTypeId] = dereferenceEntityType(
-      entityTypeId,
-      entityTypesSubgraph as Subgraph,
-    );
+  try {
+    const { data: entityTypesSubgraph } =
+      await graphApiClient.getEntityTypesByQuery(authentication.actorId, {
+        filter: {
+          any: entityTypeIds.map((entityTypeId) => ({
+            equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
+          })),
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          constrainsValuesOn: { outgoing: 255 },
+          constrainsPropertiesOn: { outgoing: 255 },
+          inheritsFrom: { outgoing: 255 },
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+      });
+
+    for (const entityTypeId of entityTypeIds) {
+      entityTypes[entityTypeId] = dereferenceEntityType(
+        entityTypeId,
+        entityTypesSubgraph as Subgraph,
+      );
+    }
+  } catch (err) {
+    return {
+      code: StatusCode.Internal,
+      contents: [],
+      message: `Error retrieving and dereferencing entity types: ${
+        (err as Error).message
+      }`,
+    };
   }
 
   const functions = generateFunctions(Object.values(entityTypes));
