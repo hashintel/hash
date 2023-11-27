@@ -8,7 +8,6 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bytes::Bytes;
-use futures::TryStreamExt;
 use http_body_util::Collected;
 use hyper::header;
 use opentelemetry::{
