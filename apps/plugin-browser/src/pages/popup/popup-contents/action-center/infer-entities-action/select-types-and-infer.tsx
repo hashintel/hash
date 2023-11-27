@@ -1,6 +1,5 @@
 import { EntityType, VersionedUrl } from "@blockprotocol/graph";
 import { Autocomplete, Button, Chip, MenuItem } from "@hashintel/design-system";
-import { EntityTypeRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   autocompleteClasses,
@@ -12,8 +11,13 @@ import {
 import { useEffect, useState } from "react";
 import browser, { Tabs } from "webextension-polyfill";
 
-import { Message } from "../../../../../shared/messages";
-import { queryApi } from "../../../../../shared/query-api";
+import {
+  GetEntityTypesQuery,
+  GetEntityTypesQueryVariables,
+} from "../../../../../graphql/api-types.gen";
+import { getEntityTypesQuery } from "../../../../../graphql/queries/entity-type.queries";
+import { GetSiteContentReturn, Message } from "../../../../../shared/messages";
+import { queryGraphQlApi } from "../../../../../shared/query-graph-ql-api";
 import { InferenceStatus } from "../../../../../shared/storage";
 import {
   darkModeBorderColor,
@@ -24,36 +28,15 @@ import {
 import { sendMessageToBackground } from "../../../../shared/messages";
 import { useSessionStorage } from "../../../../shared/use-storage-sync";
 
-const getEntityTypesQuery = /* GraphQL */ `
-  query getEntityTypes {
-    queryEntityTypes(
-      constrainsValuesOn: { outgoing: 0 }
-      constrainsPropertiesOn: { outgoing: 0 }
-      constrainsLinksOn: { outgoing: 0 }
-      constrainsLinkDestinationsOn: { outgoing: 0 }
-      inheritsFrom: { outgoing: 0 }
-      latestOnly: true
-      includeArchived: false
-    ) {
-      roots
-      vertices
-    }
-  }
-`;
-
 const getEntityTypes = () => {
-  return queryApi(getEntityTypesQuery).then(
-    ({
-      data,
-    }: {
-      data: { queryEntityTypes: Subgraph<EntityTypeRootType> };
-    }) => {
-      const subgraph = data.queryEntityTypes;
-      return getRoots(subgraph).map(
-        (typeWithMetadata) => typeWithMetadata.schema,
-      );
-    },
-  );
+  return queryGraphQlApi<GetEntityTypesQuery, GetEntityTypesQueryVariables>(
+    getEntityTypesQuery,
+  ).then(({ data }: { data: { queryEntityTypes } }) => {
+    const subgraph = data.queryEntityTypes;
+    return getRoots(subgraph).map(
+      (typeWithMetadata) => typeWithMetadata.schema,
+    );
+  });
 };
 
 // This assumes a VersionedURL in the hash.ai/blockprotocol.org format
@@ -108,11 +91,13 @@ export const SelectTypesAndInfer = ({
     const siteContent = await (browser.tabs.sendMessage(
       activeTab.id,
       message,
-    ) as Promise<string>);
+    ) as Promise<GetSiteContentReturn>);
 
     void sendMessageToBackground({
       entityTypeIds: targetEntityTypes.map((type) => type.$id),
-      textInput: siteContent,
+      sourceTitle: siteContent.pageTitle,
+      sourceUrl: siteContent.pageUrl,
+      textInput: siteContent.innerText,
       type: "infer-entities",
     });
   };
@@ -149,7 +134,6 @@ export const SelectTypesAndInfer = ({
             popper: { placement: "top" },
           }}
           getOptionLabel={(option) => `${option.title}-${option.$id}`}
-          height="auto"
           inputProps={{
             endAdornment: <div />,
             placeholder: "Search for types...",

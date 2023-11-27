@@ -20,7 +20,7 @@ import {
   CreateEntityMutationVariables,
 } from "../../../../graphql/api-types.gen";
 import { createEntityMutation } from "../../../../graphql/queries/entity.queries";
-import { queryApi } from "../../../../shared/query-api";
+import { queryGraphQlApi } from "../../../../shared/query-graph-ql-api";
 import { useSessionStorage } from "../../../shared/use-storage-sync";
 import { Action } from "./action";
 import { QuickNoteIcon } from "./quick-note-action/quick-note-icon";
@@ -31,7 +31,7 @@ const createEntity = (params: {
   properties: EntityPropertiesObject;
   linkData?: LinkData;
 }): Promise<Entity> =>
-  queryApi<CreateEntityMutation, CreateEntityMutationVariables>(
+  queryGraphQlApi<CreateEntityMutation, CreateEntityMutationVariables>(
     createEntityMutation,
     {
       entityTypeId: params.entityTypeId,

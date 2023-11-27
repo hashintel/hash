@@ -10,7 +10,7 @@ import browser from "webextension-polyfill";
  *
  * You must update the extension if you amend this file, from the extensions manager page in the browser.
  */
-import { Message } from "../shared/messages";
+import { GetSiteContentReturn, Message } from "../shared/messages";
 
 browser.runtime.onMessage.addListener(
   (message: Message, _sender, sendResponse) => {
@@ -18,7 +18,11 @@ browser.runtime.onMessage.addListener(
       const docContent =
         document.querySelector("main") || document.querySelector("body");
 
-      sendResponse(docContent?.innerText);
+      sendResponse({
+        innerText: docContent?.innerText ?? "",
+        pageTitle: document.title,
+        pageUrl: window.location.href,
+      } satisfies GetSiteContentReturn);
       return;
     }
 

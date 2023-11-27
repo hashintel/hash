@@ -1,20 +1,19 @@
 import { EntityPropertyValue, EntityType } from "@blockprotocol/graph";
 import {
   ArrowUpRightIcon,
-  Button,
   CaretDownSolidIcon,
   IconButton,
 } from "@hashintel/design-system";
-import { ProposedEntity } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
 import {
-  Simplified,
-  simplifyProperties,
-} from "@local/hash-isomorphic-utils/simplify-properties";
-import { User } from "@local/hash-isomorphic-utils/system-types/shared";
-import { BaseUrl, EntityId, OwnedById } from "@local/hash-subgraph";
+  BaseUrl,
+  Entity,
+  EntityId,
+  EntityPropertiesObject,
+} from "@local/hash-subgraph";
 import {
   Box,
-  Checkbox,
   CircularProgress,
   Collapse,
   Stack,
@@ -23,20 +22,19 @@ import {
 import pluralize from "pluralize";
 import { useMemo, useState } from "react";
 
-import { CreationStatusRecord } from "../../../../../shared/storage";
+import { PageInferenceStatus } from "../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputColor,
 } from "../../../../shared/dark-mode-values";
-import { sendMessageToBackground } from "../../../../shared/messages";
 
 // @todo consolidate this with generateEntityLabel in hash-frontend
 const generateEntityLabel = (
-  entityToLabel: ProposedEntity,
+  entityToLabel: Entity,
   entityType: EntityType,
   index: number,
 ) => {
-  const simplifiedProperties = simplifyProperties(
+  const simplifiedProperties = simplifyProperties<EntityPropertiesObject>(
     entityToLabel.properties,
   ) as Record<string, EntityPropertyValue>;
 
@@ -71,82 +69,42 @@ const baseUrlToPropertyTitle = (baseUrl: BaseUrl) =>
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 
-type CreateInferredEntitiesProps = {
-  creationStatus: CreationStatusRecord;
-  entitiesToCreate: ProposedEntity[];
-  inferredEntities: ProposedEntity[];
-  user: Simplified<User>;
-  reset: () => void;
-  setEntitiesToCreate: (entities: ProposedEntity[]) => void;
-  targetEntityTypes: EntityType[];
-};
-
-export const CreateInferredEntities = ({
-  creationStatus,
-  entitiesToCreate,
-  inferredEntities,
-  reset,
-  setEntitiesToCreate,
-  targetEntityTypes,
-  user,
-}: CreateInferredEntitiesProps) => {
+export const InferenceStatus = ({
+  status,
+}: {
+  status: PageInferenceStatus;
+}) => {
   const [entitiesToExpand, setEntitiesToExpand] = useState<
     Record<EntityId, boolean | undefined>
   >({});
 
   const inferredEntitiesByType = useMemo(() => {
-    return targetEntityTypes.reduce(
+    return status.entityTypes.reduce(
       (acc, type) => {
-        acc[type.$id] = inferredEntities.filter(
-          (entity) => entity.entityTypeId === type.$id,
-        );
+        acc[type.$id] =
+          status.details.status === "complete"
+            ? status.details.data.contents.filter(
+                (entityOrFailure) =>
+                  ("metadata" in entityOrFailure
+                    ? entityOrFailure.metadata.recordId.entityId
+                    : entityOrFailure.entityTypeId) === type.$id,
+              )
+            : [];
         return acc;
       },
-      {} as Record<string, ProposedEntity[]>,
+      {} as Record<string, InferEntitiesReturn["contents"]>,
     );
-  }, [inferredEntities, targetEntityTypes]);
-
-  const createEntities = () => {
-    setEntitiesToExpand({});
-
-    const skippedEntities: ProposedEntity[] = [];
-    for (const entity of inferredEntities) {
-      if (
-        !entitiesToCreate.some((option) => option.entityId === entity.entityId)
-      ) {
-        skippedEntities.push(entity);
-      }
-    }
-
-    void sendMessageToBackground({
-      type: "create-entities",
-      entitiesToCreate,
-      skippedEntities,
-      // @todo figure out why extractOwnedByIdFromEntityId has WASM in its evaluation path
-      ownedById: user.metadata.recordId.entityId.split("~")[1] as OwnedById,
-    });
-  };
-
-  const { entityStatuses, overallStatus } = creationStatus;
+  }, [status]);
 
   return (
-    <Box
-      component="form"
-      onSubmit={(event) => {
-        if (overallStatus === "pending") {
-          return;
-        }
-        event.preventDefault();
-        createEntities();
-      }}
-    >
+    <Box>
       {Object.entries(inferredEntitiesByType).map(([typeId, entities]) => {
-        const entityType = targetEntityTypes.find(
+        const entityType = status.entityTypes.find(
           (type) => type.$id === typeId,
         );
         if (!entityType) {
           throw new Error(
-            `Entity type with id ${typeId} somehow not in target entity types`,
+            `Entity type with id ${typeId} somehow not in status entity types`,
           );
         }
 
@@ -204,7 +162,7 @@ export const CreateInferredEntities = ({
                     href={
                       successfullyCreated
                         ? `${FRONTEND_ORIGIN}/@${user.properties
-                            .shortname!}/entities/${status!.split("~")[1]}`
+                            .shortname!}/entities/${status.split("~")[1]}`
                         : undefined
                     }
                     sx={{
@@ -288,24 +246,6 @@ export const CreateInferredEntities = ({
                           height: 16,
                         }}
                       />
-                    ) : status === "skipped" ? null : (
-                      <Checkbox
-                        checked={entitiesToCreate.some(
-                          (option) => option.entityId === entity.entityId,
-                        )}
-                        id={entity.entityId}
-                        onChange={(event) => {
-                          if (event.target.checked) {
-                            setEntitiesToCreate([...entitiesToCreate, entity]);
-                          } else {
-                            setEntitiesToCreate(
-                              entitiesToCreate.filter(
-                                (option) => option.entityId !== entity.entityId,
-                              ),
-                            );
-                          }
-                        }}
-                      />
                     )}
                   </Box>
                   <Collapse in={entitiesToExpand[entity.entityId]}>
@@ -354,24 +294,6 @@ export const CreateInferredEntities = ({
           </Box>
         );
       })}
-
-      <Box mt={1.5}>
-        {overallStatus !== "complete" && (
-          <Button
-            disabled={
-              entitiesToCreate.length < 1 || overallStatus === "pending"
-            }
-            size="small"
-            sx={{ mr: 2 }}
-            type="submit"
-          >
-            {overallStatus === "pending" ? "Creating..." : "Create entities"}
-          </Button>
-        )}
-        <Button size="small" type="button" variant="tertiary" onClick={reset}>
-          {overallStatus === "complete" ? "Done" : "Discard"}
-        </Button>
-      </Box>
     </Box>
   );
 };

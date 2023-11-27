@@ -2,6 +2,17 @@
 module.exports = {
   ...require("@local/eslint-config/generate-workspace-config.cjs")(__dirname),
   rules: {
+    "no-restricted-imports": [
+      "error",
+      {
+        paths: [
+          {
+            name: "@local/hash-isomorphic-utils/environment",
+            message: "Use the API_ORIGIN or FRONTEND_ORIGIN globals instead.",
+          },
+        ],
+      },
+    ],
     // @todo Re-enable these rules once ESLint config is refactored
     "@typescript-eslint/restrict-plus-operands": "off",
     "@typescript-eslint/prefer-nullish-coalescing": "off",

@@ -24,7 +24,7 @@ export type InferEntitiesUserArguments = Subtype<
   Record<InferEntitiesUserArgumentKey, unknown>,
   {
     entityTypeIds: VersionedUrl[];
-    maxTokens: number;
+    maxTokens: number | null;
     model: string;
     ownedById: OwnedById;
     temperature: number;

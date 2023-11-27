@@ -1,5 +1,15 @@
 import { VersionedUrl } from "@blockprotocol/graph";
-import { ProposedEntity } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import {
+  InferEntitiesReturn,
+  InferEntitiesUserArguments,
+} from "@local/hash-isomorphic-utils/temporal-types";
+import {
+  EntityId,
+  extractOwnedByIdFromEntityId,
+  OwnedById,
+} from "@local/hash-subgraph";
+import type { Status } from "@local/status";
+import { v4 as uuid } from "uuid";
 
 import {
   setErroredBadge,
@@ -7,70 +17,101 @@ import {
   setSuccessBadge,
 } from "../../shared/badge";
 import { InferEntitiesRequest } from "../../shared/messages";
-import { queryApi } from "../../shared/query-api";
-import { setInSessionStorage } from "../../shared/storage";
+import {
+  getFromSessionStorage,
+  getSetFromSessionStorageValue,
+} from "../../shared/storage";
 
-const inferEntitiesQuery = /* GraphQL */ `
-  mutation inferEntities(
-    $textInput: String!
-    $entityTypeIds: [VersionedUrl!]!
-  ) {
-    inferEntities(
-      allowEmptyResults: false
-      entityTypeIds: $entityTypeIds
-      maxTokens: 0
-      model: "gpt-4-0613"
-      temperature: 0
-      textInput: $textInput
-      validation: PARTIAL
-    ) {
-      entities {
-        entityId
-        entityTypeId
-        properties
-        linkData {
-          leftEntityId
-          rightEntityId
-        }
-      }
-    }
-  }
-`;
-
-const inferEntitiesApiCall = (
-  textInput: string,
-  entityTypeIds: VersionedUrl[],
-) => {
-  return queryApi(inferEntitiesQuery, {
+const inferEntitiesApiCall = async ({
+  entityTypeIds,
+  ownedById,
+  textInput,
+}: {
+  textInput: string;
+  entityTypeIds: VersionedUrl[];
+  ownedById: OwnedById;
+}) => {
+  const requestBody: InferEntitiesUserArguments = {
     entityTypeIds,
-    textInput: textInput.slice(0, 7900),
-  }).then(
-    ({ data }: { data: { inferEntities: { entities: ProposedEntity[] } } }) => {
-      return data.inferEntities.entities;
+    maxTokens: null,
+    model: "gpt-4-1106-preview",
+    ownedById,
+    textInput,
+    temperature: 0,
+  };
+
+  return fetch(`${API_ORIGIN}/entities/infer`, {
+    body: JSON.stringify(requestBody),
+    credentials: "include",
+    headers: {
+      "content-type": "application/json",
     },
-  );
+  }).then((resp) => resp.json() as Promise<InferEntitiesReturn>);
 };
 
 export const inferEntities = async (message: InferEntitiesRequest) => {
-  void setInSessionStorage("inferenceStatus", { status: "pending" });
+  const localRequestId = uuid();
+
+  const setInferenceStatusValue =
+    getSetFromSessionStorageValue("inferenceStatus");
+
+  await setInferenceStatusValue((currentValue) => [
+    ...(currentValue ?? []),
+    {
+      localRequestUuid: localRequestId,
+      details: { status: "pending" },
+      sourceTitle: message.sourceTitle,
+      sourceUrl: message.sourceUrl,
+    },
+  ]);
+
   setLoadingBadge();
 
+  const user = await getFromSessionStorage("user");
+  if (!user) {
+    throw new Error("Cannot infer entities without a logged-in user.");
+  }
+
   try {
-    const inferredEntities = await inferEntitiesApiCall(
-      message.textInput,
-      message.entityTypeIds,
-    );
-    setSuccessBadge(inferredEntities.length);
-    void setInSessionStorage("inferenceStatus", {
-      proposedEntities: inferredEntities,
-      status: "success",
+    const { entityTypeIds, textInput } = message;
+
+    const inferredEntitiesReturn = await inferEntitiesApiCall({
+      entityTypeIds,
+      ownedById: extractOwnedByIdFromEntityId(
+        user.metadata.recordId.entityId as EntityId,
+      ),
+      textInput,
     });
-    void setInSessionStorage("entitiesToCreate", inferredEntities);
+
+    void setSuccessBadge(1);
+
+    await setInferenceStatusValue((currentValue) =>
+      (currentValue ?? []).map((status) =>
+        status.localRequestUuid === localRequestId
+          ? {
+              ...status,
+              details: { status: "complete", data: inferredEntitiesReturn },
+            }
+          : status,
+      ),
+    );
   } catch (err) {
     setErroredBadge();
-    void setInSessionStorage("inferenceStatus", {
-      message: (err as Error).message,
-      status: "error",
-    });
+
+    const errorMessage = (err as Error | Status<InferEntitiesReturn>).message;
+
+    await setInferenceStatusValue((currentValue) =>
+      (currentValue ?? []).map((status) =>
+        status.localRequestUuid === localRequestId
+          ? {
+              ...status,
+              details: {
+                message: errorMessage ?? "Unknown error – please contact us",
+                status: "error",
+              },
+            }
+          : status,
+      ),
+    );
   }
 };

@@ -45,6 +45,7 @@
     "@graphql-codegen/cli": "5.0.0",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
+    "@local/status": "0.0.0-private",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.10",
     "@sentry/webpack-plugin": "2.9.0",
     "@types/react": "18.0.26",

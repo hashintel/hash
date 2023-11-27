@@ -1,7 +1,6 @@
 import browser from "webextension-polyfill";
 
 import { Message } from "../shared/messages";
-import { createEntities } from "./background/create-entities";
 import { inferEntities } from "./background/infer-entities";
 
 /**
@@ -31,7 +30,5 @@ browser.runtime.onMessage.addListener((message: Message, sender) => {
 
   if (message.type === "infer-entities") {
     void inferEntities(message);
-  } else if (message.type === "create-entities") {
-    void createEntities(message);
   }
 });
