@@ -4,14 +4,17 @@ import {
   EntityTypeIcon,
   LinkTypeIcon,
 } from "@hashintel/design-system";
-import { useEntityTypeFormContext } from "@hashintel/type-editor";
+import {
+  EntityTypeEditorFormData,
+  useEntityTypeFormContext,
+} from "@hashintel/type-editor";
 import { Box, Stack, Typography } from "@mui/material";
 import { ReactNode, useState } from "react";
 import { Controller } from "react-hook-form";
 
+import { EditEmojiIconButton } from "../../../../shared/edit-emoji-icon-button";
 import { Button, Link, Modal } from "../../../../shared/ui";
 import { CreateEntityTypeForm } from "../../create-entity-type-form";
-import { EditEmojiIconButton } from "../../../../shared/edit-emoji-icon-button";
 import { EntityTypeDescription } from "../entity-type-description";
 
 interface EntityTypeHeaderProps {
@@ -39,7 +42,14 @@ export const EntityTypeHeader = ({
     !latestVersion || extractVersion(entityType.$id) === latestVersion;
   const latestVersionUrl = entityType.$id.replace(/\d+$/, `${latestVersion}`);
 
-  const { control } = useEntityTypeFormContext();
+  const { control } = useEntityTypeFormContext<
+    /**
+     * @todo add icon support in `@hashintel/type-editor`
+     *
+     * @see https://linear.app/hash/issue/H-1439/move-icon-and-labelproperty-to-the-metadata-types-in-bp-so-that-it-can
+     */
+    EntityTypeEditorFormData & { icon?: string | null }
+  >();
 
   return (
     <>

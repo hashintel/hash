@@ -67,7 +67,14 @@ export const EntityTypePage = ({
     entityTypeBaseUrl,
   });
 
-  const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
+  const formMethods = useEntityTypeForm<
+    /**
+     * @todo add icon support in `@hashintel/type-editor`
+     *
+     * @see https://linear.app/hash/issue/H-1439/move-icon-and-labelproperty-to-the-metadata-types-in-bp-so-that-it-can
+     */
+    EntityTypeEditorFormData & { icon?: string | null }
+  >({
     defaultValues: { allOf: [], properties: [], links: [] },
   });
   const { handleSubmit: wrapHandleSubmit, reset, watch } = formMethods;
