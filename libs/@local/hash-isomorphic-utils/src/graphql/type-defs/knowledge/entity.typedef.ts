@@ -84,34 +84,6 @@ export const entityTypedef = gql`
     linkData: ProposedLinkData
   }
 
-  """
-  The result of an entity inference.
-  """
-  type InferEntitiesResult {
-    """
-    The proposed entities.
-    """
-    entities: [ProposedEntity!]!
-  }
-
-  """
-  The level of validation to apply to the inferred entities.
-  """
-  enum EntityValidation {
-    """
-    The inferred entities are fully validated.
-    """
-    FULL
-    """
-    Full validation but does not error if a required field is missing or additional properties are specified.
-    """
-    PARTIAL
-    """
-    No validation performed.
-    """
-    NONE
-  }
-
   enum EntityAuthorizationRelation {
     Owner
     Editor
@@ -273,41 +245,6 @@ export const entityTypedef = gql`
       """
       entityId: EntityId!
     ): Boolean!
-
-    """
-    Propose entities which are inferred from an input.
-    Does NOT persist the entities – callers are responsible for doing something with the proposed entities.
-    """
-    inferEntities(
-      """
-      A string of text to infer entities from, e.g. a page of text.
-      """
-      textInput: String!
-      """
-      The ids of the possible entity types that inferred entities may be of.
-      """
-      entityTypeIds: [VersionedUrl!]!
-      """
-      The model to use for inference.
-      """
-      model: String!
-      """
-      The maximum amount of tokens to generate. '0' means that the model's limit will be used.
-      """
-      maxTokens: Int!
-      """
-      The owner to assign to the entities inferred from the text.
-      """
-      ownedById: OwnedById!
-      """
-      The validation to apply to the inferred entities.
-      """
-      validation: EntityValidation!
-      """
-      The temperature to use for inference.
-      """
-      temperature: Float!
-    ): InferEntitiesResult!
 
     addEntityOwner(
       entityId: EntityId!
