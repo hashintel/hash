@@ -82,6 +82,7 @@ mod tests {
                 joins: vec![],
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
+                limit: None,
             },
         );
 
@@ -107,6 +108,7 @@ mod tests {
                 joins: vec![],
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
+                limit: None,
             },
         );
 

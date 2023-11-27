@@ -278,6 +278,8 @@ impl DatabaseApi<'_> {
                             None,
                         ),
                     },
+                    after: None,
+                    limit: None,
                 },
             )
             .await?
@@ -336,6 +338,8 @@ impl DatabaseApi<'_> {
                             None,
                         ),
                     },
+                    after: None,
+                    limit: None,
                 },
             )
             .await?
@@ -391,6 +395,8 @@ impl DatabaseApi<'_> {
                             None,
                         ),
                     },
+                    after: None,
+                    limit: None,
                 },
             )
             .await?
@@ -455,6 +461,8 @@ impl DatabaseApi<'_> {
                             None,
                         ),
                     },
+                    after: None,
+                    limit: None,
                 },
             )
             .await?
@@ -484,6 +492,8 @@ impl DatabaseApi<'_> {
                             Some(LimitedTemporalBound::Inclusive(timestamp)),
                         ),
                     },
+                    after: None,
+                    limit: None,
                 },
             )
             .await?
@@ -508,6 +518,8 @@ impl DatabaseApi<'_> {
                         pinned: PinnedTemporalAxisUnresolved::new(None),
                         variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
+                    after: None,
+                    limit: None,
                 },
             )
             .await?
@@ -636,6 +648,8 @@ impl DatabaseApi<'_> {
                             None,
                         ),
                     },
+                    after: None,
+                    limit: None,
                 },
             )
             .await?;
@@ -700,6 +714,8 @@ impl DatabaseApi<'_> {
                         pinned: PinnedTemporalAxisUnresolved::new(None),
                         variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
+                    after: None,
+                    limit: None,
                 },
             )
             .await?;

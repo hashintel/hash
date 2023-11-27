@@ -14,7 +14,7 @@ use type_system::{url::VersionedUrl, EntityType};
 
 use crate::{
     store::{crud, InsertionError, QueryError, UpdateError},
-    subgraph::{query::StructuralQuery, Subgraph},
+    subgraph::{identifier::EntityVertexId, query::StructuralQuery, Subgraph},
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -114,6 +114,8 @@ pub trait EntityStore: crud::Read<Entity> {
         actor_id: AccountId,
         authorization_api: &A,
         query: &StructuralQuery<Entity>,
+        after: Option<&EntityVertexId>,
+        limit: Option<usize>,
     ) -> Result<Subgraph, QueryError>;
 
     /// Update an existing [`Entity`].

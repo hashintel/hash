@@ -582,6 +582,8 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         actor_id: AccountId,
         authorization_api: &A,
         query: &StructuralQuery<EntityTypeWithMetadata>,
+        after: Option<&EntityTypeVertexId>,
+        limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
@@ -596,19 +598,24 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         //   see https://linear.app/hash/issue/H-297
         let mut visited_ontology_ids = HashSet::new();
 
-        let entity_types =
-            Read::<EntityTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
-                .await?
-                .into_iter()
-                .filter_map(|entity_type| {
-                    let id = EntityTypeId::from_url(entity_type.schema.id());
-                    let vertex_id = entity_type.vertex_id(time_axis);
-                    // The records are already sorted by time, so we can just take the first one
-                    visited_ontology_ids
-                        .insert(id)
-                        .then_some((id, (vertex_id, entity_type)))
-                })
-                .collect::<HashMap<_, _>>();
+        let entity_types = Read::<EntityTypeWithMetadata>::read_vec(
+            self,
+            filter,
+            Some(&temporal_axes),
+            after,
+            limit,
+        )
+        .await?
+        .into_iter()
+        .filter_map(|entity_type| {
+            let id = EntityTypeId::from_url(entity_type.schema.id());
+            let vertex_id = entity_type.vertex_id(time_axis);
+            // The records are already sorted by time, so we can just take the first one
+            visited_ontology_ids
+                .insert(id)
+                .then_some((id, (vertex_id, entity_type)))
+        })
+        .collect::<HashMap<_, _>>();
 
         let filtered_ids = entity_types.keys().copied().collect::<Vec<_>>();
         let (permissions, zookie) = authorization_api

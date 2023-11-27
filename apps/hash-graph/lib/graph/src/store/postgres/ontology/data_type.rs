@@ -33,7 +33,8 @@ use crate::{
         Record, UpdateError,
     },
     subgraph::{
-        edges::GraphResolveDepths, query::StructuralQuery, temporal_axes::VariableAxis, Subgraph,
+        edges::GraphResolveDepths, identifier::DataTypeVertexId, query::StructuralQuery,
+        temporal_axes::VariableAxis, Subgraph,
     },
 };
 
@@ -263,6 +264,8 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         actor_id: AccountId,
         authorization_api: &A,
         query: &StructuralQuery<DataTypeWithMetadata>,
+        after: Option<&DataTypeVertexId>,
+        limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
@@ -277,18 +280,24 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         //   see https://linear.app/hash/issue/H-297
         let mut visited_ontology_ids = HashSet::new();
 
-        let data_types = Read::<DataTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
-            .await?
-            .into_iter()
-            .filter_map(|data_type| {
-                let id = DataTypeId::from_url(data_type.schema.id());
-                let vertex_id = data_type.vertex_id(time_axis);
-                // The records are already sorted by time, so we can just take the first one
-                visited_ontology_ids
-                    .insert(id)
-                    .then_some((id, (vertex_id, data_type)))
-            })
-            .collect::<HashMap<_, _>>();
+        let data_types = Read::<DataTypeWithMetadata>::read_vec(
+            self,
+            filter,
+            Some(&temporal_axes),
+            after,
+            limit,
+        )
+        .await?
+        .into_iter()
+        .filter_map(|data_type| {
+            let id = DataTypeId::from_url(data_type.schema.id());
+            let vertex_id = data_type.vertex_id(time_axis);
+            // The records are already sorted by time, so we can just take the first one
+            visited_ontology_ids
+                .insert(id)
+                .then_some((id, (vertex_id, data_type)))
+        })
+        .collect::<HashMap<_, _>>();
 
         let filtered_ids = data_types.keys().copied().collect::<Vec<_>>();
         let (permissions, zookie) = authorization_api

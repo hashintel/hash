@@ -8,6 +8,7 @@ use graph_types::{
 };
 use serde::Deserialize;
 use serde_json::{Number, Value};
+use temporal_versioning::Timestamp;
 use type_system::url::{BaseUrl, VersionedUrl};
 use uuid::Uuid;
 
@@ -174,6 +175,8 @@ pub enum Parameter<'p> {
     Uuid(Uuid),
     #[serde(skip)]
     OntologyTypeVersion(OntologyTypeVersion),
+    #[serde(skip)]
+    Timestamp(Timestamp<()>),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -190,6 +193,7 @@ impl Parameter<'_> {
             Parameter::Any(value) => Parameter::Any(value.clone()),
             Parameter::Uuid(uuid) => Parameter::Uuid(*uuid),
             Parameter::OntologyTypeVersion(version) => Parameter::OntologyTypeVersion(*version),
+            Parameter::Timestamp(timestamp) => Parameter::Timestamp(*timestamp),
         }
     }
 }
@@ -214,6 +218,7 @@ impl fmt::Display for ParameterConversionError {
             Parameter::Any(Value::String(string)) => string.clone(),
             Parameter::Uuid(uuid) => uuid.to_string(),
             Parameter::OntologyTypeVersion(version) => version.inner().to_string(),
+            Parameter::Timestamp(timestamp) => timestamp.to_string(),
             Parameter::Any(Value::Object(_)) => "object".to_owned(),
             Parameter::Any(Value::Array(_)) => "array".to_owned(),
         };
