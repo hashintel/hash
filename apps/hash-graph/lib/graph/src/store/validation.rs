@@ -140,16 +140,12 @@ where
                 schemas.len(),
             ))
         );
-        let schema = schemas.pop().ok_or_else(|| {
+        schemas.pop().ok_or_else(|| {
             Report::new(QueryError).attach_printable(
                 "Expected exactly one closed schema to be returned from the query but none was \
                  returned",
             )
-        })?;
-        // TODO: Distinguish between format validation and content validation so it's possible
-        //       to directly use the correct type.
-        //   see https://linear.app/hash/issue/BP-33
-        EntityType::try_from(schema).change_context(QueryError)
+        })
     }
 }
 
