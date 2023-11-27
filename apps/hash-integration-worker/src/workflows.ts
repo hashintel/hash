@@ -3,7 +3,7 @@ import {
   ReadLinearTeamsWorkflow,
   SyncWorkspaceWorkflow,
   UpdateHashEntityFromLinearData,
-  UpdateLinearIssueWorkflow,
+  UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-workflow-types";
 import { proxyActivities } from "@temporalio/workflow";
 
@@ -77,6 +77,5 @@ export const updateHashEntityFromLinearData: UpdateHashEntityFromLinearData =
 export const readLinearTeams: ReadLinearTeamsWorkflow = async ({ apiKey }) =>
   linear.readLinearTeams({ apiKey });
 
-export const updateLinearIssue: UpdateLinearIssueWorkflow = async (params) => {
-  await linear.updateLinearIssue(params);
-};
+export const updateLinearData: UpdateLinearDataWorkflow = async (params) =>
+  linear.updateLinearData(params);

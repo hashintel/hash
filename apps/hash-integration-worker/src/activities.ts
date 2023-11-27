@@ -1,24 +1,13 @@
+import { Connection, LinearClient, LinearDocument, Team } from "@linear/sdk";
 import {
-  Connection,
-  Issue,
-  LinearClient,
-  LinearDocument,
-  Team,
-} from "@linear/sdk";
-import {
-  LinearWebhookPayload,
-  LinearWebhookPayloadKind,
+  CreateHashEntityFromLinearData,
   PartialEntity,
+  UpdateHashEntityFromLinearData,
+  UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-workflow-types";
 import { GraphApi } from "@local/hash-graph-client";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  AccountId,
-  BaseUrl,
-  EntityId,
-  EntityPropertiesObject,
-  OwnedById,
-} from "@local/hash-subgraph";
+import { AccountId, BaseUrl, EntityId, OwnedById } from "@local/hash-subgraph";
 
 import {
   attachmentToEntity,
@@ -26,8 +15,9 @@ import {
   customViewToEntity,
   cycleToEntity,
   documentToEntity,
-  entityPropertiesToIssueUpdate,
+  getLinearMappingByHashEntityTypeId,
   issueLabelToEntity,
+  mapHashEntityToLinearUpdateInput,
   mapLinearDataToEntity,
   mapLinearDataToEntityWithOutgoingLinks,
   projectMilestoneToEntity,
@@ -194,14 +184,9 @@ const createOrUpdateHashEntity = async (params: {
 
 const createHashEntityFromLinearData =
   (graphApiClient: GraphApi) =>
-  async <
-    K extends LinearWebhookPayloadKind = LinearWebhookPayloadKind,
-  >(params: {
-    authentication: { actorId: AccountId };
-    payload: LinearWebhookPayload[K];
-    payloadKind: K;
-    ownedById: OwnedById;
-  }): Promise<void> => {
+  async (
+    params: Parameters<CreateHashEntityFromLinearData>[0],
+  ): Promise<void> => {
     const { partialEntity, outgoingLinks } =
       await mapLinearDataToEntityWithOutgoingLinks({
         ...params,
@@ -222,14 +207,9 @@ const createHashEntityFromLinearData =
 
 const updateHashEntityFromLinearData =
   (graphApiClient: GraphApi) =>
-  async <
-    K extends LinearWebhookPayloadKind = LinearWebhookPayloadKind,
-  >(params: {
-    authentication: { actorId: AccountId };
-    payload: LinearWebhookPayload[K];
-    payloadKind: K;
-    ownedById: OwnedById;
-  }): Promise<void> => {
+  async (
+    params: Parameters<UpdateHashEntityFromLinearData>[0],
+  ): Promise<void> => {
     const { partialEntity, outgoingLinks } =
       await mapLinearDataToEntityWithOutgoingLinks({
         ...params,
@@ -446,32 +426,23 @@ export const createLinearIntegrationActivities = ({
       .then((attachments) => attachments.map(attachmentToEntity));
   },
 
-  async updateLinearIssue({
+  async updateLinearData({
     apiKey,
-    issueId,
-    payload,
-  }: {
-    apiKey: string;
-    issueId: Issue["id"];
-    payload: EntityPropertiesObject;
-  }): Promise<PartialEntity | undefined> {
+    entityTypeId,
+    linearId,
+    entity,
+  }: Parameters<UpdateLinearDataWorkflow>[0]): Promise<void> {
     const client = createLinearClient(apiKey);
 
-    const linearUpdate = entityPropertiesToIssueUpdate(payload);
+    const mapping = getLinearMappingByHashEntityTypeId({ entityTypeId });
 
-    const updatedIssue = await client
-      .updateIssue(issueId, linearUpdate)
-      .then(async (data) => {
-        const issue = await data.issue;
-        if (issue) {
-          return mapLinearDataToEntity({
-            linearType: "Issue",
-            linearData: issue,
-          });
-        }
-        return undefined;
-      });
+    const linearUpdateInput = mapHashEntityToLinearUpdateInput({
+      linearType: mapping.linearType,
+      entity,
+    });
 
-    return updatedIssue;
+    if (Object.entries(linearUpdateInput).length > 0) {
+      await client[`update${mapping.linearType}`](linearId, linearUpdateInput);
+    }
   },
 });

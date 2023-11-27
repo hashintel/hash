@@ -1,5 +1,5 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { UpdateLinearIssueWorkflow } from "@local/hash-backend-utils/temporal-workflow-types";
+import { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/temporal-workflow-types";
 import { GraphApi } from "@local/hash-graph-client";
 import {
   linearEntityTypes,
@@ -80,25 +80,26 @@ export const processEntityChange = async (
     },
   );
 
-  const resourceId =
+  const linearId =
     entity.properties[extractBaseUrl(linearPropertyTypes.id.propertyTypeId)];
 
-  switch (entityTypeId) {
-    case linearEntityTypes.issue.entityTypeId: {
-      await temporalClient.workflow.start<UpdateLinearIssueWorkflow>(
-        "updateLinearIssue",
-        {
-          workflowId: genId(),
-          taskQueue: "integration",
-          args: [
-            {
-              apiKey: linearApiKey,
-              issueId: resourceId as string,
-              payload: entity.properties,
-            },
-          ],
-        },
-      );
-    }
+  if (!linearId) {
+    return;
   }
+
+  await temporalClient.workflow.start<UpdateLinearDataWorkflow>(
+    "updateLinearData",
+    {
+      workflowId: genId(),
+      taskQueue: "integration",
+      args: [
+        {
+          apiKey: linearApiKey,
+          linearId: linearId as string,
+          entityTypeId: entity.metadata.entityTypeId,
+          entity,
+        },
+      ],
+    },
+  );
 };

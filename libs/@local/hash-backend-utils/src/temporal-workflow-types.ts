@@ -1,11 +1,6 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { Issue, Team, User } from "@linear/sdk";
-import {
-  AccountId,
-  Entity,
-  EntityPropertiesObject,
-  OwnedById,
-} from "@local/hash-subgraph";
+import { AccountId, Entity, OwnedById } from "@local/hash-subgraph";
 
 export type PartialEntity = {
   properties: Partial<Entity["properties"]>;
@@ -48,10 +43,11 @@ export type SyncWorkspaceWorkflow = (params: {
   teamIds: string[];
 }) => Promise<void>;
 
-export type UpdateLinearIssueWorkflow = (params: {
+export type UpdateLinearDataWorkflow = (params: {
   apiKey: string;
-  issueId: Issue["id"];
-  payload: EntityPropertiesObject;
+  linearId: string;
+  entityTypeId: VersionedUrl;
+  entity: Entity;
 }) => Promise<void>;
 
 export type WorkflowTypeMap = {
@@ -61,6 +57,6 @@ export type WorkflowTypeMap = {
   createHashEntityFromLinearData: CreateHashEntityFromLinearData;
   updateHashEntityFromLinearData: UpdateHashEntityFromLinearData;
 
-  /** @todo: replace these with a generic `updateLinearData` workflow */
-  updateLinearIssue: UpdateLinearIssueWorkflow;
+  updateLinearData: UpdateLinearDataWorkflow;
+  /** @todo: add `createLinearData` */
 };
