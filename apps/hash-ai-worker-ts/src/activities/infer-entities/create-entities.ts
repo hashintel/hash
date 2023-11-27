@@ -30,7 +30,7 @@ export const createEntities = async ({
   createdEntities: Entity[];
   creationFailures: InferEntitiesCreationFailure[];
 }> => {
-  const nonLinkTypes = Object.values(requestedEntityTypes).filter(
+  const nonLinkEntityTypes = Object.values(requestedEntityTypes).filter(
     ({ isLink }) => !isLink,
   );
   const linkTypes = Object.values(requestedEntityTypes).filter(
@@ -44,7 +44,7 @@ export const createEntities = async ({
   > = {};
 
   await Promise.all(
-    nonLinkTypes.map(async (nonLinkType) => {
+    nonLinkEntityTypes.map(async (nonLinkType) => {
       const entityTypeId = nonLinkType.schema.$id;
 
       const proposedEntities = proposedEntitiesByType[entityTypeId];
