@@ -38,17 +38,17 @@ enum Access<T> {
 impl<T> Access<T> {
     fn map<U>(self, f: impl FnOnce(T) -> U) -> Access<U> {
         match self {
-            Access::Granted(value) => Access::Granted(f(value)),
-            Access::Denied => Access::Denied,
-            Access::Malformed => Access::Malformed,
+            Self::Granted(value) => Access::Granted(f(value)),
+            Self::Denied => Access::Denied,
+            Self::Malformed => Access::Malformed,
         }
     }
 
-    fn as_ref(&self) -> Access<&T> {
+    const fn as_ref(&self) -> Access<&T> {
         match self {
-            Access::Granted(value) => Access::Granted(value),
-            Access::Denied => Access::Denied,
-            Access::Malformed => Access::Malformed,
+            Self::Granted(value) => Access::Granted(value),
+            Self::Denied => Access::Denied,
+            Self::Malformed => Access::Malformed,
         }
     }
 }
