@@ -58,11 +58,11 @@ async fn buffer_and_log(
     body: Body,
     status_code: Option<StatusCode>,
 ) -> Result<Bytes, (StatusCode, String)> {
-    let body = match http_body_util::BodyExt::collect(body)
+    let bytes = match http_body_util::BodyExt::collect(body)
         .await
         .map(Collected::to_bytes)
     {
-        Ok(body) => body,
+        Ok(bytes) => bytes,
         Err(err) => {
             return Err((
                 StatusCode::BAD_REQUEST,
@@ -87,7 +87,7 @@ async fn buffer_and_log(
         }
     }
 
-    Ok(body)
+    Ok(bytes)
 }
 
 pub fn span_trace_layer() -> TraceLayer<
