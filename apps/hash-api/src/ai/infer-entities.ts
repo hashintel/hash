@@ -5,6 +5,8 @@ import {
   InferEntitiesUserArguments,
 } from "@local/hash-isomorphic-utils/temporal-types";
 import { StatusCode } from "@local/status";
+import { ApplicationFailure } from "@temporalio/client";
+import { WorkflowFailedError } from "@temporalio/client/src/errors";
 import { RequestHandler } from "express";
 
 import { genId } from "../util";
@@ -48,6 +50,8 @@ export const inferEntitiesController: RequestHandler<
     return;
   }
 
+  res.header("Content-Type", "application/json");
+
   const keepAliveInterval = setInterval(() => {
     res.write("");
   }, 10_000);
@@ -65,57 +69,83 @@ export const inferEntitiesController: RequestHandler<
       ],
       workflowId: `inferEntities-${genId()}`,
       retry: {
-        maximumAttempts: 3,
+        maximumAttempts: 1,
       },
     });
 
     clearInterval(keepAliveInterval);
 
-    res.status(200).send(status);
+    res.status(200).write(JSON.stringify(status));
+    res.end();
   } catch (err) {
     clearInterval(keepAliveInterval);
 
-    const errorStatus = (err as Error).cause as InferEntitiesReturn;
-    switch (errorStatus.code) {
+    const errorCause = (err as WorkflowFailedError).cause?.cause as
+      | ApplicationFailure
+      | undefined;
+
+    const errorDetails = errorCause?.details?.[0] as
+      | InferEntitiesReturn
+      | undefined;
+
+    if (!errorDetails) {
+      res.status(500).write(
+        JSON.stringify({
+          code: StatusCode.Internal,
+          contents: [],
+          message: `Unexpected error from Infer Entities workflow: ${
+            (err as Error).message
+          }`,
+        }),
+      );
+      res.end();
+      return;
+    }
+
+    switch (errorDetails.code) {
       case StatusCode.InvalidArgument:
       case StatusCode.FailedPrecondition:
       case StatusCode.OutOfRange:
-        res.status(400).send(errorStatus);
+        res.status(400);
         break;
       case StatusCode.Unauthenticated:
-        res.status(401).send(errorStatus);
+        res.status(401);
         break;
       case StatusCode.PermissionDenied:
-        res.status(403).send(errorStatus);
+        res.status(403);
         break;
       case StatusCode.NotFound:
-        res.status(404).send(errorStatus);
+        res.status(404);
         break;
       case StatusCode.Aborted:
       case StatusCode.AlreadyExists:
-        res.status(409).send(errorStatus);
+        res.status(409);
         break;
       case StatusCode.ResourceExhausted:
-        res.status(429).send(errorStatus);
+        res.status(429);
         break;
       case StatusCode.Cancelled:
-        res.status(499).send(errorStatus);
+        res.status(499);
         break;
       case StatusCode.Ok:
       case StatusCode.DataLoss:
       case StatusCode.Internal:
       case StatusCode.Unknown:
-        res.status(500).send(errorStatus);
+        res.status(500);
         break;
       case StatusCode.Unimplemented:
-        res.status(501).send(errorStatus);
+        res.status(501);
         break;
       case StatusCode.Unavailable:
-        res.status(503).send(errorStatus);
+        res.status(503);
         break;
       case StatusCode.DeadlineExceeded:
-        res.status(504).send(errorStatus);
+        res.status(504);
         break;
+      default:
+        res.status(500);
     }
+    res.write(JSON.stringify(errorDetails));
+    res.end();
   }
 };

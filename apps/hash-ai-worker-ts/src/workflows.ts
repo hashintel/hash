@@ -6,7 +6,7 @@ import { createAiActivities } from "./activities";
 const aiActivities = proxyActivities<ReturnType<typeof createAiActivities>>({
   startToCloseTimeout: "600 second",
   retry: {
-    maximumAttempts: 3,
+    maximumAttempts: 1,
   },
 });
 

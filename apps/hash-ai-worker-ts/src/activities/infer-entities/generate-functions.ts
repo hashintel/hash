@@ -11,14 +11,17 @@ export type FunctionName = "could_not_infer_entities" | "create_entities";
 
 type ProposedEntitySchemaOrData = {
   entityId: unknown;
-  properties: unknown;
+  /**
+   * The AI Model does not reliably return an empty properties object if the entity type has no properties.
+   */
+  properties?: unknown;
 } & ({} | { sourceEntityId: unknown; targetEntityId: unknown });
 
 export type ProposedEntity = Subtype<
   ProposedEntitySchemaOrData,
   {
     entityId: number;
-    properties: Record<BaseUrl, EntityPropertyValue>;
+    properties?: Record<BaseUrl, EntityPropertyValue>;
   } & (
     | {}
     | {
@@ -29,6 +32,9 @@ export type ProposedEntity = Subtype<
 >;
 
 export type ProposedEntitiesByType = Record<VersionedUrl, ProposedEntity[]>;
+
+const stringifyArray = (array: unknown[]): string =>
+  array.map((item) => JSON.stringify(item)).join(", ");
 
 /**
  * Validates that the provided object is a valid ProposedEntitiesByType object.
@@ -62,8 +68,8 @@ export const validateProposedEntitiesByType = (
 
   if (invalidArrays.length > 0) {
     throw new Error(
-      `Invalid entities arrays in AI-provided response: ${JSON.stringify(
-        invalidArrays.join(", "),
+      `Invalid entities arrays in AI-provided response: ${stringifyArray(
+        invalidArrays,
       )}`,
     );
   }
@@ -79,7 +85,7 @@ export const validateProposedEntitiesByType = (
         return true;
       }
 
-      if (!("entityId" in maybeEntity && "properties" in maybeEntity)) {
+      if (!("entityId" in maybeEntity)) {
         return true;
       }
 
@@ -96,14 +102,26 @@ export const validateProposedEntitiesByType = (
 
   if (invalidEntities.length > 0) {
     throw new Error(
-      `Invalid entities in AI-provided response: ${JSON.stringify(
-        invalidEntities.join(", "),
+      `Invalid entities in AI-provided response: ${stringifyArray(
+        invalidEntities,
       )}`,
     );
   }
 
   return true;
 };
+
+type CouldNotInferEntitiesReturnKey = "reason";
+type CouldNotInferEntitiesSchemaOrObject = Record<
+  CouldNotInferEntitiesReturnKey,
+  unknown
+>;
+export type CouldNotInferEntitiesReturn = Subtype<
+  CouldNotInferEntitiesSchemaOrObject,
+  {
+    reason: string;
+  }
+>;
 
 export const generateFunctions = (
   entityTypes: {
@@ -118,11 +136,14 @@ export const generateFunctions = (
       description:
         "Returns a warning to the user explaining why no entities could have been inferred from the provided text",
       parameters: {
-        reason: {
-          type: "string",
-          description:
-            "A brief explanation as to why no entities could have been inferred, and one suggestion on how to fix the issue",
-        },
+        type: "object",
+        properties: {
+          reason: {
+            type: "string",
+            description:
+              "A brief explanation as to why no entities could have been inferred, and one suggestion on how to fix the issue",
+          },
+        } satisfies CouldNotInferEntitiesSchemaOrObject,
       },
     },
   },
@@ -163,10 +184,15 @@ export const generateFunctions = (
                         },
                       }
                     : {}),
-                  properties: schema.properties,
+                  properties: {
+                    default: {},
+                    type: "object",
+                    properties: schema.properties,
+                  },
                 } satisfies ProposedEntitySchemaOrData,
                 required: [
                   "entityId",
+                  "properties",
                   ...(isLink ? ["sourceEntityId", "targetEntityId"] : []),
                 ],
               },

@@ -19,7 +19,7 @@ import {
   dereferenceEntityType,
 } from "./infer-entities/dereference-entity-type";
 import {
-  FunctionName,
+  CouldNotInferEntitiesReturn,
   generateFunctions,
   ProposedEntitiesByType,
   validateProposedEntitiesByType,
@@ -36,24 +36,20 @@ const openai = new OpenAI({
 const systemMessage: OpenAI.ChatCompletionSystemMessageParam = {
   role: "system",
   content: dedent(`
-    You are an Entity Inference Assistant. 
-    The user provides you with a text input, from which you infer entities for creation. 
+    You are an Entity Inference Assistant. The user provides you with a text input, from which you infer entities for creation. 
     You create the entities by calling the provided function, which specifies the schemas of entities you may create. 
     Each entity should be given a unique numerical identifier as their 'entityId' property. 
-    Some entities require sourceEntityId and targetEntityId properties 
-      – these are links between other entities, and sourceEntityId and targetEntityId 
-        and must correspond to the entityId of other entities you create. 
+    Some entities require sourceEntityId and targetEntityId properties – these are links between other entities, 
+        and sourceEntityId and targetEntityId must correspond to the entityId of other entities you create.
         The schema of the source entity will show which links are valid for it, under the 'links' field. 
-    The provided user text is your only source of information, so make sure to extract as much information as possible,
-    and do not rely on other information about the entities in question you may know. 
-    Empty properties should be left out. 
-    Pay close attention to the JSON Schema of each entity to create! 
-    Please do not add any properties which are not listed in the schema, 
-    but DO try and fill out as many of the properties in the schema as possible, 
-    if you can find any relevant information in the text. 
+    The provided user text is your only source of information, so make sure to extract as much information as possible, 
+        and do not rely on other information about the entities in question you may know. 
+    Empty properties should be left out. Pay close attention to the JSON Schema of each entity to create! 
+    Please do not add any properties which are not listed in the schema, but DO try and fill out as many of the properties
+     in the schema as possible, if you can find any relevant information in the text. 
     The entities you create must be suitable for the schema chosen 
-    – ignore any entities in the provided text which do not have an appropriate schema to use. 
-    Make sure you attempt to create entities of all the provided types, if there is data to do so!"
+        – ignore any entities in the provided text which do not have an appropriate schema to use. 
+    Make sure you attempt to create entities of all the provided types, if there is data to do so!
   `),
 };
 
@@ -70,15 +66,8 @@ export const inferEntities = async ({
 }: InferEntitiesCallerParams & {
   graphApiClient: GraphApi;
 }): Promise<InferEntitiesReturn> => {
-  const {
-    entityTypeIds,
-    maxTokens,
-    model,
-    ownedById,
-    temperature,
-    textInput,
-    validation: _validation,
-  } = userArguments;
+  const { entityTypeIds, maxTokens, model, ownedById, temperature, textInput } =
+    userArguments;
 
   const { data: entityTypesSubgraph } =
     await graphApiClient.getEntityTypesByQuery(authentication.actorId, {
@@ -125,21 +114,31 @@ export const inferEntities = async ({
     tools: functions,
   };
 
-  const data = await openai.chat.completions.create(openApiPayload);
+  let data: OpenAI.ChatCompletion;
+  try {
+    data = await openai.chat.completions.create(openApiPayload);
+  } catch (err) {
+    return {
+      code: StatusCode.Internal,
+      contents: [],
+      message: `Error from AI Model: ${(err as Error).message}`,
+    };
+  }
 
   const response = data.choices[0];
 
   if (!response) {
-    // @todo better error handling in case unauthenticated, network timeout, etc
-    throw new Error("No response from AI Model.");
+    return {
+      code: StatusCode.Internal,
+      contents: [],
+      message: `No data choice available in AI Model response`,
+    };
   }
 
   const { finish_reason, message } = response;
 
-  const functionName = message.function_call?.name as
-    | FunctionName
-    | "unexpected_string" // account for possible hallucinated function names
-    | undefined;
+  const toolCalls = message.tool_calls;
+  const functionCall = toolCalls?.[0]?.function;
 
   switch (finish_reason) {
     case "stop":
@@ -151,6 +150,7 @@ export const inferEntities = async ({
         }`,
       };
     case "length":
+      // @todo make repeated calls to the AI for more text
       return {
         code: StatusCode.ResourceExhausted,
         contents: [],
@@ -163,24 +163,53 @@ export const inferEntities = async ({
         contents: [],
         message: `The content filter was triggered`,
       };
-    case "function_call":
     case "tool_calls":
-      if (!functionName) {
+      if (!toolCalls || toolCalls.length > 1) {
+        return {
+          code: StatusCode.Internal,
+          contents: [],
+          message: `AI Model returned 'tool_calls' finish reason with ${
+            !toolCalls ? 0 : toolCalls.length
+          } tool calls, but only one was expected.`,
+        };
+      }
+
+      if (!functionCall?.name) {
         return {
           code: StatusCode.Internal,
           contents: [],
           message: `AI Model returned 'function_call' finish reason, but no function name.`,
         };
       }
-      if (functionName === "could_not_infer_entities") {
-        return {
-          code: StatusCode.InvalidArgument,
-          contents: [],
-          message: `No entities among types ${entityTypeIds.join(
-            ", ",
-          )} could be inferred from the provided text`,
-        };
-      } else if (functionName === "create_entities") {
+      if (functionCall.name === "could_not_infer_entities") {
+        const modelProvidedArgument = functionCall.arguments;
+
+        if (!modelProvidedArgument) {
+          return {
+            code: StatusCode.Internal,
+            contents: [],
+            message: `AI Model returned 'function_call' finish reason, but no argument was provided in message.tool_calls.`,
+          };
+        }
+
+        try {
+          const parsedResponse = JSON.parse(
+            modelProvidedArgument,
+          ) as CouldNotInferEntitiesReturn;
+
+          return {
+            code: StatusCode.InvalidArgument,
+            contents: [],
+            message: parsedResponse.reason,
+          };
+        } catch {
+          return {
+            code: StatusCode.Internal,
+            contents: [],
+            message: `AI Model called could_not_infer_entities with invalid argument: ${modelProvidedArgument}`,
+          };
+        }
+      } else if (functionCall.name === "create_entities") {
         if (message.tool_calls && message.tool_calls.length > 1) {
           return {
             code: StatusCode.Internal,
@@ -189,8 +218,7 @@ export const inferEntities = async ({
           };
         }
 
-        const modelProvidedArgument =
-          message.tool_calls?.[0]?.function.arguments;
+        const modelProvidedArgument = functionCall.arguments;
         if (!modelProvidedArgument) {
           return {
             code: StatusCode.Internal,
@@ -220,6 +248,7 @@ export const inferEntities = async ({
           (providedEntityTypeId) =>
             !entityTypeIds.includes(providedEntityTypeId as VersionedUrl),
         );
+
         if (notRequestedTypes.length > 0) {
           return {
             code: StatusCode.Internal,
@@ -230,21 +259,29 @@ export const inferEntities = async ({
           };
         }
 
-        const { createdEntities, creationFailures } = await createEntities({
-          actorId: authentication.actorId,
-          graphApiClient,
-          ownedById,
-          proposedEntitiesByType,
-          requestedEntityTypes: entityTypes,
-        });
+        try {
+          const { createdEntities, creationFailures } = await createEntities({
+            actorId: authentication.actorId,
+            graphApiClient,
+            ownedById,
+            proposedEntitiesByType,
+            requestedEntityTypes: entityTypes,
+          });
 
-        // @todo go back to the AI to ask it to fix creation failures
+          // @todo go back to the AI to ask it to fix creation failures
 
-        return {
-          code: StatusCode.Ok,
-          contents: createdEntities,
-          message: `Successfully created ${createdEntities.length} entities, with ${creationFailures.length} failures.`,
-        };
+          return {
+            code: StatusCode.Ok,
+            contents: [...createdEntities, ...creationFailures],
+            message: `Created ${createdEntities.length} entities, with ${creationFailures.length} failures.`,
+          };
+        } catch (err) {
+          return {
+            code: StatusCode.Internal,
+            contents: [],
+            message: `Error creating entities: ${(err as Error).message}`,
+          };
+        }
       }
       break;
   }

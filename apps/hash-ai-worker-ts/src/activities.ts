@@ -3,6 +3,7 @@ import type {
   InferEntitiesCallerParams,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/temporal-types";
+import { ApplicationFailure } from "@temporalio/activity";
 
 import { inferEntities } from "./activities/infer-entities";
 
@@ -15,11 +16,8 @@ export const createAiActivities = ({
     params: InferEntitiesCallerParams,
   ): Promise<InferEntitiesReturn> {
     const status = await inferEntities({ ...params, graphApiClient });
-
     if (status.code !== "OK") {
-      throw new Error(status.message, {
-        cause: status,
-      });
+      throw new ApplicationFailure(status.message, status.code, true, [status]);
     }
 
     return status;

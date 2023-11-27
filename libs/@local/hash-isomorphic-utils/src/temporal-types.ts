@@ -1,10 +1,12 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { Subtype } from "@local/advanced-types/subtype";
 import { Entity } from "@local/hash-graph-client";
-import { AccountId, OwnedById } from "@local/hash-subgraph";
+import {
+  AccountId,
+  EntityPropertiesObject,
+  OwnedById,
+} from "@local/hash-subgraph";
 import type { Status } from "@local/status";
-
-import { EntityValidation } from "./graphql/api-types.gen";
 
 export const inferEntitiesUserArgumentKeys = [
   "entityTypeIds",
@@ -13,7 +15,6 @@ export const inferEntitiesUserArgumentKeys = [
   "ownedById",
   "temperature",
   "textInput",
-  "validation",
 ] as const;
 
 export type InferEntitiesUserArgumentKey =
@@ -28,7 +29,6 @@ export type InferEntitiesUserArguments = Subtype<
     ownedById: OwnedById;
     temperature: number;
     textInput: string;
-    validation: EntityValidation;
   }
 >;
 
@@ -39,4 +39,10 @@ export type InferEntitiesCallerParams = {
   userArguments: InferEntitiesUserArguments;
 };
 
-export type InferEntitiesReturn = Status<Entity>;
+export type InferEntitiesCreationFailure = {
+  entityTypeId: VersionedUrl;
+  failureReason: string;
+  proposedProperties: EntityPropertiesObject;
+};
+
+export type InferEntitiesReturn = Status<Entity | InferEntitiesCreationFailure>;
