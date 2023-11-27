@@ -35,6 +35,24 @@ enum Access<T> {
     Malformed,
 }
 
+impl<T> Access<T> {
+    fn map<U>(self, f: impl FnOnce(T) -> U) -> Access<U> {
+        match self {
+            Access::Granted(value) => Access::Granted(f(value)),
+            Access::Denied => Access::Denied,
+            Access::Malformed => Access::Malformed,
+        }
+    }
+
+    fn as_ref(&self) -> Access<&T> {
+        match self {
+            Access::Granted(value) => Access::Granted(value),
+            Access::Denied => Access::Denied,
+            Access::Malformed => Access::Malformed,
+        }
+    }
+}
+
 // TODO: potentially add a cache eviction policy
 #[derive(Debug)]
 struct CacheHashMap<K, V> {
@@ -55,10 +73,11 @@ where
 {
     async fn get(&self, key: &K) -> Option<Result<Arc<V>, Report<QueryError>>> {
         let guard = self.inner.read().await;
-        let access = guard.get(key)?;
+        let access = guard.get(key)?.as_ref().map(Arc::clone);
+        drop(guard);
 
         match access {
-            Access::Granted(value) => Some(Ok(Arc::clone(value))),
+            Access::Granted(value) => Some(Ok(value)),
             Access::Denied => Some(Err(
                 Report::new(PermissionAssertion).change_context(QueryError)
             )),
