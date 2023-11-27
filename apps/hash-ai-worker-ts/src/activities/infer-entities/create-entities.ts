@@ -137,7 +137,7 @@ export const createEntities = async ({
             creationFailuresByTemporaryId[proposedEntity.entityId] = {
               entityTypeId,
               proposedProperties: properties,
-              failureReason: `Link entity could not be created – source with temporary id ${sourceEntityId} failed to be created with reason: ${sourceFailure.reason}`,
+              failureReason: `Link entity could not be created – source with temporary id ${sourceEntityId} failed to be created with reason: ${sourceFailure.failureReason}`,
             };
 
             return;
@@ -168,7 +168,7 @@ export const createEntities = async ({
             creationFailuresByTemporaryId[proposedEntity.entityId] = {
               entityTypeId,
               proposedProperties: properties,
-              failureReason: `Link entity could not be created – target with temporary id ${targetEntityId} failed to be created with reason: ${targetFailure.reason}`,
+              failureReason: `Link entity could not be created – target with temporary id ${targetEntityId} failed to be created with reason: ${targetFailure.failureReason}`,
             };
 
             return;
