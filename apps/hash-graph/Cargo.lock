@@ -933,7 +933,6 @@ name = "graph-types"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "error-stack 0.4.1",
  "postgres-types",
  "serde",
  "serde_json",
@@ -3074,7 +3073,7 @@ dependencies = [
 [[package]]
 name = "type-system"
 version = "0.0.0"
-source = "git+https://github.com/blockprotocol/blockprotocol?rev=b63f923#b63f923ee1c931c8213d4c9e37ac84c6a4966ca7"
+source = "git+https://github.com/blockprotocol/blockprotocol?rev=b87db85#b87db85fe4ae2a448aafeaf44d2fca6ec15ce772"
 dependencies = [
  "console_error_panic_hook",
  "serde",

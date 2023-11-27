@@ -20,6 +20,17 @@
         ]
       },
       "ordered": false
+    },
+    "https://blockprotocol.org/@alice/types/entity-type/acquaintance-of/v/1": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "https://blockprotocol.org/@alice/types/entity-type/person/v/1"
+          }
+        ]
+      },
+      "ordered": false
     }
   }
 }

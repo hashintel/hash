@@ -12,7 +12,6 @@ use futures::{
 };
 use graph_types::ontology::{OntologyElementMetadata, OntologyTypeVersion};
 use postgres_types::Json;
-use type_system::EntityType;
 use uuid::Uuid;
 
 use crate::snapshot::{
@@ -78,10 +77,6 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         mut self: Pin<&mut Self>,
         entity_type: EntityTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
-        let schema = EntityType::try_from(entity_type.schema)
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not convert schema to entity type")?;
-
         let record_id = entity_type.metadata.record_id.to_string();
         let ontology_id = Uuid::new_v5(&Uuid::NAMESPACE_URL, record_id.as_bytes());
 
@@ -95,7 +90,8 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
             ))
             .attach_printable("could not send metadata")?;
 
-        let inherits_from: Vec<_> = schema
+        let inherits_from: Vec<_> = entity_type
+            .schema
             .inherits_from()
             .all_of()
             .iter()
@@ -115,7 +111,8 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
                 .attach_printable("could not send inherits from edge")?;
         }
 
-        let properties: Vec<_> = schema
+        let properties: Vec<_> = entity_type
+            .schema
             .property_type_references()
             .into_iter()
             .map(|entity_type_ref| {
@@ -135,7 +132,7 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         }
 
         // TODO: Add better functions to the `type-system` crate to easier read link mappings
-        let link_mappings = schema.link_mappings();
+        let link_mappings = entity_type.schema.link_mappings();
 
         let links: Vec<_> = link_mappings
             .keys()
@@ -177,10 +174,10 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         self.schema
             .start_send_unpin(EntityTypeRow {
                 ontology_id,
-                schema: Json(schema.clone().into()),
+                schema: Json(entity_type.schema.clone()),
                 // The unclosed schema is inserted initially. This will be replaced later by the
                 // closed schema.
-                closed_schema: Json(schema.into()),
+                closed_schema: Json(entity_type.schema),
                 label_property: entity_type
                     .metadata
                     .label_property

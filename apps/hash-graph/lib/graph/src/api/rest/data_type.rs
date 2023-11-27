@@ -32,7 +32,7 @@ use graph_types::{
 use hash_status::Status;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
-use type_system::{raw, url::VersionedUrl, DataType};
+use type_system::{url::VersionedUrl, DataType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
@@ -195,14 +195,7 @@ where
     let mut data_types = Vec::with_capacity(schema_iter.size_hint().0);
     let mut partial_metadata = Vec::with_capacity(schema_iter.size_hint().0);
 
-    for schema in schema_iter {
-        let data_type: DataType = schema.try_into().map_err(|report| {
-            tracing::error!(error=?report, "Couldn't convert schema to Data Type");
-            StatusCode::UNPROCESSABLE_ENTITY
-            // TODO - We should probably return more information to the client
-            //  https://app.asana.com/0/1201095311341924/1202574350052904/f
-        })?;
-
+    for data_type in schema_iter {
         domain_validator.validate(&data_type).map_err(|report| {
             tracing::error!(error=?report, id=data_type.id().to_string(), "Data Type ID failed to validate");
             StatusCode::UNPROCESSABLE_ENTITY
@@ -258,7 +251,7 @@ enum LoadExternalDataTypeRequest {
     },
     Create {
         #[schema(value_type = VAR_DATA_TYPE)]
-        schema: raw::DataType,
+        schema: DataType,
     },
 }
 
@@ -312,10 +305,6 @@ where
                 .await?,
         )),
         LoadExternalDataTypeRequest::Create { schema } => {
-            // TODO: Distinguish between format validation and content validation so it's possible
-            //       to directly use the correct type.
-            //   see https://linear.app/hash/issue/BP-33
-            let schema = DataType::try_from(schema).map_err(report_to_response)?;
             let record_id = OntologyTypeRecordId::from(schema.id().clone());
 
             if domain_validator.validate_url(schema.id().base_url.as_str()) {

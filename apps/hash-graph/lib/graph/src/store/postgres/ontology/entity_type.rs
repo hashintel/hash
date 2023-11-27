@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    str::FromStr,
-};
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use authorization::{
@@ -26,7 +23,6 @@ use graph_types::{
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{
-    raw,
     url::{BaseUrl, VersionedUrl},
     EntityType,
 };
@@ -290,8 +286,8 @@ impl<C: AsClient> PostgresStore<C> {
 
     fn create_closed_entity_type(
         entity_type_id: EntityTypeId,
-        available_types: &mut HashMap<EntityTypeId, raw::EntityType>,
-    ) -> Result<raw::EntityType, QueryError> {
+        available_types: &mut HashMap<EntityTypeId, EntityType>,
+    ) -> Result<EntityType, QueryError> {
         let mut current_type = available_types
             .remove(&entity_type_id)
             .ok_or_else(|| Report::new(QueryError))
@@ -299,14 +295,8 @@ impl<C: AsClient> PostgresStore<C> {
         let mut visited_ids = HashSet::from([entity_type_id]);
 
         loop {
-            for parent in current_type.all_of.elements.clone() {
-                // TODO: Use `VersionedUrl` instead of `String` in `raw`
-                //   see https://linear.app/hash/issue/BP-30
-                let parent_id = EntityTypeId::from_url(
-                    &VersionedUrl::from_str(&parent.url)
-                        .change_context(QueryError)
-                        .attach_printable("Invalid versioned url")?,
-                );
+            for parent in current_type.inherits_from.elements.clone() {
+                let parent_id = EntityTypeId::from_url(parent.url());
 
                 ensure!(
                     parent_id != entity_type_id,
@@ -317,7 +307,7 @@ impl<C: AsClient> PostgresStore<C> {
                     // This can happens in case of multiple inheritance or cycles. Cycles are
                     // already checked above, so we can just skip this parent.
                     current_type
-                        .all_of
+                        .inherits_from
                         .elements
                         .retain(|value| *value != parent);
                     break;
@@ -329,7 +319,7 @@ impl<C: AsClient> PostgresStore<C> {
                             .get(&parent_id)
                             .ok_or_else(|| Report::new(QueryError))
                             .attach_printable("entity type not available")
-                            .attach_printable(parent.url)?
+                            .attach_printable_lazy(|| parent.url().clone())?
                             .clone(),
                     )
                     .change_context(QueryError)
@@ -338,7 +328,7 @@ impl<C: AsClient> PostgresStore<C> {
                 visited_ids.insert(parent_id);
             }
 
-            if current_type.all_of.elements.is_empty() {
+            if current_type.inherits_from.elements.is_empty() {
                 break;
             }
         }
@@ -356,19 +346,16 @@ impl<C: AsClient> PostgresStore<C> {
             .map(|entity_type| {
                 (
                     EntityTypeId::from_url(entity_type.id()).into_uuid(),
-                    // TODO: Distinguish between format validation and content validation so it's
-                    //       possible to directly use reference iterators from `raw`
-                    //   see https://linear.app/hash/issue/BP-33
-                    (entity_type.clone(), raw::EntityType::from(entity_type)),
+                    entity_type,
                 )
             })
-            .collect::<Vec<(Uuid, (EntityType, raw::EntityType))>>();
+            .collect::<Vec<(Uuid, EntityType)>>();
 
         // We need all types that the provided types inherit from so we can create the closed
         // schemas
         let parent_entity_type_ids = entity_types
             .iter()
-            .flat_map(|(_, (schema, _))| schema.inherits_from().all_of())
+            .flat_map(|(_, schema)| schema.inherits_from().all_of())
             .map(|reference| EntityTypeId::from_url(reference.url()).into_uuid())
             .collect::<Vec<_>>();
 
@@ -394,16 +381,15 @@ impl<C: AsClient> PostgresStore<C> {
         // The types we check either come from the graph or are provided by the user
         let mut available_schemas: HashMap<_, _> = entity_types
             .iter()
-            .map(|(id, (_, raw_schema))| (EntityTypeId::new(*id), raw_schema.clone()))
+            .map(|(id, schema)| (EntityTypeId::new(*id), schema.clone()))
             .chain(parent_schemas)
             .collect();
 
         entity_types
             .into_iter()
-            .map(|(entity_type_id, (schema, raw_schema))| {
+            .map(|(entity_type_id, schema)| {
                 Ok(EntityTypeInsertion {
                     schema,
-                    raw_schema,
                     closed_schema: Self::create_closed_entity_type(
                         EntityTypeId::new(entity_type_id),
                         &mut available_schemas,
@@ -416,8 +402,7 @@ impl<C: AsClient> PostgresStore<C> {
 
 pub struct EntityTypeInsertion {
     pub schema: EntityType,
-    pub raw_schema: raw::EntityType,
-    pub closed_schema: raw::EntityType,
+    pub closed_schema: EntityType,
 }
 
 #[async_trait]
@@ -467,7 +452,6 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
             let EntityTypeInsertion {
                 schema,
-                raw_schema,
                 closed_schema,
             } = insertion;
 
@@ -483,8 +467,8 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 transaction
                     .insert_entity_type_with_id(
                         ontology_id,
-                        raw_schema,
-                        closed_schema,
+                        &schema,
+                        &closed_schema,
                         metadata.label_property.as_ref(),
                         metadata.icon.as_deref(),
                     )
@@ -728,7 +712,6 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             .change_context(UpdateError)?;
         let EntityTypeInsertion {
             schema,
-            raw_schema,
             closed_schema,
         } = insertions
             .pop()
@@ -737,8 +720,8 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         transaction
             .insert_entity_type_with_id(
                 ontology_id,
-                raw_schema,
-                closed_schema,
+                &schema,
+                &closed_schema,
                 label_property.as_ref(),
                 icon.as_deref(),
             )

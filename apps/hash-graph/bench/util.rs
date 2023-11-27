@@ -18,7 +18,7 @@ use graph_types::{
 };
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
-use type_system::{raw, DataType, EntityType, PropertyType};
+use type_system::{DataType, EntityType, PropertyType};
 
 type Pool = PostgresStorePool<NoTls>;
 pub type Store = <Pool as StorePool>::Store<'static>;
@@ -196,7 +196,6 @@ impl Drop for StoreWrapper {
     }
 }
 
-#[expect(clippy::too_many_lines)]
 pub async fn seed<D, P, E, C>(
     store: &mut PostgresStore<C>,
     account_id: AccountId,
@@ -210,9 +209,8 @@ pub async fn seed<D, P, E, C>(
     C: AsClient,
 {
     for data_type_str in data_types {
-        let data_type_repr: raw::DataType =
-            serde_json::from_str(data_type_str).expect("could not parse data type representation");
-        let data_type = DataType::try_from(data_type_repr).expect("could not parse data type");
+        let data_type: DataType =
+            serde_json::from_str(data_type_str).expect("could not parse data type");
 
         match store
             .create_data_type(
@@ -243,10 +241,8 @@ pub async fn seed<D, P, E, C>(
     }
 
     for property_type_str in property_types {
-        let property_typee_repr: raw::PropertyType = serde_json::from_str(property_type_str)
-            .expect("could not parse property type representation");
-        let property_type =
-            PropertyType::try_from(property_typee_repr).expect("could not parse property type");
+        let property_type: PropertyType =
+            serde_json::from_str(property_type_str).expect("could not parse property type");
 
         match store
             .create_property_type(
@@ -277,10 +273,8 @@ pub async fn seed<D, P, E, C>(
     }
 
     for entity_type_str in entity_types {
-        let entity_type_repr: raw::EntityType = serde_json::from_str(entity_type_str)
-            .expect("could not parse entity type representation");
-        let entity_type =
-            EntityType::try_from(entity_type_repr).expect("could not parse entity type");
+        let entity_type: EntityType =
+            serde_json::from_str(entity_type_str).expect("could not parse entity type");
 
         match store
             .create_entity_type(

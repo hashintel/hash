@@ -26,7 +26,7 @@ use graph_types::{
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;
-use type_system::{raw, EntityType};
+use type_system::EntityType;
 use uuid::Uuid;
 
 use crate::util::{seed, setup, Store, StoreWrapper};
@@ -81,6 +81,7 @@ async fn seed_db(
         [
             entity_type::LINK_V1,
             entity_type::link::FRIEND_OF_V1,
+            entity_type::link::ACQUAINTANCE_OF_V1,
             entity_type::link::WRITTEN_BY_V1,
             entity_type::PERSON_V1,
             entity_type::BOOK_V1,
@@ -90,12 +91,9 @@ async fn seed_db(
 
     let properties: EntityProperties =
         serde_json::from_str(entity::BOOK_V1).expect("could not parse entity");
-    let entity_type_repr: raw::EntityType = serde_json::from_str(entity_type::BOOK_V1)
-        .expect("could not parse entity type representation");
-    let entity_type_id = EntityType::try_from(entity_type_repr)
-        .expect("could not parse entity type")
-        .id()
-        .clone();
+    let entity_type: EntityType =
+        serde_json::from_str(entity_type::BOOK_V1).expect("could not parse entity type");
+    let entity_type_id = entity_type.id().clone();
 
     let owned_by_id = OwnedById::new(account_id.into_uuid());
 

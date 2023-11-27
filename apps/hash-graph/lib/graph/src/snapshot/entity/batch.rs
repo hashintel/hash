@@ -10,7 +10,6 @@ use error_stack::{Result, ResultExt};
 use futures::TryStreamExt;
 use graph_types::knowledge::entity::{Entity, EntityUuid};
 use tokio_postgres::GenericClient;
-use type_system::EntityType;
 use validation::Validate;
 
 use crate::{
@@ -216,15 +215,6 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             .read_closed_schemas(&Filter::All(Vec::new()), None)
             .await
             .change_context(InsertionError)?
-            .map_ok(|(id, schema)| {
-                // TODO: Distinguish between format validation and content validation so it's
-                //       possible to directly use the correct type.
-                //   see https://linear.app/hash/issue/BP-33
-                let entity_type = EntityType::try_from(schema).expect(
-                    "could not convert raw entity type to entity type from schema in database",
-                );
-                (id, entity_type)
-            })
             .try_collect::<HashMap<_, _>>()
             .await
             .change_context(InsertionError)?;

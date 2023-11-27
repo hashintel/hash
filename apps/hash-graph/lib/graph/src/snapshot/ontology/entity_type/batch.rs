@@ -4,10 +4,10 @@ use authorization::{
     schema::{EntityTypeId, EntityTypeRelationAndSubject},
 };
 use error_stack::{Result, ResultExt};
-use futures::{StreamExt, TryStreamExt};
+use futures::TryStreamExt;
 use postgres_types::{Json, ToSql};
 use tokio_postgres::GenericClient;
-use type_system::{raw, EntityType};
+use type_system::EntityType;
 
 use crate::{
     snapshot::{
@@ -205,12 +205,9 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
             )
             .await
             .change_context(InsertionError)?
-            .map(|row| {
-                let schema: Json<raw::EntityType> = row.change_context(InsertionError)?.get(1);
-                // TODO: Distinguish between format validation and content validation so it's
-                //       possible to directly use the raw representation
-                //   see https://linear.app/hash/issue/BP-33
-                EntityType::try_from(schema.0).change_context(InsertionError)
+            .map_ok(|row| {
+                let Json(schema): Json<EntityType> = row.get(1);
+                schema
             })
             .try_collect::<Vec<_>>()
             .await
