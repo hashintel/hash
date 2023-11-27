@@ -55,7 +55,11 @@ where
     V: Send + Sync,
 {
     async fn get(&self, key: &K) -> Option<Result<Arc<V>, Report<QueryError>>> {
-        match self.inner.read().await.get(key).cloned()? {
+        let guard = self.inner.read().await;
+        let access = guard.get(key)?.clone();
+        drop(guard);
+
+        match access {
             Access::Granted(value) => Some(Ok(value)),
             Access::Denied => Some(Err(
                 Report::new(PermissionAssertion).change_context(QueryError)
@@ -86,6 +90,10 @@ where
     }
 }
 
+#[expect(
+    clippy::struct_field_names,
+    reason = "The fields are named after the types they contain"
+)]
 #[derive(Debug)]
 pub struct StoreCache {
     data_types: CacheHashMap<DataTypeId, DataType>,
