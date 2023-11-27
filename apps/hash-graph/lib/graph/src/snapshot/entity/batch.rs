@@ -17,7 +17,10 @@ use crate::{
         entity::{EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityTemporalMetadataRow},
         WriteBatch,
     },
-    store::{crud::Read, query::Filter, AsClient, InsertionError, PostgresStore, StoreProvider},
+    store::{
+        crud::Read, query::Filter, AsClient, InsertionError, PostgresStore, StoreCache,
+        StoreProvider,
+    },
 };
 
 pub enum EntityRowBatch {
@@ -221,6 +224,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
 
         let validator_provider = StoreProvider::<_, NoAuthorization> {
             store: postgres_client,
+            cache: StoreCache::default(),
             authorization: None,
         };
 
