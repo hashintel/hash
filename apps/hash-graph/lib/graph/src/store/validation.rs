@@ -55,11 +55,10 @@ where
 {
     async fn get(&self, key: &K) -> Option<Result<Arc<V>, Report<QueryError>>> {
         let guard = self.inner.read().await;
-        let access = guard.get(key)?.clone();
-        drop(guard);
+        let access = guard.get(key)?;
 
         match access {
-            Access::Granted(value) => Some(Ok(value)),
+            Access::Granted(value) => Some(Ok(Arc::clone(value))),
             Access::Denied => Some(Err(
                 Report::new(PermissionAssertion).change_context(QueryError)
             )),
