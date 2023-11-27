@@ -33,9 +33,8 @@ use hash_map::HashMap;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{
-    raw,
     url::{BaseUrl, VersionedUrl},
-    EntityType, ParseEntityTypeError,
+    EntityType,
 };
 use utoipa::{OpenApi, ToSchema};
 
@@ -386,26 +385,7 @@ where
     let mut entity_types = Vec::with_capacity(schema_iter.size_hint().0);
     let mut partial_metadata = Vec::with_capacity(schema_iter.size_hint().0);
 
-    for schema in schema_iter {
-        let entity_type: EntityType = schema.try_into().map_err(|err: ParseEntityTypeError| {
-            tracing::error!(error=?err, "Provided schema wasn't a valid entity type");
-            status_to_response(Status::new(
-                hash_status::StatusCode::InvalidArgument,
-                Some("Provided schema wasn't a valid entity type.".to_owned()),
-                vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-                    HashMap::from([(
-                        "validationError".to_owned(),
-                        serde_json::to_value(err)
-                            .expect("Could not serialize entity type validation error"),
-                    )]),
-                    // TODO: We should encapsulate these Reasons within the type system, perhaps
-                    //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
-                    //  or perhaps as a big enum, or as an attachment
-                    "INVALID_SCHEMA".to_owned(),
-                ))],
-            ))
-        })?;
-
+    for entity_type in schema_iter {
         domain_validator.validate(&entity_type).map_err(|report| {
             tracing::error!(error=?report, id=entity_type.id().to_string(), "Entity Type ID failed to validate");
             status_to_response(Status::new(
@@ -537,7 +517,7 @@ enum LoadExternalEntityTypeRequest {
     },
     Create {
         #[schema(value_type = VAR_ENTITY_TYPE)]
-        schema: raw::EntityType,
+        schema: EntityType,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         #[schema(value_type = SHARED_BaseUrl)]
         label_property: Option<BaseUrl>,
@@ -632,10 +612,6 @@ where
             label_property,
             icon,
         } => {
-            // TODO: Distinguish between format validation and content validation so it's possible
-            //       to directly use the correct type.
-            //   see https://linear.app/hash/issue/BP-33
-            let schema = EntityType::try_from(schema).map_err(report_to_response)?;
             let record_id = OntologyTypeRecordId::from(schema.id().clone());
 
             if domain_validator.validate_url(schema.id().base_url.as_str()) {

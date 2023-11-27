@@ -1,13 +1,12 @@
 use graph_test_data::{data_type, property_type};
-use type_system::{raw, PropertyType};
+use type_system::PropertyType;
 
 use crate::DatabaseTestWrapper;
 
 #[tokio::test]
 async fn insert() {
-    let age_pt_repr: raw::PropertyType = serde_json::from_str(property_type::AGE_V1)
-        .expect("could not parse property type representation");
-    let age_pt = PropertyType::try_from(age_pt_repr).expect("could not parse property type");
+    let age_pt: PropertyType =
+        serde_json::from_str(property_type::AGE_V1).expect("could not parse property type");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -22,11 +21,8 @@ async fn insert() {
 
 #[tokio::test]
 async fn query() {
-    let favorite_quote_pt_repr: raw::PropertyType =
-        serde_json::from_str(property_type::FAVORITE_QUOTE_V1)
-            .expect("could not parse property type representation");
-    let favorite_quote_pt =
-        PropertyType::try_from(favorite_quote_pt_repr).expect("could not parse property type");
+    let favorite_quote_pt: PropertyType = serde_json::from_str(property_type::FAVORITE_QUOTE_V1)
+        .expect("could not parse property type representation");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -48,15 +44,11 @@ async fn query() {
 
 #[tokio::test]
 async fn update() {
-    let user_id_pt_v1_repr: raw::PropertyType = serde_json::from_str(property_type::USER_ID_V1)
+    let user_id_pt_v1: PropertyType = serde_json::from_str(property_type::USER_ID_V1)
         .expect("could not parse property type representation");
-    let user_id_pt_v1 =
-        PropertyType::try_from(user_id_pt_v1_repr).expect("could not parse property type");
 
-    let user_id_pt_v2_repr: raw::PropertyType = serde_json::from_str(property_type::USER_ID_V2)
+    let user_id_pt_v2: PropertyType = serde_json::from_str(property_type::USER_ID_V2)
         .expect("could not parse property type representation");
-    let user_id_pt_v2 =
-        PropertyType::try_from(user_id_pt_v2_repr).expect("could not parse property type");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database

@@ -8,10 +8,9 @@ use std::error::Error;
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
-use error_stack::Context;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
 use type_system::{
@@ -208,11 +207,7 @@ impl OntologyTypeReference<'_> {
     }
 }
 
-pub trait OntologyType:
-    Sized + TryFrom<Self::Representation, Error = Self::ConversionError>
-{
-    type ConversionError: Context;
-    type Representation: From<Self> + Serialize + for<'de> Deserialize<'de>;
+pub trait OntologyType {
     type Metadata;
 
     fn id(&self) -> &VersionedUrl;
@@ -221,28 +216,8 @@ pub trait OntologyType:
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(
-    deny_unknown_fields,
-    bound(
-        serialize = "S: Clone, S::Metadata: Serialize",
-        deserialize = "S: Deserialize<'de>, S::Metadata: Deserialize<'de>"
-    )
-)]
+#[serde(deny_unknown_fields)]
 pub struct OntologyTypeWithMetadata<S: OntologyType> {
-    #[serde(serialize_with = "serialize_ontology_type")]
     pub schema: S,
     pub metadata: S::Metadata,
-}
-
-fn serialize_ontology_type<T, S>(
-    ontology_type: &T,
-    serializer: S,
-) -> std::result::Result<S::Ok, S::Error>
-where
-    T: OntologyType + Clone,
-    S: Serializer,
-{
-    // This clone is necessary because `Serialize` requires us to take the param by reference here
-    //  even though we only use it in places where we could move
-    T::Representation::from(ontology_type.clone()).serialize(serializer)
 }

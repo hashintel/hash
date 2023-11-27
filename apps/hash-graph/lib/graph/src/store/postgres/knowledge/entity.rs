@@ -30,7 +30,7 @@ use postgres_types::Json;
 use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp};
 #[cfg(hash_graph_test_environment)]
 use tokio_postgres::GenericClient;
-use type_system::{raw, url::VersionedUrl, EntityType};
+use type_system::{url::VersionedUrl, EntityType};
 use uuid::Uuid;
 use validation::{EntityValidationError, Validate};
 
@@ -578,12 +578,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     )
                     .await
                     .change_context(QueryError)?
-                    .and_then(|(_, raw_type)| async move {
-                        // TODO: Distinguish between format validation and content validation so
-                        //       it's possible to directly use the correct type.
-                        //   see https://linear.app/hash/issue/BP-33
-                        EntityType::try_from(raw_type).change_context(QueryError)
-                    })
+                    .map_ok(|(_, raw_type)| raw_type)
                     .try_collect::<Vec<EntityType>>()
                     .await?;
 
@@ -987,41 +982,59 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(UpdateError)
         })?;
 
-        let link_data = transaction
-            .as_client()
-            .query_opt(
-                "SELECT left_web_id, left_entity_uuid, right_web_id, right_entity_uuid
-                 FROM entity_has_left_entity
-                 JOIN entity_has_right_entity USING (web_id, entity_uuid)
-                 WHERE web_id = $1 AND entity_uuid = $2;",
-                &[&entity_id.owned_by_id, &entity_id.entity_uuid],
-            )
-            .await
-            .change_context(UpdateError)?
-            .map(|row| LinkData {
-                left_entity_id: EntityId {
-                    owned_by_id: row.get(0),
-                    entity_uuid: row.get(1),
-                },
-                right_entity_id: EntityId {
-                    owned_by_id: row.get(2),
-                    entity_uuid: row.get(3),
-                },
-                order: link_order,
-            });
+        // let link_data = transaction
+        //     .as_client()
+        //     .query_opt(
+        //         "SELECT left_web_id, left_entity_uuid, right_web_id, right_entity_uuid
+        //          FROM entity_has_left_entity
+        //          JOIN entity_has_right_entity USING (web_id, entity_uuid)
+        //          WHERE web_id = $1 AND entity_uuid = $2;",
+        //         &[&entity_id.owned_by_id, &entity_id.entity_uuid],
+        //     )
+        //     .await
+        //     .change_context(UpdateError)?
+        //     .map(|row| LinkData {
+        //         left_entity_id: EntityId {
+        //             owned_by_id: row.get(0),
+        //             entity_uuid: row.get(1),
+        //         },
+        //         right_entity_id: EntityId {
+        //             owned_by_id: row.get(2),
+        //             entity_uuid: row.get(3),
+        //         },
+        //         order: link_order,
+        //     });
 
-        transaction
-            .validate_entity(
-                actor_id,
-                authorization_api,
-                Consistency::FullyConsistent,
-                EntityValidationType::Schema(&closed_schema),
-                &properties,
-                link_data.as_ref(),
+        // TODO: Validate source and target entities when updating a link.
+        //   see https://linear.app/hash/issue/H-1413
+        properties
+            .validate(
+                &closed_schema,
+                &StoreProvider {
+                    store: &transaction,
+                    authorization: Some((
+                        authorization_api,
+                        actor_id,
+                        Consistency::FullyConsistent,
+                    )),
+                },
             )
             .await
             .change_context(UpdateError)
             .attach(StatusCode::InvalidArgument)?;
+
+        // transaction
+        //     .validate_entity(
+        //         actor_id,
+        //         authorization_api,
+        //         Consistency::FullyConsistent,
+        //         EntityValidationType::Schema(&closed_schema),
+        //         &properties,
+        //         link_data.as_ref(),
+        //     )
+        //     .await
+        //     .change_context(UpdateError)
+        //     .attach(StatusCode::InvalidArgument)?;
 
         transaction.commit().await.change_context(UpdateError)?;
 
@@ -1097,7 +1110,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .await
             .change_context(InsertionError)?;
 
-        let entity_schema: Json<raw::EntityType> = self
+        let Json(entity_type) = self
             .as_client()
             .query_one(
                 "SELECT closed_schema FROM entity_types WHERE ontology_id = $1;",
@@ -1106,7 +1119,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .await
             .change_context(InsertionError)?
             .get(0);
-        let entity_type = EntityType::try_from(entity_schema.0).change_context(InsertionError)?;
 
         Ok((edition_id, entity_type))
     }

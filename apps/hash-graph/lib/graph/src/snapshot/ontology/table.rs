@@ -5,7 +5,7 @@ use graph_types::{
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
-use type_system::raw;
+use type_system::{DataType, EntityType, PropertyType};
 use uuid::Uuid;
 
 #[derive(Debug, ToSql)]
@@ -43,14 +43,14 @@ pub struct OntologyTemporalMetadataRow {
 #[postgres(name = "data_types")]
 pub struct DataTypeRow {
     pub ontology_id: Uuid,
-    pub schema: Json<raw::DataType>,
+    pub schema: Json<DataType>,
 }
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "property_types")]
 pub struct PropertyTypeRow {
     pub ontology_id: Uuid,
-    pub schema: Json<raw::PropertyType>,
+    pub schema: Json<PropertyType>,
 }
 
 #[derive(Debug, ToSql)]
@@ -73,8 +73,8 @@ pub struct PropertyTypeConstrainsPropertiesOnRow {
 #[postgres(name = "entity_types")]
 pub struct EntityTypeRow {
     pub ontology_id: Uuid,
-    pub schema: Json<raw::EntityType>,
-    pub closed_schema: Json<raw::EntityType>,
+    pub schema: Json<EntityType>,
+    pub closed_schema: Json<EntityType>,
     pub label_property: Option<String>,
     pub icon: Option<String>,
 }

@@ -57,7 +57,7 @@ use graph_types::{
 use temporal_versioning::{DecisionTime, LimitedTemporalBound, TemporalBound, Timestamp};
 use time::{format_description::well_known::Iso8601, Duration, OffsetDateTime};
 use tokio_postgres::{NoTls, Transaction};
-use type_system::{raw, url::VersionedUrl, DataType, EntityType, PropertyType};
+use type_system::{url::VersionedUrl, DataType, EntityType, PropertyType};
 use uuid::Uuid;
 
 pub struct DatabaseTestWrapper {
@@ -141,9 +141,8 @@ impl DatabaseTestWrapper {
             .expect("could not create web id");
 
         let data_types_iter = propertys.into_iter().map(|data_type_str| {
-            let data_type_repr: raw::DataType = serde_json::from_str(data_type_str)
+            let data_type: DataType = serde_json::from_str(data_type_str)
                 .expect("could not parse data type representation");
-            let data_type = DataType::try_from(data_type_repr).expect("could not parse data type");
 
             let metadata = PartialOntologyElementMetadata {
                 record_id: data_type.id().clone().into(),
@@ -164,10 +163,8 @@ impl DatabaseTestWrapper {
             .await?;
 
         let property_types_iter = property_types.into_iter().map(|property_type_str| {
-            let property_type_repr: raw::PropertyType = serde_json::from_str(property_type_str)
+            let property_type: PropertyType = serde_json::from_str(property_type_str)
                 .expect("could not parse property type representation");
-            let property_type =
-                PropertyType::try_from(property_type_repr).expect("could not parse property type");
 
             let metadata = PartialOntologyElementMetadata {
                 record_id: property_type.id().clone().into(),
@@ -188,10 +185,8 @@ impl DatabaseTestWrapper {
             .await?;
 
         let entity_types_iter = entity_types.into_iter().map(|entity_type_str| {
-            let entity_type_repr: raw::EntityType = serde_json::from_str(entity_type_str)
+            let entity_type: EntityType = serde_json::from_str(entity_type_str)
                 .expect("could not parse entity type representation");
-            let entity_type =
-                EntityType::try_from(entity_type_repr).expect("could not parse entity type");
 
             let metadata = PartialEntityTypeMetadata {
                 record_id: entity_type.id().clone().into(),
