@@ -1,15 +1,12 @@
 use std::{io, time::Duration};
 
-use opentelemetry::{
-    global,
-    sdk::{
-        propagation::TraceContextPropagator,
-        trace::{RandomIdGenerator, Sampler, Tracer},
-        Resource,
-    },
-    KeyValue,
-};
+use opentelemetry::{global, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
+use opentelemetry_sdk::{
+    propagation::TraceContextPropagator,
+    trace::{RandomIdGenerator, Sampler, Tracer},
+    Resource,
+};
 use tonic::metadata::MetadataMap;
 use tracing::{Event, Subscriber};
 use tracing_opentelemetry::OpenTelemetryLayer;
@@ -83,7 +80,7 @@ fn configure_opentelemetry_layer(
     //   - OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT
     //   - OTEL_SPAN_EVENT_COUNT_LIMIT
     //   - OTEL_SPAN_LINK_COUNT_LIMIT
-    let trace_config = opentelemetry::sdk::trace::config()
+    let trace_config = opentelemetry_sdk::trace::config()
         .with_sampler(Sampler::AlwaysOn)
         .with_id_generator(RandomIdGenerator::default())
         .with_resource(Resource::new(vec![KeyValue::new("service.name", "graph")]));
@@ -93,7 +90,7 @@ fn configure_opentelemetry_layer(
         .tracing()
         .with_exporter(pipeline)
         .with_trace_config(trace_config)
-        .install_batch(opentelemetry::runtime::Tokio)
+        .install_batch(opentelemetry_sdk::runtime::Tokio)
         .expect("failed to create OTLP tracer, check configuration values");
 
     tracing_opentelemetry::layer().with_tracer(tracer)
