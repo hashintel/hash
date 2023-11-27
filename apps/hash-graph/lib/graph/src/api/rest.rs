@@ -25,11 +25,12 @@ use async_trait::async_trait;
 use authorization::{AuthorizationApi, AuthorizationApiPool};
 use axum::{
     extract::{FromRequestParts, Path},
-    http::{request::Parts, StatusCode},
+    http::{request::Parts, uri::PathAndQuery, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
     Extension, Json, Router,
 };
+use base64::Engine;
 use error_stack::{Report, ResultExt};
 use graph_types::{
     account::AccountId,
@@ -40,9 +41,10 @@ use graph_types::{
     provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
 };
 use hash_status::Status;
+use hyper::Uri;
 use include_dir::{include_dir, Dir};
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
@@ -71,7 +73,7 @@ use crate::{
         },
     },
     ontology::{domain_validator::DomainValidator, Selector},
-    store::{error::VersionedUrlAlreadyExists, QueryError, Store, StorePool, TypeFetcher},
+    store::{error::VersionedUrlAlreadyExists, Store, StorePool, TypeFetcher},
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
@@ -114,6 +116,67 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct PermissionResponse {
     has_permission: bool,
+}
+
+#[derive(Debug)]
+pub struct Cursor<T>(pub T);
+
+impl<T: Serialize> Cursor<T> {
+    fn link_header(
+        &self,
+        relation: &'static str,
+        uri: Uri,
+        limit: usize,
+    ) -> Result<HeaderValue, Response> {
+        let mut uri_parts = uri.into_parts();
+        let json = serde_json::to_string(&self.0).map_err(report_to_response)?;
+        let encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(json);
+        uri_parts.path_and_query = Some(
+            PathAndQuery::try_from(format!(
+                "{}?after={encoded}&limit={limit}",
+                uri_parts.path_and_query.expect("path is missing").path(),
+            ))
+            .map_err(report_to_response)?,
+        );
+        let uri = Uri::from_parts(uri_parts).map_err(report_to_response)?;
+        HeaderValue::from_str(&format!(r#"<{uri}>; rel="{relation}""#)).map_err(report_to_response)
+    }
+}
+
+impl<T> Serialize for Cursor<T>
+where
+    T: Serialize,
+{
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let json = serde_json::to_string(&self.0).map_err(serde::ser::Error::custom)?;
+        let base64_encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(json);
+        serializer.serialize_str(&base64_encoded)
+    }
+}
+
+impl<'de, T> Deserialize<'de> for Cursor<T>
+where
+    T: DeserializeOwned,
+{
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let json = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .decode(String::deserialize(deserializer)?)
+            .map_err(serde::de::Error::custom)?;
+        serde_json::from_slice(&json)
+            .map_err(serde::de::Error::custom)
+            .map(Self)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(
+    rename_all = "camelCase",
+    deny_unknown_fields,
+    bound(deserialize = "T: DeserializeOwned")
+)]
+struct Pagination<T> {
+    after: Option<Cursor<T>>,
+    limit: Option<usize>,
 }
 
 #[async_trait]
@@ -190,16 +253,6 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
         entity::EntityResource::documentation(),
         web::WebResource::documentation(),
     ]
-}
-
-fn report_to_status_code<C>(report: &Report<C>) -> StatusCode {
-    let mut status_code = StatusCode::INTERNAL_SERVER_ERROR;
-
-    if let Some(error) = report.downcast_ref::<QueryError>() {
-        tracing::error!(%error, "Unable to query from data store");
-        status_code = StatusCode::UNPROCESSABLE_ENTITY;
-    }
-    status_code
 }
 
 pub struct RestRouterDependencies<S, A>
