@@ -1,6 +1,6 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph";
 import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import {
   createOrgMembership,

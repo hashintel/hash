@@ -30,24 +30,30 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "start": "cross-env NODE_ENV=production node --max-old-space-size=2048 ./node_modules/.bin/ts-node --transpile-only ./src/main.ts"
+    "start": "cross-env NODE_ENV=production node --max-old-space-size=2048 ./node_modules/.bin/ts-node --transpile-only ./src/main.ts",
+    "test:unit": "jest"
   },
   "dependencies": {
-    "@apps/hash-api": "0.0.0-private",
     "@blockprotocol/type-system": "0.1.1",
+    "@local/advanced-types": "0.0.0-private",
+    "@local/hash-backend-utils": "0.0.0-private",
+    "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/status": "0.0.0-private",
     "@temporalio/activity": "1.8.1",
     "@temporalio/worker": "1.8.1",
     "@temporalio/workflow": "1.8.1",
+    "dedent": "0.7.0",
     "dotenv-flow": "3.2.0",
-    "openai": "3.3.0",
+    "openai": "4.20.0",
     "ts-node": "10.9.1",
     "typescript": "5.1.6"
   },
   "devDependencies": {
-    "@apps/hash-graph": "0.0.0-private",
     "@local/eslint-config": "0.0.0-private",
+    "@local/hash-graph-client": "0.0.0-private",
+    "@local/hash-subgraph": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
+    "@types/dedent": "0.7.0",
     "@types/dotenv-flow": "3.2.0",
     "eslint": "8.33.0",
     "ts-node-dev": "2.0.0"
