@@ -11,17 +11,9 @@ import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-
 import { AccountId, BaseUrl, EntityId, OwnedById } from "@local/hash-subgraph";
 
 import {
-  attachmentToEntity,
-  commentToEntity,
-  customViewToEntity,
-  cycleToEntity,
-  documentToEntity,
-  issueLabelToEntity,
   mapHashEntityToLinearUpdateInput,
   mapLinearDataToEntity,
   mapLinearDataToEntityWithOutgoingLinks,
-  projectMilestoneToEntity,
-  projectToEntity,
 } from "./mappings";
 import {
   archiveEntity,
@@ -345,105 +337,6 @@ export const createLinearIntegrationActivities = ({
 
   async readLinearTeams({ apiKey }: ParamsWithApiKey): Promise<Team[]> {
     return createLinearClient(apiKey).teams().then(readNodes);
-  },
-
-  async readLinearCycles({
-    apiKey,
-    filter,
-  }: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<object[]> {
-    const cyclesQueryVariables: LinearDocument.CyclesQueryVariables = {
-      filter: {},
-    };
-    if (filter?.teamId) {
-      cyclesQueryVariables.filter!.team = { id: { eq: filter.teamId } };
-    }
-    return createLinearClient(apiKey)
-      .cycles(cyclesQueryVariables)
-      .then(readNodes)
-      .then((cycles) => cycles.map(cycleToEntity));
-  },
-
-  async readCustomViews({ apiKey }: ParamsWithApiKey): Promise<object[]> {
-    return createLinearClient(apiKey)
-      .customViews()
-      .then(readNodes)
-      .then((customViews) => customViews.map(customViewToEntity));
-  },
-
-  async readProjects({ apiKey }: ParamsWithApiKey): Promise<object[]> {
-    return createLinearClient(apiKey)
-      .projects()
-      .then(readNodes)
-      .then((projects) => projects.map(projectToEntity));
-  },
-
-  async readLinearComments({
-    apiKey,
-    filter,
-  }: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<object[]> {
-    const commentsQueryVariables: LinearDocument.CommentsQueryVariables = {
-      filter: {},
-    };
-    if (filter?.teamId) {
-      commentsQueryVariables.filter!.issue = {
-        team: { id: { eq: filter.teamId } },
-      };
-    }
-    return createLinearClient(apiKey)
-      .comments(commentsQueryVariables)
-      .then(readNodes)
-      .then((comments) => comments.map(commentToEntity));
-  },
-
-  async readLinearProjectMilestones({
-    apiKey,
-  }: ParamsWithApiKey): Promise<object[]> {
-    const linearClient = createLinearClient(apiKey);
-
-    return (
-      await Promise.all(
-        (await linearClient.projects().then(readNodes)).map(
-          async (project) =>
-            await project
-              .projectMilestones()
-              .then(readNodes)
-              .then((projectMilestones) =>
-                projectMilestones.map(projectMilestoneToEntity),
-              ),
-        ),
-      )
-    ).flat();
-  },
-
-  async readLinearDocuments({ apiKey }: ParamsWithApiKey): Promise<object[]> {
-    return createLinearClient(apiKey)
-      .documents()
-      .then(readNodes)
-      .then((documents) => documents.map(documentToEntity));
-  },
-
-  async readLinearIssueLabels({
-    apiKey,
-    filter,
-  }: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<object[]> {
-    const issueLabelsQueryVariables: LinearDocument.IssueLabelsQueryVariables =
-      { filter: {} };
-    if (filter?.teamId) {
-      issueLabelsQueryVariables.filter = {
-        team: { id: { eq: filter.teamId } },
-      };
-    }
-    return createLinearClient(apiKey)
-      .issueLabels()
-      .then(readNodes)
-      .then((issueLabels) => issueLabels.map(issueLabelToEntity));
-  },
-
-  async readLinearAttachments({ apiKey }: ParamsWithApiKey): Promise<object[]> {
-    return createLinearClient(apiKey)
-      .attachments()
-      .then(readNodes)
-      .then((attachments) => attachments.map(attachmentToEntity));
   },
 
   async updateLinearData({

@@ -1,15 +1,5 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
-  Attachment,
-  Comment,
-  CustomView,
-  Cycle,
-  Document,
-  IssueLabel,
-  Project,
-  ProjectMilestone,
-} from "@linear/sdk";
-import {
   getLinearMappingByLinearType,
   SupportedLinearTypeNames,
   SupportedLinearTypes,
@@ -202,38 +192,4 @@ export const mapHashEntityToLinearUpdateInput = async <
   }
 
   return updateInput;
-};
-
-export const issueLabelToEntity = (_issueLabel: IssueLabel): object => {
-  return {};
-};
-
-export const cycleToEntity = (_cycle: Cycle): object => {
-  return {};
-};
-
-export const customViewToEntity = (_customView: CustomView): object => {
-  return {};
-};
-
-export const projectToEntity = (_project: Project): object => {
-  return {};
-};
-
-export const commentToEntity = (_comment: Comment): object => {
-  return {};
-};
-
-export const projectMilestoneToEntity = (
-  _projectMilestone: ProjectMilestone,
-): object => {
-  return {};
-};
-
-export const documentToEntity = (_document: Document): object => {
-  return {};
-};
-
-export const attachmentToEntity = (_attachment: Attachment): object => {
-  return {};
 };
