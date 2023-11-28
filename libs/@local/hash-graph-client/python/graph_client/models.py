@@ -1054,7 +1054,6 @@ class EntityMetadata(BaseModel):
     """
     model_config = ConfigDict(populate_by_name=True)
     archived: bool
-    draft: bool
     entity_type_id: str = Field(..., alias='entityTypeId')
     provenance: ProvenanceMetadata
     record_id: EntityRecordId = Field(..., alias='recordId')

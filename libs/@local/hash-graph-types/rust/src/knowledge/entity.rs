@@ -112,6 +112,7 @@ pub struct EntityMetadata {
     entity_type_id: VersionedUrl,
     provenance: ProvenanceMetadata,
     archived: bool,
+    #[serde(skip)]
     draft: bool,
 }
 
