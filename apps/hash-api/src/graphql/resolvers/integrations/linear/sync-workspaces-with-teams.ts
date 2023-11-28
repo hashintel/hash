@@ -146,10 +146,14 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
           workspaceEntityId as AccountGroupEntityId,
         );
 
-        await addAccountGroupMember(dataSources, authentication, {
-          accountGroupId,
-          accountId: systemAccountId,
-        });
+        try {
+          await addAccountGroupMember(dataSources, authentication, {
+            accountGroupId,
+            accountId: systemAccountId,
+          });
+        } catch {
+          /** @todo: re-throw error if this isn't a "already in account group" error */
+        }
       } else {
         /**
          * @todo fix this by finding a way of giving the system account
