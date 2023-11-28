@@ -1,12 +1,9 @@
-import { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
-import { User } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Tabs } from "webextension-polyfill";
 
 import { useSessionStorage } from "../../../shared/use-storage-sync";
 import { Action } from "./action";
 import { CreateEntityIcon } from "./infer-entities-action/create-entity-icon";
-import { InferenceStatus } from "./infer-entities-action/inference-status";
-import { InferenceStatuses } from "./infer-entities-action/inference-statuses";
+import { InferenceRequests } from "./infer-entities-action/inference-requests";
 import { SelectTypesAndInfer } from "./infer-entities-action/select-types-and-infer";
 
 export const InferEntitiesAction = ({
@@ -31,7 +28,7 @@ export const InferEntitiesAction = ({
         setTargetEntityTypes={setTargetEntityTypes}
         targetEntityTypes={targetEntityTypes}
       />
-      <InferenceStatuses />
+      <InferenceRequests />
     </Action>
   );
 };

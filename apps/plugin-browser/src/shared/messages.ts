@@ -1,14 +1,14 @@
-import { VersionedUrl } from "@blockprotocol/graph";
+import { EntityType } from "@blockprotocol/graph";
 
 export type InferEntitiesRequest = {
-  entityTypeIds: VersionedUrl[];
+  entityTypes: EntityType[];
   sourceTitle: string;
   sourceUrl: string;
   type: "infer-entities";
   textInput: string;
 };
 
-type GetSiteContentRequest = {
+export type GetSiteContentRequest = {
   type: "get-site-content";
 };
 

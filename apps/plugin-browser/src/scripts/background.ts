@@ -1,6 +1,11 @@
 import browser from "webextension-polyfill";
 
-import { Message } from "../shared/messages";
+import {
+  GetSiteContentRequest,
+  GetSiteContentReturn,
+  Message,
+} from "../shared/messages";
+import { getFromSessionStorage } from "../shared/storage";
 import { inferEntities } from "./background/infer-entities";
 
 /**
@@ -29,6 +34,55 @@ browser.runtime.onMessage.addListener((message: Message, sender) => {
   }
 
   if (message.type === "infer-entities") {
-    void inferEntities(message);
+    void inferEntities(message, "user");
+  }
+});
+
+browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status === "complete") {
+    getFromSessionStorage("passiveInference")
+      .then(async (passiveInference) => {
+        if (passiveInference?.enabled) {
+          const targetEntityTypes =
+            await getFromSessionStorage("targetEntityTypes");
+
+          if (!targetEntityTypes) {
+            return;
+          }
+
+          const pageDetails = await (browser.tabs.sendMessage(tabId, {
+            type: "get-site-content",
+          } satisfies GetSiteContentRequest) as Promise<GetSiteContentReturn>);
+
+          const inferenceRequests =
+            await getFromSessionStorage("inferenceRequests");
+
+          const pendingRequest = inferenceRequests?.find((request) => {
+            return (
+              request.sourceUrl === pageDetails.pageUrl &&
+              request.status === "pending" &&
+              request.trigger === "passive"
+            );
+          });
+
+          if (pendingRequest) {
+            return;
+          }
+
+          void inferEntities(
+            {
+              entityTypes: targetEntityTypes,
+              sourceTitle: pageDetails.pageTitle,
+              sourceUrl: pageDetails.pageUrl,
+              textInput: pageDetails.innerText,
+              type: "infer-entities",
+            },
+            "passive",
+          );
+        }
+      })
+      .catch((err) => {
+        console.error(`Passive inference error: ${(err as Error).message}`);
+      });
   }
 });

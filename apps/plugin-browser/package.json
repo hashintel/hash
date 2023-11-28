@@ -21,7 +21,6 @@
     "dev:firefox": "BROWSER=firefox node utils/webserver.js"
   },
   "dependencies": {
-    "@blockprotocol/type-system": "0.1.1",
     "@hashintel/block-design-system": "0.0.1",
     "@hashintel/design-system": "0.0.7",
     "@local/hash-isomorphic-utils": "0.0.0-private",
@@ -29,9 +28,9 @@
     "@mui/material": "5.14.11",
     "@sentry/browser": "7.74.1",
     "bowser": "2.11.0",
+    "date-fns": "2.28.0",
     "fractional-indexing": "2.1.0",
     "graphql": "16.8.1",
-    "pluralize": "8.0.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "uuid": "9.0.1",

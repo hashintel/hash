@@ -18,10 +18,17 @@ browser.runtime.onMessage.addListener(
       const docContent =
         document.querySelector("main") || document.querySelector("body");
 
+      /**
+       * Take the URL without any anchor hash on the assumption that it does not affect page content.
+       * Helps avoid making duplicate requests for the same page.
+       */
+      const urlObject = new URL(window.location.href);
+      const pageUrl = urlObject.href.replace(urlObject.hash, "");
+
       sendResponse({
         innerText: docContent?.innerText ?? "",
         pageTitle: document.title,
-        pageUrl: window.location.href,
+        pageUrl,
       } satisfies GetSiteContentReturn);
       return;
     }

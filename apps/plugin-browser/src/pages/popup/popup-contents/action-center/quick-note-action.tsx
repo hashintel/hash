@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/graph";
 import { Button } from "@hashintel/design-system";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
@@ -20,7 +20,7 @@ import {
   CreateEntityMutationVariables,
 } from "../../../../graphql/api-types.gen";
 import { createEntityMutation } from "../../../../graphql/queries/entity.queries";
-import { queryGraphQlApi } from "../../../../shared/query-graph-ql-api";
+import { queryGraphQlApi } from "../../../../shared/query-graphql-api";
 import { useSessionStorage } from "../../../shared/use-storage-sync";
 import { Action } from "./action";
 import { QuickNoteIcon } from "./quick-note-action/quick-note-icon";

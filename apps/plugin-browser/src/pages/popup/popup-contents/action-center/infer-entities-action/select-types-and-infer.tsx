@@ -1,14 +1,16 @@
 import { EntityType, VersionedUrl } from "@blockprotocol/graph";
 import { Autocomplete, Button, Chip, MenuItem } from "@hashintel/design-system";
+import { EntityTypeRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   autocompleteClasses,
   Box,
+  Checkbox,
   outlinedInputClasses,
-  Skeleton,
+  Stack,
   Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import browser, { Tabs } from "webextension-polyfill";
 
 import {
@@ -16,9 +18,11 @@ import {
   GetEntityTypesQueryVariables,
 } from "../../../../../graphql/api-types.gen";
 import { getEntityTypesQuery } from "../../../../../graphql/queries/entity-type.queries";
-import { GetSiteContentReturn, Message } from "../../../../../shared/messages";
-import { queryGraphQlApi } from "../../../../../shared/query-graph-ql-api";
-import { InferenceStatus } from "../../../../../shared/storage";
+import {
+  GetSiteContentRequest,
+  GetSiteContentReturn,
+} from "../../../../../shared/messages";
+import { queryGraphQlApi } from "../../../../../shared/query-graphql-api";
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
@@ -31,11 +35,16 @@ import { useSessionStorage } from "../../../../shared/use-storage-sync";
 const getEntityTypes = () => {
   return queryGraphQlApi<GetEntityTypesQuery, GetEntityTypesQueryVariables>(
     getEntityTypesQuery,
-  ).then(({ data }: { data: { queryEntityTypes } }) => {
-    const subgraph = data.queryEntityTypes;
-    return getRoots(subgraph).map(
-      (typeWithMetadata) => typeWithMetadata.schema,
-    );
+  ).then(({ data: { queryEntityTypes } }) => {
+    return getRoots<EntityTypeRootType>(
+      /**
+       * Asserted for two reasons:
+       * 1. Inconsistencies between Graph API and hash-subgraph types
+       * 2. The function signature of getRoots asks for all fields on a subgraph, when it only needs roots and vertices
+       * @todo fix this in the Block Protocol package and then hash-subgraph
+       */
+      queryEntityTypes as Subgraph<EntityTypeRootType>,
+    ).map((typeWithMetadata) => typeWithMetadata.schema);
   });
 };
 
@@ -52,16 +61,12 @@ const getChipLabelFromId = (id: VersionedUrl) => {
 
 type SelectTypesAndInferProps = {
   activeTab?: Tabs.Tab | null;
-  inferenceStatus: InferenceStatus;
-  resetInferenceStatus: () => void;
   setTargetEntityTypes: (types: EntityType[]) => void;
   targetEntityTypes: EntityType[];
 };
 
 export const SelectTypesAndInfer = ({
   activeTab,
-  inferenceStatus,
-  resetInferenceStatus,
   setTargetEntityTypes,
   targetEntityTypes,
 }: SelectTypesAndInferProps) => {
@@ -70,6 +75,27 @@ export const SelectTypesAndInfer = ({
     [],
   );
   const [selectOpen, setSelectOpen] = useState(false);
+  const [inferenceRequests] = useSessionStorage("inferenceRequests", []);
+
+  const [passiveInferenceConfig, setPassiveInferenceConfig] = useSessionStorage(
+    "passiveInference",
+    { conditions: [], enabled: false },
+  );
+
+  const pendingInferenceRequest = useMemo(
+    () =>
+      inferenceRequests.some(({ entityTypes, sourceUrl, status }) => {
+        return (
+          entityTypes.length === targetEntityTypes.length &&
+          entityTypes.every((type) =>
+            targetEntityTypes.some((targetType) => targetType.$id === type.$id),
+          ) &&
+          sourceUrl === activeTab?.url &&
+          status === "pending"
+        );
+      }),
+    [activeTab, inferenceRequests, targetEntityTypes],
+  );
 
   useEffect(() => {
     void getEntityTypes().then((entityTypes) => {
@@ -84,22 +110,28 @@ export const SelectTypesAndInfer = ({
       throw new Error("No active tab");
     }
 
-    const message: Message = {
+    const message: GetSiteContentRequest = {
       type: "get-site-content",
     };
 
-    const siteContent = await (browser.tabs.sendMessage(
-      activeTab.id,
-      message,
-    ) as Promise<GetSiteContentReturn>);
+    try {
+      const siteContent = await (browser.tabs.sendMessage(
+        activeTab.id,
+        message,
+      ) as Promise<GetSiteContentReturn>);
 
-    void sendMessageToBackground({
-      entityTypeIds: targetEntityTypes.map((type) => type.$id),
-      sourceTitle: siteContent.pageTitle,
-      sourceUrl: siteContent.pageUrl,
-      textInput: siteContent.innerText,
-      type: "infer-entities",
-    });
+      void sendMessageToBackground({
+        entityTypes: targetEntityTypes,
+        sourceTitle: siteContent.pageTitle,
+        sourceUrl: siteContent.pageUrl,
+        textInput: siteContent.innerText,
+        type: "infer-entities",
+      });
+    } catch (err) {
+      alert(
+        "Could not access page content – you may need to reload the tab if you just installed the extension, or it may be a page which your browser does not allow extensions to access.",
+      );
+    }
   };
 
   return (
@@ -110,163 +142,167 @@ export const SelectTypesAndInfer = ({
         void inferEntitiesFromPage();
       }}
     >
-      {inferenceStatus.status === "error" ? (
-        <Typography
-          sx={{ color: ({ palette }) => palette.error.main, fontSize: 14 }}
-        >
-          {inferenceStatus.message}
-        </Typography>
-      ) : inferenceStatus.status === "pending" ? (
-        <Skeleton variant="rectangular" height={54} sx={{ borderRadius: 1 }} />
-      ) : (
-        <Autocomplete
-          autoFocus={false}
-          componentsProps={{
-            paper: {
-              sx: {
-                p: 0,
-                "@media (prefers-color-scheme: dark)": {
-                  background: darkModeInputBackgroundColor,
-                  borderColor: darkModeBorderColor,
-                },
-              },
-            },
-            popper: { placement: "top" },
-          }}
-          getOptionLabel={(option) => `${option.title}-${option.$id}`}
-          inputProps={{
-            endAdornment: <div />,
-            placeholder: "Search for types...",
-            sx: () => ({
-              height: "auto",
+      <Autocomplete
+        autoFocus={false}
+        componentsProps={{
+          paper: {
+            sx: {
+              p: 0,
               "@media (prefers-color-scheme: dark)": {
                 background: darkModeInputBackgroundColor,
+                borderColor: darkModeBorderColor,
+              },
+            },
+          },
+          popper: { placement: "top" },
+        }}
+        getOptionLabel={(option) => `${option.title}-${option.$id}`}
+        inputProps={{
+          endAdornment: <div />,
+          placeholder: "Search for types...",
+          sx: () => ({
+            height: "auto",
+            "@media (prefers-color-scheme: dark)": {
+              background: darkModeInputBackgroundColor,
 
-                [`.${outlinedInputClasses.notchedOutline}`]: {
-                  border: `1px solid ${darkModeBorderColor} !important`,
-                },
+              [`.${outlinedInputClasses.notchedOutline}`]: {
+                border: `1px solid ${darkModeBorderColor} !important`,
+              },
 
-                [`.${outlinedInputClasses.input}`]: {
-                  color: darkModeInputColor,
+              [`.${outlinedInputClasses.input}`]: {
+                color: darkModeInputColor,
 
-                  "&::placeholder": {
-                    color: `${darkModePlaceholderColor} !important`,
-                  },
+                "&::placeholder": {
+                  color: `${darkModePlaceholderColor} !important`,
                 },
               },
-            }),
-          }}
-          isOptionEqualToValue={(option, value) => option.$id === value.$id}
-          ListboxProps={{
-            sx: {
-              maxHeight: 240,
             },
-          }}
-          modifiers={[
-            {
-              name: "flip",
-              enabled: false,
-            },
-          ]}
-          multiple
-          open={selectOpen}
-          onChange={(_event, value) => {
-            setTargetEntityTypes(value);
-            setSelectOpen(false);
-          }}
-          onClose={() => setSelectOpen(false)}
-          onOpen={() => setSelectOpen(true)}
-          options={allEntityTypes}
-          renderOption={(props, type) => (
-            <MenuItem
-              {...props}
-              key={type.$id}
-              value={type.$id}
-              sx={({ palette }) => ({
-                minHeight: 0,
-                borderBottom: `1px solid ${palette.gray[20]}`,
-                "@media (prefers-color-scheme: dark)": {
-                  borderBottom: `1px solid ${darkModeBorderColor}`,
+          }),
+        }}
+        isOptionEqualToValue={(option, value) => option.$id === value.$id}
+        ListboxProps={{
+          sx: {
+            maxHeight: 240,
+          },
+        }}
+        modifiers={[
+          {
+            name: "flip",
+            enabled: false,
+          },
+        ]}
+        multiple
+        open={selectOpen}
+        onChange={(_event, value) => {
+          setTargetEntityTypes(value);
+          setSelectOpen(false);
+        }}
+        onClose={() => setSelectOpen(false)}
+        onOpen={() => setSelectOpen(true)}
+        options={allEntityTypes}
+        renderOption={(props, type) => (
+          <MenuItem
+            {...props}
+            key={type.$id}
+            value={type.$id}
+            sx={({ palette }) => ({
+              minHeight: 0,
+              borderBottom: `1px solid ${palette.gray[20]}`,
+              "@media (prefers-color-scheme: dark)": {
+                borderBottom: `1px solid ${darkModeBorderColor}`,
 
-                  "&:hover": {
-                    background: darkModeInputBackgroundColor,
+                "&:hover": {
+                  background: darkModeInputBackgroundColor,
+                },
+
+                [`&.${autocompleteClasses.option}`]: {
+                  borderRadius: 0,
+                  my: 0.25,
+
+                  [`&[aria-selected="true"]`]: {
+                    backgroundColor: `${palette.primary.main} !important`,
+                    color: palette.common.white,
                   },
 
-                  [`&.${autocompleteClasses.option}`]: {
-                    borderRadius: 0,
-                    my: 0.25,
+                  "&.Mui-focused": {
+                    backgroundColor: `${palette.common.black} !important`,
 
                     [`&[aria-selected="true"]`]: {
                       backgroundColor: `${palette.primary.main} !important`,
-                      color: palette.common.white,
-                    },
-
-                    "&.Mui-focused": {
-                      backgroundColor: `${palette.common.black} !important`,
-
-                      [`&[aria-selected="true"]`]: {
-                        backgroundColor: `${palette.primary.main} !important`,
-                      },
                     },
                   },
                 },
-              })}
+              },
+            })}
+          >
+            <Typography
+              sx={{
+                fontSize: 14,
+                "@media (prefers-color-scheme: dark)": {
+                  color: darkModeInputColor,
+                },
+              }}
             >
-              <Typography
-                sx={{
-                  fontSize: 14,
-                  "@media (prefers-color-scheme: dark)": {
-                    color: darkModeInputColor,
-                  },
-                }}
-              >
-                {type.title}
-              </Typography>
-              <Chip
-                color="blue"
-                label={getChipLabelFromId(type.$id)}
-                sx={{ ml: 1, fontSize: 13 }}
-              />
-            </MenuItem>
-          )}
-          renderTags={(value, getTagProps) =>
-            value.map((option, index) => (
-              <Chip
-                {...getTagProps({ index })}
-                key={option.$id}
-                variant="outlined"
-                label={option.title}
-              />
-            ))
-          }
-          value={targetEntityTypes}
-        />
-      )}
-      {inferenceStatus.status === "error" ? (
+              {type.title}
+            </Typography>
+            <Chip
+              color="blue"
+              label={getChipLabelFromId(type.$id)}
+              sx={{ ml: 1, fontSize: 13 }}
+            />
+          </MenuItem>
+        )}
+        renderTags={(value, getTagProps) =>
+          value.map((option, index) => (
+            <Chip
+              {...getTagProps({ index })}
+              key={option.$id}
+              variant="outlined"
+              label={option.title}
+            />
+          ))
+        }
+        value={targetEntityTypes}
+      />
+
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        mt={1.5}
+      >
         <Button
-          onClick={(event) => {
-            event.preventDefault();
-            resetInferenceStatus();
-          }}
-          type="button"
-          sx={{ mt: 1.5 }}
-        >
-          Understood
-        </Button>
-      ) : (
-        <Button
-          disabled={
-            inferenceStatus.status === "pending" || targetEntityTypes.length < 1
-          }
+          disabled={pendingInferenceRequest || targetEntityTypes.length < 1}
           size="small"
           type="submit"
-          sx={{ mt: 1.5 }}
+          sx={{ mt: 1 }}
         >
-          {inferenceStatus.status === "pending"
-            ? "Loading..."
-            : "Suggest entities"}
+          {pendingInferenceRequest ? "Pending..." : "Suggest entities"}
         </Button>
-      )}
+        <Box>
+          <Typography
+            component="label"
+            htmlFor="passive-inference-checkbox"
+            sx={{
+              mr: 1,
+              color: ({ palette }) => palette.gray[90],
+              fontSize: 14,
+            }}
+          >
+            Run passively
+          </Typography>
+          <Checkbox
+            id="passive-inference-checkbox"
+            checked={passiveInferenceConfig.enabled}
+            onChange={(event) => {
+              setPassiveInferenceConfig({
+                ...passiveInferenceConfig,
+                enabled: event.target.checked,
+              });
+            }}
+          />
+        </Box>
+      </Stack>
     </Box>
   );
 };

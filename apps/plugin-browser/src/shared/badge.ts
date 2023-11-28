@@ -17,12 +17,12 @@ export const setErroredBadge = () => {
 
 export const setSuccessBadge = async (increment: number) => {
   const currentBadgeText = await browser.action.getBadgeText({});
-  let currentBadgeNum = 0;
-  try {
-    currentBadgeNum = parseInt(currentBadgeText, 10);
-  } catch {
-    // do nothing
-  }
+
+  const currentBadgeAsInt = parseInt(currentBadgeText, 10);
+
+  const currentBadgeNum = Number.isNaN(currentBadgeAsInt)
+    ? 0
+    : currentBadgeAsInt;
 
   void browser.action.setBadgeBackgroundColor({ color: customColors.lime[70] });
   void browser.action.setBadgeText({

@@ -6,7 +6,7 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { MeQuery, MeQueryVariables } from "../../graphql/api-types.gen";
 import { meQuery } from "../../graphql/queries/user.queries";
-import { queryGraphQlApi } from "../../shared/query-graph-ql-api";
+import { queryGraphQlApi } from "../../shared/query-graphql-api";
 
 export const getUser = () => {
   return queryGraphQlApi<MeQuery, MeQueryVariables>(meQuery)

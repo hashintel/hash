@@ -5,7 +5,7 @@ import { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types
 import browser from "webextension-polyfill";
 
 type InferenceErrorStatus = {
-  message: string;
+  errorMessage: string;
   status: "error";
 };
 
@@ -21,12 +21,13 @@ export type InferenceStatus =
   | InferenceErrorStatus
   | InferenceCompleteStatus;
 
-export type PageInferenceStatus = {
-  details: InferenceStatus;
+export type PageEntityInference = InferenceStatus & {
+  createdAt: string;
   entityTypes: EntityType[];
   localRequestUuid: string;
   sourceTitle: string;
   sourceUrl: string;
+  trigger: "passive" | "user";
 };
 
 /**
@@ -36,9 +37,13 @@ export type PageInferenceStatus = {
  * @see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage/session
  */
 export type SessionStorage = {
+  passiveInference: {
+    conditions: ({ domain: string } | { urlRegExp: string })[];
+    enabled: boolean;
+  };
   draftQuickNote: string;
   entityTypes: EntityType[];
-  inferenceStatus: PageInferenceStatus[];
+  inferenceRequests: PageEntityInference[];
   targetEntityTypes: EntityType[];
   user: Simplified<User> | null;
 };
@@ -82,8 +87,4 @@ export const getSetFromSessionStorageValue = <Key extends keyof SessionStorage>(
     const newValue = replaceFunction(currentValue);
     await setInSessionStorage(key, newValue);
   };
-};
-
-export const wipeSessionStorage = async () => {
-  await browser.storage.session.clear();
 };

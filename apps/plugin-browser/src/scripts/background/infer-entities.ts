@@ -1,13 +1,9 @@
-import { VersionedUrl } from "@blockprotocol/graph";
-import {
+import type { VersionedUrl } from "@blockprotocol/graph";
+import type {
   InferEntitiesReturn,
   InferEntitiesUserArguments,
 } from "@local/hash-isomorphic-utils/temporal-types";
-import {
-  EntityId,
-  extractOwnedByIdFromEntityId,
-  OwnedById,
-} from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { v4 as uuid } from "uuid";
 
@@ -16,7 +12,7 @@ import {
   setLoadingBadge,
   setSuccessBadge,
 } from "../../shared/badge";
-import { InferEntitiesRequest } from "../../shared/messages";
+import type { InferEntitiesRequest } from "../../shared/messages";
 import {
   getFromSessionStorage,
   getSetFromSessionStorageValue,
@@ -46,53 +42,71 @@ const inferEntitiesApiCall = async ({
     headers: {
       "content-type": "application/json",
     },
+    method: "POST",
   }).then((resp) => resp.json() as Promise<InferEntitiesReturn>);
 };
 
-export const inferEntities = async (message: InferEntitiesRequest) => {
-  const localRequestId = uuid();
-
-  const setInferenceStatusValue =
-    getSetFromSessionStorageValue("inferenceStatus");
-
-  await setInferenceStatusValue((currentValue) => [
-    ...(currentValue ?? []),
-    {
-      localRequestUuid: localRequestId,
-      details: { status: "pending" },
-      sourceTitle: message.sourceTitle,
-      sourceUrl: message.sourceUrl,
-    },
-  ]);
-
-  setLoadingBadge();
-
+export const inferEntities = async (
+  message: InferEntitiesRequest,
+  trigger: "passive" | "user",
+) => {
   const user = await getFromSessionStorage("user");
   if (!user) {
     throw new Error("Cannot infer entities without a logged-in user.");
   }
 
-  try {
-    const { entityTypeIds, textInput } = message;
+  const { entityTypes, sourceUrl, sourceTitle, textInput } = message;
 
+  const localRequestId = uuid();
+
+  const setInferenceRequestValue =
+    getSetFromSessionStorageValue("inferenceRequests");
+
+  await setInferenceRequestValue((currentValue) => [
+    {
+      createdAt: new Date().toISOString(),
+      entityTypes,
+      localRequestUuid: localRequestId,
+      status: "pending",
+      sourceTitle,
+      sourceUrl,
+      trigger,
+    },
+    ...(currentValue ?? []),
+  ]);
+
+  setLoadingBadge();
+
+  try {
     const inferredEntitiesReturn = await inferEntitiesApiCall({
-      entityTypeIds,
-      ownedById: extractOwnedByIdFromEntityId(
-        user.metadata.recordId.entityId as EntityId,
-      ),
+      entityTypeIds: entityTypes.map((entityType) => entityType.$id),
+      /**
+       * Ideally we would use {@link extractOwnedByIdFromEntityId} from @local/hash-subgraph here,
+       * but importing it causes WASM-related functions to end up in the bundle,
+       * even when imports in that package only come from `@blockprotocol/type-system/slim`,
+       * which isn't supposed to have WASM.
+       *
+       * @todo figure out why that is and fix it, possibly in the @blockprotocol/type-system package
+       */
+      ownedById: user.metadata.recordId.entityId.split("~")[1] as OwnedById,
       textInput,
     });
 
-    void setSuccessBadge(1);
+    if (inferredEntitiesReturn.code !== "OK") {
+      throw new Error(inferredEntitiesReturn.message);
+    }
 
-    await setInferenceStatusValue((currentValue) =>
-      (currentValue ?? []).map((status) =>
-        status.localRequestUuid === localRequestId
+    await setSuccessBadge(1);
+
+    await setInferenceRequestValue((currentValue) =>
+      (currentValue ?? []).map((request) =>
+        request.localRequestUuid === localRequestId
           ? {
-              ...status,
-              details: { status: "complete", data: inferredEntitiesReturn },
+              ...request,
+              status: "complete",
+              data: inferredEntitiesReturn,
             }
-          : status,
+          : request,
       ),
     );
   } catch (err) {
@@ -100,17 +114,15 @@ export const inferEntities = async (message: InferEntitiesRequest) => {
 
     const errorMessage = (err as Error | Status<InferEntitiesReturn>).message;
 
-    await setInferenceStatusValue((currentValue) =>
-      (currentValue ?? []).map((status) =>
-        status.localRequestUuid === localRequestId
+    await setInferenceRequestValue((currentValue) =>
+      (currentValue ?? []).map((request) =>
+        request.localRequestUuid === localRequestId
           ? {
-              ...status,
-              details: {
-                message: errorMessage ?? "Unknown error – please contact us",
-                status: "error",
-              },
+              ...request,
+              errorMessage: errorMessage ?? "Unknown error – please contact us",
+              status: "error",
             }
-          : status,
+          : request,
       ),
     );
   }

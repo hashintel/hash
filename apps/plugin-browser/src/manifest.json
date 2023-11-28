@@ -7,7 +7,7 @@
     "service_worker": "background.bundle.js"
   },
   "host_permissions": ["*://*.hash.ai/*"],
-  "permissions": ["activeTab", "storage"],
+  "permissions": ["storage", "tabs"],
   "action": {
     "default_icon": "icon-256.png",
     "default_popup": "popup.html",

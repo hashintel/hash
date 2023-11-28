@@ -42,14 +42,12 @@ import {
 } from "../../../../graph/knowledge/primitive/link-entity";
 import { modifyWebAuthorizationRelationships } from "../../../../graph/ontology/primitive/util";
 import { systemAccountId } from "../../../../graph/system-account";
-import { genId } from "../../../../util";
 import {
   AccountGroupAuthorizationSubjectRelation,
   AuthorizationSubjectKind,
   AuthorizationViewerInput,
   EntityAuthorizationRelation,
   EntityAuthorizationRelationship,
-  Mutation,
   MutationAddEntityEditorArgs,
   MutationAddEntityOwnerArgs,
   MutationAddEntityViewerArgs,
