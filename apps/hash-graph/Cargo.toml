@@ -45,3 +45,6 @@ futures = { version = "0.3.29", default-features = false }
 inherits = "release"
 lto = "fat"
 strip = "symbols"
+
+[patch.crates-io]
+sentry = { git = "https://github.com/getsentry/sentry-rust", rev = "6f1ac71c" }
