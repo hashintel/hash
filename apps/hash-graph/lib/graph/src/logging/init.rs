@@ -7,7 +7,6 @@ use opentelemetry_sdk::{
     trace::{RandomIdGenerator, Sampler, Tracer},
     Resource,
 };
-use tonic::metadata::MetadataMap;
 use tracing::{Event, Subscriber};
 use tracing_opentelemetry::OpenTelemetryLayer;
 use tracing_subscriber::{
@@ -64,7 +63,9 @@ fn configure_opentelemetry_layer(
     global::set_text_map_propagator(TraceContextPropagator::new());
     // If we need to set any tokens in the header for the tracing collector, this would be the place
     // we do so.
-    let map = MetadataMap::new();
+    let map = opentelemetry_otlp::TonicConfig::default()
+        .metadata
+        .unwrap_or_default();
 
     let pipeline = opentelemetry_otlp::new_exporter()
         .tonic()
