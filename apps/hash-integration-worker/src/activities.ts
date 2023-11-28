@@ -90,39 +90,6 @@ const createOrUpdateHashEntity = async (params: {
   });
 
   for (const existingEntity of entities) {
-    if (
-      updatedAt &&
-      existingEntity.properties[updatedAtBaseUrl] &&
-      existingEntity.properties[updatedAtBaseUrl]! >= updatedAt
-    ) {
-      continue;
-    }
-
-    /** @todo: check which values have changed in a more sophisticated manor */
-    const mergedProperties = {
-      ...existingEntity.properties,
-      // Ensure we don't accidentally set required properties to `undefined` by disabling
-      // the ability to set properties to `undefined`
-      ...Object.entries(partialEntity.properties).reduce(
-        (acc, [propertyTypeUrl, value]) => ({
-          ...acc,
-          ...(typeof value === "undefined"
-            ? {}
-            : {
-                [propertyTypeUrl]: value,
-              }),
-        }),
-        {},
-      ),
-    };
-
-    await graphApiClient.updateEntity(params.authentication.actorId, {
-      archived: false,
-      entityId: existingEntity.metadata.recordId.entityId,
-      entityTypeId: existingEntity.metadata.entityTypeId,
-      properties: mergedProperties,
-    });
-
     const actualOutgoingLinks = params.outgoingLinks;
 
     const existingOutgoingLinks = await getEntityOutgoingLinks({
@@ -167,6 +134,39 @@ const createOrUpdateHashEntity = async (params: {
         }),
       ),
     ]);
+
+    if (
+      updatedAt &&
+      existingEntity.properties[updatedAtBaseUrl] &&
+      existingEntity.properties[updatedAtBaseUrl]! >= updatedAt
+    ) {
+      continue;
+    }
+
+    /** @todo: check which values have changed in a more sophisticated manor */
+    const mergedProperties = {
+      ...existingEntity.properties,
+      // Ensure we don't accidentally set required properties to `undefined` by disabling
+      // the ability to set properties to `undefined`
+      ...Object.entries(partialEntity.properties).reduce(
+        (acc, [propertyTypeUrl, value]) => ({
+          ...acc,
+          ...(typeof value === "undefined"
+            ? {}
+            : {
+                [propertyTypeUrl]: value,
+              }),
+        }),
+        {},
+      ),
+    };
+
+    await graphApiClient.updateEntity(params.authentication.actorId, {
+      archived: false,
+      entityId: existingEntity.metadata.recordId.entityId,
+      entityTypeId: existingEntity.metadata.entityTypeId,
+      properties: mergedProperties,
+    });
   }
 
   if (entities.length === 0) {
