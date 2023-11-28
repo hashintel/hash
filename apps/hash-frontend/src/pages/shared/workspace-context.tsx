@@ -20,11 +20,13 @@ export type WorkspaceContextValue = {
   updateActiveWorkspaceOwnedById: (
     updatedActiveWorkspaceAccountId: OwnedById,
   ) => void;
+  refetchActiveWorkspace: () => Promise<void>;
 };
 
 const defaultWorkspaceContextValue: WorkspaceContextValue = {
   updateActiveWorkspaceOwnedById: (_updateActiveWorkspaceOwnedById: string) =>
     undefined,
+  refetchActiveWorkspace: () => Promise.resolve(),
 };
 
 export const WorkspaceContext = createContext<WorkspaceContextValue>(
@@ -38,7 +40,7 @@ export const useActiveWorkspace = () => {
 export const WorkspaceContextProvider: FunctionComponent<{
   children: ReactElement;
 }> = ({ children }) => {
-  const { authenticatedUser } = useAuthInfo();
+  const { authenticatedUser, refetch } = useAuthInfo();
 
   const [activeWorkspaceOwnedById, setActiveWorkspaceOwnedById] =
     useState<OwnedById>();
@@ -105,11 +107,13 @@ export const WorkspaceContextProvider: FunctionComponent<{
       activeWorkspace,
       activeWorkspaceOwnedById,
       updateActiveWorkspaceOwnedById,
+      refetchActiveWorkspace: () => refetch().then(() => undefined),
     };
   }, [
     authenticatedUser,
     activeWorkspaceOwnedById,
     updateActiveWorkspaceOwnedById,
+    refetch,
   ]);
 
   return (

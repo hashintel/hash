@@ -7,6 +7,7 @@ import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useMemo, useState } from "react";
 import { TransitionGroup } from "react-transition-group";
 
+import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { useLatestEntityTypesOptional } from "../../entity-types-context/hooks";
 import { ArrowDownAZRegularIcon } from "../../icons/arrow-down-a-z-regular-icon";
 import { ArrowUpZARegularIcon } from "../../icons/arrow-up-a-z-regular-icon";
@@ -33,7 +34,19 @@ export const AccountEntitiesList: FunctionComponent<
     popupId: "type-sort-actions-menu",
   });
 
+  const { activeWorkspace } = useActiveWorkspace();
+
   const { latestEntityTypes } = useLatestEntityTypesOptional();
+
+  const pinnedEntityTypes = useMemo(() => {
+    const { pinnedEntityTypeBaseUrls } = activeWorkspace ?? {};
+
+    return pinnedEntityTypeBaseUrls
+      ? latestEntityTypes?.filter(({ metadata }) =>
+          pinnedEntityTypeBaseUrls.includes(metadata.recordId.baseUrl),
+        )
+      : [];
+  }, [activeWorkspace, latestEntityTypes]);
 
   const accountEntityTypes = useMemo(() => {
     if (latestEntityTypes) {
@@ -47,12 +60,17 @@ export const AccountEntitiesList: FunctionComponent<
     return null;
   }, [latestEntityTypes, ownedById]);
 
+  const sidebarEntityTypes = useMemo(
+    () => [...(pinnedEntityTypes ?? []), ...(accountEntityTypes ?? [])],
+    [pinnedEntityTypes, accountEntityTypes],
+  );
+
   const sortedEntityTypes = useMemo(
     () =>
-      orderBy(accountEntityTypes, (root) => root.schema.title.toLowerCase(), [
+      orderBy(sidebarEntityTypes, (root) => root.schema.title.toLowerCase(), [
         sortType === "asc" || sortType === "desc" ? sortType : "asc",
       ]),
-    [accountEntityTypes, sortType],
+    [sidebarEntityTypes, sortType],
   );
 
   return (
