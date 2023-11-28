@@ -38,6 +38,23 @@ export type SupportedLinearUpdateInput = {
 
 export type SupportedLinearTypeNames = keyof SupportedLinearTypes;
 
+const getLinearIdFromEntity = (entity: Entity): string => {
+  const linearId =
+    entity.properties[linearPropertyTypes.id.propertyTypeBaseUrl as BaseUrl];
+
+  if (!linearId) {
+    throw new Error(
+      `Could not get linear ID from entity with ID "${entity.metadata.recordId.entityId}"`,
+    );
+  } else if (typeof linearId !== "string") {
+    throw new Error(
+      `Linear ID from entity with ID "${entity.metadata.recordId.entityId}" is not a string`,
+    );
+  }
+
+  return linearId;
+};
+
 type PropertyMapping<
   LinearType extends SupportedLinearTypeNames,
   Key extends keyof SupportedLinearTypes[LinearType],
@@ -263,14 +280,9 @@ export const linearTypeMappings = [
           const [matchingOutgoingLink] = matchingOutgoingLinks;
 
           if (matchingOutgoingLink) {
-            const linearId =
-              matchingOutgoingLink.rightEntity.properties[
-                linearPropertyTypes.id.propertyTypeBaseUrl as BaseUrl
-              ];
-
-            if (!linearId || typeof linearId !== "string") {
-              throw new Error("Could not get linear ID");
-            }
+            const linearId = getLinearIdFromEntity(
+              matchingOutgoingLink.rightEntity,
+            );
 
             updateInput.assigneeId = linearId;
           } else {
@@ -293,12 +305,42 @@ export const linearTypeMappings = [
           const parent = await issue.parent;
           return { destinationLinearIds: parent ? [parent.id] : [] };
         },
+        addToLinearUpdateInput: (updateInput, matchingOutgoingLinks) => {
+          const [matchingOutgoingLink] = matchingOutgoingLinks;
+
+          if (matchingOutgoingLink) {
+            const linearId = getLinearIdFromEntity(
+              matchingOutgoingLink.rightEntity,
+            );
+
+            updateInput.parentId = linearId;
+          } else {
+            updateInput.parentId = null;
+          }
+
+          return updateInput;
+        },
         linkEntityTypeId: linearLinkEntityTypes.parent.linkEntityTypeId,
       },
       {
         getLinkDestinationLinearIds: async (issue) => {
           const snoozedBy = await issue.snoozedBy;
           return { destinationLinearIds: snoozedBy ? [snoozedBy.id] : [] };
+        },
+        addToLinearUpdateInput: (updateInput, matchingOutgoingLinks) => {
+          const [matchingOutgoingLink] = matchingOutgoingLinks;
+
+          if (matchingOutgoingLink) {
+            const linearId = getLinearIdFromEntity(
+              matchingOutgoingLink.rightEntity,
+            );
+
+            updateInput.snoozedById = linearId;
+          } else {
+            updateInput.snoozedById = null;
+          }
+
+          return updateInput;
         },
         linkEntityTypeId: linearLinkEntityTypes.snoozedBy.linkEntityTypeId,
       },
@@ -316,6 +358,13 @@ export const linearTypeMappings = [
           }
 
           return { destinationLinearIds };
+        },
+        addToLinearUpdateInput: (updateInput, matchingOutgoingLinks) => {
+          updateInput.subscriberIds = matchingOutgoingLinks.map(
+            ({ rightEntity }) => getLinearIdFromEntity(rightEntity),
+          );
+
+          return updateInput;
         },
         linkEntityTypeId: linearLinkEntityTypes.hasSubscriber.linkEntityTypeId,
       },
