@@ -85,6 +85,7 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                     .and_then(|link_data| link_data.order.right_to_left),
                 record_created_by_id: entity.metadata.custom.provenance.record_created_by_id,
                 archived: entity.metadata.custom.archived,
+                draft: false,
                 entity_type_base_url: entity.metadata.entity_type_id.base_url.as_str().to_owned(),
                 entity_type_version: OntologyTypeVersion::new(
                     entity.metadata.entity_type_id.version,

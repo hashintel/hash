@@ -2899,10 +2899,14 @@
           "temporalVersioning",
           "entityTypeId",
           "provenance",
-          "archived"
+          "archived",
+          "draft"
         ],
         "properties": {
           "archived": {
+            "type": "boolean"
+          },
+          "draft": {
             "type": "boolean"
           },
           "entityTypeId": {
@@ -2980,6 +2984,7 @@
           "uuid",
           "editionId",
           "archived",
+          "draft",
           "ownedById",
           "recordCreatedById",
           "type",

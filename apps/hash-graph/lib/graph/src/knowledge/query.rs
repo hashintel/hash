@@ -90,6 +90,17 @@ pub enum EntityQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["draft"]))?;
+    /// assert_eq!(path, EntityQueryPath::Draft);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    Draft,
+    /// Whether or not the [`Entity`] is in a draft state.
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!(["archived"]))?;
     /// assert_eq!(path, EntityQueryPath::Archived);
     /// # Ok::<(), serde_json::Error>(())
@@ -324,6 +335,7 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::EditionId => fmt.write_str("editionId"),
             Self::DecisionTime => fmt.write_str("decisionTime"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
+            Self::Draft => fmt.write_str("draft"),
             Self::Archived => fmt.write_str("archived"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
@@ -372,7 +384,7 @@ impl QueryPath for EntityQueryPath<'_> {
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
             Self::Properties(_) => ParameterType::Any,
             Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::Number,
-            Self::Archived => ParameterType::Boolean,
+            Self::Archived | Self::Draft => ParameterType::Boolean,
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),
         }
@@ -387,6 +399,7 @@ pub enum EntityQueryToken {
     Uuid,
     EditionId,
     Archived,
+    Draft,
     OwnedById,
     RecordCreatedById,
     Type,
@@ -406,8 +419,8 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `uuid`, `editionId`, `archived`, `ownedById`, \
-                                         `recordCreatedById`, `type`, `properties`, \
+    pub const EXPECTING: &'static str = "one of `uuid`, `editionId`, `archived`, `draft`, \
+                                         `ownedById`, `recordCreatedById`, `type`, `properties`, \
                                          `incomingLinks`, `outgoingLinks`, `leftEntity`, \
                                          `rightEntity`, `leftToRightOrder`, `rightToLeftOrder`";
 
@@ -440,6 +453,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
             EntityQueryToken::RecordCreatedById => EntityQueryPath::RecordCreatedById,
             EntityQueryToken::Archived => EntityQueryPath::Archived,
+            EntityQueryToken::Draft => EntityQueryPath::Draft,
             EntityQueryToken::Type => EntityQueryPath::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path: EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,

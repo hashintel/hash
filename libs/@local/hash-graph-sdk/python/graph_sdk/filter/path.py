@@ -178,6 +178,10 @@ class EntityQueryPath(AbstractQueryPath):
         """Return the path to the archived attribute of an entity."""
         return self.path.push(EntityQueryToken.archived)
 
+    def draft(self) -> Path:
+        """Return the path to the draft attribute of an entity."""
+        return self.path.push(EntityQueryToken.draft)
+
     def owned_by_id(self) -> Path:
         """Return the path to the owned_by_id attribute of an entity."""
         return self.path.push(EntityQueryToken.owned_by_id)

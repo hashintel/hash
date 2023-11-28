@@ -112,6 +112,7 @@ pub struct EntityMetadata {
     entity_type_id: VersionedUrl,
     provenance: ProvenanceMetadata,
     archived: bool,
+    draft: bool,
 }
 
 impl EntityMetadata {
@@ -122,6 +123,7 @@ impl EntityMetadata {
         entity_type_id: VersionedUrl,
         provenance: ProvenanceMetadata,
         archived: bool,
+        draft: bool,
     ) -> Self {
         Self {
             record_id,
@@ -129,6 +131,7 @@ impl EntityMetadata {
             entity_type_id,
             provenance,
             archived,
+            draft,
         }
     }
 
@@ -155,6 +158,11 @@ impl EntityMetadata {
     #[must_use]
     pub const fn archived(&self) -> bool {
         self.archived
+    }
+
+    #[must_use]
+    pub const fn draft(&self) -> bool {
+        self.draft
     }
 }
 
