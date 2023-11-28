@@ -35,7 +35,7 @@ use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
         crud::Read,
-        knowledge::EntityValidationType,
+        knowledge::{EntityValidationError, EntityValidationType},
         query::{Filter, OntologyQueryPath},
         AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
         InsertionError, PropertyTypeStore, QueryError, Record, StoreError, StorePool, UpdateError,
@@ -969,7 +969,7 @@ where
         entity_type: EntityValidationType<'_>,
         properties: &EntityProperties,
         link_data: Option<&LinkData>,
-    ) -> Result<(), QueryError> {
+    ) -> Result<(), EntityValidationError> {
         self.store
             .validate_entity(
                 actor_id,
