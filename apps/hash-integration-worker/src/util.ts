@@ -120,6 +120,13 @@ export const getEntityOutgoingLinks = async (params: {
   return outgoingLinkEntities;
 };
 
+/**
+ * @todo: move the primitive node helper methods from the Node API into a shared
+ * package so that they can be used without importing from the Node API directly.
+ *
+ * @see https://linear.app/hash/issue/H-1458/move-primitive-node-api-helper-methods-into-shared-package-to-make
+ */
+
 export const getLatestEntityById = async (params: {
   graphApiClient: GraphApi;
   authentication: { actorId: AccountId };
