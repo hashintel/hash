@@ -1,4 +1,5 @@
 import { Connection, LinearClient, LinearDocument, Team } from "@linear/sdk";
+import { getLinearMappingByHashEntityTypeId } from "@local/hash-backend-utils/linear-type-mappings";
 import {
   CreateHashEntityFromLinearData,
   PartialEntity,
@@ -15,7 +16,6 @@ import {
   customViewToEntity,
   cycleToEntity,
   documentToEntity,
-  getLinearMappingByHashEntityTypeId,
   issueLabelToEntity,
   mapHashEntityToLinearUpdateInput,
   mapLinearDataToEntity,
