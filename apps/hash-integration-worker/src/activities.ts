@@ -131,6 +131,8 @@ const createOrUpdateHashEntity = async (params: {
       properties: mergedProperties,
     });
 
+    const actualOutgoingLinks = params.outgoingLinks;
+
     const existingOutgoingLinks = await getEntityOutgoingLinks({
       ...params,
       entityId: existingEntity.metadata.recordId.entityId,
@@ -138,23 +140,21 @@ const createOrUpdateHashEntity = async (params: {
 
     const removedOutgoingLinks = existingOutgoingLinks.filter(
       (linkEntity) =>
-        !params.outgoingLinks.some(
-          (newOutgoingLink) =>
-            newOutgoingLink.linkEntityTypeId ===
-              linkEntity.metadata.entityTypeId &&
-            newOutgoingLink.destinationEntityId ===
-              linkEntity.metadata.recordId.entityId,
+        !actualOutgoingLinks.some(
+          ({ linkEntityTypeId, destinationEntityId }) =>
+            linkEntityTypeId === linkEntity.metadata.entityTypeId &&
+            destinationEntityId === linkEntity.linkData.rightEntityId,
         ),
     );
 
-    const addedOutgoingLinks = params.outgoingLinks.filter(
+    const addedOutgoingLinks = actualOutgoingLinks.filter(
       (newOutgoingLink) =>
         !existingOutgoingLinks.some(
           (linkEntity) =>
             newOutgoingLink.linkEntityTypeId ===
               linkEntity.metadata.entityTypeId &&
             newOutgoingLink.destinationEntityId ===
-              linkEntity.metadata.recordId.entityId,
+              linkEntity.linkData.rightEntityId,
         ),
     );
 

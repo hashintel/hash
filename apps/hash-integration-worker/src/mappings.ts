@@ -705,7 +705,7 @@ export const mapLinearDataToEntityWithOutgoingLinks = async <
 
   const partialEntity = mapLinearDataToEntity(params);
 
-  const _outgoingLinks = await Promise.all(
+  const outgoingLinks = await Promise.all(
     mapping.outgoingLinkMappings.map<
       Promise<
         {
@@ -744,7 +744,7 @@ export const mapLinearDataToEntityWithOutgoingLinks = async <
 
   return {
     partialEntity,
-    outgoingLinks: [],
+    outgoingLinks,
   };
 };
 
