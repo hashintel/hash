@@ -49,9 +49,13 @@ const Container = styled((props: BoxProps & { selected: boolean }) => (
   },
 }));
 
-export const EntityTypeItem: FunctionComponent<EntityTypeWithMetadata> = ({
+export const EntityTypeItem: FunctionComponent<
+  EntityTypeWithMetadata & { href?: string; hideOptionsMenu?: boolean }
+> = ({
   metadata: { icon },
   schema: { title, $id: entityTypeId },
+  href,
+  hideOptionsMenu,
 }) => {
   const entityMenuTriggerRef = useRef(null);
   const popupState = usePopupState({
@@ -74,8 +78,14 @@ export const EntityTypeItem: FunctionComponent<EntityTypeWithMetadata> = ({
   const { isLink } = isSpecialEntityTypeLookup?.[entityTypeId] ?? {};
 
   return (
-    <Container component="li" tabIndex={0} selected={selected}>
-      <Link tabIndex={-1} sx={{ flex: 1 }} noLinkStyle href={baseUrl} flex={1}>
+    <Container component="li" tabIndex={0} selected={selected} minHeight={32}>
+      <Link
+        tabIndex={-1}
+        sx={{ flex: 1 }}
+        noLinkStyle
+        href={href ?? baseUrl}
+        flex={1}
+      >
         <Typography
           variant="smallTextLabels"
           sx={{
@@ -109,30 +119,34 @@ export const EntityTypeItem: FunctionComponent<EntityTypeWithMetadata> = ({
           {title}
         </Typography>
       </Link>
-      <Tooltip title="Options" sx={{ left: 5 }}>
-        <IconButton
-          ref={entityMenuTriggerRef}
-          className="entity-menu-trigger"
-          {...bindTrigger(popupState)}
-          size="medium"
-          unpadded
-          sx={({ palette }) => ({
-            color: [selected ? palette.gray[80] : "transparent"],
-            "&:focus-visible, &:hover": {
-              backgroundColor: palette.gray[selected ? 40 : 30],
-              color: palette.gray[selected ? 80 : 40],
-            },
-          })}
-        >
-          <EllipsisRegularIcon />
-        </IconButton>
-      </Tooltip>
-      <EntityTypeMenu
-        entityTypeId={entityTypeId}
-        popupState={popupState}
-        title={title}
-        url={baseUrl}
-      />
+      {hideOptionsMenu ? null : (
+        <>
+          <Tooltip title="Options" sx={{ left: 5 }}>
+            <IconButton
+              ref={entityMenuTriggerRef}
+              className="entity-menu-trigger"
+              {...bindTrigger(popupState)}
+              size="medium"
+              unpadded
+              sx={({ palette }) => ({
+                color: [selected ? palette.gray[80] : "transparent"],
+                "&:focus-visible, &:hover": {
+                  backgroundColor: palette.gray[selected ? 40 : 30],
+                  color: palette.gray[selected ? 80 : 40],
+                },
+              })}
+            >
+              <EllipsisRegularIcon />
+            </IconButton>
+          </Tooltip>
+          <EntityTypeMenu
+            entityTypeId={entityTypeId}
+            popupState={popupState}
+            title={title}
+            url={baseUrl}
+          />
+        </>
+      )}
     </Container>
   );
 };

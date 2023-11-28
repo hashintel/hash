@@ -14,6 +14,7 @@ import { useRoutePageInfo } from "../../routing";
 import { HEADER_HEIGHT } from "../layout-with-header/page-header";
 import { AccountEntityTypeList } from "./account-entity-type-list";
 import { AccountPageList } from "./account-page-list/account-page-list";
+import { AccountEntitiesList } from "./acount-entities-list";
 import { useSidebarContext } from "./sidebar-context";
 import { TopNavLink } from "./top-nav-link";
 import { WorkspaceSwitcher } from "./workspace-switcher";
@@ -126,6 +127,8 @@ export const PageSidebar: FunctionComponent = () => {
                 ownedById={activeWorkspaceOwnedById}
               />
             ) : null}
+            {/* ENTITIES */}
+            <AccountEntitiesList ownedById={activeWorkspaceOwnedById} />
             {/* TYPES */}
             <AccountEntityTypeList ownedById={activeWorkspaceOwnedById} />
           </>
