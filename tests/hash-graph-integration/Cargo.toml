@@ -26,6 +26,3 @@ uuid = { version = "1.6.1", features = ["v4", "serde"] }
 [[test]]
 name = "postgres"
 path = "postgres/lib.rs"
-
-[patch.crates-io]
-sentry = { git = "https://github.com/getsentry/sentry-rust", rev = "6f1ac71c" }
