@@ -160,14 +160,14 @@ export const linearTypeMappings = [
       {
         linearPropertyKey: "estimate",
         hashPropertyTypeId: linearPropertyTypes.estimate.propertyTypeId,
-      } satisfies PropertyMapping<"Issue", "estimate">,
-      {
-        linearPropertyKey: "id",
-        hashPropertyTypeId: linearPropertyTypes.id.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.estimate = hashValue as number;
           return updateInput;
         },
+      } satisfies PropertyMapping<"Issue", "estimate">,
+      {
+        linearPropertyKey: "id",
+        hashPropertyTypeId: linearPropertyTypes.id.propertyTypeId,
       } satisfies PropertyMapping<"Issue", "id">,
       {
         linearPropertyKey: "identifier",
@@ -185,6 +185,7 @@ export const linearTypeMappings = [
       {
         linearPropertyKey: "priority",
         hashPropertyTypeId: linearPropertyTypes.priority.propertyTypeId,
+        /** @todo: consider defaulting to `priority` */
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.priority = hashValue as number;
           return updateInput;
@@ -310,7 +311,7 @@ export const linearTypeMappings = [
 
           return { destinationLinearIds };
         },
-        linkEntityTypeId: linearLinkEntityTypes.snoozedBy.linkEntityTypeId,
+        linkEntityTypeId: linearLinkEntityTypes.hasSubscriber.linkEntityTypeId,
       },
     ],
   } satisfies LinearMapping<"Issue">,
@@ -700,7 +701,7 @@ export const mapLinearDataToEntityWithOutgoingLinks = async <
 
   const partialEntity = mapLinearDataToEntity(params);
 
-  const outgoingLinks = await Promise.all(
+  const _outgoingLinks = await Promise.all(
     mapping.outgoingLinkMappings.map<
       Promise<
         {
@@ -739,7 +740,7 @@ export const mapLinearDataToEntityWithOutgoingLinks = async <
 
   return {
     partialEntity,
-    outgoingLinks,
+    outgoingLinks: [],
   };
 };
 

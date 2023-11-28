@@ -182,18 +182,33 @@ const createOrUpdateHashEntity = async (params: {
   }
 };
 
+const createLinearClient = (apiKey: string) => new LinearClient({ apiKey });
+
+const mapLinearTypeToLinearClientGetMethod = {
+  Issue: "issue",
+  User: "user",
+  Organization: "organization",
+} as const;
+
 const createHashEntityFromLinearData =
   (graphApiClient: GraphApi) =>
   async (
     params: Parameters<CreateHashEntityFromLinearData>[0],
   ): Promise<void> => {
+    const client = createLinearClient(params.linearApiKey);
+
+    const { linearType, linearId } = params;
+
+    const methodName = mapLinearTypeToLinearClientGetMethod[linearType];
+
+    const linearData = await client[methodName](linearId);
+
     const { partialEntity, outgoingLinks } =
       await mapLinearDataToEntityWithOutgoingLinks({
         ...params,
         graphApiClient,
-        linearType: params.payloadKind,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        linearData: params.payload as unknown as any,
+        linearType,
+        linearData,
       });
 
     await createHashEntity({
@@ -210,13 +225,20 @@ const updateHashEntityFromLinearData =
   async (
     params: Parameters<UpdateHashEntityFromLinearData>[0],
   ): Promise<void> => {
+    const client = createLinearClient(params.linearApiKey);
+
+    const { linearType, linearId } = params;
+
+    const methodName = mapLinearTypeToLinearClientGetMethod[linearType];
+
+    const linearData = await client[methodName](linearId);
+
     const { partialEntity, outgoingLinks } =
       await mapLinearDataToEntityWithOutgoingLinks({
         ...params,
         graphApiClient,
-        linearType: params.payloadKind,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        linearData: params.payload as unknown as any,
+        linearType: params.linearType,
+        linearData,
       });
 
     await createOrUpdateHashEntity({
@@ -237,8 +259,6 @@ const readNodes = async <T>(connection: Connection<T>): Promise<T[]> => {
   }
   return nodes;
 };
-
-const createLinearClient = (apiKey: string) => new LinearClient({ apiKey });
 
 type ParamsWithApiKey<T = {}> = T & { apiKey: string };
 

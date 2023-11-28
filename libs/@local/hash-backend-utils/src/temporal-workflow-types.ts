@@ -1,5 +1,5 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { Issue, Team, User } from "@linear/sdk";
+import { Team } from "@linear/sdk";
 import { AccountId, Entity, OwnedById } from "@local/hash-subgraph";
 
 export type PartialEntity = {
@@ -7,28 +7,27 @@ export type PartialEntity = {
   entityTypeId: VersionedUrl;
 };
 
-export type LinearWebhookPayload = {
-  Issue: Issue;
-  User: User;
-};
+export const supportedLinearTypes = ["Issue", "User"] as const;
 
-export type LinearWebhookPayloadKind = keyof LinearWebhookPayload;
+export type SupportedLinearType = (typeof supportedLinearTypes)[number];
 
 export type CreateHashEntityFromLinearData = <
-  K extends LinearWebhookPayloadKind = LinearWebhookPayloadKind,
+  T extends SupportedLinearType = SupportedLinearType,
 >(params: {
   authentication: { actorId: AccountId };
-  payload: LinearWebhookPayload[K];
-  payloadKind: K;
+  linearId: string;
+  linearType: T;
+  linearApiKey: string;
   ownedById: OwnedById;
 }) => Promise<void>;
 
 export type UpdateHashEntityFromLinearData = <
-  K extends LinearWebhookPayloadKind = LinearWebhookPayloadKind,
+  T extends SupportedLinearType = SupportedLinearType,
 >(params: {
   authentication: { actorId: AccountId };
-  payload: LinearWebhookPayload[K];
-  payloadKind: K;
+  linearId: string;
+  linearType: T;
+  linearApiKey: string;
   ownedById: OwnedById;
 }) => Promise<void>;
 

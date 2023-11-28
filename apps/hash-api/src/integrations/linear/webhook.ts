@@ -1,10 +1,26 @@
 import crypto from "node:crypto";
 
 import { tupleIncludes } from "@local/advanced-types/includes";
-import { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-workflow-types";
-import { OwnedById } from "@local/hash-subgraph";
+import {
+  supportedLinearTypes,
+  WorkflowTypeMap,
+} from "@local/hash-backend-utils/temporal-workflow-types";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  entityIdFromOwnedByIdAndEntityUuid,
+  EntityUuid,
+  extractOwnedByIdFromEntityId,
+  Uuid,
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { RequestHandler } from "express";
 
+import { getEntities } from "../../graph/knowledge/primitive/entity";
+import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret";
 import { systemAccountId } from "../../graph/system-account";
 import { logger } from "../../logger";
 import { createTemporalClient } from "../../temporal";
@@ -56,7 +72,7 @@ export const linearWebhook: RequestHandler<{}, string, string> = async (
 
   if (
     tupleIncludes(["create", "update"], payload.action) &&
-    tupleIncludes(["Issue", "User"], payload.type)
+    tupleIncludes(supportedLinearTypes, payload.type)
   ) {
     if (!payload.data) {
       res
@@ -67,23 +83,106 @@ export const linearWebhook: RequestHandler<{}, string, string> = async (
       return;
     }
 
+    const linearId = payload.data?.id;
+
+    if (!linearId) {
+      res
+        .status(400)
+        .send(
+          `No ID found in ${payload.action} ${payload.type} webhook payload`,
+        );
+      return;
+    }
+
+    const { graphApi, vaultClient } = req.context;
+
+    if (!vaultClient) {
+      return;
+    }
+
+    const linearEntities = await getEntities(
+      { graphApi },
+      {
+        actorId: systemAccountId,
+      },
+      {
+        query: {
+          filter: {
+            all: [
+              /** @todo: check for type */
+              {
+                equal: [
+                  {
+                    path: [
+                      "properties",
+                      linearPropertyTypes.id.propertyTypeBaseUrl,
+                    ],
+                  },
+                  { parameter: linearId },
+                ],
+              },
+            ],
+          },
+          temporalAxes: currentTimeInstantTemporalAxes,
+          graphResolveDepths: zeroedGraphResolveDepths,
+        },
+      },
+    ).then((subgraph) => getRoots(subgraph));
+
+    const ownedByIds = linearEntities
+      .map((entity) =>
+        extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
+      )
+      .filter((item, index, all) => all.indexOf(item) === index);
+
     const workflow =
       `${payload.action}HashEntityFromLinearData` as const satisfies keyof WorkflowTypeMap;
 
-    await temporalClient.workflow.start<WorkflowTypeMap[typeof workflow]>(
-      workflow,
-      {
-        taskQueue: "integration",
-        args: [
+    const linearType = payload.type;
+
+    await Promise.all(
+      ownedByIds.map(async (ownedById) => {
+        /**
+         * This assumes the web of the entity is an org web, not a user web.
+         *
+         * @todo: fix this so that it works for users and orgs
+         */
+        const hashWorkspaceEntityId = entityIdFromOwnedByIdAndEntityUuid(
+          ownedById,
+          ownedById as Uuid as EntityUuid,
+        );
+
+        const linearApiKey = await getLinearSecretValueByHashWorkspaceId(
+          { graphApi },
+          /**
+           * We currently assign the integration permissions to the system account ID,
+           * in the `syncLinearIntegrationWithWorkspaces` resolver, so we user the
+           * `systemAccountId` here for now.
+           */
+          { actorId: systemAccountId },
           {
-            authentication: { actorId: systemAccountId },
-            payloadKind: payload.type,
-            payload: payload.data,
-            ownedById: systemAccountId as OwnedById,
+            hashWorkspaceEntityId,
+            vaultClient,
           },
-        ],
-        workflowId: `${workflow}-${genId()}`,
-      },
+        );
+
+        await temporalClient.workflow.start<WorkflowTypeMap[typeof workflow]>(
+          workflow,
+          {
+            taskQueue: "integration",
+            args: [
+              {
+                authentication: { actorId: systemAccountId },
+                linearType,
+                linearId,
+                linearApiKey,
+                ownedById,
+              },
+            ],
+            workflowId: `${workflow}-${genId()}`,
+          },
+        );
+      }),
     );
   }
 

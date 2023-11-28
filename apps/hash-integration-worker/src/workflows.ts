@@ -56,22 +56,12 @@ export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
 
 export const createHashEntityFromLinearData: CreateHashEntityFromLinearData =
   async (params) => {
-    await linear.createHashEntityFromLinearData({
-      authentication: params.authentication,
-      payload: params.payload,
-      payloadKind: params.payloadKind,
-      ownedById: params.ownedById,
-    });
+    await linear.createHashEntityFromLinearData(params);
   };
 
 export const updateHashEntityFromLinearData: UpdateHashEntityFromLinearData =
   async (params) => {
-    await linear.updateHashEntityFromLinearData({
-      authentication: params.authentication,
-      payload: params.payload,
-      payloadKind: params.payloadKind,
-      ownedById: params.ownedById,
-    });
+    await linear.updateHashEntityFromLinearData(params);
   };
 
 export const readLinearTeams: ReadLinearTeamsWorkflow = async ({ apiKey }) =>
