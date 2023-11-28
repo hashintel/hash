@@ -10,7 +10,8 @@ import {
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
 import { getOutgoingLinkAndTargetEntities } from "@blockprotocol/graph/stdlib";
-import { Box, Divider } from "@mui/material";
+import { GearIcon } from "@hashintel/block-design-system";
+import { Box, Collapse, Divider, IconButton } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BarChart } from "./bar-chart";
@@ -27,10 +28,13 @@ import {
 } from "./types/generated/block-entity";
 
 export const App: BlockComponent<BlockEntity> = ({
-  graph: { blockEntitySubgraph },
+  graph: { blockEntitySubgraph, readonly },
 }) => {
   const blockRootRef = useRef<HTMLDivElement>(null);
   const { graphModule } = useGraphBlockModule(blockRootRef);
+
+  const [displayEditChartDefinition, setDisplayEditChartDefinition] =
+    useState<boolean>(false);
 
   const { rootEntity: blockEntity } = useEntitySubgraph<
     BlockEntity,
@@ -114,7 +118,7 @@ export const App: BlockComponent<BlockEntity> = ({
           entityTypeId: blockEntity.metadata.entityTypeId,
           properties: {
             ...blockEntity.properties,
-            "https://blockprotocol.org/@benwerner/types/property-type/chart-definition/":
+            "https://blockprotocol.org/@hash/types/property-type/chart-defintion/":
               updatedChartDefinition,
           } as BlockEntity["properties"],
         },
@@ -168,25 +172,37 @@ export const App: BlockComponent<BlockEntity> = ({
   ]);
 
   return (
-    <Box ref={blockRootRef}>
+    <Box ref={blockRootRef} position="relative">
       <EditableChartTitle
         title={title ?? "Untitled Chart"}
         updateTitle={updateTitle}
       />
+      {readonly ? null : (
+        <IconButton
+          sx={{ position: "absolute", right: 1, top: 1 }}
+          onClick={() =>
+            setDisplayEditChartDefinition(!displayEditChartDefinition)
+          }
+        >
+          <GearIcon />
+        </IconButton>
+      )}
       {chartDefinition ? (
         <BarChart definition={chartDefinition} queryResults={queryResults} />
       ) : null}
-      <Divider />
-      <Box marginTop={2}>
-        {allQueriesAreFetched ? (
-          <EditChartDefinition
-            key={blockEntity.metadata.recordId.editionId}
-            initialChartDefinition={chartDefinition}
-            queryResults={queryResults}
-            onSubmit={updateChartDefinition}
-          />
-        ) : null}
-      </Box>
+      <Collapse in={displayEditChartDefinition}>
+        <Divider />
+        <Box marginTop={2}>
+          {allQueriesAreFetched ? (
+            <EditChartDefinition
+              key={blockEntity.metadata.recordId.editionId}
+              initialChartDefinition={chartDefinition}
+              queryResults={queryResults}
+              onSubmit={updateChartDefinition}
+            />
+          ) : null}
+        </Box>
+      </Collapse>
     </Box>
   );
 };
