@@ -329,7 +329,7 @@ export const linearTypeMappings = [
       } satisfies PropertyMapping<"User", "active">,
       {
         linearPropertyKey: "admin",
-        hashPropertyTypeId: linearPropertyTypes.active.propertyTypeId,
+        hashPropertyTypeId: linearPropertyTypes.admin.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.admin = hashValue as boolean;
           return updateInput;
@@ -369,6 +369,10 @@ export const linearTypeMappings = [
           return updateInput;
         },
       } satisfies PropertyMapping<"User", "description">,
+      {
+        linearPropertyKey: "displayName",
+        hashPropertyTypeId: linearPropertyTypes.displayName.propertyTypeId,
+      } satisfies PropertyMapping<"User", "displayName">,
       {
         linearPropertyKey: "email",
         hashPropertyTypeId: systemPropertyTypes.email.propertyTypeId,
@@ -601,7 +605,7 @@ export const linearTypeMappings = [
       } satisfies PropertyMapping<"Organization", "urlKey">,
       {
         linearPropertyKey: "userCount",
-        hashPropertyTypeId: linearPropertyTypes.urlKey.propertyTypeId,
+        hashPropertyTypeId: linearPropertyTypes.userCount.propertyTypeId,
       } satisfies PropertyMapping<"Organization", "userCount">,
     ],
     outgoingLinkMappings: [],
