@@ -32,7 +32,7 @@ use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp}
 use tokio_postgres::GenericClient;
 use type_system::{url::VersionedUrl, EntityType};
 use uuid::Uuid;
-use validation::{EntityValidationError, Validate};
+use validation::Validate;
 
 #[cfg(hash_graph_test_environment)]
 use crate::store::error::DeletionError;
@@ -41,7 +41,7 @@ use crate::{
     store::{
         crud::Read,
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
-        knowledge::EntityValidationType,
+        knowledge::{EntityValidationError, EntityValidationType},
         postgres::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
             TraversalContext,
@@ -537,7 +537,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_type: EntityValidationType<'_>,
         properties: &EntityProperties,
         link_data: Option<&LinkData>,
-    ) -> Result<(), QueryError> {
+    ) -> Result<(), EntityValidationError> {
         enum MaybeBorrowed<'a, T> {
             Borrowed(&'a T),
             Owned(T),
@@ -556,9 +556,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         consistency,
                     )
                     .await
-                    .change_context(QueryError)?
+                    .change_context(EntityValidationError)?
                     .assert_permission()
-                    .change_context(QueryError)
+                    .change_context(EntityValidationError)
                     .attach(StatusCode::PermissionDenied)?;
 
                 let mut closed_schemas = self
@@ -578,21 +578,22 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         ),
                     )
                     .await
-                    .change_context(QueryError)?
+                    .change_context(EntityValidationError)?
                     .map_ok(|(_, raw_type)| raw_type)
                     .try_collect::<Vec<EntityType>>()
-                    .await?;
+                    .await
+                    .change_context(EntityValidationError)?;
 
                 ensure!(
                     closed_schemas.len() <= 1,
-                    Report::new(QueryError).attach_printable(format!(
+                    Report::new(EntityValidationError).attach_printable(format!(
                         "Expected exactly one closed schema to be returned from the query but {} \
                          were returned",
                         closed_schemas.len(),
                     ))
                 );
                 MaybeBorrowed::Owned(closed_schemas.pop().ok_or_else(|| {
-                    Report::new(QueryError).attach_printable(
+                    Report::new(EntityValidationError).attach_printable(
                         "Expected exactly one closed schema to be returned from the query but \
                          none was returned",
                     )
@@ -605,7 +606,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             MaybeBorrowed::Owned(schema) => schema,
         };
 
-        let mut status: Result<(), EntityValidationError> = Ok(());
+        let mut status: Result<(), validation::EntityValidationError> = Ok(());
 
         let validator_provider = StoreProvider {
             store: self,
@@ -630,7 +631,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         }
 
         status
-            .change_context(QueryError)
+            .change_context(EntityValidationError)
             .attach(StatusCode::InvalidArgument)
     }
 
