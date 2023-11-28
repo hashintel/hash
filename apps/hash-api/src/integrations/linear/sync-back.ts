@@ -133,6 +133,7 @@ export const processEntityChange = async (
         {
           apiKey: linearApiKey,
           linearId: linearId as string,
+          authentication: { actorId: systemAccountId },
           entityTypeId: linearEntityToUpdate.metadata.entityTypeId,
           entity: linearEntityToUpdate,
         },

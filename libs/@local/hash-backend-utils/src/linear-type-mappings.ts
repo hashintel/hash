@@ -14,7 +14,8 @@ import {
   linearPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { EntityPropertyValue } from "@local/hash-subgraph";
+import { BaseUrl, Entity, EntityPropertyValue } from "@local/hash-subgraph";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 const mapLinearDateToIsoString = (date: string | Date): string => {
   if (typeof date === "string") {
@@ -53,18 +54,26 @@ type PropertyMapping<
   ) => HashPropertyValue | undefined;
 };
 
+type OutgoingLinkMapping<
+  LinearType extends SupportedLinearTypeNames = SupportedLinearTypeNames,
+> = {
+  getLinkDestinationLinearIds: (
+    linearData: SupportedLinearTypes[LinearType],
+  ) => Promise<{ destinationLinearIds: string[] }>;
+  addToLinearUpdateInput?: (
+    updateInput: SupportedLinearUpdateInput[LinearType],
+    matchingOutgoingLinks: { linkEntity: LinkEntity; rightEntity: Entity }[],
+  ) => SupportedLinearUpdateInput[LinearType];
+  linkEntityTypeId: VersionedUrl;
+};
+
 type LinearMapping<
   T extends SupportedLinearTypeNames = SupportedLinearTypeNames,
 > = {
   linearType: T;
   hashEntityTypeId: VersionedUrl;
   propertyMappings: PropertyMapping<T, keyof SupportedLinearTypes[T]>[];
-  outgoingLinkMappings: {
-    getLinkDestinationLinearIds: (
-      linearData: SupportedLinearTypes[T],
-    ) => Promise<{ destinationLinearIds: string[] }>;
-    linkEntityTypeId: VersionedUrl;
-  }[];
+  outgoingLinkMappings: OutgoingLinkMapping<T>[];
 };
 
 export const linearTypeMappings = [
@@ -249,6 +258,26 @@ export const linearTypeMappings = [
         getLinkDestinationLinearIds: async (issue) => {
           const assignee = await issue.assignee;
           return { destinationLinearIds: assignee ? [assignee.id] : [] };
+        },
+        addToLinearUpdateInput: (updateInput, matchingOutgoingLinks) => {
+          const [matchingOutgoingLink] = matchingOutgoingLinks;
+
+          if (matchingOutgoingLink) {
+            const linearId =
+              matchingOutgoingLink.rightEntity.properties[
+                linearPropertyTypes.id.propertyTypeBaseUrl as BaseUrl
+              ];
+
+            if (!linearId || typeof linearId !== "string") {
+              throw new Error("Could not get linear ID");
+            }
+
+            updateInput.assigneeId = linearId;
+          } else {
+            updateInput.assigneeId = null;
+          }
+
+          return updateInput;
         },
         linkEntityTypeId: linearLinkEntityTypes.hasAssignee.linkEntityTypeId,
       },

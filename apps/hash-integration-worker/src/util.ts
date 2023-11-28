@@ -14,6 +14,7 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
+  splitEntityId,
 } from "@local/hash-subgraph";
 import {
   getRoots,
@@ -117,6 +118,55 @@ export const getEntityOutgoingLinks = async (params: {
   ) as LinkEntity[];
 
   return outgoingLinkEntities;
+};
+
+export const getLatestEntityById = async (params: {
+  graphApiClient: GraphApi;
+  authentication: { actorId: AccountId };
+  entityId: EntityId;
+}) => {
+  const { graphApiClient, authentication, entityId } = params;
+
+  const [ownedById, entityUuid] = splitEntityId(entityId);
+
+  const response = await graphApiClient.getEntitiesByQuery(
+    authentication.actorId,
+    {
+      filter: {
+        all: [
+          {
+            equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+          },
+          {
+            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+          },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+        ],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  );
+
+  const entitiesSubgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+    response.data,
+  );
+
+  const [entity, ...unexpectedEntities] = getRoots(entitiesSubgraph);
+
+  if (unexpectedEntities.length > 0) {
+    throw new Error(
+      `Critical: Latest entity with entityId ${entityId} returned more than one result.`,
+    );
+  }
+
+  if (!entity) {
+    throw new Error(
+      `Critical: Entity with entityId ${entityId} doesn't exist or cannot be accessed by requesting user.`,
+    );
+  }
+
+  return entity;
 };
 
 export const archiveEntity = async (params: {

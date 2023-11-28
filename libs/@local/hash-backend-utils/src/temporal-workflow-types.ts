@@ -44,6 +44,7 @@ export type SyncWorkspaceWorkflow = (params: {
 
 export type UpdateLinearDataWorkflow = (params: {
   apiKey: string;
+  authentication: { actorId: AccountId };
   linearId: string;
   entityTypeId: VersionedUrl;
   entity: Entity;

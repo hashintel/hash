@@ -26,7 +26,11 @@ import {
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { getEntitiesByLinearId } from "./util";
+import {
+  getEntitiesByLinearId,
+  getEntityOutgoingLinks,
+  getLatestEntityById,
+} from "./util";
 
 export const mapLinearDataToEntity = <
   T extends SupportedLinearTypeNames,
@@ -130,12 +134,14 @@ export const mapLinearDataToEntityWithOutgoingLinks = async <
   };
 };
 
-export const mapHashEntityToLinearUpdateInput = <
+export const mapHashEntityToLinearUpdateInput = async <
   T extends SupportedLinearTypeNames,
 >(params: {
+  graphApiClient: GraphApi;
+  authentication: { actorId: AccountId };
   linearType: T;
   entity: Entity;
-}): SupportedLinearUpdateInput[T] => {
+}): Promise<SupportedLinearUpdateInput[T]> => {
   const { entity, linearType } = params;
 
   const mapping = getLinearMappingByLinearType({
@@ -160,7 +166,40 @@ export const mapHashEntityToLinearUpdateInput = <
     }
   }
 
-  /** @todo: account for link mappings */
+  const { graphApiClient, authentication } = params;
+
+  const outgoingLinks = await getEntityOutgoingLinks({
+    graphApiClient,
+    authentication,
+    entityId: entity.metadata.recordId.entityId,
+  });
+
+  for (const {
+    linkEntityTypeId,
+    addToLinearUpdateInput,
+  } of mapping.outgoingLinkMappings) {
+    const matchingOutgoingLinksWithRightEntities = await Promise.all(
+      outgoingLinks
+        .filter(
+          (linkEntity) => linkEntity.metadata.entityTypeId === linkEntityTypeId,
+        )
+        .map(async (linkEntity) => ({
+          linkEntity,
+          rightEntity: await getLatestEntityById({
+            graphApiClient,
+            authentication,
+            entityId: linkEntity.linkData.rightEntityId,
+          }),
+        })),
+    );
+
+    if (addToLinearUpdateInput) {
+      addToLinearUpdateInput(
+        updateInput,
+        matchingOutgoingLinksWithRightEntities,
+      );
+    }
+  }
 
   return updateInput;
 };

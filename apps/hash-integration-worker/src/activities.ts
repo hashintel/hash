@@ -449,6 +449,7 @@ export const createLinearIntegrationActivities = ({
   async updateLinearData({
     apiKey,
     entityTypeId,
+    authentication,
     linearId,
     entity,
   }: Parameters<UpdateLinearDataWorkflow>[0]): Promise<void> {
@@ -456,7 +457,9 @@ export const createLinearIntegrationActivities = ({
 
     const mapping = getLinearMappingByHashEntityTypeId({ entityTypeId });
 
-    const linearUpdateInput = mapHashEntityToLinearUpdateInput({
+    const linearUpdateInput = await mapHashEntityToLinearUpdateInput({
+      graphApiClient,
+      authentication,
       linearType: mapping.linearType,
       entity,
     });
