@@ -1,11 +1,14 @@
 import {
   BarChart,
   BarSeriesOption,
+  GraphChart,
+  GraphSeriesOption,
   LineChart,
   LineSeriesOption,
   ScatterChart,
   ScatterSeriesOption,
 } from "echarts/charts";
+// eslint-disable-next-line no-restricted-imports
 import { GridComponent } from "echarts/components";
 import * as echarts from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
@@ -14,13 +17,21 @@ import { FunctionComponent, useEffect, useRef, useState } from "react";
 export type SeriesOption =
   | LineSeriesOption
   | ScatterSeriesOption
-  | BarSeriesOption;
+  | BarSeriesOption
+  | GraphSeriesOption;
 
 // Combine an Option type with only required components and charts via ComposeOption
 export type ECOption = echarts.ComposeOption<SeriesOption>;
 
 // Register the required components
-echarts.use([LineChart, BarChart, ScatterChart, GridComponent, SVGRenderer]);
+echarts.use([
+  LineChart,
+  BarChart,
+  ScatterChart,
+  GraphChart,
+  GridComponent,
+  SVGRenderer,
+]);
 
 type GraphProps = {
   options: ECOption;
