@@ -13,4 +13,9 @@ import pluralizeLib from "pluralize";
  */
 pluralizeLib.addPluralRule(/(^|\W)(By)(\W|$)/i, "$1$2s$3");
 
+/**
+ * 'Company' -> 'Companies', not 'Companys'
+ */
+pluralizeLib.addPluralRule(/any$/i, "anies");
+
 export const pluralize = pluralizeLib;
