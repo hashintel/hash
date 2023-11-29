@@ -12,7 +12,14 @@ import {
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box, useTheme } from "@mui/material";
+import {
+  Box,
+  ToggleButton,
+  toggleButtonClasses,
+  ToggleButtonGroup,
+  Tooltip,
+  useTheme,
+} from "@mui/material";
 import { useRouter } from "next/router";
 import {
   FunctionComponent,
@@ -30,6 +37,8 @@ import {
 } from "../../components/grid/grid";
 import { BlankCell, blankCell } from "../../components/grid/utils";
 import { useEntityTypeEntities } from "../../shared/entity-type-entities-context";
+import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
+import { ListRegularIcon } from "../../shared/icons/list-regular-icon";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import {
   FilterState,
@@ -251,6 +260,61 @@ export const EntitiesTable: FunctionComponent<{
               ({ entityId }) => entity.metadata.recordId.entityId === entityId,
             ),
           ) ?? []
+        }
+        endAdornment={
+          <ToggleButtonGroup
+            value={view}
+            exclusive
+            onChange={(_, updatedView) => {
+              if (updatedView) {
+                setView(updatedView);
+              }
+            }}
+            aria-label="view"
+            size="small"
+            sx={{
+              [`.${toggleButtonClasses.root}`]: {
+                backgroundColor: ({ palette }) => palette.common.white,
+                "&:not(:last-of-type)": {
+                  borderRightColor: ({ palette }) => palette.gray[20],
+                  borderRightStyle: "solid",
+                  borderRightWidth: 2,
+                },
+                "&:hover": {
+                  backgroundColor: ({ palette }) => palette.common.white,
+                  svg: {
+                    color: ({ palette }) => palette.gray[80],
+                  },
+                },
+                [`&.${toggleButtonClasses.selected}`]: {
+                  backgroundColor: ({ palette }) => palette.common.white,
+                  svg: {
+                    color: ({ palette }) => palette.gray[90],
+                  },
+                },
+                svg: {
+                  transition: ({ transitions }) => transitions.create("color"),
+                  color: ({ palette }) => palette.gray[50],
+                  fontSize: 18,
+                },
+              },
+            }}
+          >
+            <ToggleButton disableRipple value="table" aria-label="table">
+              <Tooltip title="Table view" placement="top">
+                <Box sx={{ lineHeight: 0 }}>
+                  <ListRegularIcon />
+                </Box>
+              </Tooltip>
+            </ToggleButton>
+            <ToggleButton disableRipple value="graph" aria-label="graph">
+              <Tooltip title="Graph view" placement="top">
+                <Box sx={{ lineHeight: 0 }}>
+                  <ChartNetworkRegularIcon />
+                </Box>
+              </Tooltip>
+            </ToggleButton>
+          </ToggleButtonGroup>
         }
         filterState={filterState}
         setFilterState={setFilterState}
