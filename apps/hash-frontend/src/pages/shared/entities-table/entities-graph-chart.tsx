@@ -19,7 +19,7 @@ import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import { generateEntityLabel } from "../../../lib/entities";
 
-export const EntitiesGraph: FunctionComponent<{
+export const EntitiesGraphChart: FunctionComponent<{
   filterEntity?: (entity: Entity) => boolean;
   primaryEntityTypeBaseUrl?: BaseUrl;
   subgraph?: Subgraph<EntityRootType>;

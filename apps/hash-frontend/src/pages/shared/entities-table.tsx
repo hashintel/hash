@@ -47,7 +47,7 @@ import {
 } from "../../shared/table-header";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { renderChipCell } from "./chip-cell";
-import { EntitiesGraph } from "./entities-table/entities-graph";
+import { EntitiesGraphChart } from "./entities-table/entities-graph-chart";
 import {
   createRenderTextIconCell,
   TextIconCell,
@@ -322,7 +322,7 @@ export const EntitiesTable: FunctionComponent<{
         onBulkActionCompleted={() => setSelectedRows([])}
       />
       {view === "graph" ? (
-        <EntitiesGraph
+        <EntitiesGraphChart
           primaryEntityTypeBaseUrl={
             entityTypeBaseUrl ??
             (entityTypeId ? extractBaseUrl(entityTypeId) : undefined)
