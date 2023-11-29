@@ -12,6 +12,7 @@ type NavLinkProps = {
   title: string;
   loading?: boolean;
   endAdornment?: ReactNode;
+  initialExpanded?: boolean;
 };
 
 export const NavLink: FunctionComponent<NavLinkProps> = ({
@@ -19,8 +20,9 @@ export const NavLink: FunctionComponent<NavLinkProps> = ({
   children,
   loading = false,
   endAdornment,
+  initialExpanded = true,
 }) => {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(initialExpanded);
 
   return (
     <Box>

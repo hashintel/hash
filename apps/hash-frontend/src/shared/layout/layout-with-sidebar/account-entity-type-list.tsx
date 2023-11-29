@@ -72,6 +72,7 @@ export const AccountEntityTypeList: FunctionComponent<
   return (
     <Box>
       <NavLink
+        initialExpanded={false}
         title="Types"
         endAdornment={
           <Box display="flex" gap={1}>
