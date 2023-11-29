@@ -11,8 +11,8 @@ import { SignIn } from "./popup-contents/sign-in";
 
 const getCurrentTab = async () => {
   const queryOptions = { active: true, lastFocusedWindow: true };
-  // `tab` will either be a `tabs.Tab` instance or `undefined`
 
+  // `tab` will either be a `tabs.Tab` instance or `undefined`
   const [tab] = await browser.tabs.query(queryOptions);
   return tab;
 };
@@ -40,6 +40,8 @@ export const PopupContents = () => {
           fontSize: "15px",
           color: palette.common.black,
           border: `1px solid ${palette.gray[20]}`,
+          maxHeight: 550,
+          overflowY: "scroll",
 
           "@media (prefers-color-scheme: dark)": {
             border: `1px solid ${palette.common.black}`,
@@ -48,7 +50,7 @@ export const PopupContents = () => {
         })}
       >
         {loading ? (
-          <Box sx={{ width: 450, paddingX: 2.5, pt: 1, pb: 2 }}>
+          <Box sx={{ width: 500, paddingX: 2.5, pt: 1, pb: 2 }}>
             <Skeleton
               height={32}
               sx={{ borderRadius: 1, mb: 2 }}

@@ -1,27 +1,17 @@
 import { EntityType } from "@blockprotocol/graph";
-import { ProposedEntity } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
 import { User } from "@local/hash-isomorphic-utils/system-types/shared";
-import { EntityId } from "@local/hash-subgraph";
+import { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
 import browser from "webextension-polyfill";
 
-type CreationStatus = "errored" | "pending" | "skipped" | EntityId;
-
-export type CreationStatuses = Record<string, CreationStatus | undefined>;
-
-export type CreationStatusRecord = {
-  overallStatus: "not-started" | "pending" | "complete";
-  entityStatuses: CreationStatuses;
-};
-
 type InferenceErrorStatus = {
-  message: string;
+  errorMessage: string;
   status: "error";
 };
 
 type InferenceCompleteStatus = {
-  proposedEntities: ProposedEntity[];
-  status: "success";
+  data: InferEntitiesReturn;
+  status: "complete";
 };
 
 export type InferenceStatus =
@@ -31,6 +21,15 @@ export type InferenceStatus =
   | InferenceErrorStatus
   | InferenceCompleteStatus;
 
+export type PageEntityInference = InferenceStatus & {
+  createdAt: string;
+  entityTypes: EntityType[];
+  localRequestUuid: string;
+  sourceTitle: string;
+  sourceUrl: string;
+  trigger: "passive" | "user";
+};
+
 /**
  * Storage area cleared when the browser is closed.
  *
@@ -38,11 +37,13 @@ export type InferenceStatus =
  * @see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage/session
  */
 export type SessionStorage = {
-  creationStatus: CreationStatusRecord;
+  passiveInference: {
+    conditions: ({ domain: string } | { urlRegExp: string })[];
+    enabled: boolean;
+  };
   draftQuickNote: string;
-  entitiesToCreate: ProposedEntity[];
   entityTypes: EntityType[];
-  inferenceStatus: InferenceStatus;
+  inferenceRequests: PageEntityInference[];
   targetEntityTypes: EntityType[];
   user: Simplified<User> | null;
 };
@@ -63,4 +64,27 @@ export const setInSessionStorage = async (
   value: SessionStorage[keyof SessionStorage],
 ) => {
   await browser.storage.session.set({ [key]: value });
+};
+
+type ReplaceFromSessionStorageValue<Key extends keyof SessionStorage> = (
+  currentValue: SessionStorage[Key] | undefined,
+) => SessionStorage[Key];
+
+/**
+ * Returns a function that can be called with a function to set a new value in session storage from the old value.
+ * i.e. it returns a function that can be used like the callback form of React's setState
+ * @example
+ * const setFromCurrentValue = getSetFromSessionStorageValue("inferenceStatus");
+ * setFromCurrentValue((currentValue) => { // return the new value });
+ */
+export const getSetFromSessionStorageValue = <Key extends keyof SessionStorage>(
+  key: Key,
+): ((
+  replaceFunction: ReplaceFromSessionStorageValue<Key>,
+) => Promise<void>) => {
+  return async (replaceFunction) => {
+    const currentValue = await getFromSessionStorage(key);
+    const newValue = replaceFunction(currentValue);
+    await setInSessionStorage(key, newValue);
+  };
 };

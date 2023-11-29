@@ -35,7 +35,6 @@ import {
   createEntityResolver,
   getEntityAuthorizationRelationshipsResolver,
   getEntityResolver,
-  inferEntitiesResolver,
   isEntityPublicResolver,
   queryEntitiesResolver,
   removeEntityEditorResolver,
@@ -147,7 +146,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     ),
     // Knowledge
     createEntity: loggedInAndSignedUpMiddleware(createEntityResolver),
-    inferEntities: loggedInAndSignedUpMiddleware(inferEntitiesResolver),
     updateEntity: loggedInMiddleware(updateEntityResolver),
     archiveEntity: loggedInMiddleware(archiveEntityResolver),
     createPage: loggedInAndSignedUpMiddleware(createPageResolver),

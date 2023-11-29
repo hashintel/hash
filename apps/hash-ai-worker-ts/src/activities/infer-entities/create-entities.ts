@@ -74,8 +74,9 @@ export const createEntities = async ({
             };
           } catch (err) {
             creationFailuresByTemporaryId[proposedEntity.entityId] = {
+              temporaryId: proposedEntity.entityId,
               entityTypeId,
-              proposedProperties: properties,
+              properties,
               failureReason: (err as Error).message,
             };
           }
@@ -101,8 +102,9 @@ export const createEntities = async ({
             )
           ) {
             creationFailuresByTemporaryId[proposedEntity.entityId] = {
+              temporaryId: proposedEntity.entityId,
               entityTypeId,
-              proposedProperties: properties,
+              properties,
               failureReason:
                 "Link entities must have both a sourceEntityId and a targetEntityId.",
             };
@@ -126,16 +128,18 @@ export const createEntities = async ({
                 : `source with temporaryId ${sourceEntityId} not found in proposed entities`;
 
               creationFailuresByTemporaryId[proposedEntity.entityId] = {
+                temporaryId: proposedEntity.entityId,
                 entityTypeId,
-                proposedProperties: properties,
+                properties,
                 failureReason,
               };
               return;
             }
 
             creationFailuresByTemporaryId[proposedEntity.entityId] = {
+              temporaryId: proposedEntity.entityId,
               entityTypeId,
-              proposedProperties: properties,
+              properties,
               failureReason: `Link entity could not be created – source with temporary id ${sourceEntityId} failed to be created with reason: ${sourceFailure.failureReason}`,
             };
 
@@ -157,16 +161,18 @@ export const createEntities = async ({
                 : `target with temporaryId ${targetEntityId} not found in proposed entities`;
 
               creationFailuresByTemporaryId[proposedEntity.entityId] = {
+                temporaryId: proposedEntity.entityId,
                 entityTypeId,
-                proposedProperties: properties,
+                properties,
                 failureReason,
               };
               return;
             }
 
             creationFailuresByTemporaryId[proposedEntity.entityId] = {
+              temporaryId: proposedEntity.entityId,
               entityTypeId,
-              proposedProperties: properties,
+              properties,
               failureReason: `Link entity could not be created – target with temporary id ${targetEntityId} failed to be created with reason: ${targetFailure.failureReason}`,
             };
 
@@ -202,8 +208,9 @@ export const createEntities = async ({
             };
           } catch (err) {
             creationFailuresByTemporaryId[proposedEntity.entityId] = {
+              temporaryId: proposedEntity.entityId,
               entityTypeId,
-              proposedProperties: properties,
+              properties,
               failureReason: (err as Error).message,
             };
           }

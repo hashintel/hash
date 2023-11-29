@@ -28,7 +28,6 @@ env:
   HASH_GRAPH_RESOURCE_NAME: ${{ secrets.HASH_GRAPH_RESOURCE_NAME }}
   HASH_KRATOS_RESOURCE_NAME: ${{ secrets.HASH_KRATOS_RESOURCE_NAME }}
   HASH_TEMPORAL_AI_TS_WORKER_RESOURCE_NAME: h-hash-prod-usea1-temporalworkeraits
-  HASH_TEMPORAL_AI_PY_WORKER_RESOURCE_NAME: h-hash-prod-usea1-temporalworkeraipy
   HASH_TEMPORAL_INTEGRATION_WORKER_RESOURCE_NAME: h-hash-prod-usea1-temporalworkerintegration
 
   HASH_TEMPORAL_SETUP_RESOURCE_NAME: h-temporal-prod-usea1-setup

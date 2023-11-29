@@ -10,7 +10,7 @@ import browser from "webextension-polyfill";
  *
  * You must update the extension if you amend this file, from the extensions manager page in the browser.
  */
-import { Message } from "../shared/messages";
+import { GetSiteContentReturn, Message } from "../shared/messages";
 
 browser.runtime.onMessage.addListener(
   (message: Message, _sender, sendResponse) => {
@@ -18,7 +18,18 @@ browser.runtime.onMessage.addListener(
       const docContent =
         document.querySelector("main") || document.querySelector("body");
 
-      sendResponse(docContent?.innerText);
+      /**
+       * Take the URL without any anchor hash on the assumption that it does not affect page content.
+       * Helps avoid making duplicate requests for the same page.
+       */
+      const urlObject = new URL(window.location.href);
+      const pageUrl = urlObject.href.replace(urlObject.hash, "");
+
+      sendResponse({
+        innerText: docContent?.innerText ?? "",
+        pageTitle: document.title,
+        pageUrl,
+      } satisfies GetSiteContentReturn);
       return;
     }
 
