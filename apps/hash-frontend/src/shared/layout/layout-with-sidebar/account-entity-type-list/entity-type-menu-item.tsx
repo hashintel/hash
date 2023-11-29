@@ -1,6 +1,6 @@
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { ListItemIcon, ListItemText } from "@mui/material";
+import { ListItemIcon, listItemIconClasses, ListItemText } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/hooks";
 import { ReactElement } from "react";
 
@@ -27,6 +27,13 @@ export const EntityTypeMenuItem = ({
       {...(href ? { href } : {})}
       faded={faded}
       onClick={onClick ?? popupState.close}
+      sx={{
+        [`> .${listItemIconClasses.root}`]: {
+          width: 18,
+          display: "inline-flex",
+          justifyContent: "center",
+        },
+      }}
     >
       <ListItemIcon>
         {"icon" in icon ? <FontAwesomeIcon icon={icon} /> : icon}

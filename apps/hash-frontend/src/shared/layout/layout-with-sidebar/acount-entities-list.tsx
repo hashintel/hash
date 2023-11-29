@@ -131,7 +131,7 @@ export const AccountEntitiesList: FunctionComponent<
             {sortedEntityTypes.map((root) => (
               <Collapse key={root.schema.$id}>
                 <EntityTypeItem
-                  {...root}
+                  entityType={root}
                   href={`/entities?entityTypeIdOrBaseUrl=${extractBaseUrl(
                     root.schema.$id,
                   )}`}

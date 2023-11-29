@@ -50,14 +50,15 @@ const Container = styled((props: BoxProps & { selected: boolean }) => (
   },
 }));
 
-export const EntityTypeItem: FunctionComponent<
-  EntityTypeWithMetadata & { href?: string; variant: "entity" | "entity-type" }
-> = ({
-  metadata: { icon },
-  schema: { title, $id: entityTypeId },
-  href,
-  variant,
-}) => {
+export const EntityTypeItem: FunctionComponent<{
+  entityType: EntityTypeWithMetadata;
+  href?: string;
+  variant: "entity" | "entity-type";
+}> = ({ entityType, href, variant }) => {
+  const {
+    metadata: { icon },
+    schema: { title, $id: entityTypeId },
+  } = entityType;
   const entityMenuTriggerRef = useRef(null);
   const popupState = usePopupState({
     variant: "popover",
@@ -152,6 +153,8 @@ export const EntityTypeItem: FunctionComponent<
           entityTypeId={entityTypeId}
           popupState={popupState}
           title={title}
+          entityTypeIcon={icon}
+          isLinkType={isLink}
         />
       ) : (
         <EntityTypeMenu
