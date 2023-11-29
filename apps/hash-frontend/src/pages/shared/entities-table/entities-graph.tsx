@@ -97,21 +97,11 @@ export const EntitiesGraph: FunctionComponent<{
                   linkEntity.linkData.leftEntityId,
               );
 
-              const leftEntityTypeTitle = getEntityTypeById(
-                subgraph!,
-                leftEntity!.metadata.entityTypeId,
-              )?.schema.title;
-
               const rightEntity = entities?.find(
                 ({ metadata }) =>
                   metadata.recordId.entityId ===
                   linkEntity.linkData.rightEntityId,
               );
-
-              const rightEntityTypeTitle = getEntityTypeById(
-                subgraph!,
-                rightEntity!.metadata.entityTypeId,
-              )?.schema.title;
 
               const linkEntityTypeTitle = getEntityTypeById(
                 subgraph!,
@@ -119,13 +109,11 @@ export const EntitiesGraph: FunctionComponent<{
               )?.schema.title;
 
               return [
-                leftEntityTypeTitle,
                 `<strong>${generateEntityLabel(
                   subgraph!,
                   leftEntity,
                 )}</strong>`,
                 linkEntityTypeTitle?.toLowerCase(),
-                rightEntityTypeTitle,
                 `<strong>${generateEntityLabel(
                   subgraph!,
                   rightEntity,
