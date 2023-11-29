@@ -14,7 +14,7 @@ import {
 } from "@local/hash-subgraph/type-system-patch";
 import { BoxProps } from "@mui/material";
 import { useRouter } from "next/router";
-import { FunctionComponent, useEffect, useMemo, useState } from "react";
+import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import { generateEntityLabel } from "../../../lib/entities";
@@ -102,6 +102,8 @@ export const EntitiesGraphChart: FunctionComponent<{
       chart?.off("click");
     };
   }, [chart, entities, router, getOwnerForEntity]);
+
+  const chartInitialized = useRef(false);
 
   const eChartOptions = useMemo<ECOption>(() => {
     return {
@@ -199,7 +201,8 @@ export const EntitiesGraphChart: FunctionComponent<{
         })),
         type: "graph",
         layout: "force",
-        zoom: 5,
+        // Hack for only setting the zoom if the chart hasn't already been initialized
+        ...(chartInitialized.current ? {} : { zoom: 5 }),
       },
     };
   }, [
@@ -213,7 +216,10 @@ export const EntitiesGraphChart: FunctionComponent<{
   return (
     <EChart
       sx={sx}
-      onChartInitialized={(initializedChart) => setChart(initializedChart)}
+      onChartInitialized={(initializedChart) => {
+        setChart(initializedChart);
+        chartInitialized.current = true;
+      }}
       options={eChartOptions}
     />
   );
