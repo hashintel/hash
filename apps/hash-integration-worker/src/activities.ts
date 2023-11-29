@@ -11,15 +11,15 @@ import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-
 import { AccountId, BaseUrl, EntityId, OwnedById } from "@local/hash-subgraph";
 
 import {
-  mapHashEntityToLinearUpdateInput,
-  mapLinearDataToEntity,
-  mapLinearDataToEntityWithOutgoingLinks,
-} from "./mappings";
-import {
   archiveEntity,
   getEntitiesByLinearId,
   getEntityOutgoingLinks,
-} from "./util";
+} from "./activities/graph-requests";
+import {
+  mapHashEntityToLinearUpdateInput,
+  mapLinearDataToEntity,
+  mapLinearDataToEntityWithOutgoingLinks,
+} from "./activities/mappings";
 
 const createHashEntity = async (params: {
   authentication: { actorId: AccountId };
