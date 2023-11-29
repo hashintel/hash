@@ -1,6 +1,5 @@
 import { useQuery } from "@apollo/client";
 import {
-  BaseUrl,
   EntityType,
   PropertyType,
   VersionedUrl,
@@ -9,7 +8,7 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { EntityRootType } from "@local/hash-subgraph";
+import { BaseUrl, EntityRootType } from "@local/hash-subgraph";
 import {
   getEntityTypeAndParentsById,
   getPropertyTypeById,
@@ -64,6 +63,8 @@ export const useEntityTypeEntitiesContextValue = (params: {
       constrainsValuesOn: { outgoing: 255 },
       inheritsFrom: { outgoing: 255 },
       isOfType: { outgoing: 1 },
+      hasLeftEntity: { outgoing: 1, incoming: 1 },
+      hasRightEntity: { outgoing: 1, incoming: 1 },
       includePermissions: false,
     }),
     [entityTypeBaseUrl, entityTypeId],
@@ -129,6 +130,8 @@ export const useEntityTypeEntitiesContextValue = (params: {
   }, [subgraph]);
 
   return {
+    entityTypeBaseUrl,
+    entityTypeId,
     entities,
     entityTypes,
     hadCachedContent,

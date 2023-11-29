@@ -1,3 +1,4 @@
+import { Box, BoxProps } from "@mui/material";
 import {
   BarChart,
   BarSeriesOption,
@@ -9,7 +10,11 @@ import {
   ScatterSeriesOption,
 } from "echarts/charts";
 // eslint-disable-next-line no-restricted-imports
-import { GridComponent } from "echarts/components";
+import {
+  GridComponent,
+  TooltipComponent,
+  TooltipComponentOption,
+} from "echarts/components";
 import * as echarts from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
 import { FunctionComponent, useEffect, useRef, useState } from "react";
@@ -21,7 +26,9 @@ export type SeriesOption =
   | GraphSeriesOption;
 
 // Combine an Option type with only required components and charts via ComposeOption
-export type ECOption = echarts.ComposeOption<SeriesOption>;
+export type ECOption = echarts.ComposeOption<
+  SeriesOption | TooltipComponentOption
+>;
 
 // Register the required components
 echarts.use([
@@ -31,13 +38,15 @@ echarts.use([
   GraphChart,
   GridComponent,
   SVGRenderer,
+  TooltipComponent,
 ]);
 
 type GraphProps = {
   options: ECOption;
+  sx?: BoxProps["sx"];
 };
 
-export const EChart: FunctionComponent<GraphProps> = ({ options }) => {
+export const EChart: FunctionComponent<GraphProps> = ({ options, sx }) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const [chart, setChart] = useState<echarts.ECharts>();
@@ -54,5 +63,10 @@ export const EChart: FunctionComponent<GraphProps> = ({ options }) => {
     }
   }, [chart, options]);
 
-  return <div style={{ width: "100%", height: 500 }} ref={wrapperRef} />;
+  return (
+    <Box
+      sx={[{ width: "100%", height: 500 }, ...(Array.isArray(sx) ? sx : [sx])]}
+      ref={wrapperRef}
+    />
+  );
 };

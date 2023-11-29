@@ -11,6 +11,7 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
 import {
@@ -37,6 +38,7 @@ import {
 } from "../../shared/table-header";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { renderChipCell } from "./chip-cell";
+import { EntitiesGraph } from "./entities-table/entities-graph";
 import {
   createRenderTextIconCell,
   TextIconCell,
@@ -60,7 +62,11 @@ export const EntitiesTable: FunctionComponent<{
   });
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
+  const [view, setView] = useState<"table" | "graph">("graph");
+
   const {
+    entityTypeBaseUrl,
+    entityTypeId,
     entities: lastLoadedEntities,
     entityTypes,
     hadCachedContent,
@@ -80,8 +86,8 @@ export const EntitiesTable: FunctionComponent<{
 
   const isViewingPages = useMemo(
     () =>
-      entities?.every(({ metadata: { entityTypeId } }) =>
-        isPageEntityTypeId(entityTypeId),
+      entities?.every(({ metadata }) =>
+        isPageEntityTypeId(metadata.entityTypeId),
       ),
     [entities],
   );
@@ -251,34 +257,47 @@ export const EntitiesTable: FunctionComponent<{
         toggleSearch={() => setShowSearch(true)}
         onBulkActionCompleted={() => setSelectedRows([])}
       />
-      <Grid
-        showSearch={showSearch}
-        onSearchClose={() => setShowSearch(false)}
-        columns={columns}
-        rows={rows}
-        enableCheckboxSelection
-        selectedRows={selectedRows}
-        onSelectedRowsChange={(updatedSelectedRows) =>
-          setSelectedRows(updatedSelectedRows)
-        }
-        firstColumnLeftPadding={16}
-        height={`
-            min(
-              calc(100vh - (${
-                HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 179 + tableHeaderHeight
-              }px + ${theme.spacing(5)} + ${theme.spacing(5)})),
-             calc(
-              ${gridHeaderHeightWithBorder}px +
-              (${rows ? rows.length : 1} * ${gridRowHeight}px) +
-              ${gridHorizontalScrollbarHeight}px)
-            )`}
-        createGetCellContent={createGetCellContent}
-        customRenderers={[
-          createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
-          renderChipCell,
-        ]}
-        freezeColumns={1}
-      />
+      {view === "graph" ? (
+        <EntitiesGraph
+          primaryEntityTypeBaseUrl={
+            entityTypeBaseUrl ??
+            (entityTypeId ? extractBaseUrl(entityTypeId) : undefined)
+          }
+          subgraph={subgraph}
+        />
+      ) : (
+        <Grid
+          showSearch={showSearch}
+          onSearchClose={() => setShowSearch(false)}
+          columns={columns}
+          rows={rows}
+          enableCheckboxSelection
+          selectedRows={selectedRows}
+          onSelectedRowsChange={(updatedSelectedRows) =>
+            setSelectedRows(updatedSelectedRows)
+          }
+          firstColumnLeftPadding={16}
+          height={`
+               min(
+                 calc(100vh - (${
+                   HEADER_HEIGHT +
+                   TOP_CONTEXT_BAR_HEIGHT +
+                   179 +
+                   tableHeaderHeight
+                 }px + ${theme.spacing(5)} + ${theme.spacing(5)})),
+                calc(
+                 ${gridHeaderHeightWithBorder}px +
+                 (${rows ? rows.length : 1} * ${gridRowHeight}px) +
+                 ${gridHorizontalScrollbarHeight}px)
+               )`}
+          createGetCellContent={createGetCellContent}
+          customRenderers={[
+            createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
+            renderChipCell,
+          ]}
+          freezeColumns={1}
+        />
+      )}
     </Box>
   );
 };
