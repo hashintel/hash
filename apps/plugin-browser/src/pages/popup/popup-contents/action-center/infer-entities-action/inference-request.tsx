@@ -21,10 +21,7 @@ export const InferenceRequest = ({
         acc[type.$id] =
           status === "complete"
             ? request.data.contents.filter(
-                (entityOrFailure) =>
-                  ("metadata" in entityOrFailure
-                    ? entityOrFailure.metadata.entityTypeId
-                    : entityOrFailure.entityTypeId) === type.$id,
+                (result) => result.entityTypeId === type.$id,
               )
             : [];
         return acc;
@@ -53,6 +50,8 @@ export const InferenceRequest = ({
       </Typography>
     );
   }
+
+  console.log({ request });
 
   return (
     <Box>
@@ -102,12 +101,9 @@ export const InferenceRequest = ({
                   No entities inferred.
                 </Typography>
               )}
-              {entityStatuses.map((entity, index) => {
-                const successfullyCreated = "metadata" in entity;
-
-                const locallyUniqueId = successfullyCreated
-                  ? entity.metadata.recordId.entityId
-                  : entity.temporaryId.toString();
+              {entityStatuses.map((result, index) => {
+                const locallyUniqueId =
+                  result.proposedEntity.entityId.toString();
 
                 const expanded = expandedEntityId === locallyUniqueId;
 
@@ -116,12 +112,12 @@ export const InferenceRequest = ({
                     allEntityStatuses={
                       request.status === "complete" ? request.data.contents : []
                     }
-                    entity={entity}
                     entityType={entityType}
                     entityTypes={entityTypes}
                     expanded={expanded}
                     key={locallyUniqueId}
                     indexInType={index}
+                    result={result}
                     toggleExpanded={() =>
                       expanded
                         ? setExpandedEntityId(null)

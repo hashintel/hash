@@ -64,33 +64,38 @@ export type ProposedEntity = Subtype<
   )
 >;
 
-export type InferredEntityCreationSuccess = {
-  entity: Entity;
-  operation: "create";
+type InferredEntityResultBase = {
+  entity?: Entity | null;
+  entityTypeId: VersionedUrl;
+  operation: "create" | "update";
   proposedEntity: ProposedEntity;
-  result: "success";
+  status: "success" | "failure";
 };
 
-export type InferredEntityCreationFailure = {
+export type InferredEntityCreationSuccess = InferredEntityResultBase & {
+  entity: Entity;
+  operation: "create";
+  status: "success";
+};
+
+export type InferredEntityCreationFailure = InferredEntityResultBase & {
+  entity?: null;
   failureReason: string;
   operation: "create";
-  proposedEntity: ProposedEntity;
-  result: "failure";
+  status: "failure";
 };
 
-export type InferredEntityUpdateSuccess = {
+export type InferredEntityUpdateSuccess = InferredEntityResultBase & {
   entity: Entity;
   operation: "update";
-  proposedEntity: ProposedEntity;
-  result: "success";
+  status: "success";
 };
 
-export type InferredEntityUpdateFailure = {
+export type InferredEntityUpdateFailure = InferredEntityResultBase & {
   entity?: Entity;
   failureReason: string;
   operation: "update";
-  proposedEntity: ProposedEntity;
-  result: "failure";
+  status: "failure";
 };
 
 export type InferredEntityChangeResult =

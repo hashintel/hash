@@ -148,16 +148,18 @@ export const createEntities = async ({
                 metadata: createdEntityMetadata,
                 properties,
               },
+              entityTypeId,
               proposedEntity,
               operation: "create",
-              result: "success",
+              status: "success",
             };
           } catch (err) {
             entityStatusMap.creationFailures[proposedEntity.entityId] = {
+              entityTypeId,
               proposedEntity,
               failureReason: (err as Error).message,
               operation: "create",
-              result: "failure",
+              status: "failure",
             };
           }
         }),
@@ -182,9 +184,10 @@ export const createEntities = async ({
             )
           ) {
             entityStatusMap.creationFailures[proposedEntity.entityId] = {
+              entityTypeId,
               proposedEntity,
               operation: "create",
-              result: "failure",
+              status: "failure",
               failureReason:
                 "Link entities must have both a sourceEntityId and a targetEntityId.",
             };
@@ -211,18 +214,20 @@ export const createEntities = async ({
                 : `source with temporaryId ${sourceEntityId} not found in proposed entities`;
 
               entityStatusMap.creationFailures[proposedEntity.entityId] = {
+                entityTypeId,
                 proposedEntity,
                 operation: "create",
-                result: "failure",
+                status: "failure",
                 failureReason,
               };
               return;
             }
 
             entityStatusMap.creationFailures[proposedEntity.entityId] = {
+              entityTypeId,
               proposedEntity,
               operation: "create",
-              result: "failure",
+              status: "failure",
               failureReason: `Link entity could not be created – source with temporary id ${sourceEntityId} failed to be created with reason: ${sourceFailure.failureReason}`,
             };
 
@@ -231,7 +236,7 @@ export const createEntities = async ({
 
           const targetEntity =
             entityStatusMap.creationSuccesses[targetEntityId]?.entity ??
-            entityStatusMap.updateCandidates[sourceEntityId]?.existingEntity;
+            entityStatusMap.updateCandidates[targetEntityId]?.existingEntity;
 
           if (!targetEntity) {
             const targetFailure =
@@ -247,18 +252,20 @@ export const createEntities = async ({
                 : `target with temporaryId ${targetEntityId} not found in proposed entities`;
 
               entityStatusMap.creationFailures[proposedEntity.entityId] = {
+                entityTypeId,
                 proposedEntity,
                 operation: "create",
-                result: "failure",
+                status: "failure",
                 failureReason,
               };
               return;
             }
 
             entityStatusMap.creationFailures[proposedEntity.entityId] = {
+              entityTypeId,
               proposedEntity,
               operation: "create",
-              result: "failure",
+              status: "failure",
               failureReason: `Link entity could not be created – target with temporary id ${targetEntityId} failed to be created with reason: ${targetFailure.failureReason}`,
             };
 
@@ -288,16 +295,18 @@ export const createEntities = async ({
               });
 
             entityStatusMap.creationSuccesses[proposedEntity.entityId] = {
+              entityTypeId,
               entity: { linkData, metadata: createdEntityMetadata, properties },
               operation: "create",
               proposedEntity,
-              result: "success",
+              status: "success",
             };
           } catch (err) {
             entityStatusMap.creationFailures[proposedEntity.entityId] = {
+              entityTypeId,
               operation: "create",
               proposedEntity,
-              result: "failure",
+              status: "failure",
               failureReason: (err as Error).message,
             };
           }

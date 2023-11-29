@@ -130,21 +130,23 @@ export const updateEntities = async ({
               });
 
             entityStatusMap.updateSuccesses[proposedEntity.entityId] = {
+              entityTypeId,
               entity: {
                 ...existingEntity,
                 metadata: updateEntityMetadata,
               },
               proposedEntity,
               operation: "update",
-              result: "success",
+              status: "success",
             };
           } catch (err) {
             entityStatusMap.updateFailures[proposedEntity.entityId] = {
+              entityTypeId,
               entity: existingEntity,
               proposedEntity,
               failureReason: (err as Error).message,
               operation: "update",
-              result: "failure",
+              status: "failure",
             };
           }
         }),

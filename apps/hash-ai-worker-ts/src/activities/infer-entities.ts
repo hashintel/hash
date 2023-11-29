@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { Logger } from "@local/hash-backend-utils/logger";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -36,6 +37,11 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const logger = new Logger({
+  mode: process.env.NODE_ENV === "production" ? "prod" : "dev",
+  serviceName: "hash-ai-infer-entities-activity",
+});
+
 type DereferencedEntityTypesByTypeId = Record<
   VersionedUrl,
   { isLink: boolean; schema: DereferencedEntityType }
@@ -64,8 +70,7 @@ const requestEntityInference = async (params: {
   } = params;
 
   if (iterationCount > 5) {
-    // eslint-disable-next-line no-console
-    console.debug(
+    logger.debug(
       `Model reached maximum number of iterations. Messages: ${JSON.stringify(
         completionPayload.messages,
         undefined,
@@ -79,6 +84,12 @@ const requestEntityInference = async (params: {
       message: `Maximum number of iterations reached.`,
     };
   }
+
+  logger.debug(
+    `Iteration ${iterationCount} with payload: ${JSON.stringify(
+      completionPayload,
+    )}`,
+  );
 
   const entityTypeIds = Object.keys(entityTypes);
 
@@ -137,8 +148,7 @@ const requestEntityInference = async (params: {
       const errorMessage = `AI Model returned 'stop' finish reason, with message: ${
         message.content ?? "no message"
       }`;
-      // eslint-disable-next-line no-console
-      console.debug(message);
+      logger.debug(message);
 
       return {
         code: StatusCode.Unknown,
@@ -147,8 +157,7 @@ const requestEntityInference = async (params: {
       };
     }
     case "length":
-      // eslint-disable-next-line no-console
-      console.debug(
+      logger.debug(
         `AI Model returned 'length' finish reason on attempt ${iterationCount}.`,
       );
 
@@ -161,8 +170,7 @@ const requestEntityInference = async (params: {
           "The maximum amount of tokens was reached before the model returned a completion.",
       };
     case "content_filter":
-      // eslint-disable-next-line no-console
-      console.debug(
+      logger.debug(
         `The content filter was triggered on attempt ${iterationCount} with input: ${JSON.stringify(
           completionPayload.messages,
           undefined,
@@ -181,8 +189,7 @@ const requestEntityInference = async (params: {
         const errorMessage =
           "AI Model returned 'tool_calls' finish reason no tool calls";
 
-        // eslint-disable-next-line no-console
-        console.debug(
+        logger.debug(
           errorMessage,
           `Message: ${JSON.stringify(message, undefined, 2)}`,
         );
@@ -210,8 +217,7 @@ const requestEntityInference = async (params: {
         try {
           JSON.parse(modelProvidedArgument);
         } catch {
-          // eslint-disable-next-line no-console
-          console.debug(
+          logger.debug(
             `Could not parse AI Model response on attempt ${iterationCount}: ${modelProvidedArgument}`,
           );
 
@@ -251,8 +257,7 @@ const requestEntityInference = async (params: {
             ) as ProposedEntityCreationsByType;
             validateProposedEntitiesByType(proposedEntitiesByType, false);
           } catch (err) {
-            // eslint-disable-next-line no-console
-            console.debug(
+            logger.debug(
               `Model provided invalid argument to create_entities function. Argument provided: ${JSON.stringify(
                 modelProvidedArgument,
                 undefined,
@@ -302,9 +307,10 @@ const requestEntityInference = async (params: {
 
             results.push(...successes, ...failures);
 
+            let retryMessageContent = "";
+
             if (failures.length > 0) {
-              retryMessages.push({
-                content: dedent(`
+              retryMessageContent += dedent(`
                 Some of the entities you suggested for creation were invalid. Please review their properties and try again. 
                 The entities you should review and make a 'create_entities' call for are:
                 ${failures
@@ -317,15 +323,11 @@ const requestEntityInference = async (params: {
                 `,
                   )
                   .join("\n")}
-              `),
-                role: "tool",
-                tool_call_id: toolCallId,
-              });
+              `);
             }
 
             if (updates.length > 0) {
-              retryMessages.push({
-                content: dedent(`
+              retryMessageContent += dedent(`
               Some of the entities you suggest for creation already exist. Please review their properties and call update_entities
               to update them instead. The entities you should update are:
               ${updates
@@ -346,9 +348,13 @@ const requestEntityInference = async (params: {
               `,
                 )
                 .join("\n")}
-              `),
+              `);
+            }
+            if (retryMessageContent) {
+              retryMessages.push({
                 role: "tool",
                 tool_call_id: toolCallId,
+                content: retryMessageContent,
               });
             }
           } catch (err) {
@@ -368,8 +374,7 @@ const requestEntityInference = async (params: {
 
             validateProposedEntitiesByType(proposedEntityUpdatesByType, true);
           } catch (err) {
-            // eslint-disable-next-line no-console
-            console.debug(
+            logger.debug(
               `Model provided invalid argument to update_entities function. Argument provided: ${JSON.stringify(
                 modelProvidedArgument,
                 undefined,
@@ -469,8 +474,7 @@ const requestEntityInference = async (params: {
         })),
       );
 
-      // eslint-disable-next-line no-console
-      console.debug(
+      logger.debug(
         `Retrying with messages: ${JSON.stringify(
           retryMessages,
           undefined,

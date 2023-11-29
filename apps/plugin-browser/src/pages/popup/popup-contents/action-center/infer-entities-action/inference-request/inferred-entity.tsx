@@ -5,10 +5,7 @@ import {
   LinkIcon,
 } from "@hashintel/design-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import {
-  InferEntitiesCreationFailure,
-  InferEntitiesReturn,
-} from "@local/hash-isomorphic-utils/temporal-types";
+import { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
 import { BaseUrl, Entity, EntityPropertyValue } from "@local/hash-subgraph";
 import { Box, Collapse, Stack, Tooltip, Typography } from "@mui/material";
 
@@ -17,15 +14,16 @@ import {
   darkModeInputColor,
 } from "../../../../../shared/dark-mode-values";
 import { useUser } from "../../../../../shared/use-user";
+import { UpFromLineIcon } from "./inferred-entity/up-from-line-icon";
 
 // @todo consolidate this with generateEntityLabel in hash-frontend
 const generateEntityLabel = (
-  entityToLabel: Pick<Entity | InferEntitiesCreationFailure, "properties">,
+  entityToLabel: Partial<Pick<Entity, "properties">>,
   entityType: EntityType,
   index: number,
 ) => {
   const simplifiedProperties = simplifyProperties<{}>(
-    entityToLabel.properties,
+    entityToLabel.properties ?? {},
   ) as Record<string, EntityPropertyValue>;
 
   // fallback to some likely display name properties
@@ -62,44 +60,46 @@ const baseUrlToPropertyTitle = (baseUrl: BaseUrl) =>
 type InferredEntityProps = {
   allEntityStatuses: InferEntitiesReturn["contents"];
   expanded: boolean;
-  entity: InferEntitiesReturn["contents"][number];
   entityType: EntityType;
   entityTypes: EntityType[];
   indexInType: number;
+  result: InferEntitiesReturn["contents"][number];
   toggleExpanded: () => void;
 };
 
 export const InferredEntity = ({
   allEntityStatuses,
   expanded,
-  entity,
   entityType,
   entityTypes,
   indexInType,
+  result,
   toggleExpanded,
 }: InferredEntityProps) => {
   const { user } = useUser();
 
-  const successfullyCreated = "metadata" in entity;
-  const locallyUniqueId = successfullyCreated
-    ? entity.metadata.recordId.entityId
-    : entity.temporaryId.toString();
+  const { operation, proposedEntity, status } = result;
 
-  const isLinkEntity = "linkData" in entity;
+  const persistedEntity = status === "success" ? result.entity : null;
+  const wasSuccess = status === "success";
+
+  const isLinkEntity = persistedEntity && "linkData" in persistedEntity;
 
   const leftEntityIndex = isLinkEntity
     ? allEntityStatuses.findIndex(
         (option) =>
-          "metadata" in option &&
-          option.metadata.recordId.entityId === entity.linkData!.leftEntityId,
+          "entity" in option &&
+          option.entity?.metadata.recordId.entityId ===
+            persistedEntity.linkData!.leftEntityId,
       )
     : null;
 
   const rightEntityIndex = isLinkEntity
     ? allEntityStatuses.findIndex(
         (option) =>
-          "metadata" in option &&
-          option.metadata.recordId.entityId === entity.linkData!.rightEntityId,
+          "entity" in option &&
+          option.entity?.metadata.recordId.entityId ===
+            persistedEntity.linkData!.rightEntityId,
       )
     : null;
 
@@ -107,22 +107,18 @@ export const InferredEntity = ({
     typeof leftEntityIndex === "number" && typeof rightEntityIndex === "number"
       ? {
           left: {
-            entity: allEntityStatuses[leftEntityIndex] as Entity | undefined,
+            entity: allEntityStatuses[leftEntityIndex]?.entity,
             entityType: entityTypes.find(
               (type) =>
-                type.$id ===
-                (allEntityStatuses[leftEntityIndex] as Entity).metadata
-                  .entityTypeId,
+                type.$id === allEntityStatuses[leftEntityIndex]?.entityTypeId,
             )!,
             index: leftEntityIndex,
           },
           right: {
-            entity: allEntityStatuses[rightEntityIndex] as Entity | undefined,
+            entity: allEntityStatuses[rightEntityIndex]?.entity,
             entityType: entityTypes.find(
               (type) =>
-                type.$id ===
-                (allEntityStatuses[rightEntityIndex] as Entity).metadata
-                  .entityTypeId,
+                type.$id === allEntityStatuses[rightEntityIndex]?.entityTypeId,
             )!,
             index: rightEntityIndex,
           },
@@ -131,7 +127,7 @@ export const InferredEntity = ({
 
   return (
     <Stack
-      key={locallyUniqueId}
+      key={result.proposedEntity.entityId.toString()}
       sx={{
         "&:not(:last-child)": {
           borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
@@ -145,13 +141,13 @@ export const InferredEntity = ({
         },
       }}
     >
-      <Tooltip title={!successfullyCreated ? entity.failureReason : ""}>
+      <Tooltip title={wasSuccess ? "" : result.failureReason}>
         <Box
-          component={successfullyCreated ? "a" : "div"}
+          component={wasSuccess ? "a" : "div"}
           href={
-            successfullyCreated
+            persistedEntity
               ? `${FRONTEND_ORIGIN}/@${user?.properties.shortname!}/entities/${
-                  locallyUniqueId.split("~")[1]
+                  persistedEntity.metadata.recordId.entityId.split("~")[1]
                 }`
               : undefined
           }
@@ -162,25 +158,22 @@ export const InferredEntity = ({
             pt: 0.5,
             textDecoration: "none",
           }}
-          target={successfullyCreated ? "_blank" : undefined}
+          target={persistedEntity ? "_blank" : undefined}
         >
           <Stack direction="row" sx={{ flexGrow: 1 }}>
             <Typography
               component="label"
-              htmlFor={locallyUniqueId}
               variant="smallTextParagraphs"
               sx={{
                 color: ({ palette }) =>
-                  successfullyCreated ? palette.gray[80] : palette.gray[50],
+                  wasSuccess ? palette.gray[80] : palette.gray[50],
                 cursor: "pointer",
                 fontSize: 14,
-                fontStyle: successfullyCreated ? undefined : "italic",
-                textDecoration: successfullyCreated
-                  ? undefined
-                  : "line-through",
+                fontStyle: wasSuccess ? undefined : "italic",
+                textDecoration: wasSuccess ? undefined : "line-through",
                 "@media (prefers-color-scheme: dark)": {
                   color: ({ palette }) =>
-                    successfullyCreated ? palette.gray[20] : palette.gray[60],
+                    wasSuccess ? palette.gray[20] : palette.gray[60],
                 },
               }}
             >
@@ -188,7 +181,7 @@ export const InferredEntity = ({
                 <Stack direction="row" alignItems="center">
                   {linkedEntities.left.entity
                     ? generateEntityLabel(
-                        linkedEntities.left.entity,
+                        linkedEntities.left.entity as Entity,
                         linkedEntities.left.entityType,
                         linkedEntities.left.index,
                       )
@@ -202,7 +195,7 @@ export const InferredEntity = ({
                   />
                   {linkedEntities.right.entity
                     ? generateEntityLabel(
-                        linkedEntities.right.entity,
+                        linkedEntities.right.entity as Entity,
                         linkedEntities.right.entityType,
                         linkedEntities.right.index,
                       )
@@ -214,13 +207,14 @@ export const InferredEntity = ({
                    * This is necessary because the hash-graph-client return Entity type has 'object' as its properties,
                    * @todo fix OpenAPI generator to avoid these inconsistencies
                    */
-                  entity as Entity,
+                  proposedEntity,
                   entityType,
                   indexInType,
                 )
               )}
             </Typography>
-            {Object.keys(entity.properties).length > 0 && (
+            {operation === "update" && <UpFromLineIcon />}
+            {Object.keys(proposedEntity.properties ?? {}).length > 0 && (
               <IconButton
                 onClick={(event) => {
                   event.stopPropagation();
@@ -255,7 +249,7 @@ export const InferredEntity = ({
       </Tooltip>
       <Collapse in={expanded}>
         <Stack mt={0.5}>
-          {Object.entries(entity.properties)
+          {Object.entries(proposedEntity.properties ?? {})
             .sort((a, b) => a[0].localeCompare(b[0]))
             .map(([key, value]) => (
               <Stack
@@ -289,12 +283,12 @@ export const InferredEntity = ({
                 >
                   {typeof value === "string"
                     ? value
-                    : (value as unknown)?.toString?.() ?? "[cannot display]"}
+                    : value?.toString() ?? "[cannot display]"}
                 </Typography>
               </Stack>
             ))}
         </Stack>
-        {"failureReason" in entity && (
+        {!wasSuccess && (
           <Typography
             sx={{
               color: ({ palette }) => palette.red[70],
@@ -302,7 +296,7 @@ export const InferredEntity = ({
               mt: 0.3,
             }}
           >
-            Not created: {entity.failureReason}
+            Not {operation}d: {result.failureReason}
           </Typography>
         )}
       </Collapse>

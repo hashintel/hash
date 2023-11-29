@@ -48,7 +48,7 @@ const workflowOption = () =>
 
 const logger = new Logger({
   mode: process.env.NODE_ENV === "production" ? "prod" : "dev",
-  serviceName: "api",
+  serviceName: "hash-ai-worker-ts",
 });
 
 async function run() {
