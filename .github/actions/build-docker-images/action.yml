@@ -77,7 +77,6 @@ runs:
         build-args: |
           PROFILE=${{ env.GRAPH_PROFILE }}
           ENABLE_TYPE_FETCHER=yes
-          ENABLE_AUTHORIZATION=yes
           ENABLE_TEST_SERVER=yes
 
     - name: Upload artifact

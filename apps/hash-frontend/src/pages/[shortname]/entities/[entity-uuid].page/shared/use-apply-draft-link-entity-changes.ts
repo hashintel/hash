@@ -1,22 +1,24 @@
-import { EntityId } from "@local/hash-subgraph";
-import { useContext } from "react";
+import { useMutation } from "@apollo/client";
+import { EntityId, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { useBlockProtocolArchiveEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
-import { useBlockProtocolCreateEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
-import { WorkspaceContext } from "../../../../shared/workspace-context";
+import {
+  CreateEntityMutation,
+  CreateEntityMutationVariables,
+} from "../../../../../graphql/api-types.gen";
+import { createEntityMutation } from "../../../../../graphql/queries/knowledge/entity.queries";
 import {
   DraftLinksToArchive,
   DraftLinksToCreate,
 } from "./use-draft-link-state";
 
 export const useApplyDraftLinkEntityChanges = () => {
-  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
-
   const { archiveEntity } = useBlockProtocolArchiveEntity();
 
-  const { createEntity } = useBlockProtocolCreateEntity(
-    activeWorkspaceOwnedById ?? null,
-  );
+  const [createEntity] = useMutation<
+    CreateEntityMutation,
+    CreateEntityMutationVariables
+  >(createEntityMutation);
 
   const applyDraftLinkEntityChanges = async (
     leftEntityId: EntityId,
@@ -30,8 +32,10 @@ export const useApplyDraftLinkEntityChanges = () => {
     const createPromises = draftLinksToCreate.map(
       ({ linkEntity, rightEntity }) =>
         createEntity({
-          data: {
+          variables: {
             entityTypeId: linkEntity.metadata.entityTypeId,
+            // The link should be in the same web as the source entity.
+            ownedById: extractOwnedByIdFromEntityId(leftEntityId),
             properties: {},
             linkData: {
               leftEntityId,
