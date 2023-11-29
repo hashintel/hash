@@ -284,13 +284,6 @@ resource "aws_iam_role" "execution_role" {
             flatten([for def in local.task_defs : [for _, env_var in def.env_vars : env_var.arn]])
           )
         }],
-        [{
-          Effect = "Allow"
-          Action = ["ssm:GetParameters"]
-          Resource = concat(
-            flatten([for def in local.worker_task_defs : [for _, env_var in def.env_vars : env_var.arn]])
-          )
-        }],
       ])
     })
   }
