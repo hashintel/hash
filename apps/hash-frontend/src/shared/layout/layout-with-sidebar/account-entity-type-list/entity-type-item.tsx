@@ -94,14 +94,22 @@ export const EntityTypeItem: FunctionComponent<
             fontWeight: 500,
           }}
         >
-          <Box component="span" marginRight={1}>
+          <Box
+            component="span"
+            sx={{
+              marginRight: 1,
+              maxWidth: 18,
+              display: "inline-flex",
+              justifyContent: "center",
+            }}
+          >
             {icon ??
               (isLink ? (
                 <LinkTypeIcon
                   sx={({ palette }) => ({
                     position: "relative",
                     top: 2,
-                    fontSize: 14,
+                    fontSize: 16,
                     stroke: palette.gray[50],
                   })}
                 />
@@ -110,7 +118,7 @@ export const EntityTypeItem: FunctionComponent<
                   sx={({ palette }) => ({
                     position: "relative",
                     top: 2,
-                    fontSize: 14,
+                    fontSize: 16,
                     fill: palette.gray[50],
                   })}
                 />
