@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/graph";
 import { Subtype } from "@local/advanced-types/subtype";
 import { Entity } from "@local/hash-graph-client";
 import {
@@ -24,7 +24,7 @@ export type InferEntitiesUserArguments = Subtype<
   Record<InferEntitiesUserArgumentKey, unknown>,
   {
     entityTypeIds: VersionedUrl[];
-    maxTokens: number;
+    maxTokens: number | null;
     model: string;
     ownedById: OwnedById;
     temperature: number;
@@ -42,7 +42,8 @@ export type InferEntitiesCallerParams = {
 export type InferEntitiesCreationFailure = {
   entityTypeId: VersionedUrl;
   failureReason: string;
-  proposedProperties: EntityPropertiesObject;
+  properties: EntityPropertiesObject;
+  temporaryId: number;
 };
 
 export type InferEntitiesReturn = Status<Entity | InferEntitiesCreationFailure>;

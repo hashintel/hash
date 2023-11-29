@@ -9,10 +9,6 @@ inputs:
     description: "Build hash-ai-worker-ts image"
     required: false
     default: "false"
-  hash-ai-worker-py:
-    description: "Build hash-ai-worker-py image"
-    required: false
-    default: "false"
   hash-integration-worker:
     description: "Build hash-integration-worker image"
     required: false
@@ -60,13 +56,6 @@ runs:
         name: hash-ai-worker-ts
         path: /tmp
 
-    - name: Download hash-ai-worker-py image
-      if: inputs.hash-ai-worker-py == 'true'
-      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
-      with:
-        name: hash-ai-worker-py
-        path: /tmp
-
     - name: Download hash-integration-worker image
       if: inputs.hash-integration-worker == 'true'
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
@@ -83,11 +72,6 @@ runs:
       if: inputs.hash-ai-worker-ts == 'true'
       shell: bash
       run: docker load --input /tmp/hash-ai-worker-ts.tar
-
-    - name: Load hash-ai-worker-py image
-      if: inputs.hash-ai-worker-py == 'true'
-      shell: bash
-      run: docker load --input /tmp/hash-ai-worker-py.tar
 
     - name: Load hash-integration-worker image
       if: inputs.hash-integration-worker == 'true'

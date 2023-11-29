@@ -6,6 +6,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import { BaseUrl, EntityRootType } from "@local/hash-subgraph";
 import {
   getEntityTypeAndDescendantsById,
@@ -14,7 +15,6 @@ import {
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import pluralize from "pluralize";
 import { useCallback, useMemo, useState } from "react";
 
 import {

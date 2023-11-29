@@ -1,6 +1,6 @@
 import { GraphQLError } from "graphql";
 
-export const queryApi = <
+export const queryGraphQlApi = <
   Query extends any,
   Variables extends Record<string, unknown>,
 >(

@@ -188,7 +188,7 @@ export const inferEntities = async ({
         return {
           code: StatusCode.Internal,
           contents: [],
-          message: `AI Model returned 'function_call' finish reason, but no function name.`,
+          message: `AI Model returned 'tool_call' finish reason, but no function name.`,
         };
       }
       if (functionCall.name === "could_not_infer_entities") {
@@ -198,7 +198,7 @@ export const inferEntities = async ({
           return {
             code: StatusCode.Internal,
             contents: [],
-            message: `AI Model returned 'function_call' finish reason, but no argument was provided in message.tool_calls.`,
+            message: `AI Model returned 'tool_call' finish reason, but no argument was provided in message.tool_calls.`,
           };
         }
 
@@ -224,7 +224,7 @@ export const inferEntities = async ({
           return {
             code: StatusCode.Internal,
             contents: [],
-            message: `AI Model returned 'function_call' finish reason, but more than one tool call was provided in message.tool_calls.`,
+            message: `AI Model returned 'tool_call' finish reason, but more than one tool call was provided in message.tool_calls.`,
           };
         }
 
@@ -233,7 +233,7 @@ export const inferEntities = async ({
           return {
             code: StatusCode.Internal,
             contents: [],
-            message: `AI Model returned 'function_call' finish reason, but no argument was provided in message.tool_calls.`,
+            message: `AI Model returned 'tool_call' finish reason, but no argument was provided in message.tool_calls.`,
           };
         }
 
