@@ -64,6 +64,9 @@ export const EntitiesGraph: FunctionComponent<{
         }
       });
     }
+    return () => {
+      chart?.off("click");
+    };
   }, [chart, entities, router, getOwnerForEntity]);
 
   const eChartOptions = useMemo<ECOption>(() => {
@@ -147,6 +150,7 @@ export const EntitiesGraph: FunctionComponent<{
       },
       series: {
         roam: true,
+        draggable: true,
         data: nonLinkEntities?.map((entity) => ({
           name: generateEntityLabel(subgraph!, entity),
           id: entity.metadata.recordId.entityId,
