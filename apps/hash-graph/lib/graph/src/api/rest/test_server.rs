@@ -10,7 +10,7 @@ use authorization::{
     NoAuthorization,
 };
 use axum::{
-    extract::BodyStream,
+    body::Body,
     response::Response,
     routing::{delete, post},
     Extension, Router,
@@ -96,7 +96,7 @@ fn report_to_response<C>(report: &Report<C>, code: impl Into<String>) -> Respons
 async fn restore_snapshot<A>(
     store_pool: Extension<Arc<PostgresStorePool<NoTls>>>,
     authorization_api: Extension<Arc<A>>,
-    snapshot: BodyStream,
+    snapshot: Body,
 ) -> Result<Response, Response>
 where
     A: ZanzibarBackend + Send + Sync + Clone,
@@ -111,7 +111,9 @@ where
         .restore_snapshot(
             FramedRead::new(
                 StreamReader::new(
-                    snapshot.map_err(|err| io::Error::new(io::ErrorKind::Other, err)),
+                    snapshot
+                        .into_data_stream()
+                        .map_err(|err| io::Error::new(io::ErrorKind::Other, err)),
                 ),
                 codec::bytes::JsonLinesDecoder::default(),
             ),

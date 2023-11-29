@@ -33,7 +33,7 @@ use regex::Regex;
 use reqwest::Client;
 use serde_json::json;
 use time::OffsetDateTime;
-use tokio::time::timeout;
+use tokio::{net::TcpListener, time::timeout};
 use tokio_postgres::NoTls;
 use type_system::{
     url::{BaseUrl, VersionedUrl},
@@ -421,10 +421,14 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
     });
 
     tracing::info!("Listening on {}", args.api_address);
-    axum::Server::bind(&SocketAddr::try_from(args.api_address).change_context(GraphError)?)
-        .serve(router.into_make_service_with_connect_info::<SocketAddr>())
-        .await
-        .expect("failed to start server");
+    axum::serve(
+        TcpListener::bind((args.api_address.api_host, args.api_address.api_port))
+            .await
+            .change_context(GraphError)?,
+        router.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .expect("failed to start server");
 
     Ok(())
 }

@@ -240,8 +240,8 @@ impl ZanzibarBackend for SpiceDbOpenApi {
                 SubjectSet: Serialize
             >"
         )]
-        struct RequestBody<R> {
-            updates: Vec<RelationshipUpdate<R>>,
+        struct RequestBody<'r, R> {
+            updates: &'r [RelationshipUpdate<R>],
         }
 
         #[derive(Deserialize)]
@@ -250,45 +250,57 @@ impl ZanzibarBackend for SpiceDbOpenApi {
             written_at: model::ZedToken,
         }
 
-        let request_body = RequestBody {
-            updates: relationships
-                .into_iter()
-                .map(|(operation, relationship)| RelationshipUpdate::<T> {
-                    operation: operation.into(),
-                    relationship,
-                })
-                .collect(),
-        };
-
+        let mut last_written = None;
         let max_attempts = 3_u32;
-        let mut attempt = 0;
-        loop {
-            let invocation = self
-                .call::<RequestResponse>("/v1/relationships/write", &request_body)
-                .await;
 
-            match invocation {
-                Ok(response) => {
-                    return Ok(ModifyRelationshipResponse {
-                        written_at: response.written_at.into(),
-                    });
-                }
-                Err(report) => match report.current_context() {
-                    InvocationError::Api(RpcError { code: 2, .. }) => {
-                        if attempt == max_attempts {
-                            break Err(report);
-                        }
+        for updates in relationships
+            .into_iter()
+            .map(|(operation, relationship)| RelationshipUpdate::<T> {
+                operation: operation.into(),
+                relationship,
+            })
+            .collect::<Vec<_>>()
+            .chunks(1000)
+        {
+            let request_body = RequestBody { updates };
 
-                        attempt += 1;
-                        // TODO: Use a more customizable backoff
-                        //       current: 10ms, 40ms, 90ms
-                        sleep(std::time::Duration::from_millis(10) * attempt * attempt).await;
+            let mut attempt = 0;
+            loop {
+                let invocation = self
+                    .call::<RequestResponse>("/v1/relationships/write", &request_body)
+                    .await;
+
+                match invocation {
+                    Ok(response) => {
+                        last_written = Some(response.written_at);
+                        break Ok(());
                     }
-                    _ => break Err(report),
-                },
+                    Err(report) => match report.current_context() {
+                        InvocationError::Api(RpcError { code: 2, .. }) => {
+                            if attempt == max_attempts {
+                                break Err(report);
+                            }
+
+                            attempt += 1;
+                            // TODO: Use a more customizable backoff
+                            //       current: 10ms, 40ms, 90ms
+                            sleep(std::time::Duration::from_millis(10) * attempt * attempt).await;
+                        }
+                        _ => break Err(report),
+                    },
+                }
             }
+            .change_context(ModifyRelationshipError)?;
         }
-        .change_context(ModifyRelationshipError)
+
+        last_written.map_or_else(
+            || Err(Report::new(ModifyRelationshipError)),
+            |last_written| {
+                Ok(ModifyRelationshipResponse {
+                    written_at: last_written.into(),
+                })
+            },
+        )
     }
 
     #[expect(

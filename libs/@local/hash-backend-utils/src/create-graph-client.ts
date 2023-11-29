@@ -1,21 +1,17 @@
 import { inspect } from "node:util";
 
-import { GraphStatus } from "@apps/hash-graph/type-defs/status";
-import { ErrorInfo } from "@apps/hash-graph/type-defs/status-payloads";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
   Configuration,
   GraphApi as GraphApiClient,
 } from "@local/hash-graph-client";
-import { convertHttpCodeToStatusCode, isStatus } from "@local/status";
+import { convertHttpCodeToStatusCode, isStatus, Status } from "@local/status";
+import { ErrorInfo } from "@local/status/type-defs/status-payloads/error-info";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
+import { DataSource } from "apollo-datasource";
 import axios, { AxiosError } from "axios";
 
-import { GraphApi, ImpureGraphContext } from "./context-types";
-import { migrateOntologyTypes } from "./migrate-ontology-types";
-import { ensureSystemAccountExists } from "./system-account";
-import { ensureSystemEntitiesExists } from "./system-entities";
-import { ensureAccountGroupOrgsExist } from "./util";
+type GraphApi = GraphApiClient & DataSource;
 
 const agentConfig = {
   maxSockets: 128,
@@ -23,9 +19,10 @@ const agentConfig = {
   timeout: 60 * 1000, // ms
   freeSocketTimeout: 30 * 1000, // ms
 };
-
 const httpAgent = new HttpAgent(agentConfig);
 const httpsAgent = new HttpsAgent(agentConfig);
+
+type GraphStatus = Status<{}>;
 
 const isErrorAxiosError = (error: Error): error is AxiosError =>
   (error as AxiosError).isAxiosError;
@@ -117,17 +114,4 @@ export const createGraphClient = (
   const graphApi = new GraphApiClient(config, basePath, axiosInstance);
 
   return graphApi;
-};
-
-export const ensureSystemGraphIsInitialized = async (params: {
-  logger: Logger;
-  context: ImpureGraphContext;
-}) => {
-  await ensureSystemAccountExists(params);
-
-  await migrateOntologyTypes(params);
-
-  await ensureAccountGroupOrgsExist(params);
-
-  await ensureSystemEntitiesExists(params);
 };

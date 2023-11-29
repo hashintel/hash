@@ -168,6 +168,14 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     .change_context(InsertionError)?;
             }
 
+            relationships.push((
+                DataTypeId::from_url(schema.id()),
+                DataTypeRelationAndSubject::Viewer {
+                    subject: DataTypeViewerSubject::Public,
+                    level: 0,
+                },
+            ));
+
             if let Some((ontology_id, transaction_time, owner)) = transaction
                 .create_ontology_metadata(
                     provenance.record_created_by_id,
@@ -184,13 +192,6 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     transaction_time,
                 ));
 
-                relationships.push((
-                    DataTypeId::from(ontology_id),
-                    DataTypeRelationAndSubject::Viewer {
-                        subject: DataTypeViewerSubject::Public,
-                        level: 0,
-                    },
-                ));
                 if let Some(owner) = owner {
                     match owner {
                         OntologyTypeSubject::Account { id } => relationships.push((
@@ -253,6 +254,10 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
             Err(error)
         } else {
+            if relationships.is_empty() {
+                tracing::warn!("Inserted datayptes without adding permissions to them");
+            }
+
             Ok(inserted_data_type_metadata)
         }
     }

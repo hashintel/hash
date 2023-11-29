@@ -132,7 +132,7 @@ export const EntityTypePage = ({
   const isDraft = !!draftEntityType;
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
-    if (!isDirty && isDraft) {
+    if (!isDirty && !isDraft) {
       /**
        * Prevent publishing a type unless:
        * 1. The form has been touched by the user (isDirty) – don't publish versions without changes

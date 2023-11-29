@@ -1,16 +1,14 @@
 import { createKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { publicUserAccountId } from "@apps/hash-api/src/auth/public-user-account-id";
-import {
-  createGraphClient,
-  ensureSystemGraphIsInitialized,
-} from "@apps/hash-api/src/graph";
 import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { createOrg } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import { createUser } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { migrateOntologyTypes } from "@apps/hash-api/src/graph/migrate-ontology-types";
 import { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
 import { getRequiredEnv } from "@apps/hash-api/src/util";
 import { VersionedUrl } from "@blockprotocol/type-system";
+import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { Logger } from "@local/hash-backend-utils/logger";
 
 export const textDataTypeId =

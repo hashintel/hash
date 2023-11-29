@@ -61,7 +61,6 @@ export const entityTypedef = gql`
     """
     rightEntityId: Int!
   }
-
   """
   An entity proposed for creation. The suggested data can be used in further calls, e.g. to createEntity
   """
@@ -89,7 +88,6 @@ export const entityTypedef = gql`
   The result of an entity inference.
   """
   type InferEntitiesResult {
-    # Keep this in sync with the InferEntitiesWorkflowResult type in apps/hash-ai-worker-py
     """
     The proposed entities.
     """
@@ -100,7 +98,6 @@ export const entityTypedef = gql`
   The level of validation to apply to the inferred entities.
   """
   enum EntityValidation {
-    # Keep this in sync with the EntityValidation type in apps/hash-ai-worker-py
     """
     The inferred entities are fully validated.
     """
@@ -282,7 +279,6 @@ export const entityTypedef = gql`
     Does NOT persist the entities – callers are responsible for doing something with the proposed entities.
     """
     inferEntities(
-      # Keep this in sync with the InferEntitiesWorkflowParameter type in apps/hash-ai-worker-py
       """
       A string of text to infer entities from, e.g. a page of text.
       """
@@ -300,9 +296,9 @@ export const entityTypedef = gql`
       """
       maxTokens: Int!
       """
-      Whether to allow empty results.
+      The owner to assign to the entities inferred from the text.
       """
-      allowEmptyResults: Boolean!
+      ownedById: OwnedById!
       """
       The validation to apply to the inferred entities.
       """
