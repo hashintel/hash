@@ -362,7 +362,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build-ts-worker
-      - build-py-worker
       - build-integration-worker
     permissions:
       id-token: write

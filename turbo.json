@@ -45,6 +45,7 @@
     ".env*",
     ".justfile",
     ".yarnrc",
-    "package.json"
+    "package.json",
+    ""
   ]
 }

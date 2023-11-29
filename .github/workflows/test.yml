@@ -85,7 +85,6 @@ jobs:
           if $(echo $SYSTEM_TEST_PACKAGES | jq -e '.package != []'); then
             REQUIRES_GRAPH=true
             REQUIRES_AI_WORKER_TS=true
-            REQUIRES_AI_WORKER_PY=true
             REQUIRES_INTEGRATION_WORKER=true
           else
             REQUIRES_GRAPH=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-graph" and .task == "build")] != []')
