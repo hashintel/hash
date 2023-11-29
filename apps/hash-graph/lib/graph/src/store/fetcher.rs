@@ -30,6 +30,7 @@ use type_system::{
     url::{BaseUrl, VersionedUrl},
     DataType, EntityType, EntityTypeReference, PropertyType,
 };
+use validation::ValidationProfile;
 
 use crate::{
     ontology::domain_validator::DomainValidator,
@@ -1000,6 +1001,7 @@ where
         entity_type: EntityValidationType<'_>,
         properties: &EntityProperties,
         link_data: Option<&LinkData>,
+        profile: ValidationProfile,
     ) -> Result<(), EntityValidationError> {
         self.store
             .validate_entity(
@@ -1009,6 +1011,7 @@ where
                 entity_type,
                 properties,
                 link_data,
+                profile,
             )
             .await
     }

@@ -868,6 +868,7 @@ export const validateEntity: ImpureGraphFunction<
     entityTypeId: VersionedUrl;
     properties: Entity["properties"];
     linkData?: Entity["linkData"];
+    draft: boolean;
   },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {

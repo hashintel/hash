@@ -32,7 +32,7 @@ use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp}
 use tokio_postgres::GenericClient;
 use type_system::{url::VersionedUrl, EntityType};
 use uuid::Uuid;
-use validation::Validate;
+use validation::{EntityValidationError, Validate};
 
 #[cfg(hash_graph_test_environment)]
 use crate::store::error::DeletionError;
@@ -41,7 +41,7 @@ use crate::{
     store::{
         crud::Read,
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
-        knowledge::{EntityValidationError, EntityValidationType},
+        knowledge::EntityValidationType,
         postgres::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
             TraversalContext,
@@ -487,6 +487,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 EntityValidationType::Schema(&closed_schema),
                 &properties,
                 link_data.as_ref(),
+                if draft {
+                    ValidationProfile::Draft
+                } else {
+                    ValidationProfile::Full
+                },
             )
             .await
             .change_context(InsertionError)
@@ -544,6 +549,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_type: EntityValidationType<'_>,
         properties: &EntityProperties,
         link_data: Option<&LinkData>,
+        profile: ValidationProfile,
     ) -> Result<(), EntityValidationError> {
         enum MaybeBorrowed<'a, T> {
             Borrowed(&'a T),
@@ -621,7 +627,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             authorization: Some((authorization_api, actor_id, Consistency::FullyConsistent)),
         };
 
-        if let Err(error) = properties.validate(schema, &validator_provider).await {
+        if let Err(error) = properties
+            .validate(schema, profile, &validator_provider)
+            .await
+        {
             if let Err(ref mut report) = status {
                 report.extend_one(error);
             } else {
@@ -629,7 +638,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             }
         }
 
-        if let Err(error) = link_data.validate(schema, &validator_provider).await {
+        if let Err(error) = link_data
+            .validate(schema, profile, &validator_provider)
+            .await
+        {
             if let Err(ref mut report) = status {
                 report.extend_one(error);
             } else {
@@ -1026,6 +1038,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         properties
             .validate(
                 &closed_schema,
+                if draft {
+                    ValidationProfile::Draft
+                } else {
+                    ValidationProfile::Full
+                },
                 &StoreProvider {
                     store: &transaction,
                     cache: StoreCache::default(),

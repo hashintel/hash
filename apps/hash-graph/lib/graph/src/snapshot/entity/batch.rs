@@ -10,7 +10,7 @@ use error_stack::{Result, ResultExt};
 use futures::TryStreamExt;
 use graph_types::knowledge::entity::{Entity, EntityUuid};
 use tokio_postgres::GenericClient;
-use validation::Validate;
+use validation::{Validate, ValidationProfile};
 
 use crate::{
     snapshot::{
@@ -235,7 +235,15 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             let entity_type_id = EntityTypeId::from_url(entity.metadata.entity_type_id());
             let schema = schemas.get(&entity_type_id).ok_or(InsertionError)?;
             entity
-                .validate(schema, &validator_provider)
+                .validate(
+                    schema,
+                    if entity.metadata.draft() {
+                        ValidationProfile::Draft
+                    } else {
+                        ValidationProfile::Full
+                    },
+                    &validator_provider,
+                )
                 .await
                 .change_context(InsertionError)?;
         }

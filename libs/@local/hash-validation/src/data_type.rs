@@ -7,7 +7,7 @@ use type_system::{url::VersionedUrl, DataType, DataTypeReference};
 
 use crate::{
     error::{Actual, Expected},
-    OntologyTypeProvider, Schema, Validate,
+    OntologyTypeProvider, Schema, Validate, ValidationProfile,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -82,6 +82,7 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
     async fn validate_value<'a>(
         &'a self,
         value: &'a JsonValue,
+        _profile: ValidationProfile,
         _provider: &'a P,
     ) -> Result<(), Report<DataValidationError>> {
         match self.json_type() {
@@ -168,8 +169,13 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
 impl Validate<DataType, ()> for JsonValue {
     type Error = DataValidationError;
 
-    async fn validate(&self, schema: &DataType, (): &()) -> Result<(), Report<Self::Error>> {
-        schema.validate_value(self, &()).await
+    async fn validate(
+        &self,
+        schema: &DataType,
+        profile: ValidationProfile,
+        (): &(),
+    ) -> Result<(), Report<Self::Error>> {
+        schema.validate_value(self, profile, &()).await
     }
 }
 
@@ -182,6 +188,7 @@ where
     async fn validate_value<'a>(
         &'a self,
         value: &'a JsonValue,
+        profile: ValidationProfile,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
         let data_type = provider
@@ -192,7 +199,7 @@ where
             })?;
         data_type
             .borrow()
-            .validate_value(value, provider)
+            .validate_value(value, profile, provider)
             .await
             .attach_lazy(|| Expected::DataType(data_type.borrow().clone()))
             .attach_lazy(|| Actual::Json(value.clone()))
@@ -208,9 +215,10 @@ where
     async fn validate(
         &self,
         schema: &DataTypeReference,
+        profile: ValidationProfile,
         context: &P,
     ) -> Result<(), Report<Self::Error>> {
-        schema.validate_value(self, context).await
+        schema.validate_value(self, profile, context).await
     }
 }
 
@@ -218,45 +226,66 @@ where
 mod tests {
     use serde_json::json;
 
-    use crate::tests::validate_data;
+    use crate::{tests::validate_data, ValidationProfile};
 
     #[tokio::test]
     async fn null() {
-        validate_data(json!(null), graph_test_data::data_type::NULL_V1)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!(null),
+            graph_test_data::data_type::NULL_V1,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect("validation failed");
     }
 
     #[tokio::test]
     async fn boolean() {
-        validate_data(json!(true), graph_test_data::data_type::BOOLEAN_V1)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!(true),
+            graph_test_data::data_type::BOOLEAN_V1,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect("validation failed");
     }
 
     #[tokio::test]
     async fn number() {
-        validate_data(json!(42), graph_test_data::data_type::NUMBER_V1)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!(42),
+            graph_test_data::data_type::NUMBER_V1,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect("validation failed");
     }
 
     #[tokio::test]
     async fn string() {
-        validate_data(json!("foo"), graph_test_data::data_type::TEXT_V1)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!("foo"),
+            graph_test_data::data_type::TEXT_V1,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect("validation failed");
     }
 
     #[tokio::test]
     async fn array() {
-        validate_data(json!([]), graph_test_data::data_type::EMPTY_LIST_V1)
-            .await
-            .expect("validation failed");
+        validate_data(
+            json!([]),
+            graph_test_data::data_type::EMPTY_LIST_V1,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect("validation failed");
 
         _ = validate_data(
             json!(["foo", "bar"]),
             graph_test_data::data_type::EMPTY_LIST_V1,
+            ValidationProfile::Full,
         )
         .await
         .expect_err("validation succeeded");
@@ -270,6 +299,7 @@ mod tests {
                 "baz": "qux"
             }),
             graph_test_data::data_type::OBJECT_V1,
+            ValidationProfile::Full,
         )
         .await
         .expect("validation failed");
