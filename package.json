@@ -58,9 +58,6 @@
     "**": [
       "suppress-exit-code markdownlint --fix",
       "suppress-exit-code prettier --write"
-    ],
-    "**.py": [
-      "suppress-exit-code yarn fix:black"
     ]
   },
   "prettier": {
