@@ -30,7 +30,7 @@ import {
   darkModePlaceholderColor,
 } from "../../../../shared/dark-mode-values";
 import { sendMessageToBackground } from "../../../../shared/messages";
-import { useSessionStorage } from "../../../../shared/use-storage-sync";
+import { useLocalStorage } from "../../../../shared/use-storage-sync";
 
 const getEntityTypes = () => {
   return queryGraphQlApi<GetEntityTypesQuery, GetEntityTypesQueryVariables>(
@@ -70,14 +70,14 @@ export const SelectTypesAndInfer = ({
   setTargetEntityTypes,
   targetEntityTypes,
 }: SelectTypesAndInferProps) => {
-  const [allEntityTypes, setAllEntityTypes] = useSessionStorage(
+  const [allEntityTypes, setAllEntityTypes] = useLocalStorage(
     "entityTypes",
     [],
   );
   const [selectOpen, setSelectOpen] = useState(false);
-  const [inferenceRequests] = useSessionStorage("inferenceRequests", []);
+  const [inferenceRequests] = useLocalStorage("inferenceRequests", []);
 
-  const [passiveInferenceConfig, setPassiveInferenceConfig] = useSessionStorage(
+  const [passiveInferenceConfig, setPassiveInferenceConfig] = useLocalStorage(
     "passiveInference",
     { conditions: [], enabled: false },
   );

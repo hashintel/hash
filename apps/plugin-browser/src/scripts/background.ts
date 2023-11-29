@@ -1,11 +1,16 @@
 import browser from "webextension-polyfill";
 
+import { getUser } from "../shared/get-user";
 import {
   GetSiteContentRequest,
   GetSiteContentReturn,
   Message,
 } from "../shared/messages";
-import { getFromSessionStorage } from "../shared/storage";
+import {
+  clearLocalStorage,
+  getFromLocalStorage,
+  setInLocalStorage,
+} from "../shared/storage";
 import { inferEntities } from "./background/infer-entities";
 
 /**
@@ -40,11 +45,11 @@ browser.runtime.onMessage.addListener((message: Message, sender) => {
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === "complete") {
-    getFromSessionStorage("passiveInference")
+    getFromLocalStorage("passiveInference")
       .then(async (passiveInference) => {
         if (passiveInference?.enabled) {
           const targetEntityTypes =
-            await getFromSessionStorage("targetEntityTypes");
+            await getFromLocalStorage("targetEntityTypes");
 
           if (!targetEntityTypes) {
             return;
@@ -55,7 +60,7 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
           } satisfies GetSiteContentRequest) as Promise<GetSiteContentReturn>);
 
           const inferenceRequests =
-            await getFromSessionStorage("inferenceRequests");
+            await getFromLocalStorage("inferenceRequests");
 
           const pendingRequest = inferenceRequests?.find((request) => {
             return (
@@ -84,5 +89,14 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
       .catch((err) => {
         console.error(`Passive inference error: ${(err as Error).message}`);
       });
+  }
+});
+
+void getUser().then((user) => {
+  console.log({ user });
+  if (user) {
+    void setInLocalStorage("user", user);
+  } else {
+    void clearLocalStorage();
   }
 });

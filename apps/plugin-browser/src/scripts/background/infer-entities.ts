@@ -14,8 +14,8 @@ import {
 } from "../../shared/badge";
 import type { InferEntitiesRequest } from "../../shared/messages";
 import {
-  getFromSessionStorage,
-  getSetFromSessionStorageValue,
+  getFromLocalStorage,
+  getSetFromLocalStorageValue,
 } from "../../shared/storage";
 
 const inferEntitiesApiCall = async ({
@@ -50,7 +50,7 @@ export const inferEntities = async (
   message: InferEntitiesRequest,
   trigger: "passive" | "user",
 ) => {
-  const user = await getFromSessionStorage("user");
+  const user = await getFromLocalStorage("user");
   if (!user) {
     throw new Error("Cannot infer entities without a logged-in user.");
   }
@@ -60,7 +60,7 @@ export const inferEntities = async (
   const localRequestId = uuid();
 
   const setInferenceRequestValue =
-    getSetFromSessionStorageValue("inferenceRequests");
+    getSetFromLocalStorageValue("inferenceRequests");
 
   await setInferenceRequestValue((currentValue) => [
     {

@@ -11,7 +11,7 @@ import { format } from "date-fns";
 import { useState } from "react";
 
 import { PageEntityInference } from "../../../../../shared/storage";
-import { useSessionStorage } from "../../../../shared/use-storage-sync";
+import { useLocalStorage } from "../../../../shared/use-storage-sync";
 import { InferenceRequest } from "./inference-request";
 
 const InferenceRequestContainer = ({
@@ -105,7 +105,7 @@ export const InferenceRequests = () => {
   const [expandedStatusUuid, setExpandedStatusUuid] = useState<string | null>(
     null,
   );
-  const [inferenceStatus] = useSessionStorage("inferenceRequests", []);
+  const [inferenceStatus] = useLocalStorage("inferenceRequests", []);
 
   const toggleExpanded = (statusUuid: string) => {
     setExpandedStatusUuid((currentExpanded) =>

@@ -31,12 +31,10 @@ export type PageEntityInference = InferenceStatus & {
 };
 
 /**
- * Storage area cleared when the browser is closed.
- *
- * Note: not available to content scripts without running browser.storage.session.setAccessLevel("TRUSTED_AND_UNTRUSTED_CONTEXTS");
- * @see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage/session
+ * Storage area cleared persisted when the browser is closed.
+ * Cleared if the extension is loaded with no user present.
  */
-export type SessionStorage = {
+export type LocalStorage = {
   passiveInference: {
     conditions: ({ domain: string } | { urlRegExp: string })[];
     enabled: boolean;
@@ -48,43 +46,46 @@ export type SessionStorage = {
   user: Simplified<User> | null;
 };
 
-export const getFromSessionStorage = async <Key extends keyof SessionStorage>(
+export const getFromLocalStorage = async <Key extends keyof LocalStorage>(
   key: Key,
-): Promise<SessionStorage[Key] | undefined> => {
-  return browser.storage.session
+): Promise<LocalStorage[Key] | undefined> => {
+  return browser.storage.local
     .get(key)
-    .then((result) => result[key] as SessionStorage[Key]);
+    .then((result) => result[key] as LocalStorage[Key]);
 };
 
 /**
- * Set a value in session storage.
+ * Set a value in local storage.
  */
-export const setInSessionStorage = async (
-  key: keyof SessionStorage,
-  value: SessionStorage[keyof SessionStorage],
+export const setInLocalStorage = async (
+  key: keyof LocalStorage,
+  value: LocalStorage[keyof LocalStorage],
 ) => {
-  await browser.storage.session.set({ [key]: value });
+  await browser.storage.local.set({ [key]: value });
 };
 
-type ReplaceFromSessionStorageValue<Key extends keyof SessionStorage> = (
-  currentValue: SessionStorage[Key] | undefined,
-) => SessionStorage[Key];
+type ReplaceFromLocalStorageValue<Key extends keyof LocalStorage> = (
+  currentValue: LocalStorage[Key] | undefined,
+) => LocalStorage[Key];
 
 /**
- * Returns a function that can be called with a function to set a new value in session storage from the old value.
+ * Returns a function that can be called with a function to set a new value in local storage from the old value.
  * i.e. it returns a function that can be used like the callback form of React's setState
  * @example
- * const setFromCurrentValue = getSetFromSessionStorageValue("inferenceStatus");
+ * const setFromCurrentValue = getSetFromLocalStorageValue("inferenceStatus");
  * setFromCurrentValue((currentValue) => { // return the new value });
  */
-export const getSetFromSessionStorageValue = <Key extends keyof SessionStorage>(
+export const getSetFromLocalStorageValue = <Key extends keyof LocalStorage>(
   key: Key,
-): ((
-  replaceFunction: ReplaceFromSessionStorageValue<Key>,
-) => Promise<void>) => {
+): ((replaceFunction: ReplaceFromLocalStorageValue<Key>) => Promise<void>) => {
   return async (replaceFunction) => {
-    const currentValue = await getFromSessionStorage(key);
+    const currentValue = await getFromLocalStorage(key);
     const newValue = replaceFunction(currentValue);
-    await setInSessionStorage(key, newValue);
+    await setInLocalStorage(key, newValue);
   };
+};
+
+export const clearLocalStorage = async () => {
+  console.log("Clearing");
+  await browser.storage.local.clear();
 };

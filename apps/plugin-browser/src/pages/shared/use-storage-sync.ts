@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import browser from "webextension-polyfill";
 
-import { getFromSessionStorage, SessionStorage } from "../../shared/storage";
+import {
+  getFromLocalStorage,
+  LocalStorage,
+  setInLocalStorage,
+} from "../../shared/storage";
 
 /**
- * A hook to keep React state synced with session storage shared across the extension.
+ * A hook to keep React state synced with local storage shared across the extension.
  *
  * NOTE:
  * 1. Storage access is asynchronous, and therefore the first value returned will always be the initialValue.
@@ -12,21 +16,20 @@ import { getFromSessionStorage, SessionStorage } from "../../shared/storage";
  * 2. Because values are repeatedly serialized to and from storage, do not check by identity (e.g. array.includes(object))
  *
  * @param initialValue the value to initialise the state with
- * @param key the key for the value in session storage
+ * @param key the key for the value in local storage
  *
  * @see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage
  */
-export const useSessionStorage = <Key extends keyof SessionStorage>(
+export const useLocalStorage = <Key extends keyof LocalStorage>(
   key: Key,
-  initialValue: SessionStorage[Key],
+  initialValue: LocalStorage[Key],
 ) => {
-  const [stateValue, setStateValue] =
-    useState<SessionStorage[Key]>(initialValue);
+  const [stateValue, setStateValue] = useState<LocalStorage[Key]>(initialValue);
   const [storageChecked, setStorageChecked] = useState(false);
 
   useEffect(() => {
     const getStorageValue = async () => {
-      const storageValue = await getFromSessionStorage(key);
+      const storageValue = await getFromLocalStorage(key);
 
       if (typeof storageValue !== "undefined") {
         setStateValue(storageValue);
@@ -44,11 +47,11 @@ export const useSessionStorage = <Key extends keyof SessionStorage>(
       areaName: string,
     ) => {
       if (
-        areaName === "session" &&
+        areaName === "local" &&
         key in changes &&
         changes[key].newValue !== stateValue
       ) {
-        setStateValue(changes[key].newValue as SessionStorage[Key]);
+        setStateValue(changes[key].newValue as LocalStorage[Key]);
       }
     };
 
@@ -61,9 +64,9 @@ export const useSessionStorage = <Key extends keyof SessionStorage>(
   }, [key, stateValue]);
 
   const setValue = useCallback(
-    (newValue: SessionStorage[Key]) => {
+    (newValue: LocalStorage[Key]) => {
       setStateValue(newValue);
-      void browser.storage.session.set({ [key]: newValue });
+      void setInLocalStorage(key, newValue);
     },
     [key],
   );

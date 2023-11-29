@@ -1,5 +1,4 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { Logger } from "@local/hash-backend-utils/logger";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -37,11 +36,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const logger = new Logger({
-  mode: process.env.NODE_ENV === "production" ? "prod" : "dev",
-  serviceName: "hash-ai-infer-entities-activity",
-});
-
 type DereferencedEntityTypesByTypeId = Record<
   VersionedUrl,
   { isLink: boolean; schema: DereferencedEntityType }
@@ -70,7 +64,8 @@ const requestEntityInference = async (params: {
   } = params;
 
   if (iterationCount > 5) {
-    logger.debug(
+    // eslint-disable-next-line no-console
+    console.debug(
       `Model reached maximum number of iterations. Messages: ${JSON.stringify(
         completionPayload.messages,
         undefined,
@@ -85,11 +80,8 @@ const requestEntityInference = async (params: {
     };
   }
 
-  logger.debug(
-    `Iteration ${iterationCount} with payload: ${JSON.stringify(
-      completionPayload,
-    )}`,
-  );
+  // eslint-disable-next-line no-console
+  console.debug(`Iteration ${iterationCount} begun.`);
 
   const entityTypeIds = Object.keys(entityTypes);
 
@@ -148,7 +140,9 @@ const requestEntityInference = async (params: {
       const errorMessage = `AI Model returned 'stop' finish reason, with message: ${
         message.content ?? "no message"
       }`;
-      logger.debug(message);
+
+      // eslint-disable-next-line no-console
+      console.debug(message);
 
       return {
         code: StatusCode.Unknown,
@@ -156,8 +150,10 @@ const requestEntityInference = async (params: {
         message: errorMessage,
       };
     }
+
     case "length":
-      logger.debug(
+      // eslint-disable-next-line no-console
+      console.debug(
         `AI Model returned 'length' finish reason on attempt ${iterationCount}.`,
       );
 
@@ -169,8 +165,10 @@ const requestEntityInference = async (params: {
         message:
           "The maximum amount of tokens was reached before the model returned a completion.",
       };
+
     case "content_filter":
-      logger.debug(
+      // eslint-disable-next-line no-console
+      console.debug(
         `The content filter was triggered on attempt ${iterationCount} with input: ${JSON.stringify(
           completionPayload.messages,
           undefined,
@@ -188,8 +186,8 @@ const requestEntityInference = async (params: {
       if (!toolCalls) {
         const errorMessage =
           "AI Model returned 'tool_calls' finish reason no tool calls";
-
-        logger.debug(
+        // eslint-disable-next-line no-console
+        console.debug(
           errorMessage,
           `Message: ${JSON.stringify(message, undefined, 2)}`,
         );
@@ -217,7 +215,8 @@ const requestEntityInference = async (params: {
         try {
           JSON.parse(modelProvidedArgument);
         } catch {
-          logger.debug(
+          // eslint-disable-next-line no-console
+          console.debug(
             `Could not parse AI Model response on attempt ${iterationCount}: ${modelProvidedArgument}`,
           );
 
@@ -257,7 +256,8 @@ const requestEntityInference = async (params: {
             ) as ProposedEntityCreationsByType;
             validateProposedEntitiesByType(proposedEntitiesByType, false);
           } catch (err) {
-            logger.debug(
+            // eslint-disable-next-line no-console
+            console.debug(
               `Model provided invalid argument to create_entities function. Argument provided: ${JSON.stringify(
                 modelProvidedArgument,
                 undefined,
@@ -374,7 +374,8 @@ const requestEntityInference = async (params: {
 
             validateProposedEntitiesByType(proposedEntityUpdatesByType, true);
           } catch (err) {
-            logger.debug(
+            // eslint-disable-next-line no-console
+            console.debug(
               `Model provided invalid argument to update_entities function. Argument provided: ${JSON.stringify(
                 modelProvidedArgument,
                 undefined,
@@ -474,7 +475,8 @@ const requestEntityInference = async (params: {
         })),
       );
 
-      logger.debug(
+      // eslint-disable-next-line no-console
+      console.debug(
         `Retrying with messages: ${JSON.stringify(
           retryMessages,
           undefined,
