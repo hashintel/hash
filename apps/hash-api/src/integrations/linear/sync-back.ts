@@ -57,7 +57,7 @@ export const processEntityChange = async (
     /**
      * To prevent update loops where changes from linear are saved in HASH, and
      * then propagate back to linear, only consider entity editions that weren't
-     * created by teh system account ID (currently the actor for all updates in
+     * created by the system account ID (currently the actor for all updates in
      * the linear integration).
      */
     return;
