@@ -327,6 +327,14 @@ export const EntitiesTable: FunctionComponent<{
             entityTypeBaseUrl ??
             (entityTypeId ? extractBaseUrl(entityTypeId) : undefined)
           }
+          sx={{
+            background: ({ palette }) => palette.common.white,
+            height: `calc(100vh - (${
+              HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 179 + tableHeaderHeight
+            }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`,
+            borderBottomRightRadius: 6,
+            borderBottomLeftRadius: 6,
+          }}
           subgraph={subgraph}
         />
       ) : (

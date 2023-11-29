@@ -76,6 +76,20 @@ export const EChart: FunctionComponent<GraphProps> = ({
     }
   }, [chart, options]);
 
+  useEffect(() => {
+    if (chart && wrapperRef.current) {
+      const resizeObserver = new ResizeObserver(() => {
+        chart.resize();
+      });
+
+      resizeObserver.observe(wrapperRef.current);
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+  }, [chart]);
+
   return (
     <Box
       sx={[{ width: "100%", height: 500 }, ...(Array.isArray(sx) ? sx : [sx])]}

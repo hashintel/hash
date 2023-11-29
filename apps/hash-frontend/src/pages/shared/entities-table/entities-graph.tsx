@@ -11,6 +11,7 @@ import {
   extractBaseUrl,
   LinkEntity,
 } from "@local/hash-subgraph/type-system-patch";
+import { BoxProps } from "@mui/material";
 import { useRouter } from "next/router";
 import { FunctionComponent, useEffect, useMemo, useState } from "react";
 
@@ -20,7 +21,8 @@ import { generateEntityLabel } from "../../../lib/entities";
 export const EntitiesGraph: FunctionComponent<{
   primaryEntityTypeBaseUrl?: BaseUrl;
   subgraph?: Subgraph<EntityRootType>;
-}> = ({ primaryEntityTypeBaseUrl, subgraph }) => {
+  sx?: BoxProps["sx"];
+}> = ({ primaryEntityTypeBaseUrl, subgraph, sx }) => {
   const router = useRouter();
   const [chart, setChart] = useState<Chart>();
 
@@ -190,9 +192,7 @@ export const EntitiesGraph: FunctionComponent<{
 
   return (
     <EChart
-      sx={{
-        background: ({ palette }) => palette.common.white,
-      }}
+      sx={sx}
       onChartInitialized={(initializedChart) => setChart(initializedChart)}
       options={eChartOptions}
     />
