@@ -1,6 +1,7 @@
 import { BaseUrl } from "@blockprotocol/type-system";
 import { Chart, EChart, ECOption } from "@hashintel/design-system";
 import {
+  Entity,
   EntityId,
   EntityRootType,
   extractEntityUuidFromEntityId,
@@ -19,16 +20,47 @@ import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-fo
 import { generateEntityLabel } from "../../../lib/entities";
 
 export const EntitiesGraph: FunctionComponent<{
+  filterEntity?: (entity: Entity) => boolean;
   primaryEntityTypeBaseUrl?: BaseUrl;
   subgraph?: Subgraph<EntityRootType>;
   sx?: BoxProps["sx"];
-}> = ({ primaryEntityTypeBaseUrl, subgraph, sx }) => {
+}> = ({ filterEntity, primaryEntityTypeBaseUrl, subgraph, sx }) => {
   const router = useRouter();
   const [chart, setChart] = useState<Chart>();
 
   const entities = useMemo(
     () => (subgraph ? getEntities(subgraph, true) : undefined),
     [subgraph],
+  );
+
+  const nonLinkEntities = useMemo(
+    () =>
+      entities?.filter(
+        (entity) =>
+          !entity.linkData && (filterEntity ? filterEntity(entity) : true),
+      ),
+    [entities, filterEntity],
+  );
+
+  const linkEntities = useMemo(
+    () =>
+      entities && nonLinkEntities
+        ? entities.filter(
+            (entity): entity is LinkEntity =>
+              !!entity.linkData &&
+              nonLinkEntities.some(
+                (nonLinkEntity) =>
+                  entity.linkData!.leftEntityId ===
+                  nonLinkEntity.metadata.recordId.entityId,
+              ) &&
+              nonLinkEntities.some(
+                (nonLinkEntity) =>
+                  entity.linkData!.rightEntityId ===
+                  nonLinkEntity.metadata.recordId.entityId,
+              ),
+          )
+        : undefined,
+    [entities, nonLinkEntities],
   );
 
   const getOwnerForEntity = useGetOwnerForEntity();
@@ -72,12 +104,6 @@ export const EntitiesGraph: FunctionComponent<{
   }, [chart, entities, router, getOwnerForEntity]);
 
   const eChartOptions = useMemo<ECOption>(() => {
-    const linkEntities = entities?.filter(
-      (entity): entity is LinkEntity => "linkData" in entity,
-    );
-
-    const nonLinkEntities = entities?.filter((entity) => !entity.linkData);
-
     return {
       tooltip: {
         show: true,
@@ -176,7 +202,13 @@ export const EntitiesGraph: FunctionComponent<{
         zoom: 5,
       },
     };
-  }, [subgraph, entities, primaryEntityTypeBaseUrl]);
+  }, [
+    subgraph,
+    entities,
+    linkEntities,
+    nonLinkEntities,
+    primaryEntityTypeBaseUrl,
+  ]);
 
   return (
     <EChart

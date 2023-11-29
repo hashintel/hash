@@ -327,6 +327,15 @@ export const EntitiesTable: FunctionComponent<{
             entityTypeBaseUrl ??
             (entityTypeId ? extractBaseUrl(entityTypeId) : undefined)
           }
+          filterEntity={(entity) =>
+            filterState.includeGlobal
+              ? true
+              : internalWebIds.includes(
+                  extractOwnedByIdFromEntityId(
+                    entity.metadata.recordId.entityId,
+                  ),
+                )
+          }
           sx={{
             background: ({ palette }) => palette.common.white,
             height: `calc(100vh - (${
