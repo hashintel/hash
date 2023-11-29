@@ -218,6 +218,11 @@ where
         },
     };
 
+    // TODO: Allow creating entities in a draft state
+    //   see https://linear.app/hash/issue/H-1448
+    // TODO: Revisit creation parameter to avoid too many parameters, especially as the parameters
+    //       are booleans/optionals and can be easily confused
+    //   see https://linear.app/hash/issue/H-1466
     store
         .create_entity(
             actor_id,
@@ -462,6 +467,13 @@ where
         .await
         .map_err(report_to_response)?;
 
+    // TODO: Allow removal of the `draft` state
+    //   see https://linear.app/hash/issue/H-1452
+    // TODO: Allow partial updates to avoid setting the `draft` and `archived` state here
+    //   see https://linear.app/hash/issue/H-1455
+    // TODO: Revisit creation parameter to avoid too many parameters, especially as the parameters
+    //       are booleans/optionals and can be easily confused
+    //   see https://linear.app/hash/issue/H-1466
     store
         .update_entity(
             actor_id,

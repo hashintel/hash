@@ -112,6 +112,8 @@ pub struct EntityMetadata {
     entity_type_id: VersionedUrl,
     provenance: ProvenanceMetadata,
     archived: bool,
+    // TODO: Expose draft entity interface to the Node API
+    //   see https://linear.app/hash/issue/H-1453
     #[serde(skip)]
     draft: bool,
 }

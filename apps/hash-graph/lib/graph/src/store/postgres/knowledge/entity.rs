@@ -532,6 +532,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         }
     }
 
+    // TODO: Relax constraints on entity validation for draft entities
+    //   see https://linear.app/hash/issue/H-1449
+    // TODO: Restrict non-draft links to non-draft entities
+    //   see https://linear.app/hash/issue/H-1450
     async fn validate_entity<A: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,
