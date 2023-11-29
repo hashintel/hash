@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import * as path from "node:path";
+
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
@@ -41,6 +44,30 @@ type DereferencedEntityTypesByTypeId = Record<
   { isLink: boolean; schema: DereferencedEntityType }
 >;
 
+const log = ({
+  message,
+  requestId,
+}: {
+  message: string;
+  requestId: string;
+}) => {
+  const logMessage = `[${requestId} – ${new Date().toISOString()}] ${message}`;
+  const logFolderPath = path.join(__dirname, "logs");
+
+  if (process.env.NODE_ENV === "development") {
+    // make sure a file called logs/${requestId}.log exists using fs
+    // append message to file
+    if (!fs.existsSync(logFolderPath)) {
+      fs.mkdirSync(logFolderPath);
+    }
+    const logFilePath = path.join(logFolderPath, `${requestId}.log`);
+    fs.appendFileSync(logFilePath, `${logMessage}\n`);
+  }
+
+  // eslint-disable-next-line no-console
+  console.debug(logMessage);
+};
+
 const requestEntityInference = async (params: {
   authentication: { actorId: AccountId };
   completionPayload: Omit<
@@ -50,6 +77,7 @@ const requestEntityInference = async (params: {
   entityTypes: DereferencedEntityTypesByTypeId;
   iterationCount: number;
   graphApiClient: GraphApi;
+  localRequestId: string;
   ownedById: OwnedById;
   results: InferredEntityChangeResult[];
 }): Promise<InferEntitiesReturn> => {
@@ -59,13 +87,16 @@ const requestEntityInference = async (params: {
     entityTypes,
     iterationCount,
     graphApiClient,
+    localRequestId,
     ownedById,
     results,
   } = params;
 
+  const writeLog = (message: string) =>
+    log({ message, requestId: localRequestId });
+
   if (iterationCount > 5) {
-    // eslint-disable-next-line no-console
-    console.debug(
+    writeLog(
       `Model reached maximum number of iterations. Messages: ${JSON.stringify(
         completionPayload.messages,
         undefined,
@@ -80,8 +111,7 @@ const requestEntityInference = async (params: {
     };
   }
 
-  // eslint-disable-next-line no-console
-  console.debug(`Iteration ${iterationCount} begun.`);
+  writeLog(`Iteration ${iterationCount} begun.`);
 
   const entityTypeIds = Object.keys(entityTypes);
 
@@ -96,6 +126,8 @@ const requestEntityInference = async (params: {
   let data: OpenAI.ChatCompletion;
   try {
     data = await openai.chat.completions.create(openApiPayload);
+
+    writeLog(`Response from AI received: ${JSON.stringify(data)}.`);
   } catch (err) {
     return {
       code: StatusCode.Internal,
@@ -107,6 +139,7 @@ const requestEntityInference = async (params: {
   const response = data.choices[0];
 
   if (!response) {
+    writeLog(`No data choice available in AI Model response.`);
     return {
       code: StatusCode.Internal,
       contents: [],
@@ -141,8 +174,7 @@ const requestEntityInference = async (params: {
         message.content ?? "no message"
       }`;
 
-      // eslint-disable-next-line no-console
-      console.debug(message);
+      writeLog(errorMessage);
 
       return {
         code: StatusCode.Unknown,
@@ -152,8 +184,7 @@ const requestEntityInference = async (params: {
     }
 
     case "length":
-      // eslint-disable-next-line no-console
-      console.debug(
+      writeLog(
         `AI Model returned 'length' finish reason on attempt ${iterationCount}.`,
       );
 
@@ -167,8 +198,7 @@ const requestEntityInference = async (params: {
       };
 
     case "content_filter":
-      // eslint-disable-next-line no-console
-      console.debug(
+      writeLog(
         `The content filter was triggered on attempt ${iterationCount} with input: ${JSON.stringify(
           completionPayload.messages,
           undefined,
@@ -186,10 +216,9 @@ const requestEntityInference = async (params: {
       if (!toolCalls) {
         const errorMessage =
           "AI Model returned 'tool_calls' finish reason no tool calls";
-        // eslint-disable-next-line no-console
-        console.debug(
-          errorMessage,
-          `Message: ${JSON.stringify(message, undefined, 2)}`,
+
+        writeLog(
+          `${errorMessage}. Message: ${JSON.stringify(message, undefined, 2)}`,
         );
 
         return {
@@ -215,8 +244,7 @@ const requestEntityInference = async (params: {
         try {
           JSON.parse(modelProvidedArgument);
         } catch {
-          // eslint-disable-next-line no-console
-          console.debug(
+          writeLog(
             `Could not parse AI Model response on attempt ${iterationCount}: ${modelProvidedArgument}`,
           );
 
@@ -234,6 +262,7 @@ const requestEntityInference = async (params: {
 
         if (functionName === "could_not_infer_entities") {
           if (results.length > 0) {
+            writeLog("Could not infer entities, continuing.");
             continue;
           }
 
@@ -256,8 +285,7 @@ const requestEntityInference = async (params: {
             ) as ProposedEntityCreationsByType;
             validateProposedEntitiesByType(proposedEntitiesByType, false);
           } catch (err) {
-            // eslint-disable-next-line no-console
-            console.debug(
+            writeLog(
               `Model provided invalid argument to create_entities function. Argument provided: ${JSON.stringify(
                 modelProvidedArgument,
                 undefined,
@@ -300,6 +328,28 @@ const requestEntityInference = async (params: {
                 proposedEntitiesByType,
                 requestedEntityTypes: entityTypes,
               });
+
+            writeLog(
+              `Creation successes: ${JSON.stringify(
+                creationSuccesses,
+                undefined,
+                2,
+              )}`,
+            );
+            writeLog(
+              `Creation failures: ${JSON.stringify(
+                creationFailures,
+                undefined,
+                2,
+              )}`,
+            );
+            writeLog(
+              `Update candidates: ${JSON.stringify(
+                updateCandidates,
+                undefined,
+                2,
+              )}`,
+            );
 
             const successes = Object.values(creationSuccesses);
             const failures = Object.values(creationFailures);
@@ -358,10 +408,15 @@ const requestEntityInference = async (params: {
               });
             }
           } catch (err) {
+            const errorMessage = `Error creating entities: ${
+              (err as Error).message
+            }`;
+            writeLog(errorMessage);
+
             return {
               code: StatusCode.Internal,
               contents: [],
-              message: `Error creating entities: ${(err as Error).message}`,
+              message: errorMessage,
             };
           }
         }
@@ -374,8 +429,7 @@ const requestEntityInference = async (params: {
 
             validateProposedEntitiesByType(proposedEntityUpdatesByType, true);
           } catch (err) {
-            // eslint-disable-next-line no-console
-            console.debug(
+            writeLog(
               `Model provided invalid argument to update_entities function. Argument provided: ${JSON.stringify(
                 modelProvidedArgument,
                 undefined,
@@ -475,8 +529,7 @@ const requestEntityInference = async (params: {
         })),
       );
 
-      // eslint-disable-next-line no-console
-      console.debug(
+      writeLog(
         `Retrying with messages: ${JSON.stringify(
           retryMessages,
           undefined,
@@ -488,10 +541,13 @@ const requestEntityInference = async (params: {
     }
   }
 
+  const errorMessage = `AI Model returned unhandled finish reason: ${finish_reason}`;
+  writeLog(errorMessage);
+
   return {
     code: StatusCode.Internal,
     contents: [],
-    message: `AI Model returned unhandled finish reason: ${finish_reason}`,
+    message: errorMessage,
   };
 };
 
@@ -538,6 +594,8 @@ export const inferEntities = async ({
     VersionedUrl,
     { isLink: boolean; schema: DereferencedEntityType }
   > = {};
+
+  const localRequestId = new Date().toISOString();
 
   try {
     const { data: entityTypesSubgraph } =
@@ -589,6 +647,7 @@ export const inferEntities = async ({
     },
     entityTypes,
     graphApiClient,
+    localRequestId,
     iterationCount: 1,
     ownedById,
     results: [],

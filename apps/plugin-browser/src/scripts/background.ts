@@ -9,6 +9,7 @@ import {
 import {
   clearLocalStorage,
   getFromLocalStorage,
+  getSetFromLocalStorageValue,
   setInLocalStorage,
 } from "../shared/storage";
 import { inferEntities } from "./background/infer-entities";
@@ -93,10 +94,25 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
 });
 
 void getUser().then((user) => {
-  console.log({ user });
   if (user) {
     void setInLocalStorage("user", user);
   } else {
     void clearLocalStorage();
   }
 });
+
+const setInferenceRequests = getSetFromLocalStorageValue("inferenceRequests");
+void setInferenceRequests((currentValue) =>
+  (currentValue ?? []).map((request) => {
+    if (request.status === "pending") {
+      return {
+        ...request,
+        errorMessage:
+          "Request timed out or browser was closed while request was pending.",
+        status: "error",
+      };
+    }
+
+    return request;
+  }),
+);
