@@ -35,11 +35,11 @@ export const AccountEntityTypeList: FunctionComponent<
     popupId: "type-sort-actions-menu",
   });
 
-  const allEntityTypes = useLatestEntityTypesOptional();
+  const { latestEntityTypes } = useLatestEntityTypesOptional();
 
   const accountEntityTypes = useMemo(() => {
-    if (allEntityTypes) {
-      return allEntityTypes.filter(
+    if (latestEntityTypes) {
+      return latestEntityTypes.filter(
         (root) =>
           isOwnedOntologyElementMetadata(root.metadata) &&
           root.metadata.custom.ownedById === ownedById,
@@ -47,7 +47,7 @@ export const AccountEntityTypeList: FunctionComponent<
     }
 
     return null;
-  }, [allEntityTypes, ownedById]);
+  }, [latestEntityTypes, ownedById]);
 
   // todo: handle search server side
   const filteredEntityTypes = useMemo(() => {
@@ -126,10 +126,7 @@ export const AccountEntityTypeList: FunctionComponent<
           <TransitionGroup>
             {filteredEntityTypes.map((root) => (
               <Collapse key={root.schema.$id}>
-                <EntityTypeItem
-                  title={root.schema.title}
-                  entityTypeId={root.schema.$id}
-                />
+                <EntityTypeItem {...root} />
               </Collapse>
             ))}
           </TransitionGroup>

@@ -5156,8 +5156,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ValidationOperation"
-            },
-            "uniqueItems": true
+            }
           },
           "properties": {
             "$ref": "#/components/schemas/EntityProperties"

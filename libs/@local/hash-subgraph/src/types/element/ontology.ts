@@ -93,9 +93,13 @@ export type OntologyElementMetadata = Subtype<
   OwnedOntologyElementMetadata | ExternalOntologyElementMetadata
 >;
 
-export type EntityTypeMetadata = OntologyElementMetadata & {
+export type EditableOntologyElementMetadata = {
   labelProperty?: BaseUrl;
+  icon?: string | null;
 };
+
+export type EntityTypeMetadata = OntologyElementMetadata &
+  EditableOntologyElementMetadata;
 
 export type DataTypeWithMetadata = Subtype<
   DataTypeWithMetadataBp,

@@ -290,6 +290,14 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     .change_context(InsertionError)?;
             }
 
+            relationships.push((
+                PropertyTypeId::from_url(schema.id()),
+                PropertyTypeRelationAndSubject::Viewer {
+                    subject: PropertyTypeViewerSubject::Public,
+                    level: 0,
+                },
+            ));
+
             if let Some((ontology_id, transaction_time, owner)) = transaction
                 .create_ontology_metadata(
                     provenance.record_created_by_id,
@@ -308,13 +316,6 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     transaction_time,
                 ));
 
-                relationships.push((
-                    PropertyTypeId::from(ontology_id),
-                    PropertyTypeRelationAndSubject::Viewer {
-                        subject: PropertyTypeViewerSubject::Public,
-                        level: 0,
-                    },
-                ));
                 if let Some(owner) = owner {
                     match owner {
                         OntologyTypeSubject::Account { id } => relationships.push((

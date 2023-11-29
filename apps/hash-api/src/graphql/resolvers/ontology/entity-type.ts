@@ -43,6 +43,7 @@ export const createEntityTypeResolver: ResolverFn<
   const createdEntityType = await createEntityType(context, authentication, {
     ownedById: ownedById ?? (user.accountId as OwnedById),
     schema: entityType,
+    icon: params.icon ?? undefined,
     instantiators: [{ kind: "public" }],
   });
 
@@ -159,6 +160,7 @@ export const updateEntityTypeResolver: ResolverFn<
       entityTypeId: params.entityTypeId,
       schema: params.updatedEntityType,
       labelProperty: params.labelProperty ?? undefined,
+      icon: params.icon ?? undefined,
       instantiators: [{ kind: "public" }],
     },
   );

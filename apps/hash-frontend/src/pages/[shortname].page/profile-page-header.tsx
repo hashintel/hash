@@ -67,7 +67,7 @@ export const ProfilePageHeader: FunctionComponent<{
                   position: "relative",
                   top: avatarTopOffset,
                 }}
-                onEditIconButtonClick={
+                onEditEmojiIconButtonClick={
                   /**
                    * @todo: allow for editing org avatars
                    */

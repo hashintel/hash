@@ -12,7 +12,7 @@ use graph::{
     store::{DatabaseConnectionInfo, PostgresStorePool},
 };
 use reqwest::Client;
-use tokio::time::timeout;
+use tokio::{net::TcpListener, time::timeout};
 use tokio_postgres::NoTls;
 
 use crate::{
@@ -92,10 +92,14 @@ pub async fn test_server(args: TestServerArgs) -> Result<(), GraphError> {
     let router = graph::api::rest::test_server::routes(pool, authorization_api);
 
     tracing::info!("Listening on {}", args.api_address);
-    axum::Server::bind(&SocketAddr::try_from(args.api_address).change_context(GraphError)?)
-        .serve(router.into_make_service_with_connect_info::<SocketAddr>())
-        .await
-        .expect("failed to start server");
+    axum::serve(
+        TcpListener::bind((args.api_address.api_host, args.api_address.api_port))
+            .await
+            .change_context(GraphError)?,
+        router.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .expect("failed to start server");
 
     Ok(())
 }

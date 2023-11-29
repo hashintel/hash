@@ -455,6 +455,14 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 closed_schema,
             } = insertion;
 
+            relationships.push((
+                EntityTypeId::from_url(schema.id()),
+                EntityTypeRelationAndSubject::Viewer {
+                    subject: EntityTypeViewerSubject::Public,
+                    level: 0,
+                },
+            ));
+
             if let Some((ontology_id, transaction_time, owner)) = transaction
                 .create_ontology_metadata(
                     provenance.record_created_by_id,
@@ -479,14 +487,6 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                     metadata,
                     provenance,
                     transaction_time,
-                ));
-
-                relationships.push((
-                    EntityTypeId::from(ontology_id),
-                    EntityTypeRelationAndSubject::Viewer {
-                        subject: EntityTypeViewerSubject::Public,
-                        level: 0,
-                    },
                 ));
 
                 if let Some(owner) = owner {

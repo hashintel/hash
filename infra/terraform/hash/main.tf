@@ -276,8 +276,6 @@ module "application" {
   temporal_worker_ai_ts_image = module.temporal_worker_ai_ts_ecr
   temporal_worker_ai_ts_env_vars = [
     { name = "OPENAI_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"]) },
-    { name = "ORY_KRATOS_PUBLIC_URL", secret = false, value = "" },
-    { name = "ORY_KRATOS_ADMIN_URL", secret = false, value = "" },
     { name = "HASH_GRAPH_API_HOST", secret = false, value = "localhost" },
     { name = "HASH_GRAPH_API_PORT", secret = false, value = "4000" },
   ]

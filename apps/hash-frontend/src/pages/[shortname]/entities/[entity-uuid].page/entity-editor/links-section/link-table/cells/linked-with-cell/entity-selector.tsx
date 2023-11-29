@@ -225,7 +225,7 @@ export const EntitySelector = ({
         optionToRenderData={(entity) => ({
           entityProperties: entity.properties,
           uniqueId: entity.metadata.recordId.entityId,
-          Icon: null,
+          icon: null,
           /**
            * @todo update SelectorAutocomplete to show an entity's namespace as well as / instead of its entityTypeId
            * */

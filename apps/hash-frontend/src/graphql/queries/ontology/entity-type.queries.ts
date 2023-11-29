@@ -53,9 +53,14 @@ export const createEntityTypeMutation = gql`
   mutation createEntityType(
     $ownedById: OwnedById!
     $entityType: ConstructEntityTypeParams!
+    $icon: String
   ) {
     # This is a scalar, which has no selection.
-    createEntityType(ownedById: $ownedById, entityType: $entityType)
+    createEntityType(
+      ownedById: $ownedById
+      entityType: $entityType
+      icon: $icon
+    )
   }
 `;
 
@@ -63,10 +68,12 @@ export const updateEntityTypeMutation = gql`
   mutation updateEntityType(
     $entityTypeId: VersionedUrl!
     $updatedEntityType: ConstructEntityTypeParams!
+    $icon: String
   ) {
     updateEntityType(
       entityTypeId: $entityTypeId
       updatedEntityType: $updatedEntityType
+      icon: $icon
     )
   }
 `;

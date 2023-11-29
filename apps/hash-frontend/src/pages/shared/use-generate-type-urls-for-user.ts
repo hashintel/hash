@@ -1,5 +1,5 @@
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import { generateBaseTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { generateTypeBaseUrl } from "@local/hash-isomorphic-utils/ontology-types";
 import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 import { useCallback, useContext } from "react";
 
@@ -22,7 +22,7 @@ export const useGenerateTypeUrlsForUser = () => {
         throw new Error("No valid active workspace");
       }
 
-      const baseUrl = generateBaseTypeId({
+      const baseUrl = generateTypeBaseUrl({
         domain:
           // To be replaced by 'frontendUrl' in H-1172: Temporary provision until https://app.hash.ai migrated to https://hash.ai
           frontendUrl === "https://app.hash.ai"

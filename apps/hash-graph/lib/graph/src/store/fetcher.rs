@@ -35,7 +35,7 @@ use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
         crud::Read,
-        knowledge::EntityValidationType,
+        knowledge::{EntityValidationError, EntityValidationType},
         query::{Filter, OntologyQueryPath},
         AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
         InsertionError, PropertyTypeStore, QueryError, Record, StoreError, StorePool, UpdateError,
@@ -445,30 +445,38 @@ where
             .await
             .change_context(InsertionError)?;
 
-        self.store
-            .create_data_types(
-                actor_id,
-                authorization_api,
-                fetched_ontology_types.data_types,
-                ConflictBehavior::Skip,
-            )
-            .await?;
-        self.store
-            .create_property_types(
-                actor_id,
-                authorization_api,
-                fetched_ontology_types.property_types,
-                ConflictBehavior::Skip,
-            )
-            .await?;
-        self.store
-            .create_entity_types(
-                actor_id,
-                authorization_api,
-                fetched_ontology_types.entity_types,
-                ConflictBehavior::Skip,
-            )
-            .await?;
+        if !fetched_ontology_types.data_types.is_empty() {
+            self.store
+                .create_data_types(
+                    actor_id,
+                    authorization_api,
+                    fetched_ontology_types.data_types,
+                    ConflictBehavior::Skip,
+                )
+                .await?;
+        }
+
+        if !fetched_ontology_types.property_types.is_empty() {
+            self.store
+                .create_property_types(
+                    actor_id,
+                    authorization_api,
+                    fetched_ontology_types.property_types,
+                    ConflictBehavior::Skip,
+                )
+                .await?;
+        }
+
+        if !fetched_ontology_types.entity_types.is_empty() {
+            self.store
+                .create_entity_types(
+                    actor_id,
+                    authorization_api,
+                    fetched_ontology_types.entity_types,
+                    ConflictBehavior::Skip,
+                )
+                .await?;
+        }
 
         Ok(())
     }
@@ -499,33 +507,44 @@ where
                 .await
                 .change_context(InsertionError)?;
 
-            let created_data_types = self
-                .store
-                .create_data_types(
-                    actor_id,
-                    authorization_api,
-                    fetched_ontology_types.data_types,
-                    ConflictBehavior::Skip,
-                )
-                .await?;
-            let created_property_types = self
-                .store
-                .create_property_types(
-                    actor_id,
-                    authorization_api,
-                    fetched_ontology_types.property_types,
-                    ConflictBehavior::Skip,
-                )
-                .await?;
-            let created_entity_types = self
-                .store
-                .create_entity_types(
-                    actor_id,
-                    authorization_api,
-                    fetched_ontology_types.entity_types,
-                    ConflictBehavior::Skip,
-                )
-                .await?;
+            let created_data_types = if fetched_ontology_types.data_types.is_empty() {
+                Vec::new()
+            } else {
+                self.store
+                    .create_data_types(
+                        actor_id,
+                        authorization_api,
+                        fetched_ontology_types.data_types,
+                        ConflictBehavior::Skip,
+                    )
+                    .await?
+            };
+
+            let created_property_types = if fetched_ontology_types.property_types.is_empty() {
+                Vec::new()
+            } else {
+                self.store
+                    .create_property_types(
+                        actor_id,
+                        authorization_api,
+                        fetched_ontology_types.property_types,
+                        ConflictBehavior::Skip,
+                    )
+                    .await?
+            };
+
+            let created_entity_types = if fetched_ontology_types.entity_types.is_empty() {
+                Vec::new()
+            } else {
+                self.store
+                    .create_entity_types(
+                        actor_id,
+                        authorization_api,
+                        fetched_ontology_types.entity_types,
+                        ConflictBehavior::Skip,
+                    )
+                    .await?
+            };
 
             Ok(created_data_types
                 .into_iter()
@@ -979,7 +998,7 @@ where
         entity_type: EntityValidationType<'_>,
         properties: &EntityProperties,
         link_data: Option<&LinkData>,
-    ) -> Result<(), QueryError> {
+    ) -> Result<(), EntityValidationError> {
         self.store
             .validate_entity(
                 actor_id,

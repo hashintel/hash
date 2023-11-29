@@ -246,8 +246,8 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
           marginBottom: ({ spacing }) =>
             `calc(-1 * (${avatarTopOffset}px + ${spacing(3)}))`,
         }}
-        onEditIconButtonDisabled={newAvatarImageUploading}
-        onEditIconButtonClick={handleChangeAvatarImage}
+        onEditEmojiIconButtonDisabled={newAvatarImageUploading}
+        onEditEmojiIconButtonClick={handleChangeAvatarImage}
       />
       <Box
         display="flex"

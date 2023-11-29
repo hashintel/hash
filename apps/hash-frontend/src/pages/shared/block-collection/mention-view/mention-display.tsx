@@ -167,7 +167,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     [entitySubgraph, entity],
   );
 
-  const entityIcon = useEntityIcon({ entity });
+  const entityIcon = useEntityIcon({ entity, entityType });
 
   const propertyType = useMemo(() => {
     if (mention.kind === "property-value" && propertyTypes) {

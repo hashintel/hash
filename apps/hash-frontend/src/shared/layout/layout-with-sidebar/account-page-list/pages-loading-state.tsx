@@ -1,6 +1,6 @@
 import { Box, Skeleton } from "@mui/material";
 
-import { pageIconVariantSizes } from "../../../../components/page-icon";
+import { iconVariantSizes } from "../../../edit-emoji-icon-button";
 
 const LoadingLine = () => {
   return (
@@ -10,15 +10,15 @@ const LoadingLine = () => {
         variant="rectangular"
         sx={{
           mr: 0.75,
-          height: pageIconVariantSizes.small.container,
-          width: pageIconVariantSizes.small.container,
+          height: iconVariantSizes.small.container,
+          width: iconVariantSizes.small.container,
           borderRadius: 1,
         }}
       />
       <Skeleton
         variant="rectangular"
         animation="wave"
-        height={pageIconVariantSizes.small.container}
+        height={iconVariantSizes.small.container}
         sx={{ flex: 1, borderRadius: 1 }}
       />
     </Box>

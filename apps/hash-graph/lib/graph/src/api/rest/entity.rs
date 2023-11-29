@@ -253,6 +253,7 @@ struct ValidateEntityRequest {
     properties: EntityProperties,
     #[serde(default)]
     link_data: Option<LinkData>,
+    #[schema(value_type = Vec<ValidationOperation>)]
     operations: HashSet<ValidationOperation>,
 }
 

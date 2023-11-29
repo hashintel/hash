@@ -1,3 +1,4 @@
+import { useMutation } from "@apollo/client";
 import {
   EntityType,
   PropertyTypeReference,
@@ -8,6 +9,7 @@ import { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
   AccountId,
   BaseUrl,
+  EditableOntologyElementMetadata,
   EntityTypeWithMetadata,
   OwnedById,
   PropertyTypeWithMetadata,
@@ -29,8 +31,16 @@ import {
   useState,
 } from "react";
 
-import { useBlockProtocolCreateEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
-import { useBlockProtocolUpdateEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
+import {
+  CreateEntityTypeMutation,
+  CreateEntityTypeMutationVariables,
+  UpdateEntityTypeMutation,
+  UpdateEntityTypeMutationVariables,
+} from "../../../graphql/api-types.gen";
+import {
+  createEntityTypeMutation,
+  updateEntityTypeMutation,
+} from "../../../graphql/queries/ontology/entity-type.queries";
 import {
   useEntityTypesLoading,
   useEntityTypesSubgraphOptional,
@@ -139,9 +149,10 @@ export const useEntityTypeValue = (
 ) => {
   const router = useRouter();
 
-  const { createEntityType } = useBlockProtocolCreateEntityType(
-    accountId as OwnedById | null,
-  );
+  const [createEntityType] = useMutation<
+    CreateEntityTypeMutation,
+    CreateEntityTypeMutationVariables
+  >(createEntityTypeMutation);
 
   const entityTypesSubgraph = useEntityTypesSubgraphOptional();
   const entityTypesLoading = useEntityTypesLoading();
@@ -149,7 +160,10 @@ export const useEntityTypeValue = (
 
   const isDraft = !entityTypeBaseUrl;
 
-  const { updateEntityType } = useBlockProtocolUpdateEntityType();
+  const [updateEntityType] = useMutation<
+    UpdateEntityTypeMutation,
+    UpdateEntityTypeMutationVariables
+  >(updateEntityTypeMutation);
 
   const { contextEntityType, latestVersion } = useMemo<{
     contextEntityType: EntityTypeWithMetadata | null;
@@ -277,7 +291,10 @@ export const useEntityTypeValue = (
   }, [entityTypeBaseUrl, refetch]);
 
   const updateCallback = useCallback(
-    async (partialEntityType: Partial<ConstructEntityTypeParams>) => {
+    async (
+      partialEntityType: Partial<ConstructEntityTypeParams>,
+      metadata: EditableOntologyElementMetadata,
+    ) => {
       if (!stateEntityTypeRef.current) {
         throw new Error("Cannot update yet");
       }
@@ -287,12 +304,13 @@ export const useEntityTypeValue = (
       } = stateEntityTypeRef.current;
 
       const res = await updateEntityType({
-        data: {
+        variables: {
           entityTypeId: $id,
-          entityType: {
+          updatedEntityType: {
             ...restOfEntityType,
             ...partialEntityType,
           },
+          icon: metadata.icon,
         },
       });
 
@@ -304,10 +322,15 @@ export const useEntityTypeValue = (
   );
 
   const publishDraft = useCallback(
-    async (draftEntityType: EntityType) => {
+    async (
+      draftEntityType: EntityType,
+      metadata: EditableOntologyElementMetadata,
+    ) => {
       const res = await createEntityType({
-        data: {
+        variables: {
+          ownedById: accountId as OwnedById,
           entityType: draftEntityType,
+          icon: metadata.icon,
         },
       });
 
@@ -317,11 +340,11 @@ export const useEntityTypeValue = (
 
       await refetch();
 
-      const newUrl = extractBaseUrl(res.data.schema.$id);
+      const newUrl = extractBaseUrl(res.data.createEntityType.schema.$id);
 
       await router.replace(newUrl, newUrl, { shallow: true });
     },
-    [createEntityType, refetch, router],
+    [createEntityType, accountId, refetch, router],
   );
 
   return [
