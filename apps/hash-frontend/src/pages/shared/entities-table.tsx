@@ -318,7 +318,7 @@ export const EntitiesTable: FunctionComponent<{
         }
         filterState={filterState}
         setFilterState={setFilterState}
-        toggleSearch={() => setShowSearch(true)}
+        toggleSearch={view === "table" ? () => setShowSearch(true) : undefined}
         onBulkActionCompleted={() => setSelectedRows([])}
       />
       {view === "graph" ? (
