@@ -66,6 +66,7 @@ export const createEntities = async ({
                 ownedById,
                 owner: ownedById,
                 properties,
+                draft: false,
               });
 
             createdEntitiesByTemporaryId[proposedEntity.entityId] = {
@@ -199,6 +200,7 @@ export const createEntities = async ({
                 ownedById,
                 owner: ownedById,
                 properties,
+                draft: false,
               });
 
             createdEntitiesByTemporaryId[proposedEntity.entityId] = {

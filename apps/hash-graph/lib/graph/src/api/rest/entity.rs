@@ -31,7 +31,7 @@ use graph_types::{
     },
     provenance::OwnedById,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
 
@@ -148,7 +148,7 @@ impl RoutedResource for EntityResource {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateEntityRequest {
     properties: EntityProperties,
@@ -158,11 +158,10 @@ struct CreateEntityRequest {
     owner: OwnedById,
     #[schema(nullable = false)]
     entity_uuid: Option<EntityUuid>,
-    // TODO: this could break invariants if we don't move to fractional indexing
-    //  https://app.asana.com/0/1201095311341924/1202085856561975/f
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     #[schema(nullable = false)]
     link_data: Option<LinkData>,
+    draft: bool,
 }
 
 #[utoipa::path(
@@ -199,7 +198,16 @@ where
         owned_by_id,
         entity_uuid,
         link_data,
+        draft,
     }) = body;
+
+    // TODO: Allow creating entities in a draft state
+    //   see https://linear.app/hash/issue/H-1448
+    if draft {
+        return Err(report_to_response(
+            Report::new(PermissionAssertion).attach(hash_status::StatusCode::PermissionDenied),
+        ));
+    }
 
     let mut store = store_pool.acquire().await.map_err(report_to_response)?;
     let mut authorization_api = authorization_api_pool
@@ -221,11 +229,6 @@ where
         },
     };
 
-    // TODO: Allow creating entities in a draft state
-    //   see https://linear.app/hash/issue/H-1448
-    // TODO: Revisit creation parameter to avoid too many parameters, especially as the parameters
-    //       are booleans/optionals and can be easily confused
-    //   see https://linear.app/hash/issue/H-1466
     store
         .create_entity(
             actor_id,
@@ -235,7 +238,7 @@ where
             entity_uuid,
             None,
             false,
-            false,
+            draft,
             entity_type_id,
             properties,
             link_data,
@@ -430,7 +433,7 @@ where
     Ok((headers, Json(Subgraph::from(subgraph))))
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct UpdateEntityRequest {
     properties: EntityProperties,
@@ -440,6 +443,7 @@ struct UpdateEntityRequest {
     #[serde(flatten)]
     order: EntityLinkOrder,
     archived: bool,
+    draft: bool,
 }
 
 #[utoipa::path(
@@ -476,7 +480,16 @@ where
         entity_type_id,
         order,
         archived,
+        draft,
     }) = body;
+
+    // TODO: Allow changing the `draft` state
+    //   see https://linear.app/hash/issue/H-1452
+    if draft {
+        return Err(report_to_response(
+            Report::new(PermissionAssertion).attach(hash_status::StatusCode::PermissionDenied),
+        ));
+    }
 
     let mut store = store_pool.acquire().await.map_err(report_to_response)?;
     let mut authorization_api = authorization_api_pool
@@ -484,13 +497,6 @@ where
         .await
         .map_err(report_to_response)?;
 
-    // TODO: Allow removal of the `draft` state
-    //   see https://linear.app/hash/issue/H-1452
-    // TODO: Allow partial updates to avoid setting the `draft` and `archived` state here
-    //   see https://linear.app/hash/issue/H-1455
-    // TODO: Revisit creation parameter to avoid too many parameters, especially as the parameters
-    //       are booleans/optionals and can be easily confused
-    //   see https://linear.app/hash/issue/H-1466
     store
         .update_entity(
             actor_id,
@@ -498,7 +504,7 @@ where
             entity_id,
             None,
             archived,
-            false,
+            draft,
             entity_type_id,
             properties,
             order,

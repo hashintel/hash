@@ -2533,9 +2533,13 @@
           "properties",
           "entityTypeId",
           "ownedById",
-          "owner"
+          "owner",
+          "draft"
         ],
         "properties": {
+          "draft": {
+            "type": "boolean"
+          },
           "entityTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           },
@@ -3015,10 +3019,14 @@
           "temporalVersioning",
           "entityTypeId",
           "provenance",
-          "archived"
+          "archived",
+          "draft"
         ],
         "properties": {
           "archived": {
+            "type": "boolean"
+          },
+          "draft": {
             "type": "boolean"
           },
           "entityTypeId": {
@@ -5078,10 +5086,14 @@
               "properties",
               "entityId",
               "entityTypeId",
-              "archived"
+              "archived",
+              "draft"
             ],
             "properties": {
               "archived": {
+                "type": "boolean"
+              },
+              "draft": {
                 "type": "boolean"
               },
               "entityId": {

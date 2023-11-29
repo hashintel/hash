@@ -63,6 +63,7 @@ export type CreateEntityParams = {
   outgoingLinks?: Omit<CreateLinkEntityParams, "leftEntityId">[];
   entityUuid?: EntityUuid;
   owner?: AccountId | AccountGroupId;
+  draft?: boolean;
 };
 
 /** @todo: potentially directly export this from the subgraph package */
@@ -87,6 +88,7 @@ export const createEntity: ImpureGraphFunction<
     properties,
     outgoingLinks,
     entityUuid: overrideEntityUuid,
+    draft = false,
   } = params;
 
   const { graphApi } = context;
@@ -98,6 +100,7 @@ export const createEntity: ImpureGraphFunction<
     properties,
     entityUuid: overrideEntityUuid,
     owner: params.owner ?? ownedById,
+    draft,
   });
 
   const entity = { properties, metadata: metadata as EntityMetadata };
@@ -392,6 +395,7 @@ export const updateEntity: ImpureGraphFunction<
      * */
     entityTypeId: entityTypeId ?? entity.metadata.entityTypeId,
     archived: entity.metadata.archived,
+    draft: entity.metadata.draft,
     properties,
   });
 
@@ -423,6 +427,7 @@ export const archiveEntity: ImpureGraphFunction<
   await graphApi.updateEntity(actorId, {
     entityId: entity.metadata.recordId.entityId,
     archived: true,
+    draft: entity.metadata.draft,
     /**
      * @todo: these fields shouldn't be required when archiving an entity
      *

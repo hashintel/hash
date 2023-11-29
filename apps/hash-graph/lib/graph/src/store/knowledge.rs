@@ -51,6 +51,9 @@ pub trait EntityStore: crud::Read<Entity> {
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
     /// [`EntityType`]: type_system::EntityType
+    // TODO: Revisit creation parameter to avoid too many parameters, especially as the parameters
+    //       are booleans/optionals and can be easily confused
+    //   see https://linear.app/hash/issue/H-1466
     #[expect(clippy::too_many_arguments)]
     async fn create_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
@@ -142,6 +145,11 @@ pub trait EntityStore: crud::Read<Entity> {
     /// - if the account referred to by `actor_id` does not exist
     ///
     /// [`EntityType`]: type_system::EntityType
+    // TODO: Revisit creation parameter to avoid too many parameters, especially as the parameters
+    //       are booleans/optionals and can be easily confused
+    //   see https://linear.app/hash/issue/H-1466
+    // TODO: Allow partial updates to avoid setting the `draft` and `archived` state here
+    //   see https://linear.app/hash/issue/H-1455
     #[expect(clippy::too_many_arguments)]
     async fn update_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,

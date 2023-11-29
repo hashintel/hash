@@ -43,7 +43,7 @@ const getChildEntity = (
 ): DraftEntity<BlockEntity["blockChildEntity"]> | null => {
   if (entity && entity.blockChildEntity) {
     if (!isDraftBlockEntity(entity)) {
-      throw new Error("Cannot prepare non-block entity for prosemirrior");
+      throw new Error("Cannot prepare non-block entity for ProseMirror");
     }
 
     return entity.blockChildEntity as DraftEntity;

@@ -22,6 +22,9 @@ export const textualContentPropertyTypeBaseUrl = extractBaseUrl(
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   metadata: {
     archived: boolean;
+    // @todo use the Graph API to create draft entities
+    //   see https://linear.app/hash/issue/H-1083/draft-entities
+    draft: boolean;
     recordId: {
       entityId: EntityId | null;
       editionId: string;
