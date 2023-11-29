@@ -1,53 +1,19 @@
 import { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
-import {
-  faAdd,
-  faLink,
-  IconDefinition,
-} from "@fortawesome/free-solid-svg-icons";
-import { ArrowUpRightIcon, FontAwesomeIcon } from "@hashintel/design-system";
-import { ListItemIcon, ListItemText, Menu } from "@mui/material";
+import { faAdd, faLink } from "@fortawesome/free-solid-svg-icons";
+import { ArrowUpRightIcon } from "@hashintel/design-system";
+import { Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import pluralize from "pluralize";
-import { FunctionComponent, ReactElement, useState } from "react";
+import { FunctionComponent, useState } from "react";
 
 import { useFrozenValue } from "../../../frozen";
-import { MenuItem } from "../../../ui";
+import { EntityTypeMenuItem } from "./entity-type-menu-item";
 
 type EntityTypeMenuProps = {
   entityTypeId: VersionedUrl;
   popupState: PopupState;
   title: string;
   url: BaseUrl;
-};
-
-const EntityTypeMenuItem = ({
-  title,
-  icon,
-  href,
-  faded,
-  onClick,
-  popupState,
-}: {
-  title: string;
-  icon: IconDefinition | ReactElement;
-  faded?: boolean;
-  popupState: PopupState;
-} & (
-  | { href: string; onClick?: null }
-  | { href?: null; onClick: () => void }
-)) => {
-  return (
-    <MenuItem
-      {...(href ? { href } : {})}
-      faded={faded}
-      onClick={onClick ?? popupState.close}
-    >
-      <ListItemIcon>
-        {"icon" in icon ? <FontAwesomeIcon icon={icon} /> : icon}
-      </ListItemIcon>
-      <ListItemText primary={title} />
-    </MenuItem>
-  );
 };
 
 // @todo-mui get free icons that matches the design closely

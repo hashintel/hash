@@ -135,7 +135,7 @@ export const AccountEntitiesList: FunctionComponent<
                   href={`/entities?entityTypeIdOrBaseUrl=${extractBaseUrl(
                     root.schema.$id,
                   )}`}
-                  hideOptionsMenu
+                  variant="entity"
                 />
               </Collapse>
             ))}

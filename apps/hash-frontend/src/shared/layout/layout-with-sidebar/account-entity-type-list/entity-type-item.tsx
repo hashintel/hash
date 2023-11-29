@@ -13,6 +13,7 @@ import { FunctionComponent, useRef } from "react";
 import { useEntityTypesContextRequired } from "../../../entity-types-context/hooks/use-entity-types-context-required";
 import { EllipsisRegularIcon } from "../../../icons/ellipsis-regular-icon";
 import { Link } from "../../../ui";
+import { EntityMenu } from "./entity-menu";
 import { EntityTypeMenu } from "./entity-type-menu";
 
 const Container = styled((props: BoxProps & { selected: boolean }) => (
@@ -50,12 +51,12 @@ const Container = styled((props: BoxProps & { selected: boolean }) => (
 }));
 
 export const EntityTypeItem: FunctionComponent<
-  EntityTypeWithMetadata & { href?: string; hideOptionsMenu?: boolean }
+  EntityTypeWithMetadata & { href?: string; variant: "entity" | "entity-type" }
 > = ({
   metadata: { icon },
   schema: { title, $id: entityTypeId },
   href,
-  hideOptionsMenu,
+  variant,
 }) => {
   const entityMenuTriggerRef = useRef(null);
   const popupState = usePopupState({
@@ -127,33 +128,38 @@ export const EntityTypeItem: FunctionComponent<
           {title}
         </Typography>
       </Link>
-      {hideOptionsMenu ? null : (
-        <>
-          <Tooltip title="Options" sx={{ left: 5 }}>
-            <IconButton
-              ref={entityMenuTriggerRef}
-              className="entity-menu-trigger"
-              {...bindTrigger(popupState)}
-              size="medium"
-              unpadded
-              sx={({ palette }) => ({
-                color: [selected ? palette.gray[80] : "transparent"],
-                "&:focus-visible, &:hover": {
-                  backgroundColor: palette.gray[selected ? 40 : 30],
-                  color: palette.gray[selected ? 80 : 40],
-                },
-              })}
-            >
-              <EllipsisRegularIcon />
-            </IconButton>
-          </Tooltip>
-          <EntityTypeMenu
-            entityTypeId={entityTypeId}
-            popupState={popupState}
-            title={title}
-            url={baseUrl}
-          />
-        </>
+
+      <Tooltip title="Options" sx={{ left: 5 }}>
+        <IconButton
+          ref={entityMenuTriggerRef}
+          className="entity-menu-trigger"
+          {...bindTrigger(popupState)}
+          size="medium"
+          unpadded
+          sx={({ palette }) => ({
+            color: [selected ? palette.gray[80] : "transparent"],
+            "&:focus-visible, &:hover": {
+              backgroundColor: palette.gray[selected ? 40 : 30],
+              color: palette.gray[selected ? 80 : 40],
+            },
+          })}
+        >
+          <EllipsisRegularIcon />
+        </IconButton>
+      </Tooltip>
+      {variant === "entity" ? (
+        <EntityMenu
+          entityTypeId={entityTypeId}
+          popupState={popupState}
+          title={title}
+        />
+      ) : (
+        <EntityTypeMenu
+          entityTypeId={entityTypeId}
+          popupState={popupState}
+          title={title}
+          url={baseUrl}
+        />
       )}
     </Container>
   );
