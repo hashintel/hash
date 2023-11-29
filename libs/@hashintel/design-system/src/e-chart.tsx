@@ -19,6 +19,8 @@ import * as echarts from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
 import { FunctionComponent, useEffect, useRef, useState } from "react";
 
+export type Chart = echarts.ECharts;
+
 export type SeriesOption =
   | LineSeriesOption
   | ScatterSeriesOption
@@ -43,19 +45,30 @@ echarts.use([
 
 type GraphProps = {
   options: ECOption;
+  onChartInitialized?: (chart: Chart) => void;
   sx?: BoxProps["sx"];
 };
 
-export const EChart: FunctionComponent<GraphProps> = ({ options, sx }) => {
+export const EChart: FunctionComponent<GraphProps> = ({
+  options,
+  sx,
+  onChartInitialized,
+}) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const [chart, setChart] = useState<echarts.ECharts>();
+  const [chart, setChart] = useState<Chart>();
 
   useEffect(() => {
     if (wrapperRef.current) {
       setChart(echarts.init(wrapperRef.current));
     }
   }, [wrapperRef]);
+
+  useEffect(() => {
+    if (chart) {
+      onChartInitialized?.(chart);
+    }
+  }, [chart, onChartInitialized]);
 
   useEffect(() => {
     if (chart) {

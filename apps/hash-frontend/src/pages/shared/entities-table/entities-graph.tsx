@@ -1,22 +1,72 @@
 import { BaseUrl } from "@blockprotocol/type-system";
-import { EChart, ECOption } from "@hashintel/design-system";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { Chart, EChart, ECOption } from "@hashintel/design-system";
+import {
+  EntityId,
+  EntityRootType,
+  extractEntityUuidFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { getEntities, getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import {
   extractBaseUrl,
   LinkEntity,
 } from "@local/hash-subgraph/type-system-patch";
-import { FunctionComponent, useMemo } from "react";
+import { useRouter } from "next/router";
+import { FunctionComponent, useEffect, useMemo, useState } from "react";
 
+import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import { generateEntityLabel } from "../../../lib/entities";
 
 export const EntitiesGraph: FunctionComponent<{
   primaryEntityTypeBaseUrl?: BaseUrl;
   subgraph?: Subgraph<EntityRootType>;
 }> = ({ primaryEntityTypeBaseUrl, subgraph }) => {
-  const eChartOptions = useMemo<ECOption>(() => {
-    const entities = subgraph ? getEntities(subgraph, true) : undefined;
+  const router = useRouter();
+  const [chart, setChart] = useState<Chart>();
 
+  const entities = useMemo(
+    () => (subgraph ? getEntities(subgraph, true) : undefined),
+    [subgraph],
+  );
+
+  const getOwnerForEntity = useGetOwnerForEntity();
+
+  useEffect(() => {
+    if (chart) {
+      chart.on("click", (params) => {
+        if (
+          params.componentType === "series" &&
+          params.seriesType === "graph"
+        ) {
+          if (params.dataType === "node" || params.dataType === "edge") {
+            const entityId = (params.data as any).id as EntityId;
+
+            const entity = entities?.find(
+              ({ metadata }) => entityId === metadata.recordId.entityId,
+            );
+
+            if (!entity) {
+              return;
+            }
+
+            const { shortname: entityNamespace } = getOwnerForEntity(entity);
+
+            if (entityNamespace === "") {
+              return;
+            }
+
+            void router.push(
+              `/@${entityNamespace}/entities/${extractEntityUuidFromEntityId(
+                entityId,
+              )}`,
+            );
+          }
+        }
+      });
+    }
+  }, [chart, entities, router, getOwnerForEntity]);
+
+  const eChartOptions = useMemo<ECOption>(() => {
     const linkEntities = entities?.filter(
       (entity): entity is LinkEntity => "linkData" in entity,
     );
@@ -88,9 +138,11 @@ export const EntitiesGraph: FunctionComponent<{
                 entity.metadata.entityTypeId,
               );
 
-              return entityType?.schema.title;
+              return entityType?.schema.title ?? "";
             }
           }
+
+          return "";
         },
       },
       series: {
@@ -130,13 +182,14 @@ export const EntitiesGraph: FunctionComponent<{
         zoom: 5,
       },
     };
-  }, [subgraph, primaryEntityTypeBaseUrl]);
+  }, [subgraph, entities, primaryEntityTypeBaseUrl]);
 
   return (
     <EChart
       sx={{
         background: ({ palette }) => palette.common.white,
       }}
+      onChartInitialized={(initializedChart) => setChart(initializedChart)}
       options={eChartOptions}
     />
   );
