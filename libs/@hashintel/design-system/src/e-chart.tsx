@@ -72,7 +72,7 @@ export const EChart: FunctionComponent<GraphProps> = ({
 
   useEffect(() => {
     if (chart) {
-      chart.setOption(options, { notMerge: true });
+      chart.setOption(options);
     }
   }, [chart, options]);
 
