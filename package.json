@@ -27,17 +27,14 @@
     "generate-system-types": "yarn workspace @local/hash-isomorphic-utils generate-system-types",
     "generate-ontology-type-ids": "yarn workspace @apps/hash-api generate-ontology-type-ids",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
-    "fix:black": "turbo fix:black",
     "@TODO.1": "Upgrade or remove these blocks and remove the --ignore-package options (also @TODO.2)",
     "fix:dependency-version-consistency": "check-dependency-version-consistency --fix . --ignore-package=@apps/hashdotdev --ignore-package=@blocks/embed --ignore-package=@blocks/person",
     "fix:eslint": "turbo --continue fix:eslint --",
     "fix:lock-files": "turbo fix:lock-files",
     "fix:markdownlint": "markdownlint --dot --fix .",
     "fix:prettier": "prettier --write  --ignore-unknown .",
-    "fix:ruff": "turbo fix:ruff",
     "fix:yarn-deduplicate": "yarn install && yarn-deduplicate --strategy=fewer && yarn install",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
-    "lint:black": "turbo lint:black",
     "@TODO.2": "Upgrade or remove these blocks and remove the --ignore-package options (also @TODO.1)",
     "lint:dependency-version-consistency": "check-dependency-version-consistency . --ignore-package=@apps/hashdotdev --ignore-package=@blocks/chart --ignore-package=@blocks/embed --ignore-package=@blocks/person",
     "lint:eslint": "turbo --continue lint:eslint --",
@@ -46,16 +43,12 @@
     "lint:lockfile-lint": "lockfile-lint --path yarn.lock --allowed-hosts registry.yarnpkg.com --allowed-schemes \"https:\"",
     "lint:markdownlint": "markdownlint --dot .",
     "lint:prettier": "prettier --check --ignore-unknown .",
-    "lint:mypy": "turbo lint:mypy",
-    "lint:ruff": "turbo lint:ruff",
     "lint:tsc": "turbo --continue lint:tsc --",
     "lint:yarn-deduplicate": "yarn-deduplicate --fail --list --strategy=fewer",
     "postinstall": "patch-package --error-on-warn && husky install .config/husky",
     "seed-data:opensearch": "yarn workspace @apps/hash-search-loader clear-opensearch",
     "seed-data:redis": "yarn workspace @apps/hash-realtime clear-redis",
     "seed-data": "concurrently \"yarn:seed-data:*\"",
-    "poetry:install": "turbo poetry:install",
-    "poetry:install-production": "turbo poetry:install-production",
     "test": "npm-run-all --continue-on-error \"test:*\"",
     "test:unit": "turbo run test:unit --",
     "test:integration": "turbo run test:integration --",
@@ -65,9 +58,6 @@
     "**": [
       "suppress-exit-code markdownlint --fix",
       "suppress-exit-code prettier --write"
-    ],
-    "**.py": [
-      "suppress-exit-code yarn fix:black"
     ]
   },
   "prettier": {
