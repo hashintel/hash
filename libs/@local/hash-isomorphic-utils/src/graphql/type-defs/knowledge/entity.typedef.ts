@@ -51,7 +51,6 @@ export const entityTypedef = gql`
   The link metadata of a proposed entity.
   """
   type ProposedLinkData {
-    # Keep this in sync with the LinkData type in apps/hash-ai-worker-py
     """
     The left entity id of the proposed link entity.
     """
@@ -65,7 +64,6 @@ export const entityTypedef = gql`
   An entity proposed for creation. The suggested data can be used in further calls, e.g. to createEntity
   """
   type ProposedEntity {
-    # Keep this in sync with the ProposedEntity type in apps/hash-ai-worker-py
     """
     The entity identifier.
     """

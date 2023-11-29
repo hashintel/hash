@@ -45,12 +45,6 @@
       "additionalBranchPrefix": "js/"
     },
     {
-      "matchManagers": ["poetry"],
-      "commitMessageTopic": "Python package `{{depName}}`",
-      "additionalBranchPrefix": "py/",
-      "reviewers": ["team:Python"]
-    },
-    {
       "matchManagers": ["cargo"],
       "commitMessageTopic": "Rust crate `{{depName}}`",
       "additionalBranchPrefix": "rs/",
@@ -145,11 +139,6 @@
       "groupName": "Signia npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@signia/"]
-    },
-    {
-      "groupName": "Pydantic Python packages",
-      "matchManagers": ["poetry"],
-      "matchPackagePatterns": ["^pydantic"]
     },
     {
       "matchManagers": ["regex"],

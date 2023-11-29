@@ -85,12 +85,10 @@ jobs:
           if $(echo $SYSTEM_TEST_PACKAGES | jq -e '.package != []'); then
             REQUIRES_GRAPH=true
             REQUIRES_AI_WORKER_TS=true
-            REQUIRES_AI_WORKER_PY=true
             REQUIRES_INTEGRATION_WORKER=true
           else
             REQUIRES_GRAPH=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-graph" and .task == "build")] != []')
             REQUIRES_AI_WORKER_TS=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
-            REQUIRES_AI_WORKER_PY=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-py" and .task == "build")] != []')
             REQUIRES_INTEGRATION_WORKER=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
           fi
 
@@ -100,9 +98,6 @@ jobs:
           fi
           if [[ $REQUIRES_AI_WORKER_TS == 'true' ]]; then
             DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-ai-worker-ts"]')
-          fi
-          if [[ $REQUIRES_AI_WORKER_PY == 'true' ]]; then
-            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-ai-worker-py"]')
           fi
           if [[ $REQUIRES_INTEGRATION_WORKER == 'true' ]]; then
             DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-integration-worker"]')
@@ -142,25 +137,6 @@ jobs:
             echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
           fi
 
-          HAS_PYTHON=$(test -f "${{ matrix.directory }}/pyproject.toml" && echo 'true' || echo 'false')
-          echo "has-python=$HAS_PYTHON" >> $GITHUB_OUTPUT
-          if [[ $HAS_PYTHON = 'true' ]]; then
-            echo "python-version=$(cat "${{ matrix.directory }}/pyproject.toml" | yq -p toml '.tool.poetry.dependencies.python')" >> $GITHUB_OUTPUT
-          else
-            echo "python-version=^3.11" >> $GITHUB_OUTPUT
-          fi
-
-          HAS_POETRY_DEPS=$(turbo run poetry:install --filter '${{ matrix.package }}...' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "poetry:install" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "has-poetry-deps=$HAS_POETRY_DEPS" >> $GITHUB_OUTPUT
-
-          # If this is a python package we allow CI to fail
-          if [[ $HAS_PYTHON = 'true' ]]; then
-              echo "allow-failure=true" >> $GITHUB_OUTPUT
-          else
-              echo "allow-failure=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
@@ -195,22 +171,6 @@ jobs:
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-
-      - name: Install poetry
-        if: always() && steps.tests.outputs.has-poetry-deps == 'true'
-        run: pipx install poetry
-
-      - name: Set up Python
-        if: always() && steps.tests.outputs.has-poetry-deps == 'true'
-        uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
-        with:
-          python-version: ${{ steps.tests.outputs.python-version }}
-          cache: poetry
-
-      - name: Install Python dependencies
-        if: always() && steps.tests.outputs.has-poetry-deps == 'true'
-        continue-on-error: true
-        run: turbo run poetry:install
 
       - name: Show disk usage
         run: df -h
@@ -255,7 +215,6 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           hash-graph: ${{ matrix.package == '@apps/hash-graph' }}
           hash-ai-worker-ts: ${{ matrix.package == '@apps/hash-ai-worker-ts' }}
-          hash-ai-worker-py: ${{ matrix.package == '@apps/hash-ai-worker-py' }}
           hash-integration-worker: ${{ matrix.package == '@apps/hash-integration-worker' }}
 
   integration-tests:
@@ -298,20 +257,7 @@ jobs:
           TEST_TASKS=$(turbo run test:integration --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[]')
           REQUIRES_GRAPH=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-graph" and .task == "build")] != []')
           REQUIRES_AI_WORKER_TS=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
-          REQUIRES_AI_WORKER_PY=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-py" and .task == "build")] != []')
           REQUIRES_INTEGRATION_WORKER=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
-
-          HAS_PYTHON=$(test -f "${{ matrix.directory }}/pyproject.toml" && echo 'true' || echo 'false')
-          echo "has-python=$HAS_PYTHON" >> $GITHUB_OUTPUT
-          if [[ $HAS_PYTHON = 'true' ]]; then
-            echo "python-version=$(cat "${{ matrix.directory }}/pyproject.toml" | yq -p toml '.tool.poetry.dependencies.python')" >> $GITHUB_OUTPUT
-          else
-            echo "python-version=^3.11" >> $GITHUB_OUTPUT
-          fi
-
-          HAS_POETRY_DEPS=$(turbo run poetry:install --filter '${{ matrix.package }}...' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "poetry:install" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "has-poetry-deps=$HAS_POETRY_DEPS" >> $GITHUB_OUTPUT
 
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
@@ -321,15 +267,7 @@ jobs:
 
           echo "external-service-graph=$REQUIRES_GRAPH" >> $GITHUB_OUTPUT
           echo "external-service-ai-worker-ts=$REQUIRES_AI_WORKER_TS" >> $GITHUB_OUTPUT
-          echo "external-service-ai-worker-py=$REQUIRES_AI_WORKER_PY" >> $GITHUB_OUTPUT
           echo "external-service-worker-integration=$REQUIRES_INTEGRATION_WORKER" >> $GITHUB_OUTPUT
-
-          # If this is a python package we allow CI to fail
-          if [[ $HAS_PYTHON = 'true' ]]; then
-              echo "allow-failure=true" >> $GITHUB_OUTPUT
-          else
-              echo "allow-failure=false" >> $GITHUB_OUTPUT
-          fi
 
       - name: Install Rust toolchain
         if: always() && steps.tests.outputs.has-rust == 'true'
@@ -351,22 +289,6 @@ jobs:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
-      - name: Install poetry
-        if: always() && steps.tests.outputs.has-poetry-deps == 'true'
-        run: pipx install poetry
-
-      - name: Set up Python
-        if: always() && steps.tests.outputs.has-poetry-deps == 'true'
-        uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
-        with:
-          python-version: ${{ steps.tests.outputs.python-version }}
-          cache: poetry
-
-      - name: Install Python dependencies
-        if: always() && steps.tests.outputs.has-poetry-deps == 'true'
-        continue-on-error: true
-        run: turbo run poetry:install
-
       - name: Show disk usage
         run: df -h
 
@@ -375,7 +297,6 @@ jobs:
         with:
           hash-graph: ${{ steps.tests.outputs.external-service-graph == 'true' }}
           hash-ai-worker-ts: ${{ steps.tests.outputs.external-service-ai-worker-ts == 'true' }}
-          hash-ai-worker-py: ${{ steps.tests.outputs.external-service-ai-worker-py == 'true' }}
           hash-integration-worker: ${{ steps.tests.outputs.external-service-worker-integration == 'true' }}
 
       - name: Show disk usage
@@ -392,9 +313,6 @@ jobs:
           fi
           if [[ ${{ steps.tests.outputs.external-service-ai-worker-ts }} == 'true' ]]; then
               SERVICES="$SERVICES hash-temporal-worker-ts"
-          fi
-          if [[ ${{ steps.tests.outputs.external-service-ai-worker-py }} == 'true' ]]; then
-              SERVICES="$SERVICES hash-temporal-worker-py"
           fi
           if [[ ${{ steps.tests.outputs.external-service-worker-integration }} == 'true' ]]; then
               SERVICES="$SERVICES hash-temporal-worker-integration"
@@ -510,7 +428,6 @@ jobs:
         with:
           hash-graph: true
           hash-ai-worker-ts: true
-          hash-ai-worker-py: true
           hash-integration-worker: true
 
       - name: Show disk usage

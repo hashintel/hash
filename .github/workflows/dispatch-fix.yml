@@ -12,9 +12,6 @@ jobs:
       - name: Warm up repo
         uses: ./.github/actions/warm-up-repo
 
-      - name: Setup python
-        run: yarn poetry:install
-
       - name: Fix
         run: yarn fix
 
