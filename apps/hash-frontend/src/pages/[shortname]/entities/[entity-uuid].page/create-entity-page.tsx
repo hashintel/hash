@@ -1,4 +1,5 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   EntityPropertiesObject,
@@ -10,7 +11,6 @@ import { useContext, useState } from "react";
 
 import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { PageErrorState } from "../../../../components/page-error-state";
-import { generateEntityLabel } from "../../../../lib/entities";
 import { WorkspaceContext } from "../../../shared/workspace-context";
 import { EditBar } from "../../shared/edit-bar";
 import { EntityEditorPage } from "./entity-editor-page";

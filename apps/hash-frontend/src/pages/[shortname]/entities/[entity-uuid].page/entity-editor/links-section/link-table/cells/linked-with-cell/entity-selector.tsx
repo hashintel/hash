@@ -5,6 +5,7 @@ import {
   SelectorAutocomplete,
 } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   Entity,
   EntityId,
@@ -24,7 +25,6 @@ import {
 } from "react";
 
 import { useQueryEntities } from "../../../../../../../../../components/hooks/use-query-entities";
-import { generateEntityLabel } from "../../../../../../../../../lib/entities";
 import { useEntityTypesContextRequired } from "../../../../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useFileUploads } from "../../../../../../../../../shared/file-upload-context";
 import { Button } from "../../../../../../../../../shared/ui/button";

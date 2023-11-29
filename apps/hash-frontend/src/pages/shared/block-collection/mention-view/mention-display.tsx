@@ -1,3 +1,4 @@
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -16,7 +17,6 @@ import { Box, Popover, styled, Tooltip, Typography } from "@mui/material";
 import { FunctionComponent, useMemo, useRef, useState } from "react";
 
 import { useEntityById } from "../../../../components/hooks/use-entity-by-id";
-import { generateEntityLabel } from "../../../../lib/entities";
 import { constructPageRelativeUrl } from "../../../../lib/routes";
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { ArrowUpRightRegularIcon } from "../../../../shared/icons/arrow-up-right-regular-icon";

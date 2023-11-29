@@ -1,5 +1,6 @@
 import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, Select, SelectProps } from "@hashintel/design-system";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import {
@@ -38,7 +39,6 @@ import {
 
 import { useAccountPages } from "../../components/hooks/use-account-pages";
 import { useCreatePage } from "../../components/hooks/use-create-page";
-import { generateEntityLabel } from "../../lib/entities";
 import { Org, User } from "../../lib/user-and-org";
 import { ArrowDownAZRegularIcon } from "../../shared/icons/arrow-down-a-z-regular-icon";
 import { ArrowUpZARegularIcon } from "../../shared/icons/arrow-up-a-z-regular-icon";

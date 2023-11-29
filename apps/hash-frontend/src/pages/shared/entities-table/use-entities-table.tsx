@@ -4,6 +4,7 @@ import {
   PropertyType,
 } from "@blockprotocol/type-system";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -20,7 +21,6 @@ import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import { useUsers } from "../../../components/hooks/use-users";
-import { generateEntityLabel } from "../../../lib/entities";
 import { MinimalUser } from "../../../lib/user-and-org";
 
 export interface TypeEntitiesRow {

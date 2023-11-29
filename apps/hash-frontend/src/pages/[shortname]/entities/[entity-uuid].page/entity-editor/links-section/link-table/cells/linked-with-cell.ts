@@ -4,6 +4,7 @@ import {
   GridCellKind,
 } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { EntityId } from "@local/hash-subgraph";
 
 import {
@@ -14,7 +15,6 @@ import { drawCellFadeOutGradient } from "../../../../../../../../components/grid
 import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/draw-chip-with-icon";
 import { InteractableManager } from "../../../../../../../../components/grid/utils/interactable-manager";
 import { Interactable } from "../../../../../../../../components/grid/utils/interactable-manager/types";
-import { generateEntityLabel } from "../../../../../../../../lib/entities";
 import { getImageUrlFromEntityProperties } from "../../../../../../../shared/get-image-url-from-properties";
 import { LinkRow } from "../types";
 import { LinkedWithCellEditor } from "./linked-with-cell/linked-with-cell-editor";

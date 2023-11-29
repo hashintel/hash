@@ -5,6 +5,7 @@ import {
   ImageWithCheckedBackground,
   RotateIconRegular,
 } from "@hashintel/design-system";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
@@ -18,7 +19,6 @@ import {
 } from "@mui/material";
 import { PropsWithChildren, useState } from "react";
 
-import { generateEntityLabel } from "../../../../../lib/entities";
 import {
   useFileUploads,
   useFileUploadsProgress,

@@ -8,6 +8,7 @@ import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-typ
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
+  Entity,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
@@ -36,6 +37,7 @@ import {
   gridRowHeight,
 } from "../../components/grid/grid";
 import { BlankCell, blankCell } from "../../components/grid/utils";
+import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { useEntityTypeEntities } from "../../shared/entity-type-entities-context";
 import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
 import { ListRegularIcon } from "../../shared/icons/list-regular-icon";
@@ -248,6 +250,25 @@ export const EntitiesTable: FunctionComponent<{
 
   const theme = useTheme();
 
+  const getOwnerForEntity = useGetOwnerForEntity();
+
+  const handleEntityClick = useCallback(
+    (entity: Entity) => {
+      const { shortname: entityNamespace } = getOwnerForEntity(entity);
+
+      if (entityNamespace === "") {
+        return;
+      }
+
+      void router.push(
+        `/@${entityNamespace}/entities/${extractEntityUuidFromEntityId(
+          entity.metadata.recordId.entityId,
+        )}`,
+      );
+    },
+    [router, getOwnerForEntity],
+  );
+
   return (
     <Box>
       <TableHeader
@@ -336,6 +357,7 @@ export const EntitiesTable: FunctionComponent<{
                   ),
                 )
           }
+          onEntityClick={handleEntityClick}
           sx={{
             background: ({ palette }) => palette.common.white,
             height: `calc(100vh - (${

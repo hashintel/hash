@@ -1,10 +1,10 @@
 import { BaseUrl } from "@blockprotocol/type-system";
 import { Chart, EChart, ECOption } from "@hashintel/design-system";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   Entity,
   EntityId,
   EntityRootType,
-  extractEntityUuidFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
 import { getEntities, getEntityTypeById } from "@local/hash-subgraph/stdlib";
@@ -13,19 +13,21 @@ import {
   LinkEntity,
 } from "@local/hash-subgraph/type-system-patch";
 import { BoxProps } from "@mui/material";
-import { useRouter } from "next/router";
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
-
-import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
-import { generateEntityLabel } from "../../../lib/entities";
 
 export const EntitiesGraphChart: FunctionComponent<{
   filterEntity?: (entity: Entity) => boolean;
+  onEntityClick?: (entity: Entity) => void;
   primaryEntityTypeBaseUrl?: BaseUrl;
   subgraph?: Subgraph<EntityRootType>;
   sx?: BoxProps["sx"];
-}> = ({ filterEntity, primaryEntityTypeBaseUrl, subgraph, sx }) => {
-  const router = useRouter();
+}> = ({
+  filterEntity,
+  primaryEntityTypeBaseUrl,
+  subgraph,
+  sx,
+  onEntityClick,
+}) => {
   const [chart, setChart] = useState<Chart>();
 
   const entities = useMemo(
@@ -63,8 +65,6 @@ export const EntitiesGraphChart: FunctionComponent<{
     [entities, nonLinkEntities],
   );
 
-  const getOwnerForEntity = useGetOwnerForEntity();
-
   useEffect(() => {
     if (chart) {
       chart.on("click", (params) => {
@@ -79,21 +79,9 @@ export const EntitiesGraphChart: FunctionComponent<{
               ({ metadata }) => entityId === metadata.recordId.entityId,
             );
 
-            if (!entity) {
-              return;
+            if (entity) {
+              onEntityClick?.(entity);
             }
-
-            const { shortname: entityNamespace } = getOwnerForEntity(entity);
-
-            if (entityNamespace === "") {
-              return;
-            }
-
-            void router.push(
-              `/@${entityNamespace}/entities/${extractEntityUuidFromEntityId(
-                entityId,
-              )}`,
-            );
           }
         }
       });
@@ -101,7 +89,7 @@ export const EntitiesGraphChart: FunctionComponent<{
     return () => {
       chart?.off("click");
     };
-  }, [chart, entities, router, getOwnerForEntity]);
+  }, [chart, entities, onEntityClick]);
 
   const chartInitialized = useRef(false);
 
