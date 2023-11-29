@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-imports */
 import { BaseUrl } from "@blockprotocol/type-system";
 import { Chart, EChart, ECOption } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
@@ -73,6 +74,8 @@ export const EntitiesGraphChart: FunctionComponent<{
           params.seriesType === "graph"
         ) {
           if (params.dataType === "node" || params.dataType === "edge") {
+            /** @todo: improve typing */
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             const entityId = (params.data as any).id as EntityId;
 
             const entity = entities?.find(
@@ -99,8 +102,11 @@ export const EntitiesGraphChart: FunctionComponent<{
         show: true,
         trigger: "item",
         formatter: (params) => {
+          /** @todo: improve typing */
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           const id = (params as any).data.id as string;
 
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           if ((params as any).dataType === "edge") {
             const linkEntity = linkEntities?.find(
               ({ metadata }) => metadata.recordId.entityId === id,

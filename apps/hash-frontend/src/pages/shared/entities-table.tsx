@@ -4,6 +4,7 @@ import {
   Item,
   TextCell,
 } from "@glideapps/glide-data-grid";
+import { EntitiesGraphChart } from "@hashintel/design-system";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -49,7 +50,6 @@ import {
 } from "../../shared/table-header";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { renderChipCell } from "./chip-cell";
-import { EntitiesGraphChart } from "./entities-table/entities-graph-chart";
 import {
   createRenderTextIconCell,
   TextIconCell,
