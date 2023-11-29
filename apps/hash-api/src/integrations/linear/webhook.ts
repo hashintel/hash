@@ -118,7 +118,11 @@ export const linearWebhook: RequestHandler<{}, string, string> = async (
 
         await Promise.all(
           syncedWorkspaces.map(async (workspace) => {
-            /** @todo: only sync with correct teams */
+            /**
+             * @todo sync items from specific teams rather than syncing all items
+             *
+             * @see https://linear.app/hash/issue/H-1467/in-the-linear-webhook-only-sync-items-from-specific-teams-rather-than
+             */
 
             const hashWorkspaceEntityId =
               workspace.workspaceEntity.metadata.recordId.entityId;
