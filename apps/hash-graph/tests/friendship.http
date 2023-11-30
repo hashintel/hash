@@ -122,7 +122,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "end": null
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -241,7 +242,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "end": null
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -356,7 +358,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "end": null
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -452,7 +455,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
           "end": null
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -572,7 +576,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
           "end": null
         }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -601,7 +606,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "$ref": "http://localhost:3000/@alice/types/property-type/name/v/1"
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -685,7 +691,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "end": null
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -817,7 +824,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "end": null
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -887,7 +895,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "end": null
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -959,7 +968,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
           "end": null
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -1029,7 +1039,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "end": null
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -1106,7 +1117,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "end": null
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -1170,7 +1182,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "end": null
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -1234,7 +1247,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "end": null
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -1364,7 +1378,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "end": null
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -1441,7 +1456,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     client.global.set("person_b_entity_uuid", response.body.recordId.entityId.split("~")[1])
 %}
 
-### Get all latest entities by using a query
+### Get all latest entities by using a query including drafts
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
@@ -1490,13 +1505,74 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "end": null
       }
     }
-  }
+  },
+  "includeDrafts": true
 }
 
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
         client.assert(response.body.roots.length === 2, "Unexpected number of entities");
+    });
+%}
+
+### Get all latest entities by using a query without drafts
+POST http://127.0.0.1:4000/entities/query
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "filter": {
+    "all": []
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
+  },
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
+      "timestamp": null
+    },
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": null,
+        "end": null
+      }
+    }
+  },
+  "includeDrafts": false
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of entities");
     });
 %}
 
@@ -1695,7 +1771,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "end": null
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -1783,7 +1860,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "end": null
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -1874,7 +1952,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "end": null
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -1943,7 +2022,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "end": null
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
@@ -2008,7 +2088,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "end": null
       }
     }
-  }
+  },
+  "includeDrafts": false
 }
 
 > {%
