@@ -211,6 +211,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
             compiler.add_selection_path(&EntityQueryPath::RecordCreatedById);
 
         let archived_index = compiler.add_selection_path(&EntityQueryPath::Archived);
+        let draft_index = compiler.add_selection_path(&EntityQueryPath::Draft);
 
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
@@ -287,6 +288,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                             record_archived_by_id: None,
                         },
                         row.get(archived_index),
+                        row.get(draft_index),
                     ),
                 })
             });

@@ -3096,6 +3096,7 @@
           "uuid",
           "editionId",
           "archived",
+          "draft",
           "ownedById",
           "recordCreatedById",
           "type",

@@ -50,6 +50,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         right_to_left_order INTEGER,
                         record_created_by_id UUID NOT NULL,
                         archived BOOLEAN NOT NULL,
+                        draft BOOLEAN NOT NULL,
                         entity_type_base_url TEXT NOT NULL,
                         entity_type_version INT8 NOT NULL
                     ) ON COMMIT DROP;
@@ -175,7 +176,8 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             left_to_right_order INT4,
                             right_to_left_order INT4,
                             record_created_by_id UUID,
-                            archived BOOLEAN
+                            archived BOOLEAN,
+                            draft BOOLEAN
                         FROM entity_editions_tmp;
 
                     INSERT INTO entity_temporal_metadata SELECT * FROM \
