@@ -204,7 +204,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                         Column::EntityEditions(EntityEditions::Draft).aliased(alias),
                     )),
                     Some(Expression::Constant(Constant::Boolean(false))),
-                ))
+                ));
         }
     }
 
