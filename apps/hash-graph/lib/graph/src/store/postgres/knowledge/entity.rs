@@ -1028,7 +1028,26 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         // TODO: Always validate source and target entities when updating a link, currently we only
         //       do that when the draft state changes.
         //   see https://linear.app/hash/issue/H-1413
-        if draft != was_draft_before {
+        if draft == was_draft_before {
+            // If the draft state does not change we only validate the properties
+            properties
+                .validate(
+                    &closed_schema,
+                    validation_profile,
+                    &StoreProvider {
+                        store: &transaction,
+                        cache: StoreCache::default(),
+                        authorization: Some((
+                            authorization_api,
+                            actor_id,
+                            Consistency::FullyConsistent,
+                        )),
+                    },
+                )
+                .await
+                .change_context(UpdateError)
+                .attach(StatusCode::InvalidArgument)?;
+        } else {
             transaction
                 .validate_entity(
                     actor_id,
@@ -1045,25 +1064,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         })
                         .as_ref(),
                     validation_profile,
-                )
-                .await
-                .change_context(UpdateError)
-                .attach(StatusCode::InvalidArgument)?;
-        } else {
-            // If the draft state does not change we only validate the properties
-            properties
-                .validate(
-                    &closed_schema,
-                    validation_profile,
-                    &StoreProvider {
-                        store: &transaction,
-                        cache: StoreCache::default(),
-                        authorization: Some((
-                            authorization_api,
-                            actor_id,
-                            Consistency::FullyConsistent,
-                        )),
-                    },
                 )
                 .await
                 .change_context(UpdateError)
