@@ -35,7 +35,7 @@ export type EntityTypeEntitiesContextValue = {
 export const EntityTypeEntitiesContext =
   createContext<null | EntityTypeEntitiesContextValue>(null);
 
-export const useEntityTypeEntities = () => {
+export const useEntityTypeEntitiesContext = () => {
   const entityTypeEntitiesContext = useContext(EntityTypeEntitiesContext);
 
   if (!entityTypeEntitiesContext) {

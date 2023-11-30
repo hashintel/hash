@@ -45,7 +45,7 @@ import {
 } from "../../components/grid/grid";
 import { BlankCell, blankCell } from "../../components/grid/utils";
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
-import { useEntityTypeEntities } from "../../shared/entity-type-entities-context";
+import { useEntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
 import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
 import { ListRegularIcon } from "../../shared/icons/list-regular-icon";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
@@ -54,6 +54,7 @@ import {
   TableHeader,
   tableHeaderHeight,
 } from "../../shared/table-header";
+import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { renderChipCell } from "./chip-cell";
 import {
@@ -79,7 +80,7 @@ export const EntitiesTable: FunctionComponent<{
   });
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
-  const [view, setView] = useState<"table" | "graph">("graph");
+  const [view, setView] = useState<"table" | "graph">("table");
 
   const {
     entityTypeBaseUrl,
@@ -89,8 +90,25 @@ export const EntitiesTable: FunctionComponent<{
     hadCachedContent,
     loading,
     propertyTypes,
-    subgraph,
-  } = useEntityTypeEntities();
+    subgraph: subgraphWithoutLinkedEntities,
+  } = useEntityTypeEntitiesContext();
+
+  const { subgraph: subgraphWithLinkedEntities } = useEntityTypeEntities({
+    entityTypeBaseUrl,
+    entityTypeId,
+    graphResolveDepths: {
+      constrainsLinksOn: { outgoing: 255 },
+      constrainsLinkDestinationsOn: { outgoing: 255 },
+      constrainsPropertiesOn: { outgoing: 255 },
+      constrainsValuesOn: { outgoing: 255 },
+      inheritsFrom: { outgoing: 255 },
+      isOfType: { outgoing: 1 },
+      hasLeftEntity: { outgoing: 1, incoming: 1 },
+      hasRightEntity: { outgoing: 1, incoming: 1 },
+    },
+  });
+
+  const subgraph = subgraphWithLinkedEntities ?? subgraphWithoutLinkedEntities;
 
   const entities = useMemo(
     /**

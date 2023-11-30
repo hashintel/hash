@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 import { useRouter } from "next/router";
 
-import { useEntityTypeEntities } from "../../../shared/entity-type-entities-context";
+import { useEntityTypeEntitiesContext } from "../../../shared/entity-type-entities-context";
 import { TabLink } from "../../../shared/ui/tab-link";
 import { Tabs } from "../../../shared/ui/tabs";
 import { useEntityType } from "./shared/entity-type-context";
@@ -22,7 +22,7 @@ export const EntityTypeTabs = ({
 
   const entityType = useEntityType();
 
-  const { entities, loading } = useEntityTypeEntities();
+  const { entities, loading } = useEntityTypeEntitiesContext();
 
   const currentTab = useCurrentTab();
 
