@@ -43,6 +43,8 @@ pub enum EntityValidationError {
     InvalidLinkTypeId { link_type: VersionedUrl },
     #[error("The link target `{target_type}` is not allowed")]
     InvalidLinkTargetId { target_type: VersionedUrl },
+    #[error("Linking to a draft is only allowed for draft entities")]
+    LinksToDraft { id: EntityId },
 }
 
 impl<P> Schema<HashMap<BaseUrl, JsonValue>, P> for EntityType
@@ -190,10 +192,11 @@ where
 
     // TODO: validate link data
     //   see https://linear.app/hash/issue/H-972
+    #[expect(clippy::too_many_lines)]
     async fn validate_value<'a>(
         &'a self,
         link_data: &'a LinkData,
-        _profile: ValidationProfile,
+        profile: ValidationProfile,
         provider: &'a P,
     ) -> Result<(), Report<EntityValidationError>> {
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());
@@ -216,11 +219,29 @@ where
             .map_err(|error| extend_report!(status, error))
             .ok();
 
-        let right_entity_type_id = right_entity
-            .as_ref()
-            .map(|entity| entity.borrow().metadata.entity_type_id());
+        let right_entity_type_id = right_entity.as_ref().map(|entity| {
+            if profile == ValidationProfile::Full && entity.borrow().metadata.draft() {
+                extend_report!(
+                    status,
+                    EntityValidationError::LinksToDraft {
+                        id: entity.borrow().metadata.record_id().entity_id
+                    }
+                );
+            }
+
+            entity.borrow().metadata.entity_type_id()
+        });
 
         if let Some(left_entity) = left_entity {
+            if profile == ValidationProfile::Full && left_entity.borrow().metadata.draft() {
+                extend_report!(
+                    status,
+                    EntityValidationError::LinksToDraft {
+                        id: left_entity.borrow().metadata.record_id().entity_id
+                    }
+                );
+            }
+
             let left_entity_type = provider
                 .provide_type(left_entity.borrow().metadata.entity_type_id())
                 .await
