@@ -5,10 +5,10 @@ import {
   faChain,
   faList,
 } from "@fortawesome/free-solid-svg-icons";
+import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
-import pluralize from "pluralize";
 import { FunctionComponent } from "react";
 
 import { generateLinkParameters } from "../../../generate-link-parameters";
