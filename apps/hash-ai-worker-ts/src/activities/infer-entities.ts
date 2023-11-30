@@ -89,6 +89,9 @@ export const inferEntities = async ({
           inheritsFrom: { outgoing: 255 },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
+        // @todo Create new inferred entities as drafts instead of actual entities
+        //   see https://linear.app/hash/issue/H-1374
+        includeDrafts: false,
       });
 
     for (const entityTypeId of entityTypeIds) {

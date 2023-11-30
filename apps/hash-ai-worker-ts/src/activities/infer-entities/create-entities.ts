@@ -67,6 +67,8 @@ export const createEntities = async ({
                 ownedById,
                 owner: ownedById,
                 properties,
+                // @todo Create new inferred entities as drafts instead of actual entities
+                //   see https://linear.app/hash/issue/H-1374
                 draft: false,
               });
 
@@ -202,6 +204,8 @@ export const createEntities = async ({
                 ownedById,
                 owner: ownedById,
                 properties,
+                // @todo Create new inferred entities as drafts instead of actual entities
+                //   see https://linear.app/hash/issue/H-1374
                 draft: false,
               });
 

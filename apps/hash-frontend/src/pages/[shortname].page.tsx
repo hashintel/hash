@@ -167,6 +167,7 @@ const ProfilePage: NextPageWithLayout = () => {
           isOfType: { outgoing: 1 },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
     },
     fetchPolicy: "cache-and-network",

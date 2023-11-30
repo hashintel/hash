@@ -244,6 +244,7 @@ describe("Entity CRU", () => {
         },
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       })
       .then(({ data }) => getRoots(data as Subgraph<EntityRootType>));
 

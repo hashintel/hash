@@ -60,6 +60,7 @@ export const createIntegrationSyncBackWatcher = async (
               },
               graphResolveDepths: zeroedGraphResolveDepths,
               temporalAxes: fullDecisionTimeAxis,
+              includeDrafts: false,
             })
             .then(({ data }) => {
               const subgraph =

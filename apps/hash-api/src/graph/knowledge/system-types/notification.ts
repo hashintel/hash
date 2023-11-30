@@ -164,6 +164,7 @@ export const getMentionNotification: ImpureGraphFunction<
     occurredInBlock: Block;
     occurredInComment?: Comment;
     occurredInText: Text;
+    includeDrafts?: boolean;
   },
   Promise<MentionNotification | null>
 > = async (context, authentication, params) => {
@@ -174,6 +175,7 @@ export const getMentionNotification: ImpureGraphFunction<
     occurredInBlock,
     occurredInComment,
     occurredInText,
+    includeDrafts = false,
   } = params;
 
   const entitiesSubgraph = await getEntities(context, authentication, {
@@ -199,6 +201,7 @@ export const getMentionNotification: ImpureGraphFunction<
         hasLeftEntity: { outgoing: 0, incoming: 1 },
       },
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     },
   });
 
@@ -377,6 +380,7 @@ export const getCommentNotification: ImpureGraphFunction<
     occurredInEntity: Page;
     occurredInBlock: Block;
     repliedToComment?: Comment;
+    includeDrafts?: boolean;
   },
   Promise<CommentNotification | null>
 > = async (context, authentication, params) => {
@@ -387,6 +391,7 @@ export const getCommentNotification: ImpureGraphFunction<
     occurredInEntity,
     occurredInBlock,
     repliedToComment,
+    includeDrafts = false,
   } = params;
 
   const entitiesSubgraph = await getEntities(context, authentication, {
@@ -444,6 +449,7 @@ export const getCommentNotification: ImpureGraphFunction<
         hasLeftEntity: { outgoing: 0, incoming: 1 },
       },
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     },
   });
 

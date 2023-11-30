@@ -71,6 +71,7 @@ export const useOrgsWithLinks = ({
           hasRightEntity: { incoming: 1, outgoing: 1 },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
     },
     fetchPolicy: "cache-and-network",

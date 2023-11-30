@@ -241,9 +241,11 @@ export const getBlockComments: ImpureGraphFunction<
  * @param params.block - the block entity
  */
 export const getBlockCollectionByBlock: ImpureGraphFunction<
-  { block: Block },
+  { block: Block; includeDrafts?: boolean },
   Promise<Entity | null>
-> = async (context, authentication, { block }) => {
+> = async (context, authentication, params) => {
+  const { block, includeDrafts = false } = params;
+
   const blockEntityUuid = extractEntityUuidFromEntityId(
     block.entity.metadata.recordId.entityId,
   );
@@ -267,6 +269,7 @@ export const getBlockCollectionByBlock: ImpureGraphFunction<
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     },
   }).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity));
 

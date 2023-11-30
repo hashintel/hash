@@ -92,12 +92,12 @@ export const createPropertyType: ImpureGraphFunction<
  */
 export const getPropertyTypes: ImpureGraphFunction<
   {
-    query: PropertyTypeStructuralQuery;
+    query: Omit<PropertyTypeStructuralQuery, "includeDrafts">;
   },
   Promise<Subgraph<PropertyTypeRootType>>
 > = async ({ graphApi }, { actorId }, { query }) => {
   return await graphApi
-    .getPropertyTypesByQuery(actorId, query)
+    .getPropertyTypesByQuery(actorId, { includeDrafts: false, ...query })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph(data);
       return subgraph as Subgraph<PropertyTypeRootType>;
@@ -142,14 +142,14 @@ export const getPropertyTypeById: ImpureGraphFunction<
  * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
  */
 export const getPropertyTypeSubgraphById: ImpureGraphFunction<
-  Omit<PropertyTypeStructuralQuery, "filter"> & {
+  Omit<PropertyTypeStructuralQuery, "filter" | "includeDrafts"> & {
     propertyTypeId: VersionedUrl;
   },
   Promise<Subgraph<PropertyTypeRootType>>
 > = async (context, authentication, params) => {
   const { graphResolveDepths, temporalAxes, propertyTypeId } = params;
 
-  const query: PropertyTypeStructuralQuery = {
+  const query: Omit<PropertyTypeStructuralQuery, "includeDrafts"> = {
     filter: {
       equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
     },

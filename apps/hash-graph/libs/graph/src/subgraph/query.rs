@@ -7,6 +7,7 @@ use graph_types::{
 };
 use serde::Deserialize;
 use utoipa::{
+    openapi,
     openapi::{ObjectBuilder, Ref, RefOr, Schema},
     ToSchema,
 };
@@ -164,6 +165,7 @@ pub struct StructuralQuery<'p, R: Record> {
     pub filter: Filter<'p, R>,
     pub graph_resolve_depths: GraphResolveDepths,
     pub temporal_axes: QueryTemporalAxesUnresolved,
+    pub include_drafts: bool,
 }
 
 impl<'p, R: Record> StructuralQuery<'p, R>
@@ -184,6 +186,13 @@ where
                 Ref::from_schema_name(QueryTemporalAxesUnresolved::schema().0),
             )
             .required("temporalAxes")
+            .property(
+                "includeDrafts",
+                openapi::ObjectBuilder::new()
+                    .schema_type(openapi::SchemaType::Boolean)
+                    .build(),
+            )
+            .required("includeDrafts")
             .into()
     }
 }

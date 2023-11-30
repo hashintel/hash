@@ -104,6 +104,7 @@ export const queryEntityTypesResolver: ResolverFn<
             },
           }
         : currentTimeInstantTemporalAxes,
+      includeDrafts: false,
     },
   );
 

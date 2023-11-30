@@ -115,9 +115,9 @@ const isStorageType = (storageType: string): storageType is StorageType =>
 const getFileEntity = async (
   { graphApi }: ImpureGraphContext,
   { actorId }: AuthenticationContext,
-  params: { entityId: EntityId; key: string },
+  params: { entityId: EntityId; key: string; includeDrafts?: boolean },
 ) => {
-  const { entityId, key } = params;
+  const { entityId, key, includeDrafts = false } = params;
   const [ownedById, entityUuid] = splitEntityId(entityId);
 
   const [fileEntity, ...unexpectedEntities] = await graphApi
@@ -147,6 +147,7 @@ const getFileEntity = async (
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: fullDecisionTimeAxis,
+      includeDrafts,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);

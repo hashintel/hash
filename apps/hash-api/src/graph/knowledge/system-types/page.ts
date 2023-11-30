@@ -272,11 +272,12 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
   {
     ownedById: OwnedById;
     includeArchived?: boolean;
+    includeDrafts?: boolean;
   },
   Promise<Page[]>
 > = async (ctx, authentication, params) => {
   const { graphApi } = ctx;
-  const { ownedById, includeArchived = false } = params;
+  const { ownedById, includeArchived = false, includeDrafts = false } = params;
   const pageEntities = await graphApi
     .getEntitiesByQuery(authentication.actorId, {
       filter: {
@@ -289,6 +290,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
@@ -525,9 +527,11 @@ export const getPageComments: ImpureGraphFunction<
  * @param params.page - the page
  */
 export const getPageAuthor: ImpureGraphFunction<
-  { pageEntityId: EntityId },
+  { pageEntityId: EntityId; includeDrafts?: boolean },
   Promise<User>
-> = async (context, authentication, { pageEntityId }) => {
+> = async (context, authentication, params) => {
+  const { pageEntityId, includeDrafts = false } = params;
+
   const pageEntityRevisionsSubgraph = await getEntities(
     context,
     authentication,
@@ -551,6 +555,7 @@ export const getPageAuthor: ImpureGraphFunction<
             interval: { start: { kind: "unbounded" }, end: null },
           },
         },
+        includeDrafts,
       },
     },
   );

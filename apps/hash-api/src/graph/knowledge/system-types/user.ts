@@ -120,7 +120,7 @@ export const getUserById: ImpureGraphFunction<
  * @param params.shortname - the shortname of the user
  */
 export const getUserByShortname: ImpureGraphFunction<
-  { shortname: string },
+  { shortname: string; includeDrafts?: boolean },
   Promise<User | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
@@ -150,6 +150,7 @@ export const getUserByShortname: ImpureGraphFunction<
       //       shortname?
       //   see https://linear.app/hash/issue/H-757
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: params.includeDrafts ?? false,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
@@ -172,7 +173,7 @@ export const getUserByShortname: ImpureGraphFunction<
  * @param params.kratosIdentityId - the kratos identity id
  */
 export const getUserByKratosIdentityId: ImpureGraphFunction<
-  { kratosIdentityId: string },
+  { kratosIdentityId: string; includeDrafts?: boolean },
   Promise<User | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
@@ -200,6 +201,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: params.includeDrafts ?? false,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);

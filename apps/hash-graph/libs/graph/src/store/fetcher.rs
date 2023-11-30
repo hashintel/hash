@@ -203,6 +203,7 @@ where
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(None, None),
                 },
+                include_drafts: true,
             }
         }
 

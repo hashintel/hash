@@ -78,9 +78,11 @@ export const getTextById: ImpureGraphFunction<
  * @param params.text - the text entity
  */
 export const getPageAndBlockByText: ImpureGraphFunction<
-  { text: Text },
+  { text: Text; includeDrafts?: boolean },
   Promise<{ page: Page; block: Block } | null>
-> = async (context, authentication, { text }) => {
+> = async (context, authentication, params) => {
+  const { text, includeDrafts = false } = params;
+
   const textEntityUuid = extractEntityUuidFromEntityId(
     text.entity.metadata.recordId.entityId,
   );
@@ -107,6 +109,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
         },
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
       },
     }).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity)),
     getEntities(context, authentication, {
@@ -129,6 +132,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
         },
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
       },
     }).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity)),
   ]);
@@ -160,6 +164,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     },
   }).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity));
 
@@ -184,6 +189,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     },
   }).then((subgraph) =>
     getRoots(subgraph).map((entity) => getPageFromEntity({ entity })),
@@ -212,9 +218,10 @@ export const getPageAndBlockByText: ImpureGraphFunction<
  * @param params.text - the text entity
  */
 export const getCommentByText: ImpureGraphFunction<
-  { text: Text },
+  { text: Text; includeDrafts?: boolean },
   Promise<Comment | null>
-> = async (context, authentication, { text }) => {
+> = async (context, authentication, params) => {
+  const { text, includeDrafts = false } = params;
   const textEntityUuid = extractEntityUuidFromEntityId(
     text.entity.metadata.recordId.entityId,
   );
@@ -241,6 +248,7 @@ export const getCommentByText: ImpureGraphFunction<
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     },
   }).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity));
 

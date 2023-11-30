@@ -97,15 +97,17 @@ export const createDataType: ImpureGraphFunction<
  */
 export const getDataTypes: ImpureGraphFunction<
   {
-    query: DataTypeStructuralQuery;
+    query: Omit<DataTypeStructuralQuery, "includeDrafts">;
   },
   Promise<Subgraph<DataTypeRootType>>
 > = async ({ graphApi }, { actorId }, { query }) => {
-  return await graphApi.getDataTypesByQuery(actorId, query).then(({ data }) => {
-    const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(data);
+  return await graphApi
+    .getDataTypesByQuery(actorId, { includeDrafts: false, ...query })
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(data);
 
-    return subgraph;
-  });
+      return subgraph;
+    });
 };
 
 /**
@@ -144,14 +146,14 @@ export const getDataTypeById: ImpureGraphFunction<
  * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
  */
 export const getDataTypeSubgraphById: ImpureGraphFunction<
-  Omit<DataTypeStructuralQuery, "filter"> & {
+  Omit<DataTypeStructuralQuery, "filter" | "includeDrafts"> & {
     dataTypeId: VersionedUrl;
   },
   Promise<Subgraph<DataTypeRootType>>
 > = async (context, authentication, params) => {
   const { graphResolveDepths, temporalAxes, dataTypeId } = params;
 
-  const query: DataTypeStructuralQuery = {
+  const query: Omit<DataTypeStructuralQuery, "includeDrafts"> = {
     filter: {
       equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
     },

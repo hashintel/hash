@@ -64,6 +64,7 @@ const createQuery = (
         },
       },
     },
+    includeDrafts: false,
   };
 };
 let graphContext: ImpureGraphContext;
@@ -97,6 +98,7 @@ beforeAll(async () => {
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
     },
   }).then(getRoots);
 

@@ -49,6 +49,7 @@ pub fn bench_get_entity_type_by_id(
                                 None,
                             ),
                         },
+                        include_drafts: false,
                     },
                     None,
                     None,
