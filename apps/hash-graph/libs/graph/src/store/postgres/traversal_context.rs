@@ -39,6 +39,7 @@ impl<C: AsClient> PostgresStore<C> {
             Some(&subgraph.temporal_axes.resolved),
             None,
             None,
+            false,
         )
         .await?
         {
@@ -70,6 +71,7 @@ impl<C: AsClient> PostgresStore<C> {
             Some(&subgraph.temporal_axes.resolved),
             None,
             None,
+            false,
         )
         .await?
         {
@@ -101,6 +103,7 @@ impl<C: AsClient> PostgresStore<C> {
             Some(&subgraph.temporal_axes.resolved),
             None,
             None,
+            false,
         )
         .await?
         {
@@ -117,6 +120,7 @@ impl<C: AsClient> PostgresStore<C> {
         &self,
         edition_ids: impl IntoIterator<Item = EntityEditionId, IntoIter: Send> + Send,
         subgraph: &mut Subgraph,
+        include_drafts: bool,
     ) -> Result<(), QueryError> {
         let ids = edition_ids
             .into_iter()
@@ -132,6 +136,7 @@ impl<C: AsClient> PostgresStore<C> {
             Some(&subgraph.temporal_axes.resolved),
             None,
             None,
+            include_drafts,
         )
         .await?
         {
@@ -215,6 +220,7 @@ impl TraversalContext {
         &self,
         store: &PostgresStore<C>,
         subgraph: &mut Subgraph,
+        include_drafts: bool,
     ) -> Result<(), QueryError> {
         if !self.data_types.0.is_empty() {
             store
@@ -234,7 +240,7 @@ impl TraversalContext {
 
         if !self.entities.0.is_empty() {
             store
-                .read_entities_by_ids(self.entities.0.keys().copied(), subgraph)
+                .read_entities_by_ids(self.entities.0.keys().copied(), subgraph, include_drafts)
                 .await?;
         }
 

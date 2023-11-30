@@ -40,12 +40,13 @@ pub struct SelectCompiler<'p, T> {
     statement: SelectStatement,
     artifacts: CompilerArtifacts<'p>,
     temporal_axes: Option<&'p QueryTemporalAxes>,
+    include_drafts: bool,
     _marker: PhantomData<fn(*const T)>,
 }
 
 impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
     /// Creates a new, empty compiler.
-    pub fn new(temporal_axes: Option<&'p QueryTemporalAxes>) -> Self {
+    pub fn new(temporal_axes: Option<&'p QueryTemporalAxes>, include_drafts: bool) -> Self {
         Self {
             statement: SelectStatement {
                 with: WithExpression::default(),
@@ -73,13 +74,17 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                 uses_cursor: false,
             },
             temporal_axes,
+            include_drafts,
             _marker: PhantomData,
         }
     }
 
     /// Creates a new compiler, which will select everything using the asterisk (`*`).
-    pub fn with_asterisk(temporal_axes: Option<&'p QueryTemporalAxes>) -> Self {
-        let mut default = Self::new(temporal_axes);
+    pub fn with_asterisk(
+        temporal_axes: Option<&'p QueryTemporalAxes>,
+        include_drafts: bool,
+    ) -> Self {
+        let mut default = Self::new(temporal_axes, include_drafts);
         default
             .statement
             .selects

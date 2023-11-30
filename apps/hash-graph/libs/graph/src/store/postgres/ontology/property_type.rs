@@ -425,6 +425,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             Some(&temporal_axes),
             after,
             limit,
+            include_drafts,
         )
         .await?
         .into_iter()
@@ -489,7 +490,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph)
+            .read_traversed_vertices(self, &mut subgraph, include_drafts)
             .await?;
 
         Ok(subgraph)

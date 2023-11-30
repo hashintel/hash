@@ -107,6 +107,7 @@ pub trait EntityProvider {
     fn provide_entity(
         &self,
         entity_id: EntityId,
+        include_drafts: bool,
     ) -> impl Future<Output = Result<impl Borrow<Entity> + Send, Report<impl Context>>> + Send;
 }
 

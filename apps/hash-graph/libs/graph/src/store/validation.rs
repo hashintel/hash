@@ -181,6 +181,7 @@ where
                     }
                     .resolve(),
                 ),
+                false,
             )
             .await
             .map(|data_type| data_type.schema)?;
@@ -250,6 +251,7 @@ where
                     }
                     .resolve(),
                 ),
+                false,
             )
             .await
             .map(|property_type| property_type.schema)?;
@@ -400,7 +402,11 @@ where
     A: AuthorizationApi + Sync,
 {
     #[expect(refining_impl_trait)]
-    async fn provide_entity(&self, entity_id: EntityId) -> Result<Entity, Report<QueryError>> {
+    async fn provide_entity(
+        &self,
+        entity_id: EntityId,
+        include_drafts: bool,
+    ) -> Result<Entity, Report<QueryError>> {
         if let Some((authorization_api, actor_id, consistency)) = self.authorization {
             authorization_api
                 .check_entity_permission(actor_id, EntityPermission::View, entity_id, consistency)
@@ -420,6 +426,7 @@ where
                     }
                     .resolve(),
                 ),
+                include_drafts,
             )
             .await
     }

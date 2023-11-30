@@ -814,12 +814,18 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let mut entities =
-            Read::<Entity>::read_vec(self, filter, Some(&temporal_axes), after, limit)
-                .await?
-                .into_iter()
-                .map(|entity| (entity.vertex_id(time_axis), entity))
-                .collect::<HashMap<_, _>>();
+        let mut entities = Read::<Entity>::read_vec(
+            self,
+            filter,
+            Some(&temporal_axes),
+            after,
+            limit,
+            include_drafts,
+        )
+        .await?
+        .into_iter()
+        .map(|entity| (entity.vertex_id(time_axis), entity))
+        .collect::<HashMap<_, _>>();
         // TODO: The subgraph structure differs from the API interface. At the API the vertices
         //       are stored in a nested `HashMap` and here it's flattened. We need to adjust the
         //       the subgraph anyway so instead of refactoring this now this will just copy the ids.
@@ -883,7 +889,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph)
+            .read_traversed_vertices(self, &mut subgraph, include_drafts)
             .await?;
 
         Ok(subgraph)
@@ -945,6 +951,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 }
                 .resolve(),
             ),
+            true,
         )
         .await
         .change_context(EntityDoesNotExist)
