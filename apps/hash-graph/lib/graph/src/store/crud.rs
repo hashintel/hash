@@ -32,17 +32,24 @@ pub trait Read<R>: Sync {
         &self,
         query: &Filter<Self::Record>,
         temporal_axes: Option<&QueryTemporalAxes>,
+        after: Option<&<Self::Record as Record>::VertexId>,
+        limit: Option<usize>,
     ) -> Result<Self::ReadStream, QueryError>;
 
     async fn read_vec(
         &self,
         query: &Filter<Self::Record>,
         temporal_axes: Option<&QueryTemporalAxes>,
+        after: Option<&<Self::Record as Record>::VertexId>,
+        limit: Option<usize>,
     ) -> Result<Vec<R>, QueryError>
     where
         R: Send,
     {
-        self.read(query, temporal_axes).await?.try_collect().await
+        self.read(query, temporal_axes, after, limit)
+            .await?
+            .try_collect()
+            .await
     }
 
     #[tracing::instrument(level = "info", skip(self, query))]
@@ -54,7 +61,7 @@ pub trait Read<R>: Sync {
     where
         R: Send,
     {
-        let mut records = self.read_vec(query, temporal_axes).await?;
+        let mut records = self.read_vec(query, temporal_axes, None, None).await?;
         ensure!(
             records.len() <= 1,
             Report::new(QueryError).attach_printable(format!(

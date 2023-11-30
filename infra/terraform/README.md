@@ -229,10 +229,6 @@ $ # AI Typescript worker
 $ DOCKER_BUILDKIT=1 docker build . -f ./apps/hash-ai-worker-ts/docker/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkeraits:latest
 $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkeraits:latest
 ..
-$ # AI Python worker
-$ DOCKER_BUILDKIT=1 docker build . -f ./apps/hash-ai-worker-py/docker/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkeraipy:latest
-$ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkeraipy:latest
-..
 $ # Integration worker
 $ DOCKER_BUILDKIT=1 docker build . -f ./apps/hash-integration-worker/docker/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkerintegration:latest
 $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkerintegration:latest

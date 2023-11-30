@@ -57,6 +57,8 @@ pub fn bench_get_entity_by_id(
                             variable: VariableTemporalAxisUnresolved::new(None, None),
                         },
                     },
+                    None,
+                    None,
                 )
                 .await
                 .expect("failed to read entity from store");
@@ -102,6 +104,8 @@ pub fn bench_get_entities_by_property(
                         ),
                     },
                 },
+                None,
+                None,
             )
             .await
             .expect("failed to read entity from store");
@@ -149,6 +153,8 @@ pub fn bench_get_link_by_target_by_property(
                         ),
                     },
                 },
+                None,
+                None,
             )
             .await
             .expect("failed to read entity from store");

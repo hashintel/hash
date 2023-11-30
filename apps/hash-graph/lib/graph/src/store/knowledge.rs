@@ -1,3 +1,5 @@
+use std::{error::Error, fmt};
+
 use async_trait::async_trait;
 use authorization::{schema::EntityOwnerSubject, zanzibar::Consistency, AuthorizationApi};
 use error_stack::Result;
@@ -14,7 +16,7 @@ use type_system::{url::VersionedUrl, EntityType};
 
 use crate::{
     store::{crud, InsertionError, QueryError, UpdateError},
-    subgraph::{query::StructuralQuery, Subgraph},
+    subgraph::{identifier::EntityVertexId, query::StructuralQuery, Subgraph},
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -22,6 +24,17 @@ pub enum EntityValidationType<'a> {
     Schema(&'a EntityType),
     Id(&'a VersionedUrl),
 }
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct EntityValidationError;
+
+impl fmt::Display for EntityValidationError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("Entity validation failed")
+    }
+}
+
+impl Error for EntityValidationError {}
 
 /// Describes the API of a store implementation for [Entities].
 ///
@@ -67,7 +80,7 @@ pub trait EntityStore: crud::Read<Entity> {
         entity_type: EntityValidationType<'_>,
         properties: &EntityProperties,
         link_data: Option<&LinkData>,
-    ) -> Result<(), QueryError>;
+    ) -> Result<(), EntityValidationError>;
 
     /// Inserts the entities with the specified [`EntityType`] into the `Store`.
     ///
@@ -115,6 +128,8 @@ pub trait EntityStore: crud::Read<Entity> {
         actor_id: AccountId,
         authorization_api: &A,
         query: &StructuralQuery<Entity>,
+        after: Option<&EntityVertexId>,
+        limit: Option<usize>,
     ) -> Result<Subgraph, QueryError>;
 
     /// Update an existing [`Entity`].

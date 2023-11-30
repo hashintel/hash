@@ -18,14 +18,14 @@ import { logger } from "../logger";
 import { getRequiredEnv } from "../util";
 import {
   processEntityChange as processLinearEntityChange,
-  supportedTypeIds as linearEntityTypeIds,
+  supportedLinearTypeIds,
 } from "./linear/sync-back";
 
 const sendEntityToRelevantProcessor = (
   entity: Entity,
   graphApiClient: GraphApi,
 ) => {
-  if (linearEntityTypeIds.includes(entity.metadata.entityTypeId)) {
+  if (supportedLinearTypeIds.includes(entity.metadata.entityTypeId)) {
     void processLinearEntityChange(entity, graphApiClient);
   }
 };

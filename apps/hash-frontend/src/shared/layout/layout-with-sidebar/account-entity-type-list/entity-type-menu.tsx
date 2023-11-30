@@ -5,9 +5,9 @@ import {
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
 import { ArrowUpRightIcon, FontAwesomeIcon } from "@hashintel/design-system";
+import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import { ListItemIcon, ListItemText, Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
-import pluralize from "pluralize";
 import { FunctionComponent, ReactElement, useState } from "react";
 
 import { useFrozenValue } from "../../../frozen";

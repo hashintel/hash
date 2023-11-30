@@ -13,7 +13,7 @@ export {
   StatusCode,
 } from "./status-code";
 
-export const isStatus = (value: unknown): value is Status<object> => {
+export const isStatus = (value: unknown): value is Status<{}> => {
   return (
     typeof value === "object" &&
     value !== null &&

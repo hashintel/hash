@@ -1,99 +1,140 @@
+import { Connection, LinearClient, LinearDocument, Team } from "@linear/sdk";
+import { getLinearMappingByHashEntityTypeId } from "@local/hash-backend-utils/linear-type-mappings";
 import {
-  Connection,
-  Issue,
-  LinearClient,
-  LinearDocument,
-  Team,
-  User,
-} from "@linear/sdk";
-import { PartialEntity } from "@local/hash-backend-utils/temporal-workflow-types";
+  CreateHashEntityFromLinearData,
+  PartialEntity,
+  UpdateHashEntityFromLinearData,
+  UpdateLinearDataWorkflow,
+} from "@local/hash-backend-utils/temporal-workflow-types";
 import { GraphApi } from "@local/hash-graph-client";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  AccountId,
-  EntityPropertiesObject,
-  EntityRootType,
-  OwnedById,
-} from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import { AccountId, BaseUrl, EntityId, OwnedById } from "@local/hash-subgraph";
 
 import {
-  attachmentToEntity,
-  commentToEntity,
-  customViewToEntity,
-  cycleToEntity,
-  documentToEntity,
-  entityPropertiesToIssueUpdate,
-  issueLabelToEntity,
-  issueToEntity,
-  organizationToEntity,
-  projectMilestoneToEntity,
-  projectToEntity,
-  userToEntity,
-} from "./mappings";
+  archiveEntity,
+  getEntitiesByLinearId,
+  getEntityOutgoingLinks,
+} from "./activities/graph-requests";
+import {
+  mapHashEntityToLinearUpdateInput,
+  mapLinearDataToEntity,
+  mapLinearDataToEntityWithOutgoingLinks,
+} from "./activities/mappings";
+
+const createHashEntity = async (params: {
+  authentication: { actorId: AccountId };
+  graphApiClient: GraphApi;
+  partialEntity: PartialEntity;
+  outgoingLinks: {
+    linkEntityTypeId: `${string}v/${number}`;
+    destinationEntityId: EntityId;
+  }[];
+  ownedById: OwnedById;
+}): Promise<void> => {
+  const { graphApiClient, ownedById } = params;
+  const { data: entity } = await graphApiClient.createEntity(
+    params.authentication.actorId,
+    {
+      ownedById,
+      owner: ownedById,
+      ...params.partialEntity,
+    },
+  );
+
+  await Promise.all(
+    params.outgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) =>
+      graphApiClient.createEntity(params.authentication.actorId, {
+        ownedById,
+        owner: ownedById,
+        linkData: {
+          leftEntityId: entity.recordId.entityId,
+          rightEntityId: destinationEntityId,
+        },
+        entityTypeId: linkEntityTypeId,
+        properties: {},
+      }),
+    ),
+  );
+};
 
 const createOrUpdateHashEntity = async (params: {
   authentication: { actorId: AccountId };
   graphApiClient: GraphApi;
-  entity: PartialEntity;
-  workspaceOwnedById?: OwnedById;
+  partialEntity: PartialEntity;
+  outgoingLinks: {
+    linkEntityTypeId: `${string}v/${number}`;
+    destinationEntityId: EntityId;
+  }[];
+  ownedById: OwnedById;
 }): Promise<void> => {
-  const idBaseUrl = extractBaseUrl(linearPropertyTypes.id.propertyTypeId);
-  const updatedAtBaseUrl = extractBaseUrl(
-    linearPropertyTypes.updatedAt.propertyTypeId,
-  );
-  const linearId = params.entity.properties[idBaseUrl];
-  const updatedAt = params.entity.properties[updatedAtBaseUrl];
+  const { partialEntity, graphApiClient } = params;
+
+  const linearIdBaseUrl = linearPropertyTypes.id.propertyTypeBaseUrl as BaseUrl;
+
+  const linearId = partialEntity.properties[linearIdBaseUrl];
+
+  const updatedAtBaseUrl = linearPropertyTypes.updatedAt
+    .propertyTypeBaseUrl as BaseUrl;
+
+  const updatedAt = partialEntity.properties[updatedAtBaseUrl];
+
   if (!linearId) {
     throw new Error(`No linear id found.`);
   }
 
-  const filters = [
-    generateVersionedUrlMatchingFilter(params.entity.entityTypeId, {
-      ignoreParents: true,
-    }),
-    {
-      equal: [
-        {
-          path: ["properties", idBaseUrl],
-        },
-        { parameter: linearId },
-      ],
-    },
-  ];
-  if (params.workspaceOwnedById) {
-    filters.push({
-      equal: [
-        {
-          path: ["ownedById"],
-        },
-        { parameter: params.workspaceOwnedById },
-      ],
-    });
-  }
-  const entities = await params.graphApiClient
-    .getEntitiesByQuery(params.authentication.actorId, {
-      filter: {
-        all: filters,
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-    })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
-      return getRoots(subgraph);
-    });
+  const entities = await getEntitiesByLinearId({
+    ...params,
+    entityTypeId: partialEntity.entityTypeId,
+    linearId: linearId as string,
+    webOwnedById: params.ownedById,
+  });
 
   for (const existingEntity of entities) {
+    const actualOutgoingLinks = params.outgoingLinks;
+
+    const existingOutgoingLinks = await getEntityOutgoingLinks({
+      ...params,
+      entityId: existingEntity.metadata.recordId.entityId,
+    });
+
+    const removedOutgoingLinks = existingOutgoingLinks.filter(
+      (linkEntity) =>
+        !actualOutgoingLinks.some(
+          ({ linkEntityTypeId, destinationEntityId }) =>
+            linkEntityTypeId === linkEntity.metadata.entityTypeId &&
+            destinationEntityId === linkEntity.linkData.rightEntityId,
+        ),
+    );
+
+    const addedOutgoingLinks = actualOutgoingLinks.filter(
+      (newOutgoingLink) =>
+        !existingOutgoingLinks.some(
+          (linkEntity) =>
+            newOutgoingLink.linkEntityTypeId ===
+              linkEntity.metadata.entityTypeId &&
+            newOutgoingLink.destinationEntityId ===
+              linkEntity.linkData.rightEntityId,
+        ),
+    );
+
+    await Promise.all([
+      ...removedOutgoingLinks.map((linkEntity) =>
+        archiveEntity({ ...params, entity: linkEntity }),
+      ),
+      ...addedOutgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) =>
+        graphApiClient.createEntity(params.authentication.actorId, {
+          entityTypeId: linkEntityTypeId,
+          linkData: {
+            leftEntityId: existingEntity.metadata.recordId.entityId,
+            rightEntityId: destinationEntityId,
+          },
+          properties: {},
+          ownedById: params.ownedById,
+          owner: params.ownedById,
+        }),
+      ),
+    ]);
+
     if (
       updatedAt &&
       existingEntity.properties[updatedAtBaseUrl] &&
@@ -107,7 +148,7 @@ const createOrUpdateHashEntity = async (params: {
       ...existingEntity.properties,
       // Ensure we don't accidentally set required properties to `undefined` by disabling
       // the ability to set properties to `undefined`
-      ...Object.entries(params.entity.properties).reduce(
+      ...Object.entries(partialEntity.properties).reduce(
         (acc, [propertyTypeUrl, value]) => ({
           ...acc,
           ...(typeof value === "undefined"
@@ -120,7 +161,7 @@ const createOrUpdateHashEntity = async (params: {
       ),
     };
 
-    await params.graphApiClient.updateEntity(params.authentication.actorId, {
+    await graphApiClient.updateEntity(params.authentication.actorId, {
       archived: false,
       entityId: existingEntity.metadata.recordId.entityId,
       entityTypeId: existingEntity.metadata.entityTypeId,
@@ -128,14 +169,78 @@ const createOrUpdateHashEntity = async (params: {
     });
   }
 
-  if (entities.length === 0 && params.workspaceOwnedById) {
-    await params.graphApiClient.createEntity(params.authentication.actorId, {
-      ownedById: params.workspaceOwnedById,
-      owner: params.workspaceOwnedById,
-      ...params.entity,
-    });
+  if (entities.length === 0) {
+    await createHashEntity(params);
   }
 };
+
+const createLinearClient = (apiKey: string) => new LinearClient({ apiKey });
+
+const mapLinearTypeToLinearClientGetMethod = {
+  Issue: "issue",
+  User: "user",
+  Organization: "organization",
+} as const;
+
+const createHashEntityFromLinearData =
+  (graphApiClient: GraphApi) =>
+  async (
+    params: Parameters<CreateHashEntityFromLinearData>[0],
+  ): Promise<void> => {
+    const client = createLinearClient(params.linearApiKey);
+
+    const { linearType, linearId } = params;
+
+    const methodName = mapLinearTypeToLinearClientGetMethod[linearType];
+
+    const linearData = await client[methodName](linearId);
+
+    const { partialEntity, outgoingLinks } =
+      await mapLinearDataToEntityWithOutgoingLinks({
+        ...params,
+        graphApiClient,
+        linearType,
+        linearData,
+      });
+
+    await createHashEntity({
+      graphApiClient,
+      authentication: params.authentication,
+      ownedById: params.ownedById,
+      partialEntity,
+      outgoingLinks,
+    });
+  };
+
+const updateHashEntityFromLinearData =
+  (graphApiClient: GraphApi) =>
+  async (
+    params: Parameters<UpdateHashEntityFromLinearData>[0],
+  ): Promise<void> => {
+    const client = createLinearClient(params.linearApiKey);
+
+    const { linearType, linearId } = params;
+
+    const methodName = mapLinearTypeToLinearClientGetMethod[linearType];
+
+    const linearData = await client[methodName](linearId);
+
+    const { partialEntity, outgoingLinks } =
+      await mapLinearDataToEntityWithOutgoingLinks({
+        ...params,
+        graphApiClient,
+        linearType: params.linearType,
+        linearData,
+      });
+
+    await createOrUpdateHashEntity({
+      graphApiClient,
+      authentication: params.authentication,
+      partialEntity,
+      outgoingLinks,
+      ownedById: params.ownedById,
+    });
+  };
 
 const readNodes = async <T>(connection: Connection<T>): Promise<T[]> => {
   const nodes = connection.nodes;
@@ -146,8 +251,6 @@ const readNodes = async <T>(connection: Connection<T>): Promise<T[]> => {
   }
   return nodes;
 };
-
-const createLinearClient = (apiKey: string) => new LinearClient({ apiKey });
 
 type ParamsWithApiKey<T = {}> = T & { apiKey: string };
 
@@ -162,12 +265,13 @@ export const createLinearIntegrationActivities = ({
     workspaceOwnedById: OwnedById;
   }): Promise<void> {
     await Promise.all(
-      params.entities.map((entity) =>
+      params.entities.map((partialEntity) =>
         createOrUpdateHashEntity({
           graphApiClient,
           authentication: params.authentication,
-          workspaceOwnedById: params.workspaceOwnedById,
-          entity,
+          ownedById: params.workspaceOwnedById,
+          partialEntity,
+          outgoingLinks: [],
         }),
       ),
     );
@@ -176,32 +280,12 @@ export const createLinearIntegrationActivities = ({
   async readLinearOrganization({
     apiKey,
   }: ParamsWithApiKey<{}>): Promise<PartialEntity> {
-    return createLinearClient(apiKey).organization.then(organizationToEntity);
-  },
-
-  async createHashUser(params: {
-    authentication: { actorId: AccountId };
-    user: User;
-    workspaceOwnedById: OwnedById;
-  }): Promise<void> {
-    const entity = userToEntity(params.user);
-    await createOrUpdateHashEntity({
-      graphApiClient,
-      authentication: params.authentication,
-      workspaceOwnedById: params.workspaceOwnedById,
-      entity,
-    });
-  },
-
-  async updateHashUser(params: {
-    authentication: { actorId: AccountId };
-    user: User;
-  }): Promise<void> {
-    await createOrUpdateHashEntity({
-      graphApiClient,
-      authentication: params.authentication,
-      entity: userToEntity(params.user),
-    });
+    return createLinearClient(apiKey).organization.then((organization) =>
+      mapLinearDataToEntity({
+        linearType: "Organization",
+        linearData: organization,
+      }),
+    );
   },
 
   async readLinearUsers({
@@ -210,22 +294,21 @@ export const createLinearIntegrationActivities = ({
     return createLinearClient(apiKey)
       .users()
       .then(readNodes)
-      .then((users) => users.map(userToEntity));
+      .then((users) =>
+        users.map((user) =>
+          mapLinearDataToEntity({
+            linearType: "User",
+            linearData: user,
+          }),
+        ),
+      );
   },
 
-  async createHashIssue(params: {
-    authentication: { actorId: AccountId };
-    issue: Issue;
-    workspaceOwnedById: OwnedById;
-  }): Promise<void> {
-    const entity = issueToEntity(params.issue);
-    await createOrUpdateHashEntity({
-      graphApiClient,
-      authentication: params.authentication,
-      workspaceOwnedById: params.workspaceOwnedById,
-      entity,
-    });
-  },
+  createHashEntityFromLinearData:
+    createHashEntityFromLinearData(graphApiClient),
+
+  updateHashEntityFromLinearData:
+    updateHashEntityFromLinearData(graphApiClient),
 
   async readLinearIssues({
     apiKey,
@@ -242,146 +325,40 @@ export const createLinearIntegrationActivities = ({
     return createLinearClient(apiKey)
       .issues(issuesQueryVariables)
       .then(readNodes)
-      .then((issues) => issues.map(issueToEntity));
-  },
-
-  async updateHashIssue(params: {
-    authentication: { actorId: AccountId };
-    issue: Issue;
-  }): Promise<void> {
-    await createOrUpdateHashEntity({
-      graphApiClient,
-      authentication: params.authentication,
-      entity: issueToEntity(params.issue),
-    });
+      .then((issues) =>
+        issues.map((issue) =>
+          mapLinearDataToEntity({
+            linearType: "Issue",
+            linearData: issue,
+          }),
+        ),
+      );
   },
 
   async readLinearTeams({ apiKey }: ParamsWithApiKey): Promise<Team[]> {
     return createLinearClient(apiKey).teams().then(readNodes);
   },
 
-  async readLinearCycles({
+  async updateLinearData({
     apiKey,
-    filter,
-  }: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<object[]> {
-    const cyclesQueryVariables: LinearDocument.CyclesQueryVariables = {
-      filter: {},
-    };
-    if (filter?.teamId) {
-      cyclesQueryVariables.filter!.team = { id: { eq: filter.teamId } };
-    }
-    return createLinearClient(apiKey)
-      .cycles(cyclesQueryVariables)
-      .then(readNodes)
-      .then((cycles) => cycles.map(cycleToEntity));
-  },
-
-  async readCustomViews({ apiKey }: ParamsWithApiKey): Promise<object[]> {
-    return createLinearClient(apiKey)
-      .customViews()
-      .then(readNodes)
-      .then((customViews) => customViews.map(customViewToEntity));
-  },
-
-  async readProjects({ apiKey }: ParamsWithApiKey): Promise<object[]> {
-    return createLinearClient(apiKey)
-      .projects()
-      .then(readNodes)
-      .then((projects) => projects.map(projectToEntity));
-  },
-
-  async readLinearComments({
-    apiKey,
-    filter,
-  }: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<object[]> {
-    const commentsQueryVariables: LinearDocument.CommentsQueryVariables = {
-      filter: {},
-    };
-    if (filter?.teamId) {
-      commentsQueryVariables.filter!.issue = {
-        team: { id: { eq: filter.teamId } },
-      };
-    }
-    return createLinearClient(apiKey)
-      .comments(commentsQueryVariables)
-      .then(readNodes)
-      .then((comments) => comments.map(commentToEntity));
-  },
-
-  async readLinearProjectMilestones({
-    apiKey,
-  }: ParamsWithApiKey): Promise<object[]> {
-    const linearClient = createLinearClient(apiKey);
-
-    return (
-      await Promise.all(
-        (await linearClient.projects().then(readNodes)).map(
-          async (project) =>
-            await project
-              .projectMilestones()
-              .then(readNodes)
-              .then((projectMilestones) =>
-                projectMilestones.map(projectMilestoneToEntity),
-              ),
-        ),
-      )
-    ).flat();
-  },
-
-  async readLinearDocuments({ apiKey }: ParamsWithApiKey): Promise<object[]> {
-    return createLinearClient(apiKey)
-      .documents()
-      .then(readNodes)
-      .then((documents) => documents.map(documentToEntity));
-  },
-
-  async readLinearIssueLabels({
-    apiKey,
-    filter,
-  }: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<object[]> {
-    const issueLabelsQueryVariables: LinearDocument.IssueLabelsQueryVariables =
-      { filter: {} };
-    if (filter?.teamId) {
-      issueLabelsQueryVariables.filter = {
-        team: { id: { eq: filter.teamId } },
-      };
-    }
-    return createLinearClient(apiKey)
-      .issueLabels()
-      .then(readNodes)
-      .then((issueLabels) => issueLabels.map(issueLabelToEntity));
-  },
-
-  async readLinearAttachments({ apiKey }: ParamsWithApiKey): Promise<object[]> {
-    return createLinearClient(apiKey)
-      .attachments()
-      .then(readNodes)
-      .then((attachments) => attachments.map(attachmentToEntity));
-  },
-
-  async updateLinearIssue({
-    apiKey,
-    issueId,
-    payload,
-  }: {
-    apiKey: string;
-    issueId: Issue["id"];
-    payload: EntityPropertiesObject;
-  }): Promise<PartialEntity | undefined> {
+    entityTypeId,
+    authentication,
+    linearId,
+    entity,
+  }: Parameters<UpdateLinearDataWorkflow>[0]): Promise<void> {
     const client = createLinearClient(apiKey);
 
-    const linearUpdate = entityPropertiesToIssueUpdate(payload);
+    const mapping = getLinearMappingByHashEntityTypeId({ entityTypeId });
 
-    const updatedIssue = await client
-      .updateIssue(issueId, linearUpdate)
-      .then(async (data) => {
-        const issue = await data.issue;
-        if (issue) {
-          return issueToEntity(issue);
-        }
-        return undefined;
-      });
+    const linearUpdateInput = await mapHashEntityToLinearUpdateInput({
+      graphApiClient,
+      authentication,
+      linearType: mapping.linearType,
+      entity,
+    });
 
-    return updatedIssue;
+    if (Object.entries(linearUpdateInput).length > 0) {
+      await client[`update${mapping.linearType}`](linearId, linearUpdateInput);
+    }
   },
 });

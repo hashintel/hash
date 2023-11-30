@@ -1,76 +1,129 @@
-import { VersionedUrl } from "@blockprotocol/graph";
-import { ProposedEntity } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import type { VersionedUrl } from "@blockprotocol/graph";
+import type {
+  InferEntitiesReturn,
+  InferEntitiesUserArguments,
+} from "@local/hash-isomorphic-utils/temporal-types";
+import { OwnedById } from "@local/hash-subgraph";
+import type { Status } from "@local/status";
+import { v4 as uuid } from "uuid";
 
 import {
   setErroredBadge,
   setLoadingBadge,
   setSuccessBadge,
 } from "../../shared/badge";
-import { InferEntitiesRequest } from "../../shared/messages";
-import { queryApi } from "../../shared/query-api";
-import { setInSessionStorage } from "../../shared/storage";
+import type { InferEntitiesRequest } from "../../shared/messages";
+import {
+  getFromSessionStorage,
+  getSetFromSessionStorageValue,
+} from "../../shared/storage";
 
-const inferEntitiesQuery = /* GraphQL */ `
-  mutation inferEntities(
-    $textInput: String!
-    $entityTypeIds: [VersionedUrl!]!
-  ) {
-    inferEntities(
-      allowEmptyResults: false
-      entityTypeIds: $entityTypeIds
-      maxTokens: 0
-      model: "gpt-4-0613"
-      temperature: 0
-      textInput: $textInput
-      validation: PARTIAL
-    ) {
-      entities {
-        entityId
-        entityTypeId
-        properties
-        linkData {
-          leftEntityId
-          rightEntityId
-        }
-      }
-    }
-  }
-`;
-
-const inferEntitiesApiCall = (
-  textInput: string,
-  entityTypeIds: VersionedUrl[],
-) => {
-  return queryApi(inferEntitiesQuery, {
+const inferEntitiesApiCall = async ({
+  entityTypeIds,
+  ownedById,
+  textInput,
+}: {
+  textInput: string;
+  entityTypeIds: VersionedUrl[];
+  ownedById: OwnedById;
+}) => {
+  const requestBody: InferEntitiesUserArguments = {
     entityTypeIds,
-    textInput: textInput.slice(0, 7900),
-  }).then(
-    ({ data }: { data: { inferEntities: { entities: ProposedEntity[] } } }) => {
-      return data.inferEntities.entities;
+    maxTokens: null,
+    model: "gpt-4-1106-preview",
+    ownedById,
+    textInput,
+    temperature: 0,
+  };
+
+  return fetch(`${API_ORIGIN}/entities/infer`, {
+    body: JSON.stringify(requestBody),
+    credentials: "include",
+    headers: {
+      "content-type": "application/json",
     },
-  );
+    method: "POST",
+  }).then((resp) => resp.json() as Promise<InferEntitiesReturn>);
 };
 
-export const inferEntities = async (message: InferEntitiesRequest) => {
-  void setInSessionStorage("inferenceStatus", { status: "pending" });
+export const inferEntities = async (
+  message: InferEntitiesRequest,
+  trigger: "passive" | "user",
+) => {
+  const user = await getFromSessionStorage("user");
+  if (!user) {
+    throw new Error("Cannot infer entities without a logged-in user.");
+  }
+
+  const { entityTypes, sourceUrl, sourceTitle, textInput } = message;
+
+  const localRequestId = uuid();
+
+  const setInferenceRequestValue =
+    getSetFromSessionStorageValue("inferenceRequests");
+
+  await setInferenceRequestValue((currentValue) => [
+    {
+      createdAt: new Date().toISOString(),
+      entityTypes,
+      localRequestUuid: localRequestId,
+      status: "pending",
+      sourceTitle,
+      sourceUrl,
+      trigger,
+    },
+    ...(currentValue ?? []),
+  ]);
+
   setLoadingBadge();
 
   try {
-    const inferredEntities = await inferEntitiesApiCall(
-      message.textInput,
-      message.entityTypeIds,
-    );
-    setSuccessBadge(inferredEntities.length);
-    void setInSessionStorage("inferenceStatus", {
-      proposedEntities: inferredEntities,
-      status: "success",
+    const inferredEntitiesReturn = await inferEntitiesApiCall({
+      entityTypeIds: entityTypes.map((entityType) => entityType.$id),
+      /**
+       * Ideally we would use {@link extractOwnedByIdFromEntityId} from @local/hash-subgraph here,
+       * but importing it causes WASM-related functions to end up in the bundle,
+       * even when imports in that package only come from `@blockprotocol/type-system/slim`,
+       * which isn't supposed to have WASM.
+       *
+       * @todo figure out why that is and fix it, possibly in the @blockprotocol/type-system package
+       */
+      ownedById: user.metadata.recordId.entityId.split("~")[1] as OwnedById,
+      textInput,
     });
-    void setInSessionStorage("entitiesToCreate", inferredEntities);
+
+    if (inferredEntitiesReturn.code !== "OK") {
+      throw new Error(inferredEntitiesReturn.message);
+    }
+
+    await setSuccessBadge(1);
+
+    await setInferenceRequestValue((currentValue) =>
+      (currentValue ?? []).map((request) =>
+        request.localRequestUuid === localRequestId
+          ? {
+              ...request,
+              status: "complete",
+              data: inferredEntitiesReturn,
+            }
+          : request,
+      ),
+    );
   } catch (err) {
     setErroredBadge();
-    void setInSessionStorage("inferenceStatus", {
-      message: (err as Error).message,
-      status: "error",
-    });
+
+    const errorMessage = (err as Error | Status<InferEntitiesReturn>).message;
+
+    await setInferenceRequestValue((currentValue) =>
+      (currentValue ?? []).map((request) =>
+        request.localRequestUuid === localRequestId
+          ? {
+              ...request,
+              errorMessage: errorMessage ?? "Unknown error – please contact us",
+              status: "error",
+            }
+          : request,
+      ),
+    );
   }
 };

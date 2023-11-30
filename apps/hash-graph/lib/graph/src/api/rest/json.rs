@@ -6,11 +6,10 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use axum::{
-    body::{Bytes, HttpBody},
+    body::{Body, Bytes},
     extract::FromRequest,
     http::{header, HeaderMap, HeaderValue, Request},
     response::{IntoResponse, Response},
-    BoxError,
 };
 use bytes::{BufMut, BytesMut};
 use hash_status::StatusCode;
@@ -27,18 +26,15 @@ use crate::api::{
 pub struct Json<T>(pub T);
 
 #[async_trait]
-impl<T, S, B> FromRequest<S, B> for Json<T>
+impl<T, S> FromRequest<S> for Json<T>
 where
     T: DeserializeOwned,
-    B: HttpBody + Send + 'static,
-    B::Data: Send,
-    B::Error: Into<BoxError>,
     S: Send + Sync,
 {
     type Rejection = Response;
 
     // TODO - can we generally add `RequestInfo` including information such as the route -- https://github.com/tokio-rs/axum/blob/main/examples/customize-extractor-error/src/custom_extractor.rs
-    async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request<Body>, state: &S) -> Result<Self, Self::Rejection> {
         if json_content_type(req.headers()) {
             let bytes = Bytes::from_request(req, state).await.map_err(|err| {
                 status_to_response(Status::new(

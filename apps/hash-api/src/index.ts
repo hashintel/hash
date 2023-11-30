@@ -15,6 +15,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { oryKratosPublicUrl } from "@local/hash-isomorphic-utils/environment";
@@ -30,6 +31,7 @@ import { StatsD } from "hot-shots";
 import { createHttpTerminator } from "http-terminator";
 import { customAlphabet } from "nanoid";
 
+import { inferEntitiesController } from "./ai/infer-entities";
 import setupAuth from "./auth";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { RedisCache } from "./cache";
@@ -38,8 +40,8 @@ import {
   DummyEmailTransporter,
   EmailTransporter,
 } from "./email/transporters";
-import { createGraphClient, ensureSystemGraphIsInitialized } from "./graph";
 import { ImpureGraphContext } from "./graph/context-types";
+import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { User } from "./graph/knowledge/system-types/user";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
@@ -355,6 +357,8 @@ const main = async () => {
   app.get("/oauth/linear", oAuthLinear);
   app.get("/oauth/linear/callback", oAuthLinearCallback);
   app.post("/webhooks/linear", linearWebhook);
+
+  app.post("/entities/infer", inferEntitiesController);
 
   /**
    * This middleware MUST:

@@ -18,9 +18,6 @@ run *arguments:
 # Generates the OpenAPI specifications and the clients
 generate-openapi-specs:
   just run server --write-openapi-specs
-  just yarn codegen --filter @local/hash-graph-client-py
-  just yarn workspace @local/hash-graph-sdk-py codegen:filter
-  just yarn workspace @local/hash-graph-sdk-py codegen:blocking
 
 [private]
 test *arguments:

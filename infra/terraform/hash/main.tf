@@ -198,12 +198,6 @@ module "temporal_worker_ai_ts_ecr" {
   ecr_name = "temporalworkeraits"
 }
 
-module "temporal_worker_ai_py_ecr" {
-  source   = "../modules/container_registry"
-  prefix   = local.prefix
-  ecr_name = "temporalworkeraipy"
-}
-
 module "temporal_worker_integration_ecr" {
   source   = "../modules/container_registry"
   prefix   = local.prefix
@@ -276,14 +270,8 @@ module "application" {
   temporal_worker_ai_ts_image = module.temporal_worker_ai_ts_ecr
   temporal_worker_ai_ts_env_vars = [
     { name = "OPENAI_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"]) },
-    { name = "ORY_KRATOS_PUBLIC_URL", secret = false, value = "" },
-    { name = "ORY_KRATOS_ADMIN_URL", secret = false, value = "" },
     { name = "HASH_GRAPH_API_HOST", secret = false, value = "localhost" },
     { name = "HASH_GRAPH_API_PORT", secret = false, value = "4000" },
-  ]
-  temporal_worker_ai_py_image = module.temporal_worker_ai_py_ecr
-  temporal_worker_ai_py_env_vars = [
-    { name = "OPENAI_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"]) },
   ]
   temporal_worker_integration_image = module.temporal_worker_integration_ecr
   temporal_worker_integration_env_vars = [

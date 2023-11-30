@@ -14,7 +14,7 @@ export const ActionCenter = ({
   user: Simplified<User>;
 }) => {
   return (
-    <Box sx={{ maxWidth: "100%", width: 480 }}>
+    <Box sx={{ maxWidth: "100%", width: 530 }}>
       <Stack
         component="header"
         direction="row"
@@ -57,7 +57,7 @@ export const ActionCenter = ({
 
       <Box>
         <QuickNoteAction />
-        <InferEntitiesAction activeTab={activeTab} user={user} />
+        <InferEntitiesAction activeTab={activeTab} />
       </Box>
     </Box>
   );

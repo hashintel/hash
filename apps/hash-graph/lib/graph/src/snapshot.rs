@@ -289,6 +289,8 @@ where
                 .change_context(SnapshotDumpError::Query)?,
             &Filter::All(vec![]),
             None,
+            None,
+            None,
         )
         .await
         .map_err(|future_error| future_error.change_context(SnapshotDumpError::Query))?

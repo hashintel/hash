@@ -130,29 +130,6 @@ services:
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
       HASH_GRAPH_API_HOST: graph
       HASH_GRAPH_API_PORT: "${HASH_GRAPH_API_PORT}"
-      # TODO: Remove once they're not needed anymore
-      #   see https://linear.app/hash/issue/H-55/avoid-ory-kratos-environment-to-be-required-for-hash-api
-      ORY_KRATOS_PUBLIC_URL: "${ORY_KRATOS_PUBLIC_URL}"
-      ORY_KRATOS_ADMIN_URL: "${ORY_KRATOS_ADMIN_URL}"
-    tmpfs:
-      - /tmp
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-
-  hash-temporal-worker-py:
-    image: hash-ai-worker-py
-    restart: unless-stopped
-    depends_on:
-      temporal:
-        condition: service_healthy
-    # Environment variables are to be set manually here.
-    # We could load in the entirety of the `.env.local` file using `env_file`
-    # but to prevent bloating the environment and spilling everything
-    # into the process, it is constrained here.
-    environment:
-      HASH_TEMPORAL_HOST: "temporal"
-      OPENAI_API_KEY: "${OPENAI_API_KEY}"
     tmpfs:
       - /tmp
     read_only: true

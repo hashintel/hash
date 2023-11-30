@@ -4,7 +4,7 @@ import {
   ParseVersionedUrlError,
   validateVersionedUrl,
   VersionedUrl,
-} from "@blockprotocol/type-system";
+} from "@blockprotocol/type-system/slim";
 
 import { BaseUrl, Entity, EntityPropertiesObject } from "../types";
 

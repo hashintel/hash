@@ -30,7 +30,12 @@ import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import { getLatestEntityById, updateEntity } from "../primitive/entity";
+import { systemAccountId } from "../../system-account";
+import {
+  getLatestEntityById,
+  modifyEntityAuthorizationRelationships,
+  updateEntity,
+} from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 
 export type LinearIntegration = {
@@ -61,7 +66,48 @@ export const getLinearIntegrationFromEntity: PureGraphFunction<
 };
 
 /**
- * Get a linear user secret by the linear org ID
+ * Get all linear integrations by the linear org ID
+ */
+export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
+  { linearOrgId: string },
+  Promise<LinearIntegration[]>
+> = async ({ graphApi }, { actorId }, { linearOrgId }) => {
+  const entities = await graphApi
+    .getEntitiesByQuery(actorId, {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.linearIntegration.entityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  extractBaseUrl(
+                    systemPropertyTypes.linearOrgId.propertyTypeId,
+                  ),
+                ],
+              },
+              { parameter: linearOrgId },
+            ],
+          },
+        ],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    })
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+      return getRoots(subgraph);
+    });
+
+  return entities.map((entity) => getLinearIntegrationFromEntity({ entity }));
+};
+
+/**
+ * Get a linear integration by the linear org ID
  */
 export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
   { userAccountId: AccountId; linearOrgId: string },
@@ -243,7 +289,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
       } as SyncLinearDataWithProperties,
     });
   } else {
-    await createLinkEntity(context, authentication, {
+    const linkEntity = await createLinkEntity(context, authentication, {
       ownedById: extractOwnedByIdFromEntityId(linearIntegrationEntityId),
       linkEntityTypeId:
         systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
@@ -254,5 +300,20 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
           linearTeamIds,
       } as SyncLinearDataWithProperties,
     });
+
+    // Allow the system account ID to view the link
+    await modifyEntityAuthorizationRelationships(context, authentication, [
+      {
+        operation: "touch",
+        relationship: {
+          resource: {
+            kind: "entity",
+            resourceId: linkEntity.metadata.recordId.entityId,
+          },
+          relation: "viewer",
+          subject: { kind: "account", subjectId: systemAccountId },
+        },
+      },
+    ]);
   }
 };

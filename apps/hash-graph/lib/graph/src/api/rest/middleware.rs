@@ -1,18 +1,20 @@
 use std::{borrow::Cow, net::SocketAddr, time::Duration};
 
 use axum::{
-    body::{Body, Bytes, HttpBody},
+    body::Body,
     extract::{ConnectInfo, MatchedPath, OriginalUri},
     http::{self, uri::Scheme, Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use bytes::Bytes;
+use http_body_util::Collected;
 use hyper::header;
 use opentelemetry::{
     propagation::Extractor,
-    sdk::trace::{IdGenerator, RandomIdGenerator},
     trace::{SpanContext, SpanId, TraceContextExt},
 };
+use opentelemetry_sdk::trace::{IdGenerator, RandomIdGenerator};
 use tower_http::{
     classify::{ServerErrorsAsFailures, ServerErrorsFailureClass, SharedClassifier},
     trace::{DefaultOnBodyChunk, DefaultOnEos, DefaultOnRequest, TraceLayer},
@@ -26,7 +28,7 @@ use tracing::{enabled, field::Empty, Level};
 /// responses and log them. Overhead should be minimal when not in `Level::Trace`
 pub(super) async fn log_request_and_response(
     request: Request<Body>,
-    next: Next<Body>,
+    next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     let mut request = request;
     if enabled!(Level::TRACE) {
@@ -50,16 +52,15 @@ pub(super) async fn log_request_and_response(
     }
 }
 
-async fn buffer_and_log<B>(
+async fn buffer_and_log(
     direction: &str,
-    body: B,
+    body: Body,
     status_code: Option<StatusCode>,
-) -> Result<Bytes, (StatusCode, String)>
-where
-    B: HttpBody<Data = Bytes> + Send,
-    B::Error: std::fmt::Display,
-{
-    let bytes = match hyper::body::to_bytes(body).await {
+) -> Result<Bytes, (StatusCode, String)> {
+    let bytes = match http_body_util::BodyExt::collect(body)
+        .await
+        .map(Collected::to_bytes)
+    {
         Ok(bytes) => bytes,
         Err(err) => {
             return Err((
@@ -92,7 +93,7 @@ pub fn span_trace_layer() -> TraceLayer<
     SharedClassifier<ServerErrorsAsFailures>,
     impl Fn(&Request<Body>) -> tracing::Span + Clone,
     DefaultOnRequest,
-    impl Fn(&Response<axum::body::BoxBody>, Duration, &tracing::Span) + Clone,
+    impl Fn(&Response<Body>, Duration, &tracing::Span) + Clone,
     DefaultOnBodyChunk,
     DefaultOnEos,
     impl Fn(ServerErrorsFailureClass, Duration, &tracing::Span) + Clone,
@@ -219,11 +220,7 @@ fn span_maker(request: &Request<Body>) -> tracing::Span {
     span
 }
 
-fn span_on_response(
-    response: &Response<axum::body::BoxBody>,
-    _latency: Duration,
-    span: &tracing::Span,
-) {
+fn span_on_response(response: &Response<Body>, _latency: Duration, span: &tracing::Span) {
     let status = response.status().as_u16();
     span.record("http.status_code", tracing::field::display(status));
 }

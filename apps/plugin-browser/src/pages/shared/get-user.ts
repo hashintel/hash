@@ -6,10 +6,10 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { MeQuery, MeQueryVariables } from "../../graphql/api-types.gen";
 import { meQuery } from "../../graphql/queries/user.queries";
-import { queryApi } from "../../shared/query-api";
+import { queryGraphQlApi } from "../../shared/query-graphql-api";
 
 export const getUser = () => {
-  return queryApi<MeQuery, MeQueryVariables>(meQuery)
+  return queryGraphQlApi<MeQuery, MeQueryVariables>(meQuery)
     .then(({ data }) => {
       const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
         data.me.subgraph,

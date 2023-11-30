@@ -1,1 +1,0 @@
-"""Contains mocks for testing."""
