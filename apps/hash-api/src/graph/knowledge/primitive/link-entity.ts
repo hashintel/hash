@@ -24,6 +24,7 @@ export type CreateLinkEntityParams = {
   properties?: EntityPropertiesObject;
   linkEntityTypeId: VersionedUrl;
   owner?: AccountId | AccountGroupId;
+  draft?: boolean;
   leftEntityId: EntityId;
   leftToRightOrder?: number;
   rightEntityId: EntityId;
@@ -56,6 +57,7 @@ export const createLinkEntity: ImpureGraphFunction<
     rightEntityId,
     rightToLeftOrder,
     properties = {},
+    draft = false,
   } = params;
 
   const linkEntityType = await getEntityTypeById(context, authentication, {
@@ -93,6 +95,7 @@ export const createLinkEntity: ImpureGraphFunction<
       entityTypeId: linkEntityType.schema.$id,
       properties,
       owner: params.owner ?? ownedById,
+      draft,
     },
   );
 
@@ -142,6 +145,7 @@ export const updateLinkEntity: ImpureGraphFunction<
     entityTypeId: linkEntity.metadata.entityTypeId,
     properties,
     archived: linkEntity.metadata.archived,
+    draft: linkEntity.metadata.draft,
     leftToRightOrder,
     rightToLeftOrder,
   });

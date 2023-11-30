@@ -37,6 +37,7 @@ const createHashEntity = async (params: {
     {
       ownedById,
       owner: ownedById,
+      draft: false,
       ...params.partialEntity,
     },
   );
@@ -52,6 +53,7 @@ const createHashEntity = async (params: {
         },
         entityTypeId: linkEntityTypeId,
         properties: {},
+        draft: false,
       }),
     ),
   );
@@ -131,6 +133,7 @@ const createOrUpdateHashEntity = async (params: {
           properties: {},
           ownedById: params.ownedById,
           owner: params.ownedById,
+          draft: false,
         }),
       ),
     ]);
@@ -166,6 +169,7 @@ const createOrUpdateHashEntity = async (params: {
       entityId: existingEntity.metadata.recordId.entityId,
       entityTypeId: existingEntity.metadata.entityTypeId,
       properties: mergedProperties,
+      draft: existingEntity.metadata.draft,
     });
   }
 

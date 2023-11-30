@@ -192,5 +192,6 @@ export const archiveEntity = async (params: {
      * */
     entityTypeId: entity.metadata.entityTypeId,
     properties: entity.properties,
+    draft: false,
   });
 };

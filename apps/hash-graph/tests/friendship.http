@@ -1276,7 +1276,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "http://localhost:3000/@alice/types/property-type/name/": "Alice"
   },
   "owner": "{{account_id}}",
-  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1",
+  "draft": false
 }
 
 > {%
@@ -1399,12 +1400,13 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
- "entityId": "{{person_a_entity_id}}",
- "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
- "properties": {
-   "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
- },
- "archived": false
+  "entityId": "{{person_a_entity_id}}",
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+  "properties": {
+    "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
+  },
+  "archived": false,
+  "draft": false
 }
 
 > {%
@@ -1425,7 +1427,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "http://localhost:3000/@alice/types/property-type/name/": "Bob"
   },
   "owner": "{{account_id}}",
-  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2"
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+  "draft": false
 }
 
 > {%
@@ -1534,7 +1537,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "linkData": {
     "leftEntityId": "{{person_a_entity_id}}",
     "rightEntityId": "{{person_b_entity_id}}"
-  }
+  },
+  "draft": false
 }
 
 > {%
@@ -1709,12 +1713,13 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
- "entityId": "{{person_b_entity_id}}",
- "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1",
- "properties": {
-   "http://localhost:3000/@alice/types/property-type/name/": "Bob"
- },
- "archived": true
+  "entityId": "{{person_b_entity_id}}",
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1",
+  "properties": {
+    "http://localhost:3000/@alice/types/property-type/name/": "Bob"
+  },
+  "archived": true,
+  "draft": false
 }
 
 > {%
