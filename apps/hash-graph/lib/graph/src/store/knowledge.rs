@@ -27,15 +27,15 @@ pub enum EntityValidationType<'a> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct EntityValidationError;
+pub struct ValidateEntityError;
 
-impl fmt::Display for EntityValidationError {
+impl fmt::Display for ValidateEntityError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.write_str("Entity validation failed")
     }
 }
 
-impl Error for EntityValidationError {}
+impl Error for ValidateEntityError {}
 
 /// Describes the API of a store implementation for [Entities].
 ///
@@ -93,7 +93,7 @@ pub trait EntityStore: crud::Read<Entity> {
         properties: &EntityProperties,
         link_data: Option<&LinkData>,
         profile: ValidationProfile,
-    ) -> Result<(), EntityValidationError>;
+    ) -> Result<(), ValidateEntityError>;
 
     /// Inserts the entities with the specified [`EntityType`] into the `Store`.
     ///
