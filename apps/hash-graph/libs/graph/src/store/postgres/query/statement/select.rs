@@ -615,7 +615,7 @@ mod tests {
     fn entity_with_manual_selection() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
-        let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), false);
+        let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
         compiler.add_distinct_selection_with_ordering(
             &EntityQueryPath::Uuid,
             Distinctness::Distinct,
@@ -687,6 +687,7 @@ mod tests {
               ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
             WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $3
+              AND "entity_editions_0_1_0"."draft" = FALSE
               AND jsonb_path_query_first("entity_editions_0_1_0"."properties", $1::text::jsonpath) = $4
             "#,
             &[
@@ -724,6 +725,7 @@ mod tests {
               ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
             WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $3
+              AND "entity_editions_0_1_0"."draft" = FALSE
               AND jsonb_path_query_first("entity_editions_0_1_0"."properties", $1::text::jsonpath) IS NULL
             "#,
             &[

@@ -1,4 +1,4 @@
-use std::{collections::HashSet, marker::PhantomData};
+use std::collections::{HashMap, HashSet};
 
 use postgres_types::ToSql;
 use temporal_versioning::TimeAxis;
@@ -6,11 +6,13 @@ use temporal_versioning::TimeAxis;
 use crate::{
     store::{
         postgres::query::{
-            table::{EntityTemporalMetadata, OntologyIds, OntologyTemporalMetadata},
-            Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
-            Expression, Function, JoinExpression, OrderByExpression, Ordering, PostgresQueryPath,
-            PostgresRecord, SelectExpression, SelectStatement, Table, Transpile, WhereExpression,
-            WindowStatement, WithExpression,
+            table::{
+                EntityEditions, EntityTemporalMetadata, OntologyIds, OntologyTemporalMetadata,
+            },
+            Alias, AliasedColumn, AliasedTable, Column, Condition, Constant, Distinctness,
+            EqualityOperator, Expression, Function, JoinExpression, OrderByExpression, Ordering,
+            PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table, Transpile,
+            WhereExpression, WindowStatement, WithExpression,
         },
         query::{Filter, FilterExpression, Parameter, ParameterList, ParameterType},
     },
@@ -22,7 +24,7 @@ use crate::{
 // - 'p relates to the lifetime of the parameters, should be the longest living as they have to
 //   outlive the transpiling process
 
-pub struct TemporalTableInfo {
+pub struct TableInfo {
     tables: HashSet<AliasedTable>,
     pinned_timestamp_index: Option<usize>,
     variable_interval_index: Option<usize>,
@@ -32,7 +34,7 @@ pub struct CompilerArtifacts<'p> {
     parameters: Vec<&'p (dyn ToSql + Sync)>,
     condition_index: usize,
     required_tables: HashSet<AliasedTable>,
-    temporal_tables: TemporalTableInfo,
+    table_info: TableInfo,
     uses_cursor: bool,
 }
 
@@ -40,13 +42,25 @@ pub struct SelectCompiler<'p, T> {
     statement: SelectStatement,
     artifacts: CompilerArtifacts<'p>,
     temporal_axes: Option<&'p QueryTemporalAxes>,
-    include_drafts: bool,
-    _marker: PhantomData<fn(*const T)>,
+    table_hooks: HashMap<Table, fn(&mut Self, Alias)>,
 }
 
 impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
     /// Creates a new, empty compiler.
     pub fn new(temporal_axes: Option<&'p QueryTemporalAxes>, include_drafts: bool) -> Self {
+        let mut table_hooks = HashMap::<_, fn(&mut Self, Alias)>::new();
+
+        if temporal_axes.is_some() {
+            table_hooks.insert(
+                Table::EntityTemporalMetadata,
+                Self::pin_entity_temporal_metadata_table,
+            );
+            table_hooks.insert(Table::OntologyTemporalMetadata, Self::pin_ontology_table);
+        }
+        if !include_drafts {
+            table_hooks.insert(Table::EntityEditions, Self::filter_drafts);
+        }
+
         Self {
             statement: SelectStatement {
                 with: WithExpression::default(),
@@ -66,7 +80,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                 parameters: Vec::new(),
                 condition_index: 0,
                 required_tables: HashSet::new(),
-                temporal_tables: TemporalTableInfo {
+                table_info: TableInfo {
                     tables: HashSet::new(),
                     pinned_timestamp_index: None,
                     variable_interval_index: None,
@@ -74,8 +88,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                 uses_cursor: false,
             },
             temporal_axes,
-            include_drafts,
-            _marker: PhantomData,
+            table_hooks,
         }
     }
 
@@ -100,7 +113,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
         match (temporal_axes, time_axis) {
             (QueryTemporalAxes::TransactionTime { pinned, .. }, TimeAxis::DecisionTime) => *self
                 .artifacts
-                .temporal_tables
+                .table_info
                 .pinned_timestamp_index
                 .get_or_insert_with(|| {
                     self.artifacts.parameters.push(&pinned.timestamp);
@@ -108,7 +121,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                 }),
             (QueryTemporalAxes::DecisionTime { pinned, .. }, TimeAxis::TransactionTime) => *self
                 .artifacts
-                .temporal_tables
+                .table_info
                 .pinned_timestamp_index
                 .get_or_insert_with(|| {
                     self.artifacts.parameters.push(&pinned.timestamp);
@@ -117,7 +130,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
             (QueryTemporalAxes::TransactionTime { variable, .. }, TimeAxis::TransactionTime) => {
                 *self
                     .artifacts
-                    .temporal_tables
+                    .table_info
                     .variable_interval_index
                     .get_or_insert_with(|| {
                         self.artifacts.parameters.push(&variable.interval);
@@ -126,7 +139,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
             }
             (QueryTemporalAxes::DecisionTime { variable, .. }, TimeAxis::DecisionTime) => *self
                 .artifacts
-                .temporal_tables
+                .table_info
                 .variable_interval_index
                 .get_or_insert_with(|| {
                     self.artifacts.parameters.push(&variable.interval);
@@ -139,7 +152,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
         if let Some(temporal_axes) = self.temporal_axes {
             if self
                 .artifacts
-                .temporal_tables
+                .table_info
                 .tables
                 .insert(Table::OntologyTemporalMetadata.aliased(alias))
             {
@@ -177,11 +190,29 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
         }
     }
 
-    fn pin_entity_table(&mut self, alias: Alias) {
+    fn filter_drafts(&mut self, alias: Alias) {
+        if self
+            .artifacts
+            .table_info
+            .tables
+            .insert(Table::EntityEditions.aliased(alias))
+        {
+            self.statement
+                .where_expression
+                .add_condition(Condition::Equal(
+                    Some(Expression::Column(
+                        Column::EntityEditions(EntityEditions::Draft).aliased(alias),
+                    )),
+                    Some(Expression::Constant(Constant::Boolean(false))),
+                ))
+        }
+    }
+
+    fn pin_entity_temporal_metadata_table(&mut self, alias: Alias) {
         if let Some(temporal_axes) = self.temporal_axes {
             if self
                 .artifacts
-                .temporal_tables
+                .table_info
                 .tables
                 .insert(Table::EntityTemporalMetadata.aliased(alias))
             {
@@ -523,11 +554,10 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
 
         let alias = self.add_join_statements(path);
 
-        if matches!(column, Column::EntityTemporalMetadata(_)) {
-            self.pin_entity_table(alias);
-        } else if matches!(column, Column::OntologyTemporalMetadata(_)) {
-            self.pin_ontology_table(alias);
+        if let Some(hook) = self.table_hooks.get(&column.table()) {
+            hook(self, alias);
         }
+
         column.aliased(alias)
     }
 
@@ -617,10 +647,8 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
     {
         let mut current_table = self.statement.from;
 
-        if current_table.table == Table::EntityTemporalMetadata {
-            self.pin_entity_table(current_table.alias);
-        } else if current_table.table == Table::OntologyTemporalMetadata {
-            self.pin_ontology_table(current_table.alias);
+        if let Some(hook) = self.table_hooks.get(&current_table.table) {
+            hook(self, current_table.alias);
         }
 
         for relation in path.relations() {
@@ -684,10 +712,8 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                         self.statement.where_expression.add_condition(condition);
                     }
 
-                    if current_table.table == Table::EntityTemporalMetadata {
-                        self.pin_entity_table(current_table.alias);
-                    } else if current_table.table == Table::OntologyTemporalMetadata {
-                        self.pin_ontology_table(current_table.alias);
+                    if let Some(hook) = self.table_hooks.get(&current_table.table) {
+                        hook(self, current_table.alias);
                     }
                 }
             }
