@@ -1,6 +1,6 @@
 import { IconButton } from "@hashintel/design-system";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
-import { Box, Collapse, Tooltip } from "@mui/material";
+import { Box, Collapse, Fade, Tooltip } from "@mui/material";
 import { orderBy } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useMemo, useState } from "react";
@@ -27,6 +27,7 @@ type AccountEntityTypeListProps = {
 export const AccountEntityTypeList: FunctionComponent<
   AccountEntityTypeListProps
 > = ({ ownedById }) => {
+  const [expanded, setExpanded] = useState<boolean>(false);
   const [sortType, setSortType] = useState<SortType>("asc");
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,33 +73,36 @@ export const AccountEntityTypeList: FunctionComponent<
   return (
     <Box>
       <NavLink
-        initialExpanded={false}
+        expanded={expanded}
+        toggleExpanded={() => setExpanded((prev) => !prev)}
         title="Types"
         endAdornment={
           <Box display="flex" gap={1}>
-            <Tooltip title="Sort types" placement="top">
-              <IconButton
-                {...bindTrigger(sortActionsPopupState)}
-                size="small"
-                unpadded
-                rounded
-                sx={({ palette }) => ({
-                  color: palette.gray[80],
-                  ...(sortActionsPopupState.isOpen && {
-                    backgroundColor: palette.gray[30],
-                  }),
-                  svg: {
-                    fontSize: 13,
-                  },
-                })}
-              >
-                {sortType === "asc" ? (
-                  <ArrowDownAZRegularIcon />
-                ) : (
-                  <ArrowUpZARegularIcon />
-                )}
-              </IconButton>
-            </Tooltip>
+            <Fade in={expanded}>
+              <Tooltip title="Sort types" placement="top">
+                <IconButton
+                  {...bindTrigger(sortActionsPopupState)}
+                  size="small"
+                  unpadded
+                  rounded
+                  sx={({ palette }) => ({
+                    color: palette.gray[80],
+                    ...(sortActionsPopupState.isOpen && {
+                      backgroundColor: palette.gray[30],
+                    }),
+                    svg: {
+                      fontSize: 13,
+                    },
+                  })}
+                >
+                  {sortType === "asc" ? (
+                    <ArrowDownAZRegularIcon />
+                  ) : (
+                    <ArrowUpZARegularIcon />
+                  )}
+                </IconButton>
+              </Tooltip>
+            </Fade>
             <SortActionsDropdown
               popupState={sortActionsPopupState}
               setSortType={setSortType}
