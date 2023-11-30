@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "name": "Bar Chart",
+    "description": "",
+    "icon": "public/chart-line-regular.svg",
+    "properties": {
+      "https://blockprotocol.org/@hash/types/property-type/chart-defintion/": {
+        "kind": "bar-chart"
+      }
+    },
+    "examples": [
+      {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/title/": "Bar Chart Title",
+        "https://blockprotocol.org/@hash/types/property-type/chart-defintion/": {
+          "kind": "bar-chart"
+        }
+      }
+    ]
+  },
+  {
+    "name": "Graph Chart",
+    "description": "",
+    "icon": "public/chart-line-regular.svg",
+    "properties": {
+      "https://blockprotocol.org/@hash/types/property-type/chart-defintion/": {
+        "kind": "graph-chart"
+      }
+    },
+    "examples": [
+      {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/title/": "Graph Chart Title",
+        "https://blockprotocol.org/@hash/types/property-type/chart-defintion/": {
+          "kind": "graph-chart"
+        }
+      }
+    ]
+  }
+]

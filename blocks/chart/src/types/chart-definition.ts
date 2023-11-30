@@ -10,6 +10,7 @@ export type BarChartDefinitionVariant = {
 
 export type ChartDefinitions = {
   "bar-chart": BarChartDefinitionVariant;
+  "graph-chart": {};
 };
 
 export type ChartDefinitionKinds = keyof ChartDefinitions;

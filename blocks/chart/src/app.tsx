@@ -10,8 +10,15 @@ import {
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
 import { getOutgoingLinkAndTargetEntities } from "@blockprotocol/graph/stdlib";
-import { GearIcon } from "@hashintel/block-design-system";
-import { Box, Collapse, Divider, IconButton } from "@mui/material";
+import { EntitiesGraphChart, GearIcon } from "@hashintel/block-design-system";
+import { theme } from "@hashintel/design-system/theme";
+import {
+  Box,
+  Collapse,
+  Divider,
+  IconButton,
+  ThemeProvider,
+} from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BarChart } from "./bar-chart";
@@ -172,37 +179,66 @@ export const App: BlockComponent<BlockEntity> = ({
   ]);
 
   return (
-    <Box ref={blockRootRef} position="relative">
-      <EditableChartTitle
-        title={title ?? "Untitled Chart"}
-        updateTitle={updateTitle}
-      />
-      {readonly ? null : (
-        <IconButton
-          sx={{ position: "absolute", right: 1, top: 1 }}
-          onClick={() =>
-            setDisplayEditChartDefinition(!displayEditChartDefinition)
+    <ThemeProvider theme={theme}>
+      <Box
+        ref={blockRootRef}
+        sx={{
+          position: "relative",
+          borderRadius: "6px",
+          borderColor: ({ palette }) => palette.gray[20],
+          borderWidth: 1,
+          borderStyle: "solid",
+        }}
+      >
+        <EditableChartTitle
+          title={title ?? "Untitled Chart"}
+          updateTitle={updateTitle}
+          sx={
+            chartDefinition?.kind === "graph-chart"
+              ? {
+                  position: "absolute",
+                  top: 0,
+                  zIndex: 1,
+                }
+              : undefined
           }
-        >
-          <GearIcon />
-        </IconButton>
-      )}
-      {chartDefinition ? (
-        <BarChart definition={chartDefinition} queryResults={queryResults} />
-      ) : null}
-      <Collapse in={displayEditChartDefinition}>
-        <Divider />
-        <Box marginTop={2}>
-          {allQueriesAreFetched ? (
-            <EditChartDefinition
-              key={blockEntity.metadata.recordId.editionId}
-              initialChartDefinition={chartDefinition}
+        />
+        {readonly ? null : (
+          <IconButton
+            sx={{ position: "absolute", right: 1, top: 1 }}
+            onClick={() =>
+              setDisplayEditChartDefinition(!displayEditChartDefinition)
+            }
+          >
+            <GearIcon />
+          </IconButton>
+        )}
+        {chartDefinition ? (
+          chartDefinition.kind === "bar-chart" ? (
+            <BarChart
+              /** @todo: figure out why TS is not inferring this */
+              definition={chartDefinition as ChartDefinition<"bar-chart">}
               queryResults={queryResults}
-              onSubmit={updateChartDefinition}
             />
-          ) : null}
-        </Box>
-      </Collapse>
-    </Box>
+          ) : (
+            /** @todo: account for multiple query results */
+            <EntitiesGraphChart subgraph={Object.values(queryResults)[0]} />
+          )
+        ) : null}
+        <Collapse in={displayEditChartDefinition}>
+          <Divider />
+          <Box marginTop={2}>
+            {allQueriesAreFetched ? (
+              <EditChartDefinition
+                key={blockEntity.metadata.recordId.editionId}
+                initialChartDefinition={chartDefinition}
+                queryResults={queryResults}
+                onSubmit={updateChartDefinition}
+              />
+            ) : null}
+          </Box>
+        </Collapse>
+      </Box>
+    </ThemeProvider>
   );
 };
