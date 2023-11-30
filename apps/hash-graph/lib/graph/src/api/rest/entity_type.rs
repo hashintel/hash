@@ -14,8 +14,8 @@ use authorization::{
     AuthorizationApi, AuthorizationApiPool,
 };
 use axum::{
-    extract::Path,
-    http::StatusCode,
+    extract::{OriginalUri, Path, Query},
+    http::{header::LINK, HeaderMap, StatusCode},
     response::Response,
     routing::{get, post, put},
     Extension, Router,
@@ -44,10 +44,9 @@ use crate::{
         rest::{
             api_resource::RoutedResource,
             json::Json,
-            report_to_status_code,
             status::{report_to_response, status_to_response},
             utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
-            AuthenticatedUserHeader, PermissionResponse, RestApiStore,
+            AuthenticatedUserHeader, Cursor, Pagination, PermissionResponse, RestApiStore,
         },
     },
     ontology::{
@@ -58,7 +57,10 @@ use crate::{
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         ConflictBehavior, EntityTypeStore, StorePool,
     },
-    subgraph::query::{EntityTypeStructuralQuery, StructuralQuery},
+    subgraph::{
+        identifier::EntityTypeVertexId,
+        query::{EntityTypeStructuralQuery, StructuralQuery},
+    },
 };
 
 #[derive(OpenApi)]
@@ -656,7 +658,15 @@ where
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", body = Subgraph, description = "A subgraph rooted at entity types that satisfy the given query, each resolved to the requested depth."),
+        (
+            status = 200,
+            content_type = "application/json",
+            body = Subgraph,
+            description = "A subgraph rooted at entity types that satisfy the given query, each resolved to the requested depth.",
+            headers(
+                ("Link" = String, description = "The link to be used to query the next page of entity types"),
+            ),
+        ),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
@@ -666,40 +676,44 @@ async fn get_entity_types_by_query<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    Query(pagination): Query<Pagination<EntityTypeVertexId>>,
+    OriginalUri(uri): OriginalUri,
     Json(query): Json<serde_json::Value>,
-) -> Result<Json<Subgraph>, StatusCode>
+) -> Result<(HeaderMap, Json<Subgraph>), Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let store = store_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let store = store_pool.acquire().await.map_err(report_to_response)?;
 
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
 
-    let mut query = StructuralQuery::deserialize(&query).map_err(|error| {
-        tracing::error!(?error, "Could not deserialize query");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-    query.filter.convert_parameters().map_err(|error| {
-        tracing::error!(?error, "Could not validate query");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let mut query = StructuralQuery::deserialize(&query).map_err(report_to_response)?;
+    query
+        .filter
+        .convert_parameters()
+        .map_err(report_to_response)?;
 
     let subgraph = store
-        .get_entity_type(actor_id, &authorization_api, &query)
+        .get_entity_type(
+            actor_id,
+            &authorization_api,
+            &query,
+            pagination.after.as_ref().map(|cursor| &cursor.0),
+            pagination.limit,
+        )
         .await
-        .map_err(|report| {
-            tracing::error!(error=?report, ?query, "Could not read entity types from the store");
-            report_to_status_code(&report)
-        })?;
+        .map_err(report_to_response)?;
 
-    Ok(Json(subgraph.into()))
+    let cursor = subgraph.roots.iter().last().map(Cursor);
+    let mut headers = HeaderMap::new();
+    if let (Some(cursor), Some(limit)) = (cursor, pagination.limit) {
+        headers.insert(LINK, cursor.link_header("next", uri, limit)?);
+    }
+    Ok((headers, Json(Subgraph::from(subgraph))))
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -722,6 +736,8 @@ struct UpdateEntityTypeRequest {
     tag = "EntityType",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("after" = Option<String>, Query, description = "The cursor to start reading from"),
+        ("limit" = Option<usize>, Query, description = "The maximum number of entity types to read"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated entity type", body = OntologyElementMetadata),

@@ -6,7 +6,7 @@ use graph_types::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeVersion, PropertyTypeWithMetadata,
     },
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use temporal_versioning::Timestamp;
 use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::ToSchema;
@@ -37,7 +37,7 @@ pub trait VertexId: Sized {
 
 macro_rules! define_ontology_type_vertex_id {
     ($name:ident, $ontology_type:ty, $vertex_set:ident) => {
-        #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
+        #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
         #[serde(rename_all = "camelCase")]
         pub struct $name {
             #[schema(value_type = SHARED_BaseUrl)]
@@ -102,7 +102,7 @@ define_ontology_type_vertex_id!(
 );
 define_ontology_type_vertex_id!(EntityTypeVertexId, EntityTypeWithMetadata, entity_types);
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityVertexId {
     pub base_id: EntityId,

@@ -34,12 +34,12 @@ use crate::{
         postgres::{
             ontology::OntologyId,
             query::{
-                Column, Distinctness, ForeignKeyReference, Ordering, ReferenceTable,
+                Column, Condition, Distinctness, ForeignKeyReference, Ordering, ReferenceTable,
                 SelectCompiler, Table, Transpile,
             },
         },
-        query::Filter,
-        AsClient, PostgresStore, QueryError,
+        query::{Filter, Parameter},
+        AsClient, PostgresStore, QueryError, Record,
     },
     subgraph::{
         edges::GraphResolveDepths,
@@ -59,6 +59,11 @@ enum AdditionalOntologyMetadata {
     },
 }
 
+struct CursorParameters<'p> {
+    base_url: Parameter<'p>,
+    version: Parameter<'p>,
+}
+
 #[async_trait]
 impl<C: AsClient> Read<DataTypeSnapshotRecord> for PostgresStore<C> {
     type Record = DataTypeWithMetadata;
@@ -70,19 +75,53 @@ impl<C: AsClient> Read<DataTypeSnapshotRecord> for PostgresStore<C> {
         &self,
         filter: &Filter<Self::Record>,
         temporal_axes: Option<&QueryTemporalAxes>,
+        after: Option<&<Self::Record as Record>::VertexId>,
+        limit: Option<usize>,
     ) -> Result<Self::ReadStream, QueryError> {
         let mut compiler = SelectCompiler::new(temporal_axes);
+        if let Some(limit) = limit {
+            compiler.set_limit(limit);
+        }
 
-        let base_url_index = compiler.add_distinct_selection_with_ordering(
-            &DataTypeQueryPath::BaseUrl,
-            Distinctness::Distinct,
-            None,
-        );
-        let version_index = compiler.add_distinct_selection_with_ordering(
-            &DataTypeQueryPath::Version,
-            Distinctness::Distinct,
-            None,
-        );
+        let cursor_parameters: Option<CursorParameters> = after.map(|cursor| CursorParameters {
+            base_url: Parameter::Text(Cow::Borrowed(cursor.base_id.as_str())),
+            version: Parameter::OntologyTypeVersion(cursor.revision_id),
+        });
+
+        let (base_url_index, version_index) = if let Some(cursor_parameters) = &cursor_parameters {
+            let base_url_expression = compiler.compile_parameter(&cursor_parameters.base_url).0;
+            let version_expression = compiler.compile_parameter(&cursor_parameters.version).0;
+
+            (
+                compiler.add_cursor_selection(
+                    &DataTypeQueryPath::BaseUrl,
+                    Ordering::Ascending,
+                    |column| Condition::GreaterOrEqual(column, base_url_expression),
+                ),
+                compiler.add_cursor_selection(
+                    &DataTypeQueryPath::Version,
+                    Ordering::Descending,
+                    |column| Condition::Less(column, version_expression),
+                ),
+            )
+        } else {
+            // If we neither have `limit` nor `after` we don't need to sort
+            let maybe_ascending = limit.map(|_| Ordering::Ascending);
+            let maybe_descending = limit.map(|_| Ordering::Descending);
+            (
+                compiler.add_distinct_selection_with_ordering(
+                    &DataTypeQueryPath::BaseUrl,
+                    Distinctness::Distinct,
+                    maybe_ascending,
+                ),
+                compiler.add_distinct_selection_with_ordering(
+                    &DataTypeQueryPath::Version,
+                    Distinctness::Distinct,
+                    maybe_descending,
+                ),
+            )
+        };
+
         // It's possible to have multiple records with the same transaction time. We order them
         // descending so that the most recent record is returned first.
         let transaction_time_index = compiler.add_distinct_selection_with_ordering(
@@ -171,19 +210,53 @@ impl<C: AsClient> Read<PropertyTypeSnapshotRecord> for PostgresStore<C> {
         &self,
         filter: &Filter<Self::Record>,
         temporal_axes: Option<&QueryTemporalAxes>,
+        after: Option<&<Self::Record as Record>::VertexId>,
+        limit: Option<usize>,
     ) -> Result<Self::ReadStream, QueryError> {
         let mut compiler = SelectCompiler::new(temporal_axes);
+        if let Some(limit) = limit {
+            compiler.set_limit(limit);
+        }
 
-        let base_url_index = compiler.add_distinct_selection_with_ordering(
-            &PropertyTypeQueryPath::BaseUrl,
-            Distinctness::Distinct,
-            None,
-        );
-        let version_index = compiler.add_distinct_selection_with_ordering(
-            &PropertyTypeQueryPath::Version,
-            Distinctness::Distinct,
-            None,
-        );
+        let cursor_parameters: Option<CursorParameters> = after.map(|cursor| CursorParameters {
+            base_url: Parameter::Text(Cow::Borrowed(cursor.base_id.as_str())),
+            version: Parameter::OntologyTypeVersion(cursor.revision_id),
+        });
+
+        let (base_url_index, version_index) = if let Some(cursor_parameters) = &cursor_parameters {
+            let base_url_expression = compiler.compile_parameter(&cursor_parameters.base_url).0;
+            let version_expression = compiler.compile_parameter(&cursor_parameters.version).0;
+
+            (
+                compiler.add_cursor_selection(
+                    &PropertyTypeQueryPath::BaseUrl,
+                    Ordering::Ascending,
+                    |column| Condition::GreaterOrEqual(column, base_url_expression),
+                ),
+                compiler.add_cursor_selection(
+                    &PropertyTypeQueryPath::Version,
+                    Ordering::Descending,
+                    |column| Condition::Less(column, version_expression),
+                ),
+            )
+        } else {
+            // If we neither have `limit` nor `after` we don't need to sort
+            let maybe_ascending = limit.map(|_| Ordering::Ascending);
+            let maybe_descending = limit.map(|_| Ordering::Descending);
+            (
+                compiler.add_distinct_selection_with_ordering(
+                    &PropertyTypeQueryPath::BaseUrl,
+                    Distinctness::Distinct,
+                    maybe_ascending,
+                ),
+                compiler.add_distinct_selection_with_ordering(
+                    &PropertyTypeQueryPath::Version,
+                    Distinctness::Distinct,
+                    maybe_descending,
+                ),
+            )
+        };
+
         // It's possible to have multiple records with the same transaction time. We order them
         // descending so that the most recent record is returned first.
         let transaction_time_index = compiler.add_distinct_selection_with_ordering(
@@ -272,19 +345,53 @@ impl<C: AsClient> Read<EntityTypeSnapshotRecord> for PostgresStore<C> {
         &self,
         filter: &Filter<Self::Record>,
         temporal_axes: Option<&QueryTemporalAxes>,
+        after: Option<&<Self::Record as Record>::VertexId>,
+        limit: Option<usize>,
     ) -> Result<Self::ReadStream, QueryError> {
         let mut compiler = SelectCompiler::new(temporal_axes);
+        if let Some(limit) = limit {
+            compiler.set_limit(limit);
+        }
 
-        let base_url_index = compiler.add_distinct_selection_with_ordering(
-            &EntityTypeQueryPath::BaseUrl,
-            Distinctness::Distinct,
-            None,
-        );
-        let version_index = compiler.add_distinct_selection_with_ordering(
-            &EntityTypeQueryPath::Version,
-            Distinctness::Distinct,
-            None,
-        );
+        let cursor_parameters: Option<CursorParameters> = after.map(|cursor| CursorParameters {
+            base_url: Parameter::Text(Cow::Borrowed(cursor.base_id.as_str())),
+            version: Parameter::OntologyTypeVersion(cursor.revision_id),
+        });
+
+        let (base_url_index, version_index) = if let Some(cursor_parameters) = &cursor_parameters {
+            let base_url_expression = compiler.compile_parameter(&cursor_parameters.base_url).0;
+            let version_expression = compiler.compile_parameter(&cursor_parameters.version).0;
+
+            (
+                compiler.add_cursor_selection(
+                    &EntityTypeQueryPath::BaseUrl,
+                    Ordering::Ascending,
+                    |column| Condition::GreaterOrEqual(column, base_url_expression),
+                ),
+                compiler.add_cursor_selection(
+                    &EntityTypeQueryPath::Version,
+                    Ordering::Descending,
+                    |column| Condition::Less(column, version_expression),
+                ),
+            )
+        } else {
+            // If we neither have `limit` nor `after` we don't need to sort
+            let maybe_ascending = limit.map(|_| Ordering::Ascending);
+            let maybe_descending = limit.map(|_| Ordering::Descending);
+            (
+                compiler.add_distinct_selection_with_ordering(
+                    &EntityTypeQueryPath::BaseUrl,
+                    Distinctness::Distinct,
+                    maybe_ascending,
+                ),
+                compiler.add_distinct_selection_with_ordering(
+                    &EntityTypeQueryPath::Version,
+                    Distinctness::Distinct,
+                    maybe_descending,
+                ),
+            )
+        };
+
         // It's possible to have multiple records with the same transaction time. We order them
         // descending so that the most recent record is returned first.
         let transaction_time_index = compiler.add_distinct_selection_with_ordering(
@@ -383,13 +490,16 @@ impl<C: AsClient> Read<DataTypeWithMetadata> for PostgresStore<C> {
         &self,
         filter: &Filter<DataTypeWithMetadata>,
         temporal_axes: Option<&QueryTemporalAxes>,
+        after: Option<&<Self::Record as Record>::VertexId>,
+        limit: Option<usize>,
     ) -> Result<Self::ReadStream, QueryError> {
-        let stream = Read::<DataTypeSnapshotRecord>::read(self, filter, temporal_axes)
-            .await?
-            .map_ok(|record| DataTypeWithMetadata {
-                schema: record.schema,
-                metadata: record.metadata,
-            });
+        let stream =
+            Read::<DataTypeSnapshotRecord>::read(self, filter, temporal_axes, after, limit)
+                .await?
+                .map_ok(|record| DataTypeWithMetadata {
+                    schema: record.schema,
+                    metadata: record.metadata,
+                });
         Ok(stream)
     }
 }
@@ -406,13 +516,16 @@ impl<C: AsClient> Read<PropertyTypeWithMetadata> for PostgresStore<C> {
         &self,
         filter: &Filter<PropertyTypeWithMetadata>,
         temporal_axes: Option<&QueryTemporalAxes>,
+        after: Option<&<Self::Record as Record>::VertexId>,
+        limit: Option<usize>,
     ) -> Result<Self::ReadStream, QueryError> {
-        let stream = Read::<PropertyTypeSnapshotRecord>::read(self, filter, temporal_axes)
-            .await?
-            .map_ok(|record| PropertyTypeWithMetadata {
-                schema: record.schema,
-                metadata: record.metadata,
-            });
+        let stream =
+            Read::<PropertyTypeSnapshotRecord>::read(self, filter, temporal_axes, after, limit)
+                .await?
+                .map_ok(|record| PropertyTypeWithMetadata {
+                    schema: record.schema,
+                    metadata: record.metadata,
+                });
         Ok(stream)
     }
 }
@@ -429,13 +542,16 @@ impl<C: AsClient> Read<EntityTypeWithMetadata> for PostgresStore<C> {
         &self,
         filter: &Filter<EntityTypeWithMetadata>,
         temporal_axes: Option<&QueryTemporalAxes>,
+        after: Option<&<Self::Record as Record>::VertexId>,
+        limit: Option<usize>,
     ) -> Result<Self::ReadStream, QueryError> {
-        let stream = Read::<EntityTypeSnapshotRecord>::read(self, filter, temporal_axes)
-            .await?
-            .map_ok(|record| EntityTypeWithMetadata {
-                schema: record.schema,
-                metadata: record.metadata,
-            });
+        let stream =
+            Read::<EntityTypeSnapshotRecord>::read(self, filter, temporal_axes, after, limit)
+                .await?
+                .map_ok(|record| EntityTypeWithMetadata {
+                    schema: record.schema,
+                    metadata: record.metadata,
+                });
         Ok(stream)
     }
 }

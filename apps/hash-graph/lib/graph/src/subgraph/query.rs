@@ -157,7 +157,7 @@ use crate::{
 /// [`RecordPath`]: crate::store::query::QueryPath
 /// [`Parameter`]: crate::store::query::Parameter
 #[derive(Deserialize, Derivative)]
-#[derivative(Debug(bound = "R::QueryPath<'p>: Debug"))]
+#[derivative(Debug(bound = "R::QueryPath<'p>: Debug, R::VertexId: Debug"))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct StructuralQuery<'p, R: Record> {
     #[serde(bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>")]
@@ -166,7 +166,10 @@ pub struct StructuralQuery<'p, R: Record> {
     pub temporal_axes: QueryTemporalAxesUnresolved,
 }
 
-impl<'p, R: Record> StructuralQuery<'p, R> {
+impl<'p, R: Record> StructuralQuery<'p, R>
+where
+    R::VertexId: ToSchema<'static>,
+{
     fn generate_schema() -> RefOr<Schema> {
         ObjectBuilder::new()
             .property("filter", Ref::from_schema_name("Filter"))

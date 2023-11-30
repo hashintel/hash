@@ -279,6 +279,8 @@ impl DatabaseApi<'_> {
                         ),
                     },
                 },
+                None,
+                None,
             )
             .await?
             .vertices
@@ -337,6 +339,8 @@ impl DatabaseApi<'_> {
                         ),
                     },
                 },
+                None,
+                None,
             )
             .await?
             .vertices
@@ -392,6 +396,8 @@ impl DatabaseApi<'_> {
                         ),
                     },
                 },
+                None,
+                None,
             )
             .await?
             .vertices
@@ -456,6 +462,8 @@ impl DatabaseApi<'_> {
                         ),
                     },
                 },
+                None,
+                None,
             )
             .await?
             .vertices
@@ -485,6 +493,8 @@ impl DatabaseApi<'_> {
                         ),
                     },
                 },
+                None,
+                None,
             )
             .await?
             .vertices
@@ -509,6 +519,8 @@ impl DatabaseApi<'_> {
                         variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
                 },
+                None,
+                None,
             )
             .await?
             .vertices
@@ -637,6 +649,8 @@ impl DatabaseApi<'_> {
                         ),
                     },
                 },
+                None,
+                None,
             )
             .await?;
 
@@ -701,6 +715,8 @@ impl DatabaseApi<'_> {
                         variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
                 },
+                None,
+                None,
             )
             .await?;
 
