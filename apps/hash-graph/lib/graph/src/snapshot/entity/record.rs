@@ -9,11 +9,21 @@ use graph_types::{
 use serde::{Deserialize, Serialize};
 use type_system::url::VersionedUrl;
 
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "Used in procedural macros"
+)]
+fn is_false(b: &bool) -> bool {
+    !b
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CustomEntityMetadata {
     pub provenance: ProvenanceMetadata,
     pub archived: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub draft: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

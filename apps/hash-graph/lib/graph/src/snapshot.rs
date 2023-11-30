@@ -440,6 +440,7 @@ where
                                 custom: CustomEntityMetadata {
                                     provenance: entity.metadata.provenance(),
                                     archived: entity.metadata.archived(),
+                                    draft: entity.metadata.draft(),
                                 },
                             },
                             link_data: entity.link_data,
