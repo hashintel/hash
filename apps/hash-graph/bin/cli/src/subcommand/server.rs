@@ -6,11 +6,10 @@ use std::{
     time::Duration,
 };
 
-use authorization::NoAuthorization;
-#[cfg(feature = "authorization")]
 use authorization::{
     backend::{SpiceDbOpenApi, ZanzibarBackend},
     zanzibar::ZanzibarClient,
+    NoAuthorization,
 };
 use clap::Parser;
 use error_stack::{Report, Result, ResultExt};
@@ -123,17 +122,14 @@ pub struct ServerArgs {
     pub offline: bool,
 
     /// The host the Spice DB server is listening at.
-    #[cfg(feature = "authorization")]
     #[clap(long, env = "HASH_SPICEDB_HOST")]
     pub spicedb_host: String,
 
     /// The port the Spice DB server is listening at.
-    #[cfg(feature = "authorization")]
     #[clap(long, env = "HASH_SPICEDB_HTTP_PORT")]
     pub spicedb_http_port: u16,
 
     /// The secret key used to authenticate with the Spice DB server.
-    #[cfg(feature = "authorization")]
     #[clap(long, env = "HASH_SPICEDB_GRPC_PRESHARED_KEY")]
     pub spicedb_grpc_preshared_key: Option<String>,
 }
@@ -396,27 +392,21 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
         )
     };
 
-    #[cfg(feature = "authorization")]
-    let authorization_api = {
-        let mut spicedb_client = SpiceDbOpenApi::new(
-            format!("{}:{}", args.spicedb_host, args.spicedb_http_port),
-            args.spicedb_grpc_preshared_key.as_deref(),
-        )
+    let mut spicedb_client = SpiceDbOpenApi::new(
+        format!("{}:{}", args.spicedb_host, args.spicedb_http_port),
+        args.spicedb_grpc_preshared_key.as_deref(),
+    )
+    .change_context(GraphError)?;
+    spicedb_client
+        .import_schema(include_str!(
+            "../../../../../../libs/@local/hash-authorization/schemas/v1__initial_schema.zed"
+        ))
+        .await
         .change_context(GraphError)?;
-        spicedb_client
-            .import_schema(include_str!(
-                "../../../../../../libs/@local/hash-authorization/schemas/v1__initial_schema.zed"
-            ))
-            .await
-            .change_context(GraphError)?;
-        ZanzibarClient::new(spicedb_client)
-    };
-    #[cfg(not(feature = "authorization"))]
-    let authorization_api = NoAuthorization;
 
     let router = rest_api_router(RestRouterDependencies {
         store: Arc::new(pool),
-        authorization_api: Arc::new(authorization_api),
+        authorization_api: Arc::new(ZanzibarClient::new(spicedb_client)),
         domain_regex: DomainValidator::new(args.allowed_url_domain),
     });
 

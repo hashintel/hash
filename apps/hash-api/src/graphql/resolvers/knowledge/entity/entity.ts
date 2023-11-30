@@ -42,20 +42,17 @@ import {
 } from "../../../../graph/knowledge/primitive/link-entity";
 import { modifyWebAuthorizationRelationships } from "../../../../graph/ontology/primitive/util";
 import { systemAccountId } from "../../../../graph/system-account";
-import { genId } from "../../../../util";
 import {
   AccountGroupAuthorizationSubjectRelation,
   AuthorizationSubjectKind,
   AuthorizationViewerInput,
   EntityAuthorizationRelation,
   EntityAuthorizationRelationship,
-  Mutation,
   MutationAddEntityEditorArgs,
   MutationAddEntityOwnerArgs,
   MutationAddEntityViewerArgs,
   MutationArchiveEntityArgs,
   MutationCreateEntityArgs,
-  MutationInferEntitiesArgs,
   MutationRemoveEntityEditorArgs,
   MutationRemoveEntityOwnerArgs,
   MutationRemoveEntityViewerArgs,
@@ -397,38 +394,6 @@ export const archiveEntityResolver: ResolverFn<
   await archiveEntity(context, authentication, { entity });
 
   return true;
-};
-
-export const inferEntitiesResolver: ResolverFn<
-  Mutation["inferEntities"],
-  null,
-  LoggedInGraphQLContext,
-  MutationInferEntitiesArgs
-> = async (_, args, { authentication, temporal }) => {
-  if (!temporal) {
-    throw new Error("Temporal client not available");
-  }
-
-  const status = await temporal.workflow.execute("inferEntities", {
-    taskQueue: "aipy",
-    args: [
-      {
-        authentication,
-        ...args,
-        maxTokens: args.maxTokens === 0 ? null : args.maxTokens,
-      },
-    ],
-    workflowId: `inferEntities-${genId()}`,
-    retry: {
-      maximumAttempts: 3,
-    },
-  });
-
-  if (status.code !== "OK") {
-    throw new Error(status.message);
-  }
-
-  return status.contents[0];
 };
 
 export const addEntityOwnerResolver: ResolverFn<

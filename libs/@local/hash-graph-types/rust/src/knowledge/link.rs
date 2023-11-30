@@ -44,6 +44,8 @@ pub struct EntityLinkOrder {
 pub struct LinkData {
     pub left_entity_id: EntityId,
     pub right_entity_id: EntityId,
+    // TODO: Remove link ordering
+    //   see https://linear.app/hash/issue/H-162
     #[serde(flatten)]
     pub order: EntityLinkOrder,
 }

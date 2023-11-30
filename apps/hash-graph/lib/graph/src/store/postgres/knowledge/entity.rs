@@ -299,6 +299,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
+        draft: bool,
         entity_type_url: VersionedUrl,
         properties: EntityProperties,
         link_data: Option<LinkData>,
@@ -406,6 +407,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .insert_entity_edition(
                 RecordCreatedById::new(actor_id),
                 archived,
+                draft,
                 &entity_type_url,
                 &properties,
                 &link_order,
@@ -525,10 +527,15 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     record_archived_by_id: None,
                 },
                 archived,
+                draft,
             ))
         }
     }
 
+    // TODO: Relax constraints on entity validation for draft entities
+    //   see https://linear.app/hash/issue/H-1449
+    // TODO: Restrict non-draft links to non-draft entities
+    //   see https://linear.app/hash/issue/H-1450
     async fn validate_entity<A: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,
@@ -770,6 +777,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         record_archived_by_id: None,
                     },
                     false,
+                    false,
                 )
             })
             .collect())
@@ -781,6 +789,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         actor_id: AccountId,
         authorization_api: &A,
         query: &StructuralQuery<Entity>,
+        after: Option<&EntityVertexId>,
+        limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
@@ -791,11 +801,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let mut entities = Read::<Entity>::read_vec(self, filter, Some(&temporal_axes))
-            .await?
-            .into_iter()
-            .map(|entity| (entity.vertex_id(time_axis), entity))
-            .collect::<HashMap<_, _>>();
+        let mut entities =
+            Read::<Entity>::read_vec(self, filter, Some(&temporal_axes), after, limit)
+                .await?
+                .into_iter()
+                .map(|entity| (entity.vertex_id(time_axis), entity))
+                .collect::<HashMap<_, _>>();
         // TODO: The subgraph structure differs from the API interface. At the API the vertices
         //       are stored in a nested `HashMap` and here it's flattened. We need to adjust the
         //       the subgraph anyway so instead of refactoring this now this will just copy the ids.
@@ -873,6 +884,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
+        draft: bool,
         entity_type_url: VersionedUrl,
         properties: EntityProperties,
         link_order: EntityLinkOrder,
@@ -927,6 +939,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .insert_entity_edition(
                 RecordCreatedById::new(actor_id),
                 archived,
+                draft,
                 &entity_type_url,
                 &properties,
                 &link_order,
@@ -1057,6 +1070,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 record_archived_by_id: None,
             },
             archived,
+            draft,
         ))
     }
 }
@@ -1066,6 +1080,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         &self,
         record_created_by_id: RecordCreatedById,
         archived: bool,
+        draft: bool,
         entity_type_id: &VersionedUrl,
         properties: &EntityProperties,
         link_order: &EntityLinkOrder,
@@ -1078,15 +1093,17 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         entity_edition_id,
                         record_created_by_id,
                         archived,
+                        draft,
                         properties,
                         left_to_right_order,
                         right_to_left_order
-                    ) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
+                    ) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)
                     RETURNING entity_edition_id;
                 ",
                 &[
                     &record_created_by_id,
                     &archived,
+                    &draft,
                     &properties,
                     &link_order.left_to_right,
                     &link_order.right_to_left,

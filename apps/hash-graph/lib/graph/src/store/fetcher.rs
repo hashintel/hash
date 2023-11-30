@@ -42,7 +42,9 @@ use crate::{
     },
     subgraph::{
         edges::GraphResolveDepths,
-        identifier::VertexId,
+        identifier::{
+            DataTypeVertexId, EntityTypeVertexId, EntityVertexId, PropertyTypeVertexId, VertexId,
+        },
         query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
@@ -222,17 +224,17 @@ where
         match ontology_type_reference {
             OntologyTypeReference::DataTypeReference(_) => {
                 self.store
-                    .get_data_type(actor_id, authorization_api, &create_query(url))
+                    .get_data_type(actor_id, authorization_api, &create_query(url), None, None)
                     .await
             }
             OntologyTypeReference::PropertyTypeReference(_) => {
                 self.store
-                    .get_property_type(actor_id, authorization_api, &create_query(url))
+                    .get_property_type(actor_id, authorization_api, &create_query(url), None, None)
                     .await
             }
             OntologyTypeReference::EntityTypeReference(_) => {
                 self.store
-                    .get_entity_type(actor_id, authorization_api, &create_query(url))
+                    .get_entity_type(actor_id, authorization_api, &create_query(url), None, None)
                     .await
             }
         }
@@ -443,30 +445,38 @@ where
             .await
             .change_context(InsertionError)?;
 
-        self.store
-            .create_data_types(
-                actor_id,
-                authorization_api,
-                fetched_ontology_types.data_types,
-                ConflictBehavior::Skip,
-            )
-            .await?;
-        self.store
-            .create_property_types(
-                actor_id,
-                authorization_api,
-                fetched_ontology_types.property_types,
-                ConflictBehavior::Skip,
-            )
-            .await?;
-        self.store
-            .create_entity_types(
-                actor_id,
-                authorization_api,
-                fetched_ontology_types.entity_types,
-                ConflictBehavior::Skip,
-            )
-            .await?;
+        if !fetched_ontology_types.data_types.is_empty() {
+            self.store
+                .create_data_types(
+                    actor_id,
+                    authorization_api,
+                    fetched_ontology_types.data_types,
+                    ConflictBehavior::Skip,
+                )
+                .await?;
+        }
+
+        if !fetched_ontology_types.property_types.is_empty() {
+            self.store
+                .create_property_types(
+                    actor_id,
+                    authorization_api,
+                    fetched_ontology_types.property_types,
+                    ConflictBehavior::Skip,
+                )
+                .await?;
+        }
+
+        if !fetched_ontology_types.entity_types.is_empty() {
+            self.store
+                .create_entity_types(
+                    actor_id,
+                    authorization_api,
+                    fetched_ontology_types.entity_types,
+                    ConflictBehavior::Skip,
+                )
+                .await?;
+        }
 
         Ok(())
     }
@@ -497,33 +507,44 @@ where
                 .await
                 .change_context(InsertionError)?;
 
-            let created_data_types = self
-                .store
-                .create_data_types(
-                    actor_id,
-                    authorization_api,
-                    fetched_ontology_types.data_types,
-                    ConflictBehavior::Skip,
-                )
-                .await?;
-            let created_property_types = self
-                .store
-                .create_property_types(
-                    actor_id,
-                    authorization_api,
-                    fetched_ontology_types.property_types,
-                    ConflictBehavior::Skip,
-                )
-                .await?;
-            let created_entity_types = self
-                .store
-                .create_entity_types(
-                    actor_id,
-                    authorization_api,
-                    fetched_ontology_types.entity_types,
-                    ConflictBehavior::Skip,
-                )
-                .await?;
+            let created_data_types = if fetched_ontology_types.data_types.is_empty() {
+                Vec::new()
+            } else {
+                self.store
+                    .create_data_types(
+                        actor_id,
+                        authorization_api,
+                        fetched_ontology_types.data_types,
+                        ConflictBehavior::Skip,
+                    )
+                    .await?
+            };
+
+            let created_property_types = if fetched_ontology_types.property_types.is_empty() {
+                Vec::new()
+            } else {
+                self.store
+                    .create_property_types(
+                        actor_id,
+                        authorization_api,
+                        fetched_ontology_types.property_types,
+                        ConflictBehavior::Skip,
+                    )
+                    .await?
+            };
+
+            let created_entity_types = if fetched_ontology_types.entity_types.is_empty() {
+                Vec::new()
+            } else {
+                self.store
+                    .create_entity_types(
+                        actor_id,
+                        authorization_api,
+                        fetched_ontology_types.entity_types,
+                        ConflictBehavior::Skip,
+                    )
+                    .await?
+            };
 
             Ok(created_data_types
                 .into_iter()
@@ -588,8 +609,10 @@ where
         &self,
         query: &Filter<Self::Record>,
         temporal_axes: Option<&QueryTemporalAxes>,
+        start: Option<&<Self::Record as Record>::VertexId>,
+        limit: Option<usize>,
     ) -> Result<Self::ReadStream, QueryError> {
-        self.store.read(query, temporal_axes).await
+        self.store.read(query, temporal_axes, start, limit).await
     }
 }
 
@@ -680,9 +703,11 @@ where
         actor_id: AccountId,
         authorization_api: &Au,
         query: &StructuralQuery<DataTypeWithMetadata>,
+        after: Option<&DataTypeVertexId>,
+        limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         self.store
-            .get_data_type(actor_id, authorization_api, query)
+            .get_data_type(actor_id, authorization_api, query, after, limit)
             .await
     }
 
@@ -771,9 +796,11 @@ where
         actor_id: AccountId,
         authorization_api: &Au,
         query: &StructuralQuery<PropertyTypeWithMetadata>,
+        after: Option<&PropertyTypeVertexId>,
+        limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         self.store
-            .get_property_type(actor_id, authorization_api, query)
+            .get_property_type(actor_id, authorization_api, query, after, limit)
             .await
     }
 
@@ -858,9 +885,11 @@ where
         actor_id: AccountId,
         authorization_api: &Au,
         query: &StructuralQuery<EntityTypeWithMetadata>,
+        after: Option<&EntityTypeVertexId>,
+        limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         self.store
-            .get_entity_type(actor_id, authorization_api, query)
+            .get_entity_type(actor_id, authorization_api, query, after, limit)
             .await
     }
 
@@ -930,6 +959,7 @@ where
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
+        draft: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_data: Option<LinkData>,
@@ -954,6 +984,7 @@ where
                 entity_uuid,
                 decision_time,
                 archived,
+                draft,
                 entity_type_id,
                 properties,
                 link_data,
@@ -1021,9 +1052,11 @@ where
         actor_id: AccountId,
         authorization_api: &Au,
         query: &StructuralQuery<Entity>,
+        after: Option<&EntityVertexId>,
+        limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         self.store
-            .get_entity(actor_id, authorization_api, query)
+            .get_entity(actor_id, authorization_api, query, after, limit)
             .await
     }
 
@@ -1034,6 +1067,7 @@ where
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
+        draft: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_order: EntityLinkOrder,
@@ -1057,6 +1091,7 @@ where
                 entity_id,
                 decision_time,
                 archived,
+                draft,
                 entity_type_id,
                 properties,
                 link_order,

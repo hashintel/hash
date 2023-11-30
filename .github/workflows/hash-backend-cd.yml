@@ -6,7 +6,6 @@ on:
       - main
     paths:
       - ".github/workflows/hash-backend-cd.yml"
-      - "apps/hash-ai-worker-py/**"
       - "apps/hash-ai-worker-ts/**"
       - "apps/hash-integration-worker/**"
       - "apps/hash-graph/**"
@@ -29,7 +28,6 @@ env:
   HASH_GRAPH_RESOURCE_NAME: ${{ secrets.HASH_GRAPH_RESOURCE_NAME }}
   HASH_KRATOS_RESOURCE_NAME: ${{ secrets.HASH_KRATOS_RESOURCE_NAME }}
   HASH_TEMPORAL_AI_TS_WORKER_RESOURCE_NAME: h-hash-prod-usea1-temporalworkeraits
-  HASH_TEMPORAL_AI_PY_WORKER_RESOURCE_NAME: h-hash-prod-usea1-temporalworkeraipy
   HASH_TEMPORAL_INTEGRATION_WORKER_RESOURCE_NAME: h-hash-prod-usea1-temporalworkerintegration
 
   HASH_TEMPORAL_SETUP_RESOURCE_NAME: h-temporal-prod-usea1-setup
@@ -200,44 +198,6 @@ jobs:
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_TEMPORAL_AI_TS_WORKER_RESOURCE_NAME }}
 
-  build-py-worker:
-    name: Build and push Temporal PY AI Worker
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-
-      - name: Authenticate Vault
-        id: secrets
-        uses: hashicorp/vault-action@affa6f04da5c2d55e6e115b7d1b044a6b1af8c74 # v2.7.4
-        with:
-          exportToken: true
-          url: ${{ env.VAULT_ADDR }}
-          method: jwt
-          role: prod
-          # Even though it could look like separate calls to fetch the secrets
-          # the responses here are cached, so we're only issuing a single set of credentials
-          secrets: |
-            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
-            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
-            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
-
-      - name: Docker image build through docker-build-push
-        uses: ./.github/actions/docker-build-push
-        id: build
-        with:
-          SHORTNAME: "temporal-worker-ai-py"
-          CONTEXT_PATH: ${{ github.workspace }}
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-ai-worker-py/docker/Dockerfile
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
-          IMAGE_NAME: ${{ env.HASH_TEMPORAL_AI_PY_WORKER_RESOURCE_NAME }}
-
   build-integration-worker:
     name: Build and push Temporal integration Worker
     runs-on: ubuntu-latest
@@ -402,7 +362,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build-ts-worker
-      - build-py-worker
       - build-integration-worker
     permissions:
       id-token: write

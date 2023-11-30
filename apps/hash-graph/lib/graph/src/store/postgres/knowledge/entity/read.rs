@@ -1,7 +1,7 @@
 use std::{borrow::Cow, mem::swap, str::FromStr};
 
 use async_trait::async_trait;
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
 use graph_types::{
     knowledge::{
@@ -28,11 +28,12 @@ use crate::{
         postgres::{
             ontology::OntologyId,
             query::{
-                Distinctness, ForeignKeyReference, ReferenceTable, SelectCompiler, Table, Transpile,
+                Condition, Distinctness, Expression, ForeignKeyReference, Function, Ordering,
+                ReferenceTable, SelectCompiler, Table, Transpile,
             },
         },
-        query::Filter,
-        AsClient, PostgresStore, QueryError,
+        query::{Filter, Parameter},
+        AsClient, PostgresStore, QueryError, Record,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
@@ -40,6 +41,12 @@ use crate::{
         temporal_axes::{PinnedAxis, QueryTemporalAxes, VariableAxis},
     },
 };
+
+struct CursorParameters<'p> {
+    owned_by_id: Parameter<'p>,
+    entity_uuid: Parameter<'p>,
+    revision_id: Parameter<'p>,
+}
 
 #[async_trait]
 impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
@@ -52,6 +59,8 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         &self,
         filter: &Filter<Entity>,
         temporal_axes: Option<&QueryTemporalAxes>,
+        after: Option<&<Self::Record as Record>::VertexId>,
+        limit: Option<usize>,
     ) -> Result<Self::ReadStream, QueryError> {
         // We can't define these inline otherwise we'll drop while borrowed
         let left_entity_uuid_path = EntityQueryPath::EntityEdge {
@@ -76,27 +85,107 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         };
 
         let mut compiler = SelectCompiler::new(temporal_axes);
+        if let Some(limit) = limit {
+            compiler.set_limit(limit);
+        }
 
-        let owned_by_id_index = compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::OwnedById,
-            Distinctness::Distinct,
-            None,
-        );
-        let entity_uuid_index = compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::Uuid,
-            Distinctness::Distinct,
-            None,
-        );
-        let decision_time_index = compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::DecisionTime,
-            Distinctness::Distinct,
-            None,
-        );
-        let transaction_time_index = compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::TransactionTime,
-            Distinctness::Distinct,
-            None,
-        );
+        let cursor_parameters: Option<CursorParameters> = after.map(|cursor| CursorParameters {
+            owned_by_id: Parameter::Uuid(cursor.base_id.owned_by_id.into_uuid()),
+            entity_uuid: Parameter::Uuid(cursor.base_id.entity_uuid.into_uuid()),
+            revision_id: Parameter::Timestamp(cursor.revision_id.cast()),
+        });
+
+        let (owned_by_id_index, entity_uuid_index, (transaction_time_index, decision_time_index)) =
+            if let Some(cursor_parameters) = &cursor_parameters {
+                let owned_by_id_expression =
+                    compiler.compile_parameter(&cursor_parameters.owned_by_id).0;
+                let entity_uuid_expression =
+                    compiler.compile_parameter(&cursor_parameters.entity_uuid).0;
+                let revision_id_expression =
+                    compiler.compile_parameter(&cursor_parameters.revision_id).0;
+                (
+                    compiler.add_cursor_selection(
+                        &EntityQueryPath::OwnedById,
+                        Ordering::Ascending,
+                        |column| Condition::GreaterOrEqual(column, owned_by_id_expression),
+                    ),
+                    compiler.add_cursor_selection(
+                        &EntityQueryPath::Uuid,
+                        Ordering::Ascending,
+                        |column| Condition::GreaterOrEqual(column, entity_uuid_expression),
+                    ),
+                    match temporal_axes.map(QueryTemporalAxes::variable_time_axis) {
+                        Some(TimeAxis::TransactionTime) => (
+                            compiler.add_cursor_selection(
+                                &EntityQueryPath::TransactionTime,
+                                Ordering::Descending,
+                                |column| {
+                                    Condition::Less(
+                                        Expression::Function(Function::Lower(Box::new(column))),
+                                        revision_id_expression,
+                                    )
+                                },
+                            ),
+                            compiler.add_selection_path(&EntityQueryPath::DecisionTime),
+                        ),
+                        Some(TimeAxis::DecisionTime) => (
+                            compiler.add_selection_path(&EntityQueryPath::TransactionTime),
+                            compiler.add_cursor_selection(
+                                &EntityQueryPath::DecisionTime,
+                                Ordering::Descending,
+                                |column| {
+                                    Condition::Less(
+                                        Expression::Function(Function::Lower(Box::new(column))),
+                                        revision_id_expression,
+                                    )
+                                },
+                            ),
+                        ),
+                        None => {
+                            return Err(Report::new(QueryError).attach_printable(
+                                "When specifying the `start` parameter, a temporal axes has to be \
+                                 provided",
+                            ));
+                        }
+                    },
+                )
+            } else {
+                // If we neither have `limit` nor `after` we don't need to sort
+                let maybe_ascending = limit.map(|_| Ordering::Ascending);
+                let maybe_descending = limit.map(|_| Ordering::Descending);
+                (
+                    compiler.add_distinct_selection_with_ordering(
+                        &EntityQueryPath::OwnedById,
+                        Distinctness::Distinct,
+                        maybe_ascending,
+                    ),
+                    compiler.add_distinct_selection_with_ordering(
+                        &EntityQueryPath::Uuid,
+                        Distinctness::Distinct,
+                        maybe_ascending,
+                    ),
+                    (
+                        compiler.add_distinct_selection_with_ordering(
+                            &EntityQueryPath::TransactionTime,
+                            Distinctness::Distinct,
+                            maybe_descending.filter(|_| {
+                                temporal_axes.map_or(true, |axes| {
+                                    axes.variable_time_axis() == TimeAxis::TransactionTime
+                                })
+                            }),
+                        ),
+                        compiler.add_distinct_selection_with_ordering(
+                            &EntityQueryPath::DecisionTime,
+                            Distinctness::Distinct,
+                            maybe_descending.filter(|_| {
+                                temporal_axes.map_or(true, |axes| {
+                                    axes.variable_time_axis() == TimeAxis::DecisionTime
+                                })
+                            }),
+                        ),
+                    ),
+                )
+            };
 
         let edition_id_index = compiler.add_selection_path(&EntityQueryPath::EditionId);
         let type_id_index = compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
@@ -122,6 +211,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
             compiler.add_selection_path(&EntityQueryPath::RecordCreatedById);
 
         let archived_index = compiler.add_selection_path(&EntityQueryPath::Archived);
+        let draft_index = compiler.add_selection_path(&EntityQueryPath::Draft);
 
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
@@ -198,6 +288,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                             record_archived_by_id: None,
                         },
                         row.get(archived_index),
+                        row.get(draft_index),
                     ),
                 })
             });

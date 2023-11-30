@@ -18,7 +18,11 @@ use type_system::{
 
 use crate::{
     store::{crud, ConflictBehavior, InsertionError, QueryError, UpdateError},
-    subgraph::{query::StructuralQuery, Subgraph},
+    subgraph::{
+        identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
+        query::StructuralQuery,
+        Subgraph,
+    },
 };
 
 /// Describes the API of a store implementation for [`DataType`]s.
@@ -78,6 +82,8 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
         actor_id: AccountId,
         authorization_api: &A,
         query: &StructuralQuery<DataTypeWithMetadata>,
+        after: Option<&DataTypeVertexId>,
+        limit: Option<usize>,
     ) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`DataType`].
@@ -176,6 +182,8 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
         actor_id: AccountId,
         authorization_api: &A,
         query: &StructuralQuery<PropertyTypeWithMetadata>,
+        after: Option<&PropertyTypeVertexId>,
+        limit: Option<usize>,
     ) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`PropertyType`].
@@ -272,6 +280,8 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
         actor_id: AccountId,
         authorization_api: &A,
         query: &StructuralQuery<EntityTypeWithMetadata>,
+        after: Option<&EntityTypeVertexId>,
+        limit: Option<usize>,
     ) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`EntityType`].

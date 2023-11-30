@@ -46,16 +46,13 @@ Those packages inside of [`@local`](./@local) are libraries used inside this rep
 
 The following list is a non-exhaustive list of packages in `@local`:
 
-| Package                                                         | Language(s) | Docs URL      | Description                                                                                                       |
-| --------------------------------------------------------------- | ----------- | ------------- | ----------------------------------------------------------------------------------------------------------------- |
-| [@local/codec-rs](@local/codec)                                 | Rust        | Not hosted    | Implementation of different `serde` or byte codes used in HASH                                                    |
-| [@local/hash-authorization-rs](@local/hash-authorization)       | Rust        | Not hosted    | Provides the authorization interface and logic used in the Graph                                                  |
-| [@local/hash-graph-client](@local/hash-graph-client/typescript) | TypeScript  | To be written | A generator to create a TypeScript/JavaScript client for the Graph API                                            |
-| [@local/hash-graph-client-py](@local/hash-graph-client/python)  | Python      | To be written | A generator to create a Python client for the Graph API                                                           |
-| [@local/hash-graph-sdk-py](@local/hash-graph-sdk/python)        | Python      | To be written | A high-level interface for the HASH Graph API, providing several convenience methods for interacting with the API |
-| [@local/hash-graph-types-rs](@local/hash-graph-types/rust)      | Rust        | Not hosted    | Types used inside of the Graph API                                                                                |
-| [@local/hash-graph-types-py](@local/hash-graph-types/python)    | Python      | To be written | Utility library to convert Block Protocol ontology schemas to Python Pydantic models.                             |
-| [@local/temporal-versioning-rs](@local/temporal-versioning)     | Rust        | Not hosted    | Implementation of temporal versioning                                                                             |
+| Package                                                         | Language(s) | Docs URL      | Description                                                            |
+| --------------------------------------------------------------- | ----------- | ------------- | ---------------------------------------------------------------------- |
+| [@local/codec-rs](@local/codec)                                 | Rust        | Not hosted    | Implementation of different `serde` or byte codes used in HASH         |
+| [@local/hash-authorization-rs](@local/hash-authorization)       | Rust        | Not hosted    | Provides the authorization interface and logic used in the Graph       |
+| [@local/hash-graph-client](@local/hash-graph-client/typescript) | TypeScript  | To be written | A generator to create a TypeScript/JavaScript client for the Graph API |
+| [@local/hash-graph-types-rs](@local/hash-graph-types/rust)      | Rust        | Not hosted    | Types used inside of the Graph API                                     |
+| [@local/temporal-versioning-rs](@local/temporal-versioning)     | Rust        | Not hosted    | Implementation of temporal versioning                                  |
 
 ## Contributing
 

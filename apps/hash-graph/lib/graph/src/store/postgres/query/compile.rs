@@ -33,6 +33,7 @@ pub struct CompilerArtifacts<'p> {
     condition_index: usize,
     required_tables: HashSet<AliasedTable>,
     temporal_tables: TemporalTableInfo,
+    uses_cursor: bool,
 }
 
 pub struct SelectCompiler<'p, T> {
@@ -58,6 +59,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                 joins: Vec::new(),
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
+                limit: None,
             },
             artifacts: CompilerArtifacts {
                 parameters: Vec::new(),
@@ -68,6 +70,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                     pinned_timestamp_index: None,
                     variable_interval_index: None,
                 },
+                uses_cursor: false,
             },
             temporal_axes,
             _marker: PhantomData,
@@ -82,6 +85,10 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
             .selects
             .push(SelectExpression::new(Expression::Asterisk, None));
         default
+    }
+
+    pub fn set_limit(&mut self, limit: usize) {
+        self.statement.limit = Some(limit);
     }
 
     fn time_index(&mut self, temporal_axes: &'p QueryTemporalAxes, time_axis: TimeAxis) -> usize {
@@ -247,6 +254,29 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
         self.statement.selects.len() - 1
     }
 
+    /// Adds a new path to the selection which can be used as cursor.
+    pub fn add_cursor_selection<'q: 'p>(
+        &mut self,
+        path: &'p R::QueryPath<'q>,
+        ordering: Ordering,
+        condition: impl FnOnce(Expression) -> Condition,
+    ) -> usize
+    where
+        R::QueryPath<'q>: PostgresQueryPath,
+    {
+        let column = self.compile_path_column(path);
+        self.statement.distinct.push(column);
+        self.statement.order_by_expression.push(column, ordering);
+        self.statement
+            .where_expression
+            .add_condition(condition(Expression::Column(column)));
+        self.statement
+            .selects
+            .push(SelectExpression::from_column(column, None));
+        self.artifacts.uses_cursor = true;
+        self.statement.selects.len() - 1
+    }
+
     /// Adds a new filter to the selection.
     pub fn add_filter<'f: 'p>(&mut self, filter: &'p Filter<'f, R>)
     where
@@ -359,9 +389,15 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
     }
 
     /// Compiles the `path` to a condition, which is searching for the latest version.
+    ///
+    ///  # Panics
+    ///
+    /// This function will panic if the statement has a limit or uses a cursor.
     // Warning: This adds a CTE to the statement, which is overwriting the `ontology_ids` table.
-    // When          more CTEs are needed, a test should be added to cover both CTEs in one
-    // statement to          ensure compatibility
+    //          When more CTEs are needed, a test should be added to cover both CTEs in one
+    //          statement to ensure compatibility
+    // TODO: Remove CTE to allow limit or cursor selection
+    //   see https://linear.app/hash/issue/H-1442
     fn compile_latest_ontology_version_filter<'q>(
         &mut self,
         path: &R::QueryPath<'q>,
@@ -370,6 +406,11 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
     where
         R::QueryPath<'q>: PostgresQueryPath,
     {
+        assert!(
+            self.statement.limit.is_none() && !self.artifacts.uses_cursor,
+            "Cannot use latest version filter with limit or cursor",
+        );
+
         let version_column = Column::OntologyIds(OntologyIds::Version).aliased(Alias {
             condition_index: 0,
             chain_depth: 0,
@@ -401,6 +442,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                 joins: vec![],
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
+                limit: None,
             },
         );
 
@@ -484,6 +526,47 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
         column.aliased(alias)
     }
 
+    pub fn compile_parameter<'f: 'p>(
+        &mut self,
+        parameter: &'p Parameter<'f>,
+    ) -> (Expression, ParameterType) {
+        let parameter_type = match parameter {
+            Parameter::Number(number) => {
+                self.artifacts.parameters.push(number);
+                ParameterType::Number
+            }
+            Parameter::Text(text) => {
+                self.artifacts.parameters.push(text);
+                ParameterType::Text
+            }
+            Parameter::Boolean(bool) => {
+                self.artifacts.parameters.push(bool);
+                ParameterType::Boolean
+            }
+            Parameter::Any(json) => {
+                self.artifacts.parameters.push(json);
+                ParameterType::Any
+            }
+            Parameter::Uuid(uuid) => {
+                self.artifacts.parameters.push(uuid);
+                ParameterType::Uuid
+            }
+            Parameter::OntologyTypeVersion(version) => {
+                self.artifacts.parameters.push(version);
+                ParameterType::OntologyTypeVersion
+            }
+            Parameter::Timestamp(timestamp) => {
+                self.artifacts.parameters.push(timestamp);
+                ParameterType::Timestamp
+            }
+        };
+
+        (
+            Expression::Parameter(self.artifacts.parameters.len()),
+            parameter_type,
+        )
+    }
+
     pub fn compile_filter_expression<'f: 'p>(
         &mut self,
         expression: &'p FilterExpression<'f, R>,
@@ -497,38 +580,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                 let parameter_type = column.column.parameter_type();
                 (Expression::Column(column), parameter_type)
             }
-            FilterExpression::Parameter(parameter) => {
-                let parameter_type = match parameter {
-                    Parameter::Number(number) => {
-                        self.artifacts.parameters.push(number);
-                        ParameterType::Number
-                    }
-                    Parameter::Text(text) => {
-                        self.artifacts.parameters.push(text);
-                        ParameterType::Text
-                    }
-                    Parameter::Boolean(bool) => {
-                        self.artifacts.parameters.push(bool);
-                        ParameterType::Boolean
-                    }
-                    Parameter::Any(json) => {
-                        self.artifacts.parameters.push(json);
-                        ParameterType::Any
-                    }
-                    Parameter::Uuid(uuid) => {
-                        self.artifacts.parameters.push(uuid);
-                        ParameterType::Uuid
-                    }
-                    Parameter::OntologyTypeVersion(version) => {
-                        self.artifacts.parameters.push(version);
-                        ParameterType::OntologyTypeVersion
-                    }
-                };
-                (
-                    Expression::Parameter(self.artifacts.parameters.len()),
-                    parameter_type,
-                )
-            }
+            FilterExpression::Parameter(parameter) => self.compile_parameter(parameter),
         }
     }
 

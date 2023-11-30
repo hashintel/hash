@@ -75,30 +75,6 @@ jobs:
             | jq '[.tasks[] | select(.task == "codegen" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "codegen=$CODEGEN" >> $GITHUB_OUTPUT
 
-          HAS_PYTHON=$(test -f "${{ matrix.directory }}/pyproject.toml" && echo 'true' || echo 'false')
-          echo "has-python=$HAS_PYTHON" >> $GITHUB_OUTPUT
-          if [[ $HAS_PYTHON = 'true' ]]; then
-            echo "python-version=$(cat "${{ matrix.directory }}/pyproject.toml" | yq -p toml '.tool.poetry.dependencies.python')" >> $GITHUB_OUTPUT
-          else
-            echo "python-version=^3.11" >> $GITHUB_OUTPUT
-          fi
-
-          HAS_POETRY_DEPS=$(turbo run poetry:install --filter '${{ matrix.package }}...' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "poetry:install" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "has-poetry-deps=$HAS_POETRY_DEPS" >> $GITHUB_OUTPUT
-
-          BLACK=$(turbo run lint:black --filter '${{ matrix.package }}' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:black" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "black=$BLACK" >> $GITHUB_OUTPUT
-
-          RUFF=$(turbo run lint:ruff --filter '${{ matrix.package }}' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:ruff" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "ruff=$RUFF" >> $GITHUB_OUTPUT
-
-          MYPY=$(turbo run lint:mypy --filter '${{ matrix.package }}' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:mypy" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "mypy=$MYPY" >> $GITHUB_OUTPUT
-
           HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false') 
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
@@ -131,7 +107,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@addb7d697b0081ef0a2b09d830daf6269d640920 # v2.21.20
+        uses: taiki-e/install-action@f7c663c03b51ed0d93e9cec22a575d3f02175989 # v2.21.22
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
@@ -141,22 +117,6 @@ jobs:
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-
-      - name: Install poetry
-        if: always() && steps.lints.outputs.has-poetry-deps == 'true'
-        run: pipx install poetry
-
-      - name: Set up Python
-        if: always() && steps.lints.outputs.has-poetry-deps == 'true'
-        uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
-        with:
-          python-version: ${{ steps.lints.outputs.python-version }}
-          cache: poetry
-
-      - name: Install Python dependencies
-        if: always() && steps.lints.outputs.has-poetry-deps == 'true'
-        continue-on-error: true
-        run: turbo run poetry:install
 
       - name: Show disk usage
         run: df -h
@@ -239,26 +199,6 @@ jobs:
         env:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
         run: just doc --document-private-items
-
-      - name: Check poetry
-        if: always() && steps.lints.outputs.has-python == 'true'
-        working-directory: ${{ matrix.directory }}
-        run: poetry check
-
-      - name: Run black
-        if: always() && steps.lints.outputs.black == 'true'
-        continue-on-error: true
-        run: turbo run lint:black --filter "${{ matrix.package }}"
-
-      - name: Run ruff
-        if: always() && steps.lints.outputs.ruff == 'true'
-        continue-on-error: true
-        run: turbo run lint:ruff --filter "${{ matrix.package }}"
-
-      - name: Run MyPy
-        if: always() && steps.lints.outputs.mypy == 'true'
-        continue-on-error: true
-        run: turbo run lint:mypy --filter "${{ matrix.package }}"
 
       - name: Show disk usage
         run: df -h

@@ -14,8 +14,8 @@ use authorization::{
     AuthorizationApi, AuthorizationApiPool,
 };
 use axum::{
-    extract::Path,
-    http::StatusCode,
+    extract::{OriginalUri, Path, Query},
+    http::{header::LINK, HeaderMap, StatusCode},
     response::Response,
     routing::{get, post},
     Extension, Router,
@@ -31,14 +31,14 @@ use graph_types::{
     },
     provenance::OwnedById,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     api::rest::{
-        api_resource::RoutedResource, json::Json, report_to_status_code,
-        status::report_to_response, utoipa_typedef::subgraph::Subgraph, AuthenticatedUserHeader,
+        api_resource::RoutedResource, json::Json, status::report_to_response,
+        utoipa_typedef::subgraph::Subgraph, AuthenticatedUserHeader, Cursor, Pagination,
         PermissionResponse,
     },
     knowledge::EntityQueryToken,
@@ -46,7 +46,10 @@ use crate::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         AccountStore, EntityStore, EntityValidationType, StorePool,
     },
-    subgraph::query::{EntityStructuralQuery, StructuralQuery},
+    subgraph::{
+        identifier::EntityVertexId,
+        query::{EntityStructuralQuery, StructuralQuery},
+    },
 };
 
 #[derive(OpenApi)]
@@ -145,7 +148,7 @@ impl RoutedResource for EntityResource {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateEntityRequest {
     properties: EntityProperties,
@@ -155,11 +158,10 @@ struct CreateEntityRequest {
     owner: OwnedById,
     #[schema(nullable = false)]
     entity_uuid: Option<EntityUuid>,
-    // TODO: this could break invariants if we don't move to fractional indexing
-    //  https://app.asana.com/0/1201095311341924/1202085856561975/f
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     #[schema(nullable = false)]
     link_data: Option<LinkData>,
+    draft: bool,
 }
 
 #[utoipa::path(
@@ -196,7 +198,16 @@ where
         owned_by_id,
         entity_uuid,
         link_data,
+        draft,
     }) = body;
+
+    // TODO: Allow creating entities in a draft state
+    //   see https://linear.app/hash/issue/H-1448
+    if draft {
+        return Err(report_to_response(
+            Report::new(PermissionAssertion).attach(hash_status::StatusCode::PermissionDenied),
+        ));
+    }
 
     let mut store = store_pool.acquire().await.map_err(report_to_response)?;
     let mut authorization_api = authorization_api_pool
@@ -227,6 +238,7 @@ where
             entity_uuid,
             None,
             false,
+            draft,
             entity_type_id,
             properties,
             link_data,
@@ -360,9 +372,19 @@ where
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("after" = Option<String>, Query, description = "The cursor to start reading from"),
+        ("limit" = Option<usize>, Query, description = "The maximum number of entities to read"),
     ),
     responses(
-        (status = 200, content_type = "application/json", body = Subgraph, description = "A subgraph rooted at entities that satisfy the given query, each resolved to the requested depth."),
+        (
+            status = 200,
+            content_type = "application/json",
+            body = Subgraph,
+            description = "A subgraph rooted at entities that satisfy the given query, each resolved to the requested depth.",
+            headers(
+                ("Link" = String, description = "The link to be used to query the next page of entities"),
+            ),
+        ),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
@@ -372,42 +394,46 @@ async fn get_entities_by_query<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    Query(pagination): Query<Pagination<EntityVertexId>>,
+    OriginalUri(uri): OriginalUri,
     Json(query): Json<serde_json::Value>,
-) -> Result<Json<Subgraph>, StatusCode>
+) -> Result<(HeaderMap, Json<Subgraph>), Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let store = store_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let store = store_pool.acquire().await.map_err(report_to_response)?;
 
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let mut query = StructuralQuery::deserialize(&query).map_err(|error| {
-        tracing::error!(?error, "Could not deserialize query");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-    query.filter.convert_parameters().map_err(|error| {
-        tracing::error!(?error, "Could not validate query");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-    let subgraph = store
-        .get_entity(actor_id, &authorization_api, &query)
+    let authorization_api = authorization_api_pool
+        .acquire()
         .await
-        .map_err(|report| {
-            tracing::error!(error=?report, ?query, "Could not read entities from the store");
-            report_to_status_code(&report)
-        })?;
+        .map_err(report_to_response)?;
 
-    Ok(Json(subgraph.into()))
+    let mut query = StructuralQuery::deserialize(&query).map_err(report_to_response)?;
+    query
+        .filter
+        .convert_parameters()
+        .map_err(report_to_response)?;
+    let subgraph = store
+        .get_entity(
+            actor_id,
+            &authorization_api,
+            &query,
+            pagination.after.as_ref().map(|cursor| &cursor.0),
+            pagination.limit,
+        )
+        .await
+        .map_err(report_to_response)?;
+
+    let cursor = subgraph.roots.iter().last().map(Cursor);
+    let mut headers = HeaderMap::new();
+    if let (Some(cursor), Some(limit)) = (cursor, pagination.limit) {
+        headers.insert(LINK, cursor.link_header("next", uri, limit)?);
+    }
+    Ok((headers, Json(Subgraph::from(subgraph))))
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct UpdateEntityRequest {
     properties: EntityProperties,
@@ -417,6 +443,7 @@ struct UpdateEntityRequest {
     #[serde(flatten)]
     order: EntityLinkOrder,
     archived: bool,
+    draft: bool,
 }
 
 #[utoipa::path(
@@ -453,7 +480,16 @@ where
         entity_type_id,
         order,
         archived,
+        draft,
     }) = body;
+
+    // TODO: Allow changing the `draft` state
+    //   see https://linear.app/hash/issue/H-1452
+    if draft {
+        return Err(report_to_response(
+            Report::new(PermissionAssertion).attach(hash_status::StatusCode::PermissionDenied),
+        ));
+    }
 
     let mut store = store_pool.acquire().await.map_err(report_to_response)?;
     let mut authorization_api = authorization_api_pool
@@ -468,6 +504,7 @@ where
             entity_id,
             None,
             archived,
+            draft,
             entity_type_id,
             properties,
             order,

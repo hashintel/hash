@@ -1068,7 +1068,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     left_to_right_order INT,
                     right_to_left_order INT,
                     record_created_by_id UUID NOT NULL,
-                    archived BOOLEAN NOT NULL
+                    archived BOOLEAN NOT NULL,
+                    draft BOOLEAN NOT NULL
                 );",
             )
             .await
@@ -1082,14 +1083,22 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     left_to_right_order,
                     right_to_left_order,
                     record_created_by_id,
-                    archived
+                    archived,
+                    draft
                 ) FROM STDIN BINARY",
             )
             .await
             .change_context(InsertionError)?;
         let writer = BinaryCopyInWriter::new(
             sink,
-            &[Type::JSONB, Type::INT4, Type::INT4, Type::UUID, Type::BOOL],
+            &[
+                Type::JSONB,
+                Type::INT4,
+                Type::INT4,
+                Type::UUID,
+                Type::BOOL,
+                Type::BOOL,
+            ],
         );
         futures::pin_mut!(writer);
         for (properties, left_to_right_order, right_to_left_order) in entities {
@@ -1102,6 +1111,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     &left_to_right_order,
                     &right_to_left_order,
                     &actor_id,
+                    &false,
                     &false,
                 ])
                 .await
@@ -1119,7 +1129,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     left_to_right_order,
                     right_to_left_order,
                     record_created_by_id,
-                    archived
+                    archived,
+                    draft
                 )
                 SELECT
                     gen_random_uuid(),
@@ -1127,7 +1138,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     left_to_right_order,
                     right_to_left_order,
                     record_created_by_id,
-                    archived
+                    archived,
+                    draft
                 FROM entity_editions_temp
                 RETURNING entity_edition_id;",
                 &[],

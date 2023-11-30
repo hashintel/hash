@@ -29,6 +29,7 @@ import { MaxItemsReached } from "./linked-entity-list-editor/max-items-reached";
  * @todo - This is unsafe, and should be refactored to return a new type `DraftEntity`, so that we aren't
  *   breaking invariants and constraints. Having a disjoint type will let us rely on `tsc` properly and avoid casts
  *   and empty placeholder values below
+ *   see https://linear.app/hash/issue/H-1083/draft-entities
  */
 export const createDraftLinkEntity = ({
   rightEntityId,
@@ -44,6 +45,9 @@ export const createDraftLinkEntity = ({
     linkData: { rightEntityId, leftEntityId },
     metadata: {
       archived: false,
+      // @todo use the Graph to create draft entities
+      //   see https://linear.app/hash/issue/H-1083/draft-entities
+      draft: false,
       recordId: { editionId: "", entityId: `draft~${Date.now()}` as EntityId },
       entityTypeId: linkEntityTypeId,
       provenance: { recordCreatedById: "" as RecordCreatedById },

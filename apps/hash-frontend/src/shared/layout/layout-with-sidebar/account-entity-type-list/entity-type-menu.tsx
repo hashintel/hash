@@ -1,9 +1,9 @@
 import { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import { faAdd, faLink } from "@fortawesome/free-solid-svg-icons";
 import { ArrowUpRightIcon } from "@hashintel/design-system";
+import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import { Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
-import pluralize from "pluralize";
 import { FunctionComponent, useState } from "react";
 
 import { useFrozenValue } from "../../../frozen";

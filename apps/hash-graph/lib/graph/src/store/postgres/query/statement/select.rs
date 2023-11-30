@@ -14,6 +14,7 @@ pub struct SelectStatement {
     pub joins: Vec<JoinExpression>,
     pub where_expression: WhereExpression,
     pub order_by_expression: OrderByExpression,
+    pub limit: Option<usize>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -67,6 +68,11 @@ impl Transpile for SelectStatement {
         if !self.order_by_expression.is_empty() {
             fmt.write_char('\n')?;
             self.order_by_expression.transpile(fmt)?;
+        }
+
+        if let Some(limit) = self.limit {
+            fmt.write_char('\n')?;
+            write!(fmt, "LIMIT {limit}")?;
         }
 
         Ok(())
