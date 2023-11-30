@@ -28,6 +28,7 @@ export * from "./icon-image-regular";
 export * from "./icon-image-solid";
 export * from "./icon-input-pipe";
 export * from "./icon-link";
+export * from "./icon-plus";
 export * from "./icon-rainbow-hash";
 export * from "./icon-rotate-regular";
 export * from "./image-with-checked-background";

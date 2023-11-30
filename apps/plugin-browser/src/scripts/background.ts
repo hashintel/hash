@@ -101,16 +101,23 @@ void getUser().then((user) => {
   }
 });
 
+const tenMinutesInMs = 10 * 60 * 1000;
+
 const setInferenceRequests = getSetFromLocalStorageValue("inferenceRequests");
 void setInferenceRequests((currentValue) =>
   (currentValue ?? []).map((request) => {
     if (request.status === "pending") {
-      return {
-        ...request,
-        errorMessage:
-          "Request timed out or browser was closed while request was pending.",
-        status: "error",
-      };
+      const now = new Date();
+      const requestDate = new Date(request.createdAt);
+      const msSinceRequest = now.getTime() - requestDate.getTime();
+
+      if (msSinceRequest > tenMinutesInMs) {
+        return {
+          ...request,
+          errorMessage: "Request timed out",
+          status: "error",
+        };
+      }
     }
 
     return request;

@@ -14,6 +14,7 @@ import type {
 import { InferredEntityChangeResult } from "@local/hash-isomorphic-utils/temporal-types";
 import type { AccountId, OwnedById, Subgraph } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 import OpenAI from "openai";
 
@@ -44,19 +45,13 @@ type DereferencedEntityTypesByTypeId = Record<
   { isLink: boolean; schema: DereferencedEntityType }
 >;
 
-const log = ({
-  message,
-  requestId,
-}: {
-  message: string;
-  requestId: string;
-}) => {
-  const logMessage = `[${requestId} – ${new Date().toISOString()}] ${message}`;
+const log = (message: string) => {
+  const requestId = Context.current().info.workflowExecution.runId;
+
+  const logMessage = `[Request ${requestId} – ${new Date().toISOString()}] ${message}`;
   const logFolderPath = path.join(__dirname, "logs");
 
   if (process.env.NODE_ENV === "development") {
-    // make sure a file called logs/${requestId}.log exists using fs
-    // append message to file
     if (!fs.existsSync(logFolderPath)) {
       fs.mkdirSync(logFolderPath);
     }
@@ -77,7 +72,6 @@ const requestEntityInference = async (params: {
   entityTypes: DereferencedEntityTypesByTypeId;
   iterationCount: number;
   graphApiClient: GraphApi;
-  localRequestId: string;
   ownedById: OwnedById;
   results: InferredEntityChangeResult[];
 }): Promise<InferEntitiesReturn> => {
@@ -87,16 +81,12 @@ const requestEntityInference = async (params: {
     entityTypes,
     iterationCount,
     graphApiClient,
-    localRequestId,
     ownedById,
     results,
   } = params;
 
-  const writeLog = (message: string) =>
-    log({ message, requestId: localRequestId });
-
   if (iterationCount > 5) {
-    writeLog(
+    log(
       `Model reached maximum number of iterations. Messages: ${JSON.stringify(
         completionPayload.messages,
         undefined,
@@ -111,7 +101,7 @@ const requestEntityInference = async (params: {
     };
   }
 
-  writeLog(`Iteration ${iterationCount} begun.`);
+  log(`Iteration ${iterationCount} begun.`);
 
   const entityTypeIds = Object.keys(entityTypes);
 
@@ -127,7 +117,7 @@ const requestEntityInference = async (params: {
   try {
     data = await openai.chat.completions.create(openApiPayload);
 
-    writeLog(`Response from AI received: ${JSON.stringify(data)}.`);
+    log(`Response from AI received: ${JSON.stringify(data, undefined, 2)}.`);
   } catch (err) {
     return {
       code: StatusCode.Internal,
@@ -139,7 +129,7 @@ const requestEntityInference = async (params: {
   const response = data.choices[0];
 
   if (!response) {
-    writeLog(`No data choice available in AI Model response.`);
+    log(`No data choice available in AI Model response.`);
     return {
       code: StatusCode.Internal,
       contents: [],
@@ -174,7 +164,7 @@ const requestEntityInference = async (params: {
         message.content ?? "no message"
       }`;
 
-      writeLog(errorMessage);
+      log(errorMessage);
 
       return {
         code: StatusCode.Unknown,
@@ -184,7 +174,7 @@ const requestEntityInference = async (params: {
     }
 
     case "length":
-      writeLog(
+      log(
         `AI Model returned 'length' finish reason on attempt ${iterationCount}.`,
       );
 
@@ -198,7 +188,7 @@ const requestEntityInference = async (params: {
       };
 
     case "content_filter":
-      writeLog(
+      log(
         `The content filter was triggered on attempt ${iterationCount} with input: ${JSON.stringify(
           completionPayload.messages,
           undefined,
@@ -217,7 +207,7 @@ const requestEntityInference = async (params: {
         const errorMessage =
           "AI Model returned 'tool_calls' finish reason no tool calls";
 
-        writeLog(
+        log(
           `${errorMessage}. Message: ${JSON.stringify(message, undefined, 2)}`,
         );
 
@@ -244,8 +234,12 @@ const requestEntityInference = async (params: {
         try {
           JSON.parse(modelProvidedArgument);
         } catch {
-          writeLog(
-            `Could not parse AI Model response on attempt ${iterationCount}: ${modelProvidedArgument}`,
+          log(
+            `Could not parse AI Model response on attempt ${iterationCount}: ${JSON.stringify(
+              modelProvidedArgument,
+              undefined,
+              2,
+            )}`,
           );
 
           return retryWithMessages(
@@ -262,7 +256,7 @@ const requestEntityInference = async (params: {
 
         if (functionName === "could_not_infer_entities") {
           if (results.length > 0) {
-            writeLog("Could not infer entities, continuing.");
+            log("Could not infer entities, continuing.");
             continue;
           }
 
@@ -285,7 +279,7 @@ const requestEntityInference = async (params: {
             ) as ProposedEntityCreationsByType;
             validateProposedEntitiesByType(proposedEntitiesByType, false);
           } catch (err) {
-            writeLog(
+            log(
               `Model provided invalid argument to create_entities function. Argument provided: ${JSON.stringify(
                 modelProvidedArgument,
                 undefined,
@@ -324,26 +318,27 @@ const requestEntityInference = async (params: {
               await createEntities({
                 actorId: authentication.actorId,
                 graphApiClient,
+                log,
                 ownedById,
                 proposedEntitiesByType,
                 requestedEntityTypes: entityTypes,
               });
 
-            writeLog(
+            log(
               `Creation successes: ${JSON.stringify(
                 creationSuccesses,
                 undefined,
                 2,
               )}`,
             );
-            writeLog(
+            log(
               `Creation failures: ${JSON.stringify(
                 creationFailures,
                 undefined,
                 2,
               )}`,
             );
-            writeLog(
+            log(
               `Update candidates: ${JSON.stringify(
                 updateCandidates,
                 undefined,
@@ -379,7 +374,8 @@ const requestEntityInference = async (params: {
             if (updates.length > 0) {
               retryMessageContent += dedent(`
               Some of the entities you suggest for creation already exist. Please review their properties and call update_entities
-              to update them instead. The entities you should update are:
+              to update them instead. Please include ALL properties when updating, including any you aren't changing.
+              The entities you should update are:
               ${updates
                 .map(
                   (updateCandidate) => `
@@ -411,7 +407,7 @@ const requestEntityInference = async (params: {
             const errorMessage = `Error creating entities: ${
               (err as Error).message
             }`;
-            writeLog(errorMessage);
+            log(errorMessage);
 
             return {
               code: StatusCode.Internal,
@@ -429,7 +425,7 @@ const requestEntityInference = async (params: {
 
             validateProposedEntitiesByType(proposedEntityUpdatesByType, true);
           } catch (err) {
-            writeLog(
+            log(
               `Model provided invalid argument to update_entities function. Argument provided: ${JSON.stringify(
                 modelProvidedArgument,
                 undefined,
@@ -467,6 +463,7 @@ const requestEntityInference = async (params: {
             const { updateSuccesses, updateFailures } = await updateEntities({
               actorId: authentication.actorId,
               graphApiClient,
+              log,
               ownedById,
               proposedEntityUpdatesByType,
               requestedEntityTypes: entityTypes,
@@ -508,6 +505,7 @@ const requestEntityInference = async (params: {
       }
 
       if (retryMessages.length === 0) {
+        log(`Returning results: ${JSON.stringify(results, undefined, 2)}`);
         return {
           code: StatusCode.Ok,
           contents: results,
@@ -529,7 +527,7 @@ const requestEntityInference = async (params: {
         })),
       );
 
-      writeLog(
+      log(
         `Retrying with messages: ${JSON.stringify(
           retryMessages,
           undefined,
@@ -537,12 +535,19 @@ const requestEntityInference = async (params: {
         )}`,
       );
 
-      return retryWithMessages(retryMessages, results);
+      return retryWithMessages(
+        retryMessages,
+        /**
+         * We only return failures from the last iteration, because failures from this one will be retried,
+         * and there may be failures for duplicate entities across iterations.
+         */
+        results.filter((result) => result.status === "success"),
+      );
     }
   }
 
   const errorMessage = `AI Model returned unhandled finish reason: ${finish_reason}`;
-  writeLog(errorMessage);
+  log(errorMessage);
 
   return {
     code: StatusCode.Internal,
@@ -567,6 +572,8 @@ const systemMessage: OpenAI.ChatCompletionSystemMessageParam = {
       in the schema as possible, if you can find any relevant information in the text. 
     The entities you create must be suitable for the schema chosen 
       – ignore any entities in the provided text which do not have an appropriate schema to use. 
+      The keys of the entities 'properties' objects are URLs which end in a trailing slash. This is intentional –
+      please do not omit the trailing slash.
     Make sure you attempt to create entities of all the provided types, if there is data to do so!
     The user may respond advising you that some proposed entities already exist, and give you a new string identifier for them,
       as well as their existing properties. You can then call update_entities instead to update the relevant entities, 
@@ -594,8 +601,6 @@ export const inferEntities = async ({
     VersionedUrl,
     { isLink: boolean; schema: DereferencedEntityType }
   > = {};
-
-  const localRequestId = new Date().toISOString();
 
   try {
     const { data: entityTypesSubgraph } =
@@ -647,7 +652,6 @@ export const inferEntities = async ({
     },
     entityTypes,
     graphApiClient,
-    localRequestId,
     iterationCount: 1,
     ownedById,
     results: [],

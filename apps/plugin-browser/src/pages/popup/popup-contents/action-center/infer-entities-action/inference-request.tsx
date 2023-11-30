@@ -4,6 +4,10 @@ import { Box, Skeleton, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 
 import type { PageEntityInference } from "../../../../../shared/storage";
+import {
+  darkModeBorderColor,
+  darkModeInputBackgroundColor,
+} from "../../../../shared/dark-mode-values";
 import { InferredEntity } from "./inference-request/inferred-entity";
 
 export const InferenceRequest = ({
@@ -51,8 +55,6 @@ export const InferenceRequest = ({
     );
   }
 
-  console.log({ request });
-
   return (
     <Box>
       {Object.entries(inferredEntitiesByType).map(
@@ -76,6 +78,11 @@ export const InferenceRequest = ({
                 pb: 1.5,
                 "&:not(:last-child)": {
                   pb: 0,
+                },
+                borderRadius: 1,
+                "@media (prefers-color-scheme: dark)": {
+                  borderColor: darkModeBorderColor,
+                  background: darkModeInputBackgroundColor,
                 },
               }}
             >

@@ -52,7 +52,6 @@ export const OptionsContents = () => {
                 display: "inline-block",
                 px: 6.5,
                 py: 5,
-                width: 230,
               })}
             >
               {loading ? (

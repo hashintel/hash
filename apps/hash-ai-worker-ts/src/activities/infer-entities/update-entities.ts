@@ -1,9 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   InferredEntityUpdateFailure,
   InferredEntityUpdateSuccess,
@@ -15,17 +11,13 @@ import type {
   OwnedById,
 } from "@local/hash-subgraph";
 import {
-  EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
 
 import type { DereferencedEntityType } from "./dereference-entity-type";
 import { ProposedEntityUpdatesByType } from "./generate-tools";
+import { getEntityByFilter } from "./get-entity-by-filter";
 
 type StatusByTemporaryId<T> = Record<string, T>;
 
@@ -37,11 +29,13 @@ type EntityUpdateStatusMap = {
 export const updateEntities = async ({
   actorId,
   graphApiClient,
+  log,
   proposedEntityUpdatesByType,
   requestedEntityTypes,
 }: {
   actorId: AccountId;
   graphApiClient: GraphApi;
+  log: (message: string) => void;
   proposedEntityUpdatesByType: ProposedEntityUpdatesByType;
   requestedEntityTypes: Record<
     VersionedUrl,
@@ -78,43 +72,35 @@ export const updateEntities = async ({
               properties,
             });
 
-            const matchedEntities = await graphApiClient
-              .getEntitiesByQuery(actorId, {
-                filter: {
-                  all: [
-                    {
-                      equal: [
-                        { path: ["uuid"] },
-                        {
-                          parameter: extractEntityUuidFromEntityId(
-                            updateEntityId as EntityId,
-                          ),
-                        },
-                      ],
-                    },
-                    {
-                      equal: [
-                        { path: ["ownedById"] },
-                        {
-                          parameter: extractOwnedByIdFromEntityId(
-                            updateEntityId as EntityId,
-                          ),
-                        },
-                      ],
-                    },
-                  ],
-                },
-                graphResolveDepths: zeroedGraphResolveDepths,
-                temporalAxes: currentTimeInstantTemporalAxes,
-              })
-              .then(({ data }) => {
-                const subgraph =
-                  mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+            existingEntity = await getEntityByFilter({
+              actorId,
+              graphApiClient,
+              filter: {
+                all: [
+                  {
+                    equal: [
+                      { path: ["uuid"] },
+                      {
+                        parameter: extractEntityUuidFromEntityId(
+                          updateEntityId as EntityId,
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    equal: [
+                      { path: ["ownedById"] },
+                      {
+                        parameter: extractOwnedByIdFromEntityId(
+                          updateEntityId as EntityId,
+                        ),
+                      },
+                    ],
+                  },
+                ],
+              },
+            });
 
-                return getRoots(subgraph);
-              });
-
-            existingEntity = matchedEntities[0];
             if (!existingEntity) {
               throw new Error(
                 `No entity with entityId ${updateEntityId} found.`,
@@ -126,7 +112,10 @@ export const updateEntities = async ({
                 archived: false,
                 entityTypeId,
                 entityId: updateEntityId,
-                properties,
+                properties: {
+                  ...existingEntity.properties,
+                  ...properties,
+                },
               });
 
             entityStatusMap.updateSuccesses[proposedEntity.entityId] = {
@@ -140,6 +129,14 @@ export const updateEntities = async ({
               status: "success",
             };
           } catch (err) {
+            log(
+              `Update of entity with temporary id ${
+                proposedEntity.entityId
+              } and entityId ${
+                existingEntity?.metadata.recordId.entityId ?? "unknown"
+              } failed with err: ${JSON.stringify(err, undefined, 2)}`,
+            );
+
             entityStatusMap.updateFailures[proposedEntity.entityId] = {
               entityTypeId,
               entity: existingEntity,

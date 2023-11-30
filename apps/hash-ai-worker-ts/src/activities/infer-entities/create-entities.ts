@@ -1,10 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import type { Entity, GraphApi } from "@local/hash-graph-client";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   InferredEntityCreationFailure,
   InferredEntityCreationSuccess,
@@ -16,14 +12,15 @@ import type {
   LinkData,
   OwnedById,
 } from "@local/hash-subgraph";
-import { EntityRootType } from "@local/hash-subgraph";
 import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@local/hash-subgraph";
+import isMatch from "lodash.ismatch";
 
 import type { DereferencedEntityType } from "./dereference-entity-type";
 import type { ProposedEntityCreationsByType } from "./generate-tools";
+import { getEntityByFilter } from "./get-entity-by-filter";
 
 type UpdateCandidate = {
   existingEntity: Entity;
@@ -41,12 +38,14 @@ type EntityStatusMap = {
 export const createEntities = async ({
   actorId,
   graphApiClient,
+  log,
   proposedEntitiesByType,
   requestedEntityTypes,
   ownedById,
 }: {
   actorId: AccountId;
   graphApiClient: GraphApi;
+  log: (message: string) => void;
   proposedEntitiesByType: ProposedEntityCreationsByType;
   requestedEntityTypes: Record<
     VersionedUrl,
@@ -86,44 +85,47 @@ export const createEntities = async ({
           );
 
           if (propertyKeysToMatchOn.length > 0) {
-            const existingEntities = await graphApiClient
-              .getEntitiesByQuery(actorId, {
-                filter: {
-                  all: [
-                    {
-                      any: propertyKeysToMatchOn.map((key) => ({
-                        equal: [
-                          { path: ["properties", key] },
-                          { parameter: properties[key] },
-                        ],
-                      })),
-                    },
-                    {
+            const existingEntity = await getEntityByFilter({
+              actorId,
+              graphApiClient,
+              filter: {
+                all: [
+                  {
+                    any: propertyKeysToMatchOn.map((key) => ({
                       equal: [
-                        { path: ["ownedById"] },
-                        {
-                          parameter: ownedById,
-                        },
+                        { path: ["properties", key] },
+                        { parameter: properties[key] },
                       ],
-                    },
-                  ],
-                },
-                graphResolveDepths: zeroedGraphResolveDepths,
-                temporalAxes: currentTimeInstantTemporalAxes,
-              })
-              .then(({ data }) => {
-                const subgraph =
-                  mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+                    })),
+                  },
+                  {
+                    equal: [
+                      { path: ["ownedById"] },
+                      {
+                        parameter: ownedById,
+                      },
+                    ],
+                  },
+                ],
+              },
+            });
 
-                return getRoots(subgraph);
-              });
-
-            const existingEntity = existingEntities[0];
             if (existingEntity) {
-              entityStatusMap.updateCandidates[proposedEntity.entityId] = {
-                existingEntity,
-                proposedEntity,
-              };
+              /**
+               * If we have an existing entity, propose an update any of the proposed properties are different.
+               * Otherwise, do nothing.
+               */
+              if (
+                !isMatch(
+                  existingEntity.properties,
+                  proposedEntity.properties ?? {},
+                )
+              ) {
+                entityStatusMap.updateCandidates[proposedEntity.entityId] = {
+                  existingEntity,
+                  proposedEntity,
+                };
+              }
               return;
             }
           }
@@ -154,6 +156,12 @@ export const createEntities = async ({
               status: "success",
             };
           } catch (err) {
+            log(
+              `Creation of entity id ${
+                proposedEntity.entityId
+              } failed with err: ${JSON.stringify(err, undefined, 2)}`,
+            );
+
             entityStatusMap.creationFailures[proposedEntity.entityId] = {
               entityTypeId,
               proposedEntity,
@@ -285,6 +293,78 @@ export const createEntities = async ({
               properties,
             });
 
+            const existingLinkEntity = await getEntityByFilter({
+              actorId,
+              graphApiClient,
+              filter: {
+                all: [
+                  {
+                    equal: [
+                      {
+                        path: ["leftEntity", "ownedById"],
+                      },
+                      {
+                        parameter: extractOwnedByIdFromEntityId(
+                          linkData.leftEntityId,
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    equal: [
+                      {
+                        path: ["leftEntity", "uuid"],
+                      },
+                      {
+                        parameter: extractEntityUuidFromEntityId(
+                          linkData.leftEntityId,
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    equal: [
+                      {
+                        path: ["rightEntity", "ownedById"],
+                      },
+                      {
+                        parameter: extractOwnedByIdFromEntityId(
+                          linkData.rightEntityId,
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    equal: [
+                      {
+                        path: ["rightEntity", "uuid"],
+                      },
+                      {
+                        parameter: extractEntityUuidFromEntityId(
+                          linkData.rightEntityId,
+                        ),
+                      },
+                    ],
+                  },
+                ],
+              },
+            });
+
+            if (existingLinkEntity) {
+              /**
+               * If we have an existing link entity, propose an update any of the proposed properties are different.
+               * Otherwise, do nothing.
+               */
+              if (!isMatch(existingLinkEntity.properties, properties)) {
+                entityStatusMap.updateCandidates[proposedEntity.entityId] = {
+                  existingEntity: existingLinkEntity,
+                  proposedEntity,
+                };
+              }
+
+              return;
+            }
+
             const { data: createdEntityMetadata } =
               await graphApiClient.createEntity(actorId, {
                 entityTypeId,
@@ -302,6 +382,12 @@ export const createEntities = async ({
               status: "success",
             };
           } catch (err) {
+            log(
+              `Creation of link entity id ${
+                proposedEntity.entityId
+              } failed with err: ${JSON.stringify(err, undefined, 2)}`,
+            );
+
             entityStatusMap.creationFailures[proposedEntity.entityId] = {
               entityTypeId,
               operation: "create",

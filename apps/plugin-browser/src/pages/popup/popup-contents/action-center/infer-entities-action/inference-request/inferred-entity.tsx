@@ -3,6 +3,7 @@ import {
   CaretDownSolidIcon,
   IconButton,
   LinkIcon,
+  PlusIcon,
 } from "@hashintel/design-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
@@ -126,7 +127,7 @@ export const InferredEntity = ({
       : null;
 
   return (
-    <Stack
+    <Box
       key={result.proposedEntity.entityId.toString()}
       sx={{
         "&:not(:last-child)": {
@@ -141,112 +142,127 @@ export const InferredEntity = ({
         },
       }}
     >
-      <Tooltip title={wasSuccess ? "" : result.failureReason}>
-        <Box
-          component={wasSuccess ? "a" : "div"}
-          href={
-            persistedEntity
-              ? `${FRONTEND_ORIGIN}/@${user?.properties.shortname!}/entities/${
-                  persistedEntity.metadata.recordId.entityId.split("~")[1]
-                }`
-              : undefined
-          }
-          sx={{
-            alignItems: "center",
-            display: "flex",
-            justifyContent: "space-between",
-            pt: 0.5,
-            textDecoration: "none",
-          }}
-          target={persistedEntity ? "_blank" : undefined}
-        >
-          <Stack direction="row" sx={{ flexGrow: 1 }}>
-            <Typography
-              component="label"
-              variant="smallTextParagraphs"
-              sx={{
+      <Stack
+        component={wasSuccess ? "a" : "div"}
+        direction="row"
+        href={
+          persistedEntity
+            ? `${FRONTEND_ORIGIN}/@${user?.properties.shortname!}/entities/${
+                persistedEntity.metadata.recordId.entityId.split("~")[1]
+              }`
+            : undefined
+        }
+        sx={{
+          alignItems: "center",
+          display: "flex",
+          justifyContent: "space-between",
+          pt: 0.5,
+          textDecoration: "none",
+        }}
+        target={persistedEntity ? "_blank" : undefined}
+      >
+        <Stack direction="row" alignItems="center" sx={{ flexGrow: 1 }}>
+          <Typography
+            component="label"
+            variant="smallTextParagraphs"
+            sx={{
+              color: ({ palette }) =>
+                wasSuccess ? palette.gray[80] : palette.gray[50],
+              cursor: "pointer",
+              fontSize: 14,
+              fontStyle: wasSuccess ? undefined : "italic",
+              textDecoration: wasSuccess ? undefined : "line-through",
+              "@media (prefers-color-scheme: dark)": {
                 color: ({ palette }) =>
-                  wasSuccess ? palette.gray[80] : palette.gray[50],
-                cursor: "pointer",
-                fontSize: 14,
-                fontStyle: wasSuccess ? undefined : "italic",
-                textDecoration: wasSuccess ? undefined : "line-through",
-                "@media (prefers-color-scheme: dark)": {
-                  color: ({ palette }) =>
-                    wasSuccess ? palette.gray[20] : palette.gray[60],
-                },
-              }}
-            >
-              {linkedEntities ? (
-                <Stack direction="row" alignItems="center">
-                  {linkedEntities.left.entity
-                    ? generateEntityLabel(
-                        linkedEntities.left.entity as Entity,
-                        linkedEntities.left.entityType,
-                        linkedEntities.left.index,
-                      )
-                    : "[Unknown]"}
-                  <LinkIcon
-                    sx={{
-                      fontSize: 14,
-                      color: ({ palette }) => palette.gray[70],
-                      mx: 1,
-                    }}
-                  />
-                  {linkedEntities.right.entity
-                    ? generateEntityLabel(
-                        linkedEntities.right.entity as Entity,
-                        linkedEntities.right.entityType,
-                        linkedEntities.right.index,
-                      )
-                    : "[Unknown]"}
-                </Stack>
-              ) : (
-                generateEntityLabel(
-                  /**
-                   * This is necessary because the hash-graph-client return Entity type has 'object' as its properties,
-                   * @todo fix OpenAPI generator to avoid these inconsistencies
-                   */
-                  proposedEntity,
-                  entityType,
-                  indexInType,
-                )
-              )}
-            </Typography>
-            {operation === "update" && <UpFromLineIcon />}
-            {Object.keys(proposedEntity.properties ?? {}).length > 0 && (
-              <IconButton
-                onClick={(event) => {
-                  event.stopPropagation();
-                  event.preventDefault();
-                  toggleExpanded();
-                }}
-                sx={({ palette }) => ({
-                  p: 0.5,
-                  "&:hover": {
-                    background: "none",
-
-                    "@media (prefers-color-scheme: dark)": {
-                      color: palette.primary.main,
-                    },
-                  },
-                })}
-              >
-                <CaretDownSolidIcon
+                  wasSuccess ? palette.gray[40] : palette.gray[60],
+              },
+            }}
+          >
+            {linkedEntities ? (
+              <Stack direction="row" alignItems="center">
+                {linkedEntities.left.entity
+                  ? generateEntityLabel(
+                      linkedEntities.left.entity as Entity,
+                      linkedEntities.left.entityType,
+                      linkedEntities.left.index,
+                    )
+                  : "[Unknown]"}
+                <LinkIcon
                   sx={{
-                    height: 14,
-                    transform: !expanded
-                      ? "rotate(-90deg)"
-                      : "translateY(-1px)",
-                    transition: ({ transitions }) =>
-                      transitions.create("transform"),
+                    fontSize: 14,
+                    color: ({ palette }) => palette.gray[70],
+                    mx: 1,
                   }}
                 />
-              </IconButton>
+                {linkedEntities.right.entity
+                  ? generateEntityLabel(
+                      linkedEntities.right.entity as Entity,
+                      linkedEntities.right.entityType,
+                      linkedEntities.right.index,
+                    )
+                  : "[Unknown]"}
+              </Stack>
+            ) : (
+              generateEntityLabel(
+                /**
+                 * This is necessary because the hash-graph-client return Entity type has 'object' as its properties,
+                 * @todo fix OpenAPI generator to avoid these inconsistencies
+                 */
+                proposedEntity,
+                entityType,
+                indexInType,
+              )
             )}
-          </Stack>
-        </Box>
-      </Tooltip>
+          </Typography>
+          {Object.keys(proposedEntity.properties ?? {}).length > 0 && (
+            <IconButton
+              onClick={(event) => {
+                event.stopPropagation();
+                event.preventDefault();
+                toggleExpanded();
+              }}
+              sx={({ palette }) => ({
+                p: 0.5,
+                "&:hover": {
+                  background: "none",
+
+                  "@media (prefers-color-scheme: dark)": {
+                    color: palette.primary.main,
+                  },
+                },
+              })}
+            >
+              <CaretDownSolidIcon
+                sx={{
+                  height: 14,
+                  transform: !expanded ? "rotate(-90deg)" : "translateY(-1px)",
+                  transition: ({ transitions }) =>
+                    transitions.create("transform"),
+                }}
+              />
+            </IconButton>
+          )}
+        </Stack>
+        {status === "success" ? (
+          operation === "update" ? (
+            <UpFromLineIcon
+              sx={{
+                fill: ({ palette }) => palette.blue[60],
+                fontSize: 14,
+                ml: 0.5,
+              }}
+            />
+          ) : (
+            <PlusIcon
+              sx={{
+                fontSize: 14,
+                ml: 0.5,
+                color: ({ palette }) => palette.green[80],
+              }}
+            />
+          )
+        ) : null}
+      </Stack>
       <Collapse in={expanded}>
         <Stack mt={0.5}>
           {Object.entries(proposedEntity.properties ?? {})
@@ -300,6 +316,6 @@ export const InferredEntity = ({
           </Typography>
         )}
       </Collapse>
-    </Stack>
+    </Box>
   );
 };
