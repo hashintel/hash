@@ -30,12 +30,13 @@ use type_system::{
     url::{BaseUrl, VersionedUrl},
     DataType, EntityType, EntityTypeReference, PropertyType,
 };
+use validation::ValidationProfile;
 
 use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
         crud::Read,
-        knowledge::{EntityValidationError, EntityValidationType},
+        knowledge::{EntityValidationType, ValidateEntityError},
         query::{Filter, OntologyQueryPath},
         AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
         InsertionError, PropertyTypeStore, QueryError, Record, StoreError, StorePool, UpdateError,
@@ -1000,7 +1001,8 @@ where
         entity_type: EntityValidationType<'_>,
         properties: &EntityProperties,
         link_data: Option<&LinkData>,
-    ) -> Result<(), EntityValidationError> {
+        profile: ValidationProfile,
+    ) -> Result<(), ValidateEntityError> {
         self.store
             .validate_entity(
                 actor_id,
@@ -1009,6 +1011,7 @@ where
                 entity_type,
                 properties,
                 link_data,
+                profile,
             )
             .await
     }

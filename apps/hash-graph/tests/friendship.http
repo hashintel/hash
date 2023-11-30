@@ -1255,7 +1255,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice"
   },
-  "operations": ["all"]
+  "operations": ["all"],
+  "draft": false
 }
 
 > {%
@@ -1384,7 +1385,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
   },
-  "operations": ["all"]
+  "operations": ["all"],
+  "draft": false
 }
 
 > {%
@@ -1510,7 +1512,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "leftEntityId": "{{person_a_entity_id}}",
     "rightEntityId": "{{person_b_entity_id}}"
   },
-  "operations": ["all"]
+  "operations": ["all"],
+  "draft": false
 }
 
 > {%

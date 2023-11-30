@@ -28,6 +28,7 @@ trait Schema<V: ?Sized, P: Sync> {
     fn validate_value<'a>(
         &'a self,
         value: &'a V,
+        profile: ValidationProfile,
         provider: &'a P,
     ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send + 'a;
 }
@@ -39,19 +40,30 @@ pub struct Valid<T> {
 }
 
 impl<T> Valid<T> {
-    pub async fn new<S, C>(value: T, schema: S, context: C) -> Result<Self, Report<T::Error>>
+    pub async fn new<S, C>(
+        value: T,
+        schema: S,
+        profile: ValidationProfile,
+        context: C,
+    ) -> Result<Self, Report<T::Error>>
     where
         T: Validate<S, C> + Send,
         S: Send,
         C: Send,
     {
-        value.validate(&schema, &context).await?;
+        value.validate(&schema, profile, &context).await?;
         Ok(Self { value })
     }
 
     pub fn into_unvalidated(self) -> T {
         self.value
     }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ValidationProfile {
+    Full,
+    Draft,
 }
 
 impl<T> AsRef<T> for Valid<T> {
@@ -72,6 +84,7 @@ pub trait Validate<S, C> {
     fn validate(
         &self,
         schema: &S,
+        profile: ValidationProfile,
         context: &C,
     ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send;
 }
@@ -243,6 +256,7 @@ mod tests {
         entity_types: impl IntoIterator<Item = &'static str> + Send,
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
+        profile: ValidationProfile,
     ) -> Result<(), Report<EntityValidationError>> {
         install_error_stack_hooks();
 
@@ -265,7 +279,7 @@ mod tests {
         let entity =
             serde_json::from_str::<EntityProperties>(entity).expect("failed to read entity string");
 
-        entity.validate(&entity_type, &provider).await
+        entity.validate(&entity_type, profile, &provider).await
     }
 
     pub(crate) async fn validate_property(
@@ -273,6 +287,7 @@ mod tests {
         property_type: &'static str,
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
+        profile: ValidationProfile,
     ) -> Result<(), Report<PropertyValidationError>> {
         install_error_stack_hooks();
 
@@ -290,18 +305,19 @@ mod tests {
         let property_type: PropertyType =
             serde_json::from_str(property_type).expect("failed to parse property type");
 
-        property.validate(&property_type, &provider).await
+        property.validate(&property_type, profile, &provider).await
     }
 
     pub(crate) async fn validate_data(
         data: JsonValue,
         data_type: &'static str,
+        profile: ValidationProfile,
     ) -> Result<(), Report<DataValidationError>> {
         install_error_stack_hooks();
 
         let data_type: DataType =
             serde_json::from_str(data_type).expect("failed to parse data type");
 
-        data.validate(&data_type, &()).await
+        data.validate(&data_type, profile, &()).await
     }
 }

@@ -34,6 +34,7 @@ use graph_types::{
 use serde::Deserialize;
 use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
+use validation::ValidationProfile;
 
 use crate::{
     api::rest::{
@@ -264,6 +265,7 @@ struct ValidateEntityRequest {
     link_data: Option<LinkData>,
     #[schema(value_type = Vec<ValidationOperation>)]
     operations: HashSet<ValidationOperation>,
+    draft: bool,
 }
 
 #[utoipa::path(
@@ -298,6 +300,7 @@ where
         properties,
         link_data,
         operations,
+        draft,
     }) = body;
 
     if operations.contains(&ValidationOperation::All) {
@@ -315,6 +318,11 @@ where
                 EntityValidationType::Id(&entity_type_id),
                 &properties,
                 link_data.as_ref(),
+                if draft {
+                    ValidationProfile::Draft
+                } else {
+                    ValidationProfile::Full
+                },
             )
             .await
             .attach(hash_status::StatusCode::InvalidArgument)

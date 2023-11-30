@@ -5151,9 +5151,13 @@
         "required": [
           "entityTypeId",
           "properties",
-          "operations"
+          "operations",
+          "draft"
         ],
         "properties": {
+          "draft": {
+            "type": "boolean"
+          },
           "entityTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           },
