@@ -8,7 +8,7 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
 import { BaseUrl, Entity, EntityPropertyValue } from "@local/hash-subgraph";
-import { Box, Collapse, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, Collapse, Stack, Typography } from "@mui/material";
 
 import {
   darkModeBorderColor,
@@ -204,11 +204,22 @@ export const InferredEntity = ({
               </Stack>
             ) : (
               generateEntityLabel(
-                /**
-                 * This is necessary because the hash-graph-client return Entity type has 'object' as its properties,
-                 * @todo fix OpenAPI generator to avoid these inconsistencies
-                 */
-                proposedEntity,
+                {
+                  properties: {
+                    /**
+                     * This cast is necessary because the hash-graph-client return Entity type has 'object' as its properties,
+                     * @todo fix OpenAPI generator to avoid these inconsistencies
+                     */
+                    ...(persistedEntity?.properties as Entity | undefined)
+                      ?.properties,
+                    /**
+                     * We take both the proposed entity's properties and the persisted entity's properties
+                     * because the model does not reliably return all the entity's properties when suggesting an update,
+                     * and one of the persisted properties may be most useful for labelling.
+                     */
+                    ...proposedEntity.properties,
+                  },
+                },
                 entityType,
                 indexInType,
               )
