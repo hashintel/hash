@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use authorization::{
-    backend::ModifyRelationshipOperation,
+    backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
         EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, EntityTypeId,
         EntityTypePermission, WebPermission,
@@ -929,22 +929,32 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
-        if transaction
-            .as_client()
-            .query_opt(
-                "
-                 SELECT EXISTS (
-                    SELECT 1 FROM entity_ids WHERE web_id = $1 AND entity_uuid = $2
-                 );",
-                &[&entity_id.owned_by_id, &entity_id.entity_uuid],
-            )
-            .await
-            .change_context(UpdateError)?
-            .is_none()
-        {
-            return Err(Report::new(EntityDoesNotExist)
-                .attach(entity_id)
-                .change_context(UpdateError));
+        // TODO: Allow partial updates in Postgres by returning the previous entity edition
+        //       directly. This may result in a data race if the entity is updated concurrently but
+        //       as we allow the draft state to only change once this is fine to use for that. For
+        //       the link data this is fine as well because that can never change.
+        //   see https://linear.app/hash/issue/H-969
+        let previous_entity = Read::<Entity>::read_one(
+            &transaction,
+            &Filter::for_entity_by_entity_id(entity_id),
+            Some(
+                &QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                }
+                .resolve(),
+            ),
+        )
+        .await
+        .change_context(EntityDoesNotExist)
+        .attach(entity_id)
+        .change_context(UpdateError)?;
+        let was_draft_before = previous_entity.metadata.draft();
+
+        if draft && !was_draft_before {
+            return Err(PermissionAssertion)
+                .attach(hash_status::StatusCode::PermissionDenied)
+                .change_context(UpdateError);
         }
 
         let (edition_id, closed_schema) = transaction
@@ -1010,65 +1020,55 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(UpdateError)
         })?;
 
-        // let link_data = transaction
-        //     .as_client()
-        //     .query_opt(
-        //         "SELECT left_web_id, left_entity_uuid, right_web_id, right_entity_uuid
-        //          FROM entity_has_left_entity
-        //          JOIN entity_has_right_entity USING (web_id, entity_uuid)
-        //          WHERE web_id = $1 AND entity_uuid = $2;",
-        //         &[&entity_id.owned_by_id, &entity_id.entity_uuid],
-        //     )
-        //     .await
-        //     .change_context(UpdateError)?
-        //     .map(|row| LinkData {
-        //         left_entity_id: EntityId {
-        //             owned_by_id: row.get(0),
-        //             entity_uuid: row.get(1),
-        //         },
-        //         right_entity_id: EntityId {
-        //             owned_by_id: row.get(2),
-        //             entity_uuid: row.get(3),
-        //         },
-        //         order: link_order,
-        //     });
-
-        // TODO: Validate source and target entities when updating a link.
+        let validation_profile = if draft {
+            ValidationProfile::Draft
+        } else {
+            ValidationProfile::Full
+        };
+        // TODO: Always validate source and target entities when updating a link, currently we only
+        //       do that when the draft state changes.
         //   see https://linear.app/hash/issue/H-1413
-        properties
-            .validate(
-                &closed_schema,
-                if draft {
-                    ValidationProfile::Draft
-                } else {
-                    ValidationProfile::Full
-                },
-                &StoreProvider {
-                    store: &transaction,
-                    cache: StoreCache::default(),
-                    authorization: Some((
-                        authorization_api,
-                        actor_id,
-                        Consistency::FullyConsistent,
-                    )),
-                },
-            )
-            .await
-            .change_context(UpdateError)
-            .attach(StatusCode::InvalidArgument)?;
-
-        // transaction
-        //     .validate_entity(
-        //         actor_id,
-        //         authorization_api,
-        //         Consistency::FullyConsistent,
-        //         EntityValidationType::Schema(&closed_schema),
-        //         &properties,
-        //         link_data.as_ref(),
-        //     )
-        //     .await
-        //     .change_context(UpdateError)
-        //     .attach(StatusCode::InvalidArgument)?;
+        if draft != was_draft_before {
+            transaction
+                .validate_entity(
+                    actor_id,
+                    authorization_api,
+                    Consistency::FullyConsistent,
+                    EntityValidationType::Schema(&closed_schema),
+                    &properties,
+                    previous_entity
+                        .link_data
+                        .map(|link_data| LinkData {
+                            left_entity_id: link_data.left_entity_id,
+                            right_entity_id: link_data.right_entity_id,
+                            order: link_order,
+                        })
+                        .as_ref(),
+                    validation_profile,
+                )
+                .await
+                .change_context(UpdateError)
+                .attach(StatusCode::InvalidArgument)?;
+        } else {
+            // If the draft state does not change we only validate the properties
+            properties
+                .validate(
+                    &closed_schema,
+                    validation_profile,
+                    &StoreProvider {
+                        store: &transaction,
+                        cache: StoreCache::default(),
+                        authorization: Some((
+                            authorization_api,
+                            actor_id,
+                            Consistency::FullyConsistent,
+                        )),
+                    },
+                )
+                .await
+                .change_context(UpdateError)
+                .attach(StatusCode::InvalidArgument)?;
+        }
 
         transaction.commit().await.change_context(UpdateError)?;
 
