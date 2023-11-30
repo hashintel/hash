@@ -56,6 +56,7 @@ import { entityTypeIcons } from "../../shared/use-entity-icon";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { EntityTypeSelector } from "../shared/entity-type-selector";
+import { useActiveWorkspace } from "../shared/workspace-context";
 
 /** @see https://github.com/atlassian/react-beautiful-dnd/issues/128#issuecomment-1010053365 */
 const useDraggableInPortal = () => {
@@ -143,6 +144,8 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
     name: "pinnedEntityTypes",
   });
 
+  const { activeWorkspace, refetchActiveWorkspace } = useActiveWorkspace();
+
   const innerSubmit = handleSubmit(async (data) => {
     const { pinnedEntityTypes } = data;
 
@@ -166,8 +169,14 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
     /** @todo: error handling */
 
     void refetchProfile();
-
-    reset({ pinnedEntityTypes });
+    // Display the updated pinned entity types in the sidebar
+    if (
+      activeWorkspace &&
+      activeWorkspace.entity.metadata.recordId.entityId ===
+        profile.entity.metadata.recordId.entityId
+    ) {
+      void refetchActiveWorkspace();
+    }
     onClose();
   });
 

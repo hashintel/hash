@@ -72,6 +72,8 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 }) => {
   const { data, loading: pagesLoading } = useAccountPages(ownedById);
 
+  const [expanded, setExpanded] = useState<boolean>(true);
+
   const { shortname: ownerShortname } = useUserOrOrgShortnameByOwnedById({
     ownedById,
   });
@@ -311,7 +313,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       .map(({ page: { icon, metadata, title, type }, depth }) => {
         const { entityId } = metadata.recordId;
 
-        const expanded =
+        const isPageExpanded =
           expandedPageIds.includes(entityId) && activeId !== entityId;
         const children = renderPageTree(treeItemList, entityId);
 
@@ -339,7 +341,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             selected={
               currentPageEntityUuid === extractEntityUuidFromEntityId(entityId)
             }
-            expanded={expanded}
+            expanded={isPageExpanded}
             collapsed={collapsed}
             createSubPage={async () => {
               if (loading) {
@@ -367,7 +369,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         return (
           <Box key={entityId}>
             {item}
-            <Collapse key={`${entityId}-children`} in={expanded}>
+            <Collapse key={`${entityId}-children`} in={isPageExpanded}>
               {children.length > 0 ? (
                 children
               ) : (
@@ -403,6 +405,8 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         strategy={verticalListSortingStrategy}
       >
         <NavLink
+          expanded={expanded}
+          toggleExpanded={() => setExpanded((prev) => !prev)}
           title="Pages"
           loading={loading}
           endAdornment={
