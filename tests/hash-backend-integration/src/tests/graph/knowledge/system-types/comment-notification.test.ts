@@ -209,7 +209,7 @@ describe("Comment Notification", () => {
         occurredInEntity,
         occurredInBlock,
         repliedToComment: comment,
-        include_drafts: false,
+        includeDrafts: false,
       },
     );
 
