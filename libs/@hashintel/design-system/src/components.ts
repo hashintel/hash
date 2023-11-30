@@ -6,6 +6,7 @@ export * from "./button";
 export * from "./callout";
 export * from "./chip";
 export * from "./chip-group";
+export * from "./e-chart";
 export * from "./fa-icons/icons";
 export * from "./fontawesome-icon";
 export * from "./form-inline";

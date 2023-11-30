@@ -1,4 +1,5 @@
 import { AsteriskRegularIcon, IconButton } from "@hashintel/design-system";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   Entity,
   EntityPropertyValue,
@@ -21,7 +22,6 @@ import {
 } from "@mui/material";
 import { forwardRef, useEffect, useRef } from "react";
 
-import { generateEntityLabel } from "../../../../../lib/entities";
 import { ArrowDownArrowUpRegularIcon } from "../../../../../shared/icons/arrow-down-arrow-up-regular-icon";
 import { ChevronRightRegularIcon } from "../../../../../shared/icons/chevron-right-regular-icon";
 import { LinkRegularIcon } from "../../../../../shared/icons/link-regular-icon";

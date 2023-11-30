@@ -7,9 +7,9 @@ import {
   VersionedUrl,
 } from "@blockprotocol/graph/temporal";
 import { getRoots } from "@blockprotocol/graph/temporal/stdlib";
+import { EChart, ECOption } from "@hashintel/design-system";
 import { FunctionComponent, useMemo } from "react";
 
-import { EChart, ECOption } from "./e-chart";
 import { ChartDefinition } from "./types/chart-definition";
 
 export const BarChart: FunctionComponent<{

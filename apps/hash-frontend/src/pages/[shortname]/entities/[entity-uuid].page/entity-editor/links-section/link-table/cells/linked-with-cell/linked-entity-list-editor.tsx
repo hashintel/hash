@@ -1,5 +1,6 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   Entity,
   EntityId,
@@ -13,7 +14,6 @@ import { Box } from "@mui/material";
 import produce from "immer";
 import { useMemo, useState } from "react";
 
-import { generateEntityLabel } from "../../../../../../../../../lib/entities";
 import { getImageUrlFromEntityProperties } from "../../../../../../../../shared/get-image-url-from-properties";
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";

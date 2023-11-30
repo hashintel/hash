@@ -32,6 +32,7 @@ import {
 import {
   Dispatch,
   FunctionComponent,
+  ReactNode,
   SetStateAction,
   useMemo,
   useState,
@@ -117,6 +118,7 @@ type TableHeaderProps = {
     | DataTypeWithMetadata
   )[];
   filterState: FilterState;
+  endAdornment?: ReactNode;
   setFilterState: Dispatch<SetStateAction<FilterState>>;
   toggleSearch?: () => void;
   onBulkActionCompleted?: () => void;
@@ -134,6 +136,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
   items,
   selectedItems,
   filterState,
+  endAdornment,
   setFilterState,
   toggleSearch,
   onBulkActionCompleted,
@@ -266,84 +269,88 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
           </IconButton>
         ) : null}
       </Box>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "flex-end",
-          background: ({ palette }) =>
-            displayFilters || Object.values(filterState).some((value) => value)
-              ? palette.common.white
-              : "transparent",
-          transition: ({ transitions }) => transitions.create("background"),
-          borderRadius: 15,
-        }}
-      >
-        <Button
-          variant="tertiary_quiet"
-          onClick={() => setDisplayFilters(!displayFilters)}
-          startIcon={<FilterListIcon />}
-          sx={{
-            py: 0.25,
-            px: 2,
-            borderRadius: 15,
-            background: "transparent",
-            minHeight: "unset",
-            minWidth: "unset",
-            fontWeight: 500,
-            fontSize: 13,
-            color: ({ palette }) => palette.gray[70],
-            [`.${buttonClasses.startIcon}`]: {
-              color: ({ palette }) => palette.gray[70],
-            },
-            ":hover": {
-              color: ({ palette }) => palette.gray[90],
-              background: ({ palette }) => palette.gray[30],
-              [`.${buttonClasses.startIcon}`]: {
-                color: ({ palette }) => palette.gray[90],
-              },
-            },
-          }}
-        >
-          Filter
-        </Button>
+      <Box display="flex" columnGap={1}>
         <Box
           sx={{
-            transition: ({ transitions }) => transitions.create("max-width"),
-            maxWidth: displayFilters ? 500 : 0,
-            overflow: "hidden",
+            display: "flex",
+            justifyContent: "flex-end",
+            background: ({ palette }) =>
+              displayFilters ||
+              Object.values(filterState).some((value) => value)
+                ? palette.common.white
+                : "transparent",
+            transition: ({ transitions }) => transitions.create("background"),
+            borderRadius: 15,
           }}
         >
-          <Box
-            display="flex"
-            flexWrap="nowrap"
-            alignItems="center"
-            height="100%"
-            paddingRight={2}
+          <Button
+            variant="tertiary_quiet"
+            onClick={() => setDisplayFilters(!displayFilters)}
+            startIcon={<FilterListIcon />}
+            sx={{
+              py: 0.25,
+              px: 2,
+              borderRadius: 15,
+              background: "transparent",
+              minHeight: "unset",
+              minWidth: "unset",
+              fontWeight: 500,
+              fontSize: 13,
+              color: ({ palette }) => palette.gray[70],
+              [`.${buttonClasses.startIcon}`]: {
+                color: ({ palette }) => palette.gray[70],
+              },
+              ":hover": {
+                color: ({ palette }) => palette.gray[90],
+                background: ({ palette }) => palette.gray[30],
+                [`.${buttonClasses.startIcon}`]: {
+                  color: ({ palette }) => palette.gray[90],
+                },
+              },
+            }}
           >
-            {filterState.includeArchived !== undefined ? (
+            Filter
+          </Button>
+          <Box
+            sx={{
+              transition: ({ transitions }) => transitions.create("max-width"),
+              maxWidth: displayFilters ? 500 : 0,
+              overflow: "hidden",
+            }}
+          >
+            <Box
+              display="flex"
+              flexWrap="nowrap"
+              alignItems="center"
+              height="100%"
+              paddingRight={2}
+            >
+              {filterState.includeArchived !== undefined ? (
+                <CheckboxFilter
+                  label="Include archived"
+                  checked={filterState.includeArchived}
+                  onChange={(checked) =>
+                    setFilterState((prev) => ({
+                      ...prev,
+                      includeArchived: checked,
+                    }))
+                  }
+                />
+              ) : null}
               <CheckboxFilter
-                label="Include archived"
-                checked={filterState.includeArchived}
+                label="Include external"
+                checked={filterState.includeGlobal}
                 onChange={(checked) =>
                   setFilterState((prev) => ({
                     ...prev,
-                    includeArchived: checked,
+                    includeGlobal: checked,
                   }))
                 }
               />
-            ) : null}
-            <CheckboxFilter
-              label="Include external"
-              checked={filterState.includeGlobal}
-              onChange={(checked) =>
-                setFilterState((prev) => ({
-                  ...prev,
-                  includeGlobal: checked,
-                }))
-              }
-            />
+            </Box>
           </Box>
         </Box>
+        {endAdornment}
       </Box>
     </Box>
   );

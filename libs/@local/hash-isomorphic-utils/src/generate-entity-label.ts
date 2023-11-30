@@ -67,10 +67,12 @@ export const generateEntityLabel = (
       );
 
       entityType = entityTypeAndAncestors[0];
-    } catch (err) {
+    } catch (error) {
       // eslint-disable-next-line no-console -- prefer not to crash here but still have some feedback that there's an issue
       console.error(
-        `Error looking for entity type and ancestors in provided subgraph: ${err}}`,
+        `Error looking for entity type and ancestors in provided subgraph: ${
+          (error as Error).message
+        }}`,
       );
     }
 

@@ -1,6 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -44,7 +45,6 @@ import {
   StructuralQueryEntitiesQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
-import { generateEntityLabel } from "../../../../lib/entities";
 import { isPageArchived } from "../../../../shared/is-archived";
 import { isEntityPageEntity } from "../../../../shared/is-of-type";
 import { usePropertyTypes } from "../../../../shared/property-types-context";

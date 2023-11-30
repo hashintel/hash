@@ -1,17 +1,33 @@
 import {
+  Entity as BpEntity,
+  EntityRootType as BpEntityRootType,
+  Subgraph as BpSubgraph,
+} from "@blockprotocol/graph";
+import {
   CustomCell,
   GridCellKind,
   Item,
   TextCell,
 } from "@glideapps/glide-data-grid";
+import { EntitiesGraphChart } from "@hashintel/block-design-system";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
+  Entity,
+  EntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import { Box, useTheme } from "@mui/material";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import {
+  Box,
+  ToggleButton,
+  toggleButtonClasses,
+  ToggleButtonGroup,
+  Tooltip,
+  useTheme,
+} from "@mui/material";
 import { useRouter } from "next/router";
 import {
   FunctionComponent,
@@ -28,13 +44,17 @@ import {
   gridRowHeight,
 } from "../../components/grid/grid";
 import { BlankCell, blankCell } from "../../components/grid/utils";
-import { useEntityTypeEntities } from "../../shared/entity-type-entities-context";
+import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
+import { useEntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
+import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
+import { ListRegularIcon } from "../../shared/icons/list-regular-icon";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import {
   FilterState,
   TableHeader,
   tableHeaderHeight,
 } from "../../shared/table-header";
+import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { renderChipCell } from "./chip-cell";
 import {
@@ -60,14 +80,35 @@ export const EntitiesTable: FunctionComponent<{
   });
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
+  const [view, setView] = useState<"table" | "graph">("table");
+
   const {
+    entityTypeBaseUrl,
+    entityTypeId,
     entities: lastLoadedEntities,
     entityTypes,
     hadCachedContent,
     loading,
     propertyTypes,
-    subgraph,
-  } = useEntityTypeEntities();
+    subgraph: subgraphWithoutLinkedEntities,
+  } = useEntityTypeEntitiesContext();
+
+  const { subgraph: subgraphWithLinkedEntities } = useEntityTypeEntities({
+    entityTypeBaseUrl,
+    entityTypeId,
+    graphResolveDepths: {
+      constrainsLinksOn: { outgoing: 255 },
+      constrainsLinkDestinationsOn: { outgoing: 255 },
+      constrainsPropertiesOn: { outgoing: 255 },
+      constrainsValuesOn: { outgoing: 255 },
+      inheritsFrom: { outgoing: 255 },
+      isOfType: { outgoing: 1 },
+      hasLeftEntity: { outgoing: 1, incoming: 1 },
+      hasRightEntity: { outgoing: 1, incoming: 1 },
+    },
+  });
+
+  const subgraph = subgraphWithLinkedEntities ?? subgraphWithoutLinkedEntities;
 
   const entities = useMemo(
     /**
@@ -80,8 +121,8 @@ export const EntitiesTable: FunctionComponent<{
 
   const isViewingPages = useMemo(
     () =>
-      entities?.every(({ metadata: { entityTypeId } }) =>
-        isPageEntityTypeId(entityTypeId),
+      entities?.every(({ metadata }) =>
+        isPageEntityTypeId(metadata.entityTypeId),
       ),
     [entities],
   );
@@ -233,6 +274,27 @@ export const EntitiesTable: FunctionComponent<{
 
   const theme = useTheme();
 
+  const getOwnerForEntity = useGetOwnerForEntity();
+
+  const handleEntityClick = useCallback(
+    (entity: BpEntity) => {
+      const { shortname: entityNamespace } = getOwnerForEntity(
+        entity as Entity,
+      );
+
+      if (entityNamespace === "") {
+        return;
+      }
+
+      void router.push(
+        `/@${entityNamespace}/entities/${extractEntityUuidFromEntityId(
+          entity.metadata.recordId.entityId as EntityId,
+        )}`,
+      );
+    },
+    [router, getOwnerForEntity],
+  );
+
   return (
     <Box>
       <TableHeader
@@ -246,39 +308,125 @@ export const EntitiesTable: FunctionComponent<{
             ),
           ) ?? []
         }
+        endAdornment={
+          <ToggleButtonGroup
+            value={view}
+            exclusive
+            onChange={(_, updatedView) => {
+              if (updatedView) {
+                setView(updatedView);
+              }
+            }}
+            aria-label="view"
+            size="small"
+            sx={{
+              [`.${toggleButtonClasses.root}`]: {
+                backgroundColor: ({ palette }) => palette.common.white,
+                "&:not(:last-of-type)": {
+                  borderRightColor: ({ palette }) => palette.gray[20],
+                  borderRightStyle: "solid",
+                  borderRightWidth: 2,
+                },
+                "&:hover": {
+                  backgroundColor: ({ palette }) => palette.common.white,
+                  svg: {
+                    color: ({ palette }) => palette.gray[80],
+                  },
+                },
+                [`&.${toggleButtonClasses.selected}`]: {
+                  backgroundColor: ({ palette }) => palette.common.white,
+                  svg: {
+                    color: ({ palette }) => palette.gray[90],
+                  },
+                },
+                svg: {
+                  transition: ({ transitions }) => transitions.create("color"),
+                  color: ({ palette }) => palette.gray[50],
+                  fontSize: 18,
+                },
+              },
+            }}
+          >
+            <ToggleButton disableRipple value="table" aria-label="table">
+              <Tooltip title="Table view" placement="top">
+                <Box sx={{ lineHeight: 0 }}>
+                  <ListRegularIcon />
+                </Box>
+              </Tooltip>
+            </ToggleButton>
+            <ToggleButton disableRipple value="graph" aria-label="graph">
+              <Tooltip title="Graph view" placement="top">
+                <Box sx={{ lineHeight: 0 }}>
+                  <ChartNetworkRegularIcon />
+                </Box>
+              </Tooltip>
+            </ToggleButton>
+          </ToggleButtonGroup>
+        }
         filterState={filterState}
         setFilterState={setFilterState}
-        toggleSearch={() => setShowSearch(true)}
+        toggleSearch={view === "table" ? () => setShowSearch(true) : undefined}
         onBulkActionCompleted={() => setSelectedRows([])}
       />
-      <Grid
-        showSearch={showSearch}
-        onSearchClose={() => setShowSearch(false)}
-        columns={columns}
-        rows={rows}
-        enableCheckboxSelection
-        selectedRows={selectedRows}
-        onSelectedRowsChange={(updatedSelectedRows) =>
-          setSelectedRows(updatedSelectedRows)
-        }
-        firstColumnLeftPadding={16}
-        height={`
-            min(
-              calc(100vh - (${
-                HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 179 + tableHeaderHeight
-              }px + ${theme.spacing(5)} + ${theme.spacing(5)})),
-             calc(
-              ${gridHeaderHeightWithBorder}px +
-              (${rows ? rows.length : 1} * ${gridRowHeight}px) +
-              ${gridHorizontalScrollbarHeight}px)
-            )`}
-        createGetCellContent={createGetCellContent}
-        customRenderers={[
-          createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
-          renderChipCell,
-        ]}
-        freezeColumns={1}
-      />
+      {view === "graph" ? (
+        <EntitiesGraphChart
+          primaryEntityTypeBaseUrl={
+            entityTypeBaseUrl ??
+            (entityTypeId ? extractBaseUrl(entityTypeId) : undefined)
+          }
+          filterEntity={(entity) =>
+            filterState.includeGlobal
+              ? true
+              : internalWebIds.includes(
+                  extractOwnedByIdFromEntityId(
+                    entity.metadata.recordId.entityId as EntityId,
+                  ),
+                )
+          }
+          onEntityClick={handleEntityClick}
+          sx={{
+            background: ({ palette }) => palette.common.white,
+            height: `calc(100vh - (${
+              HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 179 + tableHeaderHeight
+            }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`,
+            borderBottomRightRadius: 6,
+            borderBottomLeftRadius: 6,
+          }}
+          subgraph={subgraph as unknown as BpSubgraph<BpEntityRootType>}
+        />
+      ) : (
+        <Grid
+          showSearch={showSearch}
+          onSearchClose={() => setShowSearch(false)}
+          columns={columns}
+          rows={rows}
+          enableCheckboxSelection
+          selectedRows={selectedRows}
+          onSelectedRowsChange={(updatedSelectedRows) =>
+            setSelectedRows(updatedSelectedRows)
+          }
+          firstColumnLeftPadding={16}
+          height={`
+               min(
+                 calc(100vh - (${
+                   HEADER_HEIGHT +
+                   TOP_CONTEXT_BAR_HEIGHT +
+                   179 +
+                   tableHeaderHeight
+                 }px + ${theme.spacing(5)} + ${theme.spacing(5)})),
+                calc(
+                 ${gridHeaderHeightWithBorder}px +
+                 (${rows ? rows.length : 1} * ${gridRowHeight}px) +
+                 ${gridHorizontalScrollbarHeight}px)
+               )`}
+          createGetCellContent={createGetCellContent}
+          customRenderers={[
+            createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
+            renderChipCell,
+          ]}
+          freezeColumns={1}
+        />
+      )}
     </Box>
   );
 };
