@@ -1,20 +1,25 @@
-/* eslint-disable no-restricted-imports */
-import { BaseUrl } from "@blockprotocol/type-system";
-import { Chart, EChart, ECOption } from "@hashintel/design-system";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   Entity,
   EntityId,
   EntityRootType,
   Subgraph,
-} from "@local/hash-subgraph";
-import { getEntities, getEntityTypeById } from "@local/hash-subgraph/stdlib";
-import {
-  extractBaseUrl,
-  LinkEntity,
-} from "@local/hash-subgraph/type-system-patch";
+} from "@blockprotocol/graph";
+import { getEntities, getEntityTypeById } from "@blockprotocol/graph/stdlib";
+import { BaseUrl } from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system/slim";
+import { Chart, EChart, ECOption } from "@hashintel/design-system";
+// eslint-disable-next-line no-restricted-imports
+import { generateEntityLabel as hashGenerateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { BoxProps } from "@mui/material";
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
+
+const generateEntityLabel = (
+  subgraph: Subgraph<EntityRootType>,
+  entity: Entity,
+) => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  return hashGenerateEntityLabel(subgraph as any, entity as any);
+};
 
 export const EntitiesGraphChart: FunctionComponent<{
   filterEntity?: (entity: Entity) => boolean;
@@ -32,7 +37,7 @@ export const EntitiesGraphChart: FunctionComponent<{
   const [chart, setChart] = useState<Chart>();
 
   const entities = useMemo(
-    () => (subgraph ? getEntities(subgraph, true) : undefined),
+    () => (subgraph ? getEntities(subgraph) : undefined),
     [subgraph],
   );
 
@@ -49,7 +54,11 @@ export const EntitiesGraphChart: FunctionComponent<{
     () =>
       entities && nonLinkEntities
         ? entities.filter(
-            (entity): entity is LinkEntity =>
+            (
+              entity,
+            ): entity is Entity & {
+              linkData: NonNullable<Entity["linkData"]>;
+            } =>
               !!entity.linkData &&
               nonLinkEntities.some(
                 (nonLinkEntity) =>
@@ -133,12 +142,12 @@ export const EntitiesGraphChart: FunctionComponent<{
               return [
                 `<strong>${generateEntityLabel(
                   subgraph!,
-                  leftEntity,
+                  leftEntity!,
                 )}</strong>`,
                 linkEntityTypeTitle?.toLowerCase(),
                 `<strong>${generateEntityLabel(
                   subgraph!,
-                  rightEntity,
+                  rightEntity!,
                 )}</strong>`,
               ].join(" ");
             }

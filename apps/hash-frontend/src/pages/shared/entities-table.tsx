@@ -1,15 +1,21 @@
 import {
+  Entity as BpEntity,
+  EntityRootType as BpEntityRootType,
+  Subgraph as BpSubgraph,
+} from "@blockprotocol/graph";
+import {
   CustomCell,
   GridCellKind,
   Item,
   TextCell,
 } from "@glideapps/glide-data-grid";
-import { EntitiesGraphChart } from "@hashintel/design-system";
+import { EntitiesGraphChart } from "@hashintel/block-design-system";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
+  EntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
@@ -253,8 +259,10 @@ export const EntitiesTable: FunctionComponent<{
   const getOwnerForEntity = useGetOwnerForEntity();
 
   const handleEntityClick = useCallback(
-    (entity: Entity) => {
-      const { shortname: entityNamespace } = getOwnerForEntity(entity);
+    (entity: BpEntity) => {
+      const { shortname: entityNamespace } = getOwnerForEntity(
+        entity as Entity,
+      );
 
       if (entityNamespace === "") {
         return;
@@ -262,7 +270,7 @@ export const EntitiesTable: FunctionComponent<{
 
       void router.push(
         `/@${entityNamespace}/entities/${extractEntityUuidFromEntityId(
-          entity.metadata.recordId.entityId,
+          entity.metadata.recordId.entityId as EntityId,
         )}`,
       );
     },
@@ -353,7 +361,7 @@ export const EntitiesTable: FunctionComponent<{
               ? true
               : internalWebIds.includes(
                   extractOwnedByIdFromEntityId(
-                    entity.metadata.recordId.entityId,
+                    entity.metadata.recordId.entityId as EntityId,
                   ),
                 )
           }
@@ -366,7 +374,7 @@ export const EntitiesTable: FunctionComponent<{
             borderBottomRightRadius: 6,
             borderBottomLeftRadius: 6,
           }}
-          subgraph={subgraph}
+          subgraph={subgraph as unknown as BpSubgraph<BpEntityRootType>}
         />
       ) : (
         <Grid
