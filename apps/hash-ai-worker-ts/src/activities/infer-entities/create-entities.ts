@@ -58,6 +58,7 @@ export const createEntities = async ({
               entityTypeId,
               operations: ["all"],
               properties,
+              draft: false,
             });
 
             const { data: createdEntityMetadata } =
@@ -191,6 +192,7 @@ export const createEntities = async ({
               operations: ["all"],
               linkData,
               properties,
+              draft: false,
             });
 
             const { data: createdEntityMetadata } =
