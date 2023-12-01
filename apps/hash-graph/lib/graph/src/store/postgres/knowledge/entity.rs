@@ -221,7 +221,7 @@ impl<C: AsClient> PostgresStore<C> {
                                 // We can unwrap here because we checked permissions for all
                                 // entities in question.
                                 permissions
-                                    .get(&entity_id)
+                                    .get(&entity_id.entity_uuid)
                                     .copied()
                                     .unwrap_or(true)
                                     .then_some(edge)
@@ -843,7 +843,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
             .collect::<HashSet<_>>();
 
-        entities.retain(|vertex_id, _| permitted_ids.contains(&vertex_id.base_id));
+        entities.retain(|vertex_id, _| permitted_ids.contains(&vertex_id.base_id.entity_uuid));
 
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,

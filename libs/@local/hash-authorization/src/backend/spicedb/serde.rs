@@ -141,6 +141,41 @@ pub(crate) mod subject_ref {
     }
 }
 
+pub(crate) mod subject {
+    use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+
+    use crate::{
+        backend::spicedb::serde::SerializedSubject,
+        zanzibar::types::{Resource, Subject},
+    };
+
+    pub(crate) fn serialize<T, S>(subject: &T, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        T: Subject<Resource: Resource<Kind: Serialize, Id: Serialize>, Relation: Serialize>,
+        S: Serializer,
+    {
+        let (resource, optional_relation) = subject.to_parts();
+        SerializedSubject {
+            object: resource,
+            optional_relation,
+        }
+        .serialize(serializer)
+    }
+
+    pub(crate) fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+    where
+        T: Subject<
+                Resource: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
+                Relation: Deserialize<'de>,
+            >,
+        D: Deserializer<'de>,
+    {
+        let subject: SerializedSubject<T::Resource, T::Relation> =
+            Deserialize::deserialize(deserializer)?;
+        T::from_parts(subject.object, subject.optional_relation).map_err(de::Error::custom)
+    }
+}
+
 fn empty_string_as_none<'de, D, T>(de: D) -> Result<Option<T>, D::Error>
 where
     D: Deserializer<'de>,

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt};
+use std::{collections::HashMap, error::Error, fmt};
 
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 
@@ -7,7 +7,7 @@ use crate::{backend::ModifyRelationshipOperation, zanzibar};
 /// Error response returned from the API
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct RpcError {
+pub struct RpcError {
     pub(crate) code: i32,
     message: String,
     #[serde(default)]
@@ -23,6 +23,8 @@ impl fmt::Display for RpcError {
         write!(fmt, "Error {}: {}", self.code, self.message)
     }
 }
+
+impl Error for RpcError {}
 
 pub(crate) struct Consistency<'z>(zanzibar::Consistency<'z>);
 
@@ -102,4 +104,26 @@ pub(crate) struct ContextualizedCaveat<'a> {
     ///
     /// The keys must match the arguments defined on the caveat in the schema.
     context: HashMap<&'a str, serde_json::Value>,
+}
+
+#[derive(Debug, Copy, Clone, Deserialize)]
+pub(crate) enum Permissionship {
+    #[serde(rename = "PERMISSIONSHIP_NO_PERMISSION")]
+    NoPermission,
+    #[serde(rename = "PERMISSIONSHIP_HAS_PERMISSION")]
+    HasPermission,
+    #[serde(rename = "PERMISSIONSHIP_CONDITIONAL_PERMISSION")]
+    Conditional,
+}
+
+impl From<Permissionship> for bool {
+    fn from(permissionship: Permissionship) -> Self {
+        match permissionship {
+            Permissionship::HasPermission => true,
+            Permissionship::NoPermission => false,
+            Permissionship::Conditional => {
+                unimplemented!("https://linear.app/hash/issue/H-614")
+            }
+        }
+    }
 }

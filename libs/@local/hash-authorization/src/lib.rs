@@ -10,6 +10,8 @@ pub mod backend;
 pub mod schema;
 pub mod zanzibar;
 
+use std::collections::HashMap;
+
 pub use self::api::{AuthorizationApi, AuthorizationApiPool};
 use crate::schema::{
     AccountGroupRelationAndSubject, DataTypeId, DataTypePermission, DataTypeRelationAndSubject,
@@ -22,7 +24,7 @@ mod api;
 use error_stack::Result;
 use graph_types::{
     account::{AccountGroupId, AccountId},
-    knowledge::entity::EntityId,
+    knowledge::entity::{EntityId, EntityUuid},
     web::WebId,
 };
 
@@ -107,6 +109,22 @@ impl AuthorizationApi for NoAuthorization {
             has_permission: true,
             checked_at: Zookie::empty(),
         })
+    }
+
+    async fn check_entities_permission(
+        &self,
+        _actor: AccountId,
+        _permission: EntityPermission,
+        entities: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
+        _consistency: Consistency<'_>,
+    ) -> Result<(HashMap<EntityUuid, bool>, Zookie<'static>), CheckError> {
+        Ok((
+            entities
+                .into_iter()
+                .map(|entity| (entity.entity_uuid, true))
+                .collect(),
+            Zookie::empty(),
+        ))
     }
 
     async fn modify_entity_relations(

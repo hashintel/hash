@@ -3,7 +3,7 @@ use std::{collections::HashMap, future::Future};
 use error_stack::{Context, Result};
 use graph_types::{
     account::{AccountGroupId, AccountId},
-    knowledge::entity::EntityId,
+    knowledge::entity::{EntityId, EntityUuid},
     web::WebId,
 };
 
@@ -125,26 +125,7 @@ pub trait AuthorizationApi {
         permission: EntityPermission,
         entities: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<(HashMap<EntityId, bool>, Zookie<'static>), CheckError>> + Send
-    where
-        Self: Sync,
-    {
-        async move {
-            let mut zookie = Zookie::empty();
-            let mut result = HashMap::new();
-            for entity in entities {
-                let CheckResponse {
-                    has_permission,
-                    checked_at,
-                } = self
-                    .check_entity_permission(actor, permission, entity, consistency)
-                    .await?;
-                result.insert(entity, has_permission);
-                zookie = checked_at;
-            }
-            Ok((result, zookie))
-        }
-    }
+    ) -> impl Future<Output = Result<(HashMap<EntityUuid, bool>, Zookie<'static>), CheckError>> + Send;
 
     fn get_entity_relations(
         &self,

@@ -1,4 +1,6 @@
-use error_stack::{Result, ResultExt};
+use std::collections::HashMap;
+
+use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
@@ -8,7 +10,7 @@ use graph_types::{
 use crate::{
     backend::{
         CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
-        ZanzibarBackend,
+        RpcError, ZanzibarBackend,
     },
     schema::{
         AccountGroupPermission, AccountGroupRelationAndSubject, DataTypeId, DataTypePermission,
@@ -46,7 +48,7 @@ where
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         self.backend
-            .check(&account_group, &permission, &actor, consistency)
+            .check_permission(&account_group, &permission, &actor, consistency)
             .await
     }
 
@@ -82,7 +84,7 @@ where
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         self.backend
-            .check(&web, &permission, &actor, consistency)
+            .check_permission(&web, &permission, &actor, consistency)
             .await
     }
 
@@ -152,8 +154,49 @@ where
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         self.backend
-            .check(&entity.entity_uuid, &permission, &actor, consistency)
+            .check_permission(&entity.entity_uuid, &permission, &actor, consistency)
             .await
+    }
+
+    async fn check_entities_permission(
+        &self,
+        actor: AccountId,
+        permission: EntityPermission,
+        entities: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
+        consistency: Consistency<'_>,
+    ) -> Result<(HashMap<EntityUuid, bool>, Zookie<'static>), CheckError> {
+        let response = self
+            .backend
+            .check_permissions(
+                entities
+                    .into_iter()
+                    .map(move |entity| (entity.entity_uuid, permission, actor)),
+                consistency,
+            )
+            .await?;
+        let mut status = Ok::<(), Report<RpcError>>(());
+        let permission_map = response
+            .permission_iterator
+            .into_iter()
+            .filter_map(|item| {
+                let permission = match item.has_permission {
+                    Ok(permissionship) => permissionship,
+                    Err(error) => {
+                        if let Err(report) = &mut status {
+                            report.extend_one(Report::new(error));
+                        } else {
+                            status = Err(Report::new(error));
+                        }
+                        return None;
+                    }
+                };
+                Some((item.resource, permission))
+            })
+            .collect();
+
+        status
+            .change_context(CheckError)
+            .map(|()| (permission_map, response.checked_at))
     }
 
     async fn get_entity_relations(
@@ -205,7 +248,7 @@ where
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         self.backend
-            .check(&entity_type, &permission, &actor, consistency)
+            .check_permission(&entity_type, &permission, &actor, consistency)
             .await
     }
 
@@ -260,7 +303,7 @@ where
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         self.backend
-            .check(&property_type, &permission, &actor, consistency)
+            .check_permission(&property_type, &permission, &actor, consistency)
             .await
     }
 
@@ -313,7 +356,7 @@ where
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         self.backend
-            .check(&data_type, &permission, &actor, consistency)
+            .check_permission(&data_type, &permission, &actor, consistency)
             .await
     }
 
