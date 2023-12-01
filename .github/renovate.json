@@ -35,6 +35,14 @@
       "dependencyDashboardApproval": false
     },
     {
+      "packageRules": [
+        {
+          "matchPackageNames": ["taiki-e/install-action"],
+          "schedule": ["after 9pm on sunday"]
+        }
+      ]
+    },
+    {
       "matchManagers": ["docker-compose", "dockerfile"],
       "commitMessageTopic": "Docker tag `{{depName}}`",
       "additionalBranchPrefix": "docker/"
