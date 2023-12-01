@@ -13,7 +13,7 @@ import {
   getRoots,
 } from "@local/hash-subgraph/stdlib";
 import { Box, Typography } from "@mui/material";
-import { FunctionComponent, useCallback, useMemo } from "react";
+import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
 import { useFetchBlockSubgraph } from "../../../../blocks/use-fetch-block-subgraph";
 import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
@@ -21,6 +21,7 @@ import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/block
 import { useLatestEntityTypesOptional } from "../../../../shared/entity-types-context/hooks";
 import { XMarkRegularIcon } from "../../../../shared/icons/x-mark-regular-icon";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
+import { Button } from "../../../../shared/ui";
 import { useAuthenticatedUser } from "../../auth-info-context";
 import { useBlockContext } from "../block-context";
 
@@ -29,6 +30,8 @@ export const BlockSelectDataModal: FunctionComponent<
     onClose: () => void;
   }
 > = ({ onClose, ...modalProps }) => {
+  const [isAddingQuery, setIsAddingQuery] = useState<boolean>(false);
+
   const { propertyTypes } = usePropertyTypes({ latestOnly: true });
   const { latestEntityTypes } = useLatestEntityTypesOptional();
 
@@ -216,6 +219,7 @@ export const BlockSelectDataModal: FunctionComponent<
         </Box>
         {existingQueries?.map((queryEntity) => (
           <EntityQueryEditor
+            sx={{ marginBottom: 2 }}
             key={queryEntity.metadata.recordId.entityId}
             entityTypes={entityTypeSchemas}
             propertyTypes={propertyTypeSchemas}
@@ -227,8 +231,11 @@ export const BlockSelectDataModal: FunctionComponent<
             discardTitle="Discard changes"
           />
         ))}
+        {existingQueries && existingQueries.length > 0 && !isAddingQuery ? (
+          <Button onClick={() => setIsAddingQuery(true)}>Add Query</Button>
+        ) : null}
         {/* @todo: allow for creation of multiple queries */}
-        {existingQueries && existingQueries.length === 0 ? (
+        {(existingQueries && existingQueries.length === 0) || isAddingQuery ? (
           <EntityQueryEditor
             entityTypes={entityTypeSchemas}
             propertyTypes={propertyTypeSchemas}

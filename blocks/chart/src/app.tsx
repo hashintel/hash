@@ -25,10 +25,8 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BarChart } from "./bar-chart";
-import {
-  EditChartDefinition,
-  generateInitialChartDefinition,
-} from "./edit-chart-definition";
+import { EditChartDefinition } from "./edit-chart-definition";
+import { generateInitialChartDefinition } from "./edit-chart-definition/bar-chart-definition-form";
 import { EditableChartTitle } from "./edit-chart-title";
 import { ChartDefinition } from "./types/chart-definition";
 import {
@@ -208,7 +206,12 @@ export const App: BlockComponent<BlockEntity> = ({
         />
         {readonly ? null : (
           <IconButton
-            sx={{ position: "absolute", right: 1, top: 1 }}
+            sx={{
+              zIndex: 2,
+              position: "absolute",
+              right: ({ spacing }) => spacing(1),
+              top: ({ spacing }) => spacing(1),
+            }}
             onClick={() =>
               setDisplayEditChartDefinition(!displayEditChartDefinition)
             }
@@ -243,7 +246,7 @@ export const App: BlockComponent<BlockEntity> = ({
         ) : null}
         <Collapse in={displayEditChartDefinition}>
           <Divider />
-          <Box marginTop={2}>
+          <Box sx={{ marginTop: 2, padding: 3 }}>
             {allQueriesAreFetched ? (
               <EditChartDefinition
                 key={blockEntity.metadata.recordId.editionId}
