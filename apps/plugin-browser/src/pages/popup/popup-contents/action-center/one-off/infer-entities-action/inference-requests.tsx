@@ -9,13 +9,13 @@ import {
 import { format } from "date-fns";
 import { useState } from "react";
 
-import { PageEntityInference } from "../../../../../shared/storage";
+import { PageEntityInference } from "../../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
   darkModePlaceholderColor,
-} from "../../../../shared/dark-mode-values";
-import { useLocalStorage } from "../../../../shared/use-local-storage";
+} from "../../../../../shared/dark-mode-values";
+import { useLocalStorage } from "../../../../../shared/use-local-storage";
 import { InferenceRequest } from "./inference-request";
 
 const InferenceRequestContainer = ({

@@ -1,4 +1,4 @@
-import type { EntityType } from "@blockprotocol/graph";
+import type { EntityType, VersionedUrl } from "@blockprotocol/graph";
 import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
@@ -35,9 +35,13 @@ export type PageEntityInference = InferenceStatus & {
  * Cleared if the extension is loaded with no user present.
  */
 export type LocalStorage = {
-  passiveInference: {
-    conditions: ({ domain: string } | { urlRegExp: string })[];
+  automaticInference: {
+    createAs: "draft" | "live";
     enabled: boolean;
+    rules: {
+      restrictToDomain: string | null;
+      entityTypeIds: VersionedUrl[];
+    }[];
   };
   draftQuickNote: string;
   entityTypes: EntityType[];

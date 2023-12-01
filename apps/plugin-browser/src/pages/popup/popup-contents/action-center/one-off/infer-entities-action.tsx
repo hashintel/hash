@@ -1,7 +1,7 @@
 import { Tabs } from "webextension-polyfill";
 
 import { useLocalStorage } from "../../../shared/use-local-storage";
-import { Action } from "./action";
+import { Section } from "./section";
 import { CreateEntityIcon } from "./infer-entities-action/create-entity-icon";
 import { InferenceRequests } from "./infer-entities-action/inference-requests";
 import { SelectTypesAndInfer } from "./infer-entities-action/select-types-and-infer";
@@ -17,7 +17,7 @@ export const InferEntitiesAction = ({
   );
 
   return (
-    <Action
+    <Section
       HeaderIcon={CreateEntityIcon}
       headerText="Create entities from page"
       linkHref="https://app.hash.ai/entities"
@@ -29,6 +29,6 @@ export const InferEntitiesAction = ({
         targetEntityTypes={targetEntityTypes}
       />
       <InferenceRequests />
-    </Action>
+    </Section>
   );
 };

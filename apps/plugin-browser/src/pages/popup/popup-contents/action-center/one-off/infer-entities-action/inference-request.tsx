@@ -3,11 +3,11 @@ import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-
 import { Box, Skeleton, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 
-import type { PageEntityInference } from "../../../../../shared/storage";
+import type { PageEntityInference } from "../../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
-} from "../../../../shared/dark-mode-values";
+} from "../../../../../shared/dark-mode-values";
 import { InferredEntity } from "./inference-request/inferred-entity";
 
 export const InferenceRequest = ({

@@ -16,21 +16,21 @@ import browser, { Tabs } from "webextension-polyfill";
 import {
   GetEntityTypesQuery,
   GetEntityTypesQueryVariables,
-} from "../../../../../graphql/api-types.gen";
-import { getEntityTypesQuery } from "../../../../../graphql/queries/entity-type.queries";
+} from "../../../../../../graphql/api-types.gen";
+import { getEntityTypesQuery } from "../../../../../../graphql/queries/entity-type.queries";
 import {
   GetSiteContentRequest,
   GetSiteContentReturn,
-} from "../../../../../shared/messages";
-import { queryGraphQlApi } from "../../../../../shared/query-graphql-api";
+} from "../../../../../../shared/messages";
+import { queryGraphQlApi } from "../../../../../../shared/query-graphql-api";
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
   darkModeInputColor,
   darkModePlaceholderColor,
-} from "../../../../shared/dark-mode-values";
-import { sendMessageToBackground } from "../../../../shared/messages";
-import { useLocalStorage } from "../../../../shared/use-local-storage";
+} from "../../../../../shared/dark-mode-values";
+import { sendMessageToBackground } from "../../../../../shared/messages";
+import { useLocalStorage } from "../../../../../shared/use-local-storage";
 
 const getEntityTypes = () => {
   return queryGraphQlApi<GetEntityTypesQuery, GetEntityTypesQueryVariables>(

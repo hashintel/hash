@@ -17,8 +17,8 @@ import { Box, Collapse, Stack, Typography } from "@mui/material";
 import {
   darkModeBorderColor,
   darkModeInputColor,
-} from "../../../../../shared/dark-mode-values";
-import { useUser } from "../../../../../shared/use-user";
+} from "../../../../../../shared/dark-mode-values";
+import { useUser } from "../../../../../../shared/use-user";
 import { UpFromLineIcon } from "./inferred-entity/up-from-line-icon";
 
 // @todo consolidate this with generateEntityLabel in hash-frontend

@@ -18,13 +18,13 @@ import { generateKeyBetween } from "fractional-indexing";
 import {
   CreateEntityMutation,
   CreateEntityMutationVariables,
-} from "../../../../graphql/api-types.gen";
-import { createEntityMutation } from "../../../../graphql/queries/entity.queries";
-import { queryGraphQlApi } from "../../../../shared/query-graphql-api";
-import { useLocalStorage } from "../../../shared/use-local-storage";
-import { Action } from "./action";
+} from "../../../../../graphql/api-types.gen";
+import { createEntityMutation } from "../../../../../graphql/queries/entity.queries";
+import { queryGraphQlApi } from "../../../../../shared/query-graphql-api";
+import { useLocalStorage } from "../../../../shared/use-local-storage";
+import { Section } from "../shared/section";
+import { TextFieldWithDarkMode } from "../text-field-with-dark-mode";
 import { QuickNoteIcon } from "./quick-note-action/quick-note-icon";
-import { TextFieldWithDarkMode } from "./text-field-with-dark-mode";
 
 const createEntity = (params: {
   entityTypeId: VersionedUrl;
@@ -131,7 +131,7 @@ export const QuickNoteAction = () => {
   };
 
   return (
-    <Action
+    <Section
       HeaderIcon={QuickNoteIcon}
       headerText="Quick note"
       linkHref="https://app.hash.ai/@ciaran/types/entity-type/quick-note?tab=entities"
@@ -156,6 +156,6 @@ export const QuickNoteAction = () => {
           Save quick note
         </Button>
       </Box>
-    </Action>
+    </Section>
   );
 };
