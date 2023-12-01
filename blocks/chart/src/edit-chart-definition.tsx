@@ -1,7 +1,5 @@
-import {
-  EntityId,
-  EntityRootType,
-  EntityType,
+import { 
+  EntityRootType, 
   Subgraph,
   VersionedUrl,
 } from "@blockprotocol/graph";
@@ -16,8 +14,7 @@ import { FunctionComponent, useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 
 import {
-  BarChartDefinitionForm,
-  findSubgraphWhichContainsEntityType,
+  BarChartDefinitionForm, 
   generateXAxisLabel,
   generateYAxisLabel,
   getEntityTypePropertyTypes,
@@ -27,39 +24,22 @@ import { ChartDefinition } from "./types/chart-definition";
 
 export const EditChartDefinition: FunctionComponent<{
   initialChartDefinition?: ChartDefinition;
-  queryResults: Record<EntityId, Subgraph<EntityRootType>>;
+  queryResult: Subgraph<EntityRootType>;
   onSubmit: (updatedChartDefinition: ChartDefinition) => void;
-}> = ({ initialChartDefinition, queryResults, onSubmit }) => {
+}> = ({ initialChartDefinition, queryResult, onSubmit }) => {
   // Get all entity types for entities in the query results
-  const entityTypes = useMemo(
-    () =>
-      Object.values(queryResults).reduce<EntityType[]>(
-        (prev, currentSubgraph) => {
-          const entities = getRoots(currentSubgraph);
+  const entityTypes = useMemo(() => {
+    const entities = getRoots(queryResult);
 
-          const missingEntityTypeIds = entities
-            .map((entity) => entity.metadata.entityTypeId)
-            .filter(
-              (entityTypeId) =>
-                !prev.some((entityType) => entityType.$id === entityTypeId),
-            )
-            .filter(
-              (entityTypeId, index, all) => all.indexOf(entityTypeId) === index,
-            );
-
-          const missingEntityTypes = missingEntityTypeIds
-            .map(
-              (entityTypeId) =>
-                getEntityTypeById(currentSubgraph, entityTypeId)?.schema ?? [],
-            )
-            .flat();
-
-          return [...prev, ...missingEntityTypes];
-        },
-        [],
-      ),
-    [queryResults],
-  );
+    return entities
+      .map((entity) => entity.metadata.entityTypeId)
+      .filter((entityTypeId, index, all) => all.indexOf(entityTypeId) === index)
+      .map(
+        (entityTypeId) =>
+          getEntityTypeById(queryResult, entityTypeId)?.schema ?? [],
+      )
+      .flat();
+  }, [queryResult]);
 
   const defaultEntityType = useMemo(
     () => (entityTypes.length === 1 ? entityTypes[0] : undefined),
@@ -68,36 +48,29 @@ export const EditChartDefinition: FunctionComponent<{
 
   const defaultGroupByPropertyType = useMemo(() => {
     if (defaultEntityType) {
-      const subgraphWithEntityType = findSubgraphWhichContainsEntityType({
-        subgraphs: Object.values(queryResults),
-        entityTypeId: defaultEntityType.$id,
-      });
+      const propertyTypes = getEntityTypePropertyTypes(
+        queryResult,
+        defaultEntityType,
+      );
 
-      if (subgraphWithEntityType) {
-        const propertyTypes = getEntityTypePropertyTypes(
-          subgraphWithEntityType,
-          defaultEntityType,
-        );
+      const propertyTypeWithTextValue = propertyTypes.find(
+        ({ oneOf }) =>
+          oneOf.some(
+            (value) =>
+              "$ref" in value &&
+              value.$ref ===
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          ),
+        [],
+      );
 
-        const propertyTypeWithTextValue = propertyTypes.find(
-          ({ oneOf }) =>
-            oneOf.some(
-              (value) =>
-                "$ref" in value &&
-                value.$ref ===
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-            ),
-          [],
-        );
-
-        if (propertyTypeWithTextValue) {
-          return propertyTypeWithTextValue;
-        }
-
-        return propertyTypes[0];
+      if (propertyTypeWithTextValue) {
+        return propertyTypeWithTextValue;
       }
+
+      return propertyTypes[0];
     }
-  }, [queryResults, defaultEntityType]);
+  }, [queryResult, defaultEntityType]);
 
   const form = useForm<ChartDefinition>({
     defaultValues: initialChartDefinition ?? {
@@ -145,7 +118,7 @@ export const EditChartDefinition: FunctionComponent<{
         {chartKind === "bar-chart" ? (
           <BarChartDefinitionForm
             entityTypes={entityTypes}
-            queryResults={queryResults}
+            queryResult={queryResult}
           />
         ) : (
           <GraphChartDefinitionForm />

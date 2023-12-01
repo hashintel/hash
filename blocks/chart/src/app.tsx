@@ -1,9 +1,4 @@
-import {
-  EntityId,
-  EntityRootType,
-  MultiFilter,
-  Subgraph,
-} from "@blockprotocol/graph";
+import { EntityRootType, MultiFilter, Subgraph } from "@blockprotocol/graph";
 import {
   type BlockComponent,
   useEntitySubgraph,
@@ -49,8 +44,8 @@ export const App: BlockComponent<BlockEntity> = ({
     BlockEntityOutgoingLinkAndTarget[]
   >(blockEntitySubgraph);
 
-  const linkedQueryEntities = useMemo(() => {
-    return getOutgoingLinkAndTargetEntities(
+  const linkedQueryEntity = useMemo(() => {
+    const linkedQueryEntities = getOutgoingLinkAndTargetEntities(
       /** @todo: figure out why there is a type mismatch here */
       blockEntitySubgraph as unknown as Subgraph,
       blockEntity.metadata.recordId.entityId,
@@ -64,14 +59,20 @@ export const App: BlockComponent<BlockEntity> = ({
         ({ rightEntity: rightEntityRevisions }) =>
           rightEntityRevisions as unknown as Query,
       );
+
+    return linkedQueryEntities[0];
   }, [blockEntity, blockEntitySubgraph]);
 
-  const [queryResults, setQueryResults] = useState<
-    Record<EntityId, Subgraph<EntityRootType>>
-  >({});
+  const [queryResult, setQueryResult] = useState<Subgraph<EntityRootType>>();
 
   const fetchQueryEntityResults = useCallback(
-    async (queryEntity: Query) => {
+    async (params: {
+      queryEntity: Query;
+      incomingLinksDepth?: number;
+      outgoingLinksDepth?: number;
+    }) => {
+      const { queryEntity, incomingLinksDepth, outgoingLinksDepth } = params;
+
       const { data } = await graphModule.queryEntities({
         data: {
           operation: {
@@ -83,6 +84,14 @@ export const App: BlockComponent<BlockEntity> = ({
             inheritsFrom: { outgoing: 255 },
             isOfType: { outgoing: 1 },
             constrainsPropertiesOn: { outgoing: 255 },
+            hasLeftEntity: {
+              outgoing: outgoingLinksDepth ?? 0,
+              incoming: incomingLinksDepth ?? 0,
+            },
+            hasRightEntity: {
+              outgoing: incomingLinksDepth ?? 0,
+              incoming: outgoingLinksDepth ?? 0,
+            },
           },
         },
       });
@@ -95,28 +104,36 @@ export const App: BlockComponent<BlockEntity> = ({
       /** @todo: figure out why `data` is typed wrong */
       const subgraph = data as unknown as Subgraph<EntityRootType>;
 
-      setQueryResults((prev) => ({
-        ...prev,
-        [queryEntity.metadata.recordId.entityId]: subgraph,
-      }));
+      setQueryResult(subgraph);
     },
     [graphModule],
   );
 
-  useEffect(() => {
-    void Promise.all(
-      linkedQueryEntities
-        .filter(
-          (queryEntity) =>
-            !queryResults[queryEntity.metadata.recordId.entityId],
-        )
-        .map(fetchQueryEntityResults),
-    );
-  }, [linkedQueryEntities, queryResults, fetchQueryEntityResults]);
-
   const chartDefinition = blockEntity.properties[
     "https://blockprotocol.org/@hash/types/property-type/chart-defintion/"
   ] as ChartDefinition | undefined;
+
+  useEffect(() => {
+    if (linkedQueryEntity) {
+      const incomingLinksDepth =
+        chartDefinition?.kind === "graph-chart"
+          ? (chartDefinition as ChartDefinition<"graph-chart">)
+              .incomingLinksDepth
+          : undefined;
+
+      const outgoingLinksDepth =
+        chartDefinition?.kind === "graph-chart"
+          ? (chartDefinition as ChartDefinition<"graph-chart">)
+              .outgoingLinksDepth
+          : undefined;
+
+      void fetchQueryEntityResults({
+        queryEntity: linkedQueryEntity,
+        incomingLinksDepth,
+        outgoingLinksDepth,
+      });
+    }
+  }, [chartDefinition, linkedQueryEntity, fetchQueryEntityResults]);
 
   const updateChartDefinition = useCallback(
     async (updatedChartDefinition: ChartDefinition) => {
@@ -157,27 +174,17 @@ export const App: BlockComponent<BlockEntity> = ({
     [graphModule, blockEntity],
   );
 
-  const allQueriesAreFetched = useMemo(
-    () => Object.keys(queryResults).length === linkedQueryEntities.length,
-    [linkedQueryEntities, queryResults],
-  );
-
   useEffect(() => {
-    if (allQueriesAreFetched && !chartDefinition) {
+    if (queryResult && !chartDefinition) {
       const generatedChartDefinition = generateInitialChartDefinition({
-        queryResults,
+        queryResult,
       });
 
       if (generatedChartDefinition) {
         void updateChartDefinition(generatedChartDefinition);
       }
     }
-  }, [
-    queryResults,
-    allQueriesAreFetched,
-    updateChartDefinition,
-    chartDefinition,
-  ]);
+  }, [queryResult, updateChartDefinition, chartDefinition]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -221,37 +228,36 @@ export const App: BlockComponent<BlockEntity> = ({
         )}
         {chartDefinition ? (
           chartDefinition.kind === "bar-chart" ? (
-            <BarChart
-              /** @todo: figure out why TS is not inferring this */
-              definition={chartDefinition as ChartDefinition<"bar-chart">}
-              queryResults={queryResults}
-            />
+            queryResult ? (
+              <BarChart
+                /** @todo: figure out why TS is not inferring this */
+                definition={chartDefinition as ChartDefinition<"bar-chart">}
+                queryResult={queryResult}
+              />
+            ) : null
           ) : (
             /** @todo: account for multiple query results */
             <EntitiesGraphChart
-              subgraph={Object.values(queryResults)[0]}
-              isPrimaryEntity={(entity) => {
-                const subgraph = Object.values(queryResults)[0];
-                return (
-                  !!subgraph &&
-                  getRoots(subgraph).some(
-                    (rootEntity) =>
-                      entity.metadata.recordId.entityId ===
-                      rootEntity.metadata.recordId.entityId,
-                  )
-                );
-              }}
+              subgraph={queryResult}
+              isPrimaryEntity={(entity) =>
+                !!queryResult &&
+                getRoots(queryResult).some(
+                  (rootEntity) =>
+                    entity.metadata.recordId.entityId ===
+                    rootEntity.metadata.recordId.entityId,
+                )
+              }
             />
           )
         ) : null}
         <Collapse in={displayEditChartDefinition}>
           <Divider />
           <Box sx={{ marginTop: 2, padding: 3 }}>
-            {allQueriesAreFetched ? (
+            {queryResult ? (
               <EditChartDefinition
                 key={blockEntity.metadata.recordId.editionId}
                 initialChartDefinition={chartDefinition}
-                queryResults={queryResults}
+                queryResult={queryResult}
                 onSubmit={updateChartDefinition}
               />
             ) : null}

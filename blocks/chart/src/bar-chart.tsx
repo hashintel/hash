@@ -1,6 +1,5 @@
 import {
   Entity,
-  EntityId,
   EntityRootType,
   extractBaseUrl,
   Subgraph,
@@ -14,29 +13,26 @@ import { ChartDefinition } from "./types/chart-definition";
 
 export const BarChart: FunctionComponent<{
   definition: ChartDefinition<"bar-chart">;
-  queryResults: Record<EntityId, Subgraph<EntityRootType>>;
-}> = ({ definition, queryResults }) => {
-  const allQueryResultsByType = useMemo(
+  queryResult: Subgraph<EntityRootType>;
+}> = ({ definition, queryResult }) => {
+  const queryResultsByType = useMemo(
     () =>
-      Object.values(queryResults)
-        .map((subgraph) => getRoots(subgraph))
-        .flat()
-        .reduce<Record<VersionedUrl, Entity[]>>(
-          (prev, currentEntity) => ({
-            ...prev,
-            [currentEntity.metadata.entityTypeId]: [
-              ...(prev[currentEntity.metadata.entityTypeId] ?? []),
-              currentEntity,
-            ],
-          }),
-          {},
-        ),
-    [queryResults],
+      getRoots(queryResult).reduce<Record<VersionedUrl, Entity[]>>(
+        (prev, currentEntity) => ({
+          ...prev,
+          [currentEntity.metadata.entityTypeId]: [
+            ...(prev[currentEntity.metadata.entityTypeId] ?? []),
+            currentEntity,
+          ],
+        }),
+        {},
+      ),
+    [queryResult],
   );
 
   const entitiesByProperty = useMemo(
     () =>
-      allQueryResultsByType[definition.entityTypeId]?.reduce<
+      queryResultsByType[definition.entityTypeId]?.reduce<
         Record<string, Entity[]>
       >(
         (prev, entity) => ({
@@ -54,7 +50,7 @@ export const BarChart: FunctionComponent<{
         }),
         {},
       ),
-    [allQueryResultsByType, definition],
+    [queryResultsByType, definition],
   );
 
   const eChartOptions = useMemo<ECOption>(

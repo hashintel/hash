@@ -1,5 +1,4 @@
 import {
-  EntityId,
   EntityRootType,
   EntityType,
   extractBaseUrl,
@@ -64,19 +63,6 @@ export const getEntityTypePropertyTypes = (
   ];
 };
 
-export const findSubgraphWhichContainsEntityType = (params: {
-  subgraphs: Subgraph[];
-  entityTypeId: VersionedUrl;
-}) => {
-  const subgraphWithEntityType = params.subgraphs.find((subgraph) => {
-    const entityType = getEntityTypeById(subgraph, params.entityTypeId);
-
-    return !!entityType;
-  });
-
-  return subgraphWithEntityType;
-};
-
 export const generateXAxisLabel = (params: {
   entityType: EntityType;
   groupByPropertyType: PropertyType;
@@ -89,20 +75,14 @@ export const generateYAxisLabel = (params: { entityType: EntityType }) =>
   `Number of ${pluralize(params.entityType.title.toLowerCase())}`;
 
 export const generateInitialChartDefinition = (params: {
-  queryResults: Record<EntityId, Subgraph<EntityRootType>>;
+  queryResult: Subgraph<EntityRootType>;
 }): ChartDefinition | undefined => {
-  const subgraphWithResults = Object.values(params.queryResults).find(
-    (subgraph) => getRoots(subgraph).length > 0,
-  );
+  const { queryResult } = params;
 
-  if (!subgraphWithResults) {
-    return undefined;
-  }
-
-  const resultEntity = getRoots(subgraphWithResults)[0]!;
+  const resultEntity = getRoots(queryResult)[0]!;
 
   const entityType = getEntityTypeById(
-    subgraphWithResults,
+    queryResult,
     resultEntity.metadata.entityTypeId,
   )?.schema;
 
@@ -110,10 +90,7 @@ export const generateInitialChartDefinition = (params: {
     return undefined;
   }
 
-  const propertyTypes = getEntityTypePropertyTypes(
-    subgraphWithResults,
-    entityType,
-  );
+  const propertyTypes = getEntityTypePropertyTypes(queryResult, entityType);
 
   const resultPropertyTypeWithTextValue = propertyTypes.find(
     ({ $id, oneOf }) =>
@@ -152,9 +129,9 @@ export const generateInitialChartDefinition = (params: {
 };
 
 export const BarChartDefinitionForm: FunctionComponent<{
-  queryResults: Record<EntityId, Subgraph<EntityRootType>>;
+  queryResult: Subgraph<EntityRootType>;
   entityTypes: EntityType[];
-}> = ({ entityTypes, queryResults }) => {
+}> = ({ entityTypes, queryResult }) => {
   const { control, register, setValue, watch } =
     useFormContext<ChartDefinition<"bar-chart">>();
 
@@ -174,22 +151,10 @@ export const BarChartDefinitionForm: FunctionComponent<{
       return undefined;
     }
 
-    const subgraphWithEntityType = findSubgraphWhichContainsEntityType({
-      subgraphs: Object.values(queryResults),
-      entityTypeId: entityType.$id,
-    });
-
-    if (!subgraphWithEntityType) {
-      throw new Error("Could not find query subgraph with entity type");
-    }
-
-    const propertyTypes = getEntityTypePropertyTypes(
-      subgraphWithEntityType,
-      entityType,
-    );
+    const propertyTypes = getEntityTypePropertyTypes(queryResult, entityType);
 
     return propertyTypes;
-  }, [entityType, queryResults]);
+  }, [entityType, queryResult]);
 
   return (
     <>
