@@ -9,7 +9,10 @@ import {
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
-import { getOutgoingLinkAndTargetEntities } from "@blockprotocol/graph/stdlib";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import { EntitiesGraphChart, GearIcon } from "@hashintel/block-design-system";
 import { theme } from "@hashintel/design-system/theme";
 import {
@@ -222,7 +225,20 @@ export const App: BlockComponent<BlockEntity> = ({
             />
           ) : (
             /** @todo: account for multiple query results */
-            <EntitiesGraphChart subgraph={Object.values(queryResults)[0]} />
+            <EntitiesGraphChart
+              subgraph={Object.values(queryResults)[0]}
+              isPrimaryEntity={(entity) => {
+                const subgraph = Object.values(queryResults)[0];
+                return (
+                  !!subgraph &&
+                  getRoots(subgraph).some(
+                    (rootEntity) =>
+                      entity.metadata.recordId.entityId ===
+                      rootEntity.metadata.recordId.entityId,
+                  )
+                );
+              }}
+            />
           )
         ) : null}
         <Collapse in={displayEditChartDefinition}>

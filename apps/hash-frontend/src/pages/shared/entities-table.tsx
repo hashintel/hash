@@ -370,9 +370,13 @@ export const EntitiesTable: FunctionComponent<{
       />
       {view === "graph" ? (
         <EntitiesGraphChart
-          primaryEntityTypeBaseUrl={
-            entityTypeBaseUrl ??
-            (entityTypeId ? extractBaseUrl(entityTypeId) : undefined)
+          isPrimaryEntity={(entity) =>
+            entityTypeBaseUrl
+              ? extractBaseUrl(entity.metadata.entityTypeId) ===
+                entityTypeBaseUrl
+              : entityTypeId
+                ? entityTypeId === entity.metadata.entityTypeId
+                : false
           }
           filterEntity={(entity) =>
             filterState.includeGlobal

@@ -5,8 +5,6 @@ import {
   Subgraph,
 } from "@blockprotocol/graph";
 import { getEntities, getEntityTypeById } from "@blockprotocol/graph/stdlib";
-import { BaseUrl } from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system/slim";
 import { Chart, EChart, ECOption } from "@hashintel/design-system";
 // eslint-disable-next-line no-restricted-imports
 import { generateEntityLabel as hashGenerateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
@@ -24,16 +22,10 @@ const generateEntityLabel = (
 export const EntitiesGraphChart: FunctionComponent<{
   filterEntity?: (entity: Entity) => boolean;
   onEntityClick?: (entity: Entity) => void;
-  primaryEntityTypeBaseUrl?: BaseUrl;
+  isPrimaryEntity?: (entity: Entity) => boolean;
   subgraph?: Subgraph<EntityRootType>;
   sx?: BoxProps["sx"];
-}> = ({
-  filterEntity,
-  primaryEntityTypeBaseUrl,
-  subgraph,
-  sx,
-  onEntityClick,
-}) => {
+}> = ({ filterEntity, isPrimaryEntity, subgraph, sx, onEntityClick }) => {
   const [chart, setChart] = useState<Chart>();
 
   const entities = useMemo(
@@ -185,13 +177,9 @@ export const EntitiesGraphChart: FunctionComponent<{
           },
           itemStyle: {
             color: theme.palette.blue[70],
-            ...(primaryEntityTypeBaseUrl
+            ...(isPrimaryEntity
               ? {
-                  opacity:
-                    extractBaseUrl(entity.metadata.entityTypeId) ===
-                    primaryEntityTypeBaseUrl
-                      ? 1
-                      : 0.8,
+                  opacity: isPrimaryEntity(entity) ? 1 : 0.6,
                 }
               : {}),
           },
@@ -221,7 +209,7 @@ export const EntitiesGraphChart: FunctionComponent<{
     entities,
     linkEntities,
     nonLinkEntities,
-    primaryEntityTypeBaseUrl,
+    isPrimaryEntity,
     theme,
   ]);
 
