@@ -1,5 +1,4 @@
-import { CheckIcon } from "@hashintel/block-design-system";
-import { CloseIcon } from "@hashintel/design-system";
+import { CheckIcon, CloseIcon } from "@hashintel/design-system";
 import {
   Box,
   CircularProgress,

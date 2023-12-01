@@ -1,6 +1,9 @@
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
-import { CheckIcon } from "@hashintel/block-design-system";
-import { CloseIcon, FontAwesomeIcon } from "@hashintel/design-system";
+import {
+  CheckIcon,
+  CloseIcon,
+  FontAwesomeIcon,
+} from "@hashintel/design-system";
 import {
   Box,
   CircularProgress,
