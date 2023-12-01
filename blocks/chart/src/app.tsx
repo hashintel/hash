@@ -12,8 +12,10 @@ import { EntitiesGraphChart, GearIcon } from "@hashintel/block-design-system";
 import { theme } from "@hashintel/design-system/theme";
 import {
   Box,
+  CircularProgress,
   Collapse,
   Divider,
+  Fade,
   IconButton,
   ThemeProvider,
 } from "@mui/material";
@@ -64,6 +66,7 @@ export const App: BlockComponent<BlockEntity> = ({
   }, [blockEntity, blockEntitySubgraph]);
 
   const [queryResult, setQueryResult] = useState<Subgraph<EntityRootType>>();
+  const [loadingQueryResult, setLoadingQueryResult] = useState<boolean>(false);
 
   const fetchQueryEntityResults = useCallback(
     async (params: {
@@ -72,6 +75,8 @@ export const App: BlockComponent<BlockEntity> = ({
       outgoingLinksDepth?: number;
     }) => {
       const { queryEntity, incomingLinksDepth, outgoingLinksDepth } = params;
+
+      setLoadingQueryResult(true);
 
       const { data } = await graphModule.queryEntities({
         data: {
@@ -95,6 +100,8 @@ export const App: BlockComponent<BlockEntity> = ({
           },
         },
       });
+
+      setLoadingQueryResult(false);
 
       /** @todo: improve error handling */
       if (!data) {
@@ -211,21 +218,33 @@ export const App: BlockComponent<BlockEntity> = ({
               : undefined
           }
         />
-        {readonly ? null : (
-          <IconButton
-            sx={{
-              zIndex: 2,
-              position: "absolute",
-              right: ({ spacing }) => spacing(1),
-              top: ({ spacing }) => spacing(1),
-            }}
-            onClick={() =>
-              setDisplayEditChartDefinition(!displayEditChartDefinition)
-            }
-          >
-            <GearIcon />
-          </IconButton>
-        )}
+        <Box
+          sx={{
+            zIndex: 2,
+            position: "absolute",
+            right: ({ spacing }) => spacing(1),
+            top: ({ spacing }) => spacing(1),
+            display: "flex",
+            columnGap: 1,
+            alignItems: "center",
+          }}
+        >
+          <Fade in={loadingQueryResult}>
+            <CircularProgress
+              size={16}
+              sx={{ color: ({ palette }) => palette.gray[40] }}
+            />
+          </Fade>
+          {readonly ? null : (
+            <IconButton
+              onClick={() =>
+                setDisplayEditChartDefinition(!displayEditChartDefinition)
+              }
+            >
+              <GearIcon />
+            </IconButton>
+          )}
+        </Box>
         {chartDefinition ? (
           chartDefinition.kind === "bar-chart" ? (
             queryResult ? (
