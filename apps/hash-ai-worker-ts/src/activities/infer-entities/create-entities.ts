@@ -135,6 +135,7 @@ export const createEntities = async ({
               entityTypeId,
               operations: ["all"],
               properties,
+              draft: false,
             });
 
             const { data: createdEntityMetadata } =
@@ -143,6 +144,7 @@ export const createEntities = async ({
                 ownedById,
                 owner: ownedById,
                 properties,
+                draft: false,
               });
 
             entityStatusMap.creationSuccesses[proposedEntity.entityId] = {
@@ -291,6 +293,7 @@ export const createEntities = async ({
               operations: ["all"],
               linkData,
               properties,
+              draft: false,
             });
 
             const existingLinkEntity = await getEntityByFilter({
@@ -372,6 +375,7 @@ export const createEntities = async ({
                 ownedById,
                 owner: ownedById,
                 properties,
+                draft: false,
               });
 
             entityStatusMap.creationSuccesses[proposedEntity.entityId] = {

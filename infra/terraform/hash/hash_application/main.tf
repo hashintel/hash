@@ -140,7 +140,7 @@ resource "aws_lb_target_group" "app_tg" {
     unhealthy_threshold = 3
   }
   slow_start = 30
-  # Time between demoting state from 'draining' to 'unused'. 
+  # Time between demoting state from 'draining' to 'unused'.
   # The default, 300s, makes it so we have multiple services running for 5 whole minutes.
   deregistration_delay = 30
   # @todo: can we enable preserve_client_ip? (may not be supported by Fargate)
@@ -189,7 +189,7 @@ resource "aws_lb_target_group" "kratos_tg" {
     unhealthy_threshold = 3
   }
   slow_start = 30
-  # Time between demoting state from 'draining' to 'unused'. 
+  # Time between demoting state from 'draining' to 'unused'.
   # The default, 300s, makes it so we have multiple services running for 5 whole minutes.
   deregistration_delay = 30
   # @todo: can we enable preserve_client_ip? (may not be supported by Fargate)
@@ -211,7 +211,7 @@ resource "aws_lb_listener" "kratos_http" {
   }
 }
 
-# 
+#
 data "aws_acm_certificate" "hash_wildcard_cert" {
   domain   = "*.hash.ai"
   statuses = ["ISSUED"]
@@ -219,9 +219,9 @@ data "aws_acm_certificate" "hash_wildcard_cert" {
 
 
 # The load balancer will allow HTTPS connections that come through
-# this is only when the SSL Certificate ARN is defined when applying the 
+# this is only when the SSL Certificate ARN is defined when applying the
 # Terraform scripts. The target group is the same for HTTPS
-# 
+#
 # The load balancer will terminate SSL.
 resource "aws_lb_listener" "app_https" {
   depends_on        = [aws_lb_target_group.app_tg]
@@ -282,13 +282,6 @@ resource "aws_iam_role" "execution_role" {
           Action = ["ssm:GetParameters"]
           Resource = concat(
             flatten([for def in local.task_defs : [for _, env_var in def.env_vars : env_var.arn]])
-          )
-        }],
-        [{
-          Effect = "Allow"
-          Action = ["ssm:GetParameters"]
-          Resource = concat(
-            flatten([for def in local.worker_task_defs : [for _, env_var in def.env_vars : env_var.arn]])
           )
         }],
       ])

@@ -279,6 +279,8 @@ impl DatabaseApi<'_> {
                         ),
                     },
                 },
+                None,
+                None,
             )
             .await?
             .vertices
@@ -337,6 +339,8 @@ impl DatabaseApi<'_> {
                         ),
                     },
                 },
+                None,
+                None,
             )
             .await?
             .vertices
@@ -392,6 +396,8 @@ impl DatabaseApi<'_> {
                         ),
                     },
                 },
+                None,
+                None,
             )
             .await?
             .vertices
@@ -432,6 +438,7 @@ impl DatabaseApi<'_> {
                 entity_uuid,
                 Some(generate_decision_time()),
                 false,
+                false,
                 entity_type_id,
                 properties,
                 None,
@@ -456,6 +463,8 @@ impl DatabaseApi<'_> {
                         ),
                     },
                 },
+                None,
+                None,
             )
             .await?
             .vertices
@@ -485,6 +494,8 @@ impl DatabaseApi<'_> {
                         ),
                     },
                 },
+                None,
+                None,
             )
             .await?
             .vertices
@@ -509,6 +520,8 @@ impl DatabaseApi<'_> {
                         variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
                 },
+                None,
+                None,
             )
             .await?
             .vertices
@@ -532,6 +545,7 @@ impl DatabaseApi<'_> {
                 &mut NoAuthorization,
                 entity_id,
                 Some(generate_decision_time()),
+                false,
                 false,
                 entity_type_id,
                 properties,
@@ -558,6 +572,7 @@ impl DatabaseApi<'_> {
                 },
                 entity_uuid,
                 None,
+                false,
                 false,
                 entity_type_id,
                 properties,
@@ -637,6 +652,8 @@ impl DatabaseApi<'_> {
                         ),
                     },
                 },
+                None,
+                None,
             )
             .await?;
 
@@ -701,6 +718,8 @@ impl DatabaseApi<'_> {
                         variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
                 },
+                None,
+                None,
             )
             .await?;
 
@@ -730,6 +749,7 @@ impl DatabaseApi<'_> {
                 entity_id,
                 None,
                 true,
+                false,
                 entity_type_id,
                 properties,
                 link_order,

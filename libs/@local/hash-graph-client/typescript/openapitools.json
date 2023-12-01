@@ -16,8 +16,7 @@
           "withInterfaces": true,
           "disallowAdditionalPropertiesIfNotPresent": true,
           "withNodeImports": true,
-          "sortModelPropertiesByRequiredFlag": false,
-          "sortParamsByRequiredFlag": false
+          "sortModelPropertiesByRequiredFlag": false
         }
       }
     }

@@ -681,12 +681,13 @@ pub enum EntityEditions<'p> {
     RightToLeftOrder,
     RecordCreatedById,
     Archived,
+    Draft,
 }
 
 impl<'p> EntityEditions<'p> {
     pub const fn nullable(self) -> bool {
         match self {
-            Self::EditionId | Self::Archived | Self::RecordCreatedById => false,
+            Self::EditionId | Self::Archived | Self::Draft | Self::RecordCreatedById => false,
             Self::Properties(_) | Self::LeftToRightOrder | Self::RightToLeftOrder => true,
         }
     }
@@ -701,6 +702,7 @@ impl<'p> EntityEditions<'p> {
             Self::RightToLeftOrder => (EntityEditions::RightToLeftOrder, None),
             Self::RecordCreatedById => (EntityEditions::RecordCreatedById, None),
             Self::Archived => (EntityEditions::Archived, None),
+            Self::Draft => (EntityEditions::Draft, None),
             Self::Properties(None) => (EntityEditions::Properties(None), None),
             Self::Properties(Some(path)) => {
                 let (path, parameter) = path.into_owned(current_parameter_index);
@@ -722,6 +724,7 @@ impl EntityEditions<'static> {
             Self::RightToLeftOrder => "right_to_left_order",
             Self::RecordCreatedById => "record_created_by_id",
             Self::Archived => "archived",
+            Self::Draft => "draft",
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
@@ -732,7 +735,7 @@ impl EntityEditions<'static> {
             Self::EditionId | Self::RecordCreatedById => ParameterType::Uuid,
             Self::Properties(_) => ParameterType::Any,
             Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::Number,
-            Self::Archived => ParameterType::Boolean,
+            Self::Archived | Self::Draft => ParameterType::Boolean,
         }
     }
 }

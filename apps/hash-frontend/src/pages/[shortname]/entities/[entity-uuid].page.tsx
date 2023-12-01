@@ -1,4 +1,5 @@
 import { useLazyQuery } from "@apollo/client";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -23,7 +24,6 @@ import {
   GetEntityQuery,
   GetEntityQueryVariables,
 } from "../../../graphql/api-types.gen";
-import { generateEntityLabel } from "../../../lib/entities";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,

@@ -119,6 +119,8 @@ module.exports = withSentryConfig(
         "@blockprotocol/type-system",
         "@emotion/server",
         "@hashintel/design-system",
+        "echarts",
+        "zrender",
         "@hashintel/block-design-system",
         "@hashintel/type-editor",
         "@hashintel/query-editor",

@@ -13,6 +13,7 @@ import { FunctionComponent, useRef } from "react";
 import { useEntityTypesContextRequired } from "../../../entity-types-context/hooks/use-entity-types-context-required";
 import { EllipsisRegularIcon } from "../../../icons/ellipsis-regular-icon";
 import { Link } from "../../../ui";
+import { EntityMenu } from "./entity-menu";
 import { EntityTypeMenu } from "./entity-type-menu";
 
 const Container = styled((props: BoxProps & { selected: boolean }) => (
@@ -49,10 +50,15 @@ const Container = styled((props: BoxProps & { selected: boolean }) => (
   },
 }));
 
-export const EntityTypeItem: FunctionComponent<EntityTypeWithMetadata> = ({
-  metadata: { icon },
-  schema: { title, $id: entityTypeId },
-}) => {
+export const EntityTypeItem: FunctionComponent<{
+  entityType: EntityTypeWithMetadata;
+  href?: string;
+  variant: "entity" | "entity-type";
+}> = ({ entityType, href, variant }) => {
+  const {
+    metadata: { icon },
+    schema: { title, $id: entityTypeId },
+  } = entityType;
   const entityMenuTriggerRef = useRef(null);
   const popupState = usePopupState({
     variant: "popover",
@@ -74,8 +80,14 @@ export const EntityTypeItem: FunctionComponent<EntityTypeWithMetadata> = ({
   const { isLink } = isSpecialEntityTypeLookup?.[entityTypeId] ?? {};
 
   return (
-    <Container component="li" tabIndex={0} selected={selected}>
-      <Link tabIndex={-1} sx={{ flex: 1 }} noLinkStyle href={baseUrl} flex={1}>
+    <Container component="li" tabIndex={0} selected={selected} minHeight={32}>
+      <Link
+        tabIndex={-1}
+        sx={{ flex: 1 }}
+        noLinkStyle
+        href={href ?? baseUrl}
+        flex={1}
+      >
         <Typography
           variant="smallTextLabels"
           sx={{
@@ -84,14 +96,22 @@ export const EntityTypeItem: FunctionComponent<EntityTypeWithMetadata> = ({
             fontWeight: 500,
           }}
         >
-          <Box component="span" marginRight={1}>
+          <Box
+            component="span"
+            sx={{
+              marginRight: 1,
+              maxWidth: 18,
+              display: "inline-flex",
+              justifyContent: "center",
+            }}
+          >
             {icon ??
               (isLink ? (
                 <LinkTypeIcon
                   sx={({ palette }) => ({
                     position: "relative",
                     top: 2,
-                    fontSize: 14,
+                    fontSize: 16,
                     stroke: palette.gray[50],
                   })}
                 />
@@ -100,7 +120,7 @@ export const EntityTypeItem: FunctionComponent<EntityTypeWithMetadata> = ({
                   sx={({ palette }) => ({
                     position: "relative",
                     top: 2,
-                    fontSize: 14,
+                    fontSize: 16,
                     fill: palette.gray[50],
                   })}
                 />
@@ -109,6 +129,7 @@ export const EntityTypeItem: FunctionComponent<EntityTypeWithMetadata> = ({
           {title}
         </Typography>
       </Link>
+
       <Tooltip title="Options" sx={{ left: 5 }}>
         <IconButton
           ref={entityMenuTriggerRef}
@@ -127,12 +148,22 @@ export const EntityTypeItem: FunctionComponent<EntityTypeWithMetadata> = ({
           <EllipsisRegularIcon />
         </IconButton>
       </Tooltip>
-      <EntityTypeMenu
-        entityTypeId={entityTypeId}
-        popupState={popupState}
-        title={title}
-        url={baseUrl}
-      />
+      {variant === "entity" ? (
+        <EntityMenu
+          entityTypeId={entityTypeId}
+          popupState={popupState}
+          title={title}
+          entityTypeIcon={icon}
+          isLinkType={isLink}
+        />
+      ) : (
+        <EntityTypeMenu
+          entityTypeId={entityTypeId}
+          popupState={popupState}
+          title={title}
+          url={baseUrl}
+        />
+      )}
     </Container>
   );
 };

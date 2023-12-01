@@ -14,7 +14,7 @@ use type_system::{
 
 use crate::{
     error::{Actual, Expected},
-    EntityProvider, EntityTypeProvider, OntologyTypeProvider, Schema, Validate,
+    EntityProvider, EntityTypeProvider, OntologyTypeProvider, Schema, Validate, ValidationProfile,
 };
 
 macro_rules! extend_report {
@@ -43,6 +43,8 @@ pub enum EntityValidationError {
     InvalidLinkTypeId { link_type: VersionedUrl },
     #[error("The link target `{target_type}` is not allowed")]
     InvalidLinkTargetId { target_type: VersionedUrl },
+    #[error("Linking to a draft is only allowed for draft entities")]
+    LinksToDraft { id: EntityId },
 }
 
 impl<P> Schema<HashMap<BaseUrl, JsonValue>, P> for EntityType
@@ -54,6 +56,7 @@ where
     async fn validate_value<'a>(
         &'a self,
         value: &'a HashMap<BaseUrl, serde_json::Value>,
+        profile: ValidationProfile,
         provider: &'a P,
     ) -> Result<(), Report<EntityValidationError>> {
         // TODO: Distinguish between format validation and content validation so it's possible
@@ -61,7 +64,7 @@ where
         //   see https://linear.app/hash/issue/BP-33
         Object::<_, 0>::new(self.properties().clone(), self.required().to_vec())
             .expect("`Object` was already validated")
-            .validate_value(value, provider)
+            .validate_value(value, profile, provider)
             .await
             .change_context(EntityValidationError::InvalidProperties)
             .attach_lazy(|| Expected::EntityType(self.clone()))
@@ -75,8 +78,15 @@ where
 {
     type Error = EntityValidationError;
 
-    async fn validate(&self, schema: &EntityType, provider: &P) -> Result<(), Report<Self::Error>> {
-        schema.validate_value(self.properties(), provider).await
+    async fn validate(
+        &self,
+        schema: &EntityType,
+        profile: ValidationProfile,
+        provider: &P,
+    ) -> Result<(), Report<Self::Error>> {
+        schema
+            .validate_value(self.properties(), profile, provider)
+            .await
     }
 }
 
@@ -90,7 +100,12 @@ where
 {
     type Error = EntityValidationError;
 
-    async fn validate(&self, schema: &EntityType, provider: &P) -> Result<(), Report<Self::Error>> {
+    async fn validate(
+        &self,
+        schema: &EntityType,
+        profile: ValidationProfile,
+        provider: &P,
+    ) -> Result<(), Report<Self::Error>> {
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());
 
         let is_link = provider
@@ -124,7 +139,7 @@ where
                 extend_report!(status, EntityValidationError::UnexpectedLinkData);
             }
 
-            if let Err(error) = schema.validate_value(*link_data, provider).await {
+            if let Err(error) = schema.validate_value(*link_data, profile, provider).await {
                 extend_report!(status, error);
             }
         } else if is_link {
@@ -145,13 +160,23 @@ where
 {
     type Error = EntityValidationError;
 
-    async fn validate(&self, schema: &EntityType, provider: &P) -> Result<(), Report<Self::Error>> {
+    async fn validate(
+        &self,
+        schema: &EntityType,
+        profile: ValidationProfile,
+        provider: &P,
+    ) -> Result<(), Report<Self::Error>> {
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());
 
-        if let Err(error) = self.properties.validate(schema, provider).await {
+        if let Err(error) = self.properties.validate(schema, profile, provider).await {
             extend_report!(status, error);
         }
-        if let Err(error) = self.link_data.as_ref().validate(schema, provider).await {
+        if let Err(error) = self
+            .link_data
+            .as_ref()
+            .validate(schema, profile, provider)
+            .await
+        {
             extend_report!(status, error);
         }
 
@@ -167,9 +192,11 @@ where
 
     // TODO: validate link data
     //   see https://linear.app/hash/issue/H-972
+    #[expect(clippy::too_many_lines)]
     async fn validate_value<'a>(
         &'a self,
         link_data: &'a LinkData,
+        profile: ValidationProfile,
         provider: &'a P,
     ) -> Result<(), Report<EntityValidationError>> {
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());
@@ -192,11 +219,29 @@ where
             .map_err(|error| extend_report!(status, error))
             .ok();
 
-        let right_entity_type_id = right_entity
-            .as_ref()
-            .map(|entity| entity.borrow().metadata.entity_type_id());
+        let right_entity_type_id = right_entity.as_ref().map(|entity| {
+            if profile == ValidationProfile::Full && entity.borrow().metadata.draft() {
+                extend_report!(
+                    status,
+                    EntityValidationError::LinksToDraft {
+                        id: entity.borrow().metadata.record_id().entity_id
+                    }
+                );
+            }
+
+            entity.borrow().metadata.entity_type_id()
+        });
 
         if let Some(left_entity) = left_entity {
+            if profile == ValidationProfile::Full && left_entity.borrow().metadata.draft() {
+                extend_report!(
+                    status,
+                    EntityValidationError::LinksToDraft {
+                        id: left_entity.borrow().metadata.record_id().entity_id
+                    }
+                );
+            }
+
             let left_entity_type = provider
                 .provide_type(left_entity.borrow().metadata.entity_type_id())
                 .await
@@ -284,7 +329,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::tests::validate_entity;
+    use crate::{tests::validate_entity, ValidationProfile};
 
     #[tokio::test]
     async fn address() {
@@ -304,6 +349,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
+            ValidationProfile::Full,
         )
         .await
         .expect("validation failed");
@@ -323,6 +369,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
+            ValidationProfile::Full,
         )
         .await
         .expect("validation failed");
@@ -346,6 +393,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
+            ValidationProfile::Full,
         )
         .await
         .expect("validation failed");
@@ -365,6 +413,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
+            ValidationProfile::Full,
         )
         .await
         .expect("validation failed");
@@ -384,6 +433,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
+            ValidationProfile::Full,
         )
         .await
         .expect("validation failed");
@@ -403,6 +453,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
+            ValidationProfile::Full,
         )
         .await
         .expect("validation failed");
@@ -414,6 +465,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
+            ValidationProfile::Full,
         )
         .await
         .expect("validation failed");
@@ -433,6 +485,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
+            ValidationProfile::Full,
         )
         .await
         .expect("validation failed");
@@ -444,6 +497,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
+            ValidationProfile::Full,
         )
         .await
         .expect("validation failed");
@@ -455,6 +509,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
+            ValidationProfile::Full,
         )
         .await
         .expect("validation failed");
@@ -474,6 +529,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
+            ValidationProfile::Full,
         )
         .await
         .expect("validation failed");
@@ -493,6 +549,7 @@ mod tests {
             entity_types,
             property_types,
             data_types,
+            ValidationProfile::Full,
         )
         .await
         .expect("validation failed");

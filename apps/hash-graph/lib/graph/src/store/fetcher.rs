@@ -30,19 +30,22 @@ use type_system::{
     url::{BaseUrl, VersionedUrl},
     DataType, EntityType, EntityTypeReference, PropertyType,
 };
+use validation::ValidationProfile;
 
 use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
         crud::Read,
-        knowledge::{EntityValidationError, EntityValidationType},
+        knowledge::{EntityValidationType, ValidateEntityError},
         query::{Filter, OntologyQueryPath},
         AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
         InsertionError, PropertyTypeStore, QueryError, Record, StoreError, StorePool, UpdateError,
     },
     subgraph::{
         edges::GraphResolveDepths,
-        identifier::VertexId,
+        identifier::{
+            DataTypeVertexId, EntityTypeVertexId, EntityVertexId, PropertyTypeVertexId, VertexId,
+        },
         query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
@@ -222,17 +225,17 @@ where
         match ontology_type_reference {
             OntologyTypeReference::DataTypeReference(_) => {
                 self.store
-                    .get_data_type(actor_id, authorization_api, &create_query(url))
+                    .get_data_type(actor_id, authorization_api, &create_query(url), None, None)
                     .await
             }
             OntologyTypeReference::PropertyTypeReference(_) => {
                 self.store
-                    .get_property_type(actor_id, authorization_api, &create_query(url))
+                    .get_property_type(actor_id, authorization_api, &create_query(url), None, None)
                     .await
             }
             OntologyTypeReference::EntityTypeReference(_) => {
                 self.store
-                    .get_entity_type(actor_id, authorization_api, &create_query(url))
+                    .get_entity_type(actor_id, authorization_api, &create_query(url), None, None)
                     .await
             }
         }
@@ -607,8 +610,10 @@ where
         &self,
         query: &Filter<Self::Record>,
         temporal_axes: Option<&QueryTemporalAxes>,
+        start: Option<&<Self::Record as Record>::VertexId>,
+        limit: Option<usize>,
     ) -> Result<Self::ReadStream, QueryError> {
-        self.store.read(query, temporal_axes).await
+        self.store.read(query, temporal_axes, start, limit).await
     }
 }
 
@@ -699,9 +704,11 @@ where
         actor_id: AccountId,
         authorization_api: &Au,
         query: &StructuralQuery<DataTypeWithMetadata>,
+        after: Option<&DataTypeVertexId>,
+        limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         self.store
-            .get_data_type(actor_id, authorization_api, query)
+            .get_data_type(actor_id, authorization_api, query, after, limit)
             .await
     }
 
@@ -790,9 +797,11 @@ where
         actor_id: AccountId,
         authorization_api: &Au,
         query: &StructuralQuery<PropertyTypeWithMetadata>,
+        after: Option<&PropertyTypeVertexId>,
+        limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         self.store
-            .get_property_type(actor_id, authorization_api, query)
+            .get_property_type(actor_id, authorization_api, query, after, limit)
             .await
     }
 
@@ -877,9 +886,11 @@ where
         actor_id: AccountId,
         authorization_api: &Au,
         query: &StructuralQuery<EntityTypeWithMetadata>,
+        after: Option<&EntityTypeVertexId>,
+        limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         self.store
-            .get_entity_type(actor_id, authorization_api, query)
+            .get_entity_type(actor_id, authorization_api, query, after, limit)
             .await
     }
 
@@ -949,6 +960,7 @@ where
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
+        draft: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_data: Option<LinkData>,
@@ -973,6 +985,7 @@ where
                 entity_uuid,
                 decision_time,
                 archived,
+                draft,
                 entity_type_id,
                 properties,
                 link_data,
@@ -988,7 +1001,8 @@ where
         entity_type: EntityValidationType<'_>,
         properties: &EntityProperties,
         link_data: Option<&LinkData>,
-    ) -> Result<(), EntityValidationError> {
+        profile: ValidationProfile,
+    ) -> Result<(), ValidateEntityError> {
         self.store
             .validate_entity(
                 actor_id,
@@ -997,6 +1011,7 @@ where
                 entity_type,
                 properties,
                 link_data,
+                profile,
             )
             .await
     }
@@ -1040,9 +1055,11 @@ where
         actor_id: AccountId,
         authorization_api: &Au,
         query: &StructuralQuery<Entity>,
+        after: Option<&EntityVertexId>,
+        limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         self.store
-            .get_entity(actor_id, authorization_api, query)
+            .get_entity(actor_id, authorization_api, query, after, limit)
             .await
     }
 
@@ -1053,6 +1070,7 @@ where
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
+        draft: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_order: EntityLinkOrder,
@@ -1076,6 +1094,7 @@ where
                 entity_id,
                 decision_time,
                 archived,
+                draft,
                 entity_type_id,
                 properties,
                 link_order,

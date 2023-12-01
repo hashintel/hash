@@ -25,6 +25,7 @@ pub struct EntityEditionRow {
     pub right_to_left_order: Option<LinkOrder>,
     pub record_created_by_id: RecordCreatedById,
     pub archived: bool,
+    pub draft: bool,
     pub entity_type_base_url: String,
     pub entity_type_version: OntologyTypeVersion,
 }

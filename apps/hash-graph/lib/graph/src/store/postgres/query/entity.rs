@@ -32,7 +32,8 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             | Self::LeftToRightOrder
             | Self::RightToLeftOrder
             | Self::RecordCreatedById
-            | Self::Archived => vec![Relation::EntityEditions],
+            | Self::Archived
+            | Self::Draft => vec![Relation::EntityEditions],
             Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path,
@@ -93,6 +94,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 Column::EntityTemporalMetadata(EntityTemporalMetadata::TransactionTime)
             }
             Self::Archived => Column::EntityEditions(EntityEditions::Archived),
+            Self::Draft => Column::EntityEditions(EntityEditions::Draft),
             Self::OwnedById => Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),
             Self::RecordCreatedById => Column::EntityEditions(EntityEditions::RecordCreatedById),
             Self::EntityTypeEdge { path, .. } => path.terminating_column(),

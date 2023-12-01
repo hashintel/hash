@@ -1,5 +1,6 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   Entity,
   EntityId,
@@ -13,7 +14,6 @@ import { Box } from "@mui/material";
 import produce from "immer";
 import { useMemo, useState } from "react";
 
-import { generateEntityLabel } from "../../../../../../../../../lib/entities";
 import { getImageUrlFromEntityProperties } from "../../../../../../../../shared/get-image-url-from-properties";
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";
@@ -29,6 +29,7 @@ import { MaxItemsReached } from "./linked-entity-list-editor/max-items-reached";
  * @todo - This is unsafe, and should be refactored to return a new type `DraftEntity`, so that we aren't
  *   breaking invariants and constraints. Having a disjoint type will let us rely on `tsc` properly and avoid casts
  *   and empty placeholder values below
+ *   see https://linear.app/hash/issue/H-1083/draft-entities
  */
 export const createDraftLinkEntity = ({
   rightEntityId,
@@ -44,6 +45,9 @@ export const createDraftLinkEntity = ({
     linkData: { rightEntityId, leftEntityId },
     metadata: {
       archived: false,
+      // @todo use the Graph to create draft entities
+      //   see https://linear.app/hash/issue/H-1083/draft-entities
+      draft: false,
       recordId: { editionId: "", entityId: `draft~${Date.now()}` as EntityId },
       entityTypeId: linkEntityTypeId,
       provenance: { recordCreatedById: "" as RecordCreatedById },

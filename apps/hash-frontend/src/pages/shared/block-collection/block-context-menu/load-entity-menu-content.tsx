@@ -7,6 +7,7 @@ import {
   TextField,
 } from "@hashintel/design-system";
 import { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { Entity, EntityId, EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -32,7 +33,6 @@ import {
   QueryEntitiesQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
-import { generateEntityLabel } from "../../../../lib/entities";
 import { entityHasEntityTypeByBaseUrlFilter } from "../../../../shared/filters";
 import { MenuItem } from "../../../../shared/ui";
 import { useBlockView } from "../block-view";

@@ -1,29 +1,17 @@
-import { useQuery } from "@apollo/client";
 import {
-  BaseUrl,
   EntityType,
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import {
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { EntityRootType } from "@local/hash-subgraph";
+import { BaseUrl } from "@local/hash-subgraph";
 import {
   getEntityTypeAndParentsById,
   getPropertyTypeById,
-  getRoots,
 } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
-import {
-  QueryEntitiesQuery,
-  QueryEntitiesQueryVariables,
-} from "../../graphql/api-types.gen";
-import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { apolloClient } from "../../lib/apollo-client";
 import { EntityTypeEntitiesContextValue } from "../entity-type-entities-context";
+import { useEntityTypeEntities } from "../use-entity-type-entities";
 
 export const useEntityTypeEntitiesContextValue = (params: {
   entityTypeBaseUrl?: BaseUrl;
@@ -31,72 +19,27 @@ export const useEntityTypeEntitiesContextValue = (params: {
 }): EntityTypeEntitiesContextValue => {
   const { entityTypeBaseUrl, entityTypeId } = params;
 
-  const variables = useMemo<QueryEntitiesQueryVariables>(
-    () => ({
-      operation: {
-        multiFilter: {
-          filters: [
-            ...(entityTypeBaseUrl
-              ? [
-                  {
-                    field: ["metadata", "entityTypeBaseUrl"],
-                    operator: "EQUALS" as const,
-                    value: entityTypeBaseUrl,
-                  },
-                ]
-              : entityTypeId
-                ? [
-                    {
-                      field: ["metadata", "entityTypeId"],
-                      operator: "EQUALS" as const,
-                      value: entityTypeId,
-                    },
-                  ]
-                : []),
-          ],
-          operator: "AND",
-        },
+  const { subgraph, entities, hadCachedContent, loading, refetch } =
+    useEntityTypeEntities({
+      entityTypeBaseUrl,
+      entityTypeId,
+      graphResolveDepths: {
+        constrainsLinksOn: { outgoing: 255 },
+        constrainsLinkDestinationsOn: { outgoing: 255 },
+        constrainsPropertiesOn: { outgoing: 255 },
+        constrainsValuesOn: { outgoing: 255 },
+        inheritsFrom: { outgoing: 255 },
+        isOfType: { outgoing: 1 },
       },
-      ...zeroedGraphResolveDepths,
-      constrainsLinksOn: { outgoing: 255 },
-      constrainsLinkDestinationsOn: { outgoing: 255 },
-      constrainsPropertiesOn: { outgoing: 255 },
-      constrainsValuesOn: { outgoing: 255 },
-      inheritsFrom: { outgoing: 255 },
-      isOfType: { outgoing: 1 },
-      includePermissions: false,
-    }),
-    [entityTypeBaseUrl, entityTypeId],
-  );
+    });
 
-  const { data, loading, refetch } = useQuery<
-    QueryEntitiesQuery,
-    QueryEntitiesQueryVariables
-  >(queryEntitiesQuery, {
-    fetchPolicy: "cache-and-network",
-    variables,
-  });
-
-  const hadCachedContent = useMemo(
-    () => !!apolloClient.readQuery({ query: queryEntitiesQuery, variables }),
-    [variables],
-  );
-
-  const subgraph = data?.queryEntities.subgraph
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        data.queryEntities.subgraph,
-      )
-    : undefined;
-
-  const [entities, entityTypes, propertyTypes] = useMemo(() => {
-    if (!subgraph) {
+  const [entityTypes, propertyTypes] = useMemo(() => {
+    if (!subgraph || !entities) {
       return [];
     }
 
-    const relevantEntities = getRoots(subgraph);
-
     const relevantTypesMap = new Map<string, EntityType>();
-    for (const { metadata } of relevantEntities) {
+    for (const { metadata } of entities) {
       if (!relevantTypesMap.has(metadata.entityTypeId)) {
         const types = getEntityTypeAndParentsById(
           subgraph,
@@ -125,10 +68,12 @@ export const useEntityTypeEntitiesContextValue = (params: {
     }
     const relevantProperties = Array.from(relevantPropertiesMap.values());
 
-    return [relevantEntities, relevantTypes, relevantProperties];
-  }, [subgraph]);
+    return [relevantTypes, relevantProperties];
+  }, [subgraph, entities]);
 
   return {
+    entityTypeBaseUrl,
+    entityTypeId,
     entities,
     entityTypes,
     hadCachedContent,

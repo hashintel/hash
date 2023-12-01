@@ -149,6 +149,8 @@ pub fn bench_get_entity_by_id(
                             ),
                         },
                     },
+                    None,
+                    None,
                 )
                 .await
                 .expect("failed to read entity from store");

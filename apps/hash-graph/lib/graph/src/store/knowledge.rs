@@ -13,10 +13,11 @@ use graph_types::{
 };
 use temporal_versioning::{DecisionTime, Timestamp};
 use type_system::{url::VersionedUrl, EntityType};
+use validation::ValidationProfile;
 
 use crate::{
     store::{crud, InsertionError, QueryError, UpdateError},
-    subgraph::{query::StructuralQuery, Subgraph},
+    subgraph::{identifier::EntityVertexId, query::StructuralQuery, Subgraph},
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -26,15 +27,15 @@ pub enum EntityValidationType<'a> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct EntityValidationError;
+pub struct ValidateEntityError;
 
-impl fmt::Display for EntityValidationError {
+impl fmt::Display for ValidateEntityError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.write_str("Entity validation failed")
     }
 }
 
-impl Error for EntityValidationError {}
+impl Error for ValidateEntityError {}
 
 /// Describes the API of a store implementation for [Entities].
 ///
@@ -51,7 +52,12 @@ pub trait EntityStore: crud::Read<Entity> {
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
     /// [`EntityType`]: type_system::EntityType
-    #[expect(clippy::too_many_arguments)]
+    // TODO: Revisit creation parameter to avoid too many parameters, especially as the parameters
+    //       are booleans/optionals and can be easily confused
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "https://linear.app/hash/issue/H-1466"
+    )]
     async fn create_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
@@ -61,6 +67,7 @@ pub trait EntityStore: crud::Read<Entity> {
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
+        draft: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_data: Option<LinkData>,
@@ -71,6 +78,12 @@ pub trait EntityStore: crud::Read<Entity> {
     /// # Errors:
     ///
     /// - if the validation failed
+    // TODO: Revisit parameter to avoid too many parameters, especially as the parameters are
+    //       booleans/optionals and can be easily confused
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "https://linear.app/hash/issue/H-1466"
+    )]
     async fn validate_entity<A: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,
@@ -79,7 +92,8 @@ pub trait EntityStore: crud::Read<Entity> {
         entity_type: EntityValidationType<'_>,
         properties: &EntityProperties,
         link_data: Option<&LinkData>,
-    ) -> Result<(), EntityValidationError>;
+        profile: ValidationProfile,
+    ) -> Result<(), ValidateEntityError>;
 
     /// Inserts the entities with the specified [`EntityType`] into the `Store`.
     ///
@@ -127,6 +141,8 @@ pub trait EntityStore: crud::Read<Entity> {
         actor_id: AccountId,
         authorization_api: &A,
         query: &StructuralQuery<Entity>,
+        after: Option<&EntityVertexId>,
+        limit: Option<usize>,
     ) -> Result<Subgraph, QueryError>;
 
     /// Update an existing [`Entity`].
@@ -139,7 +155,14 @@ pub trait EntityStore: crud::Read<Entity> {
     /// - if the account referred to by `actor_id` does not exist
     ///
     /// [`EntityType`]: type_system::EntityType
-    #[expect(clippy::too_many_arguments)]
+    // TODO: Allow partial updates to avoid setting the `draft` and `archived` state here
+    //   see https://linear.app/hash/issue/H-1455
+    // TODO: Revisit creation parameter to avoid too many parameters, especially as the parameters
+    //       are booleans/optionals and can be easily confused
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "https://linear.app/hash/issue/H-1466"
+    )]
     async fn update_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
@@ -147,6 +170,7 @@ pub trait EntityStore: crud::Read<Entity> {
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
+        draft: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_order: EntityLinkOrder,

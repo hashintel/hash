@@ -16,16 +16,6 @@ runs:
         node-version: 18 ## aligned with Node version on Vercel
         # cache: yarn ## Currently disabled because of frequent timeouts
 
-    - name: Install poetry
-      run: pipx install poetry
-      shell: bash
-
-    - name: Set up Python 3.11
-      uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
-      with:
-        python-version: "^3.11"
-        cache: poetry
-
     - name: yarn install
       uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
       with:

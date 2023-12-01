@@ -137,25 +137,6 @@ jobs:
             echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
           fi
 
-          HAS_PYTHON=$(test -f "${{ matrix.directory }}/pyproject.toml" && echo 'true' || echo 'false')
-          echo "has-python=$HAS_PYTHON" >> $GITHUB_OUTPUT
-          if [[ $HAS_PYTHON = 'true' ]]; then
-            echo "python-version=$(cat "${{ matrix.directory }}/pyproject.toml" | yq -p toml '.tool.poetry.dependencies.python')" >> $GITHUB_OUTPUT
-          else
-            echo "python-version=^3.11" >> $GITHUB_OUTPUT
-          fi
-
-          HAS_POETRY_DEPS=$(turbo run poetry:install --filter '${{ matrix.package }}...' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "poetry:install" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "has-poetry-deps=$HAS_POETRY_DEPS" >> $GITHUB_OUTPUT
-
-          # If this is a python package we allow CI to fail
-          if [[ $HAS_PYTHON = 'true' ]]; then
-              echo "allow-failure=true" >> $GITHUB_OUTPUT
-          else
-              echo "allow-failure=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
@@ -180,7 +161,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@addb7d697b0081ef0a2b09d830daf6269d640920 # v2.21.20
+        uses: taiki-e/install-action@6b385b7509c65e9d1b7d6b72244f7e275a7f5cef # v2.21.23
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -190,22 +171,6 @@ jobs:
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-
-      - name: Install poetry
-        if: always() && steps.tests.outputs.has-poetry-deps == 'true'
-        run: pipx install poetry
-
-      - name: Set up Python
-        if: always() && steps.tests.outputs.has-poetry-deps == 'true'
-        uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
-        with:
-          python-version: ${{ steps.tests.outputs.python-version }}
-          cache: poetry
-
-      - name: Install Python dependencies
-        if: always() && steps.tests.outputs.has-poetry-deps == 'true'
-        continue-on-error: true
-        run: turbo run poetry:install
 
       - name: Show disk usage
         run: df -h
@@ -294,18 +259,6 @@ jobs:
           REQUIRES_AI_WORKER_TS=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
           REQUIRES_INTEGRATION_WORKER=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
 
-          HAS_PYTHON=$(test -f "${{ matrix.directory }}/pyproject.toml" && echo 'true' || echo 'false')
-          echo "has-python=$HAS_PYTHON" >> $GITHUB_OUTPUT
-          if [[ $HAS_PYTHON = 'true' ]]; then
-            echo "python-version=$(cat "${{ matrix.directory }}/pyproject.toml" | yq -p toml '.tool.poetry.dependencies.python')" >> $GITHUB_OUTPUT
-          else
-            echo "python-version=^3.11" >> $GITHUB_OUTPUT
-          fi
-
-          HAS_POETRY_DEPS=$(turbo run poetry:install --filter '${{ matrix.package }}...' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "poetry:install" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "has-poetry-deps=$HAS_POETRY_DEPS" >> $GITHUB_OUTPUT
-
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             echo "rust-toolchain=$(yq '.toolchain.channel' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
@@ -316,13 +269,6 @@ jobs:
           echo "external-service-ai-worker-ts=$REQUIRES_AI_WORKER_TS" >> $GITHUB_OUTPUT
           echo "external-service-worker-integration=$REQUIRES_INTEGRATION_WORKER" >> $GITHUB_OUTPUT
 
-          # If this is a python package we allow CI to fail
-          if [[ $HAS_PYTHON = 'true' ]]; then
-              echo "allow-failure=true" >> $GITHUB_OUTPUT
-          else
-              echo "allow-failure=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Install Rust toolchain
         if: always() && steps.tests.outputs.has-rust == 'true'
         uses: ./.github/actions/install-rust-toolchain
@@ -332,7 +278,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@addb7d697b0081ef0a2b09d830daf6269d640920 # v2.21.20
+        uses: taiki-e/install-action@6b385b7509c65e9d1b7d6b72244f7e275a7f5cef # v2.21.23
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -342,22 +288,6 @@ jobs:
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-
-      - name: Install poetry
-        if: always() && steps.tests.outputs.has-poetry-deps == 'true'
-        run: pipx install poetry
-
-      - name: Set up Python
-        if: always() && steps.tests.outputs.has-poetry-deps == 'true'
-        uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
-        with:
-          python-version: ${{ steps.tests.outputs.python-version }}
-          cache: poetry
-
-      - name: Install Python dependencies
-        if: always() && steps.tests.outputs.has-poetry-deps == 'true'
-        continue-on-error: true
-        run: turbo run poetry:install
 
       - name: Show disk usage
         run: df -h
@@ -470,7 +400,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@addb7d697b0081ef0a2b09d830daf6269d640920 # v2.21.20
+        uses: taiki-e/install-action@6b385b7509c65e9d1b7d6b72244f7e275a7f5cef # v2.21.23
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -591,7 +521,7 @@ jobs:
 
       - name: Install tools
         if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
-        uses: taiki-e/install-action@addb7d697b0081ef0a2b09d830daf6269d640920 # v2.21.20
+        uses: taiki-e/install-action@6b385b7509c65e9d1b7d6b72244f7e275a7f5cef # v2.21.23
         with:
           tool: cargo-semver-checks
 

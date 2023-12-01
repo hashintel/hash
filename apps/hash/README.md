@@ -47,7 +47,7 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 
 To run HASH locally, please follow these steps:
 
-1. Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com), [Docker](https://docs.docker.com/get-docker/), [Python](https://www.python.org/downloads/), [Poetry](https://python-poetry.org/docs/) and [Java](https://www.java.com/download/ie_manual.jsp). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
+1. Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com), [Docker](https://docs.docker.com/get-docker/), and [Java](https://www.java.com/download/ie_manual.jsp). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
    Run each of these version commands and make sure the output is expected:
 
    ```sh
@@ -71,12 +71,6 @@ To run HASH locally, please follow these steps:
    
    java --version
    ## ≥ 8
-   
-   python --version
-   ## ≥ 3.11
-   
-   poetry --version
-   ## ≥ 1.4.2
    ```
 
    If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.
@@ -288,10 +282,6 @@ We use [Yarn Workspaces](https://classic.yarnpkg.com/en/docs/workspaces) to work
 [Turborepo](https://turborepo.com) is used to cache script results and thus speed up their execution.
 
 ## Troubleshooting
-
-### Command not found: ruff
-
-Run `yarn poetry:install` before running `yarn lint` or `yarn fix` for the first time.
 
 ### eslint `parserOptions.project`
 

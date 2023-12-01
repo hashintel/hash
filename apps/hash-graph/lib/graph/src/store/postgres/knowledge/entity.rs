@@ -32,7 +32,7 @@ use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp}
 use tokio_postgres::GenericClient;
 use type_system::{url::VersionedUrl, EntityType};
 use uuid::Uuid;
-use validation::Validate;
+use validation::{Validate, ValidationProfile};
 
 #[cfg(hash_graph_test_environment)]
 use crate::store::error::DeletionError;
@@ -41,7 +41,7 @@ use crate::{
     store::{
         crud::Read,
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
-        knowledge::{EntityValidationError, EntityValidationType},
+        knowledge::{EntityValidationType, ValidateEntityError},
         postgres::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
             TraversalContext,
@@ -299,6 +299,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
+        draft: bool,
         entity_type_url: VersionedUrl,
         properties: EntityProperties,
         link_data: Option<LinkData>,
@@ -406,6 +407,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .insert_entity_edition(
                 RecordCreatedById::new(actor_id),
                 archived,
+                draft,
                 &entity_type_url,
                 &properties,
                 &link_order,
@@ -485,6 +487,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 EntityValidationType::Schema(&closed_schema),
                 &properties,
                 link_data.as_ref(),
+                if draft {
+                    ValidationProfile::Draft
+                } else {
+                    ValidationProfile::Full
+                },
             )
             .await
             .change_context(InsertionError)
@@ -525,10 +532,15 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     record_archived_by_id: None,
                 },
                 archived,
+                draft,
             ))
         }
     }
 
+    // TODO: Relax constraints on entity validation for draft entities
+    //   see https://linear.app/hash/issue/H-1449
+    // TODO: Restrict non-draft links to non-draft entities
+    //   see https://linear.app/hash/issue/H-1450
     async fn validate_entity<A: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,
@@ -537,7 +549,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_type: EntityValidationType<'_>,
         properties: &EntityProperties,
         link_data: Option<&LinkData>,
-    ) -> Result<(), EntityValidationError> {
+        profile: ValidationProfile,
+    ) -> Result<(), ValidateEntityError> {
         enum MaybeBorrowed<'a, T> {
             Borrowed(&'a T),
             Owned(T),
@@ -556,9 +569,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         consistency,
                     )
                     .await
-                    .change_context(EntityValidationError)?
+                    .change_context(ValidateEntityError)?
                     .assert_permission()
-                    .change_context(EntityValidationError)
+                    .change_context(ValidateEntityError)
                     .attach(StatusCode::PermissionDenied)?;
 
                 let mut closed_schemas = self
@@ -578,22 +591,22 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         ),
                     )
                     .await
-                    .change_context(EntityValidationError)?
+                    .change_context(ValidateEntityError)?
                     .map_ok(|(_, raw_type)| raw_type)
                     .try_collect::<Vec<EntityType>>()
                     .await
-                    .change_context(EntityValidationError)?;
+                    .change_context(ValidateEntityError)?;
 
                 ensure!(
                     closed_schemas.len() <= 1,
-                    Report::new(EntityValidationError).attach_printable(format!(
+                    Report::new(ValidateEntityError).attach_printable(format!(
                         "Expected exactly one closed schema to be returned from the query but {} \
                          were returned",
                         closed_schemas.len(),
                     ))
                 );
                 MaybeBorrowed::Owned(closed_schemas.pop().ok_or_else(|| {
-                    Report::new(EntityValidationError).attach_printable(
+                    Report::new(ValidateEntityError).attach_printable(
                         "Expected exactly one closed schema to be returned from the query but \
                          none was returned",
                     )
@@ -614,7 +627,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             authorization: Some((authorization_api, actor_id, Consistency::FullyConsistent)),
         };
 
-        if let Err(error) = properties.validate(schema, &validator_provider).await {
+        if let Err(error) = properties
+            .validate(schema, profile, &validator_provider)
+            .await
+        {
             if let Err(ref mut report) = status {
                 report.extend_one(error);
             } else {
@@ -622,7 +638,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             }
         }
 
-        if let Err(error) = link_data.validate(schema, &validator_provider).await {
+        if let Err(error) = link_data
+            .validate(schema, profile, &validator_provider)
+            .await
+        {
             if let Err(ref mut report) = status {
                 report.extend_one(error);
             } else {
@@ -631,7 +650,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         }
 
         status
-            .change_context(EntityValidationError)
+            .change_context(ValidateEntityError)
             .attach(StatusCode::InvalidArgument)
     }
 
@@ -770,6 +789,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         record_archived_by_id: None,
                     },
                     false,
+                    false,
                 )
             })
             .collect())
@@ -781,6 +801,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         actor_id: AccountId,
         authorization_api: &A,
         query: &StructuralQuery<Entity>,
+        after: Option<&EntityVertexId>,
+        limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
@@ -791,11 +813,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let mut entities = Read::<Entity>::read_vec(self, filter, Some(&temporal_axes))
-            .await?
-            .into_iter()
-            .map(|entity| (entity.vertex_id(time_axis), entity))
-            .collect::<HashMap<_, _>>();
+        let mut entities =
+            Read::<Entity>::read_vec(self, filter, Some(&temporal_axes), after, limit)
+                .await?
+                .into_iter()
+                .map(|entity| (entity.vertex_id(time_axis), entity))
+                .collect::<HashMap<_, _>>();
         // TODO: The subgraph structure differs from the API interface. At the API the vertices
         //       are stored in a nested `HashMap` and here it's flattened. We need to adjust the
         //       the subgraph anyway so instead of refactoring this now this will just copy the ids.
@@ -873,6 +896,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
+        draft: bool,
         entity_type_url: VersionedUrl,
         properties: EntityProperties,
         link_order: EntityLinkOrder,
@@ -927,6 +951,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .insert_entity_edition(
                 RecordCreatedById::new(actor_id),
                 archived,
+                draft,
                 &entity_type_url,
                 &properties,
                 &link_order,
@@ -1013,6 +1038,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         properties
             .validate(
                 &closed_schema,
+                if draft {
+                    ValidationProfile::Draft
+                } else {
+                    ValidationProfile::Full
+                },
                 &StoreProvider {
                     store: &transaction,
                     cache: StoreCache::default(),
@@ -1057,6 +1087,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 record_archived_by_id: None,
             },
             archived,
+            draft,
         ))
     }
 }
@@ -1066,6 +1097,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         &self,
         record_created_by_id: RecordCreatedById,
         archived: bool,
+        draft: bool,
         entity_type_id: &VersionedUrl,
         properties: &EntityProperties,
         link_order: &EntityLinkOrder,
@@ -1078,15 +1110,17 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         entity_edition_id,
                         record_created_by_id,
                         archived,
+                        draft,
                         properties,
                         left_to_right_order,
                         right_to_left_order
-                    ) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
+                    ) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)
                     RETURNING entity_edition_id;
                 ",
                 &[
                     &record_created_by_id,
                     &archived,
+                    &draft,
                     &properties,
                     &link_order.left_to_right,
                     &link_order.right_to_left,

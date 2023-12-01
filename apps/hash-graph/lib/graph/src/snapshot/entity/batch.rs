@@ -10,7 +10,7 @@ use error_stack::{Result, ResultExt};
 use futures::TryStreamExt;
 use graph_types::knowledge::entity::{Entity, EntityUuid};
 use tokio_postgres::GenericClient;
-use validation::Validate;
+use validation::{Validate, ValidationProfile};
 
 use crate::{
     snapshot::{
@@ -50,6 +50,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         right_to_left_order INTEGER,
                         record_created_by_id UUID NOT NULL,
                         archived BOOLEAN NOT NULL,
+                        draft BOOLEAN NOT NULL,
                         entity_type_base_url TEXT NOT NULL,
                         entity_type_version INT8 NOT NULL
                     ) ON COMMIT DROP;
@@ -175,7 +176,8 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             left_to_right_order INT4,
                             right_to_left_order INT4,
                             record_created_by_id UUID,
-                            archived BOOLEAN
+                            archived BOOLEAN,
+                            draft BOOLEAN
                         FROM entity_editions_tmp;
 
                     INSERT INTO entity_temporal_metadata SELECT * FROM \
@@ -210,9 +212,10 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             .await
             .change_context(InsertionError)?;
 
-        let entities = Read::<Entity>::read_vec(postgres_client, &Filter::All(Vec::new()), None)
-            .await
-            .change_context(InsertionError)?;
+        let entities =
+            Read::<Entity>::read_vec(postgres_client, &Filter::All(Vec::new()), None, None, None)
+                .await
+                .change_context(InsertionError)?;
 
         let schemas = postgres_client
             .read_closed_schemas(&Filter::All(Vec::new()), None)
@@ -232,7 +235,15 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             let entity_type_id = EntityTypeId::from_url(entity.metadata.entity_type_id());
             let schema = schemas.get(&entity_type_id).ok_or(InsertionError)?;
             entity
-                .validate(schema, &validator_provider)
+                .validate(
+                    schema,
+                    if entity.metadata.draft() {
+                        ValidationProfile::Draft
+                    } else {
+                        ValidationProfile::Full
+                    },
+                    &validator_provider,
+                )
                 .await
                 .change_context(InsertionError)?;
         }

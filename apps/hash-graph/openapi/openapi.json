@@ -293,6 +293,27 @@
             "schema": {
               "$ref": "#/components/schemas/AccountId"
             }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The cursor to start reading from",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The maximum number of data types to read",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "nullable": true,
+              "minimum": 0
+            }
           }
         ],
         "requestBody": {
@@ -464,6 +485,14 @@
         "responses": {
           "200": {
             "description": "Gets a subgraph rooted at all data types that satisfy the given query, each resolved to the requested depth.",
+            "headers": {
+              "Link": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The link to be used to query the next page of data types"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -795,6 +824,27 @@
             "schema": {
               "$ref": "#/components/schemas/AccountId"
             }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The cursor to start reading from",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The maximum number of entities to read",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "nullable": true,
+              "minimum": 0
+            }
           }
         ],
         "requestBody": {
@@ -810,6 +860,14 @@
         "responses": {
           "200": {
             "description": "A subgraph rooted at entities that satisfy the given query, each resolved to the requested depth.",
+            "headers": {
+              "Link": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The link to be used to query the next page of entities"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1278,6 +1336,27 @@
             "schema": {
               "$ref": "#/components/schemas/AccountId"
             }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The cursor to start reading from",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The maximum number of entity types to read",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "nullable": true,
+              "minimum": 0
+            }
           }
         ],
         "requestBody": {
@@ -1470,6 +1549,14 @@
         "responses": {
           "200": {
             "description": "A subgraph rooted at entity types that satisfy the given query, each resolved to the requested depth.",
+            "headers": {
+              "Link": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The link to be used to query the next page of entity types"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1747,6 +1834,27 @@
             "schema": {
               "$ref": "#/components/schemas/AccountId"
             }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The cursor to start reading from",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The maximum number of property types to read",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "nullable": true,
+              "minimum": 0
+            }
           }
         ],
         "requestBody": {
@@ -1918,6 +2026,14 @@
         "responses": {
           "200": {
             "description": "A subgraph rooted at property types that satisfy the given query, each resolved to the requested depth.",
+            "headers": {
+              "Link": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "The link to be used to query the next page of property types"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2417,9 +2533,13 @@
           "properties",
           "entityTypeId",
           "ownedById",
-          "owner"
+          "owner",
+          "draft"
         ],
         "properties": {
+          "draft": {
+            "type": "boolean"
+          },
           "entityTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           },
@@ -2899,10 +3019,14 @@
           "temporalVersioning",
           "entityTypeId",
           "provenance",
-          "archived"
+          "archived",
+          "draft"
         ],
         "properties": {
           "archived": {
+            "type": "boolean"
+          },
+          "draft": {
             "type": "boolean"
           },
           "entityTypeId": {
@@ -2980,6 +3104,7 @@
           "uuid",
           "editionId",
           "archived",
+          "draft",
           "ownedById",
           "recordCreatedById",
           "type",
@@ -4961,10 +5086,14 @@
               "properties",
               "entityId",
               "entityTypeId",
-              "archived"
+              "archived",
+              "draft"
             ],
             "properties": {
               "archived": {
+                "type": "boolean"
+              },
+              "draft": {
                 "type": "boolean"
               },
               "entityId": {
@@ -5022,9 +5151,13 @@
         "required": [
           "entityTypeId",
           "properties",
-          "operations"
+          "operations",
+          "draft"
         ],
         "properties": {
+          "draft": {
+            "type": "boolean"
+          },
           "entityTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           },
