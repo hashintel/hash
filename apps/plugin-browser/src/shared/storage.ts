@@ -1,7 +1,7 @@
-import { EntityType } from "@blockprotocol/graph";
-import { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
-import { User } from "@local/hash-isomorphic-utils/system-types/shared";
-import { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
+import type { EntityType } from "@blockprotocol/graph";
+import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
 import browser from "webextension-polyfill";
 
 type InferenceErrorStatus = {

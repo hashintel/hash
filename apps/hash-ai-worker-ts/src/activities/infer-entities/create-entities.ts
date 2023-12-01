@@ -132,10 +132,10 @@ export const createEntities = async ({
 
           try {
             await graphApiClient.validateEntity(actorId, {
+              draft: true,
               entityTypeId,
               operations: ["all"],
               properties,
-              draft: false,
             });
 
             const { data: createdEntityMetadata } =

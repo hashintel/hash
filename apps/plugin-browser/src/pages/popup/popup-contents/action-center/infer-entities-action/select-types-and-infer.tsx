@@ -1,4 +1,4 @@
-import { EntityType, VersionedUrl } from "@blockprotocol/graph";
+import type { EntityType, VersionedUrl } from "@blockprotocol/graph";
 import { Autocomplete, Button, Chip, MenuItem } from "@hashintel/design-system";
 import { EntityTypeRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";

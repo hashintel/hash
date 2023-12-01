@@ -1,4 +1,4 @@
-import { EntityType } from "@blockprotocol/graph";
+import type { EntityType } from "@blockprotocol/graph";
 import {
   CaretDownSolidIcon,
   IconButton,
@@ -6,8 +6,12 @@ import {
   PlusIcon,
 } from "@hashintel/design-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
-import { BaseUrl, Entity, EntityPropertyValue } from "@local/hash-subgraph";
+import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
+import type {
+  BaseUrl,
+  Entity,
+  EntityPropertyValue,
+} from "@local/hash-subgraph";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 
 import {

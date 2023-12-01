@@ -1,4 +1,4 @@
-import { EntityType } from "@blockprotocol/graph";
+import type { EntityType } from "@blockprotocol/graph";
 
 export type InferEntitiesRequest = {
   entityTypes: EntityType[];

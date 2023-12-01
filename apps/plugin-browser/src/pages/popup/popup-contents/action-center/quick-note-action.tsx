@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/graph";
 import { Button } from "@hashintel/design-system";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
