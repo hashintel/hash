@@ -4,6 +4,9 @@ import { useFormContext } from "react-hook-form";
 
 import { ChartDefinition } from "../types/chart-definition";
 
+const minDepth = 0;
+const maxDepth = 255;
+
 export const GraphChartDefinitionForm: FunctionComponent = () => {
   const { register } = useFormContext<ChartDefinition<"graph-chart">>();
 
@@ -14,8 +17,7 @@ export const GraphChartDefinitionForm: FunctionComponent = () => {
         fullWidth
         type="number"
         label="Incoming Links Depth"
-        /** @todo: figure out why the label isn't shrinking when the value is updated programmatically */
-        InputLabelProps={{ shrink: true }}
+        InputProps={{ inputProps: { min: minDepth, max: maxDepth } }}
         {...register("incomingLinksDepth", {
           setValueAs: (value) => parseInt(value as string, 10),
         })}
@@ -25,8 +27,7 @@ export const GraphChartDefinitionForm: FunctionComponent = () => {
         fullWidth
         type="number"
         label="Outgoing Links Depth"
-        /** @todo: figure out why the label isn't shrinking when the value is updated programmatically */
-        InputLabelProps={{ shrink: true }}
+        InputProps={{ inputProps: { min: minDepth, max: maxDepth } }}
         {...register("outgoingLinksDepth", {
           setValueAs: (value) => parseInt(value as string, 10),
         })}
