@@ -53,7 +53,7 @@ impl Report<()> {
     /// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
     /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// #     ansi_to_html::convert(value.as_ref()).unwrap()
     /// # }
     /// #
     /// # #[cfg(nightly)]
@@ -127,7 +127,7 @@ impl Report<()> {
     /// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
     /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// #     ansi_to_html::convert(value.as_ref()).unwrap()
     /// # }
     /// #
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook_provide.snap")].assert_eq(&render(format!("{report:?}")));
@@ -174,7 +174,7 @@ impl Report<()> {
     /// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
     /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// #     ansi_to_html::convert(value.as_ref()).unwrap()
     /// # }
     /// #
     /// # #[cfg(nightly)]
