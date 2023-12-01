@@ -140,11 +140,11 @@ export const createEntities = async ({
 
             const { data: createdEntityMetadata } =
               await graphApiClient.createEntity(actorId, {
+                draft: false,
                 entityTypeId,
                 ownedById,
                 owner: ownedById,
                 properties,
-                draft: false,
               });
 
             entityStatusMap.creationSuccesses[proposedEntity.entityId] = {

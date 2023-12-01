@@ -67,6 +67,7 @@ export const updateEntities = async ({
 
           try {
             await graphApiClient.validateEntity(actorId, {
+              draft: false,
               entityTypeId,
               operations: ["all"],
               properties,
@@ -110,6 +111,7 @@ export const updateEntities = async ({
             const { data: updateEntityMetadata } =
               await graphApiClient.updateEntity(actorId, {
                 archived: false,
+                draft: false,
                 entityTypeId,
                 entityId: updateEntityId,
                 properties: {
