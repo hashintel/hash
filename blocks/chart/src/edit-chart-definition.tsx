@@ -22,6 +22,7 @@ import {
   generateYAxisLabel,
   getEntityTypePropertyTypes,
 } from "./edit-chart-definition/bar-chart-definition-form";
+import { GraphChartDefinitionForm } from "./edit-chart-definition/graph-chart-definition-form";
 import { ChartDefinition } from "./types/chart-definition";
 
 export const EditChartDefinition: FunctionComponent<{
@@ -146,7 +147,9 @@ export const EditChartDefinition: FunctionComponent<{
             entityTypes={entityTypes}
             queryResults={queryResults}
           />
-        ) : null}
+        ) : (
+          <GraphChartDefinitionForm />
+        )}
         <Button type="submit" disabled={isSubmitDisabled}>
           {initialChartDefinition ? "Update" : "Create"} Chart
         </Button>
