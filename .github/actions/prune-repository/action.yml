@@ -15,8 +15,6 @@ runs:
     - name: Prune repository
       shell: bash
       run: |
-        RUST_CRATES=$(find libs/ apps/ tests/ -name Cargo.toml)
-
         while IFS= read -r line; do
           if [[ -n "$line" ]]; then
             turbo prune --scope="$line"
@@ -25,17 +23,13 @@ runs:
 
         while IFS= read -r line; do
           DIRECTORY=$(dirname "$line")
+          # Create a dummy crate if it does not exist
           if [[ ! -d "out/$DIRECTORY" ]]; then
-            echo "Creating dummy project in $DIRECTORY"
             mkdir -p "out/$DIRECTORY/src"
             echo > "out/$DIRECTORY/src/lib.rs"
             echo -e "[package]\nname = \"$(yq '.package.name' -p toml -oy $line)\"" > "out/$DIRECTORY/Cargo.toml"
-            echo "Content of Cargo.toml:"
-            cat "out/$DIRECTORY/Cargo.toml"
-          else
-            echo "Skipping $DIRECTORY"
           fi
-        done <<< "$RUST_CRATES"
+        done < <(find $(yq '.workspace.members' -p toml -o tsv Cargo.toml | tr '*' ' ') -maxdepth 1 -name Cargo.toml)
 
     - name: Copy required files
       shell: bash
