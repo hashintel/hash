@@ -29,7 +29,7 @@ runs:
             echo > "out/$DIRECTORY/src/lib.rs"
             echo -e "[package]\nname = \"$(yq '.package.name' -p toml -oy $line)\"" > "out/$DIRECTORY/Cargo.toml"
           fi
-        done < <(find $(yq '.workspace.members' -p toml -o tsv Cargo.toml | tr '*' ' ') -maxdepth 1 -name Cargo.toml)
+        done < <(find $(yq '.workspace.members' -p toml -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml)
 
     - name: Copy required files
       shell: bash

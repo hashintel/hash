@@ -9,7 +9,7 @@ COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
 RUN turbo prune --scope='@apps/hash-graph' --docker && \
     yq --version && \
-    find $(yq '.workspace.members' -p toml -o tsv Cargo.toml | tr '*' ' ') -maxdepth 1 -name Cargo.toml -exec sh -c ' \
+    find $(yq '.workspace.members' -p toml -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml -exec sh -c ' \
       [ -f "/app/out/full/$1" ] || ( \
         mkdir -p "/app/out/full/$(dirname "$1")/src" &&  \
         echo > "/app/out/full/$(dirname "$1")/src/lib.rs" &&  \
