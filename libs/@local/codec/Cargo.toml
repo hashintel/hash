@@ -1,13 +1,14 @@
 [package]
 name = "codec"
-version = "0.0.0"
-edition = "2021"
-publish = false
+edition.workspace = true
+publish.workspace = true
+version.workspace = true
 
 [dependencies]
-error-stack = { version = "0.4.1", features = ["spantrace"] }
+error-stack.workspace = true
+
+serde.workspace = true
 
 derive-where = { version = "1.2.5", default-features = false, features = ["nightly"] }
-serde = { version = "1.0.193" }
 serde_json = { version = "1.0.108" }
 tokio-util = { version = "0.7.10", default-features = false, features = ["codec"] }

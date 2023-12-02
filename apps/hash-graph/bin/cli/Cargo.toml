@@ -38,3 +38,6 @@ uuid = "1.6.1"
 
 [features]
 test-server = ["graph/test-server"]
+
+[lints.rust]
+unreachable-pub = "allow"

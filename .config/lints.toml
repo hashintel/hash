@@ -12,6 +12,7 @@ allow = [
     "clippy::pub_with_shorthand", # # opposite of `clippy::pub_without_shorthand`
     "clippy::question_mark_used",
     "clippy::ref_patterns",
+    "clippy::redundant_pub_crate", # opposite of `unreachable_pub`
     "clippy::self_named_module_files", # opposite of `clippy::mod_module_files`
     "clippy::semicolon_outside_block", # opposite of `clippy::semicolon_inside_block`
     "clippy::separated_literal_suffix", # opposite of `clippy::unseparated_literal_suffix`
@@ -37,7 +38,6 @@ allow = [
     # Should be enabled:
     "clippy::allow_attributes",
     "clippy::allow_attributes_without_reason",
-    "clippy::allow_attributes_without_reason",
     "clippy::arithmetic_side_effects",
     "clippy::as_conversions",
     "clippy::else_if_without_else",
@@ -58,6 +58,7 @@ allow = [
 warn = [
     "future_incompatible",
     "nonstandard_style",
+    "unreachable_pub",
 
     "clippy::all",
     "clippy::pedantic",

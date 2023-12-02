@@ -24,7 +24,12 @@ runs:
     - name: Copy required files
       shell: bash
       run: |
-        cp -R yarn.lock patches out/
+        cp -R yarn.lock patches Cargo.toml Cargo.lock rust-toolchain.toml out/
+
+        while IFS= read -r line; do
+          mkdir -p $(dirname out/$line)
+          cp -R "$line" out/$line
+        done <<< "$(find . -name Cargo.toml)"
 
         # Globs are fun, especially in Bash. Covers all dot-files except `.`, `..`, and `.git`.
         shopt -s extglob

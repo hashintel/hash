@@ -1,5 +1,10 @@
 #![feature(lint_reasons)]
 #![forbid(unsafe_code)]
+#![expect(
+    unreachable_pub,
+    reason = "This is a binary but as we want to document this crate as well this should be a \
+              warning instead"
+)]
 
 mod args;
 mod error;
