@@ -150,8 +150,8 @@ format *arguments:
 [no-cd]
 clippy *arguments: install-cargo-hack install-rust-script
   @just lint-toml "generate"
-  @CLIPPY_CONF_DIR={{repo}}/.config just in-pr cargo clippy --profile {{profile}} --all-features --all-targets --no-deps {{arguments}}
-  @CLIPPY_CONF_DIR={{repo}}/.config just not-in-pr cargo hack --optional-deps --feature-powerset clippy --profile {{profile}} --all-targets --no-deps {{arguments}}
+  @just in-pr cargo clippy --profile {{profile}} --all-features --all-targets --no-deps {{arguments}}
+  @just not-in-pr cargo hack --optional-deps --feature-powerset clippy --profile {{profile}} --all-targets --no-deps {{arguments}}
 
 # Creates the documentation for the crate
 [no-cd]

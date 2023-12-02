@@ -160,13 +160,8 @@ jobs:
         run: |
           just lint-toml "check"
 
-          # For some reason, clippy does not use the rustflags from `.cargo/config.toml`. This is not a solution
-          # but a workaround to make sure that the flags are used.
-          if [[ -f .cargo/config.toml ]]; then
-            CONFIG_FILE=".cargo/config.toml"
-          else
-            CONFIG_FILE="$(git rev-parse --show-toplevel)/.cargo/config.toml"
-          fi
+          # Clippy does not use RUSTFLAGS from `.cargo/config.toml` as `RUSTFLAGS` is set above.
+          CONFIG_FILE="$(cargo metadata --format-version 1 | jq -r '.workspace_root')/.cargo/config.toml"
           RUSTFLAGS="$(yq -oy '.target["cfg(all())"].rustflags | join(" ")' $CONFIG_FILE) $RUSTFLAGS"
           # If `export` would be on the same line this would not fail the workflow if the above line fails
           export RUSTFLAGS
