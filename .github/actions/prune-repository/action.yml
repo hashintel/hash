@@ -27,7 +27,7 @@ runs:
           DIRECTORY=$(dirname "$line")
           if [[ ! -d "out/$DIRECTORY" ]]; then
             mkdir -p "out/$DIRECTORY/src"
-            touch "out/$DIRECTORY/src/lib.rs"
+            echo -e "\n" > "out/$DIRECTORY/src/lib.rs"
             echo -e "[package]\nname = \"$(yq '.package.name' -p toml -oy $line)\"" > "out/$DIRECTORY/Cargo.toml"
           fi
         done <<< "$RUST_CRATES"
