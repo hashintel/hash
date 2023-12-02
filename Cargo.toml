@@ -11,7 +11,12 @@ members = [
     "tests/hash-graph-integration",
     "tests/hash-graph-test-data/rust",
 ]
-exclude = ["libs/*"]
+exclude = [
+    "libs/antsi",
+    "libs/deer",
+    "libs/error-stack",
+    "libs/sarif",
+]
 default-members = [
     "apps/hash-graph/bin/*",
 ]
