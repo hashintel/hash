@@ -3,6 +3,8 @@ name = "hash-status"
 description = "The HASH Status and Error Model."
 authors.workspace = true
 edition.workspace = true
+version = "0.0.0"
+publish = false
 
 [dependencies]
 error-stack.workspace = true

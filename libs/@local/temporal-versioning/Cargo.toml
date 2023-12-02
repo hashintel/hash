@@ -2,6 +2,8 @@
 name = "temporal-versioning"
 authors.workspace = true
 edition.workspace = true
+version = "0.0.0"
+publish = false
 
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
