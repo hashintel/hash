@@ -527,7 +527,6 @@ jobs:
               RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
             echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
-            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
           fi
 
       - name: Install Rust toolchain
@@ -558,10 +557,10 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: cargo publish --all-features --dry-run
 
-      - name: Publish
-        if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
-        working-directory: ${{ matrix.directory }}
-        run: cargo publish --all-features
+  #      - name: Publish
+  #        if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+  #        working-directory: ${{ matrix.directory }}
+  #        run: cargo publish --all-features
 
   passed:
     name: Tests passed

@@ -15,16 +15,25 @@ runs:
     - name: Prune repository
       shell: bash
       run: |
+        RUST_CRATES=$(find libs/ bin/ tests/ -name Cargo.toml)
         while IFS= read -r line; do
-          mkdir -p $(dirname out/$line)
-          cp -R "$line" out/$line
-        done <<< "$(find . -name Cargo.toml)"
+          DIRECTORY=$(dirname "$line")
+          echo mkdir -p out/$DIRECTORY
+          echo cp -R "$DIRECTORY/Cargo.toml" out/$DIRECTORY/Cargo.toml
+        done <<< "$RUST_CRATES"
 
         while IFS= read -r line; do
           if [[ -n "$line" ]]; then
             turbo prune --scope="$line"
           fi
         done <<< "${{ inputs.scope }}"
+             
+        while IFS= read -r line; do
+          DIRECTORY=$(dirname "$line")
+          if [[ ( -f "$DIRECTORY/src/lib.rs" || -f "$DIRECTORY/src/main.rs" ) && ! -d "out/$DIRECTORY/src" ]]; then
+            echo touch out/$DIRECTORY/src/lib.rs
+          fi
+        done <<< "$RUST_CRATES"
 
     - name: Copy required files
       shell: bash
