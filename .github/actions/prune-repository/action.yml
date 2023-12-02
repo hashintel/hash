@@ -53,6 +53,7 @@ runs:
     - name: Restore `out` directory
       shell: bash
       run: |
+        ls -lah out/
         shopt -s dotglob
         mv out/* .
         rmdir out
