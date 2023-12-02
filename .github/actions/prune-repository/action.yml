@@ -19,7 +19,7 @@ runs:
         while IFS= read -r line; do
           DIRECTORY=$(dirname "$line")
           echo mkdir -p out/$DIRECTORY
-          echo cp -R "$DIRECTORY/Cargo.toml" out/$DIRECTORY/Cargo.toml
+          echo cp -R "$DIRECTORY" out/$DIRECTORY
         done <<< "$RUST_CRATES"
 
         while IFS= read -r line; do
@@ -27,13 +27,6 @@ runs:
             turbo prune --scope="$line"
           fi
         done <<< "${{ inputs.scope }}"
-             
-        while IFS= read -r line; do
-          DIRECTORY=$(dirname "$line")
-          if [[ ( -f "$DIRECTORY/src/lib.rs" || -f "$DIRECTORY/src/main.rs" ) && ! -d "out/$DIRECTORY/src" ]]; then
-            echo touch out/$DIRECTORY/src/lib.rs
-          fi
-        done <<< "$RUST_CRATES"
 
     - name: Copy required files
       shell: bash
