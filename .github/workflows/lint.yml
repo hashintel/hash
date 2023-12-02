@@ -75,7 +75,7 @@ jobs:
             | jq '[.tasks[] | select(.task == "codegen" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "codegen=$CODEGEN" >> $GITHUB_OUTPUT
 
-          HAS_RUST=$(test -f "${{ matrix.directory }}/Cargo.toml" && echo 'true' || echo 'false') 
+          HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then

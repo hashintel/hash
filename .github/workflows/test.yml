@@ -130,7 +130,7 @@ jobs:
       - name: Find test steps to run
         id: tests
         run: |
-          HAS_RUST=$(test -f "${{ matrix.directory }}/Cargo.toml" && echo 'true' || echo 'false') 
+          HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
@@ -262,7 +262,7 @@ jobs:
           REQUIRES_AI_WORKER_TS=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
           REQUIRES_INTEGRATION_WORKER=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
 
-          HAS_RUST=$(test -f "${{ matrix.directory }}/Cargo.toml" && echo 'true' || echo 'false') 
+          HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
@@ -375,7 +375,7 @@ jobs:
       - name: Find test steps to run
         id: tests
         run: |
-          HAS_RUST=$(test -f "${{ matrix.directory }}/Cargo.toml" && echo 'true' || echo 'false') 
+          HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
@@ -518,7 +518,7 @@ jobs:
       - name: Find publish jobs to run
         id: publish
         run: |
-          HAS_RUST=$(test -f "${{ matrix.directory }}/Cargo.toml" && echo 'true' || echo 'false') 
+          HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
