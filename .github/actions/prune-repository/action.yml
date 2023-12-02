@@ -18,8 +18,8 @@ runs:
         RUST_CRATES=$(find libs/ apps/ tests/ -name Cargo.toml)
         while IFS= read -r line; do
           DIRECTORY=$(dirname "$line")
-          echo mkdir -p out/$DIRECTORY
-          echo cp -R "$DIRECTORY" out/$DIRECTORY
+          mkdir -p out/$DIRECTORY
+          cp -R "$DIRECTORY" out/$DIRECTORY
         done <<< "$RUST_CRATES"
 
         while IFS= read -r line; do
