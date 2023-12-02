@@ -3,7 +3,6 @@ members = [
     "apps/hash-graph/bench",
     "apps/hash-graph/bin/cli",
     "apps/hash-graph/lib/*",
-    "apps/hash-graph/tests/*",
     "libs/@local/status/rust",
     "libs/@local/hash-authorization",
     "libs/@local/hash-graph-types/rust",
