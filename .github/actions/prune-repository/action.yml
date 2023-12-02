@@ -16,6 +16,11 @@ runs:
       shell: bash
       run: |
         while IFS= read -r line; do
+          mkdir -p $(dirname out/$line)
+          cp -R "$line" out/$line
+        done <<< "$(find . -name Cargo.toml)"
+
+        while IFS= read -r line; do
           if [[ -n "$line" ]]; then
             turbo prune --scope="$line"
           fi
@@ -24,11 +29,6 @@ runs:
     - name: Copy required files
       shell: bash
       run: |
-        while IFS= read -r line; do
-          mkdir -p $(dirname out/$line)
-          cp -R "$line" out/$line
-        done <<< "$(find . -name Cargo.toml)"
-
         cp -R yarn.lock patches Cargo.toml Cargo.lock rust-toolchain.toml out/
 
         # Globs are fun, especially in Bash. Covers all dot-files except `.`, `..`, and `.git`.
