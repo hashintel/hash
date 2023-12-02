@@ -130,11 +130,16 @@ jobs:
       - name: Find test steps to run
         id: tests
         run: |
-          HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false') 
+          HAS_RUST=$(test -f "${{ matrix.directory }}/Cargo.toml" && echo 'true' || echo 'false') 
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
-            echo "rust-toolchain=$(yq '.toolchain.channel' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
-            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
+            if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
+              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
+            else
+              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/.rust-toolchain"
+            fi
+            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
+            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
           fi
 
       - name: Prune repository
@@ -252,17 +257,21 @@ jobs:
       - name: Find test steps to run
         id: tests
         run: |
-          HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false')
-
           TEST_TASKS=$(turbo run test:integration --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[]')
           REQUIRES_GRAPH=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-graph" and .task == "build")] != []')
           REQUIRES_AI_WORKER_TS=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
           REQUIRES_INTEGRATION_WORKER=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
 
+          HAS_RUST=$(test -f "${{ matrix.directory }}/Cargo.toml" && echo 'true' || echo 'false') 
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
-            echo "rust-toolchain=$(yq '.toolchain.channel' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
-            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
+            if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
+              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
+            else
+              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/.rust-toolchain"
+            fi
+            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
+            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
           fi
 
           echo "external-service-graph=$REQUIRES_GRAPH" >> $GITHUB_OUTPUT
@@ -366,12 +375,16 @@ jobs:
       - name: Find test steps to run
         id: tests
         run: |
-          set -x
-          HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false') 
+          HAS_RUST=$(test -f "${{ matrix.directory }}/Cargo.toml" && echo 'true' || echo 'false') 
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
-            echo "rust-toolchain=$(yq '.toolchain.channel' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
-            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
+            if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
+              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
+            else
+              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/.rust-toolchain"
+            fi
+            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
+            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
           fi
 
       - name: Prune repository
@@ -505,11 +518,16 @@ jobs:
       - name: Find publish jobs to run
         id: publish
         run: |
-          set -x
-          HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false') 
+          HAS_RUST=$(test -f "${{ matrix.directory }}/Cargo.toml" && echo 'true' || echo 'false') 
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
-            echo "rust-toolchain=$(yq '.toolchain.channel' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
+            if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
+              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
+            else
+              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/.rust-toolchain"
+            fi
+            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
+            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
           fi
 
       - name: Install Rust toolchain
