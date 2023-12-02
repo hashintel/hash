@@ -162,7 +162,12 @@ jobs:
 
           # For some reason, clippy does not use the rustflags from `.cargo/config.toml`. This is not a solution
           # but a workaround to make sure that the flags are used.
-          RUSTFLAGS="$(yq -oy '.target["cfg(all())"].rustflags | join(" ")' .cargo/config.toml) $RUSTFLAGS"
+          if [[ -f .cargo/config.toml ]]; then
+            CONFIG_FILE=".cargo/config.toml"
+          else
+            CONFIG_FILE="$(git rev-parse --show-toplevel)/.cargo/config.toml"
+          fi
+          RUSTFLAGS="$(yq -oy '.target["cfg(all())"].rustflags | join(" ")' $CONFIG_FILE) $RUSTFLAGS"
           # If `export` would be on the same line this would not fail the workflow if the above line fails
           export RUSTFLAGS
 
