@@ -1,8 +1,7 @@
 [package]
 name = "temporal-versioning"
+authors.workspace = true
 edition.workspace = true
-publish.workspace = true
-version.workspace = true
 
 [dependencies]
 serde = { workspace = true, features = ["derive"] }

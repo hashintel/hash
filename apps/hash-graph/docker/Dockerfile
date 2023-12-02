@@ -15,7 +15,7 @@ ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=:$PATH:/usr/local/cargo/bin
 
-COPY --from=base /app/out/full/rust-toolchain.toml .
+COPY rust-toolchain.toml .
 RUN apk add --no-cache gcc musl-dev bash && \
     wget -q -O- https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal && \
     rustup show

@@ -3,6 +3,7 @@ members = [
     "apps/hash-graph/bench",
     "apps/hash-graph/bin/cli",
     "apps/hash-graph/lib/*",
+    "libs/@local/codec",
     "libs/@local/status/rust",
     "libs/@local/hash-authorization",
     "libs/@local/hash-graph-types/rust",
@@ -25,8 +26,6 @@ resolver = "2"
 [workspace.package]
 authors = ["HASH"]
 edition = "2021"
-publish = false
-version = "0.0.0"
 
 
 [workspace.dependencies]

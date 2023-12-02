@@ -28,7 +28,7 @@ runs:
           if [[ ! -d "out/$DIRECTORY" ]]; then
             echo "Creating dummy project in $DIRECTORY"
             mkdir -p "out/$DIRECTORY/src"
-            echo -e "\n" > "out/$DIRECTORY/src/lib.rs"
+            echo > "out/$DIRECTORY/src/lib.rs"
             echo -e "[package]\nname = \"$(yq '.package.name' -p toml -oy $line)\"" > "out/$DIRECTORY/Cargo.toml"
             echo "Content of Cargo.toml:"
             cat "out/$DIRECTORY/Cargo.toml"
