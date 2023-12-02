@@ -16,17 +16,21 @@ runs:
       shell: bash
       run: |
         RUST_CRATES=$(find libs/ apps/ tests/ -name Cargo.toml)
-        while IFS= read -r line; do
-          DIRECTORY=$(dirname "$line")
-          mkdir -p out/$DIRECTORY
-          cp -R "$DIRECTORY" out/$DIRECTORY
-        done <<< "$RUST_CRATES"
 
         while IFS= read -r line; do
           if [[ -n "$line" ]]; then
             turbo prune --scope="$line"
           fi
         done <<< "${{ inputs.scope }}"
+
+        while IFS= read -r line; do
+          DIRECTORY=$(dirname "$line")
+          if [[ ! -d "out/$DIRECTORY" ]]; then
+            mkdir -p "out/$DIRECTORY/src"
+            touch "out/$DIRECTORY/src/lib.rs"
+            echo -n "[package]\nname = \"$(yq '.package.name' -p toml -oy $line)\"\n" > "out/$DIRECTORY/Cargo.toml"
+          fi
+        done <<< "$RUST_CRATES"
 
     - name: Copy required files
       shell: bash
