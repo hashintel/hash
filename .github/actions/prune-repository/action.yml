@@ -15,7 +15,7 @@ runs:
     - name: Prune repository
       shell: bash
       run: |
-        RUST_CRATES=$(find libs/ bin/ tests/ -name Cargo.toml)
+        RUST_CRATES=$(find libs/ apps/ tests/ -name Cargo.toml)
         while IFS= read -r line; do
           DIRECTORY=$(dirname "$line")
           echo mkdir -p out/$DIRECTORY
