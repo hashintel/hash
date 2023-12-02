@@ -136,7 +136,7 @@ jobs:
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
               RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
             else
-              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/.rust-toolchain"
+              RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
             echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
             echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
@@ -268,7 +268,7 @@ jobs:
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
               RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
             else
-              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/.rust-toolchain"
+              RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
             echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
             echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
@@ -381,7 +381,7 @@ jobs:
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
               RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
             else
-              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/.rust-toolchain"
+              RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
             echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
             echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
@@ -524,7 +524,7 @@ jobs:
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
               RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
             else
-              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/.rust-toolchain"
+              RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
             echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
             echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
