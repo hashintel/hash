@@ -35,7 +35,6 @@ runs:
       shell: bash
       run: |
         cp -R yarn.lock patches Cargo.toml Cargo.lock rust-toolchain.toml out/
-        cat "out/Cargo.toml"
 
         # Globs are fun, especially in Bash. Covers all dot-files except `.`, `..`, and `.git`.
         shopt -s extglob
@@ -57,7 +56,6 @@ runs:
     - name: Restore `out` directory
       shell: bash
       run: |
-        ls -lah out/
         shopt -s dotglob
         mv out/* .
         rmdir out
