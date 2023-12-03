@@ -2,7 +2,10 @@ import { ArrowUpRightIcon } from "@hashintel/design-system";
 import { Box, Stack, SvgIconProps, Typography } from "@mui/material";
 import { FunctionComponent, PropsWithChildren } from "react";
 
-import { darkModeBorderColor } from "../../../../shared/dark-mode-values";
+import {
+  darkModeBorderColor,
+  lightModeBorderColor,
+} from "../../../../shared/style-values";
 
 export const Section = ({
   children,
@@ -23,7 +26,7 @@ export const Section = ({
       sx={({ palette }) => ({
         px: 2.5,
         py: 2,
-        borderTop: `1px solid ${palette.gray[30]}`,
+        borderTop: `1px solid ${lightModeBorderColor}`,
         "@media (prefers-color-scheme: dark)": {
           background: "#1f2022",
           color: palette.common.white,

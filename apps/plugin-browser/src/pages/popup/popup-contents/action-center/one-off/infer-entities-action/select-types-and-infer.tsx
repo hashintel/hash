@@ -1,52 +1,28 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/graph";
 import { Autocomplete, Button, Chip, MenuItem } from "@hashintel/design-system";
-import { EntityTypeRootType, Subgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import {
   autocompleteClasses,
   Box,
-  Checkbox,
   outlinedInputClasses,
-  Stack,
   Typography,
 } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import browser, { Tabs } from "webextension-polyfill";
 
-import {
-  GetEntityTypesQuery,
-  GetEntityTypesQueryVariables,
-} from "../../../../../../graphql/api-types.gen";
-import { getEntityTypesQuery } from "../../../../../../graphql/queries/entity-type.queries";
 import {
   GetSiteContentRequest,
   GetSiteContentReturn,
 } from "../../../../../../shared/messages";
-import { queryGraphQlApi } from "../../../../../../shared/query-graphql-api";
+import { sendMessageToBackground } from "../../../../../shared/messages";
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
   darkModeInputColor,
   darkModePlaceholderColor,
-} from "../../../../../shared/dark-mode-values";
-import { sendMessageToBackground } from "../../../../../shared/messages";
+} from "../../../../../shared/style-values";
+import { useEntityTypes } from "../../../../../shared/use-entity-types";
 import { useLocalStorage } from "../../../../../shared/use-local-storage";
-
-const getEntityTypes = () => {
-  return queryGraphQlApi<GetEntityTypesQuery, GetEntityTypesQueryVariables>(
-    getEntityTypesQuery,
-  ).then(({ data: { queryEntityTypes } }) => {
-    return getRoots<EntityTypeRootType>(
-      /**
-       * Asserted for two reasons:
-       * 1. Inconsistencies between Graph API and hash-subgraph types
-       * 2. The function signature of getRoots asks for all fields on a subgraph, when it only needs roots and vertices
-       * @todo fix this in the Block Protocol package and then hash-subgraph
-       */
-      queryEntityTypes as Subgraph<EntityTypeRootType>,
-    ).map((typeWithMetadata) => typeWithMetadata.schema);
-  });
-};
 
 // This assumes a VersionedURL in the hash.ai/blockprotocol.org format
 const getChipLabelFromId = (id: VersionedUrl) => {
@@ -61,8 +37,8 @@ const getChipLabelFromId = (id: VersionedUrl) => {
 
 type SelectTypesAndInferProps = {
   activeTab?: Tabs.Tab | null;
-  setTargetEntityTypes: (types: EntityType[]) => void;
-  targetEntityTypes: EntityType[];
+  setTargetEntityTypes: (types: EntityTypeWithMetadata[]) => void;
+  targetEntityTypes: EntityTypeWithMetadata[];
 };
 
 export const SelectTypesAndInfer = ({
@@ -70,40 +46,29 @@ export const SelectTypesAndInfer = ({
   setTargetEntityTypes,
   targetEntityTypes,
 }: SelectTypesAndInferProps) => {
-  const [allEntityTypes, setAllEntityTypes] = useLocalStorage(
-    "entityTypes",
-    [],
-  );
+  const entityTypes = useEntityTypes();
+
   const [selectOpen, setSelectOpen] = useState(false);
   const [inferenceRequests] = useLocalStorage("inferenceRequests", []);
 
-  const [passiveInferenceConfig, setPassiveInferenceConfig] = useLocalStorage(
-    "passiveInference",
-    { conditions: [], enabled: false },
-  );
-
   const pendingInferenceRequest = useMemo(
     () =>
-      inferenceRequests.some(({ entityTypes, sourceUrl, status }) => {
-        return (
-          entityTypes.length === targetEntityTypes.length &&
-          entityTypes.every((type) =>
-            targetEntityTypes.some((targetType) => targetType.$id === type.$id),
-          ) &&
-          sourceUrl === activeTab?.url &&
-          status === "pending"
-        );
-      }),
+      inferenceRequests.some(
+        ({ entityTypes: requestEntityTypes, sourceUrl, status }) => {
+          return (
+            requestEntityTypes.length === targetEntityTypes.length &&
+            requestEntityTypes.every((type) =>
+              targetEntityTypes.some(
+                (targetType) => targetType.schema.$id === type.schema.$id,
+              ),
+            ) &&
+            sourceUrl === activeTab?.url &&
+            status === "pending"
+          );
+        },
+      ),
     [activeTab, inferenceRequests, targetEntityTypes],
   );
-
-  useEffect(() => {
-    void getEntityTypes().then((entityTypes) => {
-      setAllEntityTypes(
-        entityTypes.sort((a, b) => a.title.localeCompare(b.title)),
-      );
-    });
-  }, [setAllEntityTypes]);
 
   const inferEntitiesFromPage = async () => {
     if (!activeTab?.id) {
@@ -156,7 +121,9 @@ export const SelectTypesAndInfer = ({
           },
           popper: { placement: "top" },
         }}
-        getOptionLabel={(option) => `${option.title}-${option.$id}`}
+        getOptionLabel={(option) =>
+          `${option.schema.title}-${option.schema.$id}`
+        }
         inputProps={{
           endAdornment: <div />,
           placeholder: "Search for types...",
@@ -179,7 +146,9 @@ export const SelectTypesAndInfer = ({
             },
           }),
         }}
-        isOptionEqualToValue={(option, value) => option.$id === value.$id}
+        isOptionEqualToValue={(option, value) =>
+          option.schema.$id === value.schema.$id
+        }
         ListboxProps={{
           sx: {
             maxHeight: 240,
@@ -199,12 +168,12 @@ export const SelectTypesAndInfer = ({
         }}
         onClose={() => setSelectOpen(false)}
         onOpen={() => setSelectOpen(true)}
-        options={allEntityTypes}
+        options={entityTypes}
         renderOption={(props, type) => (
           <MenuItem
             {...props}
-            key={type.$id}
-            value={type.$id}
+            key={type.schema.$id}
+            value={type.schema.$id}
             sx={({ palette }) => ({
               minHeight: 0,
               borderBottom: `1px solid ${palette.gray[20]}`,
@@ -243,11 +212,11 @@ export const SelectTypesAndInfer = ({
                 },
               }}
             >
-              {type.title}
+              {type.schema.title}
             </Typography>
             <Chip
               color="blue"
-              label={getChipLabelFromId(type.$id)}
+              label={getChipLabelFromId(type.schema.$id)}
               sx={{ ml: 1, fontSize: 13 }}
             />
           </MenuItem>
@@ -256,21 +225,16 @@ export const SelectTypesAndInfer = ({
           value.map((option, index) => (
             <Chip
               {...getTagProps({ index })}
-              key={option.$id}
+              key={option.schema.$id}
               variant="outlined"
-              label={option.title}
+              label={option.schema.title}
             />
           ))
         }
         value={targetEntityTypes}
       />
 
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        mt={1.5}
-      >
+      <Box mt={1.5}>
         <Button
           disabled={pendingInferenceRequest || targetEntityTypes.length < 1}
           size="small"
@@ -279,30 +243,7 @@ export const SelectTypesAndInfer = ({
         >
           {pendingInferenceRequest ? "Pending..." : "Suggest entities"}
         </Button>
-        <Box>
-          <Typography
-            component="label"
-            htmlFor="passive-inference-checkbox"
-            sx={{
-              mr: 1,
-              color: ({ palette }) => palette.gray[90],
-              fontSize: 14,
-            }}
-          >
-            Run passively
-          </Typography>
-          <Checkbox
-            id="passive-inference-checkbox"
-            checked={passiveInferenceConfig.enabled}
-            onChange={(event) => {
-              setPassiveInferenceConfig({
-                ...passiveInferenceConfig,
-                enabled: event.target.checked,
-              });
-            }}
-          />
-        </Box>
-      </Stack>
+      </Box>
     </Box>
   );
 };

@@ -7,7 +7,7 @@ import type { PageEntityInference } from "../../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
-} from "../../../../../shared/dark-mode-values";
+} from "../../../../../shared/style-values";
 import { InferredEntity } from "./inference-request/inferred-entity";
 
 export const InferenceRequest = ({
@@ -22,10 +22,10 @@ export const InferenceRequest = ({
   const inferredEntitiesByType = useMemo(() => {
     return entityTypes.reduce(
       (acc, type) => {
-        acc[type.$id] =
+        acc[type.schema.$id] =
           status === "complete"
             ? request.data.contents.filter(
-                (result) => result.entityTypeId === type.$id,
+                (result) => result.entityTypeId === type.schema.$id,
               )
             : [];
         return acc;
@@ -60,7 +60,7 @@ export const InferenceRequest = ({
       {Object.entries(inferredEntitiesByType).map(
         ([typeId, entityStatuses]) => {
           const entityType = request.entityTypes.find(
-            (type) => type.$id === typeId,
+            (type) => type.schema.$id === typeId,
           );
 
           if (!entityType) {
@@ -94,7 +94,7 @@ export const InferenceRequest = ({
                     fontSize: 12,
                   }}
                 >
-                  {pluralize(entityType.title)}
+                  {pluralize(entityType.schema.title)}
                 </Typography>
               </Box>
               {entityStatuses.length === 0 && (

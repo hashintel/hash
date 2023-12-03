@@ -12,7 +12,7 @@ export const InferEntitiesAction = ({
   activeTab?: Tabs.Tab | null;
 }) => {
   const [targetEntityTypes, setTargetEntityTypes] = useLocalStorage(
-    "targetEntityTypes",
+    "oneOffTargetEntityTypes",
     [],
   );
 

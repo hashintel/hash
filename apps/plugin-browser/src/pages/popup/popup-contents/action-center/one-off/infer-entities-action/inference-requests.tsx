@@ -14,7 +14,7 @@ import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
   darkModePlaceholderColor,
-} from "../../../../../shared/dark-mode-values";
+} from "../../../../../shared/style-values";
 import { useLocalStorage } from "../../../../../shared/use-local-storage";
 import { InferenceRequest } from "./inference-request";
 

@@ -1,7 +1,7 @@
-import type { EntityType } from "@blockprotocol/graph";
+import { EntityTypeWithMetadata } from "@local/hash-subgraph";
 
 export type InferEntitiesRequest = {
-  entityTypes: EntityType[];
+  entityTypes: EntityTypeWithMetadata[];
   sourceTitle: string;
   sourceUrl: string;
   type: "infer-entities";

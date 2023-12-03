@@ -79,7 +79,7 @@ export const inferEntities = async (
 
   try {
     const inferredEntitiesReturn = await inferEntitiesApiCall({
-      entityTypeIds: entityTypes.map((entityType) => entityType.$id),
+      entityTypeIds: entityTypes.map((entityType) => entityType.schema.$id),
       /**
        * Ideally we would use {@link extractOwnedByIdFromEntityId} from @local/hash-subgraph here,
        * but importing it causes WASM-related functions to end up in the bundle,

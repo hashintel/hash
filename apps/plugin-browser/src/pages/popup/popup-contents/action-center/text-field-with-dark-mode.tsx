@@ -6,7 +6,7 @@ import {
   darkModeInputBackgroundColor,
   darkModeInputColor,
   darkModePlaceholderColor,
-} from "../../../shared/dark-mode-values";
+} from "../../../shared/style-values";
 
 export const TextFieldWithDarkMode = (props: TextFieldProps) => {
   return (

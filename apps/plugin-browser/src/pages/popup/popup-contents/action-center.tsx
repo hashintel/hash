@@ -59,7 +59,7 @@ export const ActionCenter = ({
   const [popupTab, setPopupTab] = useState<"one-off" | "automated">("one-off");
 
   return (
-    <Box sx={{ maxWidth: "100%", width: 530 }}>
+    <Box sx={{ maxWidth: "100%", width: 560 }}>
       <Stack
         component="header"
         direction="row"

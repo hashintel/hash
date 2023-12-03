@@ -1,4 +1,3 @@
-import type { EntityType } from "@blockprotocol/graph";
 import {
   CaretDownSolidIcon,
   IconButton,
@@ -11,20 +10,21 @@ import type {
   BaseUrl,
   Entity,
   EntityPropertyValue,
+  EntityTypeWithMetadata,
 } from "@local/hash-subgraph";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 
 import {
   darkModeBorderColor,
   darkModeInputColor,
-} from "../../../../../../shared/dark-mode-values";
+} from "../../../../../../shared/style-values";
 import { useUser } from "../../../../../../shared/use-user";
 import { UpFromLineIcon } from "./inferred-entity/up-from-line-icon";
 
 // @todo consolidate this with generateEntityLabel in hash-frontend
 const generateEntityLabel = (
   entityToLabel: Partial<Pick<Entity, "properties">>,
-  entityType: EntityType,
+  entityType: EntityTypeWithMetadata,
   index: number,
 ) => {
   const simplifiedProperties = simplifyProperties<{}>(
@@ -50,7 +50,7 @@ const generateEntityLabel = (
     }
   }
 
-  return `${entityType.title}-${index + 1}`;
+  return `${entityType.schema.title}-${index + 1}`;
 };
 
 // This assumes a hash.ai/blockprotocol.org type URL format ending in [slugified-title]/
@@ -65,8 +65,8 @@ const baseUrlToPropertyTitle = (baseUrl: BaseUrl) =>
 type InferredEntityProps = {
   allEntityStatuses: InferEntitiesReturn["contents"];
   expanded: boolean;
-  entityType: EntityType;
-  entityTypes: EntityType[];
+  entityType: EntityTypeWithMetadata;
+  entityTypes: EntityTypeWithMetadata[];
   indexInType: number;
   result: InferEntitiesReturn["contents"][number];
   toggleExpanded: () => void;
@@ -115,7 +115,8 @@ export const InferredEntity = ({
             entity: allEntityStatuses[leftEntityIndex]?.entity,
             entityType: entityTypes.find(
               (type) =>
-                type.$id === allEntityStatuses[leftEntityIndex]?.entityTypeId,
+                type.schema.$id ===
+                allEntityStatuses[leftEntityIndex]?.entityTypeId,
             )!,
             index: leftEntityIndex,
           },
@@ -123,7 +124,8 @@ export const InferredEntity = ({
             entity: allEntityStatuses[rightEntityIndex]?.entity,
             entityType: entityTypes.find(
               (type) =>
-                type.$id === allEntityStatuses[rightEntityIndex]?.entityTypeId,
+                type.schema.$id ===
+                allEntityStatuses[rightEntityIndex]?.entityTypeId,
             )!,
             index: rightEntityIndex,
           },

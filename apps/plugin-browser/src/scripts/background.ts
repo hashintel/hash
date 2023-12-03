@@ -46,19 +46,26 @@ browser.runtime.onMessage.addListener((message: Message, sender) => {
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === "complete") {
-    getFromLocalStorage("passiveInference")
-      .then(async (passiveInference) => {
-        if (passiveInference?.enabled) {
-          const targetEntityTypes =
-            await getFromLocalStorage("targetEntityTypes");
-
-          if (!targetEntityTypes) {
-            return;
-          }
-
+    getFromLocalStorage("automaticInference")
+      .then(async (automaticInference) => {
+        if (automaticInference?.enabled) {
           const pageDetails = await (browser.tabs.sendMessage(tabId, {
             type: "get-site-content",
           } satisfies GetSiteContentRequest) as Promise<GetSiteContentReturn>);
+
+          const applicableRules = automaticInference.rules.filter(
+            ({ restrictToDomains }) =>
+              !restrictToDomains ||
+              restrictToDomains.includes(new URL(pageDetails.pageUrl).hostname),
+          );
+
+          if (applicableRules.length === 0) {
+            return;
+          }
+
+          const entityTypesToInfer = applicableRules.map(
+            ({ entityTypeId }) => entityTypeId,
+          );
 
           const inferenceRequests =
             await getFromLocalStorage("inferenceRequests");
@@ -77,7 +84,7 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
 
           void inferEntities(
             {
-              entityTypes: targetEntityTypes,
+              entityTypes: entityTypesToInfer,
               sourceTitle: pageDetails.pageTitle,
               sourceUrl: pageDetails.pageUrl,
               textInput: pageDetails.innerText,

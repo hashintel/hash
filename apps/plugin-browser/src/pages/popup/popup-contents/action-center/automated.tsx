@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 
 import { useLocalStorage } from "../../../shared/use-storage-sync";
+import { SelectScope } from "./automated/select-scope";
 import { Section } from "./shared/section";
 
 const createRadioItemSx = (active: boolean): SxProps<Theme> => ({
@@ -65,6 +66,12 @@ export const Automated = () => {
             />
           </FormGroup>
         </Box>
+      </Section>
+      <Section
+        description="Auto-inference only looks for types you specify on sites you allow"
+        headerText="Limit scope"
+      >
+        <SelectScope />
       </Section>
       <Section
         description="Decide what happens when new entities and properties are identified"

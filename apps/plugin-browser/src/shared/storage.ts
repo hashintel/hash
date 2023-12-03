@@ -1,7 +1,8 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/graph";
 import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
+import { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import browser from "webextension-polyfill";
 
 type InferenceErrorStatus = {
@@ -23,7 +24,7 @@ export type InferenceStatus =
 
 export type PageEntityInference = InferenceStatus & {
   createdAt: string;
-  entityTypes: EntityType[];
+  entityTypes: EntityTypeWithMetadata[];
   localRequestUuid: string;
   sourceTitle: string;
   sourceUrl: string;
@@ -39,14 +40,14 @@ export type LocalStorage = {
     createAs: "draft" | "live";
     enabled: boolean;
     rules: {
-      restrictToDomain: string | null;
-      entityTypeIds: VersionedUrl[];
+      restrictToDomains: string[] | null;
+      entityTypeId: VersionedUrl;
     }[];
   };
   draftQuickNote: string;
-  entityTypes: EntityType[];
+  entityTypes: EntityTypeWithMetadata[];
   inferenceRequests: PageEntityInference[];
-  targetEntityTypes: EntityType[];
+  oneOffTargetEntityTypes: EntityTypeWithMetadata[];
   user: Simplified<User> | null;
 };
 
