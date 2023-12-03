@@ -8,10 +8,10 @@ description = "The entity-graph query-layer for the HASH datastore"
 
 
 [dependencies]
-graph = { path = "../../lib/graph", features = ["clap"] }
+graph = { workspace = true, features = ["clap"] }
 graph-types = { workspace = true }
 validation = { workspace = true }
-type-fetcher = { path = "../../lib/type-fetcher" }
+type-fetcher = { workspace = true }
 authorization = { workspace = true }
 codec = { workspace = true }
 
@@ -38,3 +38,6 @@ uuid = "1.6.1"
 
 [features]
 test-server = ["graph/test-server"]
+
+[lints.rust]
+unreachable-pub = "allow"

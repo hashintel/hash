@@ -5,6 +5,11 @@
     clippy::use_debug,
     reason = "This is a benchmark"
 )]
+#![expect(
+    unreachable_pub,
+    reason = "This is a benchmark but as we want to document this crate as well this should be a \
+              warning instead"
+)]
 
 //! Benchmarks to check the performance of operations across a "representative" graph.
 //!

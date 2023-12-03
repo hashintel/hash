@@ -12,6 +12,10 @@
 #![feature(bound_map)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
+#![expect(
+    unreachable_pub,
+    reason = "This should be enabled but it's currently too noisy"
+)]
 
 use std::{
     fmt,

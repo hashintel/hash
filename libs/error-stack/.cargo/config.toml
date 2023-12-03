@@ -61,5 +61,6 @@ rustflags = [
     "-Aclippy::unreachable",
     "-Aclippy::unwrap_in_result",
     "-Aclippy::wildcard_enum_match_arm",
+    "-Aunsafe_code",
     ## END CLIPPY LINTS ##
 ]

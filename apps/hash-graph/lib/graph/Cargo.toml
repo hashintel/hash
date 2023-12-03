@@ -13,7 +13,7 @@ type-fetcher = { path = "../type-fetcher" }
 authorization = { workspace = true, features = ["utoipa"] }
 codec = { workspace = true }
 
-error-stack = { workspace = true }
+error-stack = { workspace = true, features = ["std", "serde"] }
 hash-status = { workspace = true }
 type-system = { workspace = true }
 

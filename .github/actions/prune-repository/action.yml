@@ -21,16 +21,24 @@ runs:
           fi
         done <<< "${{ inputs.scope }}"
 
+        while IFS= read -r line; do
+          DIRECTORY=$(dirname "$line")
+          # Create a dummy crate if it does not exist
+          if [[ ! -d "out/$DIRECTORY" ]]; then
+            mkdir -p "out/$DIRECTORY/src"
+            echo > "out/$DIRECTORY/src/lib.rs"
+            echo -e "[package]\nname = \"$(yq '.package.name' -p toml -oy $line)\"" > "out/$DIRECTORY/Cargo.toml"
+          fi
+        done < <(find $(yq '.workspace.members' -p toml -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml)
+
     - name: Copy required files
       shell: bash
       run: |
-        cp -R yarn.lock patches out/
+        cp -R yarn.lock patches Cargo.toml Cargo.lock rust-toolchain.toml out/
 
         # Globs are fun, especially in Bash. Covers all dot-files except `.`, `..`, and `.git`.
         shopt -s extglob
         cp -R .[!.!(.git)]* .git?* out/
-        mkdir -p out/libs
-        cp -R libs/.config out/libs/
 
     - name: Allow patch files to fail
       shell: bash

@@ -701,6 +701,7 @@ dependencies = [
  "anyhow",
  "rustc_version",
  "serde",
+ "spin",
  "tracing-error",
 ]
 
@@ -956,6 +957,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "graph-integration"
+version = "0.0.0"
+dependencies = [
+ "authorization",
+ "error-stack",
+ "futures",
+ "graph",
+ "graph-test-data",
+ "graph-types",
+ "rand",
+ "serde",
+ "serde_json",
+ "temporal-versioning",
+ "time",
+ "tokio",
+ "tokio-postgres",
+ "type-system",
+ "uuid",
+]
+
+[[package]]
 name = "graph-test-data"
 version = "0.0.0"
 
@@ -964,6 +986,7 @@ name = "graph-types"
 version = "0.0.0"
 dependencies = [
  "bytes",
+ "graph-test-data",
  "postgres-types",
  "serde",
  "serde_json",
@@ -3301,9 +3324,11 @@ name = "validation"
 version = "0.0.0"
 dependencies = [
  "error-stack",
+ "graph-test-data",
  "graph-types",
  "serde_json",
  "thiserror",
+ "tokio",
  "type-system",
 ]
 
