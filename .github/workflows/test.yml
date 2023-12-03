@@ -185,7 +185,7 @@ jobs:
         env:
           TEST_COVERAGE: ${{ github.event_name != 'merge_group' }}
         run: |
-          if [[ ${ steps.tests.outputs.has-rust == 'true' ]]; then
+          if [[ ${ steps.tests.outputs.has-rust } == 'true' ]]; then
             # For some reason, the CI does not pick up the local `.cargo/config.toml` file
             CONFIG_FILE="$(cargo metadata --format-version 1 | jq -r '.workspace_root')/.cargo/config.toml"
             RUSTFLAGS="$(yq -oy '.target["cfg(all())"].rustflags | join(" ")' $CONFIG_FILE) $RUSTFLAGS"
