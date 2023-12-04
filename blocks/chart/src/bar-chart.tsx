@@ -6,6 +6,8 @@ import {
   VersionedUrl,
 } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
+import { Subgraph as TemporalSubgraph } from "@blockprotocol/graph/temporal";
+/** @todo: replace with the non-temporal equivalent methods */
 import {
   getIncomingLinksForEntity,
   getOutgoingLinksForEntity,
@@ -88,8 +90,14 @@ export const BarChart: FunctionComponent<{
         const links =
           direction === "outgoing"
             ? /** @todo: fix `getIncomingLinksForEntity` in the BP temporal package when passing non-temporal subgraphs */
-              getOutgoingLinksForEntity(queryResult, entityId)
-            : getIncomingLinksForEntity(queryResult, entityId);
+              getOutgoingLinksForEntity(
+                queryResult as unknown as TemporalSubgraph,
+                entityId,
+              )
+            : getIncomingLinksForEntity(
+                queryResult as unknown as TemporalSubgraph,
+                entityId,
+              );
 
         const matchingLinks = links.filter(
           ({ metadata }) => metadata.entityTypeId === linkEntityTypeId,

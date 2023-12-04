@@ -6,6 +6,8 @@ import {
   VersionedUrl,
 } from "@blockprotocol/graph";
 import { getEntityTypeById, getRoots } from "@blockprotocol/graph/stdlib";
+import { Subgraph as TemporalSubgraph } from "@blockprotocol/graph/temporal";
+/** @todo: replace with the non-temporal equivalent method */
 import { getIncomingLinksForEntity } from "@blockprotocol/graph/temporal/stdlib";
 import {
   FormControl,
@@ -82,7 +84,10 @@ export const CountLinksForm: FunctionComponent<{
 
       return entities
         .map(({ metadata }) =>
-          getIncomingLinksForEntity(queryResult, metadata.recordId.entityId),
+          getIncomingLinksForEntity(
+            queryResult as unknown as TemporalSubgraph,
+            metadata.recordId.entityId,
+          ),
         )
         .flat()
         .map((linkEntity) => linkEntity.metadata.entityTypeId)
