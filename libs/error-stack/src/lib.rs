@@ -477,6 +477,7 @@
     not(miri),
     doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
 )]
+#![allow(unsafe_code)]
 
 extern crate alloc;
 

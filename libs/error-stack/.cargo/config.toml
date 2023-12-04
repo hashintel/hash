@@ -36,6 +36,7 @@ rustflags = [
     "-Aclippy::missing_errors_doc",
     "-Aclippy::missing_inline_in_public_items",
     "-Aclippy::missing_trait_methods",
+    "-Aclippy::mod_module_files",
     "-Aclippy::module_name_repetitions",
     "-Aclippy::multiple_inherent_impl",
     "-Aclippy::multiple_unsafe_ops_per_block",
@@ -47,7 +48,6 @@ rustflags = [
     "-Aclippy::question_mark_used",
     "-Aclippy::redundant_pub_crate",
     "-Aclippy::ref_patterns",
-    "-Aclippy::self_named_module_files",
     "-Aclippy::semicolon_outside_block",
     "-Aclippy::separated_literal_suffix",
     "-Aclippy::shadow_reuse",
@@ -61,5 +61,6 @@ rustflags = [
     "-Aclippy::unreachable",
     "-Aclippy::unwrap_in_result",
     "-Aclippy::wildcard_enum_match_arm",
+    "-Aunsafe_code",
     ## END CLIPPY LINTS ##
 ]

@@ -2,7 +2,6 @@
 
 #![warn(
     missing_docs,
-    unreachable_pub,
     clippy::pedantic,
     clippy::nursery,
     clippy::undocumented_unsafe_blocks,

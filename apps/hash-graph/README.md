@@ -77,7 +77,7 @@ Make sure to run this command whenever changes are made to the specification. CI
 
 ### Modifications
 
-The spec is mostly generated from the code using [`utoipa`](https://github.com/juhaku/utoipa/), although some of the more complex types are specified manually within [`lib/graph/src/api/rest/json_schemas`](lib/graph/src/api/rest/json_schemas).
+The spec is mostly generated from the code using [`utoipa`](https://github.com/juhaku/utoipa/), although some of the more complex types are specified manually within [`libs/graph/src/api/rest/json_schemas`](libs/graph/src/api/rest/json_schemas).
 
 As such, when modifying return values related to these types, it's important to update the accompanying schemas.
 
@@ -85,8 +85,8 @@ As such, when modifying return values related to these types, it's important to 
 
 Responses containing non-OK statuses are returned according to the `Status` format defined in the [`@local/status`](/libs/@local/status/README.md) package.
 
-The [`status.json`](lib/graph/src/api/rest/json_schemas/status.json) schema is responsible for the definition of this type, and should be updated whenever new payloads are added within [`./type-defs`](./type-defs).
-JSON schema definitions can be generated within the build directory by uncommenting the line in the lib's [`build.rs`](./lib/graph/build.rs).
+The [`status.json`](libs/graph/src/api/rest/json_schemas/status.json) schema is responsible for the definition of this type, and should be updated whenever new payloads are added within [`./type-defs`](./type-defs).
+JSON schema definitions can be generated within the build directory by uncommenting the line in the lib's [`build.rs`](./libs/graph/build.rs).
 
 To locate the build directory, run with `cargo build -vv` and search for "Generated files in:"
 

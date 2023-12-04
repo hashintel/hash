@@ -1,16 +1,20 @@
 [package]
 name = "validation"
+authors.workspace = true
+edition.workspace = true
 version = "0.0.0"
-edition = "2021"
 publish = false
 
 [dependencies]
-error-stack = { version = "0.4.1", features = ["spantrace"] }
-graph-types = { path = "../hash-graph-types/rust" }
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "b87db85" }
+graph-types.workspace = true
+
+error-stack = { workspace = true, features = ["hooks"] }
+type-system.workspace = true
+
 thiserror = "1.0.50"
 serde_json = { version = "1.0.108" }
 
 [dev-dependencies]
-graph-test-data = { path = "../../../tests/hash-graph-test-data/rust" }
-tokio = { version = "1.34.0", default-features = false , features = ["macros", "rt-multi-thread"] }
+graph-test-data.workspace = true
+
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

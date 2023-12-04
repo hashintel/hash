@@ -14,7 +14,7 @@
     "@typescript-eslint/parser": "5.49.0",
     "eslint": "8.33.0",
     "eslint-config-airbnb": "19.0.4",
-    "eslint-config-prettier": "9.0.0",
+    "eslint-config-prettier": "9.1.0",
     "eslint-plugin-canonical": "3.3.0",
     "eslint-plugin-import": "2.27.5",
     "eslint-plugin-jest": "27.6.0",
