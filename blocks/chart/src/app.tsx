@@ -23,9 +23,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BarChart } from "./bar-chart";
 import { EditChartDefinition } from "./edit-chart-definition";
-import { generateInitialChartDefinition } from "./edit-chart-definition/bar-chart-definition-form";
+import { generateInitialChartDefinition } from "./edit-chart-definition/bar-graph-definition-form/group-by-property-form";
 import { EditableChartTitle } from "./edit-chart-title";
-import { ChartDefinition } from "./types/chart-definition";
+import {
+  BarChartCountLinkedEntitiesVariant,
+  ChartDefinition,
+} from "./types/chart-definition";
 import {
   BlockEntity,
   BlockEntityOutgoingLinkAndTarget,
@@ -39,7 +42,7 @@ export const App: BlockComponent<BlockEntity> = ({
   const { graphModule } = useGraphBlockModule(blockRootRef);
 
   const [displayEditChartDefinition, setDisplayEditChartDefinition] =
-    useState<boolean>(false);
+    useState<boolean>(true);
 
   const { rootEntity: blockEntity } = useEntitySubgraph<
     BlockEntity,
@@ -90,12 +93,12 @@ export const App: BlockComponent<BlockEntity> = ({
             isOfType: { outgoing: 1 },
             constrainsPropertiesOn: { outgoing: 255 },
             hasLeftEntity: {
-              outgoing: outgoingLinksDepth ?? 0,
-              incoming: incomingLinksDepth ?? 0,
-            },
-            hasRightEntity: {
               outgoing: incomingLinksDepth ?? 0,
               incoming: outgoingLinksDepth ?? 0,
+            },
+            hasRightEntity: {
+              outgoing: outgoingLinksDepth ?? 0,
+              incoming: incomingLinksDepth ?? 0,
             },
           },
         },
@@ -126,13 +129,25 @@ export const App: BlockComponent<BlockEntity> = ({
         chartDefinition?.kind === "graph-chart"
           ? (chartDefinition as ChartDefinition<"graph-chart">)
               .incomingLinksDepth
-          : undefined;
+          : chartDefinition?.kind === "bar-chart" &&
+              (chartDefinition as ChartDefinition<"bar-chart">).variant ===
+                "count-links" &&
+              (chartDefinition as BarChartCountLinkedEntitiesVariant)
+                .direction === "incoming"
+            ? 1
+            : undefined;
 
       const outgoingLinksDepth =
         chartDefinition?.kind === "graph-chart"
           ? (chartDefinition as ChartDefinition<"graph-chart">)
               .outgoingLinksDepth
-          : undefined;
+          : chartDefinition?.kind === "bar-chart" &&
+              (chartDefinition as ChartDefinition<"bar-chart">).variant ===
+                "count-links" &&
+              (chartDefinition as BarChartCountLinkedEntitiesVariant)
+                .direction === "outgoing"
+            ? 1
+            : undefined;
 
       void fetchQueryEntityResults({
         queryEntity: linkedQueryEntity,

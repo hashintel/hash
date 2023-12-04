@@ -5,7 +5,11 @@ import {
   Subgraph,
   VersionedUrl,
 } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
+import {
+  getIncomingLinksForEntity,
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import { EChart, ECOption } from "@hashintel/design-system";
 import { FunctionComponent, useMemo } from "react";
 
@@ -30,11 +34,11 @@ export const BarChart: FunctionComponent<{
     [queryResult],
   );
 
-  const entitiesByProperty = useMemo(
-    () =>
-      queryResultsByType[definition.entityTypeId]?.reduce<
-        Record<string, Entity[]>
-      >(
+  const eChartOptions = useMemo<ECOption>(() => {
+    if (definition.variant === "group-by-property") {
+      const entitiesByProperty = queryResultsByType[
+        definition.entityTypeId
+      ]?.reduce<Record<string, Entity[]>>(
         (prev, entity) => ({
           ...prev,
           [entity.properties[
@@ -49,34 +53,83 @@ export const BarChart: FunctionComponent<{
           ],
         }),
         {},
-      ),
-    [queryResultsByType, definition],
-  );
+      );
 
-  const eChartOptions = useMemo<ECOption>(
-    () => ({
-      xAxis: {
-        type: "category",
-        data: Object.keys(entitiesByProperty ?? []),
-        name: definition.xAxisLabel,
-        nameLocation: "middle",
-        nameGap: 25,
-      },
-      yAxis: {
-        type: "value",
-        name: definition.yAxisLabel,
-        nameLocation: "middle",
-        nameGap: 25,
-      },
-      series: {
-        data: Object.values(entitiesByProperty ?? []).map(
-          (entityGroup) => entityGroup.length,
-        ),
-        type: "bar",
-      },
-    }),
-    [entitiesByProperty, definition],
-  );
+      return {
+        xAxis: {
+          type: "category",
+          data: Object.keys(entitiesByProperty ?? []),
+          name: definition.xAxisLabel,
+          nameLocation: "middle",
+          nameGap: 25,
+        },
+        yAxis: {
+          type: "value",
+          name: definition.yAxisLabel,
+          nameLocation: "middle",
+          nameGap: 25,
+        },
+        series: {
+          data: Object.values(entitiesByProperty ?? {}).map(
+            (entityGroup) => entityGroup.length,
+          ),
+          type: "bar",
+        },
+      };
+    } else {
+      const { entityTypeId, labelPropertyTypeId, direction, linkEntityTypeId } =
+        definition;
+
+      const numberOfLinkedEntitiesByEntity = queryResultsByType[entityTypeId]
+        ?.slice(0, 5)
+        .reduce<Record<string, number>>((prev, entity) => {
+          const entityId = entity.metadata.recordId.entityId;
+
+          const links =
+            direction === "outgoing"
+              ? /** @todo: fix `getIncomingLinksForEntity` in the BP temporal package when passing non-temporal subgraphs */
+                getOutgoingLinkAndTargetEntities(queryResult, entityId).map(
+                  ({ linkEntity }) => linkEntity,
+                )
+              : getIncomingLinksForEntity(queryResult, entityId);
+
+          const matchingLinks = links.filter(
+            ({ metadata }) => metadata.entityTypeId === linkEntityTypeId,
+          );
+
+          const label = String(
+            entity.properties[extractBaseUrl(labelPropertyTypeId)] ?? "Unknown",
+          );
+
+          return {
+            ...prev,
+            [label]: matchingLinks.length,
+          };
+        }, {});
+
+      return {
+        xAxis: {
+          type: "category",
+          data: Object.keys(numberOfLinkedEntitiesByEntity ?? {}),
+          name: definition.xAxisLabel,
+          nameLocation: "middle",
+          nameGap: 25,
+        },
+        yAxis: {
+          type: "value",
+          name: definition.yAxisLabel,
+          nameLocation: "middle",
+          nameGap: 25,
+        },
+        series: {
+          data: Object.values(numberOfLinkedEntitiesByEntity ?? {}).map(
+            (numberOfLinks) => numberOfLinks,
+          ),
+          type: "bar",
+        },
+      };
+    }
+  }, [queryResult, queryResultsByType, definition]);
 
   return <EChart options={eChartOptions} />;
 };
