@@ -1,8 +1,4 @@
-import { 
-  EntityRootType, 
-  Subgraph,
-  VersionedUrl,
-} from "@blockprotocol/graph";
+import { EntityRootType, Subgraph, VersionedUrl } from "@blockprotocol/graph";
 import { getEntityTypeById, getRoots } from "@blockprotocol/graph/stdlib";
 import {
   Box,
@@ -14,13 +10,18 @@ import { FunctionComponent, useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 
 import {
-  BarChartDefinitionForm, 
+  BarChartDefinitionForm,
   generateXAxisLabel,
   generateYAxisLabel,
   getEntityTypePropertyTypes,
 } from "./edit-chart-definition/bar-chart-definition-form";
 import { GraphChartDefinitionForm } from "./edit-chart-definition/graph-chart-definition-form";
 import { ChartDefinition } from "./types/chart-definition";
+
+const chartKindToLabel: Record<ChartDefinition["kind"], string> = {
+  "bar-chart": "Bar Chart",
+  "graph-chart": "Network Diagram",
+};
 
 export const EditChartDefinition: FunctionComponent<{
   initialChartDefinition?: ChartDefinition;
@@ -113,7 +114,7 @@ export const EditChartDefinition: FunctionComponent<{
         sx={{ display: "flex", flexDirection: "column", rowGap: 2 }}
       >
         <Typography variant="h5" marginBottom={2}>
-          Configure {chartKind === "bar-chart" ? "Bar Chart" : "Graph Chart"}
+          Configure {chartKindToLabel[chartKind]}
         </Typography>
         {chartKind === "bar-chart" ? (
           <BarChartDefinitionForm

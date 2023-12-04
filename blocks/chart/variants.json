@@ -18,7 +18,7 @@
     ]
   },
   {
-    "name": "Graph Chart",
+    "name": "Network Diagram",
     "description": "",
     "icon": "public/chart-network-regular.svg",
     "properties": {
@@ -28,7 +28,7 @@
     },
     "examples": [
       {
-        "https://blockprotocol.org/@blockprotocol/types/property-type/title/": "Graph Chart Title",
+        "https://blockprotocol.org/@blockprotocol/types/property-type/title/": "Network Diagram Title",
         "https://blockprotocol.org/@hash/types/property-type/chart-defintion/": {
           "kind": "graph-chart"
         }
