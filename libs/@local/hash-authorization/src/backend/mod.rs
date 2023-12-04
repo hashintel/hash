@@ -4,9 +4,9 @@ use core::{fmt, iter::repeat};
 use std::{error::Error, future::Future};
 
 use error_stack::Report;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-pub use self::spicedb::SpiceDbOpenApi;
+pub use self::spicedb::{RpcError, SpiceDbOpenApi};
 use crate::{
     zanzibar::{
         types::{Relationship, RelationshipFilter, Resource, Subject},
@@ -139,8 +139,8 @@ pub trait ZanzibarBackend {
         self.modify_relationships(repeat(ModifyRelationshipOperation::Delete).zip(relationships))
     }
 
-    /// Returns if the [`Subject`] of the [`Relationship`] has the specified permission or relation
-    /// to an [`Resource`].
+    /// Returns if the [`Subject`] of the [`Relationship`] has the specified [`Permission`] to a
+    /// [`Resource`].
     ///
     /// # Errors
     ///
@@ -149,7 +149,7 @@ pub trait ZanzibarBackend {
     /// Note, that this will not fail if the [`Subject`] does not have the specified permission or
     /// relation to the [`Subject`]. Instead, the [`CheckResponse::has_permission`] field will be
     /// set to `false`.
-    fn check<O, R, S>(
+    fn check_permission<O, R, S>(
         &self,
         resource: &O,
         permission: &R,
@@ -160,6 +160,40 @@ pub trait ZanzibarBackend {
         O: Resource<Kind: Serialize, Id: Serialize> + Sync,
         R: Serialize + Permission<O> + Sync,
         S: Subject<Resource: Resource<Kind: Serialize, Id: Serialize>, Relation: Serialize> + Sync;
+
+    /// Checks a list [`Relationship`]s if the [`Subject`] of it has the specified [`Permission`] to
+    /// a [`Resource`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the check could not be performed.
+    ///
+    /// Note, that this will not fail if the [`Subject`] does not have the specified permission or
+    /// relation to the [`Subject`]. Instead, the [`CheckResponse::has_permission`] field will be
+    /// set to `false`.
+    fn check_permissions<O, R, S>(
+        &self,
+        relationships: impl IntoIterator<Item = (O, R, S)> + Send,
+        consistency: Consistency<'_>,
+    ) -> impl Future<
+        Output = Result<
+            BulkCheckResponse<impl IntoIterator<Item = BulkCheckItem<O, R, S>>>,
+            Report<CheckError>,
+        >,
+    > + Send
+    where
+        O: Resource<Kind: Serialize + DeserializeOwned, Id: Serialize + DeserializeOwned>
+            + Send
+            + Sync,
+        R: Serialize + DeserializeOwned + Permission<O> + Send + Sync,
+        S: Subject<
+                Resource: Resource<
+                    Kind: Serialize + DeserializeOwned,
+                    Id: Serialize + DeserializeOwned,
+                >,
+                Relation: Serialize + DeserializeOwned,
+            > + Send
+            + Sync;
 
     /// Returns the list of all relations matching the filter.
     ///
@@ -228,7 +262,7 @@ impl ZanzibarBackend for NoAuthorization {
         })
     }
 
-    async fn check<O, R, S>(
+    async fn check_permission<O, R, S>(
         &self,
         _resource: &O,
         _permission: &R,
@@ -243,6 +277,27 @@ impl ZanzibarBackend for NoAuthorization {
         Ok(CheckResponse {
             checked_at: Zookie::empty(),
             has_permission: true,
+        })
+    }
+
+    async fn check_permissions<O, R, S>(
+        &self,
+        relationships: impl IntoIterator<Item = (O, R, S)> + Send,
+        _consistency: Consistency<'_>,
+    ) -> Result<
+        BulkCheckResponse<impl IntoIterator<Item = BulkCheckItem<O, R, S>>>,
+        Report<CheckError>,
+    > {
+        Ok(BulkCheckResponse {
+            permissions: relationships
+                .into_iter()
+                .map(|(resource, permission, subject)| BulkCheckItem {
+                    resource,
+                    permission,
+                    subject,
+                    has_permission: Ok(true),
+                }),
+            checked_at: Zookie::empty(),
         })
     }
 
@@ -356,7 +411,7 @@ impl fmt::Display for DeleteRelationshipError {
 
 impl Error for DeleteRelationshipError {}
 
-/// Return value for [`ZanzibarBackend::check`].
+/// Return value for [`ZanzibarBackend::check_permission`].
 #[derive(Debug)]
 #[must_use]
 pub struct CheckResponse {
@@ -382,7 +437,29 @@ impl CheckResponse {
     }
 }
 
-/// Error returned from [`ZanzibarBackend::check`].
+/// Return value for [`ZanzibarBackend::check_permissions`].
+#[derive(Debug)]
+#[must_use]
+pub struct BulkCheckResponse<I> {
+    /// If the subject has the specified permission or relation to an [`Resource`].
+    pub permissions: I,
+    /// A token to determine the time at which the check was performed.
+    pub checked_at: Zookie<'static>,
+}
+
+/// Return value for [`ZanzibarBackend::check_permissions`].
+#[derive(Debug)]
+#[must_use]
+pub struct BulkCheckItem<R, P, S> {
+    pub resource: R,
+    pub permission: P,
+    pub subject: S,
+    /// A token to determine the time at which the check was performed.
+    pub has_permission: Result<bool, RpcError>,
+}
+
+/// Error returned from [`ZanzibarBackend::check_permission`] and
+/// [`ZanzibarBackend::check_permission`].
 #[derive(Debug)]
 pub struct CheckError;
 
@@ -394,7 +471,7 @@ impl fmt::Display for CheckError {
 
 impl Error for CheckError {}
 
-/// Error returned from [`ZanzibarBackend::check`].
+/// Error returned from [`ZanzibarBackend::read_relations`].
 #[derive(Debug)]
 pub struct ReadError;
 

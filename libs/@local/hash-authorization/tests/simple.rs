@@ -62,7 +62,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
 
     // Test permissions
     assert!(
-        api.check(
+        api.check_permission(
             &ENTITY_A,
             &EntityPermission::View,
             &ALICE,
@@ -72,7 +72,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
         .has_permission
     );
     assert!(
-        !api.check(
+        !api.check_permission(
             &ENTITY_B,
             &EntityPermission::View,
             &ALICE,
@@ -82,7 +82,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
         .has_permission
     );
     assert!(
-        api.check(
+        api.check_permission(
             &ENTITY_A,
             &EntityPermission::View,
             &BOB,
@@ -92,7 +92,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
         .has_permission
     );
     assert!(
-        api.check(
+        api.check_permission(
             &ENTITY_B,
             &EntityPermission::View,
             &BOB,
@@ -102,7 +102,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
         .has_permission
     );
     assert!(
-        api.check(
+        api.check_permission(
             &ENTITY_A,
             &EntityPermission::Update,
             &ALICE,
@@ -112,7 +112,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
         .has_permission
     );
     assert!(
-        !api.check(
+        !api.check_permission(
             &ENTITY_B,
             &EntityPermission::Update,
             &ALICE,
@@ -122,7 +122,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
         .has_permission
     );
     assert!(
-        !api.check(
+        !api.check_permission(
             &ENTITY_A,
             &EntityPermission::Update,
             &BOB,
@@ -132,7 +132,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
         .has_permission
     );
     assert!(
-        api.check(
+        api.check_permission(
             &ENTITY_B,
             &EntityPermission::Update,
             &BOB,
@@ -154,7 +154,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
         .written_at;
 
     assert!(
-        !api.check(
+        !api.check_permission(
             &ENTITY_A,
             &EntityPermission::View,
             &BOB,

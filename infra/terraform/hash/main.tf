@@ -282,7 +282,7 @@ module "application" {
   temporal_port = module.temporal.temporal_port
   spicedb_image = {
     name = "authzed/spicedb"
-    version = "1.24.0"
+    version = "1.28.0"
   }
   spicedb_migration_env_vars = [
     { name = "SPICEDB_LOG_FORMAT", secret = false, value = "console" },

@@ -9,11 +9,11 @@ use tokio_util::{codec::FramedRead, io::StreamReader};
 
 use crate::{
     backend::{
-        spicedb::model::{self, RpcError},
-        CheckError, CheckResponse, DeleteRelationshipError, DeleteRelationshipResponse,
-        ExportSchemaError, ExportSchemaResponse, ImportSchemaError, ImportSchemaResponse,
-        ModifyRelationshipError, ModifyRelationshipOperation, ModifyRelationshipResponse,
-        ReadError, SpiceDbOpenApi, ZanzibarBackend,
+        spicedb::model::{self, Permissionship, RpcError},
+        BulkCheckItem, BulkCheckResponse, CheckError, CheckResponse, DeleteRelationshipError,
+        DeleteRelationshipResponse, ExportSchemaError, ExportSchemaResponse, ImportSchemaError,
+        ImportSchemaResponse, ModifyRelationshipError, ModifyRelationshipOperation,
+        ModifyRelationshipResponse, ReadError, SpiceDbOpenApi, ZanzibarBackend,
     },
     zanzibar::{
         types::{Relationship, RelationshipFilter, Resource, Subject},
@@ -307,7 +307,7 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn check<O, R, S>(
+    async fn check_permission<O, R, S>(
         &self,
         resource: &O,
         permission: &R,
@@ -338,16 +338,6 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         }
 
         #[derive(Deserialize)]
-        enum Permissionship {
-            #[serde(rename = "PERMISSIONSHIP_NO_PERMISSION")]
-            NoPermission,
-            #[serde(rename = "PERMISSIONSHIP_HAS_PERMISSION")]
-            HasPermission,
-            #[serde(rename = "PERMISSIONSHIP_CONDITIONAL_PERMISSION")]
-            Conditional,
-        }
-
-        #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct RequestResponse {
             checked_at: model::ZedToken,
@@ -366,17 +356,149 @@ impl ZanzibarBackend for SpiceDbOpenApi {
             .await
             .change_context(CheckError)?;
 
-        let has_permission = match response.permissionship {
-            Permissionship::HasPermission => true,
-            Permissionship::NoPermission => false,
-            Permissionship::Conditional => {
-                unimplemented!("https://linear.app/hash/issue/H-614")
-            }
-        };
-
         Ok(CheckResponse {
             checked_at: response.checked_at.token,
-            has_permission,
+            has_permission: response.permissionship.into(),
+        })
+    }
+
+    #[expect(
+        clippy::missing_errors_doc,
+        reason = "False positive, documented on trait"
+    )]
+    #[expect(clippy::too_many_lines)]
+    async fn check_permissions<O, R, S>(
+        &self,
+        relationships: impl IntoIterator<Item = (O, R, S)> + Send,
+        consistency: Consistency<'_>,
+    ) -> Result<
+        BulkCheckResponse<impl IntoIterator<Item = BulkCheckItem<O, R, S>>>,
+        Report<CheckError>,
+    >
+    where
+        O: Resource<Kind: Serialize + DeserializeOwned, Id: Serialize + DeserializeOwned>
+            + Send
+            + Sync,
+        R: Serialize + DeserializeOwned + Permission<O> + Send + Sync,
+        S: Subject<
+                Resource: Resource<
+                    Kind: Serialize + DeserializeOwned,
+                    Id: Serialize + DeserializeOwned,
+                >,
+                Relation: Serialize + DeserializeOwned,
+            > + Send
+            + Sync,
+    {
+        #[derive(Serialize)]
+        #[serde(
+            rename_all = "camelCase",
+            bound = "
+                O: Resource<Kind: Serialize, Id: Serialize>,
+                R: Serialize,
+                S: Subject<Resource: Resource<Kind: Serialize, Id: Serialize>, Relation: \
+                     Serialize>"
+        )]
+        struct BulkCheckPermissionRequest<'t, O, R, S> {
+            consistency: model::Consistency<'t>,
+            items: Vec<BulkCheckPermissionRequestItem<O, R, S>>,
+        }
+
+        #[derive(Serialize, Deserialize)]
+        #[serde(
+            rename_all = "camelCase",
+            bound(
+                serialize = "
+                O: Resource<Kind: Serialize, Id: Serialize>,
+                R: Serialize,
+                S: Subject<Resource: Resource<Kind: Serialize, Id: Serialize>, \
+                                 Relation: Serialize>",
+                deserialize = "
+                O: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
+                R: Deserialize<'de>,
+                S: Subject<Resource: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>, \
+                               Relation: Deserialize<'de>>"
+            )
+        )]
+        struct BulkCheckPermissionRequestItem<O, R, S> {
+            #[serde(with = "super::serde::resource")]
+            resource: O,
+            permission: R,
+            #[serde(with = "super::serde::subject")]
+            subject: S,
+        }
+
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct BulkCheckPermissionResponseItem {
+            permissionship: Permissionship,
+        }
+
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        enum Response {
+            Item(BulkCheckPermissionResponseItem),
+            Error(RpcError),
+        }
+
+        #[derive(Deserialize)]
+        #[serde(
+            rename_all = "camelCase",
+            bound = "
+                O: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
+                R: Deserialize<'de>,
+                S: Subject<Resource: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>, \
+                     Relation: Deserialize<'de>>"
+        )]
+        struct BulkCheckPermissionResponse<O, R, S> {
+            checked_at: model::ZedToken,
+            pairs: Vec<BulkCheckPermissionPair<O, R, S>>,
+        }
+
+        #[derive(Deserialize)]
+        #[serde(
+            rename_all = "camelCase",
+            bound = "
+                O: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
+                R: Deserialize<'de>,
+                S: Subject<Resource: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>, \
+                     Relation: Deserialize<'de>>"
+        )]
+        struct BulkCheckPermissionPair<O, R, S> {
+            request: BulkCheckPermissionRequestItem<O, R, S>,
+            #[serde(flatten)]
+            response: Response,
+        }
+
+        let request = BulkCheckPermissionRequest::<O, R, S> {
+            consistency: consistency.into(),
+            items: relationships
+                .into_iter()
+                .map(
+                    |(resource, permission, subject)| BulkCheckPermissionRequestItem {
+                        resource,
+                        permission,
+                        subject,
+                    },
+                )
+                .collect(),
+        };
+
+        let response: BulkCheckPermissionResponse<O, R, S> = self
+            .call("/v1/experimental/permissions/bulkcheckpermission", &request)
+            .await
+            .change_context(CheckError)?;
+
+        Ok(BulkCheckResponse {
+            checked_at: response.checked_at.token,
+            permissions: response.pairs.into_iter().map(|pair| BulkCheckItem {
+                subject: pair.request.subject,
+                permission: pair.request.permission,
+                resource: pair.request.resource,
+                has_permission: match pair.response {
+                    Response::Item(item) => Ok(item.permissionship.into()),
+                    Response::Error(error) => Err(error),
+                },
+            }),
         })
     }
 

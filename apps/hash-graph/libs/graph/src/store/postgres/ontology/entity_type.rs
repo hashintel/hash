@@ -576,7 +576,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         }
     }
 
-    // #[tracing::instrument(level = "info", skip(self, authorization_api))]
+    #[tracing::instrument(level = "info", skip(self, authorization_api))]
     async fn get_entity_type<A: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,

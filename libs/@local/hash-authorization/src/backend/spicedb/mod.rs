@@ -1,9 +1,12 @@
 mod api;
 mod model;
 pub(crate) mod serde;
+
 use std::fmt;
 
 use error_stack::Result;
+
+pub use self::model::RpcError;
 
 #[derive(Clone)]
 pub struct SpiceDbOpenApi {
