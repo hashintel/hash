@@ -20,7 +20,7 @@ import { ChartDefinition } from "./types/chart-definition";
 
 const chartKindToLabel: Record<ChartDefinition["kind"], string> = {
   "bar-chart": "Bar Chart",
-  "graph-chart": "Network Diagram",
+  "graph-chart": "Network Graph Chart",
 };
 
 export const EditChartDefinition: FunctionComponent<{
