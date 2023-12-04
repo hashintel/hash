@@ -175,7 +175,7 @@ where
             )
             .await?;
         let mut status = Ok::<(), Report<RpcError>>(());
-        let permission_map = response
+        let permissions = response
             .permissions
             .into_iter()
             .filter_map(|item| {
@@ -196,7 +196,7 @@ where
 
         status
             .change_context(CheckError)
-            .map(|()| (permission_map, response.checked_at))
+            .map(|()| (permissions, response.checked_at))
     }
 
     async fn get_entity_relations(
