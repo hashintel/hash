@@ -1,6 +1,6 @@
 import { Tabs } from "webextension-polyfill";
 
-import { useLocalStorage } from "../../../shared/use-storage-sync";
+import { useLocalStorage } from "../../../shared/use-local-storage";
 import { Action } from "./action";
 import { CreateEntityIcon } from "./infer-entities-action/create-entity-icon";
 import { InferenceRequests } from "./infer-entities-action/inference-requests";

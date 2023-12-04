@@ -21,7 +21,7 @@ import {
 } from "../../../../graphql/api-types.gen";
 import { createEntityMutation } from "../../../../graphql/queries/entity.queries";
 import { queryGraphQlApi } from "../../../../shared/query-graphql-api";
-import { useLocalStorage } from "../../../shared/use-storage-sync";
+import { useLocalStorage } from "../../../shared/use-local-storage";
 import { Action } from "./action";
 import { QuickNoteIcon } from "./quick-note-action/quick-note-icon";
 import { TextFieldWithDarkMode } from "./text-field-with-dark-mode";

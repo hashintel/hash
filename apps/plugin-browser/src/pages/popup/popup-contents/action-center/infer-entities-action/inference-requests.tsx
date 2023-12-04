@@ -15,7 +15,7 @@ import {
   darkModeInputBackgroundColor,
   darkModePlaceholderColor,
 } from "../../../../shared/dark-mode-values";
-import { useLocalStorage } from "../../../../shared/use-storage-sync";
+import { useLocalStorage } from "../../../../shared/use-local-storage";
 import { InferenceRequest } from "./inference-request";
 
 const InferenceRequestContainer = ({

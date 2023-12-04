@@ -30,7 +30,7 @@ import {
   darkModePlaceholderColor,
 } from "../../../../shared/dark-mode-values";
 import { sendMessageToBackground } from "../../../../shared/messages";
-import { useLocalStorage } from "../../../../shared/use-storage-sync";
+import { useLocalStorage } from "../../../../shared/use-local-storage";
 
 const getEntityTypes = () => {
   return queryGraphQlApi<GetEntityTypesQuery, GetEntityTypesQueryVariables>(

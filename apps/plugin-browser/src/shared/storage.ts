@@ -86,6 +86,5 @@ export const getSetFromLocalStorageValue = <Key extends keyof LocalStorage>(
 };
 
 export const clearLocalStorage = async () => {
-  console.log("Clearing");
   await browser.storage.local.clear();
 };
