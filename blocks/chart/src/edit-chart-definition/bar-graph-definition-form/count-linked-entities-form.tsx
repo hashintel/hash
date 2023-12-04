@@ -166,16 +166,12 @@ export const CountLinksForm: FunctionComponent<{
         id="x-axis-label"
         fullWidth
         label="X Axis Label"
-        /** @todo: figure out why the label isn't shrinking when the value is updated programmatically */
-        InputLabelProps={{ shrink: true }}
         {...register("xAxisLabel")}
       />
       <TextField
         id="y-axis-label"
         fullWidth
         label="Y Axis Label"
-        /** @todo: figure out why the label isn't shrinking when the value is updated programmatically */
-        InputLabelProps={{ shrink: true }}
         {...register("yAxisLabel")}
       />
     </>
