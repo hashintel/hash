@@ -13,13 +13,17 @@ import {
   Select,
   TextField,
 } from "@mui/material";
+import pluralize from "pluralize";
 import { FunctionComponent, useMemo } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 
 import { ChartDefinition } from "../../types/chart-definition";
 import { getEntityTypePropertyTypes } from "../util";
 
-const generateYAxisLabel = (params: { linkEntityType: EntityType }) =>
+export const generateXAxisLabel = (params: { entityType: EntityType }) =>
+  `${pluralize(params.entityType.title)}`;
+
+export const generateYAxisLabel = (params: { linkEntityType: EntityType }) =>
   `Number of ${params.linkEntityType.title.toLowerCase()} links`;
 
 export const CountLinksForm: FunctionComponent<{

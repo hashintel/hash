@@ -4,9 +4,12 @@ import { FunctionComponent } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 
 import { ChartDefinition } from "../types/chart-definition";
-import { CountLinksForm } from "./bar-graph-definition-form/count-linked-entities-form";
 import {
-  generateYAxisLabel,
+  CountLinksForm,
+  generateXAxisLabel as generateCountLinkedEntitiesXAxisLabel,
+} from "./bar-graph-definition-form/count-linked-entities-form";
+import {
+  generateYAxisLabel as generateGroupByPropertyYAxisLabel,
   GroupByPropertyForm,
 } from "./bar-graph-definition-form/group-by-property-form";
 
@@ -65,12 +68,21 @@ export const BarChartDefinitionForm: FunctionComponent<{
                   );
 
                   if (selectedEntityType) {
-                    setValue(
-                      "yAxisLabel",
-                      generateYAxisLabel({
-                        entityType: selectedEntityType,
-                      }),
-                    );
+                    if (currentVariant === "group-by-property") {
+                      setValue(
+                        "yAxisLabel",
+                        generateGroupByPropertyYAxisLabel({
+                          entityType: selectedEntityType,
+                        }),
+                      );
+                    } else {
+                      setValue(
+                        "xAxisLabel",
+                        generateCountLinkedEntitiesXAxisLabel({
+                          entityType: selectedEntityType,
+                        }),
+                      );
+                    }
                   }
 
                   field.onChange(event);
