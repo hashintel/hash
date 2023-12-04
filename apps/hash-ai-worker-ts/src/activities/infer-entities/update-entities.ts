@@ -66,13 +66,6 @@ export const updateEntities = async ({
           let existingEntity: Entity | undefined = undefined;
 
           try {
-            await graphApiClient.validateEntity(actorId, {
-              draft: true,
-              entityTypeId,
-              operations: ["all"],
-              properties,
-            });
-
             existingEntity = await getEntityByFilter({
               actorId,
               graphApiClient,
@@ -107,6 +100,16 @@ export const updateEntities = async ({
                 `No entity with entityId ${updateEntityId} found.`,
               );
             }
+
+            await graphApiClient.validateEntity(actorId, {
+              draft: true,
+              entityTypeId,
+              operations: ["all"],
+              properties: {
+                ...existingEntity.properties,
+                ...properties,
+              },
+            });
 
             const { data: updateEntityMetadata } =
               await graphApiClient.updateEntity(actorId, {
