@@ -46,14 +46,14 @@ browser.runtime.onMessage.addListener((message: Message, sender) => {
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === "complete") {
-    getFromLocalStorage("automaticInference")
-      .then(async (automaticInference) => {
-        if (automaticInference?.enabled) {
+    getFromLocalStorage("automaticInferenceConfig")
+      .then(async (automaticInferenceConfig) => {
+        if (automaticInferenceConfig?.enabled) {
           const pageDetails = await (browser.tabs.sendMessage(tabId, {
             type: "get-site-content",
           } satisfies GetSiteContentRequest) as Promise<GetSiteContentReturn>);
 
-          const applicableRules = automaticInference.rules.filter(
+          const applicableRules = automaticInferenceConfig.rules.filter(
             ({ restrictToDomains }) =>
               !restrictToDomains ||
               restrictToDomains.includes(new URL(pageDetails.pageUrl).hostname),
@@ -63,7 +63,7 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
             return;
           }
 
-          const entityTypesToInfer = applicableRules.map(
+          const entityTypeIdsToInfer = applicableRules.map(
             ({ entityTypeId }) => entityTypeId,
           );
 
@@ -84,7 +84,9 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
 
           void inferEntities(
             {
-              entityTypes: entityTypesToInfer,
+              createAs: automaticInferenceConfig.createAs,
+              entityTypeIds: entityTypeIdsToInfer,
+              ownedById: automaticInferenceConfig.ownedById,
               sourceTitle: pageDetails.pageTitle,
               sourceUrl: pageDetails.pageUrl,
               textInput: pageDetails.innerText,
@@ -95,7 +97,7 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
         }
       })
       .catch((err) => {
-        console.error(`Passive inference error: ${(err as Error).message}`);
+        console.error(`Automatic inference error: ${(err as Error).message}`);
       });
   }
 });

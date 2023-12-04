@@ -12,9 +12,9 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 
+import { LocalStorage } from "../../../../../shared/storage";
 import { borderColors } from "../../../../shared/style-values";
-import { useEntityTypes } from "../../../../shared/use-entity-types";
-import { useLocalStorage } from "../../../../shared/use-storage-sync";
+import { EntityTypeSelector } from "../one-off/infer-entities-action/entity-type-selector";
 import { CircleExclamationIcon } from "./select-scope/circle-exclamation-icon";
 import { SelectDomains } from "./select-scope/select-domains";
 
@@ -28,7 +28,7 @@ const AddTypeButton = ({
   <Button
     onClick={onClick}
     size="xs"
-    sx={{ fontSize: 12, mr: 2, px: 1.2, py: 1 }}
+    sx={{ fontSize: 12, mr: 2, px: 1.2, py: 1, whiteSpace: "nowrap" }}
   >
     <PlusIcon
       sx={{
@@ -47,13 +47,14 @@ const NoTypesSelectedMessage = () => (
     <CircleExclamationIcon
       sx={{
         fill: ({ palette }) => palette.error.main,
-        fontSize: 16,
+        fontSize: 15,
         mr: 0.8,
       }}
     />
     <Typography
       sx={{
         color: ({ palette }) => palette.error.main,
+        fontSize: 14,
         fontWeight: 600,
       }}
     >
@@ -62,19 +63,21 @@ const NoTypesSelectedMessage = () => (
   </Stack>
 );
 
-export const SelectScope = () => {
-  const [inferenceConfig, setInferenceConfig] = useLocalStorage(
-    "automaticInference",
-    { createAs: "draft", enabled: false, rules: [] },
-  );
-
-  const entityTypes = useEntityTypes();
-
+export const SelectScope = ({
+  inferenceConfig,
+  setInferenceConfig,
+}: {
+  inferenceConfig: LocalStorage["automaticInferenceConfig"];
+  setInferenceConfig: (
+    config: LocalStorage["automaticInferenceConfig"],
+  ) => void;
+}) => {
   const { rules } = inferenceConfig;
 
   const anyTypesSelected = rules.length > 0;
 
   const [showTable, setShowTable] = useState(anyTypesSelected);
+  const [showAddType, setShowAddType] = useState(!anyTypesSelected);
 
   const allDomainsUsed = rules.flatMap(
     ({ restrictToDomains }) => restrictToDomains || [],
@@ -118,6 +121,20 @@ export const SelectScope = () => {
           borderStyle: "solid",
           borderWidth: 1,
           ...borderColors,
+          th: {
+            background: "#F2F5FA",
+          },
+          "th, td": {
+            px: 1.5,
+            py: 1,
+            borderStyle: "solid",
+            borderWidth: 1,
+            borderRadius: 1,
+            ...borderColors,
+            "&:first-child": {
+              width: 180,
+            },
+          },
         }}
       >
         <TableHead>
@@ -125,8 +142,8 @@ export const SelectScope = () => {
             <TableCell>
               <Typography
                 sx={{
-                  color: ({ palette }) => palette.gray[50],
-                  fontSize: 12,
+                  color: ({ palette }) => palette.gray[90],
+                  fontSize: 13,
                   fontWeight: 600,
                 }}
               >
@@ -136,37 +153,40 @@ export const SelectScope = () => {
             <TableCell>
               <Typography
                 sx={{
-                  color: ({ palette }) => palette.gray[50],
-                  fontSize: 12,
+                  color: ({ palette }) => palette.gray[90],
+                  fontSize: 13,
                   fontWeight: 600,
                 }}
               >
-                Create as
+                Look for this type on...
               </Typography>
             </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {rules.map(({ entityTypeId, restrictToDomains }) => {
-            const entityType = entityTypes.find(
-              (type) => type.schema.$id === entityTypeId,
-            );
-
-            if (!entityType) {
-              throw new Error("Could not find entity type in options");
-            }
-
+          {[
+            ...rules,
+            ...(showAddType
+              ? [{ entityTypeId: null, restrictToDomains: [] }]
+              : []),
+          ].map(({ entityTypeId, restrictToDomains }) => {
             return (
-              <TableRow key={entityTypeId}>
+              <TableRow key={entityTypeId ?? "new-type"}>
                 <TableCell>
-                  <Typography
-                    sx={{
-                      fontSize: 14,
-                      fontWeight: 500,
-                    }}
-                  >
-                    {entityType.schema.title}
-                  </Typography>
+                  <EntityTypeSelector
+                    multiple={false}
+                    setTargetEntityTypeIds={(newTargetIds) =>
+                      setInferenceConfig({
+                        ...inferenceConfig,
+                        rules: rules.map((rule) =>
+                          rule.entityTypeId === entityTypeId
+                            ? { ...rule, entityTypeId: newTargetIds[0] }
+                            : rule,
+                        ),
+                      })
+                    }
+                    targetEntityTypeIds={entityTypeId ? [entityTypeId] : []}
+                  />
                 </TableCell>
                 <TableCell>
                   <SelectDomains
@@ -175,7 +195,9 @@ export const SelectScope = () => {
                     setSelectedDomains={(domains) =>
                       setInferenceConfig({
                         ...inferenceConfig,
-                        rules: [{ entityTypeId, restrictToDomains: domains }],
+                        rules: entityTypeId
+                          ? [{ entityTypeId, restrictToDomains: domains }]
+                          : rules,
                       })
                     }
                   />
@@ -188,7 +210,7 @@ export const SelectScope = () => {
           <TableRow>
             <TableCell colSpan={2}>
               <AddTypeButton
-                onClick={() => setShowTable(true)}
+                onClick={() => setShowAddType(true)}
                 label="ADD ANOTHER"
               />
             </TableCell>

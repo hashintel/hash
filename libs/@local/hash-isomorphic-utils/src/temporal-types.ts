@@ -1,9 +1,9 @@
 import { VersionedUrl } from "@blockprotocol/graph";
 import { Subtype } from "@local/advanced-types/subtype";
-import { Entity } from "@local/hash-graph-client";
 import {
   AccountId,
   BaseUrl,
+  Entity,
   EntityPropertyValue,
   OwnedById,
 } from "@local/hash-subgraph";
@@ -24,6 +24,7 @@ export type InferEntitiesUserArgumentKey =
 export type InferEntitiesUserArguments = Subtype<
   Record<InferEntitiesUserArgumentKey, unknown>,
   {
+    createAs: "draft" | "live";
     entityTypeIds: VersionedUrl[];
     maxTokens: number | null;
     model: string;

@@ -65,6 +65,7 @@ const log = (message: string) => {
 
 const requestEntityInference = async (params: {
   authentication: { actorId: AccountId };
+  createAs: "draft" | "live";
   completionPayload: Omit<
     OpenAI.ChatCompletionCreateParams,
     "stream" | "tools"
@@ -78,6 +79,7 @@ const requestEntityInference = async (params: {
   const {
     authentication,
     completionPayload,
+    createAs,
     entityTypes,
     iterationCount,
     graphApiClient,
@@ -317,6 +319,7 @@ const requestEntityInference = async (params: {
             const { creationSuccesses, creationFailures, updateCandidates } =
               await createEntities({
                 actorId: authentication.actorId,
+                createAsDraft: createAs === "draft",
                 graphApiClient,
                 log,
                 ownedById,
@@ -594,8 +597,15 @@ export const inferEntities = async ({
 }: InferEntitiesCallerParams & {
   graphApiClient: GraphApi;
 }): Promise<InferEntitiesReturn> => {
-  const { entityTypeIds, maxTokens, model, ownedById, temperature, textInput } =
-    userArguments;
+  const {
+    createAs,
+    entityTypeIds,
+    maxTokens,
+    model,
+    ownedById,
+    temperature,
+    textInput,
+  } = userArguments;
 
   const entityTypes: Record<
     VersionedUrl,
@@ -650,6 +660,7 @@ export const inferEntities = async ({
       response_format: { type: "json_object" },
       temperature,
     },
+    createAs,
     entityTypes,
     graphApiClient,
     iterationCount: 1,

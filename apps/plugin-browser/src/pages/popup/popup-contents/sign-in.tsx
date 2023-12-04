@@ -10,7 +10,7 @@ export const SignIn = () => {
         background: ({ palette }) => palette.gray[10],
         px: 6,
         py: 5.5,
-        width: 470,
+        width: 485,
       }}
     >
       <Box mb={2}>

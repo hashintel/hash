@@ -36,11 +36,17 @@ export const SelectDomains = ({
         },
         popper: { placement: "top" },
       }}
+      freeSolo
       inputProps={{
         endAdornment: <div />,
         placeholder: "Search for types...",
         sx: () => ({
           height: "auto",
+          [`&.${outlinedInputClasses.root}`]: {
+            py: 0.3,
+            px: 1,
+          },
+
           "@media (prefers-color-scheme: dark)": {
             background: darkModeInputBackgroundColor,
 
@@ -71,7 +77,9 @@ export const SelectDomains = ({
       ]}
       multiple
       onChange={(_event, value) => {
-        setSelectedDomains(value);
+        setSelectedDomains(
+          Array.isArray(value) ? value : [...(selectedDomains ?? []), value],
+        );
       }}
       options={options}
       renderOption={(props, domain) => (

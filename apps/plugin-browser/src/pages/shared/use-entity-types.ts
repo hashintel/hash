@@ -1,5 +1,5 @@
 import { EntityTypeRootType, Subgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/subgraph/roots";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useEffect } from "react";
 
 import {
@@ -8,7 +8,7 @@ import {
 } from "../../graphql/api-types.gen";
 import { getEntityTypesQuery } from "../../graphql/queries/entity-type.queries";
 import { queryGraphQlApi } from "../../shared/query-graphql-api";
-import { useLocalStorage } from "./use-storage-sync";
+import { useLocalStorage } from "./use-local-storage";
 
 const getEntityTypes = () => {
   return queryGraphQlApi<GetEntityTypesQuery, GetEntityTypesQueryVariables>(

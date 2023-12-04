@@ -8,6 +8,7 @@ import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
 } from "../../../../../shared/style-values";
+import { useEntityTypes } from "../../../../../shared/use-entity-types";
 import { InferredEntity } from "./inference-request/inferred-entity";
 
 export const InferenceRequest = ({
@@ -16,10 +17,15 @@ export const InferenceRequest = ({
   request: PageEntityInference;
 }) => {
   const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
+  const allEntityTypes = useEntityTypes();
 
-  const { entityTypes, status } = request;
+  const { entityTypeIds, status } = request;
 
   const inferredEntitiesByType = useMemo(() => {
+    const entityTypes = allEntityTypes.filter((type) =>
+      entityTypeIds.some((typeId) => typeId === type.schema.$id),
+    );
+
     return entityTypes.reduce(
       (acc, type) => {
         acc[type.schema.$id] =
@@ -32,7 +38,7 @@ export const InferenceRequest = ({
       },
       {} as Record<string, InferEntitiesReturn["contents"]>,
     );
-  }, [entityTypes, request, status]);
+  }, [allEntityTypes, entityTypeIds, request, status]);
 
   if (status === "pending" || status === "not-started") {
     return (
@@ -59,13 +65,13 @@ export const InferenceRequest = ({
     <Box>
       {Object.entries(inferredEntitiesByType).map(
         ([typeId, entityStatuses]) => {
-          const entityType = request.entityTypes.find(
+          const entityType = allEntityTypes.find(
             (type) => type.schema.$id === typeId,
           );
 
           if (!entityType) {
             throw new Error(
-              `Entity type with id ${typeId} somehow not in status entity types`,
+              `Entity type with id ${typeId} somehow not in all entity types`,
             );
           }
 
@@ -120,7 +126,7 @@ export const InferenceRequest = ({
                       request.status === "complete" ? request.data.contents : []
                     }
                     entityType={entityType}
-                    entityTypes={entityTypes}
+                    entityTypes={allEntityTypes}
                     expanded={expanded}
                     key={locallyUniqueId}
                     indexInType={index}

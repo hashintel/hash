@@ -2,33 +2,32 @@ import {
   Box,
   FormControlLabel,
   FormGroup,
-  Radio,
-  RadioGroup,
   Switch,
-  SxProps,
-  Theme,
   Typography,
 } from "@mui/material";
 
-import { useLocalStorage } from "../../../shared/use-storage-sync";
+import { LocalStorage } from "../../../../shared/storage";
+import { useLocalStorage } from "../../../shared/use-local-storage";
 import { SelectScope } from "./automated/select-scope";
 import { Section } from "./shared/section";
+import { SelectWebTarget } from "./shared/select-web-target";
 
-const createRadioItemSx = (active: boolean): SxProps<Theme> => ({
-  color: ({ palette }) => (active ? palette.gray[90] : palette.gray[80]),
-  m: 0,
-  "&:not(:last-child)": {
-    mb: 1.5,
-  },
-});
-
-export const Automated = () => {
+export const Automated = ({
+  user,
+}: {
+  user: NonNullable<LocalStorage["user"]>;
+}) => {
   const [inferenceConfig, setInferenceConfig] = useLocalStorage(
-    "automaticInference",
-    { createAs: "draft", enabled: false, rules: [] },
+    "automaticInferenceConfig",
+    {
+      createAs: "draft",
+      enabled: false,
+      ownedById: user.webOwnedById,
+      rules: [],
+    },
   );
 
-  const { createAs, enabled, rules } = inferenceConfig;
+  const { createAs, enabled, ownedById } = inferenceConfig;
 
   return (
     <>
@@ -71,36 +70,32 @@ export const Automated = () => {
         description="Auto-inference only looks for types you specify on sites you allow"
         headerText="Limit scope"
       >
-        <SelectScope />
+        <SelectScope
+          inferenceConfig={inferenceConfig}
+          setInferenceConfig={setInferenceConfig}
+        />
       </Section>
       <Section
         description="Decide what happens when new entities and properties are identified"
         headerText="Entity processing"
       >
-        <RadioGroup
-          aria-labelledby="demo-radio-buttons-group-label"
-          name="radio-buttons-group"
-          onChange={(event) =>
+        <SelectWebTarget
+          createAs={createAs}
+          setCreateAs={(newCreateAs) =>
             setInferenceConfig({
               ...inferenceConfig,
-              createAs: event.target.value as "draft" | "live",
+              createAs: newCreateAs,
             })
           }
-          value={createAs}
-        >
-          <FormControlLabel
-            value="draft"
-            control={<Radio sx={{ mr: 1 }} />}
-            label="Add them to a review queue"
-            sx={createRadioItemSx(createAs === "draft")}
-          />
-          <FormControlLabel
-            value="live"
-            control={<Radio sx={{ mr: 1 }} />}
-            label="Create them automatically in"
-            sx={createRadioItemSx(createAs === "live")}
-          />
-        </RadioGroup>
+          ownedById={ownedById}
+          setOwnedById={(newOwnedById) =>
+            setInferenceConfig({
+              ...inferenceConfig,
+              ownedById: newOwnedById,
+            })
+          }
+          user={user}
+        />
       </Section>
     </>
   );

@@ -1,8 +1,12 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
+import {
+  Image,
+  Organization,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
-import { EntityTypeWithMetadata } from "@local/hash-subgraph";
+import { EntityTypeWithMetadata, OwnedById } from "@local/hash-subgraph";
 import browser from "webextension-polyfill";
 
 type InferenceErrorStatus = {
@@ -24,11 +28,21 @@ export type InferenceStatus =
 
 export type PageEntityInference = InferenceStatus & {
   createdAt: string;
-  entityTypes: EntityTypeWithMetadata[];
+  entityTypeIds: VersionedUrl[];
   localRequestUuid: string;
+  ownedById: OwnedById;
   sourceTitle: string;
   sourceUrl: string;
   trigger: "passive" | "user";
+};
+
+type UserAndLinkedData = Simplified<User> & {
+  avatar?: Image;
+  orgs: (Simplified<Organization> & {
+    avatar?: Image;
+    webOwnedById: OwnedById;
+  })[];
+  webOwnedById: OwnedById;
 };
 
 /**
@@ -36,19 +50,24 @@ export type PageEntityInference = InferenceStatus & {
  * Cleared if the extension is loaded with no user present.
  */
 export type LocalStorage = {
-  automaticInference: {
+  automaticInferenceConfig: {
     createAs: "draft" | "live";
     enabled: boolean;
+    ownedById: OwnedById;
     rules: {
       restrictToDomains: string[] | null;
       entityTypeId: VersionedUrl;
     }[];
   };
+  manualInferenceConfig: {
+    createAs: "draft" | "live";
+    ownedById: OwnedById;
+    targetEntityTypeIds: VersionedUrl[];
+  };
   draftQuickNote: string;
   entityTypes: EntityTypeWithMetadata[];
   inferenceRequests: PageEntityInference[];
-  oneOffTargetEntityTypes: EntityTypeWithMetadata[];
-  user: Simplified<User> | null;
+  user: UserAndLinkedData | null;
 };
 
 export const getFromLocalStorage = async <Key extends keyof LocalStorage>(

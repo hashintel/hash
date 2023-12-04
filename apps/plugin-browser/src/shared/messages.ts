@@ -1,7 +1,10 @@
-import { EntityTypeWithMetadata } from "@local/hash-subgraph";
+import { VersionedUrl } from "@blockprotocol/graph";
+import { OwnedById } from "@local/hash-subgraph";
 
 export type InferEntitiesRequest = {
-  entityTypes: EntityTypeWithMetadata[];
+  createAs: "draft" | "live";
+  entityTypeIds: VersionedUrl[];
+  ownedById: OwnedById;
   sourceTitle: string;
   sourceUrl: string;
   type: "infer-entities";

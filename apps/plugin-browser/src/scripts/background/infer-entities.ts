@@ -19,15 +19,18 @@ import {
 } from "../../shared/storage";
 
 const inferEntitiesApiCall = async ({
+  createAs,
   entityTypeIds,
   ownedById,
   textInput,
 }: {
+  createAs: "draft" | "live";
   textInput: string;
   entityTypeIds: VersionedUrl[];
   ownedById: OwnedById;
 }) => {
   const requestBody: InferEntitiesUserArguments = {
+    createAs,
     entityTypeIds,
     maxTokens: null,
     model: "gpt-4-1106-preview",
@@ -55,7 +58,14 @@ export const inferEntities = async (
     throw new Error("Cannot infer entities without a logged-in user.");
   }
 
-  const { entityTypes, sourceUrl, sourceTitle, textInput } = message;
+  const {
+    createAs,
+    entityTypeIds,
+    ownedById,
+    sourceUrl,
+    sourceTitle,
+    textInput,
+  } = message;
 
   const localRequestId = uuid();
 
@@ -65,8 +75,9 @@ export const inferEntities = async (
   await setInferenceRequestValue((currentValue) => [
     {
       createdAt: new Date().toISOString(),
-      entityTypes,
+      entityTypeIds,
       localRequestUuid: localRequestId,
+      ownedById,
       status: "pending",
       sourceTitle,
       sourceUrl,
@@ -79,17 +90,9 @@ export const inferEntities = async (
 
   try {
     const inferredEntitiesReturn = await inferEntitiesApiCall({
-      entityTypeIds: entityTypes.map((entityType) => entityType.schema.$id),
-      /**
-       * Ideally we would use {@link extractOwnedByIdFromEntityId} from @local/hash-subgraph here,
-       * but importing it causes WASM-related functions to end up in the bundle,
-       * even when imports in that package only come from `@blockprotocol/type-system/slim`,
-       * which isn't supposed to have WASM.
-       *
-       * @todo figure out why that is and fix it, possibly in the @blockprotocol/type-system package
-       *    or in the plugin-browser webpack config.
-       */
-      ownedById: user.metadata.recordId.entityId.split("~")[1] as OwnedById,
+      createAs,
+      entityTypeIds,
+      ownedById,
       textInput,
     });
 

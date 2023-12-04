@@ -1,6 +1,5 @@
 import { PlusIcon } from "@hashintel/design-system";
 import { type Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Box,
   Stack,
@@ -13,11 +12,11 @@ import {
 import { FunctionComponent, useState } from "react";
 import type { Tabs } from "webextension-polyfill";
 
+import { LocalStorage } from "../../../shared/storage";
 import { Automated } from "./action-center/automated";
 import { OneOff } from "./action-center/one-off";
-import { InferEntitiesAction } from "./action-center/one-off/infer-entities-action";
-import { QuickNoteAction } from "./action-center/one-off/quick-note-action";
 import { WandMagicSparklesIcon } from "./action-center/wand-magic-sparkles-icon";
+import { Avatar } from "./shared/avatar";
 
 const generateCommonTabProps = (
   active: boolean,
@@ -54,12 +53,12 @@ export const ActionCenter = ({
   user,
 }: {
   activeTab?: Tabs.Tab | null;
-  user: Simplified<User>;
+  user: NonNullable<LocalStorage["user"]>;
 }) => {
   const [popupTab, setPopupTab] = useState<"one-off" | "automated">("one-off");
 
   return (
-    <Box sx={{ maxWidth: "100%", width: 560 }}>
+    <Box sx={{ maxWidth: "100%", width: 575 }}>
       <Stack
         component="header"
         direction="row"
@@ -100,37 +99,24 @@ export const ActionCenter = ({
             />
           </MuiTabs>
         </Box>
-        <Box
-          component="a"
-          // @todo handle users who haven't completed signup
-          href={`${FRONTEND_ORIGIN}/@${user.properties.shortname!}`}
-          sx={({ palette }) => ({
-            background: palette.blue[70],
-            borderRadius: "50%",
-            color: palette.common.white,
-            height: 32,
-            width: 32,
-            fontSize: 18,
-            fontWeight: 500,
-            lineHeight: "32px",
-            textAlign: "center",
-            textDecoration: "none",
-            transition: ({ transitions }) => transitions.create("opacity"),
-            "&:hover": {
-              opacity: 0.9,
-            },
-          })}
-          target="_blank"
-        >
-          {user.properties.preferredName?.[0] ?? "?"}
-        </Box>
+        <Avatar
+          avatar={user.avatar}
+          href={
+            user.properties.shortname
+              ? `${FRONTEND_ORIGIN}/@${user.properties.shortname}`
+              : undefined
+          }
+          // @todo handle users who haven't signed up
+          name={user.properties.preferredName ?? "?"}
+        />
       </Stack>
-
-      {popupTab === "one-off" ? (
-        <OneOff activeTab={activeTab} />
-      ) : (
-        <Automated />
-      )}
+      <Box sx={{ overflowY: "scroll" }}>
+        {popupTab === "one-off" ? (
+          <OneOff activeTab={activeTab} user={user} />
+        ) : (
+          <Automated user={user} />
+        )}
+      </Box>
     </Box>
   );
 };

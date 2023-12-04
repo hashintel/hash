@@ -221,12 +221,7 @@ export const InferredEntity = ({
               generateEntityLabel(
                 {
                   properties: {
-                    /**
-                     * This cast is necessary because the hash-graph-client return Entity type has 'object' as its properties,
-                     * @todo fix OpenAPI generator to avoid these inconsistencies
-                     */
-                    ...(persistedEntity?.properties as Entity | undefined)
-                      ?.properties,
+                    ...(persistedEntity?.properties ?? {}),
                     /**
                      * We take both the proposed entity's properties and the persisted entity's properties
                      * because the model does not reliably return all the entity's properties when suggesting an update,
