@@ -17,6 +17,12 @@ We're still working on support for simulations in HASH. The docs in this section
 
 You can use HASH's simulation tools to build rich, detailed, agent-based simulations of [factory floors](/@hash/warehouse-conveyor1), [business processes](/@hash/interconnected-call-center), [public policy decisions](/@b/sir-infection-network-w-rapid-tests), or any other type of complex system you can imagine.
 
+Our simulation docs are split into:
+
+- Create
+- Discover
+- Run
+
 ## Future Plans
 
 Functionality various 'views' (geospatial/3D, charting/plotting)

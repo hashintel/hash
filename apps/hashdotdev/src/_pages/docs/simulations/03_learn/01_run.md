@@ -1,6 +1,5 @@
 Running Simulations
 
-
 # Overview
 
 There are two ways to run simulations: by initiating a 'single' run, or by initiating an 'experiment' run.

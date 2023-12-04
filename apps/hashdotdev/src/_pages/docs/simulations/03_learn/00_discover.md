@@ -1,3 +1,5 @@
-# Running a simulation
+Discover Simulations
+
+# Find existing models
 
 You can browse simulations on the HASH website at https://hash.ai/simulation
