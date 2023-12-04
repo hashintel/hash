@@ -4726,12 +4726,12 @@
     tiny-glob "^0.2.9"
     tslib "^2.4.0"
 
-"@playwright/test@1.40.0":
-  version "1.40.0"
-  resolved "https://registry.yarnpkg.com/@playwright/test/-/test-1.40.0.tgz#d06c506977dd7863aa16e07f2136351ecc1be6ed"
-  integrity sha512-PdW+kn4eV99iP5gxWNSDQCbhMaDVej+RXL5xr6t04nbKLCBwYtA046t7ofoczHOm8u6c+45hpDKQVZqtqwkeQg==
+"@playwright/test@1.40.1":
+  version "1.40.1"
+  resolved "https://registry.yarnpkg.com/@playwright/test/-/test-1.40.1.tgz#9e66322d97b1d74b9f8718bacab15080f24cde65"
+  integrity sha512-EaaawMTOeEItCRvfmkI9v6rBkF1svM8wjl/YPRrg2N2Wmp+4qJYkWtJsbew1szfKKDm6fPLy4YAanBhIlf9dWw==
   dependencies:
-    playwright "1.40.0"
+    playwright "1.40.1"
 
 "@pmmmwh/react-refresh-webpack-plugin@0.5.10", "@pmmmwh/react-refresh-webpack-plugin@^0.5.5":
   version "0.5.10"
@@ -5219,12 +5219,12 @@
     require-from-string "^2.0.2"
     uri-js "^4.2.2"
 
-"@redocly/cli@1.4.1":
-  version "1.4.1"
-  resolved "https://registry.yarnpkg.com/@redocly/cli/-/cli-1.4.1.tgz#6ca3a02a272d0fa33b687ec0a964bca5d4c4c3c7"
-  integrity sha512-c0v8SYyqC1QvImJrGhw6+wIPXn10Zhp1sUGmvXIIXZQzS7fL15+qBH4f19nh3ChpSdO4x0EdBFvvTovrupV4sQ==
+"@redocly/cli@1.5.0":
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/@redocly/cli/-/cli-1.5.0.tgz#60a13abe62303eb0e52980069643f1c2d661698b"
+  integrity sha512-2E6yhYIs/dj6pFM9ahzuyI4AzFOjmOK1dkwYCtTWT1w5kROlW4HVVgHrxnOIUupRDTD5TdScWSH28n2U1VivWQ==
   dependencies:
-    "@redocly/openapi-core" "1.4.1"
+    "@redocly/openapi-core" "1.5.0"
     chokidar "^3.5.1"
     colorette "^1.2.0"
     core-js "^3.32.1"
@@ -5235,16 +5235,16 @@
     node-fetch "^2.6.1"
     react "^17.0.0 || ^18.2.0"
     react-dom "^17.0.0 || ^18.2.0"
-    redoc "~2.1.2"
+    redoc "~2.1.3"
     semver "^7.5.2"
     simple-websocket "^9.0.0"
     styled-components "^6.0.7"
     yargs "17.0.1"
 
-"@redocly/openapi-core@1.4.1", "@redocly/openapi-core@^1.0.0-rc.2":
-  version "1.4.1"
-  resolved "https://registry.yarnpkg.com/@redocly/openapi-core/-/openapi-core-1.4.1.tgz#0620a5e204159626a1d99b88f758e23ef0cb5740"
-  integrity sha512-oAhnG8MKocM9LuP++NGFxdniNKWSLA7hzHPQoOK92LIP/DdvXx8pEeZ68UTNxIXhKonoUcO6s86I3L0zj143zg==
+"@redocly/openapi-core@1.5.0", "@redocly/openapi-core@^1.0.0-rc.2":
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/@redocly/openapi-core/-/openapi-core-1.5.0.tgz#aacdb9030a041a53e38c9b5c51b1caa25ab7957b"
+  integrity sha512-AnDLoDl1+a7mZO4+lx0KG8zH04BQx4ez6yh403PuNl9/0ygbicPPc9QG/y0/0OImChOA+knKLpJazNFjzhOAeg==
   dependencies:
     "@redocly/ajv" "^8.11.0"
     "@types/node" "^14.11.8"
@@ -12655,10 +12655,10 @@ eslint-config-airbnb@19.0.4:
     object.assign "^4.1.2"
     object.entries "^1.1.5"
 
-eslint-config-prettier@9.0.0:
-  version "9.0.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-prettier/-/eslint-config-prettier-9.0.0.tgz#eb25485946dd0c66cd216a46232dc05451518d1f"
-  integrity sha512-IcJsTkJae2S35pRsRAwoCE+925rJJStOdkKnLVgtE+tEpqU0EVVM7OqrwxqgptKdX29NUwC82I5pXsGFIgSevw==
+eslint-config-prettier@9.1.0:
+  version "9.1.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-prettier/-/eslint-config-prettier-9.1.0.tgz#31af3d94578645966c082fcb71a5846d3c94867f"
+  integrity sha512-NSWl5BFQWEPi1j4TjVNItzYV7dZXZ+wP6I6ZhrBGpChQhZRUaElihE9uRRkcbRnNb76UMKDF3r+WTmNcGPKsqw==
 
 eslint-import-resolver-node@^0.3.7:
   version "0.3.7"
@@ -19497,17 +19497,17 @@ plaiceholder@2.5.0:
     node-cache "5.1.2"
     node-fetch "2.6.7"
 
-playwright-core@1.40.0:
-  version "1.40.0"
-  resolved "https://registry.yarnpkg.com/playwright-core/-/playwright-core-1.40.0.tgz#82f61e5504cb3097803b6f8bbd98190dd34bdf14"
-  integrity sha512-fvKewVJpGeca8t0ipM56jkVSU6Eo0RmFvQ/MaCQNDYm+sdvKkMBBWTE1FdeMqIdumRaXXjZChWHvIzCGM/tA/Q==
+playwright-core@1.40.1:
+  version "1.40.1"
+  resolved "https://registry.yarnpkg.com/playwright-core/-/playwright-core-1.40.1.tgz#442d15e86866a87d90d07af528e0afabe4c75c05"
+  integrity sha512-+hkOycxPiV534c4HhpfX6yrlawqVUzITRKwHAmYfmsVreltEl6fAZJ3DPfLMOODw0H3s1Itd6MDCWmP1fl/QvQ==
 
-playwright@1.40.0:
-  version "1.40.0"
-  resolved "https://registry.yarnpkg.com/playwright/-/playwright-1.40.0.tgz#2a1824b9fe5c4fe52ed53db9ea68003543a99df0"
-  integrity sha512-gyHAgQjiDf1m34Xpwzaqb76KgfzYrhK7iih+2IzcOCoZWr/8ZqmdBw+t0RU85ZmfJMgtgAiNtBQ/KS2325INXw==
+playwright@1.40.1:
+  version "1.40.1"
+  resolved "https://registry.yarnpkg.com/playwright/-/playwright-1.40.1.tgz#a11bf8dca15be5a194851dbbf3df235b9f53d7ae"
+  integrity sha512-2eHI7IioIpQ0bS1Ovg/HszsN/XKNwEG1kbzSDDmADpclKc7CyqkHw7Mg2JCz/bbCxg25QUPcjksoMW7JcIFQmw==
   dependencies:
-    playwright-core "1.40.0"
+    playwright-core "1.40.1"
   optionalDependencies:
     fsevents "2.3.2"
 
@@ -20737,10 +20737,10 @@ redis@3.1.2:
     redis-errors "^1.2.0"
     redis-parser "^3.0.0"
 
-redoc@~2.1.2:
-  version "2.1.2"
-  resolved "https://registry.yarnpkg.com/redoc/-/redoc-2.1.2.tgz#d7d270caa3726d0e3e84365f7aa457c11fd81984"
-  integrity sha512-pTu+aTdyJAMPVnOBYMesEjvRnh51BKE7bFLDIM6DiUSigli+3LfandSEp2FaaGnoqyvvC9axg/dvKQP16s02ww==
+redoc@~2.1.3:
+  version "2.1.3"
+  resolved "https://registry.yarnpkg.com/redoc/-/redoc-2.1.3.tgz#612c9fed744993d5fc99cbf39fe9056bd1034fa5"
+  integrity sha512-d7F9qLLxaiFW4GC03VkwlX9wuRIpx9aiIIf3o6mzMnqPfhxrn2IRKGndrkJeVdItgCfmg9jXZiFEowm60f1meQ==
   dependencies:
     "@redocly/openapi-core" "^1.0.0-rc.2"
     classnames "^2.3.1"

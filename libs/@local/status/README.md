@@ -69,7 +69,7 @@ They can do this by doing the following:
     - Adding a `"codegen"` script in `package.json` which calls the `codegen.ts` utility exposed by this package.
     - The `codegen` script should be called with the two following arguments:
       - `<PATH_TO_TYPE_DEFS>` (should almost always be `./type-defs` unless package structure varies)
-      - `<PATH_TO_GEN_FOLDER>` (e.g. `./lib/graph/src/api/gen`)
+      - `<PATH_TO_GEN_FOLDER>` (e.g. `./libs/graph/src/api/gen`)
 
 #### Warnings
 

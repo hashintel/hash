@@ -45,6 +45,7 @@
     ".env*",
     ".justfile",
     ".yarnrc",
+    "Cargo.toml",
     "package.json"
   ]
 }
