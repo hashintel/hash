@@ -7,13 +7,13 @@ allow = [
     "clippy::missing_docs_in_private_items",
     "clippy::missing_inline_in_public_items",
     "clippy::missing_trait_methods", # Should be enabled per `impl` instead of globally
+    "clippy::mod_module_files", # opposite of `clippy::self_named_module_files`
     "clippy::module_name_repetitions",
     "clippy::pub_use",
     "clippy::pub_with_shorthand", # # opposite of `clippy::pub_without_shorthand`
     "clippy::question_mark_used",
     "clippy::ref_patterns",
     "clippy::redundant_pub_crate", # opposite of `unreachable_pub`
-    "clippy::self_named_module_files", # opposite of `clippy::mod_module_files`
     "clippy::semicolon_outside_block", # opposite of `clippy::semicolon_inside_block`
     "clippy::separated_literal_suffix", # opposite of `clippy::unseparated_literal_suffix`
     "clippy::shadow_reuse",

@@ -5,14 +5,14 @@ edition = "2021"
 publish = false
 
 [dev-dependencies]
-graph = { path = "../../apps/hash-graph/lib/graph" }
-graph-test-data = { path = "../hash-graph-test-data/rust" }
-graph-types = { path = "../../libs/@local/hash-graph-types/rust" }
-temporal-versioning = { path = "../../libs/@local/temporal-versioning" }
-authorization = { path = "../../libs/@local/hash-authorization" }
+graph = { workspace = true }
+graph-test-data = { workspace = true }
+graph-types = { workspace = true }
+temporal-versioning = { workspace = true }
+authorization = { workspace = true }
 
-error-stack = { version = "0.4.1", features = ["spantrace"] }
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "b87db85" }
+error-stack = { workspace = true, features = ["spantrace"] }
+type-system = { workspace = true }
 
 futures = { version = "0.3.29", default-features = false }
 rand = "0.8.5"
