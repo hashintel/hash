@@ -6,18 +6,28 @@ import {
   VersionedUrl,
 } from "@blockprotocol/graph";
 import { getEntityTypeById } from "@blockprotocol/graph/stdlib";
-import { FormControl, InputLabel, MenuItem, Select } from "@mui/material";
+import {
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+} from "@mui/material";
 import { FunctionComponent, useMemo } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 
 import { ChartDefinition } from "../../types/chart-definition";
 import { getEntityTypePropertyTypes } from "../util";
 
+const generateYAxisLabel = (params: { linkEntityType: EntityType }) =>
+  `Number of ${params.linkEntityType.title.toLowerCase()} links`;
+
 export const CountLinksForm: FunctionComponent<{
   queryResult: Subgraph<EntityRootType>;
   entityTypes: EntityType[];
 }> = ({ entityTypes, queryResult }) => {
-  const { control, watch } = useFormContext<ChartDefinition<"bar-chart">>();
+  const { control, watch, register, setValue } =
+    useFormContext<ChartDefinition<"bar-chart">>();
 
   const entityTypeId = watch("entityTypeId");
 
@@ -122,16 +132,16 @@ export const CountLinksForm: FunctionComponent<{
               // prevent MUI from logging a warning
               value={linkEntityTypes ? field.value : ""}
               onChange={(event) => {
-                // const linkedEntityType = linkedEntityTypes?.find(
-                //   ({ $id }) => $id === event.target.value,
-                // );
+                const linkEntityType = linkEntityTypes?.find(
+                  ({ $id }) => $id === event.target.value,
+                );
 
-                // if (entityType && groupByPropertyType) {
-                //   setValue(
-                //     "xAxisLabel",
-                //     generateXAxisLabel({ entityType, groupByPropertyType }),
-                //   );
-                // }
+                if (linkEntityType) {
+                  setValue(
+                    "yAxisLabel",
+                    generateYAxisLabel({ linkEntityType }),
+                  );
+                }
 
                 field.onChange(event);
               }}
@@ -147,6 +157,22 @@ export const CountLinksForm: FunctionComponent<{
             </Select>
           </FormControl>
         )}
+      />
+      <TextField
+        id="x-axis-label"
+        fullWidth
+        label="X Axis Label"
+        /** @todo: figure out why the label isn't shrinking when the value is updated programmatically */
+        InputLabelProps={{ shrink: true }}
+        {...register("xAxisLabel")}
+      />
+      <TextField
+        id="y-axis-label"
+        fullWidth
+        label="Y Axis Label"
+        /** @todo: figure out why the label isn't shrinking when the value is updated programmatically */
+        InputLabelProps={{ shrink: true }}
+        {...register("yAxisLabel")}
       />
     </>
   );
