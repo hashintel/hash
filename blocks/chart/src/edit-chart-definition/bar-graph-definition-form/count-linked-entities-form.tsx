@@ -5,7 +5,8 @@ import {
   Subgraph,
   VersionedUrl,
 } from "@blockprotocol/graph";
-import { getEntityTypeById } from "@blockprotocol/graph/stdlib";
+import { getEntityTypeById, getRoots } from "@blockprotocol/graph/stdlib";
+import { getIncomingLinksForEntity } from "@blockprotocol/graph/temporal/stdlib";
 import {
   FormControl,
   InputLabel,
@@ -14,7 +15,7 @@ import {
   TextField,
 } from "@mui/material";
 import pluralize from "pluralize";
-import { FunctionComponent, useMemo } from "react";
+import { FunctionComponent, useCallback, useMemo } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 
 import { ChartDefinition } from "../../types/chart-definition";
@@ -23,8 +24,13 @@ import { getEntityTypePropertyTypes } from "../util";
 export const generateXAxisLabel = (params: { entityType: EntityType }) =>
   `${pluralize(params.entityType.title)}`;
 
-export const generateYAxisLabel = (params: { linkEntityType: EntityType }) =>
-  `Number of ${params.linkEntityType.title.toLowerCase()} links`;
+export const generateYAxisLabel = (params: {
+  linkEntityType: EntityType;
+  direction: "incoming" | "outgoing";
+}) =>
+  `Number of ${
+    params.direction
+  } ${params.linkEntityType.title.toLowerCase()} links`;
 
 export const CountLinksForm: FunctionComponent<{
   queryResult: Subgraph<EntityRootType>;
@@ -70,10 +76,61 @@ export const CountLinksForm: FunctionComponent<{
     }
   }, [entityType, queryResult]);
 
+  const incomingLinkEntityTypes = useMemo(() => {
+    if (entityType) {
+      const entities = getRoots(queryResult);
+
+      return entities
+        .map(({ metadata }) =>
+          getIncomingLinksForEntity(queryResult, metadata.recordId.entityId),
+        )
+        .flat()
+        .map((linkEntity) => linkEntity.metadata.entityTypeId)
+        .filter(
+          (linkEntityTypeId, i, all) => all.indexOf(linkEntityTypeId) === i,
+        )
+        .map((linkEntityTypeId) => {
+          const linkEntityType = getEntityTypeById(
+            queryResult,
+            linkEntityTypeId,
+          );
+
+          return linkEntityType?.schema ?? [];
+        })
+        .flat();
+    }
+  }, [entityType, queryResult]);
+
   const direction = watch("direction");
 
   const linkEntityTypes =
-    direction === "incoming" ? [] : outgoingLinkEntityTypes;
+    direction === "incoming"
+      ? incomingLinkEntityTypes
+      : outgoingLinkEntityTypes;
+
+  const linkEntityTypeId = watch("linkEntityTypeId");
+
+  const regenerateYAxisLabel = useCallback(
+    (params: {
+      linkEntityTypeId?: VersionedUrl;
+      direction?: "incoming" | "outgoing";
+    }) => {
+      const linkEntityType = linkEntityTypes?.find(
+        ({ $id }) => $id === (params.linkEntityTypeId ?? linkEntityTypeId),
+      );
+
+      if (linkEntityType) {
+        setValue(
+          "yAxisLabel",
+          generateYAxisLabel({
+            linkEntityType,
+            direction: params.direction ?? direction,
+          }),
+        );
+      }
+    },
+    [linkEntityTypes, linkEntityTypeId, direction, setValue],
+  );
 
   return (
     <>
@@ -111,6 +168,12 @@ export const CountLinksForm: FunctionComponent<{
             <InputLabel id="link-direction">Link Direction</InputLabel>
             <Select
               {...field}
+              onChange={(event) => {
+                regenerateYAxisLabel({
+                  direction: event.target.value as "incoming" | "outgoing",
+                });
+                field.onChange(event);
+              }}
               labelId="label-property-type"
               label="Label Property Type"
               required
@@ -136,16 +199,9 @@ export const CountLinksForm: FunctionComponent<{
               // prevent MUI from logging a warning
               value={linkEntityTypes ? field.value : ""}
               onChange={(event) => {
-                const linkEntityType = linkEntityTypes?.find(
-                  ({ $id }) => $id === event.target.value,
-                );
-
-                if (linkEntityType) {
-                  setValue(
-                    "yAxisLabel",
-                    generateYAxisLabel({ linkEntityType }),
-                  );
-                }
+                regenerateYAxisLabel({
+                  linkEntityTypeId: event.target.value as VersionedUrl,
+                });
 
                 field.onChange(event);
               }}

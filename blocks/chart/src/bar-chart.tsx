@@ -5,11 +5,11 @@ import {
   Subgraph,
   VersionedUrl,
 } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
   getIncomingLinksForEntity,
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
+  getOutgoingLinksForEntity,
+} from "@blockprotocol/graph/temporal/stdlib";
 import { EChart, ECOption } from "@hashintel/design-system";
 import { FunctionComponent, useMemo } from "react";
 
@@ -88,9 +88,7 @@ export const BarChart: FunctionComponent<{
         const links =
           direction === "outgoing"
             ? /** @todo: fix `getIncomingLinksForEntity` in the BP temporal package when passing non-temporal subgraphs */
-              getOutgoingLinkAndTargetEntities(queryResult, entityId).map(
-                ({ linkEntity }) => linkEntity,
-              )
+              getOutgoingLinksForEntity(queryResult, entityId)
             : getIncomingLinksForEntity(queryResult, entityId);
 
         const matchingLinks = links.filter(

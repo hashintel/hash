@@ -25,10 +25,7 @@ import { BarChart } from "./bar-chart";
 import { EditChartDefinition } from "./edit-chart-definition";
 import { generateInitialChartDefinition } from "./edit-chart-definition/bar-graph-definition-form/group-by-property-form";
 import { EditableChartTitle } from "./edit-chart-title";
-import {
-  BarChartCountLinkedEntitiesVariant,
-  ChartDefinition,
-} from "./types/chart-definition";
+import { ChartDefinition } from "./types/chart-definition";
 import {
   BlockEntity,
   BlockEntityOutgoingLinkAndTarget,
@@ -131,9 +128,7 @@ export const App: BlockComponent<BlockEntity> = ({
               .incomingLinksDepth
           : chartDefinition?.kind === "bar-chart" &&
               (chartDefinition as ChartDefinition<"bar-chart">).variant ===
-                "count-links" &&
-              (chartDefinition as BarChartCountLinkedEntitiesVariant)
-                .direction === "incoming"
+                "count-links"
             ? 1
             : undefined;
 
@@ -143,9 +138,7 @@ export const App: BlockComponent<BlockEntity> = ({
               .outgoingLinksDepth
           : chartDefinition?.kind === "bar-chart" &&
               (chartDefinition as ChartDefinition<"bar-chart">).variant ===
-                "count-links" &&
-              (chartDefinition as BarChartCountLinkedEntitiesVariant)
-                .direction === "outgoing"
+                "count-links"
             ? 1
             : undefined;
 
