@@ -151,7 +151,16 @@ export const InferredEntity = ({
         direction="row"
         href={
           persistedEntity
-            ? `${FRONTEND_ORIGIN}/@${user?.properties.shortname!}/entities/${
+            ? /**
+               * Ideally we would use {@link extractEntityUuidFromEntityId} from @local/hash-subgraph here,
+               * but importing it causes WASM-related functions to end up in the bundle,
+               * even when imports in that package only come from `@blockprotocol/type-system/slim`,
+               * which isn't supposed to have WASM.
+               *
+               * @todo figure out why that is and fix it, possibly in the @blockprotocol/type-system package,
+               *    or in the plugin-browser webpack config.
+               */
+              `${FRONTEND_ORIGIN}/@${user?.properties.shortname!}/entities/${
                 persistedEntity.metadata.recordId.entityId.split("~")[1]
               }`
             : undefined

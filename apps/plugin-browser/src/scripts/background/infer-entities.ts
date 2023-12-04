@@ -87,6 +87,7 @@ export const inferEntities = async (
        * which isn't supposed to have WASM.
        *
        * @todo figure out why that is and fix it, possibly in the @blockprotocol/type-system package
+       *    or in the plugin-browser webpack config.
        */
       ownedById: user.metadata.recordId.entityId.split("~")[1] as OwnedById,
       textInput,
