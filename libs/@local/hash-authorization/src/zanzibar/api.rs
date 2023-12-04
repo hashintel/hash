@@ -176,7 +176,7 @@ where
             .await?;
         let mut status = Ok::<(), Report<RpcError>>(());
         let permission_map = response
-            .permission_iterator
+            .permissions
             .into_iter()
             .filter_map(|item| {
                 let permission = match item.has_permission {

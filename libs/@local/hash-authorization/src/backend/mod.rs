@@ -289,14 +289,14 @@ impl ZanzibarBackend for NoAuthorization {
         Report<CheckError>,
     > {
         Ok(BulkCheckResponse {
-            permission_iterator: relationships.into_iter().map(
-                |(resource, permission, subject)| BulkCheckItem {
+            permissions: relationships
+                .into_iter()
+                .map(|(resource, permission, subject)| BulkCheckItem {
                     resource,
                     permission,
                     subject,
                     has_permission: Ok(true),
-                },
-            ),
+                }),
             checked_at: Zookie::empty(),
         })
     }
@@ -442,7 +442,7 @@ impl CheckResponse {
 #[must_use]
 pub struct BulkCheckResponse<I> {
     /// If the subject has the specified permission or relation to an [`Resource`].
-    pub permission_iterator: I,
+    pub permissions: I,
     /// A token to determine the time at which the check was performed.
     pub checked_at: Zookie<'static>,
 }

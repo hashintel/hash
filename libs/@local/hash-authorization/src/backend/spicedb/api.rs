@@ -490,7 +490,7 @@ impl ZanzibarBackend for SpiceDbOpenApi {
 
         Ok(BulkCheckResponse {
             checked_at: response.checked_at.token,
-            permission_iterator: response.pairs.into_iter().map(|pair| BulkCheckItem {
+            permissions: response.pairs.into_iter().map(|pair| BulkCheckItem {
                 subject: pair.request.subject,
                 permission: pair.request.permission,
                 resource: pair.request.resource,
