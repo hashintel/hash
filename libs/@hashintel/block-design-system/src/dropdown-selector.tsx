@@ -1,4 +1,4 @@
-import { CaretDownSolidIcon } from "@hashintel/design-system";
+import { CaretDownSolidIcon, CheckIcon } from "@hashintel/design-system";
 import {
   Box,
   ListSubheader,
@@ -11,8 +11,6 @@ import {
   Typography,
 } from "@mui/material";
 import { ReactNode, useMemo, useState } from "react";
-
-import { CheckIcon } from "./icons/check";
 
 export interface Option<OptionId extends string = string> {
   id: OptionId;
