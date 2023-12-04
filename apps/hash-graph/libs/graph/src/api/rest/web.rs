@@ -6,7 +6,11 @@ use std::sync::Arc;
 
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
-    schema::{WebOwnerSubject, WebPermission, WebRelationAndSubject},
+    schema::{
+        WebDataTypeViewerSubject, WebEntityCreatorSubject, WebEntityEditorSubject,
+        WebEntityTypeViewerSubject, WebEntityViewerSubject, WebOwnerSubject, WebPermission,
+        WebPropertyTypeViewerSubject, WebRelationAndSubject,
+    },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
 };
@@ -18,7 +22,7 @@ use axum::{
     Extension, Json, Router,
 };
 use error_stack::Report;
-use graph_types::{provenance::OwnedById, web::WebId};
+use graph_types::provenance::OwnedById;
 use serde::Deserialize;
 use utoipa::{OpenApi, ToSchema};
 
@@ -43,6 +47,12 @@ use crate::{
             WebRelationAndSubject,
             WebPermission,
             WebOwnerSubject,
+            WebEntityCreatorSubject,
+            WebEntityEditorSubject,
+            WebEntityViewerSubject,
+            WebEntityTypeViewerSubject,
+            WebPropertyTypeViewerSubject,
+            WebDataTypeViewerSubject,
             ModifyWebAuthorizationRelationship,
         ),
     ),
@@ -84,7 +94,6 @@ impl RoutedResource for WebResource {
 #[serde(rename_all = "camelCase")]
 struct CreateWebRequest {
     owned_by_id: OwnedById,
-    owner: WebOwnerSubject,
 }
 
 #[utoipa::path(
@@ -112,7 +121,7 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let CreateWebRequest { owned_by_id, owner } = body;
+    let CreateWebRequest { owned_by_id } = body;
 
     let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
@@ -125,7 +134,7 @@ where
     })?;
 
     store
-        .insert_web_id(actor_id, &mut authorization_api, owned_by_id, owner)
+        .insert_web_id(actor_id, &mut authorization_api, owned_by_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create web id");
@@ -154,7 +163,7 @@ where
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
 async fn check_web_permission<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((web_id, permission)): Path<(WebId, WebPermission)>,
+    Path((web_id, permission)): Path<(OwnedById, WebPermission)>,
     authorization_api_pool: Extension<Arc<A>>,
 ) -> Result<Json<PermissionResponse>, StatusCode>
 where
@@ -198,7 +207,7 @@ where
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
 async fn get_web_authorization_relationships<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path(web_id): Path<OwnedById>,
+    Path(owned_by_id): Path<OwnedById>,
     authorization_api_pool: Extension<Arc<A>>,
 ) -> Result<Json<Vec<WebRelationAndSubject>>, Response>
 where
@@ -211,7 +220,7 @@ where
 
     Ok(Json(
         authorization_api
-            .get_web_relations(WebId::new(web_id.into_uuid()), Consistency::FullyConsistent)
+            .get_web_relations(owned_by_id, Consistency::FullyConsistent)
             .await
             .map_err(report_to_response)?,
     ))
@@ -257,10 +266,13 @@ where
         .0
         .into_iter()
         .map(|request| {
-            let web_id = WebId::new(request.resource.into_uuid());
             (
-                web_id,
-                (request.operation, web_id, request.relation_and_subject),
+                request.resource,
+                (
+                    request.operation,
+                    request.resource,
+                    request.relation_and_subject,
+                ),
             )
         })
         .unzip();
@@ -268,7 +280,7 @@ where
     let (permissions, _zookie) = authorization_api
         .check_webs_permission(
             actor_id,
-            WebPermission::Update,
+            WebPermission::ChangePermissions,
             webs,
             Consistency::FullyConsistent,
         )

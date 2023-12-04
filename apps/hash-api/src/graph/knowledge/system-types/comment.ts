@@ -136,18 +136,26 @@ export const createComment: ImpureGraphFunction<
 
   const textEntity = await createEntity(ctx, authentication, {
     ownedById,
-    owner: author.accountId,
     properties: {
       [extractBaseUrl(
         blockProtocolPropertyTypes.textualContent.propertyTypeId,
       )]: textualContent,
     },
     entityTypeId: systemEntityTypes.text.entityTypeId,
+    additional_relationships: [
+      {
+        // the author has editor permissions (owner), regardless of which web the comment belongs to (ownedById)
+        relation: "editor",
+        subject: {
+          kind: "account",
+          subjectId: author.accountId,
+        },
+      },
+    ],
   });
 
   const commentEntity = await createEntity(ctx, authentication, {
     ownedById,
-    owner: author.accountId, // the author has ownership permissions (owner), regardless of which web the comment belongs to (ownedById)
     properties: {},
     entityTypeId: systemEntityTypes.comment.entityTypeId,
     outgoingLinks: [
@@ -173,6 +181,16 @@ export const createComment: ImpureGraphFunction<
         rightEntityId: textEntity.metadata.recordId.entityId,
         ownedById,
         owner: author.accountId,
+      },
+    ],
+    additional_relationships: [
+      {
+        // the author has editor permissions (owner), regardless of which web the comment belongs to (ownedById)
+        relation: "editor",
+        subject: {
+          kind: "account",
+          subjectId: author.accountId,
+        },
       },
     ],
   });

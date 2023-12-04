@@ -397,28 +397,14 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
         {
           operation: "delete",
           relationship: {
-            relation: "owner",
+            relation: "setting",
             resource: {
               kind: "propertyType",
               resourceId: createdPropertyType.schema.$id,
             },
             subject: {
-              kind: "accountGroup",
-              subjectId: accountGroupId,
-            },
-          },
-        },
-        {
-          operation: "create",
-          relationship: {
-            relation: "owner",
-            resource: {
-              kind: "propertyType",
-              resourceId: createdPropertyType.schema.$id,
-            },
-            subject: {
-              kind: "account",
-              subjectId: systemAccountId,
+              kind: "setting",
+              subjectId: "updateFromWeb",
             },
           },
         },
@@ -626,28 +612,14 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
       {
         operation: "delete",
         relationship: {
-          relation: "owner",
+          relation: "setting",
           resource: {
             kind: "entityType",
             resourceId: createdEntityType.schema.$id,
           },
           subject: {
-            kind: "accountGroup",
-            subjectId: accountGroupId,
-          },
-        },
-      },
-      {
-        operation: "create",
-        relationship: {
-          relation: "owner",
-          resource: {
-            kind: "entityType",
-            resourceId: createdEntityType.schema.$id,
-          },
-          subject: {
-            kind: "account",
-            subjectId: systemAccountId,
+            kind: "setting",
+            subjectId: "updateFromWeb",
           },
         },
       },

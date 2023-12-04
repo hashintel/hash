@@ -5,7 +5,7 @@ use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
         DataTypeId, DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject,
-        DataTypeSubjectSet, DataTypeViewerSubject, WebPermission,
+        DataTypeViewerSubject, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -18,7 +18,6 @@ use graph_types::{
         PartialCustomOntologyMetadata, PartialOntologyElementMetadata,
     },
     provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
-    web::WebId,
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{url::VersionedUrl, DataType};
@@ -28,7 +27,7 @@ use crate::store::error::DeletionError;
 use crate::{
     store::{
         crud::Read,
-        postgres::{ontology::OntologyId, OntologyTypeSubject, TraversalContext},
+        postgres::{ontology::OntologyId, TraversalContext},
         AsClient, ConflictBehavior, DataTypeStore, InsertionError, PostgresStore, QueryError,
         Record, UpdateError,
     },
@@ -155,29 +154,38 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
         let mut inserted_data_type_metadata = Vec::new();
         for (schema, metadata) in data_types {
+            let data_type_id = DataTypeId::from_url(schema.id());
             if let PartialCustomOntologyMetadata::Owned { owned_by_id } = &metadata.custom {
                 authorization_api
                     .check_web_permission(
                         actor_id,
                         WebPermission::CreateDataType,
-                        WebId::from(*owned_by_id),
+                        *owned_by_id,
                         Consistency::FullyConsistent,
                     )
                     .await
                     .change_context(InsertionError)?
                     .assert_permission()
                     .change_context(InsertionError)?;
+
+                relationships.push((
+                    data_type_id,
+                    DataTypeRelationAndSubject::Owner {
+                        subject: DataTypeOwnerSubject::Web { id: *owned_by_id },
+                        level: 0,
+                    },
+                ));
+            } else {
+                relationships.push((
+                    data_type_id,
+                    DataTypeRelationAndSubject::Viewer {
+                        subject: DataTypeViewerSubject::Public,
+                        level: 0,
+                    },
+                ));
             }
 
-            relationships.push((
-                DataTypeId::from_url(schema.id()),
-                DataTypeRelationAndSubject::Viewer {
-                    subject: DataTypeViewerSubject::Public,
-                    level: 0,
-                },
-            ));
-
-            if let Some((ontology_id, transaction_time, owner)) = transaction
+            if let Some((ontology_id, transaction_time)) = transaction
                 .create_ontology_metadata(
                     provenance.record_created_by_id,
                     &metadata.record_id,
@@ -192,28 +200,6 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     provenance,
                     transaction_time,
                 ));
-
-                if let Some(owner) = owner {
-                    match owner {
-                        OntologyTypeSubject::Account { id } => relationships.push((
-                            DataTypeId::from(ontology_id),
-                            DataTypeRelationAndSubject::Owner {
-                                subject: DataTypeOwnerSubject::Account { id },
-                                level: 0,
-                            },
-                        )),
-                        OntologyTypeSubject::AccountGroup { id } => relationships.push((
-                            DataTypeId::from(ontology_id),
-                            DataTypeRelationAndSubject::Owner {
-                                subject: DataTypeOwnerSubject::AccountGroup {
-                                    id,
-                                    set: DataTypeSubjectSet::Member,
-                                },
-                                level: 0,
-                            },
-                        )),
-                    }
-                }
             }
         }
 
@@ -255,10 +241,6 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
             Err(error)
         } else {
-            if relationships.is_empty() {
-                tracing::warn!("Inserted datayptes without adding permissions to them");
-            }
-
             Ok(inserted_data_type_metadata)
         }
     }
@@ -388,34 +370,17 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
-        let (ontology_id, metadata, owner) = transaction
+        let (ontology_id, owned_by_id, metadata) = transaction
             .update::<DataType>(&data_type, RecordCreatedById::new(actor_id))
             .await?;
 
-        let owner = match owner {
-            OntologyTypeSubject::Account { id } => DataTypeOwnerSubject::Account { id },
-            OntologyTypeSubject::AccountGroup { id } => DataTypeOwnerSubject::AccountGroup {
-                id,
-                set: DataTypeSubjectSet::Member,
+        let relationships = [(
+            DataTypeId::from(ontology_id),
+            DataTypeRelationAndSubject::Owner {
+                subject: DataTypeOwnerSubject::Web { id: owned_by_id },
+                level: 0,
             },
-        };
-
-        let relationships = [
-            (
-                DataTypeId::from(ontology_id),
-                DataTypeRelationAndSubject::Owner {
-                    subject: owner,
-                    level: 0,
-                },
-            ),
-            (
-                DataTypeId::from(ontology_id),
-                DataTypeRelationAndSubject::Viewer {
-                    subject: DataTypeViewerSubject::Public,
-                    level: 0,
-                },
-            ),
-        ];
+        )];
 
         #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
         authorization_api

@@ -4,7 +4,7 @@ use std::{
     str::FromStr,
 };
 
-use authorization::{schema::WebOwnerSubject, NoAuthorization};
+use authorization::NoAuthorization;
 use graph::store::{AccountStore, AsClient, EntityStore};
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
@@ -136,7 +136,6 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
             account_id,
             &mut NoAuthorization,
             OwnedById::new(account_id.into_uuid()),
-            WebOwnerSubject::Account { id: account_id },
         )
         .await
         .expect("could not create web id");

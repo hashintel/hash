@@ -4,7 +4,7 @@ use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
-    web::WebId,
+    provenance::OwnedById,
 };
 
 use crate::{
@@ -14,9 +14,10 @@ use crate::{
     },
     schema::{
         AccountGroupPermission, AccountGroupRelationAndSubject, DataTypeId, DataTypePermission,
-        DataTypeRelationAndSubject, EntityPermission, EntityRelationAndSubject, EntityTypeId,
-        EntityTypePermission, EntityTypeRelationAndSubject, PropertyTypeId, PropertyTypePermission,
-        PropertyTypeRelationAndSubject, WebPermission, WebRelationAndSubject,
+        DataTypeRelationAndSubject, EntityPermission, EntityRelationAndSubject, EntitySetting,
+        EntityTypeId, EntityTypePermission, EntityTypeRelationAndSubject, PropertyTypeId,
+        PropertyTypePermission, PropertyTypeRelationAndSubject, SettingName,
+        SettingRelationAndSubject, SettingSubject, WebPermission, WebRelationAndSubject,
     },
     zanzibar::{types::RelationshipFilter, Consistency, Zookie},
     AuthorizationApi,
@@ -31,12 +32,56 @@ impl<B> ZanzibarClient<B> {
     pub const fn new(backend: B) -> Self {
         Self { backend }
     }
+
+    pub fn into_backend(self) -> B {
+        self.backend
+    }
 }
 
 impl<B> AuthorizationApi for ZanzibarClient<B>
 where
     B: ZanzibarBackend + Send + Sync,
 {
+    async fn seed(&mut self) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(self
+            .backend
+            .modify_relationships([
+                (
+                    ModifyRelationshipOperation::Touch,
+                    (
+                        SettingName::Entity(EntitySetting::AdministratorFromWeb),
+                        SettingRelationAndSubject::Update {
+                            subject: SettingSubject::Public,
+                            level: 0,
+                        },
+                    ),
+                ),
+                (
+                    ModifyRelationshipOperation::Touch,
+                    (
+                        SettingName::Entity(EntitySetting::UpdateFromWeb),
+                        SettingRelationAndSubject::Update {
+                            subject: SettingSubject::Public,
+                            level: 0,
+                        },
+                    ),
+                ),
+                (
+                    ModifyRelationshipOperation::Touch,
+                    (
+                        SettingName::Entity(EntitySetting::ViewFromWeb),
+                        SettingRelationAndSubject::View {
+                            subject: SettingSubject::Public,
+                            level: 0,
+                        },
+                    ),
+                ),
+            ])
+            .await
+            .change_context(ModifyRelationError)?
+            .written_at)
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     // Account group authorization
     ////////////////////////////////////////////////////////////////////////////
@@ -80,7 +125,7 @@ where
         &self,
         actor: AccountId,
         permission: WebPermission,
-        web: WebId,
+        web: OwnedById,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         self.backend
@@ -91,7 +136,11 @@ where
     async fn modify_web_relations(
         &mut self,
         relationships: impl IntoIterator<
-            Item = (ModifyRelationshipOperation, WebId, WebRelationAndSubject),
+            Item = (
+                ModifyRelationshipOperation,
+                OwnedById,
+                WebRelationAndSubject,
+            ),
             IntoIter: Send,
         > + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
@@ -109,12 +158,12 @@ where
 
     async fn get_web_relations(
         &self,
-        web: WebId,
+        web: OwnedById,
         consistency: Consistency<'static>,
     ) -> Result<Vec<WebRelationAndSubject>, ReadError> {
         Ok(self
             .backend
-            .read_relations::<(WebId, WebRelationAndSubject)>(
+            .read_relations::<(OwnedById, WebRelationAndSubject)>(
                 RelationshipFilter::from_resource(web),
                 consistency,
             )

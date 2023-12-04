@@ -1314,9 +1314,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice"
   },
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1",
-  "draft": false
+  "draft": false,
+  "relationships": []
 }
 
 > {%
@@ -1327,6 +1328,23 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     client.global.set("person_a_owned_by_id", response.body.recordId.entityId.split("~")[0])
     client.global.set("person_a_entity_uuid", response.body.recordId.entityId.split("~")[1])
 %}
+
+### Allow the friendship entity link type to be instantiated by the account
+POST http://127.0.0.1:4000/entities/relationships
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+[
+  {
+    "operation": "create",
+    "resource": "{{person_a_entity_id}}",
+    "relationSubject": {
+      "relation": "setting",
+      "subject": "updateEntity"
+    }
+  }
+]
 
 ### Get latest Person entity
 POST http://127.0.0.1:4000/entities/query
@@ -1467,7 +1485,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Bob"
   },
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
   "draft": true
 }
@@ -1635,7 +1653,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "ownedById": "{{account_id}}",
   "properties": {},
   "entityTypeId": "{{friendship_link_entity_type_id}}",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{person_a_entity_id}}",
     "rightEntityId": "{{person_b_entity_id}}"

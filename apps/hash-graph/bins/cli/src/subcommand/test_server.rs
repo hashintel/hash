@@ -1,6 +1,10 @@
 use std::{net::SocketAddr, time::Duration};
 
-use authorization::backend::{SpiceDbOpenApi, ZanzibarBackend};
+use authorization::{
+    backend::{SpiceDbOpenApi, ZanzibarBackend},
+    zanzibar::ZanzibarClient,
+    AuthorizationApi,
+};
 use clap::Parser;
 use error_stack::{Result, ResultExt};
 use graph::{
@@ -65,17 +69,21 @@ pub async fn test_server(args: TestServerArgs) -> Result<(), GraphError> {
             report
         })?;
 
-    let mut authorization_api = SpiceDbOpenApi::new(
+    let mut spicedb_client = SpiceDbOpenApi::new(
         format!("{}:{}", args.spicedb_host, args.spicedb_http_port),
         args.spicedb_grpc_preshared_key.as_deref(),
     )
     .change_context(GraphError)?;
-    authorization_api
+    spicedb_client
         .import_schema(include_str!(
             "../../../../../../libs/@local/hash-authorization/schemas/v1__initial_schema.zed"
         ))
         .await
         .change_context(GraphError)?;
+
+    let mut zanzibar_client = ZanzibarClient::new(spicedb_client);
+    zanzibar_client.seed().await.change_context(GraphError)?;
+    let authorization_api = zanzibar_client.into_backend();
 
     let router = graph::api::rest::test_server::routes(pool, authorization_api);
 

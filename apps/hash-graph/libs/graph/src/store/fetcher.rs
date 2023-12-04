@@ -2,7 +2,7 @@ use std::{collections::HashSet, mem};
 
 use async_trait::async_trait;
 use authorization::{
-    schema::{EntityOwnerSubject, WebOwnerSubject, WebSubject},
+    schema::{EntityRelationAndSubject, WebOwnerSubject},
     zanzibar::Consistency,
     AuthorizationApi,
 };
@@ -668,10 +668,9 @@ where
         actor_id: AccountId,
         authorization_api: &mut Au,
         owned_by_id: OwnedById,
-        owner: WebOwnerSubject,
     ) -> Result<(), InsertionError> {
         self.store
-            .insert_web_id(actor_id, authorization_api, owned_by_id, owner)
+            .insert_web_id(actor_id, authorization_api, owned_by_id)
             .await
     }
 
@@ -679,7 +678,10 @@ where
         self.store.has_account(account_id).await
     }
 
-    async fn identify_owned_by_id(&self, owned_by_id: OwnedById) -> Result<WebSubject, QueryError> {
+    async fn identify_owned_by_id(
+        &self,
+        owned_by_id: OwnedById,
+    ) -> Result<WebOwnerSubject, QueryError> {
         self.store.identify_owned_by_id(owned_by_id).await
     }
 }
@@ -998,7 +1000,6 @@ where
         actor_id: AccountId,
         authorization_api: &mut Au,
         owned_by_id: OwnedById,
-        owner: EntityOwnerSubject,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
@@ -1006,6 +1007,7 @@ where
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_data: Option<LinkData>,
+        relationships: impl IntoIterator<Item = EntityRelationAndSubject> + Send,
     ) -> Result<EntityMetadata, InsertionError> {
         let entity_type_reference = EntityTypeReference::new(entity_type_id.clone());
         self.insert_external_types_by_reference(
@@ -1023,7 +1025,6 @@ where
                 actor_id,
                 authorization_api,
                 owned_by_id,
-                owner,
                 entity_uuid,
                 decision_time,
                 archived,
@@ -1031,6 +1032,7 @@ where
                 entity_type_id,
                 properties,
                 link_data,
+                relationships,
             )
             .await
     }

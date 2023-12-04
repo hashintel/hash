@@ -153,8 +153,24 @@ export const createEntities = async ({
                 draft: createAsDraft,
                 entityTypeId,
                 ownedById,
-                owner: ownedById,
                 properties,
+                relationships: [
+                  {
+                    relation: "setting",
+                    subject: {
+                      kind: "setting",
+                      subjectId: "administratorFromWeb",
+                    },
+                  },
+                  {
+                    relation: "setting",
+                    subject: { kind: "setting", subjectId: "updateFromWeb" },
+                  },
+                  {
+                    relation: "setting",
+                    subject: { kind: "setting", subjectId: "viewFromWeb" },
+                  },
+                ],
               });
 
             const metadata = mapGraphApiEntityMetadataToMetadata(
@@ -390,8 +406,25 @@ export const createEntities = async ({
                 entityTypeId,
                 linkData,
                 ownedById,
-                owner: ownedById,
                 properties,
+                draft: false,
+                relationships: [
+                  {
+                    relation: "setting",
+                    subject: {
+                      kind: "setting",
+                      subjectId: "administratorFromWeb",
+                    },
+                  },
+                  {
+                    relation: "setting",
+                    subject: { kind: "setting", subjectId: "updateFromWeb" },
+                  },
+                  {
+                    relation: "setting",
+                    subject: { kind: "setting", subjectId: "viewFromWeb" },
+                  },
+                ],
               });
 
             const metadata = mapGraphApiEntityMetadataToMetadata(

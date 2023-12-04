@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use graph_types::account::{AccountGroupId, AccountId};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -19,9 +17,10 @@ impl Resource for AccountGroupId {
     type Id = Self;
     type Kind = AccountGroupNamespace;
 
-    fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
+    #[expect(refining_impl_trait)]
+    fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, !> {
         match kind {
-            AccountGroupNamespace::AccountGroup => Ok::<_, !>(id),
+            AccountGroupNamespace::AccountGroup => Ok(id),
         }
     }
 
@@ -37,7 +36,7 @@ impl Resource for AccountGroupId {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AccountGroupResourceRelation {
-    Owner,
+    Administrator,
     Member,
 }
 
@@ -75,8 +74,9 @@ impl Resource for AccountGroupSubject {
     type Id = AccountGroupSubjectId;
     type Kind = AccountGroupSubjectNamespace;
 
-    fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
-        Ok::<_, !>(match (kind, id) {
+    #[expect(refining_impl_trait)]
+    fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, !> {
+        Ok(match (kind, id) {
             (AccountGroupSubjectNamespace::Account, AccountGroupSubjectId::Uuid(id)) => {
                 Self::Account(AccountId::new(id))
             }
@@ -100,7 +100,7 @@ impl Resource for AccountGroupSubject {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
-pub enum AccountGroupOwnerSubject {
+pub enum AccountGroupAdministratorSubject {
     Account {
         #[serde(rename = "subjectId")]
         id: AccountId,
@@ -121,8 +121,8 @@ pub enum AccountGroupMemberSubject {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation")]
 pub enum AccountGroupRelationAndSubject {
-    Owner {
-        subject: AccountGroupOwnerSubject,
+    Administrator {
+        subject: AccountGroupAdministratorSubject,
         #[serde(skip)]
         level: u8,
     },
@@ -139,25 +139,28 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
     type Subject = AccountGroupSubject;
     type SubjectSet = !;
 
-    fn from_parts(parts: RelationshipParts<Self>) -> Result<Self, impl Error> {
-        Ok::<_, !>((
+    #[expect(refining_impl_trait)]
+    fn from_parts(parts: RelationshipParts<Self>) -> Result<Self, !> {
+        Ok((
             parts.resource,
             match parts.relation.name {
-                AccountGroupResourceRelation::Owner => match (parts.subject, parts.subject_set) {
-                    (AccountGroupSubject::Account(id), None) => {
-                        AccountGroupRelationAndSubject::Owner {
-                            subject: AccountGroupOwnerSubject::Account { id },
-                            level: parts.relation.level,
-                        }
+                AccountGroupResourceRelation::Administrator => {
+                    AccountGroupRelationAndSubject::Administrator {
+                        subject: match (parts.subject, parts.subject_set) {
+                            (AccountGroupSubject::Account(id), None) => {
+                                AccountGroupAdministratorSubject::Account { id }
+                            }
+                        },
+                        level: parts.relation.level,
                     }
-                },
-                AccountGroupResourceRelation::Member => match (parts.subject, parts.subject_set) {
-                    (AccountGroupSubject::Account(id), None) => {
-                        AccountGroupRelationAndSubject::Member {
-                            subject: AccountGroupMemberSubject::Account { id },
-                            level: parts.relation.level,
+                }
+                AccountGroupResourceRelation::Member => AccountGroupRelationAndSubject::Member {
+                    subject: match (parts.subject, parts.subject_set) {
+                        (AccountGroupSubject::Account(id), None) => {
+                            AccountGroupMemberSubject::Account { id }
                         }
-                    }
+                    },
+                    level: parts.relation.level,
                 },
             },
         ))
@@ -169,13 +172,13 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
 
     fn into_parts(self) -> RelationshipParts<Self> {
         let (relation, (subject, subject_set)) = match self.1 {
-            AccountGroupRelationAndSubject::Owner { subject, level } => (
+            AccountGroupRelationAndSubject::Administrator { subject, level } => (
                 LeveledRelation {
-                    name: AccountGroupResourceRelation::Owner,
+                    name: AccountGroupResourceRelation::Administrator,
                     level,
                 },
                 match subject {
-                    AccountGroupOwnerSubject::Account { id } => {
+                    AccountGroupAdministratorSubject::Account { id } => {
                         (AccountGroupSubject::Account(id), None)
                     }
                 },

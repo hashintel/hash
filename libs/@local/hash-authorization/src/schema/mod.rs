@@ -5,37 +5,47 @@ mod entity;
 mod entity_type;
 mod error;
 mod property_type;
+mod settings;
 mod web;
 
 pub use self::{
     account::{AccountNamespace, PublicAccess},
     account_group::{
-        AccountGroupMemberSubject, AccountGroupNamespace, AccountGroupOwnerSubject,
+        AccountGroupAdministratorSubject, AccountGroupMemberSubject, AccountGroupNamespace,
         AccountGroupPermission, AccountGroupRelationAndSubject, AccountGroupSubject,
         AccountGroupSubjectId,
     },
     data_type::{
         DataTypeId, DataTypeNamespace, DataTypeOwnerSubject, DataTypePermission,
         DataTypeRelationAndSubject, DataTypeResourceRelation, DataTypeSubject, DataTypeSubjectId,
-        DataTypeSubjectSet, DataTypeViewerSubject,
+        DataTypeViewerSubject,
     },
     entity::{
-        EntityEditorSubject, EntityNamespace, EntityOwnerSubject, EntityPermission,
-        EntityRelationAndSubject, EntityResourceRelation, EntitySubject, EntitySubjectId,
-        EntitySubjectSet, EntityViewerSubject,
+        EntityAdministratorSubject, EntityEditorSubject, EntityNamespace, EntityOwnerSubject,
+        EntityPermission, EntityRelationAndSubject, EntityResourceRelation, EntitySetting,
+        EntitySettingSubject, EntitySubject, EntitySubjectId, EntitySubjectSet,
+        EntityViewerSubject,
     },
     entity_type::{
         EntityTypeId, EntityTypeInstantiatorSubject, EntityTypeNamespace, EntityTypeOwnerSubject,
         EntityTypePermission, EntityTypeRelationAndSubject, EntityTypeResourceRelation,
-        EntityTypeSubject, EntityTypeSubjectId, EntityTypeSubjectSet, EntityTypeViewerSubject,
+        EntityTypeSetting, EntityTypeSettingSubject, EntityTypeSubject, EntityTypeSubjectId,
+        EntityTypeSubjectSet, EntityTypeViewerSubject,
     },
     property_type::{
         PropertyTypeId, PropertyTypeNamespace, PropertyTypeOwnerSubject, PropertyTypePermission,
-        PropertyTypeRelationAndSubject, PropertyTypeResourceRelation, PropertyTypeSubject,
-        PropertyTypeSubjectId, PropertyTypeSubjectSet, PropertyTypeViewerSubject,
+        PropertyTypeRelationAndSubject, PropertyTypeResourceRelation, PropertyTypeSetting,
+        PropertyTypeSettingSubject, PropertyTypeSubject, PropertyTypeSubjectId,
+        PropertyTypeViewerSubject,
+    },
+    settings::{
+        SettingName, SettingNamespace, SettingRelationAndSubject, SettingResourceRelation,
+        SettingSubject, SettingSubjectId,
     },
     web::{
-        WebNamespace, WebOwnerSubject, WebPermission, WebRelationAndSubject, WebResourceRelation,
+        WebDataTypeViewerSubject, WebEntityCreatorSubject, WebEntityEditorSubject,
+        WebEntityTypeViewerSubject, WebEntityViewerSubject, WebNamespace, WebOwnerSubject,
+        WebPermission, WebPropertyTypeViewerSubject, WebRelationAndSubject, WebResourceRelation,
         WebSubject, WebSubjectId, WebSubjectSet,
     },
 };

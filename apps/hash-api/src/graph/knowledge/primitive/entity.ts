@@ -1,6 +1,7 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   EntityPermission,
+  EntityRelationAndSubject,
   EntityStructuralQuery,
   Filter,
   GraphResolveDepths,
@@ -62,8 +63,11 @@ export type CreateEntityParams = {
   entityTypeId: VersionedUrl;
   outgoingLinks?: Omit<CreateLinkEntityParams, "leftEntityId">[];
   entityUuid?: EntityUuid;
-  owner?: AccountId | AccountGroupId;
   draft?: boolean;
+  additional_relationships?: Omit<
+    EntityAuthorizationRelationship,
+    "resource"
+  >[];
 };
 
 /** @todo: potentially directly export this from the subgraph package */
@@ -89,6 +93,7 @@ export const createEntity: ImpureGraphFunction<
     outgoingLinks,
     entityUuid: overrideEntityUuid,
     draft = false,
+    additional_relationships = [],
   } = params;
 
   const { graphApi } = context;
@@ -99,8 +104,23 @@ export const createEntity: ImpureGraphFunction<
     entityTypeId,
     properties,
     entityUuid: overrideEntityUuid,
-    owner: params.owner ?? ownedById,
     draft,
+    // Concatenate the additional relationships with the default ones
+    relationships: [
+      {
+        relation: "setting",
+        subject: { kind: "setting", subjectId: "administratorFromWeb" },
+      },
+      {
+        relation: "setting",
+        subject: { kind: "setting", subjectId: "updateFromWeb" },
+      },
+      {
+        relation: "setting",
+        subject: { kind: "setting", subjectId: "viewFromWeb" },
+      },
+      ...(additional_relationships as EntityRelationAndSubject[]),
+    ],
   });
 
   const entity = { properties, metadata: metadata as EntityMetadata };
@@ -751,18 +771,26 @@ export const modifyEntityAuthorizationRelationships: ImpureGraphFunction<
   );
 };
 
-export const addEntityOwner: ImpureGraphFunction<
-  { entityId: EntityId; owner: AccountId | AccountGroupId },
+export const addEntityAdministrator: ImpureGraphFunction<
+  { entityId: EntityId; administrator: AccountId | AccountGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.addEntityOwner(actorId, params.entityId, params.owner);
+  await graphApi.addEntityAdministrator(
+    actorId,
+    params.entityId,
+    params.administrator,
+  );
 };
 
-export const removeEntityOwner: ImpureGraphFunction<
-  { entityId: EntityId; owner: AccountId | AccountGroupId },
+export const removeEntityAdministrator: ImpureGraphFunction<
+  { entityId: EntityId; administrator: AccountId | AccountGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.removeEntityOwner(actorId, params.entityId, params.owner);
+  await graphApi.removeEntityAdministrator(
+    actorId,
+    params.entityId,
+    params.administrator,
+  );
 };
 
 export const addEntityEditor: ImpureGraphFunction<

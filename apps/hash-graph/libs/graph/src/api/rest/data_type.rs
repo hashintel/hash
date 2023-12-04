@@ -75,8 +75,8 @@ use crate::{
         schemas(
             DataTypeWithMetadata,
 
-            DataTypeViewerSubject,
             DataTypeOwnerSubject,
+            DataTypeViewerSubject,
             DataTypePermission,
             DataTypeRelationAndSubject,
             ModifyDataTypeAuthorizationRelationship,

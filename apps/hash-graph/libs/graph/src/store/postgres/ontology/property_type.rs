@@ -5,8 +5,7 @@ use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
         PropertyTypeId, PropertyTypeOwnerSubject, PropertyTypePermission,
-        PropertyTypeRelationAndSubject, PropertyTypeSubjectSet, PropertyTypeViewerSubject,
-        WebPermission,
+        PropertyTypeRelationAndSubject, PropertyTypeViewerSubject, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -19,7 +18,6 @@ use graph_types::{
         PartialOntologyElementMetadata, PropertyTypeWithMetadata,
     },
     provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
-    web::WebId,
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{url::VersionedUrl, PropertyType};
@@ -32,7 +30,7 @@ use crate::{
         postgres::{
             ontology::{read::OntologyTypeTraversalData, OntologyId},
             query::ReferenceTable,
-            OntologyTypeSubject, TraversalContext,
+            TraversalContext,
         },
         AsClient, ConflictBehavior, InsertionError, PostgresStore, PropertyTypeStore, QueryError,
         Record, UpdateError,
@@ -276,29 +274,38 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let mut inserted_property_type_metadata =
             Vec::with_capacity(inserted_property_types.capacity());
         for (schema, metadata) in property_types {
+            let property_type_id = PropertyTypeId::from_url(schema.id());
             if let PartialCustomOntologyMetadata::Owned { owned_by_id } = &metadata.custom {
                 authorization_api
                     .check_web_permission(
                         actor_id,
                         WebPermission::CreatePropertyType,
-                        WebId::from(*owned_by_id),
+                        *owned_by_id,
                         Consistency::FullyConsistent,
                     )
                     .await
                     .change_context(InsertionError)?
                     .assert_permission()
                     .change_context(InsertionError)?;
+
+                relationships.push((
+                    property_type_id,
+                    PropertyTypeRelationAndSubject::Owner {
+                        subject: PropertyTypeOwnerSubject::Web { id: *owned_by_id },
+                        level: 0,
+                    },
+                ));
+            } else {
+                relationships.push((
+                    property_type_id,
+                    PropertyTypeRelationAndSubject::Viewer {
+                        subject: PropertyTypeViewerSubject::Public,
+                        level: 0,
+                    },
+                ));
             }
 
-            relationships.push((
-                PropertyTypeId::from_url(schema.id()),
-                PropertyTypeRelationAndSubject::Viewer {
-                    subject: PropertyTypeViewerSubject::Public,
-                    level: 0,
-                },
-            ));
-
-            if let Some((ontology_id, transaction_time, owner)) = transaction
+            if let Some((ontology_id, transaction_time)) = transaction
                 .create_ontology_metadata(
                     provenance.record_created_by_id,
                     &metadata.record_id,
@@ -315,28 +322,6 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     provenance,
                     transaction_time,
                 ));
-
-                if let Some(owner) = owner {
-                    match owner {
-                        OntologyTypeSubject::Account { id } => relationships.push((
-                            PropertyTypeId::from(ontology_id),
-                            PropertyTypeRelationAndSubject::Owner {
-                                subject: PropertyTypeOwnerSubject::Account { id },
-                                level: 0,
-                            },
-                        )),
-                        OntologyTypeSubject::AccountGroup { id } => relationships.push((
-                            PropertyTypeId::from(ontology_id),
-                            PropertyTypeRelationAndSubject::Owner {
-                                subject: PropertyTypeOwnerSubject::AccountGroup {
-                                    id,
-                                    set: PropertyTypeSubjectSet::Member,
-                                },
-                                level: 0,
-                            },
-                        )),
-                    }
-                }
             }
         }
 
@@ -517,14 +502,15 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             .await
             .change_context(UpdateError)?
             .assert_permission()
-            .change_context(UpdateError)?;
+            .change_context(UpdateError)
+            .attach_printable(old_ontology_id.into_uuid())?;
 
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         // This clone is currently necessary because we extract the references as we insert them.
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_property_type_references` taking `&property_type`
-        let (ontology_id, metadata, owner) = transaction
+        let (ontology_id, owned_by_id, metadata) = transaction
             .update::<PropertyType>(&property_type, RecordCreatedById::new(actor_id))
             .await?;
 
@@ -540,30 +526,13 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             })
             .attach_lazy(|| property_type.clone())?;
 
-        let owner = match owner {
-            OntologyTypeSubject::Account { id } => PropertyTypeOwnerSubject::Account { id },
-            OntologyTypeSubject::AccountGroup { id } => PropertyTypeOwnerSubject::AccountGroup {
-                id,
-                set: PropertyTypeSubjectSet::Member,
+        let relationships = [(
+            PropertyTypeId::from(ontology_id),
+            PropertyTypeRelationAndSubject::Owner {
+                subject: PropertyTypeOwnerSubject::Web { id: owned_by_id },
+                level: 0,
             },
-        };
-
-        let relationships = [
-            (
-                PropertyTypeId::from(ontology_id),
-                PropertyTypeRelationAndSubject::Owner {
-                    subject: owner,
-                    level: 0,
-                },
-            ),
-            (
-                PropertyTypeId::from(ontology_id),
-                PropertyTypeRelationAndSubject::Viewer {
-                    subject: PropertyTypeViewerSubject::Public,
-                    level: 0,
-                },
-            ),
-        ];
+        )];
 
         #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
         authorization_api

@@ -12,8 +12,9 @@ use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        AccountGroupOwnerSubject, AccountGroupRelationAndSubject, WebOwnerSubject,
-        WebRelationAndSubject, WebSubject,
+        AccountGroupAdministratorSubject, AccountGroupRelationAndSubject, WebDataTypeViewerSubject,
+        WebEntityTypeViewerSubject, WebOwnerSubject, WebPropertyTypeViewerSubject,
+        WebRelationAndSubject,
     },
     AuthorizationApi,
 };
@@ -30,7 +31,6 @@ use graph_types::{
         OntologyTypeRecordId, OntologyTypeVersion, PartialCustomOntologyMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
-    web::WebId,
 };
 use postgres_types::Json;
 use serde::Serialize;
@@ -47,7 +47,6 @@ use type_system::{
 };
 
 pub use self::{
-    ontology::OntologyTypeSubject,
     pool::{AsClient, PostgresStorePool},
     traversal_context::TraversalContext,
 };
@@ -348,39 +347,20 @@ where
         &self,
         ontology_id: OntologyId,
         owned_by_id: OwnedById,
-    ) -> Result<OntologyTypeSubject, InsertionError> {
+    ) -> Result<(), InsertionError> {
         let query = "
-                WITH web_ids AS (
-                    INSERT INTO ontology_owned_metadata (
-                        ontology_id,
-                        web_id
-                    ) VALUES ($1, $2)
-                    RETURNING web_id
-                )
-                SELECT EXISTS (
-                    SELECT 1
-                    FROM account_groups
-                    JOIN web_ids ON account_group_id = web_id
-                );
+                INSERT INTO ontology_owned_metadata (
+                    ontology_id,
+                    web_id
+                ) VALUES ($1, $2)
             ";
 
-        let is_account_group: bool = self
-            .as_client()
-            .query_one(query, &[&ontology_id, &owned_by_id])
+        self.as_client()
+            .query(query, &[&ontology_id, &owned_by_id])
             .await
-            .change_context(InsertionError)?
-            .get(0);
+            .change_context(InsertionError)?;
 
-        let owned_by_uuid = owned_by_id.into_uuid();
-        if is_account_group {
-            Ok(OntologyTypeSubject::AccountGroup {
-                id: AccountGroupId::new(owned_by_uuid),
-            })
-        } else {
-            Ok(OntologyTypeSubject::Account {
-                id: AccountId::new(owned_by_uuid),
-            })
-        }
+        Ok(())
     }
 
     async fn create_ontology_external_metadata(
@@ -748,21 +728,14 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
     #[tracing::instrument(level = "info", skip(self))]
-    #[expect(clippy::type_complexity)]
     async fn create_ontology_metadata(
         &self,
         record_created_by_id: RecordCreatedById,
         record_id: &OntologyTypeRecordId,
         custom_metadata: &PartialCustomOntologyMetadata,
         on_conflict: ConflictBehavior,
-    ) -> Result<
-        Option<(
-            OntologyId,
-            LeftClosedTemporalInterval<TransactionTime>,
-            Option<OntologyTypeSubject>,
-        )>,
-        InsertionError,
-    > {
+    ) -> Result<Option<(OntologyId, LeftClosedTemporalInterval<TransactionTime>)>, InsertionError>
+    {
         match custom_metadata {
             PartialCustomOntologyMetadata::Owned { owned_by_id } => {
                 self.create_base_url(&record_id.base_url, on_conflict, OntologyLocation::Owned)
@@ -772,10 +745,9 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     let transaction_time = self
                         .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
                         .await?;
-                    let owner = self
-                        .create_ontology_owned_metadata(ontology_id, *owned_by_id)
+                    self.create_ontology_owned_metadata(ontology_id, *owned_by_id)
                         .await?;
-                    Ok(Some((ontology_id, transaction_time, Some(owner))))
+                    Ok(Some((ontology_id, transaction_time)))
                 } else {
                     Ok(None)
                 }
@@ -794,7 +766,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         .await?;
                     self.create_ontology_external_metadata(ontology_id, *fetched_at)
                         .await?;
-                    Ok(Some((ontology_id, transaction_time, None)))
+                    Ok(Some((ontology_id, transaction_time)))
                 } else {
                     Ok(None)
                 }
@@ -817,14 +789,14 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         &self,
         database_type: &T,
         record_created_by_id: RecordCreatedById,
-    ) -> Result<(OntologyId, OntologyElementMetadata, OntologyTypeSubject), UpdateError>
+    ) -> Result<(OntologyId, OwnedById, OntologyElementMetadata), UpdateError>
     where
         T: OntologyDatabaseType + Serialize + Debug + Sync,
     {
         let url = database_type.id();
         let record_id = OntologyTypeRecordId::from(url.clone());
 
-        let (ontology_id, owned_by_id, transaction_time, owner) = self
+        let (ontology_id, owned_by_id, transaction_time) = self
             .update_owned_ontology_id(url, record_created_by_id)
             .await?;
         self.insert_with_id(ontology_id, database_type)
@@ -833,6 +805,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
 
         Ok((
             ontology_id,
+            owned_by_id,
             OntologyElementMetadata {
                 record_id,
                 custom: CustomOntologyMetadata::Owned {
@@ -844,7 +817,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     temporal_versioning: OntologyTemporalMetadata { transaction_time },
                 },
             },
-            owner,
         ))
     }
 
@@ -866,7 +838,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             OntologyId,
             OwnedById,
             LeftClosedTemporalInterval<TransactionTime>,
-            OntologyTypeSubject,
         ),
         UpdateError,
     > {
@@ -927,12 +898,11 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
             .await
             .change_context(UpdateError)?;
-        let owner = self
-            .create_ontology_owned_metadata(ontology_id, owned_by_id)
+        self.create_ontology_owned_metadata(ontology_id, owned_by_id)
             .await
             .change_context(UpdateError)?;
 
-        Ok((ontology_id, owned_by_id, transaction_time, owner))
+        Ok((ontology_id, owned_by_id, transaction_time))
     }
 
     /// # Errors
@@ -1295,8 +1265,8 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .modify_account_group_relations([(
                 ModifyRelationshipOperation::Create,
                 account_group_id,
-                AccountGroupRelationAndSubject::Owner {
-                    subject: AccountGroupOwnerSubject::Account { id: actor_id },
+                AccountGroupRelationAndSubject::Administrator {
+                    subject: AccountGroupAdministratorSubject::Account { id: actor_id },
                     level: 0,
                 },
             )])
@@ -1308,8 +1278,8 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 .modify_account_group_relations([(
                     ModifyRelationshipOperation::Delete,
                     account_group_id,
-                    AccountGroupRelationAndSubject::Owner {
-                        subject: AccountGroupOwnerSubject::Account { id: actor_id },
+                    AccountGroupRelationAndSubject::Administrator {
+                        subject: AccountGroupAdministratorSubject::Account { id: actor_id },
                         level: 0,
                     },
                 )])
@@ -1333,7 +1303,6 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         _actor_id: AccountId,
         authorization_api: &mut A,
         owned_by_id: OwnedById,
-        owner: WebOwnerSubject,
     ) -> Result<(), InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
@@ -1344,28 +1313,49 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .change_context(InsertionError)
             .attach_printable(owned_by_id)?;
 
+        let web_owner = transaction
+            .identify_owned_by_id(owned_by_id)
+            .await
+            .change_context(InsertionError)?;
+
+        let relationships = [
+            WebRelationAndSubject::Owner {
+                subject: web_owner,
+                level: 0,
+            },
+            WebRelationAndSubject::EntityTypeViewer {
+                subject: WebEntityTypeViewerSubject::Public,
+                level: 0,
+            },
+            WebRelationAndSubject::PropertyTypeViewer {
+                subject: WebPropertyTypeViewerSubject::Public,
+                level: 0,
+            },
+            WebRelationAndSubject::DataTypeViewer {
+                subject: WebDataTypeViewerSubject::Public,
+                level: 0,
+            },
+        ];
         authorization_api
-            .modify_web_relations([(
-                ModifyRelationshipOperation::Create,
-                WebId::new(owned_by_id.into_uuid()),
-                WebRelationAndSubject::Owner {
-                    subject: owner,
-                    level: 0,
-                },
-            )])
+            .modify_web_relations(relationships.into_iter().map(|relation_and_subject| {
+                (
+                    ModifyRelationshipOperation::Create,
+                    owned_by_id,
+                    relation_and_subject,
+                )
+            }))
             .await
             .change_context(InsertionError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
             if let Err(auth_error) = authorization_api
-                .modify_web_relations([(
-                    ModifyRelationshipOperation::Delete,
-                    WebId::new(owned_by_id.into_uuid()),
-                    WebRelationAndSubject::Owner {
-                        subject: owner,
-                        level: 0,
-                    },
-                )])
+                .modify_web_relations(relationships.into_iter().map(|relation_and_subject| {
+                    (
+                        ModifyRelationshipOperation::Delete,
+                        owned_by_id,
+                        relation_and_subject,
+                    )
+                }))
                 .await
                 .change_context(InsertionError)
             {
@@ -1400,7 +1390,10 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn identify_owned_by_id(&self, owned_by_id: OwnedById) -> Result<WebSubject, QueryError> {
+    async fn identify_owned_by_id(
+        &self,
+        owned_by_id: OwnedById,
+    ) -> Result<WebOwnerSubject, QueryError> {
         let row = self
             .as_client()
             .query_one(
@@ -1424,10 +1417,12 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             (false, false) => Err(Report::new(QueryError)
                 .attach_printable("Record does not exist")
                 .attach_printable(owned_by_id)),
-            (true, false) => Ok(WebSubject::Account(AccountId::new(owned_by_id.into_uuid()))),
-            (false, true) => Ok(WebSubject::AccountGroup(AccountGroupId::new(
-                owned_by_id.into_uuid(),
-            ))),
+            (true, false) => Ok(WebOwnerSubject::Account {
+                id: AccountId::new(owned_by_id.into_uuid()),
+            }),
+            (false, true) => Ok(WebOwnerSubject::AccountGroup {
+                id: AccountGroupId::new(owned_by_id.into_uuid()),
+            }),
             (true, true) => Err(Report::new(QueryError)
                 .attach_printable("Record exists in both accounts and account_groups")
                 .attach_printable(owned_by_id)),

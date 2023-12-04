@@ -8,7 +8,8 @@ use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
         PropertyTypeId, PropertyTypeOwnerSubject, PropertyTypePermission,
-        PropertyTypeRelationAndSubject, PropertyTypeViewerSubject,
+        PropertyTypeRelationAndSubject, PropertyTypeSetting, PropertyTypeSettingSubject,
+        PropertyTypeViewerSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
@@ -74,9 +75,11 @@ use crate::{
     components(
         schemas(
             PropertyTypeWithMetadata,
+            PropertyTypeSetting,
 
-            PropertyTypeViewerSubject,
+            PropertyTypeSettingSubject,
             PropertyTypeOwnerSubject,
+            PropertyTypeViewerSubject,
             PropertyTypePermission,
             PropertyTypeRelationAndSubject,
             ModifyPropertyTypeAuthorizationRelationship,

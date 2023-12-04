@@ -5,7 +5,7 @@ use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
         EntityTypeId, EntityTypeInstantiatorSubject, EntityTypeOwnerSubject, EntityTypePermission,
-        EntityTypeRelationAndSubject, EntityTypeSubjectSet, EntityTypeViewerSubject, WebPermission,
+        EntityTypeRelationAndSubject, EntityTypeViewerSubject, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -19,7 +19,6 @@ use graph_types::{
         PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
     },
     provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
-    web::WebId,
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{
@@ -37,7 +36,7 @@ use crate::{
         postgres::{
             ontology::{read::OntologyTypeTraversalData, OntologyId},
             query::ReferenceTable,
-            OntologyTypeSubject, TraversalContext,
+            TraversalContext,
         },
         query::{Filter, FilterExpression, ParameterList},
         AsClient, ConflictBehavior, EntityTypeStore, InsertionError, PostgresStore, QueryError,
@@ -436,34 +435,51 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             Vec::with_capacity(inserted_entity_types.capacity());
 
         for (insertion, metadata) in insertions.into_iter().zip(metadatas) {
+            let EntityTypeInsertion {
+                schema,
+                closed_schema,
+            } = insertion;
+
+            let entity_type_id = EntityTypeId::from_url(schema.id());
+
             if let PartialCustomOntologyMetadata::Owned { owned_by_id } = &metadata.custom {
                 authorization_api
                     .check_web_permission(
                         actor_id,
                         WebPermission::CreateEntityType,
-                        WebId::from(*owned_by_id),
+                        *owned_by_id,
                         Consistency::FullyConsistent,
                     )
                     .await
                     .change_context(InsertionError)?
                     .assert_permission()
                     .change_context(InsertionError)?;
+
+                relationships.push((
+                    entity_type_id,
+                    EntityTypeRelationAndSubject::Owner {
+                        subject: EntityTypeOwnerSubject::Web { id: *owned_by_id },
+                        level: 0,
+                    },
+                ));
+            } else {
+                relationships.push((
+                    entity_type_id,
+                    EntityTypeRelationAndSubject::Viewer {
+                        subject: EntityTypeViewerSubject::Public,
+                        level: 0,
+                    },
+                ));
+                relationships.push((
+                    entity_type_id,
+                    EntityTypeRelationAndSubject::Instantiator {
+                        subject: EntityTypeInstantiatorSubject::Public,
+                        level: 0,
+                    },
+                ));
             }
 
-            let EntityTypeInsertion {
-                schema,
-                closed_schema,
-            } = insertion;
-
-            relationships.push((
-                EntityTypeId::from_url(schema.id()),
-                EntityTypeRelationAndSubject::Viewer {
-                    subject: EntityTypeViewerSubject::Public,
-                    level: 0,
-                },
-            ));
-
-            if let Some((ontology_id, transaction_time, owner)) = transaction
+            if let Some((ontology_id, transaction_time)) = transaction
                 .create_ontology_metadata(
                     provenance.record_created_by_id,
                     &metadata.record_id,
@@ -488,35 +504,6 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                     provenance,
                     transaction_time,
                 ));
-
-                if let Some(owner) = owner {
-                    match owner {
-                        OntologyTypeSubject::Account { id } => relationships.push((
-                            EntityTypeId::from(ontology_id),
-                            EntityTypeRelationAndSubject::Owner {
-                                subject: EntityTypeOwnerSubject::Account { id },
-                                level: 0,
-                            },
-                        )),
-                        OntologyTypeSubject::AccountGroup { id } => relationships.push((
-                            EntityTypeId::from(ontology_id),
-                            EntityTypeRelationAndSubject::Owner {
-                                subject: EntityTypeOwnerSubject::AccountGroup {
-                                    id,
-                                    set: EntityTypeSubjectSet::Member,
-                                },
-                                level: 0,
-                            },
-                        )),
-                    }
-                } else {
-                    relationships.push((
-                        EntityTypeId::from(ontology_id),
-                        EntityTypeRelationAndSubject::Instantiator {
-                            subject: EntityTypeInstantiatorSubject::Public,
-                        },
-                    ));
-                }
             }
         }
 
@@ -711,7 +698,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             record_archived_by_id: None,
         };
 
-        let (ontology_id, owned_by_id, transaction_time, owner) = transaction
+        let (ontology_id, owned_by_id, transaction_time) = transaction
             .update_owned_ontology_id(url, provenance.record_created_by_id)
             .await?;
 
@@ -756,30 +743,13 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             })
             .attach_lazy(|| schema.clone())?;
 
-        let owner = match owner {
-            OntologyTypeSubject::Account { id } => EntityTypeOwnerSubject::Account { id },
-            OntologyTypeSubject::AccountGroup { id } => EntityTypeOwnerSubject::AccountGroup {
-                id,
-                set: EntityTypeSubjectSet::Member,
+        let relationships = [(
+            EntityTypeId::from(ontology_id),
+            EntityTypeRelationAndSubject::Owner {
+                subject: EntityTypeOwnerSubject::Web { id: owned_by_id },
+                level: 0,
             },
-        };
-
-        let relationships = [
-            (
-                EntityTypeId::from(ontology_id),
-                EntityTypeRelationAndSubject::Owner {
-                    subject: owner,
-                    level: 0,
-                },
-            ),
-            (
-                EntityTypeId::from(ontology_id),
-                EntityTypeRelationAndSubject::Viewer {
-                    subject: EntityTypeViewerSubject::Public,
-                    level: 0,
-                },
-            ),
-        ];
+        )];
 
         #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
         authorization_api

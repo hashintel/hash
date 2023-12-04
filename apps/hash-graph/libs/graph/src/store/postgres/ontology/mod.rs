@@ -6,10 +6,7 @@ mod read;
 
 #[cfg(hash_graph_test_environment)]
 use error_stack::{Result, ResultExt};
-use graph_types::{
-    account::{AccountGroupId, AccountId},
-    ontology::OntologyType,
-};
+use graph_types::ontology::OntologyType;
 use tokio_postgres::Transaction;
 use type_system::{DataType, EntityType, PropertyType};
 
@@ -113,10 +110,4 @@ impl PostgresStore<Transaction<'_>> {
 
         Ok(())
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum OntologyTypeSubject {
-    Account { id: AccountId },
-    AccountGroup { id: AccountGroupId },
 }

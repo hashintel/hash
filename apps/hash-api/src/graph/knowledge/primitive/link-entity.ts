@@ -94,8 +94,21 @@ export const createLinkEntity: ImpureGraphFunction<
       linkData,
       entityTypeId: linkEntityType.schema.$id,
       properties,
-      owner: params.owner ?? ownedById,
       draft,
+      relationships: [
+        {
+          relation: "setting",
+          subject: { kind: "setting", subjectId: "administratorFromWeb" },
+        },
+        {
+          relation: "setting",
+          subject: { kind: "setting", subjectId: "updateFromWeb" },
+        },
+        {
+          relation: "setting",
+          subject: { kind: "setting", subjectId: "viewFromWeb" },
+        },
+      ],
     },
   );
 

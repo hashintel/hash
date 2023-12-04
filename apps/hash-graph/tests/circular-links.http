@@ -162,7 +162,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "ownedById": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "entityUuid": "0000000A-0001-0000-0000-000000000000",
   "draft": false
 }
@@ -184,7 +184,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "ownedById": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "entityUuid": "0000000B-0001-0000-0000-000000000000",
   "draft": false
 }
@@ -206,7 +206,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "ownedById": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "entityUuid": "0000000C-0001-0000-0000-000000000000",
   "draft": false
 }
@@ -228,7 +228,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "ownedById": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "entityUuid": "0000000D-0001-0000-0000-000000000000",
   "draft": false
 }
@@ -251,7 +251,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000AB-0001-0000-0000-000000000000",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{entity_a}}",
     "rightEntityId": "{{entity_b}}"
@@ -276,7 +276,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000BC-0001-0000-0000-000000000000",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{entity_b}}",
     "rightEntityId": "{{entity_c}}"
@@ -301,7 +301,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000CD-0001-0000-0000-000000000000",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{entity_c}}",
     "rightEntityId": "{{entity_d}}"
@@ -326,7 +326,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000DA-0001-0000-0000-000000000000",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{entity_d}}",
     "rightEntityId": "{{entity_a}}"
@@ -352,7 +352,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000BA-0001-0000-0000-000000000000",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{entity_b}}",
     "rightEntityId": "{{entity_a}}"
@@ -379,7 +379,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000CB-0001-0000-0000-000000000000",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{entity_c}}",
     "rightEntityId": "{{entity_b}}"
@@ -406,7 +406,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000DC-0001-0000-0000-000000000000",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{entity_d}}",
     "rightEntityId": "{{entity_c}}"
@@ -433,7 +433,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000AD-0001-0000-0000-000000000000",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{entity_a}}",
     "rightEntityId": "{{entity_d}}"
