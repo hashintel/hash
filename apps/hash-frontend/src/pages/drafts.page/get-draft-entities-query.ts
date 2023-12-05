@@ -19,7 +19,10 @@ export const getDraftEntitiesQueryVariables: StructuralQueryEntitiesQueryVariabl
         ],
       },
       temporalAxes: currentTimeInstantTemporalAxes,
-      graphResolveDepths: zeroedGraphResolveDepths,
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        isOfType: { outgoing: 1 },
+      },
     },
     includePermissions: false,
   };

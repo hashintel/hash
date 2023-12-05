@@ -25,6 +25,7 @@ import {
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
 import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
 import { Button, Link } from "../../shared/ui";
+import { DraftEntityType } from "./draft-entity/draft-entity-type";
 import { getDraftEntitiesQueryVariables } from "./get-draft-entities-query";
 
 export const DraftEntity: FunctionComponent<{
@@ -107,6 +108,7 @@ export const DraftEntity: FunctionComponent<{
               borderRadius: "6px",
               paddingY: 0.5,
               paddingX: 1,
+              marginLeft: -1,
             }}
           >
             <Typography
@@ -158,6 +160,12 @@ export const DraftEntity: FunctionComponent<{
             Accept
           </Button>
         </Box>
+      </Box>
+      <Box marginTop={1} display="flex" justifyContent="space-between">
+        <Box>
+          <DraftEntityType entity={entity} subgraph={subgraph} />
+        </Box>
+        <Box />
       </Box>
     </Box>
   );
