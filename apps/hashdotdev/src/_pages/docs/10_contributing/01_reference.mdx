@@ -8,13 +8,22 @@ This dictionary of terms acts as a companion to the codebase of HASH, and is des
 
 ## Key concepts
 
-### Graphs and Subgraphs
+### Graphs, Subgraphs & Structural Queries
 
 A `Graph` contains all of the data within a single HASH `Instance`.
 
-A `Subgraph` ..............
+A `Subgraph` represents some _part_ (a strict subset) of the whole graph, and is returned by a `Structural Query`.
 
-### Instance
+A `Structural Query` consists of:
+
+1. a `filter` which is applied to the portion of the `Graph` visible to the `Account` running the query, which returns zero or more `root` entities;
+1. a `depth` parameter which tells the application how many layers of links deep to traverse the graph.
+
+A `depth` of `0` implies that only the `root` entities will be returned for a given query. A depth of `1` would also return any entities connected by a link to any `root` entity. A depth of `2` would additionally return any entities connected to those entities (and so on). Depending on the shape of the data in a `Graph`, a high `depth` parameter can exponentially increase the amount of information returned by any given query, and great care should be taken.
+
+The `Global Public Graph` is a planned initiative which will allow for unifyied querying of all public information that exists across any `Connected Instance` of HASH.
+
+### Instances
 
 An `Instance` of HASH refers to a single implementation of HASH which is running somewhere. This may be generally accessible via the World Wide Web, hosted privately within an organization's intranet, or set up locally on a single machine only (perhaps even running in an air-gapped environment with no external network access).
 
