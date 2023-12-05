@@ -27,6 +27,7 @@ import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
 import { Button, Link } from "../../shared/ui";
 import { DraftEntityProvenance } from "./draft-entity/draft-entity-provenance";
 import { DraftEntityType } from "./draft-entity/draft-entity-type";
+import { DraftEntityViewers } from "./draft-entity/draft-entity-viewers";
 import { getDraftEntitiesQueryVariables } from "./get-draft-entities-query";
 
 export const DraftEntity: FunctionComponent<{
@@ -163,8 +164,9 @@ export const DraftEntity: FunctionComponent<{
         </Box>
       </Box>
       <Box marginTop={1} display="flex" justifyContent="space-between">
-        <Box>
+        <Box display="flex" alignItems="center" columnGap={2}>
           <DraftEntityType entity={entity} subgraph={subgraph} />
+          <DraftEntityViewers entity={entity} />
         </Box>
         <DraftEntityProvenance entity={entity} />
       </Box>
