@@ -1,8 +1,4 @@
-import {
-  Button,
-  CaretDownSolidIcon,
-  IconButton,
-} from "@hashintel/design-system";
+import { Button, CaretDownSolidIcon } from "@hashintel/design-system";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 import browser, { Tabs } from "webextension-polyfill";
