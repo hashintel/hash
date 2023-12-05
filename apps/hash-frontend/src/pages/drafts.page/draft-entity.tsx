@@ -1,5 +1,4 @@
-import { useMutation } from "@apollo/client";
-import { CaretDownSolidIcon, CloseIcon } from "@hashintel/design-system";
+import { CaretDownSolidIcon } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   Entity,
@@ -8,27 +7,15 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { Box, buttonClasses, Typography } from "@mui/material";
-import { FunctionComponent, useCallback, useMemo, useState } from "react";
+import { FunctionComponent, useMemo, useState } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
-import {
-  ArchiveEntityMutation,
-  ArchiveEntityMutationVariables,
-  UpdateEntityMutation,
-  UpdateEntityMutationVariables,
-} from "../../graphql/api-types.gen";
-import {
-  archiveEntityMutation,
-  structuralQueryEntitiesQuery,
-  updateEntityMutation,
-} from "../../graphql/queries/knowledge/entity.queries";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
-import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
 import { Button, Link } from "../../shared/ui";
+import { DraftEntityActionButtons } from "./draft-entity/draft-entity-action-buttons";
 import { DraftEntityProvenance } from "./draft-entity/draft-entity-provenance";
 import { DraftEntityType } from "./draft-entity/draft-entity-type";
 import { DraftEntityViewers } from "./draft-entity/draft-entity-viewers";
-import { getDraftEntitiesQueryVariables } from "./get-draft-entities-query";
 
 export const DraftEntity: FunctionComponent<{
   subgraph: Subgraph<EntityRootType>;
@@ -45,48 +32,6 @@ export const DraftEntity: FunctionComponent<{
       entity.metadata.recordId.entityId,
     )}`;
   }, [getOwnerForEntity, entity]);
-
-  const [archiveEntity] = useMutation<
-    ArchiveEntityMutation,
-    ArchiveEntityMutationVariables
-  >(archiveEntityMutation, {
-    refetchQueries: [
-      {
-        query: structuralQueryEntitiesQuery,
-        variables: getDraftEntitiesQueryVariables,
-      },
-    ],
-  });
-
-  const handleIgnore = useCallback(() => {
-    void archiveEntity({
-      variables: {
-        entityId: entity.metadata.recordId.entityId,
-      },
-    });
-  }, [archiveEntity, entity]);
-
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation, {
-    refetchQueries: [
-      {
-        query: structuralQueryEntitiesQuery,
-        variables: getDraftEntitiesQueryVariables,
-      },
-    ],
-  });
-
-  const handleAccept = useCallback(() => {
-    void updateEntity({
-      variables: {
-        entityId: entity.metadata.recordId.entityId,
-        updatedProperties: entity.properties,
-        draft: false,
-      },
-    });
-  }, [updateEntity, entity]);
 
   const label = useMemo(
     () => generateEntityLabel(subgraph, entity),
@@ -135,35 +80,7 @@ export const DraftEntity: FunctionComponent<{
             </Typography>
           </Box>
         </Link>
-        <Box display="flex" columnGap={1}>
-          <Button
-            onClick={handleIgnore}
-            size="xs"
-            variant="tertiary"
-            startIcon={<CloseIcon />}
-            sx={{
-              background: ({ palette }) => palette.gray[20],
-              borderColor: ({ palette }) => palette.gray[30],
-              color: ({ palette }) => palette.common.black,
-              [`> .${buttonClasses.startIcon} > svg`]: {
-                fill: ({ palette }) => palette.common.black,
-              },
-              "&:hover": {
-                background: ({ palette }) => palette.gray[30],
-              },
-            }}
-          >
-            Ignore
-          </Button>
-          <Button
-            onClick={handleAccept}
-            size="xs"
-            variant="primary"
-            startIcon={<CheckRegularIcon />}
-          >
-            Accept
-          </Button>
-        </Box>
+        <DraftEntityActionButtons entity={entity} />
       </Box>
       <Box marginTop={1} display="flex" justifyContent="space-between">
         <Box display="flex" alignItems="center" columnGap={2}>
