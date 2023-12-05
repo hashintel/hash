@@ -14,8 +14,8 @@ import {
 } from "../../shared/badge";
 import type { InferEntitiesRequest } from "../../shared/messages";
 import {
-  getFromSessionStorage,
-  getSetFromSessionStorageValue,
+  getFromLocalStorage,
+  getSetFromLocalStorageValue,
 } from "../../shared/storage";
 
 const inferEntitiesApiCall = async ({
@@ -50,7 +50,7 @@ export const inferEntities = async (
   message: InferEntitiesRequest,
   trigger: "passive" | "user",
 ) => {
-  const user = await getFromSessionStorage("user");
+  const user = await getFromLocalStorage("user");
   if (!user) {
     throw new Error("Cannot infer entities without a logged-in user.");
   }
@@ -60,7 +60,7 @@ export const inferEntities = async (
   const localRequestId = uuid();
 
   const setInferenceRequestValue =
-    getSetFromSessionStorageValue("inferenceRequests");
+    getSetFromLocalStorageValue("inferenceRequests");
 
   await setInferenceRequestValue((currentValue) => [
     {
@@ -87,6 +87,7 @@ export const inferEntities = async (
        * which isn't supposed to have WASM.
        *
        * @todo figure out why that is and fix it, possibly in the @blockprotocol/type-system package
+       *    or in the plugin-browser webpack config.
        */
       ownedById: user.metadata.recordId.entityId.split("~")[1] as OwnedById,
       textInput,

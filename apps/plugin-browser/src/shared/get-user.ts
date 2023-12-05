@@ -4,9 +4,9 @@ import { User } from "@local/hash-isomorphic-utils/system-types/shared";
 import { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
-import { MeQuery, MeQueryVariables } from "../../graphql/api-types.gen";
-import { meQuery } from "../../graphql/queries/user.queries";
-import { queryGraphQlApi } from "../../shared/query-graphql-api";
+import { MeQuery, MeQueryVariables } from "../graphql/api-types.gen";
+import { meQuery } from "../graphql/queries/user.queries";
+import { queryGraphQlApi } from "./query-graphql-api";
 
 export const getUser = () => {
   return queryGraphQlApi<MeQuery, MeQueryVariables>(meQuery)

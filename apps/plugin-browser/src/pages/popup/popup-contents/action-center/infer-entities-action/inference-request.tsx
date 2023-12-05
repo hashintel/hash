@@ -4,6 +4,10 @@ import { Box, Skeleton, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 
 import type { PageEntityInference } from "../../../../../shared/storage";
+import {
+  darkModeBorderColor,
+  darkModeInputBackgroundColor,
+} from "../../../../shared/dark-mode-values";
 import { InferredEntity } from "./inference-request/inferred-entity";
 
 export const InferenceRequest = ({
@@ -21,10 +25,7 @@ export const InferenceRequest = ({
         acc[type.$id] =
           status === "complete"
             ? request.data.contents.filter(
-                (entityOrFailure) =>
-                  ("metadata" in entityOrFailure
-                    ? entityOrFailure.metadata.entityTypeId
-                    : entityOrFailure.entityTypeId) === type.$id,
+                (result) => result.entityTypeId === type.$id,
               )
             : [];
         return acc;
@@ -78,6 +79,11 @@ export const InferenceRequest = ({
                 "&:not(:last-child)": {
                   pb: 0,
                 },
+                borderRadius: 1,
+                "@media (prefers-color-scheme: dark)": {
+                  borderColor: darkModeBorderColor,
+                  background: darkModeInputBackgroundColor,
+                },
               }}
             >
               <Box>
@@ -102,12 +108,9 @@ export const InferenceRequest = ({
                   No entities inferred.
                 </Typography>
               )}
-              {entityStatuses.map((entity, index) => {
-                const successfullyCreated = "metadata" in entity;
-
-                const locallyUniqueId = successfullyCreated
-                  ? entity.metadata.recordId.entityId
-                  : entity.temporaryId.toString();
+              {entityStatuses.map((result, index) => {
+                const locallyUniqueId =
+                  result.proposedEntity.entityId.toString();
 
                 const expanded = expandedEntityId === locallyUniqueId;
 
@@ -116,12 +119,12 @@ export const InferenceRequest = ({
                     allEntityStatuses={
                       request.status === "complete" ? request.data.contents : []
                     }
-                    entity={entity}
                     entityType={entityType}
                     entityTypes={entityTypes}
                     expanded={expanded}
                     key={locallyUniqueId}
                     indexInType={index}
+                    result={result}
                     toggleExpanded={() =>
                       expanded
                         ? setExpandedEntityId(null)

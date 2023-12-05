@@ -1,11 +1,17 @@
 import browser from "webextension-polyfill";
 
+import { getUser } from "../shared/get-user";
 import {
   GetSiteContentRequest,
   GetSiteContentReturn,
   Message,
 } from "../shared/messages";
-import { getFromSessionStorage } from "../shared/storage";
+import {
+  clearLocalStorage,
+  getFromLocalStorage,
+  getSetFromLocalStorageValue,
+  setInLocalStorage,
+} from "../shared/storage";
 import { inferEntities } from "./background/infer-entities";
 
 /**
@@ -40,11 +46,11 @@ browser.runtime.onMessage.addListener((message: Message, sender) => {
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === "complete") {
-    getFromSessionStorage("passiveInference")
+    getFromLocalStorage("passiveInference")
       .then(async (passiveInference) => {
         if (passiveInference?.enabled) {
           const targetEntityTypes =
-            await getFromSessionStorage("targetEntityTypes");
+            await getFromLocalStorage("targetEntityTypes");
 
           if (!targetEntityTypes) {
             return;
@@ -55,7 +61,7 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
           } satisfies GetSiteContentRequest) as Promise<GetSiteContentReturn>);
 
           const inferenceRequests =
-            await getFromSessionStorage("inferenceRequests");
+            await getFromLocalStorage("inferenceRequests");
 
           const pendingRequest = inferenceRequests?.find((request) => {
             return (
@@ -86,3 +92,34 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
       });
   }
 });
+
+void getUser().then((user) => {
+  if (user) {
+    void setInLocalStorage("user", user);
+  } else {
+    void clearLocalStorage();
+  }
+});
+
+const tenMinutesInMs = 10 * 60 * 1000;
+
+const setInferenceRequests = getSetFromLocalStorageValue("inferenceRequests");
+void setInferenceRequests((currentValue) =>
+  (currentValue ?? []).map((request) => {
+    if (request.status === "pending") {
+      const now = new Date();
+      const requestDate = new Date(request.createdAt);
+      const msSinceRequest = now.getTime() - requestDate.getTime();
+
+      if (msSinceRequest > tenMinutesInMs) {
+        return {
+          ...request,
+          errorMessage: "Request timed out",
+          status: "error",
+        };
+      }
+    }
+
+    return request;
+  }),
+);

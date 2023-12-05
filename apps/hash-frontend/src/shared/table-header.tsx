@@ -1,5 +1,5 @@
-import { CheckIcon } from "@hashintel/block-design-system";
 import {
+  CheckIcon,
   Chip,
   EyeIconRegular,
   EyeSlashIconRegular,

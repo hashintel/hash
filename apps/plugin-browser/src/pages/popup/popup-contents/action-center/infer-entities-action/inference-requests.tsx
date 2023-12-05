@@ -1,5 +1,4 @@
-import { CheckIcon } from "@hashintel/block-design-system";
-import { CloseIcon } from "@hashintel/design-system";
+import { CheckIcon, CloseIcon } from "@hashintel/design-system";
 import {
   Box,
   CircularProgress,
@@ -11,7 +10,12 @@ import { format } from "date-fns";
 import { useState } from "react";
 
 import { PageEntityInference } from "../../../../../shared/storage";
-import { useSessionStorage } from "../../../../shared/use-storage-sync";
+import {
+  darkModeBorderColor,
+  darkModeInputBackgroundColor,
+  darkModePlaceholderColor,
+} from "../../../../shared/dark-mode-values";
+import { useLocalStorage } from "../../../../shared/use-local-storage";
 import { InferenceRequest } from "./inference-request";
 
 const InferenceRequestContainer = ({
@@ -29,6 +33,9 @@ const InferenceRequestContainer = ({
         border: ({ palette }) => `1px solid ${palette.gray[40]}`,
         borderRadius: 1,
         mb: 0.4,
+        "@media (prefers-color-scheme: dark)": {
+          borderColor: darkModeBorderColor,
+        },
       }}
     >
       <Box
@@ -45,6 +52,9 @@ const InferenceRequestContainer = ({
           px: 1.5,
           py: 0.5,
           width: "100%",
+          "@media (prefers-color-scheme: dark)": {
+            background: darkModeInputBackgroundColor,
+          },
         }}
       >
         <Stack direction="row" sx={{ maxWidth: "90%" }}>
@@ -54,6 +64,9 @@ const InferenceRequestContainer = ({
               whiteSpace: "nowrap",
               textOverflow: "ellipsis",
               overflow: "hidden",
+              "@media (prefers-color-scheme: dark)": {
+                color: darkModePlaceholderColor,
+              },
             }}
           >
             {request.sourceTitle}
@@ -87,12 +100,7 @@ const InferenceRequestContainer = ({
       </Box>
       <Box>
         <Collapse in={expanded}>
-          <Box
-            sx={({ palette }) => ({
-              background: palette.common.white,
-              borderTop: `1px solid ${palette.gray[40]}`,
-            })}
-          >
+          <Box>
             <InferenceRequest request={request} />
           </Box>
         </Collapse>
@@ -105,7 +113,7 @@ export const InferenceRequests = () => {
   const [expandedStatusUuid, setExpandedStatusUuid] = useState<string | null>(
     null,
   );
-  const [inferenceStatus] = useSessionStorage("inferenceRequests", []);
+  const [inferenceStatus] = useLocalStorage("inferenceRequests", []);
 
   const toggleExpanded = (statusUuid: string) => {
     setExpandedStatusUuid((currentExpanded) =>

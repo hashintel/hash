@@ -1,4 +1,4 @@
-import { EntityType, VersionedUrl } from "@blockprotocol/graph";
+import type { EntityType, VersionedUrl } from "@blockprotocol/graph";
 import { Autocomplete, Button, Chip, MenuItem } from "@hashintel/design-system";
 import { EntityTypeRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -30,7 +30,7 @@ import {
   darkModePlaceholderColor,
 } from "../../../../shared/dark-mode-values";
 import { sendMessageToBackground } from "../../../../shared/messages";
-import { useSessionStorage } from "../../../../shared/use-storage-sync";
+import { useLocalStorage } from "../../../../shared/use-local-storage";
 
 const getEntityTypes = () => {
   return queryGraphQlApi<GetEntityTypesQuery, GetEntityTypesQueryVariables>(
@@ -70,14 +70,14 @@ export const SelectTypesAndInfer = ({
   setTargetEntityTypes,
   targetEntityTypes,
 }: SelectTypesAndInferProps) => {
-  const [allEntityTypes, setAllEntityTypes] = useSessionStorage(
+  const [allEntityTypes, setAllEntityTypes] = useLocalStorage(
     "entityTypes",
     [],
   );
   const [selectOpen, setSelectOpen] = useState(false);
-  const [inferenceRequests] = useSessionStorage("inferenceRequests", []);
+  const [inferenceRequests] = useLocalStorage("inferenceRequests", []);
 
-  const [passiveInferenceConfig, setPassiveInferenceConfig] = useSessionStorage(
+  const [passiveInferenceConfig, setPassiveInferenceConfig] = useLocalStorage(
     "passiveInference",
     { conditions: [], enabled: false },
   );

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { getUser } from "./get-user";
+import { getUser } from "../../shared/get-user";
+import { clearLocalStorage } from "../../shared/storage";
 import { setSentryUser } from "./sentry";
-import { useSessionStorage } from "./use-storage-sync";
+import { useLocalStorage } from "./use-local-storage";
 
 export const useUser = () => {
   const [apiChecked, setApiChecked] = useState(false);
-  const [user, setUser, storageChecked] = useSessionStorage("user", null);
+  const [user, setUser, storageChecked] = useLocalStorage("user", null);
 
   useEffect(() => {
     const init = async () => {
@@ -15,6 +16,10 @@ export const useUser = () => {
       setUser(maybeUser);
       setSentryUser(maybeUser);
       setApiChecked(true);
+
+      if (!maybeUser) {
+        void clearLocalStorage();
+      }
     };
 
     void init();

@@ -1,35 +1,58 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { typedKeys } from "@local/advanced-types/typed-entries";
 import type { Entity, GraphApi } from "@local/hash-graph-client";
-import type { InferEntitiesCreationFailure } from "@local/hash-isomorphic-utils/temporal-types";
+import type {
+  InferredEntityCreationFailure,
+  InferredEntityCreationSuccess,
+  ProposedEntity,
+} from "@local/hash-isomorphic-utils/temporal-types";
 import type {
   AccountId,
   EntityId,
   LinkData,
   OwnedById,
 } from "@local/hash-subgraph";
+import {
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@local/hash-subgraph";
+import isMatch from "lodash.ismatch";
 
 import type { DereferencedEntityType } from "./dereference-entity-type";
-import type { ProposedEntitiesByType } from "./generate-functions";
+import type { ProposedEntityCreationsByType } from "./generate-tools";
+import { getEntityByFilter } from "./get-entity-by-filter";
+
+type UpdateCandidate = {
+  existingEntity: Entity;
+  proposedEntity: ProposedEntity;
+};
+
+type StatusByTemporaryId<T> = Record<number, T>;
+
+type EntityStatusMap = {
+  creationSuccesses: StatusByTemporaryId<InferredEntityCreationSuccess>;
+  creationFailures: StatusByTemporaryId<InferredEntityCreationFailure>;
+  updateCandidates: StatusByTemporaryId<UpdateCandidate>;
+};
 
 export const createEntities = async ({
   actorId,
   graphApiClient,
+  log,
   proposedEntitiesByType,
   requestedEntityTypes,
   ownedById,
 }: {
   actorId: AccountId;
   graphApiClient: GraphApi;
-  proposedEntitiesByType: ProposedEntitiesByType;
+  log: (message: string) => void;
+  proposedEntitiesByType: ProposedEntityCreationsByType;
   requestedEntityTypes: Record<
     VersionedUrl,
     { isLink: boolean; schema: DereferencedEntityType }
   >;
   ownedById: OwnedById;
-}): Promise<{
-  createdEntities: Entity[];
-  creationFailures: InferEntitiesCreationFailure[];
-}> => {
+}): Promise<EntityStatusMap> => {
   const nonLinkEntityTypes = Object.values(requestedEntityTypes).filter(
     ({ isLink }) => !isLink,
   );
@@ -37,11 +60,11 @@ export const createEntities = async ({
     ({ isLink }) => isLink,
   );
 
-  const createdEntitiesByTemporaryId: Record<number, Entity> = {};
-  const creationFailuresByTemporaryId: Record<
-    number,
-    InferEntitiesCreationFailure
-  > = {};
+  const entityStatusMap: EntityStatusMap = {
+    creationSuccesses: {},
+    creationFailures: {},
+    updateCandidates: {},
+  };
 
   await Promise.all(
     nonLinkEntityTypes.map(async (nonLinkType) => {
@@ -53,33 +76,100 @@ export const createEntities = async ({
         (proposedEntities ?? []).map(async (proposedEntity) => {
           const { properties = {} } = proposedEntity;
 
+          const nameProperties = ["name", "display-name", "preferred-name"];
+          const propertyKeysToMatchOn = typedKeys(properties).filter((key) =>
+            nameProperties.includes(
+              // capture the last part of the path, e.g. /@example/property-type/name/ -> name
+              key.match(/([^/]+)\/$/)?.[1] ?? "",
+            ),
+          );
+
+          if (propertyKeysToMatchOn.length > 0) {
+            const existingEntity = await getEntityByFilter({
+              actorId,
+              graphApiClient,
+              filter: {
+                all: [
+                  {
+                    any: propertyKeysToMatchOn.map((key) => ({
+                      equal: [
+                        { path: ["properties", key] },
+                        { parameter: properties[key] },
+                      ],
+                    })),
+                  },
+                  {
+                    equal: [
+                      { path: ["ownedById"] },
+                      {
+                        parameter: ownedById,
+                      },
+                    ],
+                  },
+                ],
+              },
+            });
+
+            if (existingEntity) {
+              /**
+               * If we have an existing entity, propose an update any of the proposed properties are different.
+               * Otherwise, do nothing.
+               */
+              if (
+                !isMatch(
+                  existingEntity.properties,
+                  proposedEntity.properties ?? {},
+                )
+              ) {
+                entityStatusMap.updateCandidates[proposedEntity.entityId] = {
+                  existingEntity,
+                  proposedEntity,
+                };
+              }
+              return;
+            }
+          }
+
           try {
             await graphApiClient.validateEntity(actorId, {
+              draft: true,
               entityTypeId,
               operations: ["all"],
               properties,
-              draft: false,
             });
 
             const { data: createdEntityMetadata } =
               await graphApiClient.createEntity(actorId, {
+                draft: false,
                 entityTypeId,
                 ownedById,
                 owner: ownedById,
                 properties,
-                draft: false,
               });
 
-            createdEntitiesByTemporaryId[proposedEntity.entityId] = {
-              metadata: createdEntityMetadata,
-              properties,
+            entityStatusMap.creationSuccesses[proposedEntity.entityId] = {
+              entity: {
+                metadata: createdEntityMetadata,
+                properties,
+              },
+              entityTypeId,
+              proposedEntity,
+              operation: "create",
+              status: "success",
             };
           } catch (err) {
-            creationFailuresByTemporaryId[proposedEntity.entityId] = {
-              temporaryId: proposedEntity.entityId,
+            log(
+              `Creation of entity id ${
+                proposedEntity.entityId
+              } failed with err: ${JSON.stringify(err, undefined, 2)}`,
+            );
+
+            entityStatusMap.creationFailures[proposedEntity.entityId] = {
               entityTypeId,
-              properties,
+              proposedEntity,
               failureReason: (err as Error).message,
+              operation: "create",
+              status: "failure",
             };
           }
         }),
@@ -103,10 +193,11 @@ export const createEntities = async ({
               "targetEntityId" in proposedEntity
             )
           ) {
-            creationFailuresByTemporaryId[proposedEntity.entityId] = {
-              temporaryId: proposedEntity.entityId,
+            entityStatusMap.creationFailures[proposedEntity.entityId] = {
               entityTypeId,
-              properties,
+              proposedEntity,
+              operation: "create",
+              status: "failure",
               failureReason:
                 "Link entities must have both a sourceEntityId and a targetEntityId.",
             };
@@ -115,10 +206,13 @@ export const createEntities = async ({
 
           const { sourceEntityId, targetEntityId } = proposedEntity;
 
-          const sourceEntity = createdEntitiesByTemporaryId[sourceEntityId];
+          const sourceEntity =
+            entityStatusMap.creationSuccesses[sourceEntityId]?.entity ??
+            entityStatusMap.updateCandidates[sourceEntityId]?.existingEntity;
 
           if (!sourceEntity) {
-            const sourceFailure = creationFailuresByTemporaryId[sourceEntityId];
+            const sourceFailure =
+              entityStatusMap.creationFailures[sourceEntityId];
 
             if (!sourceFailure) {
               const sourceProposedEntity = Object.values(proposedEntitiesByType)
@@ -129,29 +223,34 @@ export const createEntities = async ({
                 ? `source with temporaryId ${sourceEntityId} was proposed but not created, and no creation error is recorded`
                 : `source with temporaryId ${sourceEntityId} not found in proposed entities`;
 
-              creationFailuresByTemporaryId[proposedEntity.entityId] = {
-                temporaryId: proposedEntity.entityId,
+              entityStatusMap.creationFailures[proposedEntity.entityId] = {
                 entityTypeId,
-                properties,
+                proposedEntity,
+                operation: "create",
+                status: "failure",
                 failureReason,
               };
               return;
             }
 
-            creationFailuresByTemporaryId[proposedEntity.entityId] = {
-              temporaryId: proposedEntity.entityId,
+            entityStatusMap.creationFailures[proposedEntity.entityId] = {
               entityTypeId,
-              properties,
+              proposedEntity,
+              operation: "create",
+              status: "failure",
               failureReason: `Link entity could not be created – source with temporary id ${sourceEntityId} failed to be created with reason: ${sourceFailure.failureReason}`,
             };
 
             return;
           }
 
-          const targetEntity = createdEntitiesByTemporaryId[targetEntityId];
+          const targetEntity =
+            entityStatusMap.creationSuccesses[targetEntityId]?.entity ??
+            entityStatusMap.updateCandidates[targetEntityId]?.existingEntity;
 
           if (!targetEntity) {
-            const targetFailure = creationFailuresByTemporaryId[targetEntityId];
+            const targetFailure =
+              entityStatusMap.creationFailures[targetEntityId];
 
             if (!targetFailure) {
               const targetProposedEntity = Object.values(proposedEntitiesByType)
@@ -162,19 +261,21 @@ export const createEntities = async ({
                 ? `target with temporaryId ${targetEntityId} was proposed but not created, and no creation error is recorded`
                 : `target with temporaryId ${targetEntityId} not found in proposed entities`;
 
-              creationFailuresByTemporaryId[proposedEntity.entityId] = {
-                temporaryId: proposedEntity.entityId,
+              entityStatusMap.creationFailures[proposedEntity.entityId] = {
                 entityTypeId,
-                properties,
+                proposedEntity,
+                operation: "create",
+                status: "failure",
                 failureReason,
               };
               return;
             }
 
-            creationFailuresByTemporaryId[proposedEntity.entityId] = {
-              temporaryId: proposedEntity.entityId,
+            entityStatusMap.creationFailures[proposedEntity.entityId] = {
               entityTypeId,
-              properties,
+              proposedEntity,
+              operation: "create",
+              status: "failure",
               failureReason: `Link entity could not be created – target with temporary id ${targetEntityId} failed to be created with reason: ${targetFailure.failureReason}`,
             };
 
@@ -195,6 +296,78 @@ export const createEntities = async ({
               draft: false,
             });
 
+            const existingLinkEntity = await getEntityByFilter({
+              actorId,
+              graphApiClient,
+              filter: {
+                all: [
+                  {
+                    equal: [
+                      {
+                        path: ["leftEntity", "ownedById"],
+                      },
+                      {
+                        parameter: extractOwnedByIdFromEntityId(
+                          linkData.leftEntityId,
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    equal: [
+                      {
+                        path: ["leftEntity", "uuid"],
+                      },
+                      {
+                        parameter: extractEntityUuidFromEntityId(
+                          linkData.leftEntityId,
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    equal: [
+                      {
+                        path: ["rightEntity", "ownedById"],
+                      },
+                      {
+                        parameter: extractOwnedByIdFromEntityId(
+                          linkData.rightEntityId,
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    equal: [
+                      {
+                        path: ["rightEntity", "uuid"],
+                      },
+                      {
+                        parameter: extractEntityUuidFromEntityId(
+                          linkData.rightEntityId,
+                        ),
+                      },
+                    ],
+                  },
+                ],
+              },
+            });
+
+            if (existingLinkEntity) {
+              /**
+               * If we have an existing link entity, propose an update any of the proposed properties are different.
+               * Otherwise, do nothing.
+               */
+              if (!isMatch(existingLinkEntity.properties, properties)) {
+                entityStatusMap.updateCandidates[proposedEntity.entityId] = {
+                  existingEntity: existingLinkEntity,
+                  proposedEntity,
+                };
+              }
+
+              return;
+            }
+
             const { data: createdEntityMetadata } =
               await graphApiClient.createEntity(actorId, {
                 entityTypeId,
@@ -205,16 +378,25 @@ export const createEntities = async ({
                 draft: false,
               });
 
-            createdEntitiesByTemporaryId[proposedEntity.entityId] = {
-              linkData,
-              metadata: createdEntityMetadata,
-              properties,
+            entityStatusMap.creationSuccesses[proposedEntity.entityId] = {
+              entityTypeId,
+              entity: { linkData, metadata: createdEntityMetadata, properties },
+              operation: "create",
+              proposedEntity,
+              status: "success",
             };
           } catch (err) {
-            creationFailuresByTemporaryId[proposedEntity.entityId] = {
-              temporaryId: proposedEntity.entityId,
+            log(
+              `Creation of link entity id ${
+                proposedEntity.entityId
+              } failed with err: ${JSON.stringify(err, undefined, 2)}`,
+            );
+
+            entityStatusMap.creationFailures[proposedEntity.entityId] = {
               entityTypeId,
-              properties,
+              operation: "create",
+              proposedEntity,
+              status: "failure",
               failureReason: (err as Error).message,
             };
           }
@@ -223,8 +405,5 @@ export const createEntities = async ({
     }),
   );
 
-  return {
-    createdEntities: Object.values(createdEntitiesByTemporaryId),
-    creationFailures: Object.values(creationFailuresByTemporaryId),
-  };
+  return entityStatusMap;
 };

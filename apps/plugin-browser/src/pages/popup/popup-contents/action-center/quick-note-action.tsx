@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/graph";
 import { Button } from "@hashintel/design-system";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
@@ -21,7 +21,7 @@ import {
 } from "../../../../graphql/api-types.gen";
 import { createEntityMutation } from "../../../../graphql/queries/entity.queries";
 import { queryGraphQlApi } from "../../../../shared/query-graphql-api";
-import { useSessionStorage } from "../../../shared/use-storage-sync";
+import { useLocalStorage } from "../../../shared/use-local-storage";
 import { Action } from "./action";
 import { QuickNoteIcon } from "./quick-note-action/quick-note-icon";
 import { TextFieldWithDarkMode } from "./text-field-with-dark-mode";
@@ -115,7 +115,7 @@ const createQuickNote = async (text: string) => {
 };
 
 export const QuickNoteAction = () => {
-  const [draftQuickNote, setDraftQuickNote] = useSessionStorage(
+  const [draftQuickNote, setDraftQuickNote] = useLocalStorage(
     "draftQuickNote",
     "",
   );
