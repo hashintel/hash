@@ -10,8 +10,9 @@ import {
 import { joinOrg, User } from "../graph/knowledge/system-types/user";
 import { PageDefinition, seedPages } from "./seed-pages";
 import { ensureUsersAreSeeded } from "./seed-users";
+import { VersionedUrl } from "@blockprotocol/type-system";
 
-export const CACHED_DATA_TYPE_SCHEMAS: Record<string, string> = {
+export const CACHED_DATA_TYPE_SCHEMAS: Record<VersionedUrl, string> = {
   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1":
     "text/1.json",
   "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1":
@@ -26,7 +27,7 @@ export const CACHED_DATA_TYPE_SCHEMAS: Record<string, string> = {
     "null/1.json",
 };
 
-export const CACHED_PROPERTY_TYPE_SCHEMAS: Record<string, string> = {
+export const CACHED_PROPERTY_TYPE_SCHEMAS: Record<VersionedUrl, string> = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/v/1":
     "original_source/1.json",
   "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/v/1":
@@ -55,7 +56,7 @@ export const CACHED_PROPERTY_TYPE_SCHEMAS: Record<string, string> = {
     "name/1.json",
 };
 
-export const CACHED_ENTITY_TYPE_SCHEMAS: Record<string, string> = {
+export const CACHED_ENTITY_TYPE_SCHEMAS: Record<VersionedUrl, string> = {
   "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1":
     "link/1.json",
   "https://blockprotocol.org/@hash/types/entity-type/query/v/1": "query/1.json",
