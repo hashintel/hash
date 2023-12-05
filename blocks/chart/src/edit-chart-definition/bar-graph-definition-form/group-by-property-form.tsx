@@ -18,7 +18,10 @@ import pluralize from "pluralize";
 import { FunctionComponent, useMemo } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 
-import { ChartDefinition } from "../../types/chart-definition";
+import {
+  BarChartGroupByPropertyVariant,
+  ChartDefinition,
+} from "../../types/chart-definition";
 import { getEntityTypePropertyTypes } from "../util";
 
 export const generateXAxisLabel = (params: {
@@ -34,7 +37,7 @@ export const generateYAxisLabel = (params: { entityType: EntityType }) =>
 
 export const generateInitialChartDefinition = (params: {
   queryResult: Subgraph<EntityRootType>;
-}): ChartDefinition | undefined => {
+}): BarChartGroupByPropertyVariant | undefined => {
   const { queryResult } = params;
 
   const resultEntity = getRoots(queryResult)[0]!;
@@ -72,7 +75,6 @@ export const generateInitialChartDefinition = (params: {
   }
 
   return {
-    kind: "bar-chart",
     variant: "group-by-property",
     entityTypeId: entityType.$id,
     groupByPropertyTypeId: groupByPropertyType.$id,

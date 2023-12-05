@@ -6,9 +6,11 @@ import { Controller, useFormContext } from "react-hook-form";
 import { ChartDefinition } from "../types/chart-definition";
 import {
   CountLinksForm,
+  generateInitialChartDefinition as generateInitialCountLinkedEntitiesChartDefinition,
   generateXAxisLabel as generateCountLinkedEntitiesXAxisLabel,
 } from "./bar-graph-definition-form/count-linked-entities-form";
 import {
+  generateInitialChartDefinition as generateInitialGroupByPropertyChartDefinition,
   generateYAxisLabel as generateGroupByPropertyYAxisLabel,
   GroupByPropertyForm,
 } from "./bar-graph-definition-form/group-by-property-form";
@@ -40,6 +42,49 @@ export const BarChartDefinitionForm: FunctionComponent<{
             <InputLabel id="bar-chart-variant">Bar Chart Variant</InputLabel>
             <Select
               {...field}
+              onChange={(event) => {
+                const updatedVariant = event.target
+                  .value as ChartDefinition<"bar-chart">["variant"];
+
+                if (updatedVariant === "group-by-property") {
+                  const initialDefinition =
+                    generateInitialGroupByPropertyChartDefinition({
+                      queryResult,
+                    });
+
+                  if (initialDefinition) {
+                    setValue("entityTypeId", initialDefinition.entityTypeId);
+                    setValue(
+                      "groupByPropertyTypeId",
+                      initialDefinition.groupByPropertyTypeId,
+                    );
+                    setValue("xAxisLabel", initialDefinition.xAxisLabel);
+                    setValue("yAxisLabel", initialDefinition.yAxisLabel);
+                  }
+                } else {
+                  const initialDefinition =
+                    generateInitialCountLinkedEntitiesChartDefinition({
+                      queryResult,
+                    });
+
+                  if (initialDefinition) {
+                    setValue("entityTypeId", initialDefinition.entityTypeId);
+                    setValue(
+                      "labelPropertyTypeId",
+                      initialDefinition.labelPropertyTypeId,
+                    );
+                    setValue("direction", initialDefinition.direction);
+                    setValue(
+                      "linkEntityTypeId",
+                      initialDefinition.linkEntityTypeId,
+                    );
+                    setValue("xAxisLabel", initialDefinition.xAxisLabel);
+                    setValue("yAxisLabel", initialDefinition.yAxisLabel);
+                  }
+                }
+
+                field.onChange(event);
+              }}
               labelId="bar-chart-variant"
               label="Bar Chart Variant"
               required

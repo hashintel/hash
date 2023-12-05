@@ -1,6 +1,7 @@
 import {
   EntityRootType,
   EntityType,
+  extractBaseUrl,
   ParseVersionedUrlError,
   Subgraph,
   VersionedUrl,
@@ -20,7 +21,10 @@ import pluralize from "pluralize";
 import { FunctionComponent, useCallback, useMemo } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 
-import { ChartDefinition } from "../../types/chart-definition";
+import {
+  BarChartCountLinkedEntitiesVariant,
+  ChartDefinition,
+} from "../../types/chart-definition";
 import { getEntityTypePropertyTypes } from "../util";
 
 export const generateXAxisLabel = (params: { entityType: EntityType }) =>
@@ -33,6 +37,124 @@ export const generateYAxisLabel = (params: {
   `Number of ${
     params.direction
   } ${params.linkEntityType.title.toLowerCase()} links`;
+
+const getOutgoingLinkEntityTypes = (params: {
+  entityType: EntityType;
+  queryResult: Subgraph<EntityRootType>;
+}) => {
+  const outgoingLinkEntityTypeIds = Object.keys(
+    params.entityType.links ?? {},
+  ) as VersionedUrl[];
+
+  /** @todo: account for inherited links */
+
+  return outgoingLinkEntityTypeIds
+    .map(
+      (linkEntityTypeId) =>
+        getEntityTypeById(params.queryResult, linkEntityTypeId)?.schema ?? [],
+    )
+    .flat();
+};
+
+const getIncomingLinkEntityTypes = (params: {
+  queryResult: Subgraph<EntityRootType>;
+}) => {
+  const { queryResult } = params;
+  const entities = getRoots(queryResult);
+
+  return entities
+    .map(({ metadata }) =>
+      getIncomingLinksForEntity(
+        queryResult as unknown as TemporalSubgraph,
+        metadata.recordId.entityId,
+      ),
+    )
+    .flat()
+    .map((linkEntity) => linkEntity.metadata.entityTypeId)
+    .filter((linkEntityTypeId, i, all) => all.indexOf(linkEntityTypeId) === i)
+    .map((linkEntityTypeId) => {
+      const linkEntityType = getEntityTypeById(queryResult, linkEntityTypeId);
+
+      return linkEntityType?.schema ?? [];
+    })
+    .flat();
+};
+
+export const generateInitialChartDefinition = (params: {
+  queryResult: Subgraph<EntityRootType>;
+}): BarChartCountLinkedEntitiesVariant | undefined => {
+  const { queryResult } = params;
+
+  const resultEntity = getRoots(queryResult)[0]!;
+
+  const entityType = getEntityTypeById(
+    queryResult,
+    resultEntity.metadata.entityTypeId,
+  )?.schema;
+
+  if (!entityType) {
+    return undefined;
+  }
+
+  const propertyTypes = getEntityTypePropertyTypes(queryResult, entityType);
+
+  const resultPropertyTypeWithTextValue = propertyTypes.find(
+    ({ $id, oneOf }) =>
+      Object.keys(resultEntity.properties).some(
+        (propertyTypeBaseUrl) => extractBaseUrl($id) === propertyTypeBaseUrl,
+      ) &&
+      oneOf.some(
+        (value) =>
+          "$ref" in value &&
+          value.$ref ===
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+      ),
+    [],
+  );
+
+  const labelPropertyType = resultPropertyTypeWithTextValue ?? propertyTypes[0];
+
+  if (!labelPropertyType) {
+    return undefined;
+  }
+
+  const outgoingLinkEntityTypes = getOutgoingLinkEntityTypes({
+    entityType,
+    queryResult,
+  });
+
+  let linkEntityType = outgoingLinkEntityTypes[0];
+
+  let direction: "incoming" | "outgoing" = "outgoing";
+
+  if (!linkEntityType) {
+    const incomingLinkEntityTypes = getIncomingLinkEntityTypes({
+      queryResult,
+    });
+
+    linkEntityType = incomingLinkEntityTypes[0];
+    direction = "incoming";
+
+    if (!linkEntityType) {
+      return undefined;
+    }
+  }
+
+  return {
+    variant: "count-links",
+    entityTypeId: entityType.$id,
+    labelPropertyTypeId: labelPropertyType.$id,
+    direction,
+    linkEntityTypeId: linkEntityType.$id,
+    xAxisLabel: generateXAxisLabel({
+      entityType,
+    }),
+    yAxisLabel: generateYAxisLabel({
+      linkEntityType,
+      direction: "outgoing",
+    }),
+  };
+};
 
 export const CountLinksForm: FunctionComponent<{
   queryResult: Subgraph<EntityRootType>;
@@ -64,47 +186,20 @@ export const CountLinksForm: FunctionComponent<{
 
   const outgoingLinkEntityTypes = useMemo(() => {
     if (entityType) {
-      const outgoingLinkEntityTypeIds = Object.keys(
-        entityType.links ?? {},
-      ) as VersionedUrl[];
-      /** @todo: account for inherited links */
-
-      return outgoingLinkEntityTypeIds
-        .map(
-          (linkEntityTypeId) =>
-            getEntityTypeById(queryResult, linkEntityTypeId)?.schema ?? [],
-        )
-        .flat();
+      return getOutgoingLinkEntityTypes({
+        entityType,
+        queryResult,
+      });
     }
   }, [entityType, queryResult]);
 
-  const incomingLinkEntityTypes = useMemo(() => {
-    if (entityType) {
-      const entities = getRoots(queryResult);
-
-      return entities
-        .map(({ metadata }) =>
-          getIncomingLinksForEntity(
-            queryResult as unknown as TemporalSubgraph,
-            metadata.recordId.entityId,
-          ),
-        )
-        .flat()
-        .map((linkEntity) => linkEntity.metadata.entityTypeId)
-        .filter(
-          (linkEntityTypeId, i, all) => all.indexOf(linkEntityTypeId) === i,
-        )
-        .map((linkEntityTypeId) => {
-          const linkEntityType = getEntityTypeById(
-            queryResult,
-            linkEntityTypeId,
-          );
-
-          return linkEntityType?.schema ?? [];
-        })
-        .flat();
-    }
-  }, [entityType, queryResult]);
+  const incomingLinkEntityTypes = useMemo(
+    () =>
+      getIncomingLinkEntityTypes({
+        queryResult,
+      }),
+    [queryResult],
+  );
 
   const direction = watch("direction");
 

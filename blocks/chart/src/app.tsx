@@ -196,7 +196,10 @@ export const App: BlockComponent<BlockEntity> = ({
       });
 
       if (generatedChartDefinition) {
-        void updateChartDefinition(generatedChartDefinition);
+        void updateChartDefinition({
+          ...generatedChartDefinition,
+          kind: "bar-chart",
+        });
       }
     }
   }, [queryResult, updateChartDefinition, chartDefinition]);
