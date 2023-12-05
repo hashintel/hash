@@ -291,6 +291,7 @@ export const updateEntityResolver: ResolverFn<
 > = async (
   _,
   {
+    draft,
     entityId,
     updatedProperties,
     leftToRightOrder,
@@ -367,6 +368,7 @@ export const updateEntityResolver: ResolverFn<
       properties: updatedProperties,
       leftToRightOrder: leftToRightOrder ?? undefined,
       rightToLeftOrder: rightToLeftOrder ?? undefined,
+      draft: draft ?? undefined,
     });
   } else {
     if (leftToRightOrder || rightToLeftOrder) {
@@ -379,6 +381,7 @@ export const updateEntityResolver: ResolverFn<
       entity,
       entityTypeId: entityTypeId ?? undefined,
       properties: updatedProperties,
+      draft: draft ?? undefined,
     });
   }
 

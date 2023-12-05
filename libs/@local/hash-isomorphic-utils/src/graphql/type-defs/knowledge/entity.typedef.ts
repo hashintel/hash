@@ -199,6 +199,10 @@ export const entityTypedef = gql`
       The new type of the updated entity
       """
       entityTypeId: VersionedUrl
+      """
+      Whether the updated entity should be a draft
+      """
+      draft: Boolean
     ): Entity!
 
     """
