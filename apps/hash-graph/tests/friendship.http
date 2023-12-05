@@ -486,13 +486,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   }
 }
 
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-    });
-    client.global.set("link_entity_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
-%}
-
 ### Insert Friendship entity link type
 POST http://127.0.0.1:4000/entity-types
 Content-Type: application/json
@@ -509,7 +502,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "title": "Friendship",
     "allOf": [
       {
-        "$ref": "{{link_entity_type_id}}"
+        "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
       }
     ],
     "properties": {}
@@ -944,7 +937,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         ]
       },
       {
-        "parameter": "{{link_entity_type_id}}"
+        "parameter": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
       }
     ]
   },
@@ -1682,7 +1675,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         ]
       },
       {
-        "parameter": "{{link_entity_type_id}}"
+        "parameter": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
       }
     ]
   },

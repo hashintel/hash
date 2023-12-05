@@ -47,13 +47,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   }
 }
 
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-    });
-    client.global.set("link_entity_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
-%}
-
 ### Insert link entity type
 POST http://127.0.0.1:4000/entity-types
 Content-Type: application/json
@@ -68,7 +61,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "$id": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
     "type": "object",
     "title": "Object",
-    "allOf": [{ "$ref": "{{link_entity_type_id}}" }],
+    "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1" }],
     "properties": {}
   }
 }
