@@ -1,0 +1,12 @@
+{
+  "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/name/v/1",
+  "description": "A word or set of words by which something is known, addressed, or referred to.",
+  "oneOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+    }
+  ],
+  "kind": "propertyType",
+  "title": "Name",
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type"
+}

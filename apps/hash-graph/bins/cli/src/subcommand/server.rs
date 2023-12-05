@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     fmt, fs,
     net::{AddrParseError, SocketAddr},
     sync::Arc,
@@ -9,7 +8,6 @@ use std::{
 use authorization::{
     backend::{SpiceDbOpenApi, ZanzibarBackend},
     zanzibar::ZanzibarClient,
-    NoAuthorization,
 };
 use clap::Parser;
 use error_stack::{Report, Result, ResultExt};
@@ -17,28 +15,12 @@ use graph::{
     api::rest::{rest_api_router, OpenApiDocumentation, RestRouterDependencies},
     logging::{init_logger, LoggingArgs},
     ontology::domain_validator::DomainValidator,
-    store::{
-        error::VersionedUrlAlreadyExists, AccountStore, DataTypeStore, DatabaseConnectionInfo,
-        EntityTypeStore, FetchingPool, PostgresStorePool, StorePool,
-    },
-};
-use graph_types::{
-    account::AccountId,
-    ontology::{
-        PartialCustomOntologyMetadata, PartialEntityTypeMetadata, PartialOntologyElementMetadata,
-    },
+    store::{DatabaseConnectionInfo, FetchingPool, PostgresStorePool, StorePool},
 };
 use regex::Regex;
 use reqwest::Client;
-use serde_json::json;
-use time::OffsetDateTime;
 use tokio::{net::TcpListener, time::timeout};
 use tokio_postgres::NoTls;
-use type_system::{
-    url::{BaseUrl, VersionedUrl},
-    AllOf, DataType, EntityType, Links, Object,
-};
-use uuid::Uuid;
 
 use crate::{
     error::{GraphError, HealthcheckError},
@@ -118,7 +100,7 @@ pub struct ServerArgs {
     pub write_openapi_specs: bool,
 
     /// Starts a server without connecting to the type fetcher
-    #[clap(long, default_value_t = false, conflicts_with_all = ["type_fetcher_host", "type_fetcher_port"])]
+    #[clap(long, default_value_t = false)]
     pub offline: bool,
 
     /// The host the Spice DB server is listening at.
@@ -132,201 +114,6 @@ pub struct ServerArgs {
     /// The secret key used to authenticate with the Spice DB server.
     #[clap(long, env = "HASH_SPICEDB_GRPC_PRESHARED_KEY")]
     pub spicedb_grpc_preshared_key: Option<String>,
-}
-
-// TODO: Consider making this a refinery migration
-/// A place to collect temporary implementations that are useful before stabilization of the Graph.
-///
-/// This will include things that are mocks or stubs to make up for missing pieces of infrastructure
-/// that haven't been created yet.
-#[expect(clippy::too_many_lines, reason = "temporary solution")]
-async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphError> {
-    // TODO: how do we make these URLs compliant
-    let text = DataType::new(
-        VersionedUrl {
-            base_url: BaseUrl::new(
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
-            )
-            .expect("failed to construct base URL"),
-            version: 1,
-        },
-        "Text".to_owned(),
-        Some("An ordered sequence of characters".to_owned()),
-        "string".to_owned(),
-        HashMap::default(),
-    );
-
-    let number = DataType::new(
-        VersionedUrl {
-            base_url: BaseUrl::new(
-                "https://blockprotocol.org/@blockprotocol/types/data-type/number/".to_owned(),
-            )
-            .expect("failed to construct base URL"),
-            version: 1,
-        },
-        "Number".to_owned(),
-        Some("An arithmetical value (in the Real number system)".to_owned()),
-        "number".to_owned(),
-        HashMap::default(),
-    );
-
-    let boolean = DataType::new(
-        VersionedUrl {
-            base_url: BaseUrl::new(
-                "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/".to_owned(),
-            )
-            .expect("failed to construct base URL"),
-            version: 1,
-        },
-        "Boolean".to_owned(),
-        Some("A True or False value".to_owned()),
-        "boolean".to_owned(),
-        HashMap::default(),
-    );
-
-    let null = DataType::new(
-        VersionedUrl {
-            base_url: BaseUrl::new(
-                "https://blockprotocol.org/@blockprotocol/types/data-type/null/".to_owned(),
-            )
-            .expect("failed to construct base URL"),
-            version: 1,
-        },
-        "Null".to_owned(),
-        Some("A placeholder value representing 'nothing'".to_owned()),
-        "null".to_owned(),
-        HashMap::default(),
-    );
-
-    let object = DataType::new(
-        VersionedUrl {
-            base_url: BaseUrl::new(
-                "https://blockprotocol.org/@blockprotocol/types/data-type/object/".to_owned(),
-            )
-            .expect("failed to construct base URL"),
-            version: 1,
-        },
-        "Object".to_owned(),
-        Some("A plain JSON object with no pre-defined structure".to_owned()),
-        "object".to_owned(),
-        HashMap::default(),
-    );
-
-    let empty_list = DataType::new(
-        VersionedUrl {
-            base_url: BaseUrl::new(
-                "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/".to_owned(),
-            )
-            .expect("failed to construct base URL"),
-            version: 1,
-        },
-        "Empty List".to_owned(),
-        Some("An Empty List".to_owned()),
-        "array".to_owned(),
-        HashMap::from([("const".to_owned(), json!([]))]),
-    );
-
-    // TODO: Revisit once an authentication and authorization setup is in place
-    let root_account_id = AccountId::new(Uuid::nil());
-
-    let mut connection = pool
-        .acquire()
-        .await
-        .change_context(GraphError)
-        .map_err(|err| {
-            tracing::error!(?err, "Failed to acquire database connection");
-            err
-        })?;
-
-    // TODO: When we improve error management we need to match on it here, this will continue
-    //  normally even if the DB is down
-    if connection
-        .insert_account_id(root_account_id, &mut NoAuthorization, root_account_id)
-        .await
-        .change_context(GraphError)
-        .is_err()
-    {
-        tracing::info!(%root_account_id, "tried to create root account, but id already exists");
-    } else {
-        tracing::info!(%root_account_id, "created root account id");
-    }
-
-    // Seed the primitive data types if they don't already exist
-    for data_type in [text, number, boolean, empty_list, object, null] {
-        let title = data_type.title().to_owned();
-
-        let data_type_metadata = PartialOntologyElementMetadata {
-            record_id: data_type.id().clone().into(),
-            custom: PartialCustomOntologyMetadata::External {
-                fetched_at: OffsetDateTime::now_utc(),
-            },
-        };
-
-        if let Err(error) = connection
-            .create_data_type(
-                root_account_id,
-                &mut NoAuthorization,
-                data_type,
-                data_type_metadata,
-            )
-            .await
-            .change_context(GraphError)
-        {
-            if error.contains::<VersionedUrlAlreadyExists>() {
-                tracing::info!(%root_account_id, "tried to insert primitive {title} data type, but it already exists");
-            } else {
-                return Err(error.change_context(GraphError));
-            }
-        } else {
-            tracing::info!(%root_account_id, "inserted the primitive {title} data type");
-        }
-    }
-    let link_entity_type = EntityType::new(
-        VersionedUrl {
-            base_url: BaseUrl::new(
-                "https://blockprotocol.org/@blockprotocol/types/entity-type/link/".to_owned(),
-            )
-            .expect("failed to construct base URL"),
-            version: 1,
-        },
-        "Link".to_owned(),
-        Some("A link".to_owned()),
-        Object::new(HashMap::default(), Vec::default()).expect("invalid property object"),
-        AllOf::new([]),
-        Links::new(HashMap::default()),
-        Vec::default(),
-    );
-
-    let link_entity_type_metadata = PartialEntityTypeMetadata {
-        record_id: link_entity_type.id().clone().into(),
-        label_property: None,
-        icon: None,
-        custom: PartialCustomOntologyMetadata::External {
-            fetched_at: OffsetDateTime::now_utc(),
-        },
-    };
-
-    let title = link_entity_type.title().to_owned();
-
-    if let Err(error) = connection
-        .create_entity_type(
-            root_account_id,
-            &mut NoAuthorization,
-            link_entity_type,
-            link_entity_type_metadata,
-        )
-        .await
-    {
-        if error.contains::<VersionedUrlAlreadyExists>() {
-            tracing::info!(%root_account_id, "tried to insert {title} entity type, but it already exists");
-        } else {
-            return Err(error.change_context(GraphError));
-        }
-    } else {
-        tracing::info!(%root_account_id, "inserted the {title} entity type");
-    }
-
-    Ok(())
 }
 
 pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
@@ -378,8 +165,6 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
         .attach_printable("Connection to database failed")?;
 
     let pool = if args.offline {
-        stop_gap_setup(&pool).await?;
-
         FetchingPool::new_offline(pool)
     } else {
         FetchingPool::new(
