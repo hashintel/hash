@@ -1,8 +1,4 @@
-import {
-  Autocomplete,
-  CaretDownSolidIcon,
-  MenuItem,
-} from "@hashintel/design-system";
+import { Autocomplete, MenuItem } from "@hashintel/design-system";
 import { Image } from "@local/hash-isomorphic-utils/system-types/shared";
 import { OwnedById } from "@local/hash-subgraph";
 import {
@@ -20,13 +16,6 @@ import {
 } from "../../../../../shared/style-values";
 import { Avatar } from "../../../shared/avatar";
 
-type WebSelectorProps = {
-  active: boolean;
-  selectedWebOwnedById: OwnedById;
-  setSelectedWebOwnedById: (ownedById: OwnedById) => void;
-  user: NonNullable<LocalStorage["user"]>;
-};
-
 type WebOption = {
   avatar?: Image | null;
   label: string;
@@ -34,7 +23,18 @@ type WebOption = {
   value: OwnedById;
 };
 
-const RenderOptionContent = ({ avatar, label, name }: WebOption) => {
+type WebSelectorProps = {
+  active: boolean;
+  selectedWebOwnedById: OwnedById;
+  setSelectedWebOwnedById: (ownedById: OwnedById) => void;
+  user: NonNullable<LocalStorage["user"]>;
+};
+
+const RenderOptionContent = ({
+  avatar,
+  label,
+  name,
+}: Pick<WebOption, "avatar" | "label" | "name">) => {
   return (
     <>
       <Avatar avatar={avatar} name={name} size={20} />

@@ -1,3 +1,5 @@
+import * as domain from "node:domain";
+
 import browser from "webextension-polyfill";
 
 import { getUser } from "../shared/get-user";
@@ -54,9 +56,17 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
           } satisfies GetSiteContentRequest) as Promise<GetSiteContentReturn>);
 
           const applicableRules = automaticInferenceConfig.rules.filter(
-            ({ restrictToDomains }) =>
-              !restrictToDomains ||
-              restrictToDomains.includes(new URL(pageDetails.pageUrl).hostname),
+            ({ restrictToDomains }) => {
+              const pageHostname = new URL(pageDetails.pageUrl).hostname;
+              return (
+                restrictToDomains.length === 0 ||
+                restrictToDomains.some(
+                  (domainToMatch) =>
+                    pageHostname === domainToMatch ||
+                    pageHostname.endsWith(`.${domainToMatch}`),
+                )
+              );
+            },
           );
 
           if (applicableRules.length === 0) {

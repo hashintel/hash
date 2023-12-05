@@ -3,7 +3,6 @@ import { Autocomplete, Chip, MenuItem } from "@hashintel/design-system";
 import { BaseUrl, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import {
   autocompleteClasses,
-  Box,
   outlinedInputClasses,
   Typography,
 } from "@mui/material";
@@ -14,34 +13,25 @@ import {
   darkModeInputBackgroundColor,
   darkModeInputColor,
   darkModePlaceholderColor,
-} from "../../../../../shared/style-values";
-import { useEntityTypes } from "../../../../../shared/use-entity-types";
-
-// This assumes a VersionedURL in the hash.ai/blockprotocol.org format
-const getChipLabelFromId = (id: VersionedUrl) => {
-  const url = new URL(id);
-  const [_emptyString, namespace, _types, _entityType, typeSlug] =
-    url.pathname.split("/");
-
-  return `${
-    url.origin !== FRONTEND_ORIGIN ? `${url.host} / ` : ""
-  }${namespace} / ${typeSlug}`;
-};
+} from "../../../../shared/style-values";
+import { useEntityTypes } from "../../../../shared/use-entity-types";
 
 type SelectTypesAndInferProps = {
+  inputHeight: number;
   multiple: boolean;
   setTargetEntityTypeIds: (typeIds: VersionedUrl[]) => void;
   targetEntityTypeIds: VersionedUrl[] | null;
 };
 
+const menuWidth = 300;
+
 export const EntityTypeSelector = ({
+  inputHeight,
   multiple,
   setTargetEntityTypeIds,
   targetEntityTypeIds,
 }: SelectTypesAndInferProps) => {
   const allEntityTypes = useEntityTypes();
-
-  const [selectOpen, setSelectOpen] = useState(false);
 
   const selectedEntityTypes = useMemo(
     () =>
@@ -94,17 +84,22 @@ export const EntityTypeSelector = ({
               background: darkModeInputBackgroundColor,
               borderColor: darkModeBorderColor,
             },
+            width: menuWidth,
           },
         },
-        popper: { placement: "top" },
+        popper: {
+          placement: "top",
+          sx: { "& div": { boxShadow: "none" } },
+        },
       }}
       disableClearable
       getOptionLabel={(option) => option.schema.title}
+      inputHeight={inputHeight}
       inputProps={{
         endAdornment: <div />,
-        placeholder: "Search for types...",
+        placeholder:
+          selectedEntityTypes.length > 0 ? "" : "Search for types...",
         sx: () => ({
-          height: "auto",
           [`&.${outlinedInputClasses.root}`]: {
             py: 0.3,
             px: 1,
@@ -142,17 +137,13 @@ export const EntityTypeSelector = ({
         },
       ]}
       multiple={multiple}
-      open={selectOpen}
       onChange={(_event, value) => {
         setTargetEntityTypeIds(
           Array.isArray(value)
             ? value.map((type) => type.schema.$id)
             : [value.schema.$id],
         );
-        setSelectOpen(false);
       }}
-      onClose={() => setSelectOpen(false)}
-      onOpen={() => setSelectOpen(true)}
       options={optionsInDropdown}
       renderOption={(props, type) => (
         <MenuItem
@@ -211,7 +202,7 @@ export const EntityTypeSelector = ({
           />
         ))
       }
-      value={multiple ? selectedEntityTypes : selectedEntityTypes[0]}
+      value={multiple ? selectedEntityTypes : selectedEntityTypes[0] ?? null}
     />
   );
 };

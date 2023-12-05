@@ -1,4 +1,8 @@
-import { Button } from "@hashintel/design-system";
+import {
+  Button,
+  CaretDownSolidIcon,
+  IconButton,
+} from "@hashintel/design-system";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 import browser, { Tabs } from "webextension-polyfill";
@@ -11,10 +15,10 @@ import { LocalStorage } from "../../../../../shared/storage";
 import { sendMessageToBackground } from "../../../../shared/messages";
 import { borderColors } from "../../../../shared/style-values";
 import { useLocalStorage } from "../../../../shared/use-local-storage";
+import { EntityTypeSelector } from "../shared/entity-type-selector";
 import { Section } from "../shared/section";
 import { SelectWebTarget } from "../shared/select-web-target";
 import { CreateEntityIcon } from "./infer-entities-action/create-entity-icon";
-import { EntityTypeSelector } from "./infer-entities-action/entity-type-selector";
 import { InferenceRequests } from "./infer-entities-action/inference-requests";
 
 export const InferEntitiesAction = ({
@@ -105,6 +109,7 @@ export const InferEntitiesAction = ({
       >
         <Box mb={1.5}>
           <EntityTypeSelector
+            inputHeight={50}
             multiple
             setTargetEntityTypeIds={(newTargetIds) =>
               setManualInferenceConfig({
@@ -176,6 +181,17 @@ export const InferEntitiesAction = ({
               }}
             >
               Additional options
+              <CaretDownSolidIcon
+                sx={({ palette, transitions }) => ({
+                  fill: showAdditionalConfig
+                    ? palette.common.black
+                    : palette.gray[80],
+                  transform: showAdditionalConfig ? "none" : "rotate(-90deg)",
+                  transition: transitions.create("transform", {
+                    duration: 300,
+                  }),
+                })}
+              />
             </Typography>
           </Box>
         </Stack>

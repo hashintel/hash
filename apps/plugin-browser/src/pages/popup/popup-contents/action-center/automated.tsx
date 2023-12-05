@@ -13,24 +13,20 @@ import { Section } from "./shared/section";
 import { SelectWebTarget } from "./shared/select-web-target";
 
 export const Automated = ({
+  automaticInferenceConfig,
+  setAutomaticInferenceConfig,
   user,
 }: {
+  automaticInferenceConfig: LocalStorage["automaticInferenceConfig"];
+  setAutomaticInferenceConfig: (
+    newAutomaticInferenceConfig: LocalStorage["automaticInferenceConfig"],
+  ) => void;
   user: NonNullable<LocalStorage["user"]>;
 }) => {
-  const [inferenceConfig, setInferenceConfig] = useLocalStorage(
-    "automaticInferenceConfig",
-    {
-      createAs: "draft",
-      enabled: false,
-      ownedById: user.webOwnedById,
-      rules: [],
-    },
-  );
-
-  const { createAs, enabled, ownedById } = inferenceConfig;
+  const { createAs, enabled, ownedById } = automaticInferenceConfig;
 
   return (
-    <>
+    <Box pb={1}>
       <Section
         description="Automatically identify entities and attributes for you as you browse"
         headerText="Auto-inference Actions"
@@ -42,8 +38,8 @@ export const Automated = ({
                 <Switch
                   checked={enabled}
                   onChange={(event) =>
-                    setInferenceConfig({
-                      ...inferenceConfig,
+                    setAutomaticInferenceConfig({
+                      ...automaticInferenceConfig,
                       enabled: event.target.checked,
                     })
                   }
@@ -71,8 +67,8 @@ export const Automated = ({
         headerText="Limit scope"
       >
         <SelectScope
-          inferenceConfig={inferenceConfig}
-          setInferenceConfig={setInferenceConfig}
+          inferenceConfig={automaticInferenceConfig}
+          setInferenceConfig={setAutomaticInferenceConfig}
         />
       </Section>
       <Section
@@ -82,21 +78,21 @@ export const Automated = ({
         <SelectWebTarget
           createAs={createAs}
           setCreateAs={(newCreateAs) =>
-            setInferenceConfig({
-              ...inferenceConfig,
+            setAutomaticInferenceConfig({
+              ...automaticInferenceConfig,
               createAs: newCreateAs,
             })
           }
           ownedById={ownedById}
           setOwnedById={(newOwnedById) =>
-            setInferenceConfig({
-              ...inferenceConfig,
+            setAutomaticInferenceConfig({
+              ...automaticInferenceConfig,
               ownedById: newOwnedById,
             })
           }
           user={user}
         />
       </Section>
-    </>
+    </Box>
   );
 };

@@ -4,6 +4,7 @@ import { FunctionComponent, PropsWithChildren } from "react";
 
 import {
   darkModeBorderColor,
+  darkModeInputColor,
   lightModeBorderColor,
 } from "../../../../shared/style-values";
 
@@ -79,7 +80,16 @@ export const Section = ({
         )}
       </Stack>
       {description && (
-        <Typography sx={{ color: ({ palette }) => palette.gray[90], mb: 1.5 }}>
+        <Typography
+          sx={({ palette }) => ({
+            color: palette.gray[90],
+            fontSize: 14,
+            mb: 1.5,
+            "@media (prefers-color-scheme: dark)": {
+              color: darkModeInputColor,
+            },
+          })}
+        >
           {description}
         </Typography>
       )}

@@ -1,8 +1,8 @@
 import { Autocomplete, Chip, MenuItem } from "@hashintel/design-system";
 import {
   autocompleteClasses,
+  createFilterOptions,
   outlinedInputClasses,
-  Typography,
 } from "@mui/material";
 
 import {
@@ -12,14 +12,16 @@ import {
   darkModePlaceholderColor,
 } from "../../../../../shared/style-values";
 
+const filter = createFilterOptions<string>();
+
 export const SelectDomains = ({
   options,
   selectedDomains,
   setSelectedDomains,
 }: {
   options: string[];
-  selectedDomains: string[] | null;
-  setSelectedDomains: (domains: string[] | null) => void;
+  selectedDomains: string[];
+  setSelectedDomains: (domains: string[]) => void;
 }) => {
   return (
     <Autocomplete
@@ -36,10 +38,24 @@ export const SelectDomains = ({
         },
         popper: { placement: "top" },
       }}
+      filterOptions={(allOptions, params) => {
+        const filtered = filter(allOptions, params);
+
+        const { inputValue } = params;
+        // Suggest the creation of a new value
+        const isExisting = allOptions.some((option) =>
+          option.includes(inputValue),
+        );
+
+        if (inputValue !== "" && !isExisting) {
+          filtered.push(inputValue);
+        }
+        return filtered;
+      }}
       freeSolo
       inputProps={{
         endAdornment: <div />,
-        placeholder: "Search for types...",
+        placeholder: selectedDomains.length > 0 ? "" : "On any site",
         sx: () => ({
           height: "auto",
           [`&.${outlinedInputClasses.root}`]: {
@@ -78,7 +94,7 @@ export const SelectDomains = ({
       multiple
       onChange={(_event, value) => {
         setSelectedDomains(
-          Array.isArray(value) ? value : [...(selectedDomains ?? []), value],
+          Array.isArray(value) ? value : [...selectedDomains, value],
         );
       }}
       options={options}
@@ -117,16 +133,6 @@ export const SelectDomains = ({
             },
           })}
         >
-          <Typography
-            sx={{
-              fontSize: 14,
-              "@media (prefers-color-scheme: dark)": {
-                color: darkModeInputColor,
-              },
-            }}
-          >
-            {domain}
-          </Typography>
           <Chip color="blue" label={domain} sx={{ ml: 1, fontSize: 13 }} />
         </MenuItem>
       )}
@@ -140,7 +146,7 @@ export const SelectDomains = ({
           />
         ))
       }
-      value={selectedDomains ?? []}
+      value={selectedDomains}
     />
   );
 };

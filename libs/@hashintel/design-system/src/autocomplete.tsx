@@ -22,11 +22,11 @@ type AutocompleteProps<
   T,
   Multiple extends boolean | undefined,
   DisableClearable extends boolean | undefined,
+  FreeSolo extends boolean | undefined,
 > = Omit<
-  MUIAutocompleteProps<T, Multiple, DisableClearable, false>,
+  MUIAutocompleteProps<T, Multiple, DisableClearable, FreeSolo>,
   "renderInput"
 > & {
-  freeSolo?: boolean;
   inputHeight?: number;
   inputRef?: Ref<any>;
   inputLabel?: string;
@@ -34,9 +34,6 @@ type AutocompleteProps<
   inputProps?: InputProps;
   autoFocus?: boolean;
   modifiers?: PopperProps["modifiers"];
-  renderInput?:
-    | MUIAutocompleteProps<T, Multiple, DisableClearable, false>["renderInput"]
-    | null;
   /**
    * joined indicates that the input is connected to another element, so we
    * change the visual appearance of the component to make it flow straight into
@@ -51,6 +48,7 @@ export const Autocomplete = <
   T,
   Multiple extends boolean | undefined,
   DisableClearable extends boolean | undefined,
+  FreeSolo extends boolean | undefined = false,
 >({
   inputHeight = 57,
   open,
@@ -64,12 +62,12 @@ export const Autocomplete = <
   joined = true,
   options,
   componentsProps,
-  renderInput,
   ...rest
 }: AutocompleteProps<
   Multiple extends true ? (T extends any[] ? T[number] : T) : T,
   Multiple,
-  DisableClearable
+  DisableClearable,
+  FreeSolo
 >) => {
   const allModifiers = useMemo(
     (): PopperProps["modifiers"] => [
@@ -121,69 +119,66 @@ export const Autocomplete = <
        * @see LinkEntityTypeSelector
        */
       ref={setAnchorEl}
-      renderInput={
-        renderInput ??
-        ((params) => (
-          <TextField
-            {...params}
-            autoFocus={autoFocus}
-            inputRef={inputRef}
-            placeholder={inputPlaceholder}
-            label={inputLabel}
-            sx={{ width: "100%" }}
-            /**
-             * Prevents backspace deleting chips when in multiple mode
-             * @see https://github.com/mui/material-ui/issues/21129#issuecomment-636919142
-             */
-            onKeyDown={(event) => {
-              if (event.key === "Backspace") {
-                event.stopPropagation();
-              }
-            }}
-            InputProps={{
-              ...params.InputProps,
-              ...inputProps,
-              endAdornment:
-                inputProps && "endAdornment" in inputProps ? (
-                  inputProps.endAdornment
-                ) : (
-                  <FontAwesomeIcon
-                    icon={faSearch}
-                    sx={{
-                      fontSize: 14,
-                      color: ({ palette }) => palette.gray[40],
-                    }}
-                  />
-                ),
-              sx: [
-                (theme) => ({
-                  // The popover needs to know how tall this is to draw
-                  // a shadow around it
-                  height: inputHeight + (inputLabel ? textFieldLabelHeight : 0),
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          autoFocus={autoFocus}
+          inputRef={inputRef}
+          placeholder={inputPlaceholder}
+          label={inputLabel}
+          sx={{ width: "100%" }}
+          /**
+           * Prevents backspace deleting chips when in multiple mode
+           * @see https://github.com/mui/material-ui/issues/21129#issuecomment-636919142
+           */
+          onKeyDown={(event) => {
+            if (event.key === "Backspace") {
+              event.stopPropagation();
+            }
+          }}
+          InputProps={{
+            ...params.InputProps,
+            ...inputProps,
+            endAdornment:
+              inputProps && "endAdornment" in inputProps ? (
+                inputProps.endAdornment
+              ) : (
+                <FontAwesomeIcon
+                  icon={faSearch}
+                  sx={{
+                    fontSize: 14,
+                    color: ({ palette }) => palette.gray[40],
+                  }}
+                />
+              ),
+            sx: [
+              (theme) => ({
+                // The popover needs to know how tall this is to draw
+                // a shadow around it
+                height: inputHeight + (inputLabel ? textFieldLabelHeight : 0),
 
-                  // Focus is handled by the options popover
-                  "&.Mui-focused": {
-                    boxShadow: "none",
-                    ...(open === undefined && options.length
-                      ? popperOpenStyles
-                      : {}),
-                  },
+                // Focus is handled by the options popover
+                "&.Mui-focused": {
+                  boxShadow: "none",
+                  ...(open === undefined && options.length
+                    ? popperOpenStyles
+                    : {}),
+                },
 
-                  [`.${outlinedInputClasses.notchedOutline}`]: {
-                    border: `1px solid ${theme.palette.gray[30]} !important`,
-                  },
-                }),
-                open && options.length ? popperOpenStyles : {},
-                ...(inputProps?.sx
-                  ? Array.isArray(inputProps.sx)
-                    ? inputProps.sx
-                    : [inputProps.sx]
-                  : []),
-              ],
-            }}
-          />
-        ))
-      }
+                [`.${outlinedInputClasses.notchedOutline}`]: {
+                  border: `1px solid ${theme.palette.gray[30]} !important`,
+                },
+              }),
+              open && options.length ? popperOpenStyles : {},
+              ...(inputProps?.sx
+                ? Array.isArray(inputProps.sx)
+                  ? inputProps.sx
+                  : [inputProps.sx]
+                : []),
+            ],
+          }}
+        />
+      )}
       popupIcon={null}
       forcePopupIcon={false}
       selectOnFocus={false}

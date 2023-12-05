@@ -13,10 +13,16 @@ import { FunctionComponent, useState } from "react";
 import type { Tabs } from "webextension-polyfill";
 
 import { LocalStorage } from "../../../shared/storage";
+import {
+  darkModeBorderColor,
+  lightModeBorderColor,
+} from "../../shared/style-values";
+import { useLocalStorage } from "../../shared/use-local-storage";
 import { Automated } from "./action-center/automated";
 import { OneOff } from "./action-center/one-off";
 import { WandMagicSparklesIcon } from "./action-center/wand-magic-sparkles-icon";
 import { Avatar } from "./shared/avatar";
+import { popupWidth } from "./shared/sizing";
 
 const generateCommonTabProps = (
   active: boolean,
@@ -57,18 +63,28 @@ export const ActionCenter = ({
 }) => {
   const [popupTab, setPopupTab] = useState<"one-off" | "automated">("one-off");
 
+  const [automaticInferenceConfig, setAutomaticInferenceConfig] =
+    useLocalStorage("automaticInferenceConfig", {
+      createAs: "draft",
+      enabled: false,
+      ownedById: user.webOwnedById,
+      rules: [],
+    });
+
   return (
-    <Box sx={{ maxWidth: "100%", width: 575 }}>
+    <Box sx={{ maxWidth: "100%", width: popupWidth }}>
       <Stack
         component="header"
         direction="row"
         sx={({ palette }) => ({
           alignItems: "center",
           background: palette.common.white,
+          borderBottom: `1px solid ${lightModeBorderColor}`,
           justifyContent: "space-between",
           px: 2.5,
           "@media (prefers-color-scheme: dark)": {
             background: palette.common.black,
+            borderBottom: `1px solid ${darkModeBorderColor}`,
           },
         })}
       >
@@ -110,11 +126,15 @@ export const ActionCenter = ({
           name={user.properties.preferredName ?? "?"}
         />
       </Stack>
-      <Box sx={{ overflowY: "scroll" }}>
+      <Box sx={{ maxHeight: 550, overflowY: "scroll" }}>
         {popupTab === "one-off" ? (
           <OneOff activeTab={activeTab} user={user} />
         ) : (
-          <Automated user={user} />
+          <Automated
+            automaticInferenceConfig={automaticInferenceConfig}
+            setAutomaticInferenceConfig={setAutomaticInferenceConfig}
+            user={user}
+          />
         )}
       </Box>
     </Box>

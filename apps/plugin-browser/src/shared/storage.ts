@@ -55,7 +55,7 @@ export type LocalStorage = {
     enabled: boolean;
     ownedById: OwnedById;
     rules: {
-      restrictToDomains: string[] | null;
+      restrictToDomains: string[];
       entityTypeId: VersionedUrl;
     }[];
   };

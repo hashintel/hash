@@ -9,11 +9,16 @@ import {
 } from "@mui/material";
 
 import { LocalStorage } from "../../../../../shared/storage";
+import { darkModeInputColor } from "../../../../shared/style-values";
 import { WebSelector } from "./select-web-target/web-selector";
 
 const createRadioItemSx = (active: boolean): SxProps<Theme> => ({
   color: ({ palette }) => (active ? palette.gray[90] : palette.gray[70]),
+  fontSize: 14,
   m: 0,
+  "@media (prefers-color-scheme: dark)": {
+    color: ({ palette }) => (active ? darkModeInputColor : palette.gray[60]),
+  },
 });
 
 type SelectWebTargetProps = {
