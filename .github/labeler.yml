@@ -45,6 +45,7 @@ area/deps:
   - any-glob-to-any-file: **/patches/**
   - any-glob-to-any-file: **/Cargo.lock
   - any-glob-to-any-file: **/yarn.lock
+- head-branch: ['^deps', 'deps']
 
 area/dx:
 - changed-files:
