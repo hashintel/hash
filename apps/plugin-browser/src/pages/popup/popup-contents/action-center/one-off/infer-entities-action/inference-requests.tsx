@@ -9,7 +9,10 @@ import {
 import { format } from "date-fns";
 import { useState } from "react";
 
-import { PageEntityInference } from "../../../../../../shared/storage";
+import {
+  LocalStorage,
+  PageEntityInference,
+} from "../../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
@@ -22,10 +25,12 @@ const InferenceRequestContainer = ({
   expanded,
   request,
   toggleExpanded,
+  user,
 }: {
   expanded: boolean;
   toggleExpanded: () => void;
   request: PageEntityInference;
+  user: NonNullable<LocalStorage["user"]>;
 }) => {
   return (
     <Box
@@ -101,7 +106,7 @@ const InferenceRequestContainer = ({
       <Box>
         <Collapse in={expanded}>
           <Box>
-            <InferenceRequest request={request} />
+            <InferenceRequest request={request} user={user} />
           </Box>
         </Collapse>
       </Box>
@@ -109,7 +114,11 @@ const InferenceRequestContainer = ({
   );
 };
 
-export const InferenceRequests = () => {
+export const InferenceRequests = ({
+  user,
+}: {
+  user: NonNullable<LocalStorage["user"]>;
+}) => {
   const [expandedStatusUuid, setExpandedStatusUuid] = useState<string | null>(
     null,
   );
@@ -132,6 +141,7 @@ export const InferenceRequests = () => {
             expanded={expandedStatusUuid === requestId}
             toggleExpanded={() => toggleExpanded(requestId)}
             request={request}
+            user={user}
           />
         );
       })}

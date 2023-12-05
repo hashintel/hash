@@ -1,5 +1,4 @@
 import { PlusIcon } from "@hashintel/design-system";
-import { type Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   Box,
   Stack,

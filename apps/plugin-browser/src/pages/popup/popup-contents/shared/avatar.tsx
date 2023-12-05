@@ -1,5 +1,5 @@
 import { Image } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Box, SxProps, Theme } from "@mui/material";
+import { Box, Stack, SxProps, Theme } from "@mui/material";
 
 const linkSxProperties: SxProps<Theme> = {
   cursor: "pointer",
@@ -28,7 +28,15 @@ export const Avatar = ({
 
   if (avatar) {
     return (
-      <Box component={href ? "a" : "span"} href={href} sx={linkSxProperties}>
+      <Stack
+        component={href ? "a" : "span"}
+        justifyContent="center"
+        href={href}
+        sx={{
+          ...(href ? linkSxProperties : {}),
+        }}
+        target={href ? "_blank" : undefined}
+      >
         <Box
           component="img"
           src={
@@ -39,7 +47,7 @@ export const Avatar = ({
           alt={`${name}'s avatar`}
           sx={commonSxProperties}
         />
-      </Box>
+      </Stack>
     );
   }
 
@@ -58,7 +66,7 @@ export const Avatar = ({
         ...commonSxProperties,
         ...(href ? linkSxProperties : {}),
       })}
-      target="_blank"
+      target={href ? "_blank" : undefined}
     >
       {name[0]}
     </Box>

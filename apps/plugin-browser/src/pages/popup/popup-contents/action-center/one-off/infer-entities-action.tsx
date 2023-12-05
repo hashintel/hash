@@ -14,6 +14,7 @@ import { useLocalStorage } from "../../../../shared/use-local-storage";
 import { EntityTypeSelector } from "../shared/entity-type-selector";
 import { Section } from "../shared/section";
 import { SelectWebTarget } from "../shared/select-web-target";
+import { ArrowUpToLineIcon } from "./infer-entities-action/arrow-up-to-line-icon";
 import { CreateEntityIcon } from "./infer-entities-action/create-entity-icon";
 import { InferenceRequests } from "./infer-entities-action/inference-requests";
 
@@ -164,6 +165,8 @@ export const InferEntitiesAction = ({
               background: "none",
               border: "none",
               cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
               ml: 2,
               p: 0,
             }}
@@ -173,26 +176,33 @@ export const InferEntitiesAction = ({
               sx={{
                 color: ({ palette }) => palette.gray[80],
                 letterSpacing: 0.5,
-                fontSize: 12,
+                fontSize: 14,
               }}
             >
               Additional options
-              <CaretDownSolidIcon
-                sx={({ palette, transitions }) => ({
-                  fill: showAdditionalConfig
-                    ? palette.common.black
-                    : palette.gray[80],
-                  transform: showAdditionalConfig ? "none" : "rotate(-90deg)",
-                  transition: transitions.create("transform", {
-                    duration: 300,
-                  }),
-                })}
-              />
             </Typography>
+            {showAdditionalConfig ? (
+              <ArrowUpToLineIcon
+                sx={{
+                  fontSize: 9,
+                  ml: 0.8,
+                  fill: ({ palette }) => palette.gray[50],
+                }}
+              />
+            ) : (
+              <CaretDownSolidIcon
+                sx={{
+                  fontSize: 11,
+                  ml: 0.5,
+                  fill: ({ palette }) => palette.gray[50],
+                  transform: "rotate(270deg)",
+                }}
+              />
+            )}
           </Box>
         </Stack>
       </Box>
-      <InferenceRequests />
+      <InferenceRequests user={user} />
     </Section>
   );
 };

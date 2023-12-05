@@ -1,12 +1,16 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  Image,
-  Organization,
+import type {
+  ImageProperties,
+  OrganizationProperties,
+  UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
-import { EntityTypeWithMetadata, OwnedById } from "@local/hash-subgraph";
+import {
+  Entity,
+  EntityTypeWithMetadata,
+  OwnedById,
+} from "@local/hash-subgraph";
 import browser from "webextension-polyfill";
 
 type InferenceErrorStatus = {
@@ -36,10 +40,10 @@ export type PageEntityInference = InferenceStatus & {
   trigger: "passive" | "user";
 };
 
-type UserAndLinkedData = Simplified<User> & {
-  avatar?: Image;
-  orgs: (Simplified<Organization> & {
-    avatar?: Image;
+type UserAndLinkedData = Simplified<Entity<UserProperties>> & {
+  avatar?: Entity<ImageProperties>;
+  orgs: (Simplified<Entity<OrganizationProperties>> & {
+    avatar?: Entity<ImageProperties>;
     webOwnedById: OwnedById;
   })[];
   webOwnedById: OwnedById;

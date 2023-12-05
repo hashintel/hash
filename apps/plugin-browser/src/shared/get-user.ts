@@ -2,11 +2,12 @@ import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-u
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
-  Image,
+  ImageProperties,
   OrganizationProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
+  Entity,
   EntityId,
   EntityRootType,
   OwnedById,
@@ -27,7 +28,7 @@ import { LocalStorage } from "./storage";
 const getAvatarForEntity = (
   subgraph: Subgraph<EntityRootType>,
   entityId: EntityId,
-): Image | undefined => {
+): Entity<ImageProperties> | undefined => {
   const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     entityId,
@@ -38,7 +39,7 @@ const getAvatarForEntity = (
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
   );
   return avatarLinkAndEntities[0]?.rightEntity[0] as unknown as
-    | Image
+    | Entity<ImageProperties>
     | undefined;
 };
 
@@ -51,7 +52,7 @@ const getAvatarForEntity = (
  * @todo figure out why that is and fix it, possibly in the @blockprotocol/type-system package
  *    or in the plugin-browser webpack config.
  */
-const getOwnedByIdFromEntityId = (entityId: EntityId) =>
+export const getOwnedByIdFromEntityId = (entityId: EntityId) =>
   entityId.split("~")[0] as OwnedById;
 
 export const getUser = (): Promise<LocalStorage["user"] | null> => {
@@ -75,7 +76,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
       ).filter(
         ({ linkEntity }) =>
           linkEntity[0]?.metadata.entityTypeId ===
-          systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
+          systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
       );
 
       const orgs = orgLinksAndEntities.map(({ rightEntity }) => {

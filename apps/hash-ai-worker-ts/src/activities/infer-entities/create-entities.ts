@@ -34,6 +34,7 @@ type EntityStatusMap = {
   creationSuccesses: StatusByTemporaryId<InferredEntityCreationSuccess>;
   creationFailures: StatusByTemporaryId<InferredEntityCreationFailure>;
   updateCandidates: StatusByTemporaryId<UpdateCandidate>;
+  unchangedEntities: StatusByTemporaryId<UpdateCandidate>;
 };
 
 export const createEntities = async ({
@@ -67,6 +68,7 @@ export const createEntities = async ({
     creationSuccesses: {},
     creationFailures: {},
     updateCandidates: {},
+    unchangedEntities: {},
   };
 
   await Promise.all(
@@ -125,6 +127,11 @@ export const createEntities = async ({
                 )
               ) {
                 entityStatusMap.updateCandidates[proposedEntity.entityId] = {
+                  existingEntity,
+                  proposedEntity,
+                };
+              } else {
+                entityStatusMap.unchangedEntities[proposedEntity.entityId] = {
                   existingEntity,
                   proposedEntity,
                 };
@@ -215,7 +222,8 @@ export const createEntities = async ({
 
           const sourceEntity =
             entityStatusMap.creationSuccesses[sourceEntityId]?.entity ??
-            entityStatusMap.updateCandidates[sourceEntityId]?.existingEntity;
+            entityStatusMap.updateCandidates[sourceEntityId]?.existingEntity ??
+            entityStatusMap.unchangedEntities[sourceEntityId]?.existingEntity;
 
           if (!sourceEntity) {
             const sourceFailure =
@@ -253,7 +261,8 @@ export const createEntities = async ({
 
           const targetEntity =
             entityStatusMap.creationSuccesses[targetEntityId]?.entity ??
-            entityStatusMap.updateCandidates[targetEntityId]?.existingEntity;
+            entityStatusMap.updateCandidates[targetEntityId]?.existingEntity ??
+            entityStatusMap.unchangedEntities[targetEntityId]?.existingEntity;
 
           if (!targetEntity) {
             const targetFailure =

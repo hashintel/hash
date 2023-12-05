@@ -4,6 +4,7 @@ import { OwnedById } from "@local/hash-subgraph";
 import {
   autocompleteClasses,
   outlinedInputClasses,
+  Stack,
   Typography,
 } from "@mui/material";
 
@@ -36,7 +37,7 @@ const RenderOptionContent = ({
   name,
 }: Pick<WebOption, "avatar" | "label" | "name">) => {
   return (
-    <>
+    <Stack direction="row" alignItems="center">
       <Avatar avatar={avatar} name={name} size={20} />
       <Typography
         sx={{
@@ -50,7 +51,7 @@ const RenderOptionContent = ({
       >
         {label}
       </Typography>
-    </>
+    </Stack>
   );
 };
 
@@ -89,12 +90,13 @@ export const WebSelector = ({
               background: darkModeInputBackgroundColor,
               borderColor: darkModeBorderColor,
             },
+            p: 0.2,
           },
         },
         popper: { placement: "top" },
       }}
       disableClearable
-      inputHeight={25}
+      inputHeight={28}
       inputProps={{
         endAdornment: <div />,
         sx: ({ palette }) => ({
@@ -142,7 +144,8 @@ export const WebSelector = ({
             borderBottom: `1px solid ${palette.gray[20]}`,
             [`&.${autocompleteClasses.option}`]: {
               minHeight: 0,
-              p: 0,
+              py: 0.5,
+              px: 0.5,
             },
             "@media (prefers-color-scheme: dark)": {
               borderBottom: `1px solid ${darkModeBorderColor}`,
@@ -175,7 +178,7 @@ export const WebSelector = ({
         </MenuItem>
       )}
       sx={{
-        width: 100,
+        width: 150,
       }}
       value={selectedWeb}
     />

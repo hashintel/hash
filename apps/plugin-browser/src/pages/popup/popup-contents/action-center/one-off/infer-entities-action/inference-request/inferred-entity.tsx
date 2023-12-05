@@ -14,6 +14,8 @@ import type {
 } from "@local/hash-subgraph";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 
+import { getOwnedByIdFromEntityId } from "../../../../../../../shared/get-user";
+import { LocalStorage } from "../../../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputColor,
@@ -70,6 +72,7 @@ type InferredEntityProps = {
   indexInType: number;
   result: InferEntitiesReturn["contents"][number];
   toggleExpanded: () => void;
+  user: NonNullable<LocalStorage["user"]>;
 };
 
 export const InferredEntity = ({
@@ -80,9 +83,8 @@ export const InferredEntity = ({
   indexInType,
   result,
   toggleExpanded,
+  user,
 }: InferredEntityProps) => {
-  const { user } = useUser();
-
   const { operation, proposedEntity, status } = result;
 
   const persistedEntity = status === "success" ? result.entity : null;
@@ -107,6 +109,14 @@ export const InferredEntity = ({
             persistedEntity.linkData!.rightEntityId,
       )
     : null;
+
+  const web = !result.entity
+    ? null
+    : [user, ...user.orgs].find(
+        (userOrOrg) =>
+          userOrOrg.webOwnedById ===
+          getOwnedByIdFromEntityId(result.entity!.metadata.recordId.entityId),
+      );
 
   const linkedEntities =
     typeof leftEntityIndex === "number" && typeof rightEntityIndex === "number"
@@ -162,7 +172,7 @@ export const InferredEntity = ({
                * @todo figure out why that is and fix it, possibly in the @blockprotocol/type-system package,
                *    or in the plugin-browser webpack config.
                */
-              `${FRONTEND_ORIGIN}/@${user?.properties.shortname!}/entities/${
+              `${FRONTEND_ORIGIN}/@${web?.properties.shortname!}/entities/${
                 persistedEntity.metadata.recordId.entityId.split("~")[1]
               }`
             : undefined

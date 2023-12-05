@@ -399,6 +399,31 @@ const requestEntityInference = async (params: {
                 .join("\n")}
               `);
             }
+
+            /**
+             * If this is the first iteration and some types have been requested by the user but not inferred,
+             * ask the model to try again. This is a common oversight of GPT-4 Turbo at least, as of Dec 2023.
+             */
+            if (iterationCount === 1) {
+              const typesWithNoSuggestions = entityTypeIds.filter(
+                (entityTypeId) =>
+                  !Object.keys(proposedEntitiesByType).includes(entityTypeId),
+              );
+              if (typesWithNoSuggestions.length > 0) {
+                log(
+                  `No suggestions for entity types: ${typesWithNoSuggestions.join(
+                    ", ",
+                  )}`,
+                );
+
+                retryMessageContent += dedent(`
+                   You did not suggest any entities of the following entity types: ${typesWithNoSuggestions.join(
+                     ", ",
+                   )}. Please reconsider the input text to see if you can identify any entities of those types.
+                `);
+              }
+            }
+
             if (retryMessageContent) {
               retryMessages.push({
                 role: "tool",
@@ -522,6 +547,9 @@ const requestEntityInference = async (params: {
           ),
       );
 
+      /**
+       * We require exactly one response to each tool call for subsequent messages – this fallback ensures that.
+       */
       retryMessages.push(
         ...toolCallsWithoutProblems.map((toolCall) => ({
           role: "tool" as const,

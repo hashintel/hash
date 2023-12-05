@@ -3,7 +3,10 @@ import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-
 import { Box, Skeleton, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 
-import type { PageEntityInference } from "../../../../../../shared/storage";
+import type {
+  LocalStorage,
+  PageEntityInference,
+} from "../../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
@@ -13,8 +16,10 @@ import { InferredEntity } from "./inference-request/inferred-entity";
 
 export const InferenceRequest = ({
   request,
+  user,
 }: {
   request: PageEntityInference;
+  user: NonNullable<LocalStorage["user"]>;
 }) => {
   const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
   const allEntityTypes = useEntityTypes();
@@ -136,6 +141,7 @@ export const InferenceRequest = ({
                         ? setExpandedEntityId(null)
                         : setExpandedEntityId(locallyUniqueId)
                     }
+                    user={user}
                   />
                 );
               })}
