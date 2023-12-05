@@ -5,6 +5,18 @@ export const clearBadge = () => {
   void browser.action.setBadgeText({ text: "" });
 };
 
+const badgeIsNumber = async () => {
+  const currentBadgeText = await browser.action.getBadgeText({});
+  return !Number.isNaN(parseInt(currentBadgeText, 10));
+};
+
+export const clearNotifications = async () => {
+  const badgeIsANumber = await badgeIsNumber();
+  if (badgeIsANumber) {
+    clearBadge();
+  }
+};
+
 export const setLoadingBadge = () => {
   void browser.action.setBadgeText({ text: "💭" });
   void browser.action.setBadgeBackgroundColor({ color: customColors.blue[80] });
@@ -16,13 +28,11 @@ export const setErroredBadge = () => {
 };
 
 export const setSuccessBadge = async (increment: number) => {
-  const currentBadgeText = await browser.action.getBadgeText({});
+  const badgeIsANumber = await badgeIsNumber();
 
-  const currentBadgeAsInt = parseInt(currentBadgeText, 10);
-
-  const currentBadgeNum = Number.isNaN(currentBadgeAsInt)
-    ? 0
-    : currentBadgeAsInt;
+  const currentBadgeNum = badgeIsANumber
+    ? parseInt(await browser.action.getBadgeText({}), 10)
+    : 0;
 
   void browser.action.setBadgeBackgroundColor({ color: customColors.lime[70] });
   void browser.action.setBadgeText({

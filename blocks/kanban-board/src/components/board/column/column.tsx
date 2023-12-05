@@ -1,9 +1,9 @@
 import { SortableContext } from "@dnd-kit/sortable";
+import { PlusIcon } from "@hashintel/design-system";
 import { useMemo } from "react";
 
 import { IconButton } from "../../icon-button/icon-button";
 import { DiscardIcon } from "../../icons/discard-icon";
-import { PlusIcon } from "../../icons/plus-icon";
 import { Card } from "../card/card";
 import { EditableColumnTitle } from "./editable-column-title/editable-column-title";
 import styles from "./styles.module.scss";

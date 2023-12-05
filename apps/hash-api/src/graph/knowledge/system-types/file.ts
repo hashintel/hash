@@ -104,6 +104,8 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
       name,
     "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/":
       "Upload",
+    "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/":
+      size,
   };
 
   let fileEntity = existingEntity;

@@ -16,7 +16,10 @@ export const SignIn = () => {
       <Box mb={2}>
         <HashRainbowLockup sx={{ width: 120 }} />
       </Box>
-      <Typography variant="smallTextParagraphs">
+      <Typography
+        variant="smallTextParagraphs"
+        sx={{ color: ({ palette }) => palette.gray[90] }}
+      >
         You do not appear to be logged in to HASH in this browser session.
         Choose from the options below to get started.
       </Typography>
