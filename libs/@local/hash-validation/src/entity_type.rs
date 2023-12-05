@@ -202,7 +202,7 @@ where
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());
 
         let left_entity = provider
-            .provide_entity(link_data.left_entity_id)
+            .provide_entity(link_data.left_entity_id, true)
             .await
             .change_context_lazy(|| EntityValidationError::EntityRetrieval {
                 id: link_data.left_entity_id,
@@ -211,7 +211,7 @@ where
             .ok();
 
         let right_entity = provider
-            .provide_entity(link_data.right_entity_id)
+            .provide_entity(link_data.right_entity_id, true)
             .await
             .change_context_lazy(|| EntityValidationError::EntityRetrieval {
                 id: link_data.right_entity_id,

@@ -165,7 +165,7 @@ mod tests {
         rendered: &'static str,
         parameters: &[&'p dyn ToSql],
     ) {
-        let mut compiler = SelectCompiler::new(None);
+        let mut compiler = SelectCompiler::new(None, false);
         let condition = compiler.compile_filter(filter);
 
         assert_eq!(condition.transpile_to_string(), rendered);

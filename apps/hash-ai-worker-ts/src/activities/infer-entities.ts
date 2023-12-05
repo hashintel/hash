@@ -617,6 +617,7 @@ export const inferEntities = async ({
           inheritsFrom: { outgoing: 255 },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       });
 
     for (const entityTypeId of entityTypeIds) {

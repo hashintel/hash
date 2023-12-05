@@ -276,6 +276,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             ref filter,
             graph_resolve_depths,
             temporal_axes: ref unresolved_temporal_axes,
+            include_drafts,
         } = *query;
 
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
@@ -291,6 +292,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             Some(&temporal_axes),
             after,
             limit,
+            include_drafts,
         )
         .await?
         .into_iter()
@@ -355,7 +357,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph)
+            .read_traversed_vertices(self, &mut subgraph, include_drafts)
             .await?;
 
         Ok(subgraph)

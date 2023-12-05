@@ -61,6 +61,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         temporal_axes: Option<&QueryTemporalAxes>,
         after: Option<&<Self::Record as Record>::VertexId>,
         limit: Option<usize>,
+        include_drafts: bool,
     ) -> Result<Self::ReadStream, QueryError> {
         // We can't define these inline otherwise we'll drop while borrowed
         let left_entity_uuid_path = EntityQueryPath::EntityEdge {
@@ -84,7 +85,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
             direction: EdgeDirection::Outgoing,
         };
 
-        let mut compiler = SelectCompiler::new(temporal_axes);
+        let mut compiler = SelectCompiler::new(temporal_axes, include_drafts);
         if let Some(limit) = limit {
             compiler.set_limit(limit);
         }

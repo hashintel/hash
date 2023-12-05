@@ -9,9 +9,11 @@ import { OwnedById } from "@local/hash-subgraph";
 export const getAccountPagesVariables = ({
   ownedById,
   includeArchived = false,
+  includeDrafts = false,
 }: {
   ownedById?: OwnedById;
   includeArchived?: boolean;
+  includeDrafts?: boolean;
 }) => ({
   query: {
     filter: {
@@ -32,6 +34,7 @@ export const getAccountPagesVariables = ({
       hasRightEntity: { incoming: 0, outgoing: 1 },
     },
     temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
   },
   includePermissions: false,
 });

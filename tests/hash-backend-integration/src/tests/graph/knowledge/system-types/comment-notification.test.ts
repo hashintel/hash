@@ -209,6 +209,7 @@ describe("Comment Notification", () => {
         occurredInEntity,
         occurredInBlock,
         repliedToComment: comment,
+        includeDrafts: false,
       },
     );
 

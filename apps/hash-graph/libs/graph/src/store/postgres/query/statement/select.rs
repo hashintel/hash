@@ -134,7 +134,7 @@ mod tests {
     fn asterisk() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         test_compilation(
-            &SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes)),
+            &SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false),
             r#"SELECT * FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0""#,
             &[],
         );
@@ -145,7 +145,7 @@ mod tests {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
-            SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
+            SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
         compiler.add_filter(&Filter::Equal(
             Some(FilterExpression::Path(DataTypeQueryPath::VersionedUrl)),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
@@ -172,7 +172,7 @@ mod tests {
     #[test]
     fn limited_temporal() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Uuid)),
             Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
@@ -197,7 +197,7 @@ mod tests {
 
     #[test]
     fn full_temporal() {
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk(None);
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Uuid)),
             Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
@@ -219,7 +219,7 @@ mod tests {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
-            SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
+            SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::All(vec![
             Filter::Equal(
@@ -258,7 +258,7 @@ mod tests {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
-            SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
+            SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         compiler.add_filter(&Filter::Equal(
             Some(FilterExpression::Path(DataTypeQueryPath::Version)),
@@ -287,7 +287,7 @@ mod tests {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
-            SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
+            SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         compiler.add_filter(&Filter::NotEqual(
             Some(FilterExpression::Path(DataTypeQueryPath::Version)),
@@ -316,7 +316,7 @@ mod tests {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
-            SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
+            SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         compiler.add_filter(&Filter::Equal(
             Some(FilterExpression::Path(
@@ -409,7 +409,7 @@ mod tests {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
-            SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
+            SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(
@@ -449,7 +449,7 @@ mod tests {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
-            SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
+            SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(
@@ -489,7 +489,7 @@ mod tests {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
-            SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
+            SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(
@@ -541,7 +541,7 @@ mod tests {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
-            SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
+            SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(
@@ -584,7 +584,7 @@ mod tests {
     fn entity_simple_query() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Uuid)),
@@ -615,7 +615,7 @@ mod tests {
     fn entity_with_manual_selection() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
-        let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes));
+        let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
         compiler.add_distinct_selection_with_ordering(
             &EntityQueryPath::Uuid,
             Distinctness::Distinct,
@@ -663,7 +663,7 @@ mod tests {
     fn entity_property_query() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
         let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
             r#"$."https://blockprotocol.org/@alice/types/property-type/name/""#,
         ))]);
@@ -687,6 +687,7 @@ mod tests {
               ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
             WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $3
+              AND "entity_editions_0_1_0"."draft" = FALSE
               AND jsonb_path_query_first("entity_editions_0_1_0"."properties", $1::text::jsonpath) = $4
             "#,
             &[
@@ -702,7 +703,7 @@ mod tests {
     fn entity_property_null_query() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
         let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
             r#"$."https://blockprotocol.org/@alice/types/property-type/name/""#,
         ))]);
@@ -724,6 +725,7 @@ mod tests {
               ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
             WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $3
+              AND "entity_editions_0_1_0"."draft" = FALSE
               AND jsonb_path_query_first("entity_editions_0_1_0"."properties", $1::text::jsonpath) IS NULL
             "#,
             &[
@@ -738,7 +740,7 @@ mod tests {
     fn entity_outgoing_link_query() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
@@ -787,7 +789,7 @@ mod tests {
     fn entity_incoming_link_query() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
@@ -836,7 +838,7 @@ mod tests {
     fn link_entity_left_right_id() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::All(vec![
             Filter::Equal(
@@ -907,7 +909,7 @@ mod tests {
     fn filter_left_and_right() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::All(vec![
             Filter::Equal(
@@ -1013,7 +1015,7 @@ mod tests {
             let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
             let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler =
-                SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
+                SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
             let filter = Filter::for_versioned_url(&url);
             compiler.add_filter(&filter);
@@ -1045,7 +1047,7 @@ mod tests {
 
             let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
             let pinned_timestamp = temporal_axes.pinned_timestamp();
-            let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
+            let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
             let filter = Filter::for_entity_by_entity_id(entity_id);
             compiler.add_filter(&filter);

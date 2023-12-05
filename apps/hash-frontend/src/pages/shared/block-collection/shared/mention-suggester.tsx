@@ -171,6 +171,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
           hasRightEntity: { outgoing: 1, incoming: 1 },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
     },
     fetchPolicy: "cache-and-network",

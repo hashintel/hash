@@ -25,8 +25,10 @@ import {
  */
 export const useUsersWithLinks = ({
   userAccountIds,
+  includeDrafts = false,
 }: {
   userAccountIds?: AccountId[];
+  includeDrafts?: boolean;
 }): {
   loading: boolean;
   users?: User[];
@@ -74,6 +76,7 @@ export const useUsersWithLinks = ({
           hasRightEntity: { incoming: 0, outgoing: 1 },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
       },
     },
     fetchPolicy: "cache-and-network",

@@ -180,7 +180,7 @@ export const getOrgById: ImpureGraphFunction<
  * @param params.shortname - the shortname of the organization
  */
 export const getOrgByShortname: ImpureGraphFunction<
-  { shortname: string },
+  { shortname: string; includeDrafts?: boolean },
   Promise<Org | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [orgEntity, ...unexpectedEntities] = await graphApi
@@ -209,6 +209,7 @@ export const getOrgByShortname: ImpureGraphFunction<
       //       shortname?
       //   see https://linear.app/hash/issue/H-757
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: params.includeDrafts ?? false,
     })
     .then(({ data }) => {
       const userEntitiesSubgraph =

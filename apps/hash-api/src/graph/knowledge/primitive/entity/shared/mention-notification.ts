@@ -14,25 +14,29 @@ import {
 } from "../../../system-types/text";
 
 export const getTextUpdateOccurredIn: ImpureGraphFunction<
-  { text: Text },
+  { text: Text; includeDrafts?: boolean },
   Promise<{
     occurredInEntity?: Page;
     occurredInBlock?: Block;
     occurredInComment?: Comment;
   }>
-> = async (context, authentication, { text }) => {
-  const pageAndBlock = await getPageAndBlockByText(context, authentication, {
-    text,
-  });
+> = async (context, authentication, params) => {
+  const pageAndBlock = await getPageAndBlockByText(
+    context,
+    authentication,
+    params,
+  );
 
   if (pageAndBlock) {
     const { page, block } = pageAndBlock;
     return { occurredInEntity: page, occurredInBlock: block };
   }
 
-  const commentWithText = await getCommentByText(context, authentication, {
-    text,
-  });
+  const commentWithText = await getCommentByText(
+    context,
+    authentication,
+    params,
+  );
 
   if (commentWithText) {
     const commentAncestorBlock = await getCommentAncestorBlock(

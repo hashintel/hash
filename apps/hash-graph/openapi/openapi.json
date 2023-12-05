@@ -2797,7 +2797,8 @@
         "required": [
           "filter",
           "graphResolveDepths",
-          "temporalAxes"
+          "temporalAxes",
+          "includeDrafts"
         ],
         "properties": {
           "filter": {
@@ -2805,6 +2806,9 @@
           },
           "graphResolveDepths": {
             "$ref": "#/components/schemas/GraphResolveDepths"
+          },
+          "includeDrafts": {
+            "type": "boolean"
           },
           "temporalAxes": {
             "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
@@ -3198,7 +3202,8 @@
         "required": [
           "filter",
           "graphResolveDepths",
-          "temporalAxes"
+          "temporalAxes",
+          "includeDrafts"
         ],
         "properties": {
           "filter": {
@@ -3206,6 +3211,9 @@
           },
           "graphResolveDepths": {
             "$ref": "#/components/schemas/GraphResolveDepths"
+          },
+          "includeDrafts": {
+            "type": "boolean"
           },
           "temporalAxes": {
             "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
@@ -3450,7 +3458,8 @@
         "required": [
           "filter",
           "graphResolveDepths",
-          "temporalAxes"
+          "temporalAxes",
+          "includeDrafts"
         ],
         "properties": {
           "filter": {
@@ -3458,6 +3467,9 @@
           },
           "graphResolveDepths": {
             "$ref": "#/components/schemas/GraphResolveDepths"
+          },
+          "includeDrafts": {
+            "type": "boolean"
           },
           "temporalAxes": {
             "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
@@ -4590,7 +4602,8 @@
         "required": [
           "filter",
           "graphResolveDepths",
-          "temporalAxes"
+          "temporalAxes",
+          "includeDrafts"
         ],
         "properties": {
           "filter": {
@@ -4598,6 +4611,9 @@
           },
           "graphResolveDepths": {
             "$ref": "#/components/schemas/GraphResolveDepths"
+          },
+          "includeDrafts": {
+            "type": "boolean"
           },
           "temporalAxes": {
             "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"

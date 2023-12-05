@@ -215,6 +215,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
             },
             graphResolveDepths: zeroedGraphResolveDepths,
             temporalAxes: currentTimeInstantTemporalAxes,
+            includeDrafts: false,
           },
         },
       },

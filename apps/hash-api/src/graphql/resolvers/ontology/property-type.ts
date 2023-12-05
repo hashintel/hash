@@ -106,6 +106,7 @@ export const queryPropertyTypesResolver: ResolverFn<
             },
           }
         : currentTimeInstantTemporalAxes,
+      includeDrafts: false,
     },
   );
 

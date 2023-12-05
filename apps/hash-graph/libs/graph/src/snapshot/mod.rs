@@ -291,6 +291,7 @@ where
             None,
             None,
             None,
+            true,
         )
         .await
         .map_err(|future_error| future_error.change_context(SnapshotDumpError::Query))?

@@ -160,12 +160,12 @@ export const createEntityType: ImpureGraphFunction<
  */
 export const getEntityTypes: ImpureGraphFunction<
   {
-    query: EntityTypeStructuralQuery;
+    query: Omit<EntityTypeStructuralQuery, "includeDrafts">;
   },
   Promise<Subgraph<EntityTypeRootType>>
 > = async ({ graphApi }, { actorId }, { query }) => {
   return await graphApi
-    .getEntityTypesByQuery(actorId, query)
+    .getEntityTypesByQuery(actorId, { includeDrafts: false, ...query })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(data);
 
@@ -211,7 +211,7 @@ export const getEntityTypeById: ImpureGraphFunction<
  * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
  */
 export const getEntityTypeSubgraphById: ImpureGraphFunction<
-  Omit<EntityTypeStructuralQuery, "filter"> & {
+  Omit<EntityTypeStructuralQuery, "filter" | "includeDrafts"> & {
     entityTypeId: VersionedUrl;
   },
   Promise<Subgraph<EntityTypeRootType>>
@@ -224,6 +224,7 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
     },
     graphResolveDepths,
     temporalAxes,
+    includeDrafts: false,
   };
 
   let subgraph = await getEntityTypes(context, authentication, {

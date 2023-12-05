@@ -28,6 +28,7 @@ export const getEntitiesByLinearId = async (params: {
   linearId: string;
   entityTypeId?: VersionedUrl;
   webOwnedById?: OwnedById;
+  includeDrafts?: boolean;
 }): Promise<Entity[]> => {
   const entities = await params.graphApiClient
     .getEntitiesByQuery(params.authentication.actorId, {
@@ -63,6 +64,7 @@ export const getEntitiesByLinearId = async (params: {
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: params.includeDrafts ?? false,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
@@ -76,6 +78,7 @@ export const getEntityOutgoingLinks = async (params: {
   graphApiClient: GraphApi;
   authentication: { actorId: AccountId };
   entityId: EntityId;
+  includeDrafts?: boolean;
 }) => {
   const { graphApiClient, authentication, entityId } = params;
 
@@ -107,6 +110,7 @@ export const getEntityOutgoingLinks = async (params: {
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: params.includeDrafts ?? false,
     },
   );
 
@@ -131,6 +135,7 @@ export const getLatestEntityById = async (params: {
   graphApiClient: GraphApi;
   authentication: { actorId: AccountId };
   entityId: EntityId;
+  includeDrafts?: boolean;
 }) => {
   const { graphApiClient, authentication, entityId } = params;
 
@@ -152,6 +157,7 @@ export const getLatestEntityById = async (params: {
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: params.includeDrafts ?? false,
     },
   );
 

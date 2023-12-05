@@ -77,8 +77,9 @@ impl<C: AsClient> Read<DataTypeSnapshotRecord> for PostgresStore<C> {
         temporal_axes: Option<&QueryTemporalAxes>,
         after: Option<&<Self::Record as Record>::VertexId>,
         limit: Option<usize>,
+        include_drafts: bool,
     ) -> Result<Self::ReadStream, QueryError> {
-        let mut compiler = SelectCompiler::new(temporal_axes);
+        let mut compiler = SelectCompiler::new(temporal_axes, include_drafts);
         if let Some(limit) = limit {
             compiler.set_limit(limit);
         }
@@ -212,8 +213,9 @@ impl<C: AsClient> Read<PropertyTypeSnapshotRecord> for PostgresStore<C> {
         temporal_axes: Option<&QueryTemporalAxes>,
         after: Option<&<Self::Record as Record>::VertexId>,
         limit: Option<usize>,
+        include_drafts: bool,
     ) -> Result<Self::ReadStream, QueryError> {
-        let mut compiler = SelectCompiler::new(temporal_axes);
+        let mut compiler = SelectCompiler::new(temporal_axes, include_drafts);
         if let Some(limit) = limit {
             compiler.set_limit(limit);
         }
@@ -347,8 +349,9 @@ impl<C: AsClient> Read<EntityTypeSnapshotRecord> for PostgresStore<C> {
         temporal_axes: Option<&QueryTemporalAxes>,
         after: Option<&<Self::Record as Record>::VertexId>,
         limit: Option<usize>,
+        include_drafts: bool,
     ) -> Result<Self::ReadStream, QueryError> {
-        let mut compiler = SelectCompiler::new(temporal_axes);
+        let mut compiler = SelectCompiler::new(temporal_axes, include_drafts);
         if let Some(limit) = limit {
             compiler.set_limit(limit);
         }
@@ -492,14 +495,21 @@ impl<C: AsClient> Read<DataTypeWithMetadata> for PostgresStore<C> {
         temporal_axes: Option<&QueryTemporalAxes>,
         after: Option<&<Self::Record as Record>::VertexId>,
         limit: Option<usize>,
+        include_drafts: bool,
     ) -> Result<Self::ReadStream, QueryError> {
-        let stream =
-            Read::<DataTypeSnapshotRecord>::read(self, filter, temporal_axes, after, limit)
-                .await?
-                .map_ok(|record| DataTypeWithMetadata {
-                    schema: record.schema,
-                    metadata: record.metadata,
-                });
+        let stream = Read::<DataTypeSnapshotRecord>::read(
+            self,
+            filter,
+            temporal_axes,
+            after,
+            limit,
+            include_drafts,
+        )
+        .await?
+        .map_ok(|record| DataTypeWithMetadata {
+            schema: record.schema,
+            metadata: record.metadata,
+        });
         Ok(stream)
     }
 }
@@ -518,14 +528,21 @@ impl<C: AsClient> Read<PropertyTypeWithMetadata> for PostgresStore<C> {
         temporal_axes: Option<&QueryTemporalAxes>,
         after: Option<&<Self::Record as Record>::VertexId>,
         limit: Option<usize>,
+        include_drafts: bool,
     ) -> Result<Self::ReadStream, QueryError> {
-        let stream =
-            Read::<PropertyTypeSnapshotRecord>::read(self, filter, temporal_axes, after, limit)
-                .await?
-                .map_ok(|record| PropertyTypeWithMetadata {
-                    schema: record.schema,
-                    metadata: record.metadata,
-                });
+        let stream = Read::<PropertyTypeSnapshotRecord>::read(
+            self,
+            filter,
+            temporal_axes,
+            after,
+            limit,
+            include_drafts,
+        )
+        .await?
+        .map_ok(|record| PropertyTypeWithMetadata {
+            schema: record.schema,
+            metadata: record.metadata,
+        });
         Ok(stream)
     }
 }
@@ -544,14 +561,21 @@ impl<C: AsClient> Read<EntityTypeWithMetadata> for PostgresStore<C> {
         temporal_axes: Option<&QueryTemporalAxes>,
         after: Option<&<Self::Record as Record>::VertexId>,
         limit: Option<usize>,
+        include_drafts: bool,
     ) -> Result<Self::ReadStream, QueryError> {
-        let stream =
-            Read::<EntityTypeSnapshotRecord>::read(self, filter, temporal_axes, after, limit)
-                .await?
-                .map_ok(|record| EntityTypeWithMetadata {
-                    schema: record.schema,
-                    metadata: record.metadata,
-                });
+        let stream = Read::<EntityTypeSnapshotRecord>::read(
+            self,
+            filter,
+            temporal_axes,
+            after,
+            limit,
+            include_drafts,
+        )
+        .await?
+        .map_ok(|record| EntityTypeWithMetadata {
+            schema: record.schema,
+            metadata: record.metadata,
+        });
         Ok(stream)
     }
 }
@@ -591,7 +615,7 @@ impl<C: AsClient> PostgresStore<C> {
         temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<impl Stream<Item = Result<(EntityTypeId, EntityType), QueryError>>, QueryError>
     {
-        let mut compiler = SelectCompiler::new(temporal_axes);
+        let mut compiler = SelectCompiler::new(temporal_axes, false);
 
         let ontology_id_index = compiler.add_distinct_selection_with_ordering(
             &EntityTypeQueryPath::OntologyId,

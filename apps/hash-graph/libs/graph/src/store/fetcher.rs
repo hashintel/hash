@@ -203,6 +203,7 @@ where
                     pinned: PinnedTemporalAxisUnresolved::new(None),
                     variable: VariableTemporalAxisUnresolved::new(None, None),
                 },
+                include_drafts: true,
             }
         }
 
@@ -612,8 +613,11 @@ where
         temporal_axes: Option<&QueryTemporalAxes>,
         start: Option<&<Self::Record as Record>::VertexId>,
         limit: Option<usize>,
+        include_drafts: bool,
     ) -> Result<Self::ReadStream, QueryError> {
-        self.store.read(query, temporal_axes, start, limit).await
+        self.store
+            .read(query, temporal_axes, start, limit, include_drafts)
+            .await
     }
 }
 

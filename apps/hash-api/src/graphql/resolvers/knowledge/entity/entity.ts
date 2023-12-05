@@ -139,6 +139,7 @@ export const queryEntitiesResolver: Extract<
     isOfType,
     hasLeftEntity,
     hasRightEntity,
+    includeDrafts,
   },
   { logger, dataSources, authentication },
   info,
@@ -174,6 +175,7 @@ export const queryEntitiesResolver: Extract<
         hasRightEntity,
       },
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: includeDrafts ?? false,
     },
   });
 
@@ -219,6 +221,7 @@ export const getEntityResolver: ResolverFn<
     isOfType,
     hasLeftEntity,
     hasRightEntity,
+    includeDrafts,
   },
   { dataSources, authentication },
   info,
@@ -269,6 +272,7 @@ export const getEntityResolver: ResolverFn<
         hasRightEntity,
       },
       temporalAxes,
+      includeDrafts: includeDrafts ?? false,
     },
   });
 
