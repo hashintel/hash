@@ -1,94 +1,120 @@
-"area/apps":
-  - "apps/**"
+area/apps:
+- changed-files:
+  - any-glob-to-any-file: apps/**
 
-"area/apps > hash*":
-  - "apps/hash-*/**"
-  - "libs/@local/hash-*/**"
+area/apps > hash*:
+- changed-files:
+  - any-glob-to-any-file: apps/hash-*/**
+  - any-glob-to-any-file: libs/@local/hash-*/**
 
-"area/apps > hash.ai":
-  - "apps/hashdotai/docs/**"
-  - "apps/hashdotai/glossary/**"
+area/apps > hash.ai:
+- changed-files:
+  - any-glob-to-any-file: apps/hashdotai/docs/**
+  - any-glob-to-any-file: apps/hashdotai/glossary/**
 
-"area/apps > hash-api":
-  - "apps/hash-api/**"
+area/apps > hash-api:
+- changed-files:
+  - any-glob-to-any-file: apps/hash-api/**
 
-"area/apps > hash.design":
-  - "apps/hashdotdesign/**"
+area/apps > hash.design:
+- changed-files:
+  - any-glob-to-any-file: apps/hashdotdesign/**
 
-"area/apps > hash.dev":
-  - "apps/hashdotdev/**"
+area/apps > hash.dev:
+- changed-files:
+  - any-glob-to-any-file: apps/hashdotdev/**
 
-"area/apps > hash-graph":
-  - "apps/hash-graph/**"
+area/apps > hash-graph:
+- changed-files:
+  - any-glob-to-any-file: apps/hash-graph/**
 
-"area/apps > hash-realtime":
-  - "apps/hash-realtime/**"
+area/apps > hash-realtime:
+- changed-files:
+  - any-glob-to-any-file: apps/hash-realtime/**
 
-"area/apps > hash-search-loader":
-  - "apps/hash-search-loader/**"
+area/apps > hash-search-loader:
+- changed-files:
+  - any-glob-to-any-file: apps/hash-search-loader/**
 
-"area/blocks":
-  - "blocks/**"
+area/blocks:
+- changed-files:
+  - any-glob-to-any-file: blocks/**
 
-"area/deps":
-  - "**/patches/**"
-  - "**/Cargo.lock"
-  - "**/yarn.lock"
+area/deps:
+- changed-files:
+  - any-glob-to-any-file: **/patches/**
+  - any-glob-to-any-file: **/Cargo.lock
+  - any-glob-to-any-file: **/yarn.lock
 
-"area/dx":
-  - ".vscode/**"
+area/dx:
+- changed-files:
+  - any-glob-to-any-file: .vscode/**
 
-"area/infra":
-  - "infra/**"
-  - "**/*.md"
-  - "**/.changeset/config.json"
-  - "**/.github/**"
-  - "**/.*ignore"
-  - "**/.markdownlint*"
+area/infra:
+- changed-files:
+  - any-glob-to-any-file: infra/**
+  - any-glob-to-any-file: **/*.md
+  - any-glob-to-any-file: **/.changeset/config.json
+  - any-glob-to-any-file: **/.github/**
+  - any-glob-to-any-file: **/.*ignore
+  - any-glob-to-any-file: **/.markdownlint*
 
-"area/infra > docker":
-  - "infra/docker/**"
+area/infra > docker:
+- changed-files:
+  - any-glob-to-any-file: infra/docker/**
 
-"area/infra > terraform":
-  - "infra/terraform/**"
+area/infra > terraform:
+- changed-files:
+  - any-glob-to-any-file: infra/terraform/**
 
-"area/libs":
-  - "libs/**"
+area/libs:
+- changed-files:
+  - any-glob-to-any-file: libs/**
 
-"area/libs > antsi":
-  - "libs/antsi/**"
+area/libs > antsi:
+- changed-files:
+  - any-glob-to-any-file: libs/antsi/**
 
-"area/libs > deer":
-  - "libs/deer/**"
+area/libs > deer:
+- changed-files:
+  - any-glob-to-any-file: libs/deer/**
 
-"area/libs > error-stack":
-  - "libs/error-stack/**"
+area/libs > error-stack:
+- changed-files:
+  - any-glob-to-any-file: libs/error-stack/**
 
-"area/libs > sarif":
-  - "libs/sarif/**"
+area/libs > sarif:
+- changed-files:
+  - any-glob-to-any-file: libs/sarif/**
 
-"area/tests":
-  - "tests/**"
-  - "**/tests/**"
-  - "**/test/**"
+area/tests:
+- changed-files:
+  - any-glob-to-any-file: tests/**
+  - any-glob-to-any-file: **/tests/**
+  - any-glob-to-any-file: **/test/**
 
-"area/tests > integration":
-  - "tests/hash-backend-integration/**"
+area/tests > integration:
+- changed-files:
+  - any-glob-to-any-file: tests/hash-backend-integration/**
 
-"area/tests > playwright":
-  - "tests/hash-playwright/**"
+area/tests > playwright:
+- changed-files:
+  - any-glob-to-any-file: tests/hash-playwright/**
 
-"type/eng > backend":
-  - "apps/hash-graph/**"
-  - "apps/hash-api/**"
-  - "libs/@local/**"
+type/eng > backend:
+- changed-files:
+  - any-glob-to-any-file: apps/hash-graph/**
+  - any-glob-to-any-file: apps/hash-api/**
+  - any-glob-to-any-file: libs/@local/**
 
-"type/eng > frontend":
-  - "apps/hash-frontend/**"
-  - "libs/@hashintel/**"
+type/eng > frontend:
+- changed-files:
+  - any-glob-to-any-file: apps/hash-frontend/**
+  - any-glob-to-any-file: libs/@hashintel/**
 
-"type/legal":
-  - "**/LICENSE**"
-  - "**/NOTICE**"
-  - "**/THIRD_PARTY_NOTICES**"
-  - "**/THIRD_PARTY_LICENSES**"
+type/legal:
+- changed-files:
+  - any-glob-to-any-file: **/LICENSE**
+  - any-glob-to-any-file: **/NOTICE**
+  - any-glob-to-any-file: **/THIRD_PARTY_NOTICES**
+  - any-glob-to-any-file: **/THIRD_PARTY_LICENSES**
