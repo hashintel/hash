@@ -6,13 +6,14 @@ import {
   extractEntityUuidFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import { Box, buttonClasses, Typography } from "@mui/material";
+import { Box, buttonClasses, Collapse, Typography } from "@mui/material";
 import { FunctionComponent, useMemo, useState } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
 import { Button, Link } from "../../shared/ui";
 import { DraftEntityActionButtons } from "./draft-entity/draft-entity-action-buttons";
+import { DraftEntityProperties } from "./draft-entity/draft-entity-properties";
 import { DraftEntityProvenance } from "./draft-entity/draft-entity-provenance";
 import { DraftEntityType } from "./draft-entity/draft-entity-type";
 import { DraftEntityViewers } from "./draft-entity/draft-entity-viewers";
@@ -123,6 +124,9 @@ export const DraftEntity: FunctionComponent<{
         </Box>
         <DraftEntityProvenance entity={entity} />
       </Box>
+      <Collapse in={displayProperties} sx={{ marginTop: 3 }}>
+        <DraftEntityProperties initialEntity={entity} subgraph={subgraph} />
+      </Collapse>
     </Box>
   );
 };
