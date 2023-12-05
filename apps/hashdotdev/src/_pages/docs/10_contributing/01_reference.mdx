@@ -8,7 +8,47 @@ This dictionary of terms acts as a companion to the codebase of HASH, and is des
 
 ## Key concepts
 
-### Graphs, Subgraphs & Structural Queries
+### Meta
+
+#### Instances
+
+An `Instance` of HASH refers to a single implementation of HASH which is running somewhere. This may be generally accessible via the World Wide Web, hosted privately within an organization's intranet, or set up locally on a single machine only (perhaps even running in an air-gapped environment with no external network access).
+
+Any `Instance` of HASH which allows external network access is known as a `Connected Instance`.
+
+Any `Connected Instance` of HASH that syncs information with, or publishes information to the `Global Public Graph` is known as a `Federated Instance`.
+
+#### Accounts, Users & Bots
+
+Any actor which interacts with the `Graph` has an `Account`. This includes both:
+- Any human actor, known as a `User`, has an `Account` and exactly one `Web` of their own.
+- Any machine actor, known as a `Bot`, has an `Account` but no `Web` of its own.
+
+`User` accounts can be logged into, while `Bot` accounts cannot.
+
+#### Organizations
+
+An `Organization` has a `Web`, as well as one or more associated `User`s, known as `Member`s.
+
+At least one of the `User`s associated with an `Organization` must be designated an `Administrator` of the `Organization`, granting them access to key management permissions (e.g. the ability to invite other `User`s to the `Organization`).
+
+#### Webs
+
+Every `Entity` lives inside of exactly one `Web`.
+
+Every `User` and every `Organization` has exactly one `Web`.
+
+Every `Web` has a human-readable `Namespace` by which it can be identified.
+
+`Bot` (machine) `Account`s do not have a `Web`, nor do they therefore have `Namespace`s.
+
+#### Namespaces
+
+A `Namespace` is the reserved ID of a `Web`, within a particular HASH `Instance` (e.g. the `@acme-corp` portion of `https://hash.ai/@acme-corp`). Every `User` and `Organization` has a `Web`, so also has a `Namespace`. However, not every `Account` necessarily has a `Namespace` (e.g. in the case of machine actor accounts)
+
+### Knowledge
+
+#### Graphs, Subgraphs & Structural Queries
 
 A `Graph` contains all of the data within a single HASH `Instance`.
 
@@ -23,43 +63,7 @@ A `depth` of `0` implies that only the `root` entities will be returned for a gi
 
 The `Global Public Graph` is a planned initiative which will allow for unifyied querying of all public information that exists across any `Connected Instance` of HASH.
 
-### Instances
-
-An `Instance` of HASH refers to a single implementation of HASH which is running somewhere. This may be generally accessible via the World Wide Web, hosted privately within an organization's intranet, or set up locally on a single machine only (perhaps even running in an air-gapped environment with no external network access).
-
-Any `Instance` of HASH which allows external network access is known as a `Connected Instance`.
-
-Any `Connected Instance` of HASH that syncs information with, or publishes information to the `Global Public Graph` is known as a `Federated Instance`.
-
-### Accounts, Users & Bots
-
-Any actor which interacts with the `Graph` has an `Account`. This includes both:
-- Any human actor, known as a `User`, has an `Account` and exactly one `Web` of their own.
-- Any machine actor, known as a `Bot`, has an `Account` but no `Web` of its own.
-
-`User` accounts can be logged into, while `Bot` accounts cannot.
-
-### Organizations
-
-An `Organization` has a `Web`, as well as one or more associated `User`s, known as `Member`s.
-
-At least one of the `User`s associated with an `Organization` must be designated an `Administrator` of the `Organization`, granting them access to key management permissions (e.g. the ability to invite other `User`s to the `Organization`).
-
-### Webs
-
-Every `Entity` lives inside of exactly one `Web`.
-
-Every `User` and every `Organization` has exactly one `Web`.
-
-Every `Web` has a human-readable `Namespace` by which it can be identified.
-
-`Bot` (machine) `Account`s do not have a `Web`, nor do they therefore have `Namespace`s.
-
-### Namespaces
-
-A `Namespace` is the reserved ID of a `Web`, within a particular HASH `Instance` (e.g. the `@acme-corp` portion of `https://hash.ai/@acme-corp`). Every `User` and `Organization` has a `Web`, so also has a `Namespace`. However, not every `Account` necessarily has a `Namespace` (e.g. in the case of machine actor accounts)
-
-### Entities
+#### Entities
 
 Entities are identified using:
 
@@ -75,7 +79,9 @@ To uniquely identify an entity edition, you must specify both:
 1. The `EntityId`
 2. Any two of `EditionId`, `TransactionTime`, or `DecisionTime`
 
-### Types
+### Ontology
+
+#### Types
 
 Ontology types are identified using:
 
@@ -84,3 +90,15 @@ Ontology types are identified using:
 - `TransactionTime`: see above
 - `DecisionTime`: see above, not implemented, yet
 - `OntologyId`: A UUIDv5 created from the `VersionedUrl` and the [`NameSpace_URL`](https://www.rfc-editor.org/rfc/rfc4122#appendix-C), mainly used internally to avoid a string as identifier
+
+#### Kinds of Types
+
+There are four kinds of types.
+
+##### Entity Types
+
+##### Link Entity Types
+
+##### Property Types
+
+##### Data Types
