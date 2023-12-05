@@ -71,10 +71,6 @@ async fn buffer_and_log(
     };
 
     if let Ok(body) = std::str::from_utf8(&bytes) {
-        #[expect(
-            clippy::option_if_let_else,
-            reason = "would be nice to use `let_guard`s here"
-        )]
         if let Some(status_code) = status_code {
             if status_code.is_success() {
                 tracing::trace!("{direction} body = {body:?}");
