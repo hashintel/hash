@@ -50,22 +50,27 @@ A `Namespace` is the reserved ID of a `Web`, within a particular HASH `Instance`
 
 #### Graphs, Subgraphs & Structural Queries
 
-A `Graph` contains all of the data within a single HASH `Instance`.
+A **Graph** contains all of the data within a single HASH _Instance_.
 
-A `Subgraph` represents some _part_ (a strict subset) of the whole graph, and is returned by a `Structural Query`.
+A **Subgraph** represents some _part_ (strict subset) of the whole _Graph_, and is returned by a _Structural Query_.
 
-A `Structural Query` consists of:
+A **Structural Query** consists of:
 
 1. a `filter` which is applied to the portion of the `Graph` visible to the `Account` running the query, which returns zero or more `root` entities;
 1. a `depth` parameter which tells the application how many layers of links deep to traverse the graph.
 
-A `depth` of `0` implies that only the `root` entities will be returned for a given query. A depth of `1` would also return any entities connected by a link to any `root` entity. A depth of `2` would additionally return any entities connected to those entities (and so on). Depending on the shape of the data in a `Graph`, a high `depth` parameter can exponentially increase the amount of information returned by any given query, and great care should be taken.
+Understanding `depth` in _Structural Queries_:
+
+- If a _Structural Query_ has a `depth` of `0`, it will only return the `root` entities for a query which directly match its specified `filter`.
+- A depth of `1` would return all `root` entities as well as any entities directly connected by a link to any `root` entity.
+- A depth of `2` would return all `root` entities, any entities directly connected to them by a link, as well as any entities in turn connected to those entities by yet another link.
+- Depending on the shape of the data in a _Graph_, a high `depth` parameter can exponentially increase the amount of information returned by any given query, and great care should be taken.
 
 The `Global Public Graph` is a planned initiative which will allow for unifyied querying of all public information that exists across any `Connected Instance` of HASH.
 
 #### Entities
 
-Entities are identified using:
+**Entities** are identified using:
 
 - `EntityId`: Primary identifier for an entity, encoded as `{OwnedById}~{EntityUuid}`
   - `OwnedById`/`WebId` (both terms mean the same): Identifies a 'Web', currently part of the primary key for entities but likely to be moved to entity metadata
@@ -74,10 +79,19 @@ Entities are identified using:
 - `TransactionTime`: The time point when an entity or a type was inserted into the datastore (precisely the time when the transaction started to create that record)
 - `DecisionTime`: The time when a user decided something should go into the data store. This defaults to the `TransactionTime`.
 
-To uniquely identify an entity edition, you must specify both:
+To uniquely identify an **entity edition**, you must specify both:
 
 1. The `EntityId`
-2. Any two of `EditionId`, `TransactionTime`, or `DecisionTime`
+1. Any two of `EditionId`, `TransactionTime`, or `DecisionTime`
+
+.....Explain when we use entity editions/why this matters.....
+
+#### Kinds of Entities
+
+Technically speaking, there are two kinds of entities:
+
+1. **Ordinary entities**, which have an _Entity Type_. We generally mean these when we refer to "entities" in standalone.
+1. **Link entities**, which have a _Link Type_. Often referred to simply as "links". These specify a relationship between at least two ordinary entities, making them both semantically meaningful, and integral to _Structural Queries_ (enabling paths to be followed between connected entities).
 
 ### Ontology
 
