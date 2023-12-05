@@ -23,6 +23,12 @@ export type BarChartDefinitionVariant =
   | BarChartGroupByPropertyVariant;
 
 export type GraphChartDefinitionVariant = {
+  /**
+   * Without this TS can't infer between the bar chart and graph chart variants
+   *
+   * @todo: figure out a better approach for structuring and typing the chart definition
+   */
+  variant: "default";
   incomingLinksDepth?: number;
   outgoingLinksDepth?: number;
 };

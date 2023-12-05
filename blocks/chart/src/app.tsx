@@ -127,22 +127,20 @@ export const App: BlockComponent<BlockEntity> = ({
   useEffect(() => {
     if (linkedQueryEntity) {
       const incomingLinksDepth =
-        chartDefinition?.kind === "graph-chart"
-          ? (chartDefinition as ChartDefinition<"graph-chart">)
-              .incomingLinksDepth
+        chartDefinition?.kind === "graph-chart" &&
+        chartDefinition.variant === "default"
+          ? chartDefinition.incomingLinksDepth
           : chartDefinition?.kind === "bar-chart" &&
-              (chartDefinition as ChartDefinition<"bar-chart">).variant ===
-                "count-links"
+              chartDefinition.variant === "count-links"
             ? 1
             : undefined;
 
       const outgoingLinksDepth =
-        chartDefinition?.kind === "graph-chart"
-          ? (chartDefinition as ChartDefinition<"graph-chart">)
-              .outgoingLinksDepth
+        chartDefinition?.kind === "graph-chart" &&
+        chartDefinition.variant === "default"
+          ? chartDefinition.outgoingLinksDepth
           : chartDefinition?.kind === "bar-chart" &&
-              (chartDefinition as ChartDefinition<"bar-chart">).variant ===
-                "count-links"
+              chartDefinition.variant === "count-links"
             ? 1
             : undefined;
 
