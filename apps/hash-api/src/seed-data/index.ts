@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { OwnedById } from "@local/hash-subgraph";
 
@@ -10,7 +11,6 @@ import {
 import { joinOrg, User } from "../graph/knowledge/system-types/user";
 import { PageDefinition, seedPages } from "./seed-pages";
 import { ensureUsersAreSeeded } from "./seed-users";
-import { VersionedUrl } from "@blockprotocol/type-system";
 
 export const CACHED_DATA_TYPE_SCHEMAS: Record<VersionedUrl, string> = {
   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1":

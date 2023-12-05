@@ -1,3 +1,5 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
+
 import {
   CACHED_DATA_TYPE_SCHEMAS,
   CACHED_ENTITY_TYPE_SCHEMAS,
@@ -9,7 +11,6 @@ import {
   loadExternalEntityTypeIfNotExists,
   loadExternalPropertyTypeIfNotExists,
 } from "../util";
-import { VersionedUrl } from "@blockprotocol/type-system";
 
 const migrate: MigrationFunction = async ({
   context,
@@ -17,8 +18,8 @@ const migrate: MigrationFunction = async ({
   migrationState,
 }) => {
   let blockProtocolDataTypeId: VersionedUrl;
+  // eslint-disable-next-line guard-for-in
   for (blockProtocolDataTypeId in CACHED_DATA_TYPE_SCHEMAS) {
-    /** @todo: provide schemas so they don't have to be fetched from blockprotocol.org */
     await loadExternalDataTypeIfNotExists(context, authentication, {
       dataTypeId: blockProtocolDataTypeId,
       migrationState,
@@ -26,8 +27,8 @@ const migrate: MigrationFunction = async ({
   }
 
   let blockProtocolPropertyTypeId: VersionedUrl;
+  // eslint-disable-next-line guard-for-in
   for (blockProtocolPropertyTypeId in CACHED_PROPERTY_TYPE_SCHEMAS) {
-    /** @todo: provide schemas so they don't have to be fetched from blockprotocol.org */
     await loadExternalPropertyTypeIfNotExists(context, authentication, {
       propertyTypeId: blockProtocolPropertyTypeId,
       migrationState,
@@ -35,8 +36,8 @@ const migrate: MigrationFunction = async ({
   }
 
   let blockProtocolEntityTypeId: VersionedUrl;
+  // eslint-disable-next-line guard-for-in
   for (blockProtocolEntityTypeId in CACHED_ENTITY_TYPE_SCHEMAS) {
-    /** @todo: provide schemas so they don't have to be fetched from blockprotocol.org */
     await loadExternalEntityTypeIfNotExists(context, authentication, {
       entityTypeId: blockProtocolEntityTypeId,
       migrationState,
