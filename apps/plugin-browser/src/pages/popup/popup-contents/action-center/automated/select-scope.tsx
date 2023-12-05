@@ -201,8 +201,6 @@ export const SelectScope = ({
     );
   }
 
-  console.log("rules", rules);
-
   return (
     <Box>
       {!anyTypesSelected && <NoTypesSelectedMessage />}

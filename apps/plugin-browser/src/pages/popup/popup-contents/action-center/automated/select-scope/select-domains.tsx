@@ -42,12 +42,12 @@ export const SelectDomains = ({
         const filtered = filter(allOptions, params);
 
         const { inputValue } = params;
-        // Suggest the creation of a new value
         const isExisting = allOptions.some((option) =>
           option.includes(inputValue),
         );
 
         if (inputValue !== "" && !isExisting) {
+          // Show an option to the user making clear the new value can be added (also works by hitting enter)
           filtered.push(inputValue);
         }
         return filtered;
