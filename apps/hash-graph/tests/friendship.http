@@ -1430,7 +1430,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   },
   "owner": "{{account_id}}",
   "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
-  "draft": false
+  "draft": true
 }
 
 > {%
@@ -1513,7 +1513,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "rightEntityId": "{{person_b_entity_id}}"
   },
   "operations": ["all"],
-  "draft": false
+  "draft": true
 }
 
 > {%
@@ -1522,12 +1522,11 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     });
 %}
 
-### Insert link between entities
+### Insert link between entities (failing due to wrong draft state)
 POST http://127.0.0.1:4000/entities
 // TODO Use a structural query to check the link was created
 // TODO remove this link
 // TODO check the link was removed
-// TODO insert ordered link
 Content-Type: application/json
 Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
@@ -1541,6 +1540,93 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "leftEntityId": "{{person_a_entity_id}}",
     "rightEntityId": "{{person_b_entity_id}}"
   },
+  "draft": false
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 400, "Response status is not 200");
+    });
+%}
+
+### Insert link between entities
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {},
+  "entityTypeId": "{{friendship_link_entity_type_id}}",
+  "owner": "{{account_id}}",
+  "linkData": {
+    "leftEntityId": "{{person_a_entity_id}}",
+    "rightEntityId": "{{person_b_entity_id}}"
+  },
+  "draft": true
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("link_entity_id", response.body.recordId.entityId);
+%}
+
+### Attempt to publish Link entity
+PUT http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "entityId": "{{link_entity_id}}",
+  "entityTypeId": "{{friendship_link_entity_type_id}}",
+  "properties": {},
+  "archived": false,
+  "draft": false
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 400, "Response status is not 200");
+    });
+%}
+
+### Publish second person entity
+PUT http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "entityId": "{{person_b_entity_id}}",
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+  "properties": {
+    "http://localhost:3000/@alice/types/property-type/name/": "Bob"
+  },
+  "archived": false,
+  "draft": false
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### publish Link entity
+PUT http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "entityId": "{{link_entity_id}}",
+  "entityTypeId": "{{friendship_link_entity_type_id}}",
+  "properties": {},
+  "archived": false,
   "draft": false
 }
 
@@ -1605,9 +1691,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "variable": {
       "axis": "decisionTime",
       "interval": {
-        "start": {
-          "kind": "unbounded"
-        },
+        "start": null,
         "end": null
       }
     }
@@ -1695,7 +1779,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "variable": {
       "axis": "decisionTime",
       "interval": {
-        "start": { "kind": "unbounded" },
+        "start": null,
         "end": null
       }
     }

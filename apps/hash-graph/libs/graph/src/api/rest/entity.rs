@@ -202,14 +202,6 @@ where
         draft,
     }) = body;
 
-    // TODO: Allow creating entities in a draft state
-    //   see https://linear.app/hash/issue/H-1448
-    if draft {
-        return Err(report_to_response(
-            Report::new(PermissionAssertion).attach(hash_status::StatusCode::PermissionDenied),
-        ));
-    }
-
     let mut store = store_pool.acquire().await.map_err(report_to_response)?;
     let mut authorization_api = authorization_api_pool
         .acquire()
@@ -490,14 +482,6 @@ where
         archived,
         draft,
     }) = body;
-
-    // TODO: Allow changing the `draft` state
-    //   see https://linear.app/hash/issue/H-1452
-    if draft {
-        return Err(report_to_response(
-            Report::new(PermissionAssertion).attach(hash_status::StatusCode::PermissionDenied),
-        ));
-    }
 
     let mut store = store_pool.acquire().await.map_err(report_to_response)?;
     let mut authorization_api = authorization_api_pool
