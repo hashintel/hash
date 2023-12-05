@@ -23,9 +23,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BarChart } from "./bar-chart";
 import { EditChartDefinition } from "./edit-chart-definition";
-import { generateInitialChartDefinition } from "./edit-chart-definition/bar-graph-definition-form/group-by-property-form";
+import { generateInitialChartDefinition as generateInitialCountLinkedEntitiesBarChartDefinition } from "./edit-chart-definition/bar-graph-definition-form/count-linked-entities-form";
+import { generateInitialChartDefinition as generateInitialGroupByPropertyBarChartDefinition } from "./edit-chart-definition/bar-graph-definition-form/group-by-property-form";
 import { EditableChartTitle } from "./edit-chart-title";
-import { ChartDefinition } from "./types/chart-definition";
+import {
+  BarChartDefinitionVariant,
+  ChartDefinition,
+} from "./types/chart-definition";
 import {
   BlockEntity,
   BlockEntityOutgoingLinkAndTarget,
@@ -190,10 +194,23 @@ export const App: BlockComponent<BlockEntity> = ({
   );
 
   useEffect(() => {
-    if (queryResult && !chartDefinition) {
-      const generatedChartDefinition = generateInitialChartDefinition({
-        queryResult,
-      });
+    if (
+      queryResult &&
+      (!chartDefinition ||
+        (Object.entries(chartDefinition).length === 1 &&
+          chartDefinition.kind === "bar-chart"))
+    ) {
+      let generatedChartDefinition: BarChartDefinitionVariant | undefined =
+        generateInitialGroupByPropertyBarChartDefinition({
+          queryResult,
+        });
+
+      if (!generatedChartDefinition) {
+        generatedChartDefinition =
+          generateInitialCountLinkedEntitiesBarChartDefinition({
+            queryResult,
+          });
+      }
 
       if (generatedChartDefinition) {
         void updateChartDefinition({
