@@ -18,8 +18,8 @@ import { InlineSelect } from "./shared/inline-select";
 import { TopContextBar } from "./shared/top-context-bar";
 
 const sortOrderHumanReadable: Record<SortOrder, string> = {
-  "created-at-asc": "Created at (oldest first)",
-  "created-at-desc": "Created at (newest first)",
+  "created-at-asc": "creation date/time (oldest first)",
+  "created-at-desc": "creation date/time (newest first)",
 };
 
 const DraftsPage: NextPageWithLayout = () => {
