@@ -29,6 +29,7 @@ export const TimestampColumn: FunctionComponent<{
   <Box
     sx={{
       width: timestampColumnWidth,
+      minWidth: timestampColumnWidth,
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-end",
