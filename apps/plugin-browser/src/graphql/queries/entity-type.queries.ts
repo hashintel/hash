@@ -6,8 +6,8 @@ export const getEntityTypesQuery = /* GraphQL */ `
       constrainsLinksOn: { outgoing: 0 }
       constrainsLinkDestinationsOn: { outgoing: 0 }
       inheritsFrom: { outgoing: 0 }
-      latestOnly: true
-      includeArchived: false
+      latestOnly: false
+      includeArchived: true
     ) {
       roots
       vertices

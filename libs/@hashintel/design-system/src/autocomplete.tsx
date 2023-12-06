@@ -22,8 +22,9 @@ type AutocompleteProps<
   T,
   Multiple extends boolean | undefined,
   DisableClearable extends boolean | undefined,
+  FreeSolo extends boolean | undefined,
 > = Omit<
-  MUIAutocompleteProps<T, Multiple, DisableClearable, false>,
+  MUIAutocompleteProps<T, Multiple, DisableClearable, FreeSolo>,
   "renderInput"
 > & {
   inputHeight?: number;
@@ -47,6 +48,7 @@ export const Autocomplete = <
   T,
   Multiple extends boolean | undefined,
   DisableClearable extends boolean | undefined,
+  FreeSolo extends boolean | undefined = false,
 >({
   inputHeight = 57,
   open,
@@ -64,7 +66,8 @@ export const Autocomplete = <
 }: AutocompleteProps<
   Multiple extends true ? (T extends any[] ? T[number] : T) : T,
   Multiple,
-  DisableClearable
+  DisableClearable,
+  FreeSolo
 >) => {
   const allModifiers = useMemo(
     (): PopperProps["modifiers"] => [

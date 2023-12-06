@@ -1,4 +1,3 @@
-import type { EntityType } from "@blockprotocol/graph";
 import {
   CaretDownSolidIcon,
   IconButton,
@@ -11,20 +10,23 @@ import type {
   BaseUrl,
   Entity,
   EntityPropertyValue,
+  EntityTypeWithMetadata,
 } from "@local/hash-subgraph";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 
+import { getOwnedByIdFromEntityId } from "../../../../../../../shared/get-user";
+import { LocalStorage } from "../../../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputColor,
-} from "../../../../../shared/dark-mode-values";
-import { useUser } from "../../../../../shared/use-user";
+} from "../../../../../../shared/style-values";
+import { useUser } from "../../../../../../shared/use-user";
 import { UpFromLineIcon } from "./inferred-entity/up-from-line-icon";
 
 // @todo consolidate this with generateEntityLabel in hash-frontend
 const generateEntityLabel = (
   entityToLabel: Partial<Pick<Entity, "properties">>,
-  entityType: EntityType,
+  entityType: EntityTypeWithMetadata,
   index: number,
 ) => {
   const simplifiedProperties = simplifyProperties<{}>(
@@ -50,7 +52,7 @@ const generateEntityLabel = (
     }
   }
 
-  return `${entityType.title}-${index + 1}`;
+  return `${entityType.schema.title}-${index + 1}`;
 };
 
 // This assumes a hash.ai/blockprotocol.org type URL format ending in [slugified-title]/
@@ -65,11 +67,12 @@ const baseUrlToPropertyTitle = (baseUrl: BaseUrl) =>
 type InferredEntityProps = {
   allEntityStatuses: InferEntitiesReturn["contents"];
   expanded: boolean;
-  entityType: EntityType;
-  entityTypes: EntityType[];
+  entityType: EntityTypeWithMetadata;
+  entityTypes: EntityTypeWithMetadata[];
   indexInType: number;
   result: InferEntitiesReturn["contents"][number];
   toggleExpanded: () => void;
+  user: NonNullable<LocalStorage["user"]>;
 };
 
 export const InferredEntity = ({
@@ -80,9 +83,8 @@ export const InferredEntity = ({
   indexInType,
   result,
   toggleExpanded,
+  user,
 }: InferredEntityProps) => {
-  const { user } = useUser();
-
   const { operation, proposedEntity, status } = result;
 
   const persistedEntity = status === "success" ? result.entity : null;
@@ -108,6 +110,14 @@ export const InferredEntity = ({
       )
     : null;
 
+  const web = !result.entity
+    ? null
+    : [user, ...user.orgs].find(
+        (userOrOrg) =>
+          userOrOrg.webOwnedById ===
+          getOwnedByIdFromEntityId(result.entity!.metadata.recordId.entityId),
+      );
+
   const linkedEntities =
     typeof leftEntityIndex === "number" && typeof rightEntityIndex === "number"
       ? {
@@ -115,7 +125,8 @@ export const InferredEntity = ({
             entity: allEntityStatuses[leftEntityIndex]?.entity,
             entityType: entityTypes.find(
               (type) =>
-                type.$id === allEntityStatuses[leftEntityIndex]?.entityTypeId,
+                type.schema.$id ===
+                allEntityStatuses[leftEntityIndex]?.entityTypeId,
             )!,
             index: leftEntityIndex,
           },
@@ -123,7 +134,8 @@ export const InferredEntity = ({
             entity: allEntityStatuses[rightEntityIndex]?.entity,
             entityType: entityTypes.find(
               (type) =>
-                type.$id === allEntityStatuses[rightEntityIndex]?.entityTypeId,
+                type.schema.$id ===
+                allEntityStatuses[rightEntityIndex]?.entityTypeId,
             )!,
             index: rightEntityIndex,
           },
@@ -160,7 +172,7 @@ export const InferredEntity = ({
                * @todo figure out why that is and fix it, possibly in the @blockprotocol/type-system package,
                *    or in the plugin-browser webpack config.
                */
-              `${FRONTEND_ORIGIN}/@${user?.properties.shortname!}/entities/${
+              `${FRONTEND_ORIGIN}/@${web?.properties.shortname!}/entities/${
                 persistedEntity.metadata.recordId.entityId.split("~")[1]
               }`
             : undefined
@@ -219,12 +231,7 @@ export const InferredEntity = ({
               generateEntityLabel(
                 {
                   properties: {
-                    /**
-                     * This cast is necessary because the hash-graph-client return Entity type has 'object' as its properties,
-                     * @todo fix OpenAPI generator to avoid these inconsistencies
-                     */
-                    ...(persistedEntity?.properties as Entity | undefined)
-                      ?.properties,
+                    ...(persistedEntity?.properties ?? {}),
                     /**
                      * We take both the proposed entity's properties and the persisted entity's properties
                      * because the model does not reliably return all the entity's properties when suggesting an update,

@@ -14,6 +14,7 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
+import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 
 import type { DereferencedEntityType } from "./dereference-entity-type";
 import { ProposedEntityUpdatesByType } from "./generate-tools";
@@ -102,8 +103,9 @@ export const updateEntities = async ({
             }
 
             await graphApiClient.validateEntity(actorId, {
-              draft: true,
+              draft: existingEntity.metadata.draft,
               entityTypeId,
+              linkData: existingEntity.linkData,
               operations: ["all"],
               properties: {
                 ...existingEntity.properties,
@@ -114,7 +116,7 @@ export const updateEntities = async ({
             const { data: updateEntityMetadata } =
               await graphApiClient.updateEntity(actorId, {
                 archived: false,
-                draft: false,
+                draft: existingEntity.metadata.draft,
                 entityTypeId,
                 entityId: updateEntityId,
                 properties: {
@@ -123,11 +125,14 @@ export const updateEntities = async ({
                 },
               });
 
+            const metadata =
+              mapGraphApiEntityMetadataToMetadata(updateEntityMetadata);
+
             entityStatusMap.updateSuccesses[proposedEntity.entityId] = {
               entityTypeId,
               entity: {
                 ...existingEntity,
-                metadata: updateEntityMetadata,
+                metadata,
               },
               proposedEntity,
               operation: "update",

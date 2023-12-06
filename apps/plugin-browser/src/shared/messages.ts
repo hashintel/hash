@@ -1,7 +1,10 @@
-import type { EntityType } from "@blockprotocol/graph";
+import { VersionedUrl } from "@blockprotocol/graph";
+import { OwnedById } from "@local/hash-subgraph";
 
 export type InferEntitiesRequest = {
-  entityTypes: EntityType[];
+  createAs: "draft" | "live";
+  entityTypeIds: VersionedUrl[];
+  ownedById: OwnedById;
   sourceTitle: string;
   sourceUrl: string;
   type: "infer-entities";

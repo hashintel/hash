@@ -16,6 +16,7 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
+import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 import isMatch from "lodash.ismatch";
 
 import type { DereferencedEntityType } from "./dereference-entity-type";
@@ -33,10 +34,12 @@ type EntityStatusMap = {
   creationSuccesses: StatusByTemporaryId<InferredEntityCreationSuccess>;
   creationFailures: StatusByTemporaryId<InferredEntityCreationFailure>;
   updateCandidates: StatusByTemporaryId<UpdateCandidate>;
+  unchangedEntities: StatusByTemporaryId<UpdateCandidate>;
 };
 
 export const createEntities = async ({
   actorId,
+  createAsDraft,
   graphApiClient,
   log,
   proposedEntitiesByType,
@@ -44,6 +47,7 @@ export const createEntities = async ({
   ownedById,
 }: {
   actorId: AccountId;
+  createAsDraft: boolean;
   graphApiClient: GraphApi;
   log: (message: string) => void;
   proposedEntitiesByType: ProposedEntityCreationsByType;
@@ -64,6 +68,7 @@ export const createEntities = async ({
     creationSuccesses: {},
     creationFailures: {},
     updateCandidates: {},
+    unchangedEntities: {},
   };
 
   await Promise.all(
@@ -125,6 +130,11 @@ export const createEntities = async ({
                   existingEntity,
                   proposedEntity,
                 };
+              } else {
+                entityStatusMap.unchangedEntities[proposedEntity.entityId] = {
+                  existingEntity,
+                  proposedEntity,
+                };
               }
               return;
             }
@@ -132,7 +142,7 @@ export const createEntities = async ({
 
           try {
             await graphApiClient.validateEntity(actorId, {
-              draft: true,
+              draft: createAsDraft,
               entityTypeId,
               operations: ["all"],
               properties,
@@ -140,16 +150,20 @@ export const createEntities = async ({
 
             const { data: createdEntityMetadata } =
               await graphApiClient.createEntity(actorId, {
-                draft: false,
+                draft: createAsDraft,
                 entityTypeId,
                 ownedById,
                 owner: ownedById,
                 properties,
               });
 
+            const metadata = mapGraphApiEntityMetadataToMetadata(
+              createdEntityMetadata,
+            );
+
             entityStatusMap.creationSuccesses[proposedEntity.entityId] = {
               entity: {
-                metadata: createdEntityMetadata,
+                metadata,
                 properties,
               },
               entityTypeId,
@@ -208,7 +222,8 @@ export const createEntities = async ({
 
           const sourceEntity =
             entityStatusMap.creationSuccesses[sourceEntityId]?.entity ??
-            entityStatusMap.updateCandidates[sourceEntityId]?.existingEntity;
+            entityStatusMap.updateCandidates[sourceEntityId]?.existingEntity ??
+            entityStatusMap.unchangedEntities[sourceEntityId]?.existingEntity;
 
           if (!sourceEntity) {
             const sourceFailure =
@@ -246,7 +261,8 @@ export const createEntities = async ({
 
           const targetEntity =
             entityStatusMap.creationSuccesses[targetEntityId]?.entity ??
-            entityStatusMap.updateCandidates[targetEntityId]?.existingEntity;
+            entityStatusMap.updateCandidates[targetEntityId]?.existingEntity ??
+            entityStatusMap.unchangedEntities[targetEntityId]?.existingEntity;
 
           if (!targetEntity) {
             const targetFailure =
@@ -289,11 +305,11 @@ export const createEntities = async ({
 
           try {
             await graphApiClient.validateEntity(actorId, {
+              draft: createAsDraft,
               entityTypeId,
               operations: ["all"],
               linkData,
               properties,
-              draft: false,
             });
 
             const existingLinkEntity = await getEntityByFilter({
@@ -370,17 +386,21 @@ export const createEntities = async ({
 
             const { data: createdEntityMetadata } =
               await graphApiClient.createEntity(actorId, {
+                draft: createAsDraft,
                 entityTypeId,
                 linkData,
                 ownedById,
                 owner: ownedById,
                 properties,
-                draft: false,
               });
+
+            const metadata = mapGraphApiEntityMetadataToMetadata(
+              createdEntityMetadata,
+            );
 
             entityStatusMap.creationSuccesses[proposedEntity.entityId] = {
               entityTypeId,
-              entity: { linkData, metadata: createdEntityMetadata, properties },
+              entity: { linkData, metadata, properties },
               operation: "create",
               proposedEntity,
               status: "success",

@@ -3,36 +3,47 @@ import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-
 import { Box, Skeleton, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 
-import type { PageEntityInference } from "../../../../../shared/storage";
+import type {
+  LocalStorage,
+  PageEntityInference,
+} from "../../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
-} from "../../../../shared/dark-mode-values";
+} from "../../../../../shared/style-values";
+import { useEntityTypes } from "../../../../../shared/use-entity-types";
 import { InferredEntity } from "./inference-request/inferred-entity";
 
 export const InferenceRequest = ({
   request,
+  user,
 }: {
   request: PageEntityInference;
+  user: NonNullable<LocalStorage["user"]>;
 }) => {
   const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
+  const allEntityTypes = useEntityTypes();
 
-  const { entityTypes, status } = request;
+  const { entityTypeIds, status } = request;
 
   const inferredEntitiesByType = useMemo(() => {
+    const entityTypes = allEntityTypes.filter((type) =>
+      entityTypeIds.some((typeId) => typeId === type.schema.$id),
+    );
+
     return entityTypes.reduce(
       (acc, type) => {
-        acc[type.$id] =
+        acc[type.schema.$id] =
           status === "complete"
             ? request.data.contents.filter(
-                (result) => result.entityTypeId === type.$id,
+                (result) => result.entityTypeId === type.schema.$id,
               )
             : [];
         return acc;
       },
       {} as Record<string, InferEntitiesReturn["contents"]>,
     );
-  }, [entityTypes, request, status]);
+  }, [allEntityTypes, entityTypeIds, request, status]);
 
   if (status === "pending" || status === "not-started") {
     return (
@@ -59,13 +70,13 @@ export const InferenceRequest = ({
     <Box>
       {Object.entries(inferredEntitiesByType).map(
         ([typeId, entityStatuses]) => {
-          const entityType = request.entityTypes.find(
-            (type) => type.$id === typeId,
+          const entityType = allEntityTypes.find(
+            (type) => type.schema.$id === typeId,
           );
 
           if (!entityType) {
             throw new Error(
-              `Entity type with id ${typeId} somehow not in status entity types`,
+              `Entity type with id ${typeId} somehow not in all entity types`,
             );
           }
 
@@ -94,7 +105,7 @@ export const InferenceRequest = ({
                     fontSize: 12,
                   }}
                 >
-                  {pluralize(entityType.title)}
+                  {pluralize(entityType.schema.title)}
                 </Typography>
               </Box>
               {entityStatuses.length === 0 && (
@@ -120,7 +131,7 @@ export const InferenceRequest = ({
                       request.status === "complete" ? request.data.contents : []
                     }
                     entityType={entityType}
-                    entityTypes={entityTypes}
+                    entityTypes={allEntityTypes}
                     expanded={expanded}
                     key={locallyUniqueId}
                     indexInType={index}
@@ -130,6 +141,7 @@ export const InferenceRequest = ({
                         ? setExpandedEntityId(null)
                         : setExpandedEntityId(locallyUniqueId)
                     }
+                    user={user}
                   />
                 );
               })}

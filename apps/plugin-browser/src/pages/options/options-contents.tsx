@@ -5,6 +5,7 @@ import { theme } from "@hashintel/design-system/theme";
 import { Box, Skeleton, Stack, ThemeProvider, Typography } from "@mui/material";
 
 import { HashLockup } from "../shared/hash-lockup";
+import { lightModeBorderColor } from "../shared/style-values";
 import { useUser } from "../shared/use-user";
 import { browserName } from "../shared/which-browser";
 
@@ -48,7 +49,7 @@ export const OptionsContents = () => {
               sx={({ palette }) => ({
                 background: palette.common.white,
                 borderRadius: 2,
-                border: `1px solid ${palette.gray[30]}`,
+                border: `1px solid ${lightModeBorderColor}`,
                 display: "inline-block",
                 px: 6.5,
                 py: 5,

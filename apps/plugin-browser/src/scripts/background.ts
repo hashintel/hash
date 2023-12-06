@@ -1,3 +1,5 @@
+import * as domain from "node:domain";
+
 import browser from "webextension-polyfill";
 
 import { getUser } from "../shared/get-user";
@@ -46,19 +48,34 @@ browser.runtime.onMessage.addListener((message: Message, sender) => {
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === "complete") {
-    getFromLocalStorage("passiveInference")
-      .then(async (passiveInference) => {
-        if (passiveInference?.enabled) {
-          const targetEntityTypes =
-            await getFromLocalStorage("targetEntityTypes");
-
-          if (!targetEntityTypes) {
-            return;
-          }
-
+    getFromLocalStorage("automaticInferenceConfig")
+      .then(async (automaticInferenceConfig) => {
+        if (automaticInferenceConfig?.enabled) {
           const pageDetails = await (browser.tabs.sendMessage(tabId, {
             type: "get-site-content",
           } satisfies GetSiteContentRequest) as Promise<GetSiteContentReturn>);
+
+          const applicableRules = automaticInferenceConfig.rules.filter(
+            ({ restrictToDomains }) => {
+              const pageHostname = new URL(pageDetails.pageUrl).hostname;
+              return (
+                restrictToDomains.length === 0 ||
+                restrictToDomains.some(
+                  (domainToMatch) =>
+                    pageHostname === domainToMatch ||
+                    pageHostname.endsWith(`.${domainToMatch}`),
+                )
+              );
+            },
+          );
+
+          if (applicableRules.length === 0) {
+            return;
+          }
+
+          const entityTypeIdsToInfer = applicableRules.map(
+            ({ entityTypeId }) => entityTypeId,
+          );
 
           const inferenceRequests =
             await getFromLocalStorage("inferenceRequests");
@@ -77,7 +94,9 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
 
           void inferEntities(
             {
-              entityTypes: targetEntityTypes,
+              createAs: automaticInferenceConfig.createAs,
+              entityTypeIds: entityTypeIdsToInfer,
+              ownedById: automaticInferenceConfig.ownedById,
               sourceTitle: pageDetails.pageTitle,
               sourceUrl: pageDetails.pageUrl,
               textInput: pageDetails.innerText,
@@ -88,7 +107,7 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
         }
       })
       .catch((err) => {
-        console.error(`Passive inference error: ${(err as Error).message}`);
+        console.error(`Automatic inference error: ${(err as Error).message}`);
       });
   }
 });

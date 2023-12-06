@@ -1,7 +1,16 @@
-import type { EntityType } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/graph";
 import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
+  ImageProperties,
+  OrganizationProperties,
+  UserProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
+import {
+  Entity,
+  EntityTypeWithMetadata,
+  OwnedById,
+} from "@local/hash-subgraph";
 import browser from "webextension-polyfill";
 
 type InferenceErrorStatus = {
@@ -23,11 +32,21 @@ export type InferenceStatus =
 
 export type PageEntityInference = InferenceStatus & {
   createdAt: string;
-  entityTypes: EntityType[];
+  entityTypeIds: VersionedUrl[];
   localRequestUuid: string;
+  ownedById: OwnedById;
   sourceTitle: string;
   sourceUrl: string;
   trigger: "passive" | "user";
+};
+
+type UserAndLinkedData = Simplified<Entity<UserProperties>> & {
+  avatar?: Entity<ImageProperties>;
+  orgs: (Simplified<Entity<OrganizationProperties>> & {
+    avatar?: Entity<ImageProperties>;
+    webOwnedById: OwnedById;
+  })[];
+  webOwnedById: OwnedById;
 };
 
 /**
@@ -35,15 +54,24 @@ export type PageEntityInference = InferenceStatus & {
  * Cleared if the extension is loaded with no user present.
  */
 export type LocalStorage = {
-  passiveInference: {
-    conditions: ({ domain: string } | { urlRegExp: string })[];
+  automaticInferenceConfig: {
+    createAs: "draft" | "live";
     enabled: boolean;
+    ownedById: OwnedById;
+    rules: {
+      restrictToDomains: string[];
+      entityTypeId: VersionedUrl;
+    }[];
+  };
+  manualInferenceConfig: {
+    createAs: "draft" | "live";
+    ownedById: OwnedById;
+    targetEntityTypeIds: VersionedUrl[];
   };
   draftQuickNote: string;
-  entityTypes: EntityType[];
+  entityTypes: EntityTypeWithMetadata[];
   inferenceRequests: PageEntityInference[];
-  targetEntityTypes: EntityType[];
-  user: Simplified<User> | null;
+  user: UserAndLinkedData | null;
 };
 
 export const getFromLocalStorage = async <Key extends keyof LocalStorage>(
