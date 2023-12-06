@@ -189,6 +189,7 @@ export const getOrgByShortname: ImpureGraphFunction<
         all: [
           generateVersionedUrlMatchingFilter(
             systemEntityTypes.organization.entityTypeId,
+            { ignoreParents: true },
           ),
           {
             equal: [

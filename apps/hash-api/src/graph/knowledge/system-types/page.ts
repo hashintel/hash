@@ -1,12 +1,10 @@
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
-import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  blockProtocolPropertyTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
@@ -59,12 +57,7 @@ import {
   createLinkEntity,
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
-import {
-  Block,
-  createBlock,
-  getBlockComments,
-  getBlockFromEntity,
-} from "./block";
+import { Block, getBlockComments, getBlockFromEntity } from "./block";
 import { addBlockToBlockCollection } from "./block-collection";
 import { Comment } from "./comment";
 import { getUserById, User } from "./user";
@@ -163,26 +156,7 @@ export const createPage: ImpureGraphFunction<
 
   const page = getPageFromEntity({ entity });
 
-  const initialBlocks =
-    params.initialBlocks && params.initialBlocks.length > 0
-      ? params.initialBlocks
-      : [
-          await createBlock(ctx, authentication, {
-            ownedById,
-            componentId: paragraphBlockComponentId,
-            blockData: await createEntity(ctx, authentication, {
-              ownedById,
-              properties: {
-                [extractBaseUrl(
-                  blockProtocolPropertyTypes.textualContent.propertyTypeId,
-                )]: [],
-              },
-              entityTypeId: systemEntityTypes.text.entityTypeId,
-            }),
-          }),
-        ];
-
-  for (const block of initialBlocks) {
+  for (const block of params.initialBlocks ?? []) {
     await addBlockToBlockCollection(ctx, authentication, {
       blockCollectionEntityId: page.entity.metadata.recordId.entityId,
       block,

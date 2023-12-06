@@ -20,7 +20,7 @@ import { GlobeRegularIcon } from "../../shared/icons/globe-regular-icon";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
 import { BlockCollection } from "../shared/block-collection/block-collection";
 import {
-  blockCollectionContentsStaticVariables,
+  blockCollectionContentsGetEntityVariables,
   getBlockCollectionContents,
   isBlockCollectionContentsEmpty,
 } from "../shared/block-collection-contents";
@@ -42,7 +42,7 @@ export const ProfileBio: FunctionComponent<{
   >(getEntityQuery, {
     variables: {
       entityId: profile.hasBio?.profileBioEntity.metadata.recordId.entityId!,
-      ...blockCollectionContentsStaticVariables,
+      ...blockCollectionContentsGetEntityVariables,
     },
     skip: !profile.hasBio,
   });

@@ -1,6 +1,10 @@
 import { useMutation } from "@apollo/client";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import { EntityId, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import {
+  EntityId,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@local/hash-subgraph";
 import { useCallback, useContext } from "react";
 
 import {
@@ -9,7 +13,7 @@ import {
 } from "../../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { updatePage } from "../../graphql/queries/page.queries";
-import { blockCollectionContentsStaticVariables } from "../../pages/shared/block-collection-contents";
+import { getBlockCollectionContentsStructuralQueryVariables } from "../../pages/shared/block-collection-contents";
 import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 import { EntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
 
@@ -35,12 +39,12 @@ export const useArchivePage = () => {
         query: structuralQueryEntitiesQuery,
         variables: getAccountPagesVariables({ ownedById }),
       },
+
       {
-        query: getEntityQuery,
-        variables: {
-          entityId: pageEntityId,
-          ...blockCollectionContentsStaticVariables,
-        },
+        query: structuralQueryEntitiesQuery,
+        variables: getBlockCollectionContentsStructuralQueryVariables(
+          extractEntityUuidFromEntityId(pageEntityId),
+        ),
       },
     ];
   }, []);

@@ -5,7 +5,7 @@ import {
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
-import { EntityId } from "@local/hash-subgraph";
+import { EntityId, extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { toDomPrecision } from "@tldraw/primitives";
 import {
   defineShape,
@@ -17,9 +17,10 @@ import {
 } from "@tldraw/tldraw";
 
 import { BlockLoader } from "../../../../components/block-loader/block-loader";
+import { structuralQueryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../../../lib/apollo-client";
 import { BlockContextProvider } from "../../../shared/block-collection/block-context";
-import { blockCollectionContentsStaticVariables } from "../../../shared/block-collection-contents";
+import { getBlockCollectionContentsStructuralQueryVariables } from "../../../shared/block-collection-contents";
 import { BlockCollectionContext } from "../../../shared/block-collection-context";
 import {
   defaultBlockHeight,
@@ -65,12 +66,12 @@ const persistBlockPosition = ({
     },
     mutation: updateBlockCollectionContents,
     refetchQueries: [
+      // Refetch the page
       {
-        query: getEntityQuery,
-        variables: {
-          entityId: pageEntityId,
-          ...blockCollectionContentsStaticVariables,
-        },
+        query: structuralQueryEntitiesQuery,
+        variables: getBlockCollectionContentsStructuralQueryVariables(
+          extractEntityUuidFromEntityId(pageEntityId),
+        ),
       },
     ],
   });
