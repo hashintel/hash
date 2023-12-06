@@ -97,6 +97,7 @@ area/tests:
 area/tests > integration:
 - changed-files:
   - any-glob-to-any-file: tests/hash-backend-integration/**
+  - any-glob-to-any-file: tests/hash-graph-integration/**
 
 area/tests > playwright:
 - changed-files:
