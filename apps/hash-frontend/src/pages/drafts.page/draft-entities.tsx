@@ -23,7 +23,9 @@ import { getDraftEntitiesQueryVariables } from "./get-draft-entities-query";
 
 export type SortOrder = "created-at-asc" | "created-at-desc";
 
-export const DraftEntities: FunctionComponent = () => {
+export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
+  sortOrder,
+}) => {
   const { data: draftEntitiesData } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
@@ -97,6 +99,16 @@ export const DraftEntities: FunctionComponent = () => {
     }));
   }, [draftEntityHistoriesSubgraph, draftEntities]);
 
+  const sortedDraftEntitiesWithCreatedAt = useMemo(
+    () =>
+      draftEntitiesWithCreatedAt?.sort((a, b) =>
+        sortOrder === "created-at-asc"
+          ? a.createdAt.getTime() - b.createdAt.getTime()
+          : b.createdAt.getTime() - a.createdAt.getTime(),
+      ),
+    [draftEntitiesWithCreatedAt, sortOrder],
+  );
+
   return (
     <Container>
       {draftEntitiesWithCreatedAt && draftEntitiesWithCreatedAt.length === 0 ? (
@@ -111,21 +123,23 @@ export const DraftEntities: FunctionComponent = () => {
             borderStyle: "solid",
           }}
         >
-          {draftEntitiesWithCreatedAt && draftEntitiesSubgraph ? (
-            draftEntitiesWithCreatedAt.map(({ entity, createdAt }, i, all) => (
-              <Fragment key={entity.metadata.recordId.entityId}>
-                <DraftEntity
-                  entity={entity}
-                  createdAt={createdAt}
-                  subgraph={draftEntitiesSubgraph}
-                />
-                {i < all.length - 1 ? (
-                  <Divider
-                    sx={{ borderColor: ({ palette }) => palette.gray[30] }}
+          {sortedDraftEntitiesWithCreatedAt && draftEntitiesSubgraph ? (
+            sortedDraftEntitiesWithCreatedAt.map(
+              ({ entity, createdAt }, i, all) => (
+                <Fragment key={entity.metadata.recordId.entityId}>
+                  <DraftEntity
+                    entity={entity}
+                    createdAt={createdAt}
+                    subgraph={draftEntitiesSubgraph}
                   />
-                ) : null}
-              </Fragment>
-            ))
+                  {i < all.length - 1 ? (
+                    <Divider
+                      sx={{ borderColor: ({ palette }) => palette.gray[30] }}
+                    />
+                  ) : null}
+                </Fragment>
+              ),
+            )
           ) : (
             <>Skeleton</>
           )}
