@@ -1,9 +1,13 @@
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import { EntityId, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import {
+  EntityId,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import { structuralQueryEntitiesQuery } from "../../../graphql/queries/knowledge/entity.queries";
-import { blockCollectionContentsStaticVariables } from "../../../pages/shared/block-collection-contents";
+import { getBlockCollectionContentsStructuralQueryVariables } from "../../../pages/shared/block-collection-contents";
 import { getAccountPagesVariables } from "../../../shared/account-pages-variables";
 
 /**
@@ -33,12 +37,10 @@ export const useGetPageRefetchQueries = () =>
         }),
       },
       {
-        query: getEntityQuery,
-        variables: {
-          // The query for the page's own page
-          entityId: pageEntityId,
-          ...blockCollectionContentsStaticVariables,
-        },
+        query: structuralQueryEntitiesQuery,
+        variables: getBlockCollectionContentsStructuralQueryVariables(
+          extractEntityUuidFromEntityId(pageEntityId),
+        ),
       },
     ],
     [],

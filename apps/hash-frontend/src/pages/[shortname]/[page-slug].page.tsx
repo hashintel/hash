@@ -1,35 +1,18 @@
 import { useQuery } from "@apollo/client";
-import { extractBaseUrl } from "@blockprotocol/type-system";
 import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  GetEntityQuery,
-  GetEntityQueryVariables,
-} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import {
-  systemEntityTypes,
-  systemPropertyTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import {
   EntityId,
-  entityIdFromOwnedByIdAndEntityUuid,
   EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, SxProps } from "@mui/material";
-import { keyBy } from "lodash";
-import { GetServerSideProps } from "next";
 import { Router, useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { PropsWithChildren, useEffect, useMemo, useRef, useState } from "react";
@@ -52,17 +35,8 @@ import {
   StructuralQueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { apolloClient } from "../../lib/apollo-client";
 import { constructPageRelativeUrl } from "../../lib/routes";
-import {
-  constructMinimalOrg,
-  constructMinimalUser,
-  extractOwnedById,
-  isEntityOrgEntity,
-  isEntityUserEntity,
-  MinimalOrg,
-  MinimalUser,
-} from "../../lib/user-and-org";
+import { MinimalOrg, MinimalUser } from "../../lib/user-and-org";
 import { iconVariantSizes } from "../../shared/edit-emoji-icon-button";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
@@ -76,8 +50,8 @@ import { CommentThread } from "../shared/block-collection/comments/comment-threa
 import { PageContextProvider } from "../shared/block-collection/page-context";
 import { PageTitle } from "../shared/block-collection/page-title/page-title";
 import {
-  blockCollectionContentsStaticVariables,
   getBlockCollectionContents,
+  getBlockCollectionContentsStructuralQueryVariables,
 } from "../shared/block-collection-contents";
 import { BlockCollectionContextProvider } from "../shared/block-collection-context";
 import {
@@ -149,123 +123,6 @@ type PageProps = {
   blocks: HashBlock[];
 };
 
-/**
- * This is used to fetch the metadata associated with blocks that're preloaded
- * ahead of time so that the client doesn't need to
- *
- * @todo Include blocks present in the document in this, and remove fetching of these in canvas-page
- */
-export const getServerSideProps: GetServerSideProps<PageProps> = async ({
-  req,
-  params,
-}) => {
-  // Fetching block metadata can significantly slow down the server render, so disabling for now
-  // const fetchedBlocks = await Promise.all(
-  //   defaultBlockComponentIds.map((componentId) => fetchBlock(componentId)),
-  // );
-
-  if (!params || !isPageParsedUrlQuery(params)) {
-    throw new Error(
-      "Invalid page URL query params passed to `getServerSideProps`.",
-    );
-  }
-
-  const { workspaceShortname, pageEntityUuid } =
-    parsePageUrlQueryParams(params);
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-  const { cookie } = req.headers ?? {};
-
-  const workspaceSubgraph = await apolloClient
-    .query<StructuralQueryEntitiesQuery, StructuralQueryEntitiesQueryVariables>(
-      {
-        context: { headers: { cookie } },
-        query: structuralQueryEntitiesQuery,
-        variables: {
-          includePermissions: false,
-          query: {
-            filter: {
-              all: [
-                {
-                  equal: [
-                    {
-                      path: [
-                        "properties",
-                        extractBaseUrl(
-                          systemPropertyTypes.shortname.propertyTypeId,
-                        ),
-                      ],
-                    },
-                    { parameter: workspaceShortname },
-                  ],
-                },
-                {
-                  any: [
-                    generateVersionedUrlMatchingFilter(
-                      systemEntityTypes.user.entityTypeId,
-                      { ignoreParents: true },
-                    ),
-                    generateVersionedUrlMatchingFilter(
-                      systemEntityTypes.organization.entityTypeId,
-                      { ignoreParents: true },
-                    ),
-                  ],
-                },
-              ],
-            },
-            graphResolveDepths: zeroedGraphResolveDepths,
-            temporalAxes: currentTimeInstantTemporalAxes,
-            includeDrafts: false,
-          },
-        },
-      },
-    )
-    .then(({ data }) =>
-      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-        data.structuralQueryEntities.subgraph,
-      ),
-    );
-
-  const pageWorkspaceEntity = getRoots(workspaceSubgraph)[0];
-
-  if (!pageWorkspaceEntity) {
-    throw new Error(
-      `Could not find page workspace with shortname "${workspaceShortname}".`,
-    );
-  }
-
-  const pageWorkspace = isEntityUserEntity(pageWorkspaceEntity)
-    ? constructMinimalUser({
-        userEntity: pageWorkspaceEntity,
-      })
-    : isEntityOrgEntity(pageWorkspaceEntity)
-      ? constructMinimalOrg({
-          orgEntity: pageWorkspaceEntity,
-        })
-      : undefined;
-
-  if (!pageWorkspace) {
-    throw new Error(
-      `Entity with type ${pageWorkspaceEntity.metadata.entityTypeId} is not a user or an org entity`,
-    );
-  }
-
-  const pageOwnedById = extractOwnedById(pageWorkspace);
-
-  const pageEntityId = entityIdFromOwnedByIdAndEntityUuid(
-    pageOwnedById,
-    pageEntityUuid,
-  );
-
-  return {
-    props: {
-      pageWorkspace,
-      blocks: [],
-      pageEntityId,
-    },
-  };
-};
-
 const generateCrumbsFromPages = ({
   pages = [],
   pageEntityId,
@@ -319,35 +176,29 @@ const generateCrumbsFromPages = ({
   return arr;
 };
 
-const Page: NextPageWithLayout<PageProps> = ({
-  blocks,
-  pageEntityId,
-  pageWorkspace,
-}) => {
-  const pageOwnedById = extractOwnedByIdFromEntityId(pageEntityId);
-
-  const { asPath } = useRouter();
+const Page: NextPageWithLayout<PageProps> = () => {
+  const { asPath, query } = useRouter();
 
   const routeHash = asPath.split("#")[1] ?? "";
-
-  const { data: accountPages } = useAccountPages(pageOwnedById, true);
-
-  const blocksMap = useMemo(() => {
-    return keyBy(blocks, (block) => block.meta.componentId);
-  }, [blocks]);
 
   const [pageState, setPageState] = useState<"normal" | "transferring">(
     "normal",
   );
 
+  if (!isPageParsedUrlQuery(query)) {
+    throw new Error(
+      `Invalid page URL query parameters: ${JSON.stringify(query)}.`,
+    );
+  }
+
+  const { workspaceShortname, pageEntityUuid } = parsePageUrlQueryParams(query);
+
   const { data, error, loading } = useQuery<
-    GetEntityQuery,
-    GetEntityQueryVariables
-  >(getEntityQuery, {
-    variables: {
-      entityId: pageEntityId,
-      ...blockCollectionContentsStaticVariables,
-    },
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
+    variables:
+      getBlockCollectionContentsStructuralQueryVariables(pageEntityUuid),
   });
 
   const pageHeaderRef = useRef<HTMLElement>();
@@ -378,14 +229,8 @@ const Page: NextPageWithLayout<PageProps> = ({
     pageHeaderRef.current.scrollIntoView({ behavior: "smooth" });
   };
 
-  const { data: pageComments } = usePageComments(pageEntityId);
-
-  const pageSectionContainerProps: PageSectionContainerProps = {
-    pageComments,
-    readonly: true,
-  };
-
-  const { subgraph, userPermissionsOnEntities } = data?.getEntity ?? {};
+  const { subgraph, userPermissionsOnEntities } =
+    data?.structuralQueryEntities ?? {};
 
   const pageSubgraph = subgraph
     ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(subgraph)
@@ -393,9 +238,23 @@ const Page: NextPageWithLayout<PageProps> = ({
 
   const page = pageSubgraph ? getRoots(pageSubgraph)[0] : undefined;
 
+  const pageEntityId = page?.metadata.recordId.entityId;
+  const pageOwnedById = pageEntityId
+    ? extractOwnedByIdFromEntityId(pageEntityId)
+    : undefined;
+
+  const { data: pageComments } = usePageComments(pageEntityId);
+
+  const { data: accountPages } = useAccountPages(pageOwnedById, true);
+
+  const pageSectionContainerProps: PageSectionContainerProps = {
+    pageComments,
+    readonly: true,
+  };
+
   const contents = useMemo(
     () =>
-      pageSubgraph
+      pageSubgraph && pageEntityId
         ? getBlockCollectionContents({
             blockCollectionEntityId: pageEntityId,
             blockCollectionSubgraph: pageSubgraph,
@@ -428,7 +287,14 @@ const Page: NextPageWithLayout<PageProps> = ({
     );
   }
 
-  if (!page || !pageSubgraph || !userPermissionsOnEntities || !contents) {
+  if (
+    !page ||
+    !pageSubgraph ||
+    !pageEntityId ||
+    !pageOwnedById ||
+    !userPermissionsOnEntities ||
+    !contents
+  ) {
     return (
       <PageSectionContainer {...pageSectionContainerProps}>
         <h1>No page data loaded.</h1>
@@ -490,7 +356,7 @@ const Page: NextPageWithLayout<PageProps> = ({
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
               pageEntityId: page.metadata.recordId.entityId,
-              ownerShortname: pageWorkspace.shortname!,
+              ownerShortname: workspaceShortname,
             })}
             scrollToTop={scrollToTop}
           />
@@ -566,7 +432,7 @@ const Page: NextPageWithLayout<PageProps> = ({
         )}
 
         <CollabPositionProvider value={[]}>
-          <UserBlocksProvider value={blocksMap}>
+          <UserBlocksProvider value={{}}>
             <BlockLoadedProvider routeHash={routeHash}>
               <BlockCollectionContextProvider
                 blockCollectionSubgraph={pageSubgraph}
@@ -609,7 +475,7 @@ const Page: NextPageWithLayout<PageProps> = ({
                     ) : null}
 
                     <BlockCollection
-                      ownedById={extractOwnedById(pageWorkspace)}
+                      ownedById={pageOwnedById}
                       contents={contents}
                       enableCommenting
                       entityId={pageEntityId}

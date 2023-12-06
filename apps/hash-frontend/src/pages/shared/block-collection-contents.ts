@@ -1,5 +1,9 @@
+import { EntityStructuralQuery } from "@local/hash-graph-client";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
-import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
@@ -15,6 +19,7 @@ import {
   Entity,
   EntityId,
   EntityRootType,
+  EntityUuid,
   GraphResolveDepths,
   Subgraph,
 } from "@local/hash-subgraph";
@@ -27,7 +32,10 @@ import {
   LinkEntity,
 } from "@local/hash-subgraph/type-system-patch";
 
-import { BlockCollectionContentItem } from "../../graphql/api-types.gen";
+import {
+  BlockCollectionContentItem,
+  StructuralQueryEntitiesQueryVariables,
+} from "../../graphql/api-types.gen";
 
 /**
  * The depths required to fetch the contents for blocks to render, rooted at a BlockCollection
@@ -52,10 +60,33 @@ export const blockCollectionContentsDepths: GraphResolveDepths = {
   hasRightEntity: { incoming: 4, outgoing: 4 },
 };
 
-export const blockCollectionContentsStaticVariables = {
+export const blockCollectionContentsGetEntityVariables = {
   ...blockCollectionContentsDepths,
   includePermissions: true,
 };
+
+export const getBlockCollectionContentsStructuralQueryVariables = (
+  pageEntityUuid: EntityUuid,
+): StructuralQueryEntitiesQueryVariables => ({
+  includePermissions: true,
+  query: {
+    filter: {
+      all: [
+        {
+          equal: [
+            { path: ["uuid"] },
+            {
+              parameter: pageEntityUuid,
+            },
+          ],
+        },
+      ],
+    },
+    graphResolveDepths: blockCollectionContentsDepths,
+    includeDrafts: false,
+    temporalAxes: currentTimeInstantTemporalAxes,
+  },
+});
 
 export const isBlockCollectionContentsEmpty = (params: {
   contents: BlockCollectionContentItem[];

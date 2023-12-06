@@ -32,13 +32,14 @@ export type PageCommentsInfo = {
 
 const emptyComments: PageThread[] = [];
 
-export const usePageComments = (pageEntityId: EntityId): PageCommentsInfo => {
+export const usePageComments = (pageEntityId?: EntityId): PageCommentsInfo => {
   const { data, loading } = useQuery<
     GetPageCommentsQuery,
     GetPageCommentsQueryVariables
   >(getPageComments, {
-    variables: { entityId: pageEntityId },
+    variables: { entityId: pageEntityId! },
     pollInterval: 5_000,
+    skip: !pageEntityId,
   });
 
   return { data: data?.pageComments ?? emptyComments, loading };
