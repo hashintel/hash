@@ -352,14 +352,12 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     });
   }, [
     blockEntityId,
-    blockCollectionSubgraph,
     blockEntityTypeId,
     blockSubgraph,
     fallbackBlockProperties,
     fetchBlockSubgraph,
     setBlockSubgraph,
     setUserPermissions,
-    userPermissionsOnEntities,
   ]);
 
   const refetchSubgraph = useCallback(async () => {
