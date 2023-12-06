@@ -22,6 +22,7 @@ export const getDraftEntitiesQueryVariables: StructuralQueryEntitiesQueryVariabl
       graphResolveDepths: {
         ...zeroedGraphResolveDepths,
         isOfType: { outgoing: 1 },
+        inheritsFrom: { outgoing: 255 },
         constrainsPropertiesOn: { outgoing: 255 },
         constrainsValuesOn: { outgoing: 255 },
       },
