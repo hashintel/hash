@@ -8,8 +8,14 @@ export type BarChartDefinitionVariant = {
   yAxisLabel?: string;
 };
 
+export type GraphChartDefinitionVariant = {
+  incomingLinksDepth?: number;
+  outgoingLinksDepth?: number;
+};
+
 export type ChartDefinitions = {
   "bar-chart": BarChartDefinitionVariant;
+  "graph-chart": GraphChartDefinitionVariant;
 };
 
 export type ChartDefinitionKinds = keyof ChartDefinitions;

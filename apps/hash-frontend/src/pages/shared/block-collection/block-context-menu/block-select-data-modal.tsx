@@ -54,12 +54,12 @@ export const BlockSelectDataModal: FunctionComponent<
     setBlockSubgraph(subgraph);
   }, [blockDataEntity, fetchBlockSubgraph, setBlockSubgraph]);
 
-  const existingQueries = useMemo(() => {
+  const existingQuery = useMemo(() => {
     if (!blockDataEntity || !blockSubgraph) {
       return undefined;
     }
 
-    return getOutgoingLinkAndTargetEntities(
+    const existingQueries = getOutgoingLinkAndTargetEntities(
       blockSubgraph,
       blockDataEntity.metadata.recordId.entityId,
     )
@@ -68,39 +68,10 @@ export const BlockSelectDataModal: FunctionComponent<
           linkEntityRevisions[0]?.metadata.entityTypeId ===
           blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
       )
-      .sort(
-        (
-          { linkEntity: aLinkEntityRevisions },
-          { linkEntity: bLinkEntityRevisions },
-        ) =>
-          bLinkEntityRevisions[0]!.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
-            aLinkEntityRevisions[0]!.metadata.temporalVersioning.decisionTime
-              .start.limit,
-          ),
-      )
       .map(({ rightEntity }) => rightEntity[0] as Entity<QueryProperties>);
+
+    return existingQueries[0];
   }, [blockSubgraph, blockDataEntity]);
-
-  const { updateEntity } = useBlockProtocolUpdateEntity();
-
-  const updateQueryEntityQuery = useCallback(
-    (currentQueryEntity: Entity) => async (updatedQuery: MultiFilter) => {
-      await updateEntity({
-        data: {
-          entityId: currentQueryEntity.metadata.recordId.entityId,
-          entityTypeId: currentQueryEntity.metadata.entityTypeId,
-          properties: {
-            ...currentQueryEntity.properties,
-            "https://blockprotocol.org/@hash/types/property-type/query/":
-              updatedQuery,
-          } as QueryProperties,
-        },
-      });
-
-      await refetchBlockSubgraph();
-    },
-    [updateEntity, refetchBlockSubgraph],
-  );
 
   const { authenticatedUser } = useAuthenticatedUser();
 
@@ -108,40 +79,64 @@ export const BlockSelectDataModal: FunctionComponent<
     authenticatedUser.accountId as OwnedById,
   );
 
-  const handleSaveNewQuery = useCallback(
+  const { updateEntity } = useBlockProtocolUpdateEntity();
+
+  const handleSave = useCallback(
     async (query: MultiFilter) => {
-      if (!blockDataEntity) {
-        return;
-      }
-
-      const { data: queryEntity } = await createEntity({
-        data: {
-          entityTypeId: blockProtocolEntityTypes.query.entityTypeId,
-          properties: {
-            "https://blockprotocol.org/@hash/types/property-type/query/": query,
-          } as QueryProperties,
-        },
-      });
-
-      /** @todo: improve error handling */
-      if (!queryEntity) {
-        throw new Error("Failed to create query entity");
-      }
-
-      await createEntity({
-        data: {
-          entityTypeId: blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
-          linkData: {
-            leftEntityId: blockDataEntity.metadata.recordId.entityId,
-            rightEntityId: queryEntity.metadata.recordId.entityId,
+      if (existingQuery) {
+        await updateEntity({
+          data: {
+            entityId: existingQuery.metadata.recordId.entityId,
+            entityTypeId: existingQuery.metadata.entityTypeId,
+            properties: {
+              ...existingQuery.properties,
+              "https://blockprotocol.org/@hash/types/property-type/query/":
+                query,
+            } as QueryProperties,
           },
-          properties: {},
-        },
-      });
+        });
+      } else {
+        if (!blockDataEntity) {
+          return;
+        }
+
+        const { data: queryEntity } = await createEntity({
+          data: {
+            entityTypeId: blockProtocolEntityTypes.query.entityTypeId,
+            properties: {
+              "https://blockprotocol.org/@hash/types/property-type/query/":
+                query,
+            } as QueryProperties,
+          },
+        });
+
+        /** @todo: improve error handling */
+        if (!queryEntity) {
+          throw new Error("Failed to create query entity");
+        }
+
+        await createEntity({
+          data: {
+            entityTypeId:
+              blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
+            linkData: {
+              leftEntityId: blockDataEntity.metadata.recordId.entityId,
+              rightEntityId: queryEntity.metadata.recordId.entityId,
+            },
+            properties: {},
+          },
+        });
+      }
 
       await refetchBlockSubgraph();
     },
-    [createEntity, blockDataEntity, refetchBlockSubgraph],
+    [
+      updateEntity,
+      refetchBlockSubgraph,
+      blockDataEntity,
+      existingQuery,
+      createEntity,
+    ],
   );
 
   /** @todo: consider bringing back ability to query entities */
@@ -214,29 +209,20 @@ export const BlockSelectDataModal: FunctionComponent<
             </IconButton>
           </Box>
         </Box>
-        {existingQueries?.map((queryEntity) => (
-          <EntityQueryEditor
-            key={queryEntity.metadata.recordId.entityId}
-            entityTypes={entityTypeSchemas}
-            propertyTypes={propertyTypeSchemas}
-            defaultValue={
-              simplifyProperties(queryEntity.properties).query as MultiFilter
-            }
-            onSave={updateQueryEntityQuery(queryEntity)}
-            saveTitle="Update Query"
-            discardTitle="Discard changes"
-          />
-        ))}
-        {/* @todo: allow for creation of multiple queries */}
-        {existingQueries && existingQueries.length === 0 ? (
-          <EntityQueryEditor
-            entityTypes={entityTypeSchemas}
-            propertyTypes={propertyTypeSchemas}
-            onSave={handleSaveNewQuery}
-            saveTitle="Create Query"
-            discardTitle="Reset Query"
-          />
-        ) : null}
+        <EntityQueryEditor
+          sx={{ marginBottom: 2 }}
+          entityTypes={entityTypeSchemas}
+          propertyTypes={propertyTypeSchemas}
+          defaultValue={
+            existingQuery
+              ? (simplifyProperties(existingQuery.properties)
+                  .query as MultiFilter)
+              : undefined
+          }
+          onSave={handleSave}
+          saveTitle={`${existingQuery ? "Update" : "Create"} query`}
+          discardTitle={existingQuery ? "Discard changes" : "Reset query"}
+        />
       </Box>
     </Modal>
   );

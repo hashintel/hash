@@ -5,12 +5,10 @@ import {
   Subgraph,
 } from "@blockprotocol/graph";
 import { getEntities, getEntityTypeById } from "@blockprotocol/graph/stdlib";
-import { BaseUrl } from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system/slim";
 import { Chart, EChart, ECOption } from "@hashintel/design-system";
 // eslint-disable-next-line no-restricted-imports
 import { generateEntityLabel as hashGenerateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { BoxProps } from "@mui/material";
+import { BoxProps, useTheme } from "@mui/material";
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 
 const generateEntityLabel = (
@@ -24,16 +22,10 @@ const generateEntityLabel = (
 export const EntitiesGraphChart: FunctionComponent<{
   filterEntity?: (entity: Entity) => boolean;
   onEntityClick?: (entity: Entity) => void;
-  primaryEntityTypeBaseUrl?: BaseUrl;
+  isPrimaryEntity?: (entity: Entity) => boolean;
   subgraph?: Subgraph<EntityRootType>;
   sx?: BoxProps["sx"];
-}> = ({
-  filterEntity,
-  primaryEntityTypeBaseUrl,
-  subgraph,
-  sx,
-  onEntityClick,
-}) => {
+}> = ({ filterEntity, isPrimaryEntity, subgraph, sx, onEntityClick }) => {
   const [chart, setChart] = useState<Chart>();
 
   const entities = useMemo(
@@ -105,9 +97,12 @@ export const EntitiesGraphChart: FunctionComponent<{
 
   const chartInitialized = useRef(false);
 
+  const theme = useTheme();
+
   const eChartOptions = useMemo<ECOption>(() => {
     return {
       tooltip: {
+        borderColor: theme.palette.blue[70],
         show: true,
         trigger: "item",
         formatter: (params) => {
@@ -177,16 +172,17 @@ export const EntitiesGraphChart: FunctionComponent<{
           id: entity.metadata.recordId.entityId,
           label: {
             show: true,
+            textBorderColor: theme.palette.blue[90],
+            textBorderWidth: 2,
           },
-          itemStyle: primaryEntityTypeBaseUrl
-            ? {
-                opacity:
-                  extractBaseUrl(entity.metadata.entityTypeId) ===
-                  primaryEntityTypeBaseUrl
-                    ? 1
-                    : 0.8,
-              }
-            : undefined,
+          itemStyle: {
+            color: theme.palette.blue[70],
+            ...(isPrimaryEntity
+              ? {
+                  opacity: isPrimaryEntity(entity) ? 1 : 0.6,
+                }
+              : {}),
+          },
         })),
         edges: linkEntities?.map((linkEntity) => ({
           /** @todo: figure out why the right entity is the source and not the target */
@@ -213,7 +209,8 @@ export const EntitiesGraphChart: FunctionComponent<{
     entities,
     linkEntities,
     nonLinkEntities,
-    primaryEntityTypeBaseUrl,
+    isPrimaryEntity,
+    theme,
   ]);
 
   return (
