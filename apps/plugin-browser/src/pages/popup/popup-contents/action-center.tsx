@@ -1,4 +1,4 @@
-import { PlusIcon } from "@hashintel/design-system";
+import { ListRegularIcon, PlusIcon } from "@hashintel/design-system";
 import {
   Box,
   Stack,
@@ -18,6 +18,7 @@ import {
 } from "../../shared/style-values";
 import { useLocalStorage } from "../../shared/use-local-storage";
 import { Automated } from "./action-center/automated";
+import { Log } from "./action-center/log";
 import { OneOff } from "./action-center/one-off";
 import { WandMagicSparklesIcon } from "./action-center/wand-magic-sparkles-icon";
 import { Avatar } from "./shared/avatar";
@@ -60,7 +61,9 @@ export const ActionCenter = ({
   activeTab?: Tabs.Tab | null;
   user: NonNullable<LocalStorage["user"]>;
 }) => {
-  const [popupTab, setPopupTab] = useState<"one-off" | "automated">("one-off");
+  const [popupTab, setPopupTab] = useState<"one-off" | "automated" | "log">(
+    "one-off",
+  );
 
   const [automaticInferenceConfig, setAutomaticInferenceConfig] =
     useLocalStorage("automaticInferenceConfig", {
@@ -92,7 +95,7 @@ export const ActionCenter = ({
         <Box>
           <MuiTabs
             onChange={(_event, newValue) =>
-              setPopupTab(newValue as "one-off" | "automated")
+              setPopupTab(newValue as "one-off" | "automated" | "log")
             }
             TabIndicatorProps={{ sx: { transition: "none" } }}
             value={popupTab}
@@ -105,13 +108,20 @@ export const ActionCenter = ({
                 PlusIcon,
               )}
             />
-
             <MuiTab
               value="automated"
               {...generateCommonTabProps(
                 popupTab === "automated",
                 "Automated",
                 WandMagicSparklesIcon,
+              )}
+            />
+            <MuiTab
+              value="log"
+              {...generateCommonTabProps(
+                popupTab === "log",
+                "Log",
+                ListRegularIcon,
               )}
             />
           </MuiTabs>
@@ -130,12 +140,14 @@ export const ActionCenter = ({
       <Box sx={{ maxHeight: 545, overflowY: "scroll" }}>
         {popupTab === "one-off" ? (
           <OneOff activeTab={activeTab} user={user} />
-        ) : (
+        ) : popupTab === "automated" ? (
           <Automated
             automaticInferenceConfig={automaticInferenceConfig}
             setAutomaticInferenceConfig={setAutomaticInferenceConfig}
             user={user}
           />
+        ) : (
+          <Log user={user} />
         )}
       </Box>
     </Box>

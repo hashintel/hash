@@ -9,6 +9,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   InferenceModelName,
+  InferenceTokenUsage,
   InferEntitiesCallerParams,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/temporal-types";
@@ -76,6 +77,7 @@ const requestEntityInference = async (params: {
   graphApiClient: GraphApi;
   ownedById: OwnedById;
   results: InferredEntityChangeResult[];
+  usage: InferenceTokenUsage[];
 }): Promise<InferEntitiesReturn> => {
   const {
     authentication,
@@ -144,6 +146,11 @@ const requestEntityInference = async (params: {
 
   const toolCalls = message.tool_calls;
 
+  const usage = [
+    ...params.usage,
+    data.usage ?? { completion_tokens: 0, prompt_tokens: 0, total_tokens: 0 },
+  ];
+
   const retryWithMessages = (
     userMessages: (
       | OpenAI.ChatCompletionUserMessageParam
@@ -159,6 +166,7 @@ const requestEntityInference = async (params: {
         messages: [...completionPayload.messages, message, ...userMessages],
       },
       results: latestResults,
+      usage,
     });
 
   switch (finish_reason) {
@@ -537,7 +545,7 @@ const requestEntityInference = async (params: {
         log(`Returning results: ${JSON.stringify(results, undefined, 2)}`);
         return {
           code: StatusCode.Ok,
-          contents: results,
+          contents: [{ results, usage }],
         };
       }
 
@@ -716,5 +724,6 @@ export const inferEntities = async ({
     iterationCount: 1,
     ownedById,
     results: [],
+    usage: [],
   });
 };

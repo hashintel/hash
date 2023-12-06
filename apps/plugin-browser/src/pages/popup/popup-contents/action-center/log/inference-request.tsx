@@ -1,17 +1,17 @@
-import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
-import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
+import { pluralize } from "@local/hash-isomorphic-utils/src/pluralize";
+import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/src/temporal-types";
 import { Box, Skeleton, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 
 import type {
   LocalStorage,
   PageEntityInference,
-} from "../../../../../../shared/storage";
+} from "../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
-} from "../../../../../shared/style-values";
-import { useEntityTypes } from "../../../../../shared/use-entity-types";
+} from "../../../../shared/style-values";
+import { useEntityTypes } from "../../../../shared/use-entity-types";
 import { InferredEntity } from "./inference-request/inferred-entity";
 
 export const InferenceRequest = ({

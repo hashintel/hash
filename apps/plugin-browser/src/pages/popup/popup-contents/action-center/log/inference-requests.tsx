@@ -12,13 +12,13 @@ import { useState } from "react";
 import {
   LocalStorage,
   PageEntityInference,
-} from "../../../../../../shared/storage";
+} from "../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
   darkModePlaceholderColor,
-} from "../../../../../shared/style-values";
-import { useLocalStorage } from "../../../../../shared/use-local-storage";
+} from "../../../../shared/style-values";
+import { useLocalStorage } from "../../../../shared/use-local-storage";
 import { InferenceRequest } from "./inference-request";
 
 const InferenceRequestContainer = ({

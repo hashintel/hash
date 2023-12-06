@@ -67,6 +67,12 @@ export type ProposedEntity = Subtype<
   )
 >;
 
+export type InferenceTokenUsage = {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+};
+
 type InferredEntityResultBase = {
   entity?: Entity | null;
   entityTypeId: VersionedUrl;
@@ -107,4 +113,7 @@ export type InferredEntityChangeResult =
   | InferredEntityUpdateSuccess
   | InferredEntityUpdateFailure;
 
-export type InferEntitiesReturn = Status<InferredEntityChangeResult>;
+export type InferEntitiesReturn = Status<{
+  results: InferredEntityChangeResult[];
+  usage: InferenceTokenUsage[];
+}>;

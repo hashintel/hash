@@ -4,8 +4,8 @@ import {
   LinkIcon,
   PlusIcon,
 } from "@hashintel/design-system";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/src/simplify-properties";
+import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/src/temporal-types";
 import type {
   BaseUrl,
   Entity,
@@ -14,13 +14,12 @@ import type {
 } from "@local/hash-subgraph";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 
-import { getOwnedByIdFromEntityId } from "../../../../../../../shared/get-user";
-import { LocalStorage } from "../../../../../../../shared/storage";
+import { getOwnedByIdFromEntityId } from "../../../../../../shared/get-user";
+import { LocalStorage } from "../../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputColor,
-} from "../../../../../../shared/style-values";
-import { useUser } from "../../../../../../shared/use-user";
+} from "../../../../../shared/style-values";
 import { UpFromLineIcon } from "./inferred-entity/up-from-line-icon";
 
 // @todo consolidate this with generateEntityLabel in hash-frontend

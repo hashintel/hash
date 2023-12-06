@@ -11,13 +11,13 @@ import { LocalStorage } from "../../../../../shared/storage";
 import { sendMessageToBackground } from "../../../../shared/messages";
 import { borderColors } from "../../../../shared/style-values";
 import { useLocalStorage } from "../../../../shared/use-local-storage";
+import { InferenceRequests } from "../log/inference-requests";
 import { EntityTypeSelector } from "../shared/entity-type-selector";
 import { ModelSelector } from "../shared/model-selector";
 import { Section } from "../shared/section";
 import { SelectWebTarget } from "../shared/select-web-target";
 import { ArrowUpToLineIcon } from "./infer-entities-action/arrow-up-to-line-icon";
 import { CreateEntityIcon } from "./infer-entities-action/create-entity-icon";
-import { InferenceRequests } from "./infer-entities-action/inference-requests";
 
 export const InferEntitiesAction = ({
   activeTab,
@@ -219,7 +219,6 @@ export const InferEntitiesAction = ({
           </Box>
         </Stack>
       </Box>
-      <InferenceRequests user={user} />
     </Section>
   );
 };
