@@ -21,7 +21,8 @@ import { DraftEntityViewers } from "./draft-entity/draft-entity-viewers";
 export const DraftEntity: FunctionComponent<{
   subgraph: Subgraph<EntityRootType>;
   entity: Entity;
-}> = ({ entity, subgraph }) => {
+  createdAt: Date;
+}> = ({ entity, subgraph, createdAt }) => {
   const getOwnerForEntity = useGetOwnerForEntity();
 
   const [displayProperties, setDisplayProperties] = useState<boolean>(false);
@@ -122,7 +123,7 @@ export const DraftEntity: FunctionComponent<{
             Preview
           </Button>
         </Box>
-        <DraftEntityProvenance entity={entity} />
+        <DraftEntityProvenance entity={entity} createdAt={createdAt} />
       </Box>
       <Collapse in={displayProperties}>
         <DraftEntityProperties initialEntity={entity} subgraph={subgraph} />

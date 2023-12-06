@@ -1,6 +1,13 @@
 import { useQuery } from "@apollo/client";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { EntityRootType } from "@local/hash-subgraph/.";
+import {
+  fullDecisionTimeAxis,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  EntityRootType,
+  extractEntityUuidFromEntityId,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Container, Divider } from "@mui/material";
 import { Fragment, FunctionComponent, useMemo } from "react";
@@ -10,35 +17,89 @@ import {
   StructuralQueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { getFirstRevisionCreatedAt } from "../../shared/entity-utils";
 import { DraftEntity } from "./draft-entity";
 import { getDraftEntitiesQueryVariables } from "./get-draft-entities-query";
 
+export type SortOrder = "created-at-asc" | "created-at-desc";
+
 export const DraftEntities: FunctionComponent = () => {
-  const { data } = useQuery<
+  const { data: draftEntitiesData } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
     variables: getDraftEntitiesQueryVariables,
   });
 
-  const subgraph = useMemo(
+  const draftEntitiesSubgraph = useMemo(
     () =>
-      data
+      draftEntitiesData
         ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-            data.structuralQueryEntities.subgraph,
+            draftEntitiesData.structuralQueryEntities.subgraph,
           )
         : undefined,
-    [data],
+    [draftEntitiesData],
   );
 
   const draftEntities = useMemo(
-    () => (subgraph ? getRoots(subgraph) : undefined),
-    [subgraph],
+    () => (draftEntitiesSubgraph ? getRoots(draftEntitiesSubgraph) : undefined),
+    [draftEntitiesSubgraph],
   );
+
+  const { data: draftEntityHistoriesData } = useQuery<
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
+    variables: {
+      query: {
+        filter: {
+          any:
+            draftEntities?.map((draftEntity) => ({
+              equal: [
+                { path: ["uuid"] },
+                {
+                  parameter: extractEntityUuidFromEntityId(
+                    draftEntity.metadata.recordId.entityId,
+                  ),
+                },
+              ],
+            })) ?? [],
+        },
+        temporalAxes: fullDecisionTimeAxis,
+        graphResolveDepths: zeroedGraphResolveDepths,
+      },
+      includePermissions: false,
+    },
+    skip: !draftEntities,
+  });
+
+  const draftEntityHistoriesSubgraph = useMemo(
+    () =>
+      draftEntityHistoriesData
+        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+            draftEntityHistoriesData.structuralQueryEntities.subgraph,
+          )
+        : undefined,
+    [draftEntityHistoriesData],
+  );
+
+  const draftEntitiesWithCreatedAt = useMemo(() => {
+    if (!draftEntities || !draftEntityHistoriesSubgraph) {
+      return undefined;
+    }
+
+    return draftEntities.map((entity) => ({
+      entity,
+      createdAt: getFirstRevisionCreatedAt(
+        draftEntityHistoriesSubgraph,
+        entity.metadata.recordId.entityId,
+      ),
+    }));
+  }, [draftEntityHistoriesSubgraph, draftEntities]);
 
   return (
     <Container>
-      {draftEntities && draftEntities.length === 0 ? (
+      {draftEntitiesWithCreatedAt && draftEntitiesWithCreatedAt.length === 0 ? (
         <>No drafts</>
       ) : (
         <Box
@@ -50,10 +111,14 @@ export const DraftEntities: FunctionComponent = () => {
             borderStyle: "solid",
           }}
         >
-          {draftEntities && subgraph ? (
-            draftEntities.map((entity, i, all) => (
+          {draftEntitiesWithCreatedAt && draftEntitiesSubgraph ? (
+            draftEntitiesWithCreatedAt.map(({ entity, createdAt }, i, all) => (
               <Fragment key={entity.metadata.recordId.entityId}>
-                <DraftEntity entity={entity} subgraph={subgraph} />
+                <DraftEntity
+                  entity={entity}
+                  createdAt={createdAt}
+                  subgraph={draftEntitiesSubgraph}
+                />
                 {i < all.length - 1 ? (
                   <Divider
                     sx={{ borderColor: ({ palette }) => palette.gray[30] }}

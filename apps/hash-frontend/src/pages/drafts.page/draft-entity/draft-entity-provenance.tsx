@@ -32,9 +32,10 @@ const DraftEntityTypography = styled(Typography)(({ theme }) => ({
   marginRight: theme.spacing(0.5),
 }));
 
-export const DraftEntityProvenance: FunctionComponent<{ entity: Entity }> = ({
-  entity,
-}) => {
+export const DraftEntityProvenance: FunctionComponent<{
+  entity: Entity;
+  createdAt: Date;
+}> = ({ entity, createdAt }) => {
   const { users } = useUsers();
 
   /** @todo: account for machine users */
@@ -49,12 +50,8 @@ export const DraftEntityProvenance: FunctionComponent<{ entity: Entity }> = ({
   );
 
   const formattedCreatedAt = useMemo(
-    () =>
-      format(
-        new Date(entity.metadata.temporalVersioning.decisionTime.start.limit),
-        "yyyy-MM-dd h:mma",
-      ),
-    [entity],
+    () => format(createdAt, "yyyy-MM-dd h:mma"),
+    [createdAt],
   );
 
   return (
