@@ -227,20 +227,15 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
    *   on subsequent loads it will be cached so long as the cookie value remains the same.
    * We leave it up to the client to re-fetch the user as necessary in response to user-initiated actions.
    */
-  const [initialAuthenticatedUserSubgraph, kratosSession] = await Promise.all([
-    apolloClient
-      .query<MeQuery>({
-        query: meQuery,
-        context: { headers: { cookie } },
-      })
-      .then(({ data }) =>
-        mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-          data.me.subgraph,
-        ),
-      )
-      .catch(() => undefined),
-    fetchKratosSession(cookie),
-  ]);
+  const initialAuthenticatedUserSubgraph = await apolloClient
+    .query<MeQuery>({
+      query: meQuery,
+      context: { headers: { cookie } },
+    })
+    .then(({ data }) =>
+      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(data.me.subgraph),
+    )
+    .catch(() => undefined);
 
   const userEntity = initialAuthenticatedUserSubgraph
     ? (getRoots<EntityRootType>(initialAuthenticatedUserSubgraph)[0] as
@@ -249,7 +244,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     : undefined;
 
   /** @todo: make additional pages publicly accessible */
-  if (!userEntity || !kratosSession) {
+  if (!userEntity) {
     // If the user is logged out and not on a page that should be publicly accessible...
     if (!publiclyAccessiblePagePathnames.includes(pathname)) {
       // ...redirect them to the login page
