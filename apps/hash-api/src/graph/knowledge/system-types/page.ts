@@ -163,26 +163,7 @@ export const createPage: ImpureGraphFunction<
 
   const page = getPageFromEntity({ entity });
 
-  const initialBlocks =
-    params.initialBlocks && params.initialBlocks.length > 0
-      ? params.initialBlocks
-      : [
-          await createBlock(ctx, authentication, {
-            ownedById,
-            componentId: paragraphBlockComponentId,
-            blockData: await createEntity(ctx, authentication, {
-              ownedById,
-              properties: {
-                [extractBaseUrl(
-                  blockProtocolPropertyTypes.textualContent.propertyTypeId,
-                )]: [],
-              },
-              entityTypeId: systemEntityTypes.text.entityTypeId,
-            }),
-          }),
-        ];
-
-  for (const block of initialBlocks) {
+  for (const block of params.initialBlocks ?? []) {
     await addBlockToBlockCollection(ctx, authentication, {
       blockCollectionEntityId: page.entity.metadata.recordId.entityId,
       block,
