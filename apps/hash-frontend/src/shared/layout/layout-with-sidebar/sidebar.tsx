@@ -1,5 +1,9 @@
 import { faHome } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import {
+  FontAwesomeIcon,
+  IconButton,
+  PenRegularIcon,
+} from "@hashintel/design-system";
 import { Box, Drawer, Tooltip } from "@mui/material";
 import { useRouter } from "next/router";
 import { FunctionComponent, useMemo } from "react";
@@ -89,6 +93,13 @@ export const PageSidebar: FunctionComponent = () => {
         tooltipTitle=""
         count={numberOfUnreadNotifications}
         active={router.pathname === "/inbox"}
+      />
+      <TopNavLink
+        icon={<PenRegularIcon sx={{ fontSize: 16 }} />}
+        title="Drafts"
+        href="/drafts"
+        tooltipTitle=""
+        active={router.pathname === "/drafts"}
       />
       <TopNavLink
         icon={<QuickNoteIcon sx={{ fontSize: 16 }} />}
