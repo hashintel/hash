@@ -67,6 +67,7 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
               ],
             })) ?? [],
         },
+        includeDrafts: true,
         temporalAxes: fullDecisionTimeAxis,
         graphResolveDepths: zeroedGraphResolveDepths,
       },

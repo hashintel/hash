@@ -26,6 +26,7 @@ export const getDraftEntitiesQueryVariables: StructuralQueryEntitiesQueryVariabl
         constrainsPropertiesOn: { outgoing: 255 },
         constrainsValuesOn: { outgoing: 255 },
       },
+      includeDrafts: true,
     },
     includePermissions: false,
   };
