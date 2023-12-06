@@ -13,6 +13,8 @@ import {
 } from "@local/hash-subgraph";
 import browser from "webextension-polyfill";
 
+import { setDisabledBadge, setEnabledBadge } from "./badge";
+
 type InferenceErrorStatus = {
   errorMessage: string;
   status: "error";
@@ -90,6 +92,14 @@ export const setInLocalStorage = async (
   value: LocalStorage[keyof LocalStorage],
 ) => {
   await browser.storage.local.set({ [key]: value });
+
+  if (key === "automaticInferenceConfig") {
+    if ((value as LocalStorage["automaticInferenceConfig"]).enabled) {
+      setEnabledBadge();
+    } else {
+      setDisabledBadge();
+    }
+  }
 };
 
 type ReplaceFromLocalStorageValue<Key extends keyof LocalStorage> = (

@@ -7,11 +7,7 @@ import { OwnedById } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { v4 as uuid } from "uuid";
 
-import {
-  setErroredBadge,
-  setLoadingBadge,
-  setSuccessBadge,
-} from "../../shared/badge";
+import { setErroredBadge } from "../../shared/badge";
 import type { InferEntitiesRequest } from "../../shared/messages";
 import {
   getFromLocalStorage,
@@ -86,8 +82,6 @@ export const inferEntities = async (
     ...(currentValue ?? []),
   ]);
 
-  setLoadingBadge();
-
   try {
     const inferredEntitiesReturn = await inferEntitiesApiCall({
       createAs,
@@ -99,8 +93,6 @@ export const inferEntities = async (
     if (inferredEntitiesReturn.code !== "OK") {
       throw new Error(inferredEntitiesReturn.message);
     }
-
-    await setSuccessBadge(1);
 
     await setInferenceRequestValue((currentValue) =>
       (currentValue ?? []).map((request) =>

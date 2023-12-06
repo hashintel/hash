@@ -9,12 +9,12 @@
   "host_permissions": ["*://*.hash.ai/*"],
   "permissions": ["storage", "tabs"],
   "action": {
-    "default_icon": "icon-256.png",
+    "default_icon": "icon-24-disabled.png",
     "default_popup": "popup.html",
     "default_tooltip": "Create entities in HASH from this page"
   },
   "icons": {
-    "256": "icon-256.png"
+    "256": "icon-24-disabled.png"
   },
   "content_scripts": [
     {
@@ -25,7 +25,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["content.styles.css", "icon-256.png"],
+      "resources": ["content.styles.css"],
       "matches": []
     }
   ]

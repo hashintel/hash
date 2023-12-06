@@ -7,7 +7,6 @@ import {
 } from "@mui/material";
 
 import { LocalStorage } from "../../../../shared/storage";
-import { useLocalStorage } from "../../../shared/use-local-storage";
 import { SelectScope } from "./automated/select-scope";
 import { Section } from "./shared/section";
 import { SelectWebTarget } from "./shared/select-web-target";
