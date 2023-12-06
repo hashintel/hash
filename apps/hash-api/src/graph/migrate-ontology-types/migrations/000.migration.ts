@@ -1,26 +1,45 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 
+import {
+  CACHED_DATA_TYPE_SCHEMAS,
+  CACHED_ENTITY_TYPE_SCHEMAS,
+  CACHED_PROPERTY_TYPE_SCHEMAS,
+} from "../../../seed-data";
 import { MigrationFunction } from "../types";
-import { loadExternalDataTypeIfNotExists } from "../util";
-
-const blockProtocolDataTypeIds: VersionedUrl[] = [
-  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-  "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
-  "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
-  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-  "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1",
-  "https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1",
-];
+import {
+  loadExternalDataTypeIfNotExists,
+  loadExternalEntityTypeIfNotExists,
+  loadExternalPropertyTypeIfNotExists,
+} from "../util";
 
 const migrate: MigrationFunction = async ({
   context,
   authentication,
   migrationState,
 }) => {
-  for (const blockProtocolDataTypeId of blockProtocolDataTypeIds) {
-    /** @todo: provide schemas so they don't have to be fetched from blockprotocol.org */
+  let blockProtocolDataTypeId: VersionedUrl;
+  // eslint-disable-next-line guard-for-in
+  for (blockProtocolDataTypeId in CACHED_DATA_TYPE_SCHEMAS) {
     await loadExternalDataTypeIfNotExists(context, authentication, {
       dataTypeId: blockProtocolDataTypeId,
+      migrationState,
+    });
+  }
+
+  let blockProtocolPropertyTypeId: VersionedUrl;
+  // eslint-disable-next-line guard-for-in
+  for (blockProtocolPropertyTypeId in CACHED_PROPERTY_TYPE_SCHEMAS) {
+    await loadExternalPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeId: blockProtocolPropertyTypeId,
+      migrationState,
+    });
+  }
+
+  let blockProtocolEntityTypeId: VersionedUrl;
+  // eslint-disable-next-line guard-for-in
+  for (blockProtocolEntityTypeId in CACHED_ENTITY_TYPE_SCHEMAS) {
+    await loadExternalEntityTypeIfNotExists(context, authentication, {
+      entityTypeId: blockProtocolEntityTypeId,
       migrationState,
     });
   }

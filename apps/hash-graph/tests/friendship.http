@@ -172,7 +172,14 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+  "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+    "kind": "dataType",
+    "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+    "title": "Text",
+    "description": "An ordered sequence of characters",
+    "type": "string"
+  }
 }
 
 > {%
@@ -465,6 +472,23 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         client.assert(response.body.roots.length === 1, "Unexpected number of property types");
     });
 %}
+
+### Insert external entity link type
+POST http://127.0.0.1:4000/entity-types/load
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+    "type": "object",
+    "title": "Link",
+    "properties": {}
+  }
+}
 
 ### Insert Friendship entity link type
 POST http://127.0.0.1:4000/entity-types

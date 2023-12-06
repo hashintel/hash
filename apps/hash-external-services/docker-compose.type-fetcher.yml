@@ -8,6 +8,8 @@ services:
     volumes:
       - logs:/logs
     command: type-fetcher
+    ports:
+      - "${HASH_GRAPH_TYPE_FETCHER_PORT}:4444"
     environment:
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
       HASH_GRAPH_LOG_FOLDER: "/logs/graph-type-fetcher"

@@ -1,4 +1,7 @@
 /* eslint-disable no-param-reassign */
+import fs from "node:fs";
+import path from "node:path";
+
 import {
   Array,
   DataTypeReference,
@@ -33,6 +36,11 @@ import {
 } from "@local/hash-subgraph/type-system-patch";
 
 import { NotFoundError } from "../../lib/error";
+import {
+  CACHED_DATA_TYPE_SCHEMAS,
+  CACHED_ENTITY_TYPE_SCHEMAS,
+  CACHED_PROPERTY_TYPE_SCHEMAS,
+} from "../../seed-data";
 import { ImpureGraphFunction } from "../context-types";
 import { getDataTypeById } from "../ontology/primitive/data-type";
 import {
@@ -96,6 +104,28 @@ export const loadExternalDataTypeIfNotExists: ImpureGraphFunction<
     return existingDataType;
   }
 
+  const cached_file_name = CACHED_DATA_TYPE_SCHEMAS[dataTypeId];
+  if (cached_file_name) {
+    // We need an absolute path to `../../../seed-data`
+    await context.graphApi.loadExternalDataType(authentication.actorId, {
+      schema: JSON.parse(
+        fs.readFileSync(
+          path.join(
+            __dirname,
+            "..",
+            "..",
+            "seed-data",
+            "data_type",
+            cached_file_name,
+          ),
+          "utf8",
+        ),
+      ),
+    });
+
+    return await getDataTypeById(context, authentication, { dataTypeId });
+  }
+
   await context.graphApi.loadExternalDataType(authentication.actorId, {
     dataTypeId,
   });
@@ -132,6 +162,30 @@ export const loadExternalPropertyTypeIfNotExists: ImpureGraphFunction<
     return existingPropertyType;
   }
 
+  const cached_file_name = CACHED_PROPERTY_TYPE_SCHEMAS[propertyTypeId];
+  if (cached_file_name) {
+    // We need an absolute path to `../../../seed-data`
+    await context.graphApi.loadExternalPropertyType(authentication.actorId, {
+      schema: JSON.parse(
+        fs.readFileSync(
+          path.join(
+            __dirname,
+            "..",
+            "..",
+            "seed-data",
+            "property_type",
+            cached_file_name,
+          ),
+          "utf8",
+        ),
+      ),
+    });
+
+    return await getPropertyTypeById(context, authentication, {
+      propertyTypeId,
+    });
+  }
+
   await context.graphApi.loadExternalPropertyType(authentication.actorId, {
     propertyTypeId,
   });
@@ -162,6 +216,28 @@ export const loadExternalEntityTypeIfNotExists: ImpureGraphFunction<
 
   if (existingEntityType) {
     return existingEntityType;
+  }
+
+  const cached_file_name = CACHED_ENTITY_TYPE_SCHEMAS[entityTypeId];
+  if (cached_file_name) {
+    // We need an absolute path to `../../../seed-data`
+    await context.graphApi.loadExternalEntityType(authentication.actorId, {
+      schema: JSON.parse(
+        fs.readFileSync(
+          path.join(
+            __dirname,
+            "..",
+            "..",
+            "seed-data",
+            "entity_type",
+            cached_file_name,
+          ),
+          "utf8",
+        ),
+      ),
+    });
+
+    return await getEntityTypeById(context, authentication, { entityTypeId });
   }
 
   await context.graphApi.loadExternalEntityType(authentication.actorId, {

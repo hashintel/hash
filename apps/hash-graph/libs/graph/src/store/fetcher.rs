@@ -213,14 +213,15 @@ where
             OntologyTypeReference::EntityTypeReference(reference) => reference.url(),
         };
 
-        if self
-            .connection_info()?
-            .domain_validator
-            .validate_url(url.base_url.as_str())
-        {
-            // If the domain is valid, we own the data type and it either exists or we cannot
-            // reference it.
-            return Ok(true);
+        if let Ok(connection_info) = self.connection_info() {
+            if connection_info
+                .domain_validator
+                .validate_url(url.base_url.as_str())
+            {
+                // If the domain is valid, we own the data type and it either exists or we cannot
+                // reference it.
+                return Ok(true);
+            }
         }
 
         match ontology_type_reference {
@@ -293,8 +294,21 @@ where
         };
 
         let mut fetched_ontology_types = FetchedOntologyTypes::default();
+        if queue.is_empty() {
+            return Ok(fetched_ontology_types);
+        }
 
-        let fetcher = self.fetcher_client().await.change_context(StoreError)?;
+        let fetcher = self
+            .fetcher_client()
+            .await
+            .change_context(StoreError)
+            .attach_printable_lazy(|| {
+                queue
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            })?;
         loop {
             let ontology_urls = mem::take(&mut queue);
             if ontology_urls.is_empty() {
@@ -696,7 +710,14 @@ where
             data_types.iter().map(|(data_type, _)| data_type),
             &requested_types,
         )
-        .await?;
+        .await
+        .attach_printable_lazy(|| {
+            data_types
+                .iter()
+                .map(|(data_type, _)| data_type.id().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        })?;
 
         self.store
             .create_data_types(actor_id, authorization_api, data_types, on_conflict)
@@ -729,7 +750,8 @@ where
             &HashSet::from([data_type.id()]),
         )
         .await
-        .change_context(UpdateError)?;
+        .change_context(UpdateError)
+        .attach_printable_lazy(|| data_type.id().clone())?;
 
         self.store
             .update_data_type(actor_id, authorization_api, data_type)
@@ -789,7 +811,14 @@ where
                 .map(|(property_type, _)| property_type),
             &requested_types,
         )
-        .await?;
+        .await
+        .attach_printable_lazy(|| {
+            property_types
+                .iter()
+                .map(|(property_type, _)| property_type.id().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        })?;
 
         self.store
             .create_property_types(actor_id, authorization_api, property_types, on_conflict)
@@ -822,7 +851,8 @@ where
             &HashSet::from([property_type.id()]),
         )
         .await
-        .change_context(UpdateError)?;
+        .change_context(UpdateError)
+        .attach_printable_lazy(|| property_type.id().clone())?;
 
         self.store
             .update_property_type(actor_id, authorization_api, property_type)
@@ -878,7 +908,14 @@ where
             entity_types.iter().map(|(entity_type, _)| entity_type),
             &requested_types,
         )
-        .await?;
+        .await
+        .attach_printable_lazy(|| {
+            entity_types
+                .iter()
+                .map(|(entity_type, _)| entity_type.id().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        })?;
 
         self.store
             .create_entity_types(actor_id, authorization_api, entity_types, on_conflict)
@@ -913,7 +950,8 @@ where
             &HashSet::from([entity_type.id()]),
         )
         .await
-        .change_context(UpdateError)?;
+        .change_context(UpdateError)
+        .attach_printable_lazy(|| entity_type.id().clone())?;
 
         self.store
             .update_entity_type(

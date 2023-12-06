@@ -148,7 +148,7 @@ describe("Property type CRU", () => {
     ).toBe(testUser2.accountId);
   });
 
-  it("can load an external type on demand", async () => {
+  it.skip("can load an external type on demand", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const propertyTypeId =

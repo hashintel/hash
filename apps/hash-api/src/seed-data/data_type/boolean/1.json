@@ -1,0 +1,8 @@
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+  "kind": "dataType",
+  "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+  "title": "Boolean",
+  "description": "A True or False value",
+  "type": "boolean"
+}
