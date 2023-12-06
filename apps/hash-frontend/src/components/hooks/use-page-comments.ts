@@ -38,7 +38,7 @@ export const usePageComments = (pageEntityId?: EntityId): PageCommentsInfo => {
     GetPageCommentsQueryVariables
   >(getPageComments, {
     variables: { entityId: pageEntityId! },
-    pollInterval: 5_000,
+    pollInterval: 10_000,
     skip: !pageEntityId,
   });
 
