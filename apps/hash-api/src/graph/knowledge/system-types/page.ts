@@ -1,12 +1,10 @@
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
-import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  blockProtocolPropertyTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
@@ -59,12 +57,7 @@ import {
   createLinkEntity,
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
-import {
-  Block,
-  createBlock,
-  getBlockComments,
-  getBlockFromEntity,
-} from "./block";
+import { Block, getBlockComments, getBlockFromEntity } from "./block";
 import { addBlockToBlockCollection } from "./block-collection";
 import { Comment } from "./comment";
 import { getUserById, User } from "./user";
