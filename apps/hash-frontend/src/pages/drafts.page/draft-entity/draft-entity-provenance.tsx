@@ -1,6 +1,6 @@
 import { Chip } from "@hashintel/design-system";
 import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import { chipClasses, styled, Typography } from "@mui/material";
+import { Box, chipClasses, styled, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { FunctionComponent, useMemo } from "react";
 
@@ -24,11 +24,20 @@ const DraftEntityChip = styled(Chip)(({ theme }) => ({
   },
 }));
 
+const DraftEntityTypography = styled(Typography)(({ theme }) => ({
+  color: theme.palette.gray[50],
+  fontWeight: 600,
+  fontSize: 11,
+  textTransform: "uppercase",
+  marginRight: theme.spacing(0.5),
+}));
+
 export const DraftEntityProvenance: FunctionComponent<{ entity: Entity }> = ({
   entity,
 }) => {
   const { users } = useUsers();
 
+  /** @todo: account for machine users */
   const createdBy = useMemo(
     () =>
       users?.find(
@@ -49,22 +58,15 @@ export const DraftEntityProvenance: FunctionComponent<{ entity: Entity }> = ({
   );
 
   return (
-    <Typography
-      sx={{
-        color: ({ palette }) => palette.gray[50],
-        fontWeight: 600,
-        fontSize: 11,
-        textTransform: "uppercase",
-        [`.${chipClasses.root}`]: {
-          position: "relative",
-          top: -1,
-        },
-      }}
-    >
-      By{" "}
-      <DraftEntityChip icon={<UserIcon />} label={createdBy?.preferredName} />{" "}
-      at{" "}
+    <Box display="flex" alignItems="center">
+      <DraftEntityTypography>By</DraftEntityTypography>
+      <DraftEntityChip
+        sx={{ marginRight: 1 }}
+        icon={<UserIcon />}
+        label={createdBy?.preferredName}
+      />
+      <DraftEntityTypography>at</DraftEntityTypography>
       <DraftEntityChip icon={<ClockRegularIcon />} label={formattedCreatedAt} />
-    </Typography>
+    </Box>
   );
 };

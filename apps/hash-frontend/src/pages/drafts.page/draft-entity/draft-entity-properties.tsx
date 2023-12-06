@@ -5,6 +5,7 @@ import {
   EntityRootType,
   Subgraph,
 } from "@local/hash-subgraph";
+import { Box } from "@mui/material";
 import { debounce } from "lodash";
 import { FunctionComponent, useMemo, useState } from "react";
 
@@ -75,18 +76,20 @@ export const DraftEntityProperties: FunctionComponent<{
   };
 
   return (
-    <EntityEditorContextProvider
-      readonly={false}
-      entitySubgraph={entitySubgraph}
-      replaceWithLatestDbVersion={async () => {}}
-      setEntity={handleEntityChange}
-      isDirty={isDirty}
-      draftLinksToCreate={[]}
-      setDraftLinksToCreate={() => {}}
-      draftLinksToArchive={[]}
-      setDraftLinksToArchive={() => {}}
-    >
-      <PropertiesSection hideSectionHeading />
-    </EntityEditorContextProvider>
+    <Box marginTop={3}>
+      <EntityEditorContextProvider
+        readonly={false}
+        entitySubgraph={entitySubgraph}
+        replaceWithLatestDbVersion={async () => {}}
+        setEntity={handleEntityChange}
+        isDirty={isDirty}
+        draftLinksToCreate={[]}
+        setDraftLinksToCreate={() => {}}
+        draftLinksToArchive={[]}
+        setDraftLinksToArchive={() => {}}
+      >
+        <PropertiesSection hideSectionHeading />
+      </EntityEditorContextProvider>
+    </Box>
   );
 };

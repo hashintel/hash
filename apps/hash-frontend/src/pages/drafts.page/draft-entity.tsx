@@ -83,7 +83,7 @@ export const DraftEntity: FunctionComponent<{
         </Link>
         <DraftEntityActionButtons entity={entity} />
       </Box>
-      <Box marginTop={1} display="flex" justifyContent="space-between">
+      <Box marginTop={1.5} display="flex" justifyContent="space-between">
         <Box display="flex" alignItems="center" columnGap={2}>
           <DraftEntityType entity={entity} subgraph={subgraph} />
           <DraftEntityViewers entity={entity} />
@@ -124,7 +124,7 @@ export const DraftEntity: FunctionComponent<{
         </Box>
         <DraftEntityProvenance entity={entity} />
       </Box>
-      <Collapse in={displayProperties} sx={{ marginTop: 3 }}>
+      <Collapse in={displayProperties}>
         <DraftEntityProperties initialEntity={entity} subgraph={subgraph} />
       </Collapse>
     </Box>
