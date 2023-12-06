@@ -15,7 +15,7 @@ type-system.workspace = true
 serde = { workspace = true, features = ["derive", "unstable"] }
 tokio.workspace = true
 
-derive-where = { version = "1.2.5", default-features = false, features = ["nightly"] }
+derive-where = { version = "1.2.6", default-features = false, features = ["nightly"] }
 futures = { version = "0.3.29", default-features = false }
 serde_json = { version = "1.0.108" }
 serde_plain = "1.0.2"
