@@ -31,15 +31,6 @@ export const oryKratosClient = new FrontendApi(
   }),
 );
 
-export const fetchKratosSession = async (cookie?: string) => {
-  const kratosSession = await oryKratosClient
-    .toSession({ cookie })
-    .then(({ data }) => data)
-    .catch(() => undefined);
-
-  return kratosSession;
-};
-
 /**
  * A helper type representing the traits defined by the kratos identity schema at `apps/hash-external-services/kratos/identity.schema.json`
  */
