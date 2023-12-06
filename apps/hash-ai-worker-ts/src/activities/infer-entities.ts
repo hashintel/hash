@@ -8,6 +8,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
+  InferenceModelName,
   InferEntitiesCallerParams,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/temporal-types";
@@ -613,6 +614,25 @@ const systemMessage: OpenAI.ChatCompletionSystemMessageParam = {
 };
 
 /**
+ * A map of the API consumer-facing model names to the values provided to OpenAI.
+ * Allows for using preview models before they take over the general alias.
+ */
+const modelAliasToSpecificModel = {
+  "gpt-3.5-turbo": "gpt-3.5-turbo-1106", // bigger context window, will be the resolved value for gpt-3.5-turbo from 11 Dec 2023
+  "gpt-4-turbo": "gpt-4-1106-preview", // 'gpt-4-turbo' is not a valid model name in the OpenAI API yet, it's in preview only
+  "gpt-4": "gpt-4", // this points to the latest available anyway as of 6 Dec 2023
+} as const satisfies Record<InferenceModelName, string>;
+
+const modelToContextWindow: Record<
+  (typeof modelAliasToSpecificModel)[keyof typeof modelAliasToSpecificModel],
+  number
+> = {
+  "gpt-3.5-turbo-1106": 16_385,
+  "gpt-4-1106-preview": 128_000,
+  "gpt-4": 8_192,
+};
+
+/**
  * Infer and create entities of the requested types from the provided text input.
  * @param authentication information on the user making the request
  * @param graphApiClient
@@ -629,7 +649,7 @@ export const inferEntities = async ({
     createAs,
     entityTypeIds,
     maxTokens,
-    model,
+    model: modelAlias,
     ownedById,
     temperature,
     textInput,
@@ -674,6 +694,8 @@ export const inferEntities = async ({
     };
   }
 
+  const model = modelAliasToSpecificModel[modelAlias];
+
   return requestEntityInference({
     authentication,
     completionPayload: {
@@ -682,11 +704,10 @@ export const inferEntities = async ({
         systemMessage,
         {
           role: "user",
-          content: textInput,
+          content: textInput.slice(0, modelToContextWindow[model] - 2000),
         },
       ],
       model,
-      response_format: { type: "json_object" },
       temperature,
     },
     createAs,

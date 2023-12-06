@@ -21,13 +21,15 @@ export const inferEntitiesUserArgumentKeys = [
 export type InferEntitiesUserArgumentKey =
   (typeof inferEntitiesUserArgumentKeys)[number];
 
+export type InferenceModelName = "gpt-4" | "gpt-4-turbo" | "gpt-3.5-turbo";
+
 export type InferEntitiesUserArguments = Subtype<
   Record<InferEntitiesUserArgumentKey, unknown>,
   {
     createAs: "draft" | "live";
     entityTypeIds: VersionedUrl[];
     maxTokens: number | null;
-    model: string;
+    model: InferenceModelName;
     ownedById: OwnedById;
     temperature: number;
     textInput: string;

@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type {
+  InferenceModelName,
   InferEntitiesReturn,
   InferEntitiesUserArguments,
 } from "@local/hash-isomorphic-utils/temporal-types";
@@ -17,10 +18,12 @@ import {
 const inferEntitiesApiCall = async ({
   createAs,
   entityTypeIds,
+  model,
   ownedById,
   textInput,
 }: {
   createAs: "draft" | "live";
+  model: InferenceModelName;
   textInput: string;
   entityTypeIds: VersionedUrl[];
   ownedById: OwnedById;
@@ -29,7 +32,7 @@ const inferEntitiesApiCall = async ({
     createAs,
     entityTypeIds,
     maxTokens: null,
-    model: "gpt-4-1106-preview",
+    model,
     ownedById,
     textInput,
     temperature: 0,
@@ -57,6 +60,7 @@ export const inferEntities = async (
   const {
     createAs,
     entityTypeIds,
+    model,
     ownedById,
     sourceUrl,
     sourceTitle,
@@ -73,6 +77,7 @@ export const inferEntities = async (
       createdAt: new Date().toISOString(),
       entityTypeIds,
       localRequestUuid: localRequestId,
+      model,
       ownedById,
       status: "pending",
       sourceTitle,
@@ -86,6 +91,7 @@ export const inferEntities = async (
     const inferredEntitiesReturn = await inferEntitiesApiCall({
       createAs,
       entityTypeIds,
+      model,
       ownedById,
       textInput,
     });
@@ -99,8 +105,9 @@ export const inferEntities = async (
         request.localRequestUuid === localRequestId
           ? {
               ...request,
-              status: "complete",
               data: inferredEntitiesReturn,
+              finishedAt: new Date().toISOString(),
+              status: "complete",
             }
           : request,
       ),
@@ -116,6 +123,7 @@ export const inferEntities = async (
           ? {
               ...request,
               errorMessage: errorMessage ?? "Unknown error – please contact us",
+              finishedAt: new Date().toISOString(),
               status: "error",
             }
           : request,

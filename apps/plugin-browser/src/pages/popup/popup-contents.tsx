@@ -39,9 +39,9 @@ export const PopupContents = () => {
     <ThemeProvider theme={theme}>
       <Box
         sx={({ palette }) => ({
-          height: "100%",
           fontSize: "15px",
           color: palette.common.black,
+          border: `1px solid ${palette.gray[10]}`,
 
           "@media (prefers-color-scheme: dark)": {
             border: `1px solid ${palette.common.black}`,

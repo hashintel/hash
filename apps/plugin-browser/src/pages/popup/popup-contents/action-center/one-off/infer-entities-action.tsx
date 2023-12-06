@@ -12,6 +12,7 @@ import { sendMessageToBackground } from "../../../../shared/messages";
 import { borderColors } from "../../../../shared/style-values";
 import { useLocalStorage } from "../../../../shared/use-local-storage";
 import { EntityTypeSelector } from "../shared/entity-type-selector";
+import { ModelSelector } from "../shared/model-selector";
 import { Section } from "../shared/section";
 import { SelectWebTarget } from "../shared/select-web-target";
 import { ArrowUpToLineIcon } from "./infer-entities-action/arrow-up-to-line-icon";
@@ -29,6 +30,7 @@ export const InferEntitiesAction = ({
     "manualInferenceConfig",
     {
       createAs: "draft",
+      model: "gpt-4-turbo",
       ownedById: user.webOwnedById,
       targetEntityTypeIds: [],
     },
@@ -36,7 +38,8 @@ export const InferEntitiesAction = ({
 
   const [showAdditionalConfig, setShowAdditionalConfig] = useState(false);
 
-  const { createAs, ownedById, targetEntityTypeIds } = manualInferenceConfig;
+  const { createAs, model, ownedById, targetEntityTypeIds } =
+    manualInferenceConfig;
 
   const [inferenceRequests] = useLocalStorage("inferenceRequests", []);
 
@@ -77,6 +80,7 @@ export const InferEntitiesAction = ({
       void sendMessageToBackground({
         createAs,
         entityTypeIds: targetEntityTypeIds,
+        model,
         ownedById,
         sourceTitle: siteContent.pageTitle,
         sourceUrl: siteContent.pageUrl,
@@ -129,7 +133,20 @@ export const InferEntitiesAction = ({
             }}
           >
             <Typography sx={{ fontSize: 14, fontWeight: 600, mb: 1 }}>
-              Scan for entities
+              Choose inference engine to use
+            </Typography>
+            <ModelSelector
+              selectedModel={model}
+              setSelectedModel={(newModel) =>
+                setManualInferenceConfig({
+                  ...manualInferenceConfig,
+                  model: newModel,
+                })
+              }
+            />
+
+            <Typography sx={{ fontSize: 14, fontWeight: 600, mb: 1, mt: 2 }}>
+              When entities are found...
             </Typography>
             <SelectWebTarget
               createAs={createAs}

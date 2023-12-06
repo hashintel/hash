@@ -66,6 +66,7 @@ export const ActionCenter = ({
     useLocalStorage("automaticInferenceConfig", {
       createAs: "draft",
       enabled: false,
+      model: "gpt-4-turbo",
       ownedById: user.webOwnedById,
       rules: [],
     });
@@ -75,10 +76,11 @@ export const ActionCenter = ({
       <Stack
         component="header"
         direction="row"
-        sx={({ palette }) => ({
+        sx={({ palette, boxShadows }) => ({
           alignItems: "center",
           background: palette.common.white,
           borderBottom: `1px solid ${lightModeBorderColor}`,
+          boxShadow: boxShadows.sm,
           justifyContent: "space-between",
           px: 2.5,
           "@media (prefers-color-scheme: dark)": {
@@ -125,7 +127,7 @@ export const ActionCenter = ({
           name={user.properties.preferredName ?? "?"}
         />
       </Stack>
-      <Box sx={{ maxHeight: 550, overflowY: "scroll" }}>
+      <Box sx={{ maxHeight: 545, overflowY: "scroll" }}>
         {popupTab === "one-off" ? (
           <OneOff activeTab={activeTab} user={user} />
         ) : (

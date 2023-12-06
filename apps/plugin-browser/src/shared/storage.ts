@@ -5,7 +5,10 @@ import type {
   OrganizationProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
+import type {
+  InferenceModelName,
+  InferEntitiesReturn,
+} from "@local/hash-isomorphic-utils/temporal-types";
 import {
   Entity,
   EntityTypeWithMetadata,
@@ -35,10 +38,16 @@ export type InferenceStatus =
 export type PageEntityInference = InferenceStatus & {
   createdAt: string;
   entityTypeIds: VersionedUrl[];
+  finishedAt?: string;
   localRequestUuid: string;
+  model: InferenceModelName;
   ownedById: OwnedById;
   sourceTitle: string;
   sourceUrl: string;
+  usage?: {
+    completion: number;
+    prompt: number;
+  };
   trigger: "passive" | "user";
 };
 
@@ -59,6 +68,7 @@ export type LocalStorage = {
   automaticInferenceConfig: {
     createAs: "draft" | "live";
     enabled: boolean;
+    model: InferenceModelName;
     ownedById: OwnedById;
     rules: {
       restrictToDomains: string[];
@@ -67,6 +77,7 @@ export type LocalStorage = {
   };
   manualInferenceConfig: {
     createAs: "draft" | "live";
+    model: InferenceModelName;
     ownedById: OwnedById;
     targetEntityTypeIds: VersionedUrl[];
   };

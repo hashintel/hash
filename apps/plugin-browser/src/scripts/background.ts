@@ -95,6 +95,7 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
             {
               createAs: automaticInferenceConfig.createAs,
               entityTypeIds: entityTypeIdsToInfer,
+              model: automaticInferenceConfig.model,
               ownedById: automaticInferenceConfig.ownedById,
               sourceTitle: pageDetails.pageTitle,
               sourceUrl: pageDetails.pageUrl,

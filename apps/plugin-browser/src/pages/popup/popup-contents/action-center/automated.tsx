@@ -2,12 +2,14 @@ import {
   Box,
   FormControlLabel,
   FormGroup,
+  Stack,
   Switch,
   Typography,
 } from "@mui/material";
 
 import { LocalStorage } from "../../../../shared/storage";
 import { SelectScope } from "./automated/select-scope";
+import { ModelSelector } from "./shared/model-selector";
 import { Section } from "./shared/section";
 import { SelectWebTarget } from "./shared/select-web-target";
 
@@ -22,7 +24,7 @@ export const Automated = ({
   ) => void;
   user: NonNullable<LocalStorage["user"]>;
 }) => {
-  const { createAs, enabled, ownedById } = automaticInferenceConfig;
+  const { createAs, enabled, model, ownedById } = automaticInferenceConfig;
 
   return (
     <Box pb={1}>
@@ -30,7 +32,8 @@ export const Automated = ({
         description="Automatically identify entities and attributes for you as you browse"
         headerText="Auto-inference Actions"
       >
-        <Box>
+        {}
+        <Stack direction="row" alignItems="center">
           <FormGroup>
             <FormControlLabel
               control={
@@ -42,7 +45,7 @@ export const Automated = ({
                       enabled: event.target.checked,
                     })
                   }
-                  sx={{ mr: 2 }}
+                  sx={{ mr: 1.6 }}
                 />
               }
               label={
@@ -59,7 +62,17 @@ export const Automated = ({
               sx={{ m: 0 }}
             />
           </FormGroup>
-        </Box>
+          <Typography sx={{ fontSize: 14, ml: 1.4, mr: 0.8 }}>using</Typography>
+          <ModelSelector
+            selectedModel={model}
+            setSelectedModel={(newModel) =>
+              setAutomaticInferenceConfig({
+                ...automaticInferenceConfig,
+                model: newModel,
+              })
+            }
+          />
+        </Stack>
       </Section>
       <Section
         description="Auto-inference only looks for types you specify on sites you allow"

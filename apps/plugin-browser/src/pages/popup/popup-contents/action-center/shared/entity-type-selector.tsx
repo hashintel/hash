@@ -1,12 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import { Autocomplete, Chip, MenuItem } from "@hashintel/design-system";
 import { BaseUrl, EntityTypeWithMetadata } from "@local/hash-subgraph";
-import {
-  autocompleteClasses,
-  outlinedInputClasses,
-  Typography,
-} from "@mui/material";
-import { useMemo, useState } from "react";
+import { outlinedInputClasses, Typography } from "@mui/material";
+import { useMemo } from "react";
 
 import {
   darkModeBorderColor,
@@ -15,6 +11,7 @@ import {
   darkModePlaceholderColor,
 } from "../../../../shared/style-values";
 import { useEntityTypes } from "../../../../shared/use-entity-types";
+import { menuItemSx } from "./autocomplete-sx";
 
 type SelectTypesAndInferProps = {
   inputHeight: number;
@@ -150,35 +147,7 @@ export const EntityTypeSelector = ({
           {...props}
           key={type.schema.$id}
           value={type.schema.$id}
-          sx={({ palette }) => ({
-            minHeight: 0,
-            borderBottom: `1px solid ${palette.gray[20]}`,
-            "@media (prefers-color-scheme: dark)": {
-              borderBottom: `1px solid ${darkModeBorderColor}`,
-
-              "&:hover": {
-                background: darkModeInputBackgroundColor,
-              },
-
-              [`&.${autocompleteClasses.option}`]: {
-                borderRadius: 0,
-                my: 0.25,
-
-                [`&[aria-selected="true"]`]: {
-                  backgroundColor: `${palette.primary.main} !important`,
-                  color: palette.common.white,
-                },
-
-                "&.Mui-focused": {
-                  backgroundColor: `${palette.common.black} !important`,
-
-                  [`&[aria-selected="true"]`]: {
-                    backgroundColor: `${palette.primary.main} !important`,
-                  },
-                },
-              },
-            },
-          })}
+          sx={menuItemSx}
         >
           <Typography
             sx={{
