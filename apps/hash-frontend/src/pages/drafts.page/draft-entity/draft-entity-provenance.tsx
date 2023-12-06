@@ -7,6 +7,7 @@ import { FunctionComponent, useMemo } from "react";
 import { useUsers } from "../../../components/hooks/use-users";
 import { ClockRegularIcon } from "../../../shared/icons/clock-regular-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";
+import { useAuthenticatedUser } from "../../shared/auth-info-context";
 
 const DraftEntityChip = styled(Chip)(({ theme }) => ({
   color: theme.palette.common.black,
@@ -36,6 +37,7 @@ export const DraftEntityProvenance: FunctionComponent<{
   entity: Entity;
   createdAt: Date;
 }> = ({ entity, createdAt }) => {
+  const { authenticatedUser } = useAuthenticatedUser();
   const { users } = useUsers();
 
   /** @todo: account for machine users */
@@ -60,7 +62,11 @@ export const DraftEntityProvenance: FunctionComponent<{
       <DraftEntityChip
         sx={{ marginRight: 1 }}
         icon={<UserIcon />}
-        label={createdBy?.preferredName}
+        label={
+          createdBy?.accountId === authenticatedUser.accountId
+            ? "Me"
+            : createdBy?.preferredName
+        }
       />
       <DraftEntityTypography>at</DraftEntityTypography>
       <DraftEntityChip icon={<ClockRegularIcon />} label={formattedCreatedAt} />
