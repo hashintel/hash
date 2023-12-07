@@ -60,27 +60,39 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
 }) => {
   const [filterState, setFilterState] = useState<DraftEntityFilterState>();
 
+  const [
+    previouslyFetchedDraftEntitiesData,
+    setPreviouslyFetchedDraftEntitiesData,
+  ] = useState<StructuralQueryEntitiesQuery>();
+
   const { data: draftEntitiesData } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
     variables: getDraftEntitiesQueryVariables,
+    onCompleted: (data) => setPreviouslyFetchedDraftEntitiesData(data),
   });
 
   const draftEntitiesSubgraph = useMemo(
     () =>
-      draftEntitiesData
+      draftEntitiesData || previouslyFetchedDraftEntitiesData
         ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-            draftEntitiesData.structuralQueryEntities.subgraph,
+            (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)!
+              .structuralQueryEntities.subgraph,
           )
         : undefined,
-    [draftEntitiesData],
+    [draftEntitiesData, previouslyFetchedDraftEntitiesData],
   );
 
   const draftEntities = useMemo(
     () => (draftEntitiesSubgraph ? getRoots(draftEntitiesSubgraph) : undefined),
     [draftEntitiesSubgraph],
   );
+
+  const [
+    previouslyFetchedDraftEntityHistoriesData,
+    setPreviouslyFetchedDraftEntityHistoriesData,
+  ] = useState<StructuralQueryEntitiesQuery>();
 
   const { data: draftEntityHistoriesData } = useQuery<
     StructuralQueryEntitiesQuery,
@@ -108,16 +120,19 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
       includePermissions: false,
     },
     skip: !draftEntities,
+    onCompleted: (data) => setPreviouslyFetchedDraftEntityHistoriesData(data),
   });
 
   const draftEntityHistoriesSubgraph = useMemo(
     () =>
-      draftEntityHistoriesData
+      draftEntityHistoriesData || previouslyFetchedDraftEntityHistoriesData
         ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-            draftEntityHistoriesData.structuralQueryEntities.subgraph,
+            (draftEntityHistoriesData ??
+              previouslyFetchedDraftEntityHistoriesData)!
+              .structuralQueryEntities.subgraph,
           )
         : undefined,
-    [draftEntityHistoriesData],
+    [draftEntityHistoriesData, previouslyFetchedDraftEntityHistoriesData],
   );
 
   const { users } = useUsers();
