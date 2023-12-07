@@ -11,7 +11,7 @@ import {
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box, Container, Divider } from "@mui/material";
+import { Box, Container, Divider, Typography } from "@mui/material";
 import { subDays, subHours } from "date-fns";
 import { Fragment, FunctionComponent, useMemo, useState } from "react";
 
@@ -196,7 +196,12 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
 
   return (
     <Container
-      sx={{ display: "flex", columnGap: 3.5, alignItems: "flex-start" }}
+      sx={{
+        display: "flex",
+        columnGap: 3.5,
+        alignItems: "flex-start",
+        marginTop: 3,
+      }}
     >
       <Box
         sx={{
@@ -205,7 +210,11 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
       >
         {filteredAndSortedDraftEntitiesWithCreatedAt &&
         filteredAndSortedDraftEntitiesWithCreatedAt.length === 0 ? (
-          <>No drafts</>
+          <Typography textAlign="center">
+            {draftEntitiesWithCreatedAtAndCreators?.length === 0
+              ? "You have no drafts currently awaiting review."
+              : "No draft entities match the selected filters."}
+          </Typography>
         ) : (
           <Box
             sx={{
@@ -257,14 +266,17 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
           </Box>
         )}
       </Box>
-      <DraftEntitiesFilters
-        draftEntitiesWithCreatedAtAndCreators={
-          draftEntitiesWithCreatedAtAndCreators
-        }
-        draftEntitiesSubgraph={draftEntitiesSubgraph}
-        filterState={filterState}
-        setFilterState={setFilterState}
-      />
+      {draftEntitiesWithCreatedAtAndCreators &&
+      draftEntitiesWithCreatedAtAndCreators.length === 0 ? null : (
+        <DraftEntitiesFilters
+          draftEntitiesWithCreatedAtAndCreators={
+            draftEntitiesWithCreatedAtAndCreators
+          }
+          draftEntitiesSubgraph={draftEntitiesSubgraph}
+          filterState={filterState}
+          setFilterState={setFilterState}
+        />
+      )}
     </Container>
   );
 };
