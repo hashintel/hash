@@ -21,33 +21,32 @@ import {
 } from "../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
 
-export const getDraftEntitiesQueryVariables: StructuralQueryEntitiesQueryVariables =
-  {
-    query: {
-      filter: {
-        all: [
-          {
-            equal: [{ path: ["draft"] }, { parameter: true }],
-          },
-          {
-            equal: [{ path: ["archived"] }, { parameter: false }],
-          },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        isOfType: { outgoing: 1 },
-        inheritsFrom: { outgoing: 255 },
-        constrainsPropertiesOn: { outgoing: 255 },
-        constrainsValuesOn: { outgoing: 255 },
-        hasLeftEntity: { outgoing: 1, incoming: 1 },
-        hasRightEntity: { outgoing: 1, incoming: 1 },
-      },
-      includeDrafts: true,
+const getDraftEntitiesQueryVariables: StructuralQueryEntitiesQueryVariables = {
+  query: {
+    filter: {
+      all: [
+        {
+          equal: [{ path: ["draft"] }, { parameter: true }],
+        },
+        {
+          equal: [{ path: ["archived"] }, { parameter: false }],
+        },
+      ],
     },
-    includePermissions: false,
-  };
+    temporalAxes: currentTimeInstantTemporalAxes,
+    graphResolveDepths: {
+      ...zeroedGraphResolveDepths,
+      isOfType: { outgoing: 1 },
+      inheritsFrom: { outgoing: 255 },
+      constrainsPropertiesOn: { outgoing: 255 },
+      constrainsValuesOn: { outgoing: 255 },
+      hasLeftEntity: { outgoing: 1, incoming: 1 },
+      hasRightEntity: { outgoing: 1, incoming: 1 },
+    },
+    includeDrafts: true,
+  },
+  includePermissions: false,
+};
 
 export type DraftEntitiesContextValue = {
   draftEntities?: Entity[];

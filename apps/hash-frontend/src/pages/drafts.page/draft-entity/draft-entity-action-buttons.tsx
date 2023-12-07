@@ -17,13 +17,9 @@ import {
 } from "../../../graphql/api-types.gen";
 import {
   archiveEntityMutation,
-  structuralQueryEntitiesQuery,
   updateEntityMutation,
 } from "../../../graphql/queries/knowledge/entity.queries";
-import {
-  getDraftEntitiesQueryVariables,
-  useDraftEntities,
-} from "../../../shared/draft-entities-context";
+import { useDraftEntities } from "../../../shared/draft-entities-context";
 import { CheckRegularIcon } from "../../../shared/icons/check-regular-icon";
 import { Button } from "../../../shared/ui";
 
@@ -124,14 +120,7 @@ export const DraftEntityActionButtons: FunctionComponent<{
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
     UpdateEntityMutationVariables
-  >(updateEntityMutation, {
-    refetchQueries: [
-      {
-        query: structuralQueryEntitiesQuery,
-        variables: getDraftEntitiesQueryVariables,
-      },
-    ],
-  });
+  >(updateEntityMutation);
 
   const { draftLeftEntity, draftRightEntity } = useMemo(() => {
     if (entity.linkData) {
