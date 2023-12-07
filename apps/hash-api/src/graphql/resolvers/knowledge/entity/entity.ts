@@ -396,6 +396,7 @@ export const archiveEntityResolver: ResolverFn<
 > = async (_, { entityId }, { dataSources: context, authentication }) => {
   const entity = await getLatestEntityById(context, authentication, {
     entityId,
+    includeDrafts: true,
   });
 
   await archiveEntity(context, authentication, { entity });
