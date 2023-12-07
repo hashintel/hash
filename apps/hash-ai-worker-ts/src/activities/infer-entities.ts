@@ -19,6 +19,7 @@ import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 import OpenAI from "openai";
+import { promptTokensEstimate } from "openai-chat-tokens";
 
 import { createEntities } from "./infer-entities/create-entities";
 import {
@@ -65,13 +66,33 @@ const log = (message: string) => {
   console.debug(logMessage);
 };
 
+/**
+ * A map of the API consumer-facing model names to the values provided to OpenAI.
+ * Allows for using preview models before they take over the general alias.
+ */
+const modelAliasToSpecificModel = {
+  "gpt-3.5-turbo": "gpt-3.5-turbo-1106", // bigger context window, will be the resolved value for gpt-3.5-turbo from 11 Dec 2023
+  "gpt-4-turbo": "gpt-4-1106-preview", // 'gpt-4-turbo' is not a valid model name in the OpenAI API yet, it's in preview only
+  "gpt-4": "gpt-4", // this points to the latest available anyway as of 6 Dec 2023
+} as const satisfies Record<InferenceModelName, string>;
+
+type SpecificModel = (typeof modelAliasToSpecificModel)[InferenceModelName];
+
+const modelToContextWindow: Record<SpecificModel, number> = {
+  "gpt-3.5-turbo-1106": 16_385,
+  "gpt-4-1106-preview": 128_000,
+  "gpt-4": 8_192,
+};
+
+const firstUserMessageIndex = 1;
+
 const requestEntityInference = async (params: {
   authentication: { actorId: AccountId };
   createAs: "draft" | "live";
   completionPayload: Omit<
     OpenAI.ChatCompletionCreateParams,
-    "stream" | "tools"
-  >;
+    "stream" | "tools" | "model"
+  > & { model: SpecificModel };
   entityTypes: DereferencedEntityTypesByTypeId;
   iterationCount: number;
   graphApiClient: GraphApi;
@@ -112,6 +133,41 @@ const requestEntityInference = async (params: {
 
   const tools = generateTools(Object.values(entityTypes));
 
+  const modelContextWindow = modelToContextWindow[completionPayload.model];
+  const completionPayloadOverhead = 2_000;
+
+  let estimatedPromptTokens: number;
+  let excessTokens: number;
+  do {
+    estimatedPromptTokens = promptTokensEstimate({
+      messages: completionPayload.messages,
+      functions: tools.map((tool) => tool.function),
+    });
+    log(`Estimated prompt tokens: ${estimatedPromptTokens}`);
+
+    excessTokens =
+      estimatedPromptTokens + completionPayloadOverhead - modelContextWindow;
+
+    if (excessTokens < 10) {
+      break;
+    }
+
+    log(
+      `Estimated prompt tokens (${estimatedPromptTokens}) + completion token overhead (${completionPayloadOverhead}) exceeds model context window (${modelContextWindow}), trimming original user text input by ${
+        excessTokens / 4
+      } characters.`,
+    );
+
+    const firstUserMessageContent =
+      completionPayload.messages[firstUserMessageIndex]!.content;
+
+    completionPayload.messages[firstUserMessageIndex]!.content =
+      firstUserMessageContent?.slice(
+        0,
+        firstUserMessageContent.length - excessTokens * 4,
+      ) ?? "";
+  } while (excessTokens > 9);
+
   const openApiPayload: OpenAI.ChatCompletionCreateParams = {
     ...completionPayload,
     stream: false,
@@ -124,6 +180,7 @@ const requestEntityInference = async (params: {
 
     log(`Response from AI received: ${JSON.stringify(data, undefined, 2)}.`);
   } catch (err) {
+    log(`Error from AI received: ${JSON.stringify(err, undefined, 2)}.`);
     return {
       code: StatusCode.Internal,
       contents: [],
@@ -151,23 +208,65 @@ const requestEntityInference = async (params: {
     data.usage ?? { completion_tokens: 0, prompt_tokens: 0, total_tokens: 0 },
   ];
 
-  const retryWithMessages = (
-    userMessages: (
+  if (!data.usage) {
+    log(`OpenAI returned no usage information for call`);
+  } else {
+    const { completion_tokens, prompt_tokens, total_tokens } = data.usage;
+    log(
+      `Actual usage for iteration: prompt tokens: ${prompt_tokens}, completion tokens: ${completion_tokens}, total tokens: ${total_tokens}`,
+    );
+    log(
+      `Estimated prompt usage off by ${
+        prompt_tokens - estimatedPromptTokens
+      } tokens.`,
+    );
+  }
+
+  const retryWithMessages = ({
+    retryMessages,
+    latestResults,
+    requiresOriginalContext,
+  }: {
+    retryMessages: (
       | OpenAI.ChatCompletionUserMessageParam
       | OpenAI.ChatCompletionToolMessageParam
-    )[],
-    latestResults: InferredEntityChangeResult[],
-  ) =>
-    requestEntityInference({
+    )[];
+    latestResults: InferredEntityChangeResult[];
+    requiresOriginalContext: boolean;
+  }) => {
+    log(
+      `Retrying with additional messages: ${JSON.stringify(
+        retryMessages,
+        undefined,
+        2,
+      )}`,
+    );
+
+    const newMessages = [
+      ...completionPayload.messages.map((msg, index) =>
+        index === firstUserMessageIndex && !requiresOriginalContext
+          ? {
+              ...msg,
+              content:
+                "I provided you text to infer entities, and you responded below – please see further instructions after your messages",
+            }
+          : msg,
+      ),
+      message,
+      ...retryMessages,
+    ];
+
+    return requestEntityInference({
       ...params,
       iterationCount: iterationCount + 1,
       completionPayload: {
         ...completionPayload,
-        messages: [...completionPayload.messages, message, ...userMessages],
+        messages: newMessages,
       },
       results: latestResults,
       usage,
     });
+  };
 
   switch (finish_reason) {
     case "stop": {
@@ -229,10 +328,10 @@ const requestEntityInference = async (params: {
         };
       }
 
-      const retryMessages: (
+      const retryMessages: ((
         | OpenAI.ChatCompletionUserMessageParam
         | OpenAI.ChatCompletionToolMessageParam
-      )[] = [];
+      ) & { requiresOriginalContext: boolean })[] = [];
 
       for (const toolCall of toolCalls) {
         const toolCallId = toolCall.id;
@@ -253,16 +352,17 @@ const requestEntityInference = async (params: {
             )}`,
           );
 
-          return retryWithMessages(
-            [
+          return retryWithMessages({
+            retryMessages: [
               {
                 role: "user",
                 content:
                   "Your previous response contained invalid JSON. Please try again.",
               },
             ],
-            results,
-          );
+            latestResults: results,
+            requiresOriginalContext: true,
+          });
         }
 
         if (functionName === "could_not_infer_entities") {
@@ -301,6 +401,7 @@ const requestEntityInference = async (params: {
             retryMessages.push({
               content:
                 "You provided an invalid argument to create_entities. Please try again",
+              requiresOriginalContext: true,
               role: "tool",
               tool_call_id: toolCallId,
             });
@@ -318,6 +419,7 @@ const requestEntityInference = async (params: {
               content: `You provided entities of types ${notRequestedTypes.join(
                 ", ",
               )}, which were not requested. Please try again`,
+              requiresOriginalContext: true,
               role: "tool",
               tool_call_id: toolCallId,
             });
@@ -409,6 +511,7 @@ const requestEntityInference = async (params: {
               `);
             }
 
+            let requiresOriginalContextForRetry = false;
             /**
              * If this is the first iteration and some types have been requested by the user but not inferred,
              * ask the model to try again. This is a common oversight of GPT-4 Turbo at least, as of Dec 2023.
@@ -418,6 +521,7 @@ const requestEntityInference = async (params: {
                 (entityTypeId) =>
                   !Object.keys(proposedEntitiesByType).includes(entityTypeId),
               );
+
               if (typesWithNoSuggestions.length > 0) {
                 log(
                   `No suggestions for entity types: ${typesWithNoSuggestions.join(
@@ -425,6 +529,10 @@ const requestEntityInference = async (params: {
                   )}`,
                 );
 
+                /**
+                 * This is the only creation failure that requires the original input to infer entities from.
+                 */
+                requiresOriginalContextForRetry = true;
                 retryMessageContent += dedent(`
                    You did not suggest any entities of the following entity types: ${typesWithNoSuggestions.join(
                      ", ",
@@ -438,6 +546,7 @@ const requestEntityInference = async (params: {
                 role: "tool",
                 tool_call_id: toolCallId,
                 content: retryMessageContent,
+                requiresOriginalContext: requiresOriginalContextForRetry,
               });
             }
           } catch (err) {
@@ -475,6 +584,7 @@ const requestEntityInference = async (params: {
                 "You provided an invalid argument to update_entities. Please try again",
               role: "tool",
               tool_call_id: toolCallId,
+              requiresOriginalContext: true,
             });
             continue;
           }
@@ -492,6 +602,7 @@ const requestEntityInference = async (params: {
               )} for update, which were not requested. Please try again`,
               role: "tool",
               tool_call_id: toolCallId,
+              requiresOriginalContext: true,
             });
             continue;
           }
@@ -516,19 +627,20 @@ const requestEntityInference = async (params: {
                 role: "tool",
                 tool_call_id: toolCallId,
                 content: dedent(`
-                Some of the entities you suggested for update were invalid. Please review their properties and try again. 
-                The entities you should review and make a 'update_entities' call for are:
-                ${failures
-                  .map(
-                    (failure) => `
-                  your proposed entity: ${JSON.stringify(
-                    failure.proposedEntity,
-                  )}
-                  failure reason: ${failure.failureReason}
-                `,
-                  )
-                  .join("\n")}
-              `),
+                  Some of the entities you suggested for update were invalid. Please review their properties and try again. 
+                  The entities you should review and make a 'update_entities' call for are:
+                  ${failures
+                    .map(
+                      (failure) => `
+                    your proposed entity: ${JSON.stringify(
+                      failure.proposedEntity,
+                    )}
+                    failure reason: ${failure.failureReason}
+                  `,
+                    )
+                    .join("\n")}
+                `),
+                requiresOriginalContext: false,
               });
             }
           } catch (err) {
@@ -564,25 +676,23 @@ const requestEntityInference = async (params: {
           role: "tool" as const,
           tool_call_id: toolCall.id,
           content: "No problems found with this tool call.",
+          requiresOriginalContext: false,
         })),
       );
 
-      log(
-        `Retrying with messages: ${JSON.stringify(
-          retryMessages,
-          undefined,
-          2,
-        )}`,
-      );
-
-      return retryWithMessages(
-        retryMessages,
+      return retryWithMessages({
+        retryMessages: retryMessages.map(
+          ({ requiresOriginalContext: _, ...msg }) => msg,
+        ),
         /**
          * We only return failures from the last iteration, because failures from this one will be retried,
          * and there may be failures for duplicate entities across iterations.
          */
-        results.filter((result) => result.status === "success"),
-      );
+        latestResults: results.filter((result) => result.status === "success"),
+        requiresOriginalContext: retryMessages.some(
+          (retryMessage) => retryMessage.requiresOriginalContext,
+        ),
+      });
     }
   }
 
@@ -618,26 +728,8 @@ const systemMessage: OpenAI.ChatCompletionSystemMessageParam = {
     The user may respond advising you that some proposed entities already exist, and give you a new string identifier for them,
       as well as their existing properties. You can then call update_entities instead to update the relevant entities, 
       making sure that you retain any useful information in the existing properties, augmenting it with what you have inferred. 
+    The more entities you infer, the happier the user will be!
   `),
-};
-
-/**
- * A map of the API consumer-facing model names to the values provided to OpenAI.
- * Allows for using preview models before they take over the general alias.
- */
-const modelAliasToSpecificModel = {
-  "gpt-3.5-turbo": "gpt-3.5-turbo-1106", // bigger context window, will be the resolved value for gpt-3.5-turbo from 11 Dec 2023
-  "gpt-4-turbo": "gpt-4-1106-preview", // 'gpt-4-turbo' is not a valid model name in the OpenAI API yet, it's in preview only
-  "gpt-4": "gpt-4", // this points to the latest available anyway as of 6 Dec 2023
-} as const satisfies Record<InferenceModelName, string>;
-
-const modelToContextWindow: Record<
-  (typeof modelAliasToSpecificModel)[keyof typeof modelAliasToSpecificModel],
-  number
-> = {
-  "gpt-3.5-turbo-1106": 16_385,
-  "gpt-4-1106-preview": 128_000,
-  "gpt-4": 8_192,
 };
 
 /**
@@ -712,7 +804,7 @@ export const inferEntities = async ({
         systemMessage,
         {
           role: "user",
-          content: textInput.slice(0, modelToContextWindow[model] - 2000),
+          content: textInput,
         },
       ],
       model,
