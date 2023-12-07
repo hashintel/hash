@@ -92,13 +92,13 @@ describe("Comment Notification", () => {
       graphContext,
       { actorId: recipientUser.accountId },
       {
-        ownedById: recipientUser.accountId as OwnedById,
+        ownedById: testOrg.accountGroupId as OwnedById,
         componentId: "text",
         blockData: await createEntity(
           graphContext,
           { actorId: recipientUser.accountId },
           {
-            ownedById: recipientUser.accountId as OwnedById,
+            ownedById: testOrg.accountGroupId as OwnedById,
             entityTypeId: systemEntityTypes.text.entityTypeId,
             properties: {
               "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
@@ -174,13 +174,13 @@ describe("Comment Notification", () => {
       graphContext,
       { actorId: triggerUser.accountId },
       {
-        ownedById: triggerUser.accountId as OwnedById,
+        ownedById: testOrg.accountGroupId as OwnedById,
         componentId: "text",
         blockData: await createEntity(
           graphContext,
           { actorId: triggerUser.accountId },
           {
-            ownedById: triggerUser.accountId as OwnedById,
+            ownedById: testOrg.accountGroupId as OwnedById,
             entityTypeId: systemEntityTypes.text.entityTypeId,
             properties: {
               "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
