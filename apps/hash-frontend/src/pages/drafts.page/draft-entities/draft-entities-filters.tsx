@@ -10,11 +10,9 @@ import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
-  Checkbox,
   Fade,
   FormControl,
   FormControlLabel,
-  formControlLabelClasses,
   Radio,
   RadioGroup,
   styled,
@@ -30,48 +28,8 @@ import {
 
 import { MinimalUser } from "../../../lib/user-and-org";
 import { Button } from "../../../shared/ui";
-
-const CheckboxFilter: FunctionComponent<{
-  label: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-}> = ({ label, checked, onChange }) => (
-  <FormControlLabel
-    sx={({ palette }) => ({
-      borderRadius: 16,
-      color: palette.gray[70],
-      marginX: 0,
-      flexShrink: 0,
-      gap: 1,
-      mt: 0.1,
-      px: 1,
-      py: 0.6,
-      [`.${formControlLabelClasses.label}`]: {
-        fontSize: 13,
-        fontWeight: 500,
-      },
-      transition: ({ transitions }) =>
-        transitions.create(["background", "color"]),
-      "&:hover": {
-        background: palette.gray[10],
-        color: palette.gray[90],
-      },
-    })}
-    label={label}
-    control={
-      <Checkbox
-        sx={{
-          svg: {
-            width: 12,
-            height: 12,
-          },
-        }}
-        checked={checked}
-        onChange={({ target }) => onChange(target.checked)}
-      />
-    }
-  />
-);
+import { useAuthenticatedUser } from "../../shared/auth-info-context";
+import { CheckboxFilter } from "../../shared/checkbox-filter";
 
 const draftEntitiesFiltersColumnWidth = 200;
 
@@ -190,6 +148,8 @@ export const DraftEntitiesFilters: FunctionComponent<{
   filterState,
   setFilterState,
 }) => {
+  const { authenticatedUser } = useAuthenticatedUser();
+
   const handleClearAll = useCallback(() => {
     if (draftEntitiesWithCreatedAtAndCreators && draftEntitiesSubgraph) {
       setFilterState(
@@ -328,7 +288,11 @@ export const DraftEntitiesFilters: FunctionComponent<{
         {sources?.map((source) => (
           <CheckboxFilter
             key={source.accountId}
-            label={source.preferredName ?? "Unknown"}
+            label={
+              authenticatedUser.accountId === source.accountId
+                ? "Me"
+                : source.preferredName ?? "Unknown"
+            }
             checked={!!filterState?.sourceAccountIds.includes(source.accountId)}
             onChange={(checked) =>
               setFilterState((prev) =>
