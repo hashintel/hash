@@ -1,6 +1,8 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
+import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import { createBlock } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import { createComment } from "@apps/hash-api/src/graph/knowledge/system-types/comment";
 import { getCommentNotification } from "@apps/hash-api/src/graph/knowledge/system-types/notification";
 import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org.js";
@@ -14,6 +16,8 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractOwnedByIdFromEntityId, OwnedById } from "@local/hash-subgraph";
 
 import { resetGraph } from "../../../test-server";
@@ -84,10 +88,32 @@ describe("Comment Notification", () => {
   it("can create a comment notification when a comment is left on a page", async () => {
     const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
+    const initialBlock = await createBlock(
+      graphContext,
+      { actorId: recipientUser.accountId },
+      {
+        ownedById: recipientUser.accountId as OwnedById,
+        componentId: "text",
+        blockData: await createEntity(
+          graphContext,
+          { actorId: recipientUser.accountId },
+          {
+            ownedById: recipientUser.accountId as OwnedById,
+            entityTypeId: systemEntityTypes.text.entityTypeId,
+            properties: {
+              "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
+                [],
+            } as TextProperties,
+          },
+        ),
+      },
+    );
+
     const occurredInEntity = await createPage(
       graphContext,
       { actorId: recipientUser.accountId },
       {
+        initialBlocks: [initialBlock],
         title: "Test Page",
         ownedById: testOrg.accountGroupId as OwnedById,
         type: "document",
@@ -144,10 +170,32 @@ describe("Comment Notification", () => {
   it("can create a comment notification when a user replies to an existing comment", async () => {
     const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
+    const initialBlock = await createBlock(
+      graphContext,
+      { actorId: triggerUser.accountId },
+      {
+        ownedById: triggerUser.accountId as OwnedById,
+        componentId: "text",
+        blockData: await createEntity(
+          graphContext,
+          { actorId: triggerUser.accountId },
+          {
+            ownedById: triggerUser.accountId as OwnedById,
+            entityTypeId: systemEntityTypes.text.entityTypeId,
+            properties: {
+              "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
+                [],
+            } as TextProperties,
+          },
+        ),
+      },
+    );
+
     const occurredInEntity = await createPage(
       graphContext,
       { actorId: triggerUser.accountId },
       {
+        initialBlocks: [initialBlock],
         title: "Test Page",
         ownedById: testOrg.accountGroupId as OwnedById,
         type: "document",
