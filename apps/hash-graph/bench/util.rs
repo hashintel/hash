@@ -196,6 +196,7 @@ impl Drop for StoreWrapper {
     }
 }
 
+#[expect(clippy::too_many_lines)]
 pub async fn seed<D, P, E, C>(
     store: &mut PostgresStore<C>,
     account_id: AccountId,
@@ -263,7 +264,7 @@ pub async fn seed<D, P, E, C>(
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_property_type(account_id, &mut NoAuthorization, property_type)
+                        .update_property_type(account_id, &mut NoAuthorization, property_type, [])
                         .await
                         .expect("failed to update property type");
                 } else {
@@ -304,6 +305,7 @@ pub async fn seed<D, P, E, C>(
                             entity_type,
                             None,
                             None,
+                            [],
                         )
                         .await
                         .expect("failed to update entity type");

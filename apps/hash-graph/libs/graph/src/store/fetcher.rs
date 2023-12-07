@@ -860,6 +860,7 @@ where
         actor_id: AccountId,
         authorization_api: &mut Au,
         property_type: PropertyType,
+        relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.insert_external_types(
             actor_id,
@@ -872,7 +873,7 @@ where
         .attach_printable_lazy(|| property_type.id().clone())?;
 
         self.store
-            .update_property_type(actor_id, authorization_api, property_type)
+            .update_property_type(actor_id, authorization_api, property_type, relationships)
             .await
     }
 
@@ -966,6 +967,7 @@ where
         entity_type: EntityType,
         label_property: Option<BaseUrl>,
         icon: Option<String>,
+        relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
     ) -> Result<EntityTypeMetadata, UpdateError> {
         self.insert_external_types(
             actor_id,
@@ -984,6 +986,7 @@ where
                 entity_type,
                 label_property,
                 icon,
+                relationships,
             )
             .await
     }

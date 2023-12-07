@@ -1,6 +1,6 @@
 use std::{iter::repeat, str::FromStr};
 
-use authorization::NoAuthorization;
+use authorization::{schema::WebOwnerSubject, NoAuthorization};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
 use graph::{
@@ -64,6 +64,7 @@ async fn seed_db(
             account_id,
             &mut NoAuthorization,
             OwnedById::new(account_id.into_uuid()),
+            WebOwnerSubject::Account { id: account_id },
         )
         .await
         .expect("could not create web id");

@@ -1349,7 +1349,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                     level: 0,
                 },
                 // TODO: Add ontology type creators
-            ])
+            ]);
         }
 
         authorization_api

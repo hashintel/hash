@@ -125,8 +125,7 @@ impl Resource for DataTypeSubject {
             (DataTypeSubjectNamespace::Web, DataTypeSubjectId::Uuid(uuid)) => {
                 Self::Web(OwnedById::new(uuid))
             }
-            (DataTypeSubjectNamespace::Account, DataTypeSubjectId::Uuid(_))
-            | (DataTypeSubjectNamespace::Web, DataTypeSubjectId::Asteriks(PublicAccess::Public)) => {
+            (DataTypeSubjectNamespace::Account | DataTypeSubjectNamespace::Web, _) => {
                 return Err(InvalidResource::<Self>::invalid_id(kind, id));
             }
         })

@@ -3329,7 +3329,7 @@
           }
         }
       },
-      "EntityTypeInstantiatorSubject": {
+      "EntityTypeEditorSubject": {
         "oneOf": [
           {
             "type": "object",
@@ -3366,7 +3366,14 @@
                 "$ref": "#/components/schemas/AccountGroupId"
               }
             }
-          },
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "EntityTypeInstantiatorSubject": {
+        "oneOf": [
           {
             "type": "object",
             "required": [
@@ -3378,6 +3385,42 @@
                 "enum": [
                   "public"
                 ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "accountGroup"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
               }
             }
           }
@@ -3480,6 +3523,24 @@
               "relation": {
                 "type": "string",
                 "enum": [
+                  "owner"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/EntityTypeOwnerSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
                   "setting"
                 ]
               },
@@ -3498,11 +3559,11 @@
               "relation": {
                 "type": "string",
                 "enum": [
-                  "owner"
+                  "editor"
                 ]
               },
               "subject": {
-                "$ref": "#/components/schemas/EntityTypeOwnerSubject"
+                "$ref": "#/components/schemas/EntityTypeEditorSubject"
               }
             }
           },
@@ -4613,6 +4674,49 @@
           }
         }
       },
+      "PropertyTypeEditorSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "accountGroup"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
       "PropertyTypeOwnerSubject": {
         "oneOf": [
           {
@@ -4673,6 +4777,24 @@
               "relation": {
                 "type": "string",
                 "enum": [
+                  "owner"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/PropertyTypeOwnerSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
                   "setting"
                 ]
               },
@@ -4691,11 +4813,11 @@
               "relation": {
                 "type": "string",
                 "enum": [
-                  "owner"
+                  "editor"
                 ]
               },
               "subject": {
-                "$ref": "#/components/schemas/PropertyTypeOwnerSubject"
+                "$ref": "#/components/schemas/PropertyTypeEditorSubject"
               }
             }
           },
@@ -5285,7 +5407,8 @@
         "type": "object",
         "required": [
           "schema",
-          "typeToUpdate"
+          "typeToUpdate",
+          "relationships"
         ],
         "properties": {
           "icon": {
@@ -5294,6 +5417,12 @@
           },
           "labelProperty": {
             "$ref": "./models/shared.json#/definitions/BaseUrl"
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityTypeRelationAndSubject"
+            }
           },
           "schema": {
             "$ref": "./models/update_entity_type.json"
@@ -5307,9 +5436,16 @@
         "type": "object",
         "required": [
           "schema",
-          "typeToUpdate"
+          "typeToUpdate",
+          "relationships"
         ],
         "properties": {
+          "relationships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropertyTypeRelationAndSubject"
+            }
+          },
           "schema": {
             "$ref": "./models/update_property_type.json"
           },

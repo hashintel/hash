@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    iter::once,
+};
 
 use async_trait::async_trait;
 use authorization::{
@@ -490,12 +493,16 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
-    #[tracing::instrument(level = "info", skip(self, property_type, authorization_api))]
+    #[tracing::instrument(
+        level = "info",
+        skip(self, property_type, authorization_api, relationships)
+    )]
     async fn update_property_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         property_type: PropertyType,
+        relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         let old_ontology_id = PropertyTypeId::from_url(&VersionedUrl {
             base_url: property_type.id().base_url.clone(),
@@ -535,46 +542,39 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             })
             .attach_lazy(|| property_type.clone())?;
 
-        let relationships = [(
-            PropertyTypeId::from(ontology_id),
-            PropertyTypeRelationAndSubject::Owner {
+        let property_type_id = PropertyTypeId::from(ontology_id);
+        let relationships = relationships
+            .into_iter()
+            .chain(once(PropertyTypeRelationAndSubject::Owner {
                 subject: PropertyTypeOwnerSubject::Web { id: owned_by_id },
                 level: 0,
-            },
-        )];
+            }))
+            .collect::<Vec<_>>();
 
-        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
         authorization_api
-            .modify_property_type_relations(
-                relationships
-                    .iter()
-                    .map(|(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Create,
-                            *resource,
-                            *relation_and_subject,
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
+            .modify_property_type_relations(relationships.clone().into_iter().map(
+                |relation_and_subject| {
+                    (
+                        ModifyRelationshipOperation::Create,
+                        property_type_id,
+                        relation_and_subject,
+                    )
+                },
+            ))
             .await
             .change_context(UpdateError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(UpdateError) {
-            #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
             if let Err(auth_error) = authorization_api
-                .modify_property_type_relations(
-                    relationships
-                        .iter()
-                        .map(|(resource, relation_and_subject)| {
-                            (
-                                ModifyRelationshipOperation::Delete,
-                                *resource,
-                                *relation_and_subject,
-                            )
-                        })
-                        .collect::<Vec<_>>(),
-                )
+                .modify_property_type_relations(relationships.into_iter().map(
+                    |relation_and_subject| {
+                        (
+                            ModifyRelationshipOperation::Delete,
+                            property_type_id,
+                            relation_and_subject,
+                        )
+                    },
+                ))
                 .await
                 .change_context(UpdateError)
             {

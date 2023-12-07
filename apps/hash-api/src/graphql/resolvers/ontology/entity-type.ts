@@ -176,7 +176,10 @@ export const updateEntityTypeResolver: ResolverFn<
       schema: params.updatedEntityType,
       labelProperty: params.labelProperty ?? undefined,
       icon: params.icon ?? undefined,
-      instantiators: [{ kind: "public" }],
+      inheritedPermissions: ["updateFromWeb"],
+      relationships: [
+        { relation: "instantiator", subject: { kind: "public" } },
+      ],
     },
   );
 

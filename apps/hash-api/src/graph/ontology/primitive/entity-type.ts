@@ -255,7 +255,8 @@ export const updateEntityType: ImpureGraphFunction<
     schema: ConstructEntityTypeParams;
     labelProperty?: BaseUrl;
     icon?: string | null;
-    instantiators: EntityTypeInstantiatorSubject[];
+    relationships: EntityTypeRelationAndSubject[];
+    inheritedPermissions: EntityTypeSetting[];
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
@@ -269,6 +270,19 @@ export const updateEntityType: ImpureGraphFunction<
     },
     labelProperty,
     icon,
+    relationships: [
+      ...params.inheritedPermissions.map(
+        (setting) =>
+          ({
+            relation: "setting",
+            subject: {
+              kind: "setting",
+              subjectId: setting,
+            },
+          }) as const,
+      ),
+      ...params.relationships,
+    ],
   };
 
   const { data: metadata } = await ctx.graphApi.updateEntityType(
@@ -278,22 +292,6 @@ export const updateEntityType: ImpureGraphFunction<
 
   const newEntityTypeId = ontologyTypeRecordIdToVersionedUrl(
     metadata.recordId as OntologyTypeRecordId,
-  );
-
-  await modifyEntityTypeAuthorizationRelationships(
-    ctx,
-    authentication,
-    params.instantiators.map((subject) => ({
-      operation: "create",
-      relationship: {
-        resource: {
-          kind: "entityType",
-          resourceId: newEntityTypeId,
-        },
-        relation: "instantiator",
-        subject,
-      },
-    })),
   );
 
   return {

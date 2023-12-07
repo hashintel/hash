@@ -148,6 +148,8 @@ describe("Property type CRU", () => {
           ...propertyTypeSchema,
           title: updatedTitle,
         },
+        inheritedPermissions: ["updateFromWeb"],
+        relationships: [],
       },
     ).catch((err) => Promise.reject(err.data));
 

@@ -161,6 +161,8 @@ export const updatePropertyTypeResolver: ResolverFn<
     {
       propertyTypeId: params.propertyTypeId,
       schema: params.updatedPropertyType,
+      inheritedPermissions: ["updateFromWeb"],
+      relationships: [],
     },
   );
 

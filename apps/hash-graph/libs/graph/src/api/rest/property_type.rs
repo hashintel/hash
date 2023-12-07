@@ -7,9 +7,9 @@ use std::sync::Arc;
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        PropertyTypeId, PropertyTypeOwnerSubject, PropertyTypePermission,
-        PropertyTypeRelationAndSubject, PropertyTypeSetting, PropertyTypeSettingSubject,
-        PropertyTypeViewerSubject,
+        PropertyTypeEditorSubject, PropertyTypeId, PropertyTypeOwnerSubject,
+        PropertyTypePermission, PropertyTypeRelationAndSubject, PropertyTypeSetting,
+        PropertyTypeSettingSubject, PropertyTypeViewerSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
@@ -79,6 +79,7 @@ use crate::{
 
             PropertyTypeSettingSubject,
             PropertyTypeOwnerSubject,
+            PropertyTypeEditorSubject,
             PropertyTypeViewerSubject,
             PropertyTypePermission,
             PropertyTypeRelationAndSubject,
@@ -422,6 +423,7 @@ struct UpdatePropertyTypeRequest {
     schema: serde_json::Value,
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_update: VersionedUrl,
+    relationships: Vec<PropertyTypeRelationAndSubject>,
 }
 
 #[utoipa::path(
@@ -456,6 +458,7 @@ where
     let Json(UpdatePropertyTypeRequest {
         schema,
         mut type_to_update,
+        relationships,
     }) = body;
 
     type_to_update.version += 1;
@@ -478,7 +481,12 @@ where
     })?;
 
     store
-        .update_property_type(actor_id, &mut authorization_api, property_type)
+        .update_property_type(
+            actor_id,
+            &mut authorization_api,
+            property_type,
+            relationships,
+        )
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update property type");

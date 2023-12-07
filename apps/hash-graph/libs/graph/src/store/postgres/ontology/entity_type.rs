@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    iter::once,
+};
 
 use async_trait::async_trait;
 use authorization::{
@@ -671,7 +674,10 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
-    #[tracing::instrument(level = "info", skip(self, entity_type, authorization_api))]
+    #[tracing::instrument(
+        level = "info",
+        skip(self, entity_type, authorization_api, relationships)
+    )]
     async fn update_entity_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
@@ -679,6 +685,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         entity_type: EntityType,
         label_property: Option<BaseUrl>,
         icon: Option<String>,
+        relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
     ) -> Result<EntityTypeMetadata, UpdateError> {
         let old_ontology_id = EntityTypeId::from_url(&VersionedUrl {
             base_url: entity_type.id().base_url.clone(),
@@ -751,46 +758,39 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             })
             .attach_lazy(|| schema.clone())?;
 
-        let relationships = [(
-            EntityTypeId::from(ontology_id),
-            EntityTypeRelationAndSubject::Owner {
+        let entity_type_id = EntityTypeId::from(ontology_id);
+        let relationships = relationships
+            .into_iter()
+            .chain(once(EntityTypeRelationAndSubject::Owner {
                 subject: EntityTypeOwnerSubject::Web { id: owned_by_id },
                 level: 0,
-            },
-        )];
+            }))
+            .collect::<Vec<_>>();
 
-        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
         authorization_api
-            .modify_entity_type_relations(
-                relationships
-                    .iter()
-                    .map(|(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Create,
-                            *resource,
-                            *relation_and_subject,
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
+            .modify_entity_type_relations(relationships.clone().into_iter().map(
+                |relation_and_subject| {
+                    (
+                        ModifyRelationshipOperation::Create,
+                        entity_type_id,
+                        relation_and_subject,
+                    )
+                },
+            ))
             .await
             .change_context(UpdateError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(UpdateError) {
-            #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
             if let Err(auth_error) = authorization_api
-                .modify_entity_type_relations(
-                    relationships
-                        .iter()
-                        .map(|(resource, relation_and_subject)| {
-                            (
-                                ModifyRelationshipOperation::Delete,
-                                *resource,
-                                *relation_and_subject,
-                            )
-                        })
-                        .collect::<Vec<_>>(),
-                )
+                .modify_entity_type_relations(relationships.into_iter().map(
+                    |relation_and_subject| {
+                        (
+                            ModifyRelationshipOperation::Delete,
+                            entity_type_id,
+                            relation_and_subject,
+                        )
+                    },
+                ))
                 .await
                 .change_context(UpdateError)
             {

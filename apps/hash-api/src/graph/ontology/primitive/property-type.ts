@@ -204,6 +204,8 @@ export const updatePropertyType: ImpureGraphFunction<
   {
     propertyTypeId: VersionedUrl;
     schema: ConstructPropertyTypeParams;
+    relationships: PropertyTypeRelationAndSubject[];
+    inheritedPermissions: PropertyTypeSetting[];
   },
   Promise<PropertyTypeWithMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
@@ -215,6 +217,19 @@ export const updatePropertyType: ImpureGraphFunction<
       kind: "propertyType" as const,
       ...schema,
     },
+    relationships: [
+      ...params.inheritedPermissions.map(
+        (setting) =>
+          ({
+            relation: "setting",
+            subject: {
+              kind: "setting",
+              subjectId: setting,
+            },
+          }) as const,
+      ),
+      ...params.relationships,
+    ],
   };
 
   const { data: metadata } = await graphApi.updatePropertyType(

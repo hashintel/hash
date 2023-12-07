@@ -202,6 +202,7 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
         actor_id: AccountId,
         authorization_api: &mut A,
         property_type: PropertyType,
+        relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
     ) -> Result<OntologyElementMetadata, UpdateError>;
 
     /// Archives the definition of an existing [`PropertyType`].
@@ -305,6 +306,7 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
         entity_type: EntityType,
         label_property: Option<BaseUrl>,
         icon: Option<String>,
+        relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
     ) -> Result<EntityTypeMetadata, UpdateError>;
 
     /// Archives the definition of an existing [`EntityType`].

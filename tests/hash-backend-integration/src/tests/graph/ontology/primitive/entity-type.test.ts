@@ -293,7 +293,10 @@ describe("Entity type CRU", () => {
       {
         entityTypeId: createdEntityType.schema.$id,
         schema: { ...entityTypeSchema, title: updatedTitle },
-        instantiators: [{ kind: "public" }],
+        inheritedPermissions: ["updateFromWeb"],
+        relationships: [
+          { relation: "instantiator", subject: { kind: "public" } },
+        ],
       },
     ).catch((err) => Promise.reject(err.data));
 

@@ -7,9 +7,9 @@ use std::{collections::hash_map, sync::Arc};
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        EntityTypeId, EntityTypeInstantiatorSubject, EntityTypeOwnerSubject, EntityTypePermission,
-        EntityTypeRelationAndSubject, EntityTypeSetting, EntityTypeSettingSubject,
-        EntityTypeViewerSubject,
+        EntityTypeEditorSubject, EntityTypeId, EntityTypeInstantiatorSubject,
+        EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject,
+        EntityTypeSetting, EntityTypeSettingSubject, EntityTypeViewerSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
@@ -85,6 +85,7 @@ use crate::{
 
             EntityTypeSettingSubject,
             EntityTypeOwnerSubject,
+            EntityTypeEditorSubject,
             EntityTypeViewerSubject,
             EntityTypeInstantiatorSubject,
             EntityTypePermission,
@@ -735,6 +736,7 @@ struct UpdateEntityTypeRequest {
     label_property: Option<BaseUrl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     icon: Option<String>,
+    relationships: Vec<EntityTypeRelationAndSubject>,
 }
 
 #[utoipa::path(
@@ -771,6 +773,7 @@ where
         mut type_to_update,
         label_property,
         icon,
+        relationships,
     }) = body;
 
     type_to_update.version += 1;
@@ -800,6 +803,7 @@ where
             entity_type,
             label_property,
             icon,
+            relationships,
         )
         .await
         .map_err(|report| {

@@ -13,7 +13,7 @@ mod property_type;
 
 use std::{borrow::Cow, str::FromStr};
 
-use authorization::NoAuthorization;
+use authorization::{schema::WebOwnerSubject, NoAuthorization};
 use error_stack::Result;
 use graph::{
     knowledge::EntityQueryPath,
@@ -132,6 +132,7 @@ impl DatabaseTestWrapper {
                 account_id,
                 &mut NoAuthorization,
                 OwnedById::new(account_id.into_uuid()),
+                WebOwnerSubject::Account { id: account_id },
             )
             .await
             .expect("could not create web id");
@@ -355,7 +356,7 @@ impl DatabaseApi<'_> {
         property_type: PropertyType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
-            .update_property_type(self.account_id, &mut NoAuthorization, property_type)
+            .update_property_type(self.account_id, &mut NoAuthorization, property_type, [])
             .await
     }
 
@@ -425,6 +426,7 @@ impl DatabaseApi<'_> {
                 entity_type,
                 None,
                 None,
+                [],
             )
             .await
     }
