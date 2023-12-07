@@ -26,7 +26,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.1-canary-20231120181031",
+    "@blockprotocol/graph": "0.3.1-canary-20231207113055",
     "@hashintel/block-design-system": "0.0.1",
     "@hashintel/design-system": "0.0.7",
     "@mui/material": "5.14.11",
@@ -41,7 +41,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.debounce": "4.0.7",
-    "@types/pluralize": "0.0.29",
+    "@types/pluralize": "0.0.33",
     "@types/react-dom": "18.0.10",
     "@types/react-is": "18.2.0",
     "block-scripts": "0.3.1",
