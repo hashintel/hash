@@ -240,7 +240,8 @@ describe("Page", () => {
       graphContext,
       authentication,
       {
-        blockCollectionEntityId: testPageForBlockManipulation.entity.metadata.recordId.entityId,
+        blockCollectionEntityId:
+          testPageForBlockManipulation.entity.metadata.recordId.entityId,
         block: testBlock2,
         position: {
           indexPosition: {
@@ -260,7 +261,8 @@ describe("Page", () => {
       graphContext,
       authentication,
       {
-        blockCollectionEntityId: testPageForBlockManipulation.entity.metadata.recordId.entityId,
+        blockCollectionEntityId:
+          testPageForBlockManipulation.entity.metadata.recordId.entityId,
         block: testBlock3,
         position: {
           indexPosition: {
@@ -278,7 +280,8 @@ describe("Page", () => {
 
     const blocks = (
       await getPageBlocks(graphContext, authentication, {
-        pageEntityId: testPageForBlockManipulation.entity.metadata.recordId.entityId,
+        pageEntityId:
+          testPageForBlockManipulation.entity.metadata.recordId.entityId,
         type: "document",
       })
     ).map((contentItem) => contentItem.rightEntity);
@@ -310,7 +313,8 @@ describe("Page", () => {
 
     const initialBlocks = (
       await getPageBlocks(graphContext, authentication, {
-        pageEntityId: testPageForBlockManipulation.entity.metadata.recordId.entityId,
+        pageEntityId:
+          testPageForBlockManipulation.entity.metadata.recordId.entityId,
         type: "document",
       })
     ).map((contentItem) => contentItem.rightEntity);
@@ -333,7 +337,8 @@ describe("Page", () => {
 
     const updatedBlocks = (
       await getPageBlocks(graphContext, authentication, {
-        pageEntityId: testPageForBlockManipulation.entity.metadata.recordId.entityId,
+        pageEntityId:
+          testPageForBlockManipulation.entity.metadata.recordId.entityId,
         type: "document",
       })
     ).map((contentItem) => contentItem.rightEntity);
@@ -353,7 +358,8 @@ describe("Page", () => {
 
     const blocks = (
       await getPageBlocks(graphContext, authentication, {
-        pageEntityId: testPageForBlockManipulation.entity.metadata.recordId.entityId,
+        pageEntityId:
+          testPageForBlockManipulation.entity.metadata.recordId.entityId,
         type: "document",
       })
     ).map((contentItem) => contentItem.rightEntity);
