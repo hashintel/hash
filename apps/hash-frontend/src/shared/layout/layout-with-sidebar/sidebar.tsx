@@ -10,6 +10,7 @@ import { FunctionComponent, useMemo } from "react";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
+import { useDraftEntities } from "../../draft-entities-context";
 import { SidebarToggleIcon } from "../../icons";
 import { InboxIcon } from "../../icons/inbox-icon";
 import { QuickNoteIcon } from "../../icons/quick-note-icon";
@@ -28,17 +29,20 @@ export const SIDEBAR_WIDTH = 260;
 export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
-  const { notifications } = useNotifications();
   const { activeWorkspaceOwnedById } = useActiveWorkspace();
   const { routePageEntityUuid } =
     useRoutePageInfo({ allowUndefined: true }) ?? {};
 
   const { hashInstance } = useHashInstance();
 
+  const { notifications } = useNotifications();
+
   const numberOfUnreadNotifications = useMemo(
     () => notifications?.filter(({ readAt }) => !readAt).length,
     [notifications],
   );
+
+  const { draftEntities } = useDraftEntities();
 
   return (
     <Drawer
@@ -99,6 +103,7 @@ export const PageSidebar: FunctionComponent = () => {
         title="Drafts"
         href="/drafts"
         tooltipTitle=""
+        count={draftEntities?.length}
         active={router.pathname === "/drafts"}
       />
       <TopNavLink

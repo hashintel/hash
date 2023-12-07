@@ -20,26 +20,24 @@ import {
   structuralQueryEntitiesQuery,
   updateEntityMutation,
 } from "../../../graphql/queries/knowledge/entity.queries";
+import {
+  getDraftEntitiesQueryVariables,
+  useDraftEntities,
+} from "../../../shared/draft-entities-context";
 import { CheckRegularIcon } from "../../../shared/icons/check-regular-icon";
 import { Button } from "../../../shared/ui";
-import { getDraftEntitiesQueryVariables } from "../get-draft-entities-query";
 
 export const DraftEntityActionButtons: FunctionComponent<{
   label: string;
   entity: Entity;
   subgraph: Subgraph<EntityRootType>;
 }> = ({ entity, subgraph, label }) => {
+  const { refetch: refetchDraftEntities } = useDraftEntities();
+
   const [archiveEntity] = useMutation<
     ArchiveEntityMutation,
     ArchiveEntityMutationVariables
-  >(archiveEntityMutation, {
-    refetchQueries: [
-      {
-        query: structuralQueryEntitiesQuery,
-        variables: getDraftEntitiesQueryVariables,
-      },
-    ],
-  });
+  >(archiveEntityMutation);
 
   const [
     showDraftEntityWithDraftLinksWarning,
@@ -81,17 +79,24 @@ export const DraftEntityActionButtons: FunctionComponent<{
     [outgoingDraftLinks, incomingDraftLinks],
   );
 
-  const handleIgnore = useCallback(() => {
+  const handleIgnore = useCallback(async () => {
     if (hasIncomingOrOutgoingDraftLinks) {
       setShowDraftEntityWithDraftLinksWarning(true);
     } else {
-      void archiveEntity({
+      await archiveEntity({
         variables: {
           entityId: entity.metadata.recordId.entityId,
         },
       });
+
+      await refetchDraftEntities();
     }
-  }, [hasIncomingOrOutgoingDraftLinks, archiveEntity, entity]);
+  }, [
+    hasIncomingOrOutgoingDraftLinks,
+    archiveEntity,
+    entity,
+    refetchDraftEntities,
+  ]);
 
   const handleIgnoreDraftEntityWithDraftLinks = useCallback(async () => {
     await Promise.all(
@@ -106,7 +111,15 @@ export const DraftEntityActionButtons: FunctionComponent<{
     await archiveEntity({
       variables: { entityId: entity.metadata.recordId.entityId },
     });
-  }, [incomingDraftLinks, outgoingDraftLinks, entity, archiveEntity]);
+
+    await refetchDraftEntities();
+  }, [
+    incomingDraftLinks,
+    outgoingDraftLinks,
+    entity,
+    archiveEntity,
+    refetchDraftEntities,
+  ]);
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
@@ -151,19 +164,21 @@ export const DraftEntityActionButtons: FunctionComponent<{
 
   const hasLeftOrRightDraftEntity = !!draftLeftEntity || !!draftRightEntity;
 
-  const handleAccept = useCallback(() => {
+  const handleAccept = useCallback(async () => {
     if (hasLeftOrRightDraftEntity) {
       setShowDraftLinkEntityWithDraftLeftOrRightEntityWarning(true);
     } else {
-      void updateEntity({
+      await updateEntity({
         variables: {
           entityId: entity.metadata.recordId.entityId,
           updatedProperties: entity.properties,
           draft: false,
         },
       });
+
+      await refetchDraftEntities();
     }
-  }, [hasLeftOrRightDraftEntity, updateEntity, entity]);
+  }, [hasLeftOrRightDraftEntity, updateEntity, entity, refetchDraftEntities]);
 
   const handleAcceptDraftLinkEntityWithDraftLeftOrRightEntities =
     useCallback(async () => {
@@ -188,7 +203,15 @@ export const DraftEntityActionButtons: FunctionComponent<{
           draft: false,
         },
       });
-    }, [draftLeftEntity, entity, draftRightEntity, updateEntity]);
+
+      await refetchDraftEntities();
+    }, [
+      draftLeftEntity,
+      entity,
+      draftRightEntity,
+      updateEntity,
+      refetchDraftEntities,
+    ]);
 
   return (
     <>

@@ -9,7 +9,6 @@ import {
   EntityRootType,
   extractEntityUuidFromEntityId,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Divider, Typography } from "@mui/material";
 import { subDays, subHours } from "date-fns";
@@ -21,6 +20,7 @@ import {
   StructuralQueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { useDraftEntities } from "../../shared/draft-entities-context";
 import { getFirstRevision } from "../../shared/entity-utils";
 import {
   DraftEntitiesFilters,
@@ -29,7 +29,6 @@ import {
   LastEditedTimeRanges,
 } from "./draft-entities/draft-entities-filters";
 import { DraftEntity } from "./draft-entity";
-import { getDraftEntitiesQueryVariables } from "./get-draft-entities-query";
 
 const isDateWithinLastEditedTimeRange = (params: {
   date: Date;
@@ -60,34 +59,7 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
 }) => {
   const [filterState, setFilterState] = useState<DraftEntityFilterState>();
 
-  const [
-    previouslyFetchedDraftEntitiesData,
-    setPreviouslyFetchedDraftEntitiesData,
-  ] = useState<StructuralQueryEntitiesQuery>();
-
-  const { data: draftEntitiesData } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
-    variables: getDraftEntitiesQueryVariables,
-    onCompleted: (data) => setPreviouslyFetchedDraftEntitiesData(data),
-  });
-
-  const draftEntitiesSubgraph = useMemo(
-    () =>
-      draftEntitiesData || previouslyFetchedDraftEntitiesData
-        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-            (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)!
-              .structuralQueryEntities.subgraph,
-          )
-        : undefined,
-    [draftEntitiesData, previouslyFetchedDraftEntitiesData],
-  );
-
-  const draftEntities = useMemo(
-    () => (draftEntitiesSubgraph ? getRoots(draftEntitiesSubgraph) : undefined),
-    [draftEntitiesSubgraph],
-  );
+  const { draftEntities, draftEntitiesSubgraph } = useDraftEntities();
 
   const [
     previouslyFetchedDraftEntityHistoriesData,
