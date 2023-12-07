@@ -91,12 +91,7 @@ describe("Page", () => {
       type: "document",
     });
 
-    const initialBlocks = await getPageBlocks(graphContext, authentication, {
-      pageEntityId: testPage.entity.metadata.recordId.entityId,
-      type: "document",
-    });
-
-    expect(initialBlocks).toHaveLength(1);
+    expect(testPage.title).toEqual("Test Page");
   });
 
   let testPage2: Page;
@@ -208,8 +203,22 @@ describe("Page", () => {
   it("can insert blocks", async () => {
     const authentication = { actorId: testUser.accountId };
 
+    const firstBlock = await createTestBlock();
+
+    const testPageForBlockManipulation = await createPage(
+      graphContext,
+      authentication,
+      {
+        initialBlocks: [firstBlock],
+        ownedById: testUser.accountId as OwnedById,
+        title: "Test Page for Block Manipulation",
+        type: "document",
+      },
+    );
+
     const existingBlocks = await getPageBlocks(graphContext, authentication, {
-      pageEntityId: testPage.entity.metadata.recordId.entityId,
+      pageEntityId:
+        testPageForBlockManipulation.entity.metadata.recordId.entityId,
       type: "document",
     });
 
