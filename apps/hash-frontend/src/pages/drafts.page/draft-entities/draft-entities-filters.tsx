@@ -10,9 +10,11 @@ import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
+  Checkbox,
   Fade,
   FormControl,
   FormControlLabel,
+  formControlLabelClasses,
   Radio,
   RadioGroup,
   styled,
@@ -21,15 +23,71 @@ import {
 import {
   Dispatch,
   FunctionComponent,
+  ReactNode,
   SetStateAction,
   useCallback,
   useMemo,
 } from "react";
 
 import { MinimalUser } from "../../../lib/user-and-org";
+import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { AsteriskLightIcon } from "../../../shared/icons/asterisk-light-icon";
+import { CalendarDayLightIcon } from "../../../shared/icons/calendar-day-light-icon";
+import { CalendarDaysLightIcon } from "../../../shared/icons/calendar-days-light-icon";
+import { CalendarLightIcon } from "../../../shared/icons/calendar-light-icon";
+import { CalendarWeekLightIcon } from "../../../shared/icons/calendar-week-light-icon";
+import { CalendarsLightIcon } from "../../../shared/icons/calendars-light-icon";
+import { LinkRegularIcon } from "../../../shared/icons/link-regular-icon";
+import { UserIcon } from "../../../shared/icons/user-icon";
 import { Button } from "../../../shared/ui";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
-import { CheckboxFilter } from "../../shared/checkbox-filter";
+
+const CheckboxFilter: FunctionComponent<{
+  label: ReactNode;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}> = ({ label, checked, onChange }) => (
+  <FormControlLabel
+    sx={{
+      borderRadius: 16,
+      color: ({ palette }) =>
+        checked ? palette.common.black : palette.gray[70],
+      marginX: 0,
+      flexShrink: 0,
+      gap: 2,
+      marginBottom: 1,
+      [`.${formControlLabelClasses.label}`]: {
+        display: "flex",
+        alignItems: "center",
+        fontSize: 14,
+        fontWeight: 500,
+        svg: {
+          fontSize: 14,
+          marginRight: 1.25,
+        },
+      },
+      transition: ({ transitions }) =>
+        transitions.create(["background", "color"]),
+      "&:hover": {
+        background: ({ palette }) => palette.gray[10],
+        color: ({ palette }) => palette.gray[90],
+      },
+    }}
+    label={label}
+    control={
+      <Checkbox
+        sx={{
+          svg: {
+            width: 18,
+            height: 18,
+          },
+        }}
+        checked={checked}
+        onChange={({ target }) => onChange(target.checked)}
+      />
+    }
+  />
+);
 
 const draftEntitiesFiltersColumnWidth = 200;
 
@@ -49,6 +107,14 @@ const lastEditedTimeRangesToHumanReadable: Record<
   "last-7-days": "Last 7 days",
   "last-30-days": "Last 30 days",
   "last-365-days": "Last 365 days",
+};
+
+const lastEditedTimeRangesToIcon: Record<LastEditedTimeRanges, ReactNode> = {
+  anytime: <CalendarLightIcon />,
+  "last-24-hours": <CalendarDayLightIcon />,
+  "last-7-days": <CalendarWeekLightIcon />,
+  "last-30-days": <CalendarDaysLightIcon />,
+  "last-365-days": <CalendarsLightIcon />,
 };
 
 export type DraftEntityFilterState = {
@@ -149,6 +215,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
   setFilterState,
 }) => {
   const { authenticatedUser } = useAuthenticatedUser();
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
   const handleClearAll = useCallback(() => {
     if (draftEntitiesWithCreatedAtAndCreators && draftEntitiesSubgraph) {
@@ -257,19 +324,34 @@ export const DraftEntitiesFilters: FunctionComponent<{
         <Box display="flex" flexDirection="column">
           {entityTypes?.map((entityType) => {
             const entityTypeBaseUrl = extractBaseUrl(entityType.schema.$id);
+
             return (
               <CheckboxFilter
                 key={entityType.schema.$id}
-                label={entityType.schema.title}
+                label={
+                  <>
+                    {entityType.metadata.icon ? (
+                      <Box marginRight={1.25} maxWidth={14} component="span">
+                        {entityType.metadata.icon}
+                      </Box>
+                    ) : isSpecialEntityTypeLookup?.[entityType.schema.$id]
+                        ?.isLink ? (
+                      <LinkRegularIcon />
+                    ) : (
+                      <AsteriskLightIcon />
+                    )}
+                    {entityType.schema.title}
+                  </>
+                }
                 checked={
                   !!filterState?.entityTypeBaseUrls.includes(entityTypeBaseUrl)
                 }
-                onChange={(checked) =>
+                onChange={(updatedChecked) =>
                   setFilterState((prev) =>
                     prev
                       ? {
                           ...prev,
-                          entityTypeBaseUrls: checked
+                          entityTypeBaseUrls: updatedChecked
                             ? [...prev.entityTypeBaseUrls, entityTypeBaseUrl]
                             : prev.entityTypeBaseUrls.filter(
                                 (baseUrl) => baseUrl !== entityTypeBaseUrl,
@@ -285,31 +367,40 @@ export const DraftEntitiesFilters: FunctionComponent<{
       </Box>
       <Box>
         <FilterSectionHeading>Source</FilterSectionHeading>
-        {sources?.map((source) => (
-          <CheckboxFilter
-            key={source.accountId}
-            label={
-              authenticatedUser.accountId === source.accountId
-                ? "Me"
-                : source.preferredName ?? "Unknown"
-            }
-            checked={!!filterState?.sourceAccountIds.includes(source.accountId)}
-            onChange={(checked) =>
-              setFilterState((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      sourceAccountIds: checked
-                        ? [...prev.sourceAccountIds, source.accountId]
-                        : prev.sourceAccountIds.filter(
-                            (accountId) => accountId !== source.accountId,
-                          ),
-                    }
-                  : undefined,
-              )
-            }
-          />
-        ))}
+        {sources?.map((source) => {
+          const label =
+            authenticatedUser.accountId === source.accountId
+              ? "Me"
+              : source.preferredName ?? "Unknown";
+          return (
+            <CheckboxFilter
+              key={source.accountId}
+              label={
+                <>
+                  <UserIcon />
+                  {label}
+                </>
+              }
+              checked={
+                !!filterState?.sourceAccountIds.includes(source.accountId)
+              }
+              onChange={(checked) =>
+                setFilterState((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        sourceAccountIds: checked
+                          ? [...prev.sourceAccountIds, source.accountId]
+                          : prev.sourceAccountIds.filter(
+                              (accountId) => accountId !== source.accountId,
+                            ),
+                      }
+                    : undefined,
+                )
+              }
+            />
+          );
+        })}
       </Box>
       <Box>
         <FilterSectionHeading>Last edited</FilterSectionHeading>
@@ -329,14 +420,47 @@ export const DraftEntitiesFilters: FunctionComponent<{
             }
           >
             {Object.entries(lastEditedTimeRangesToHumanReadable).map(
-              ([value, label]) => (
-                <FormControlLabel
-                  key={value}
-                  value={value}
-                  control={<Radio />}
-                  label={label}
-                />
-              ),
+              ([value, label]) => {
+                return (
+                  <FormControlLabel
+                    key={value}
+                    value={value}
+                    control={<Radio />}
+                    label={
+                      <>
+                        {
+                          lastEditedTimeRangesToIcon[
+                            value as LastEditedTimeRanges
+                          ]
+                        }
+                        {label}
+                      </>
+                    }
+                    sx={{
+                      marginX: 0,
+                      marginBottom: 1,
+                      color: ({ palette }) =>
+                        filterState?.lastEditedTimeRange === value
+                          ? palette.common.black
+                          : palette.gray[70],
+                      [`.${formControlLabelClasses.label}`]: {
+                        display: "flex",
+                        alignItems: "center",
+                        fontSize: 14,
+                        marginLeft: 2,
+                        fontWeight: 500,
+                        svg: {
+                          fontSize: 14,
+                          marginRight: 1.25,
+                        },
+                      },
+                      "&:hover": {
+                        color: ({ palette }) => palette.gray[90],
+                      },
+                    }}
+                  />
+                );
+              },
             )}
           </RadioGroup>
         </FormControl>

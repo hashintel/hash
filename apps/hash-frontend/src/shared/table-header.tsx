@@ -18,7 +18,10 @@ import {
 import {
   Box,
   buttonClasses,
+  Checkbox,
   chipClasses,
+  FormControlLabel,
+  formControlLabelClasses,
   styled,
   SxProps,
   Theme,
@@ -35,7 +38,6 @@ import {
   useState,
 } from "react";
 
-import { CheckboxFilter } from "../pages/shared/checkbox-filter";
 import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
 import { FilterListIcon } from "./icons/filter-list-icon";
 import { HouseRegularIcon } from "./icons/house-regular-icon";
@@ -44,6 +46,48 @@ import { BulkActionsDropdown } from "./table-header/bulk-actions-dropdown";
 import { Button } from "./ui";
 
 export const tableHeaderHeight = 50;
+
+const CheckboxFilter: FunctionComponent<{
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}> = ({ label, checked, onChange }) => (
+  <FormControlLabel
+    sx={{
+      borderRadius: 16,
+      color: ({ palette }) => palette.gray[70],
+      marginX: 0,
+      flexShrink: 0,
+      gap: 1,
+      mt: 0.1,
+      px: 1,
+      py: 0.6,
+      [`.${formControlLabelClasses.label}`]: {
+        fontSize: 13,
+        fontWeight: 500,
+      },
+      transition: ({ transitions }) =>
+        transitions.create(["background", "color"]),
+      "&:hover": {
+        background: ({ palette }) => palette.gray[10],
+        color: ({ palette }) => palette.gray[90],
+      },
+    }}
+    label={label}
+    control={
+      <Checkbox
+        sx={{
+          svg: {
+            width: 12,
+            height: 12,
+          },
+        }}
+        checked={checked}
+        onChange={({ target }) => onChange(target.checked)}
+      />
+    }
+  />
+);
 
 const NoMaxWidthTooltip = styled(({ className, ...props }: TooltipProps) => (
   <Tooltip {...props} classes={{ popper: className }} />
