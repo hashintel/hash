@@ -315,6 +315,7 @@ export const updateEntityResolver: ResolverFn<
 
   const entity = await getLatestEntityById(context, authentication, {
     entityId,
+    includeDrafts: true,
   });
 
   let updatedEntity: Entity;
