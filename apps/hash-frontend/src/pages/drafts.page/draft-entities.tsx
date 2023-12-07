@@ -122,7 +122,7 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
   const { users } = useUsers();
 
   const draftEntitiesWithCreatedAtAndCreators = useMemo(() => {
-    if (!draftEntities || !draftEntityHistoriesSubgraph) {
+    if (!draftEntities || !draftEntityHistoriesSubgraph || !users) {
       return undefined;
     }
 
@@ -132,7 +132,7 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
         entity.metadata.recordId.entityId,
       );
 
-      const creator = users?.find(
+      const creator = users.find(
         (user) =>
           user.accountId ===
           firstRevision.metadata.provenance.recordCreatedById,
