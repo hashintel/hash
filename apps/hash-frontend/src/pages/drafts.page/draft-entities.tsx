@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import { Skeleton } from "@hashintel/design-system";
 import {
   fullDecisionTimeAxis,
   mapGqlSubgraphFieldsFragmentToSubgraph,
@@ -235,7 +236,23 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
                 ),
               )
             ) : (
-              <>Skeleton</>
+              <Box paddingY={4.5} paddingX={3.25}>
+                <Box
+                  display="flex"
+                  justifyContent="space-between"
+                  marginBottom={1.5}
+                >
+                  <Skeleton height={30} width={150} />
+                  <Box display="flex" columnGap={1}>
+                    <Skeleton height={40} width={100} />
+                    <Skeleton height={40} width={100} />
+                  </Box>
+                </Box>
+                <Box display="flex" justifyContent="space-between">
+                  <Skeleton height={26} width={350} />
+                  <Skeleton height={26} width={250} />
+                </Box>
+              </Box>
             )}
           </Box>
         )}
