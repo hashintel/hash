@@ -240,7 +240,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
               ({ entity }) => entity,
             ),
             draftEntitiesSubgraph,
-          })
+          }).sort((a, b) => a.schema.title.localeCompare(b.schema.title))
         : undefined,
     [draftEntitiesWithCreatedAtAndCreators, draftEntitiesSubgraph],
   );
