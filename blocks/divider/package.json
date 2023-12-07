@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@blockprotocol/core": "0.1.2",
-    "@blockprotocol/graph": "0.3.1-canary-20231120181031"
+    "@blockprotocol/graph": "0.3.1-canary-20231207113055"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",

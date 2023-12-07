@@ -29,7 +29,7 @@
     "trailingComma": "all"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.1-canary-20231120181031",
+    "@blockprotocol/graph": "0.3.1-canary-20231207113055",
     "@dnd-kit/core": "6.0.8",
     "@dnd-kit/sortable": "7.0.2",
     "@dnd-kit/utilities": "3.2.1",
