@@ -23,9 +23,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BarChart } from "./bar-chart";
 import { EditChartDefinition } from "./edit-chart-definition";
-import { generateInitialChartDefinition } from "./edit-chart-definition/bar-chart-definition-form";
+import { generateInitialChartDefinition as generateInitialCountLinkedEntitiesBarChartDefinition } from "./edit-chart-definition/bar-graph-definition-form/count-linked-entities-form";
+import { generateInitialChartDefinition as generateInitialGroupByPropertyBarChartDefinition } from "./edit-chart-definition/bar-graph-definition-form/group-by-property-form";
 import { EditableChartTitle } from "./edit-chart-title";
-import { ChartDefinition } from "./types/chart-definition";
+import {
+  BarChartDefinitionVariant,
+  ChartDefinition,
+} from "./types/chart-definition";
 import {
   BlockEntity,
   BlockEntityOutgoingLinkAndTarget,
@@ -39,7 +43,7 @@ export const App: BlockComponent<BlockEntity> = ({
   const { graphModule } = useGraphBlockModule(blockRootRef);
 
   const [displayEditChartDefinition, setDisplayEditChartDefinition] =
-    useState<boolean>(false);
+    useState<boolean>(true);
 
   const { rootEntity: blockEntity } = useEntitySubgraph<
     BlockEntity,
@@ -90,12 +94,12 @@ export const App: BlockComponent<BlockEntity> = ({
             isOfType: { outgoing: 1 },
             constrainsPropertiesOn: { outgoing: 255 },
             hasLeftEntity: {
-              outgoing: outgoingLinksDepth ?? 0,
-              incoming: incomingLinksDepth ?? 0,
-            },
-            hasRightEntity: {
               outgoing: incomingLinksDepth ?? 0,
               incoming: outgoingLinksDepth ?? 0,
+            },
+            hasRightEntity: {
+              outgoing: outgoingLinksDepth ?? 0,
+              incoming: incomingLinksDepth ?? 0,
             },
           },
         },
@@ -123,16 +127,22 @@ export const App: BlockComponent<BlockEntity> = ({
   useEffect(() => {
     if (linkedQueryEntity) {
       const incomingLinksDepth =
-        chartDefinition?.kind === "graph-chart"
-          ? (chartDefinition as ChartDefinition<"graph-chart">)
-              .incomingLinksDepth
-          : undefined;
+        chartDefinition?.kind === "graph-chart" &&
+        chartDefinition.variant === "default"
+          ? chartDefinition.incomingLinksDepth
+          : chartDefinition?.kind === "bar-chart" &&
+              chartDefinition.variant === "count-links"
+            ? 1
+            : undefined;
 
       const outgoingLinksDepth =
-        chartDefinition?.kind === "graph-chart"
-          ? (chartDefinition as ChartDefinition<"graph-chart">)
-              .outgoingLinksDepth
-          : undefined;
+        chartDefinition?.kind === "graph-chart" &&
+        chartDefinition.variant === "default"
+          ? chartDefinition.outgoingLinksDepth
+          : chartDefinition?.kind === "bar-chart" &&
+              chartDefinition.variant === "count-links"
+            ? 1
+            : undefined;
 
       void fetchQueryEntityResults({
         queryEntity: linkedQueryEntity,
@@ -182,13 +192,29 @@ export const App: BlockComponent<BlockEntity> = ({
   );
 
   useEffect(() => {
-    if (queryResult && !chartDefinition) {
-      const generatedChartDefinition = generateInitialChartDefinition({
-        queryResult,
-      });
+    if (
+      queryResult &&
+      (!chartDefinition ||
+        (Object.entries(chartDefinition).length === 1 &&
+          chartDefinition.kind === "bar-chart"))
+    ) {
+      let generatedChartDefinition: BarChartDefinitionVariant | undefined =
+        generateInitialGroupByPropertyBarChartDefinition({
+          queryResult,
+        });
+
+      if (!generatedChartDefinition) {
+        generatedChartDefinition =
+          generateInitialCountLinkedEntitiesBarChartDefinition({
+            queryResult,
+          });
+      }
 
       if (generatedChartDefinition) {
-        void updateChartDefinition(generatedChartDefinition);
+        void updateChartDefinition({
+          ...generatedChartDefinition,
+          kind: "bar-chart",
+        });
       }
     }
   }, [queryResult, updateChartDefinition, chartDefinition]);

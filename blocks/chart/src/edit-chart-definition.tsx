@@ -9,13 +9,13 @@ import {
 import { FunctionComponent, useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 
+import { BarChartDefinitionForm } from "./edit-chart-definition/bar-chart-definition-form";
 import {
-  BarChartDefinitionForm,
   generateXAxisLabel,
   generateYAxisLabel,
-  getEntityTypePropertyTypes,
-} from "./edit-chart-definition/bar-chart-definition-form";
+} from "./edit-chart-definition/bar-graph-definition-form/group-by-property-form";
 import { GraphChartDefinitionForm } from "./edit-chart-definition/graph-chart-definition-form";
+import { getEntityTypePropertyTypes } from "./edit-chart-definition/util";
 import { ChartDefinition } from "./types/chart-definition";
 
 const chartKindToLabel: Record<ChartDefinition["kind"], string> = {
