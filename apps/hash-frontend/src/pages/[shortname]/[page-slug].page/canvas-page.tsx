@@ -54,7 +54,9 @@ export const CanvasPageBlock = ({
       contents.map(async ({ rightEntity }) => {
         const { componentId } = rightEntity;
         if (!blocksMap[componentId]) {
-          blocksMap[componentId] = await fetchBlock(componentId);
+          blocksMap[componentId] = await fetchBlock(componentId, {
+            useCachedData: true,
+          });
         }
       }),
     ).then(() => {

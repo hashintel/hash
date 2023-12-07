@@ -115,7 +115,7 @@ export class ProsemirrorManager {
     options?: { bustCache: boolean },
   ): Promise<HashBlock> {
     const block = await fetchBlock(componentId, {
-      bustCache: !!options?.bustCache,
+      useCachedData: !options?.bustCache,
     });
 
     this.defineBlock(block);
