@@ -9,23 +9,56 @@ import {
   extractEntityUuidFromEntityId,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Divider } from "@mui/material";
-import { Fragment, FunctionComponent, useMemo } from "react";
+import { subDays, subHours } from "date-fns";
+import { Fragment, FunctionComponent, useMemo, useState } from "react";
 
+import { useUsers } from "../../components/hooks/use-users";
 import {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { getFirstRevisionCreatedAt } from "../../shared/entity-utils";
+import { getFirstRevision } from "../../shared/entity-utils";
+import {
+  DraftEntitiesFilters,
+  DraftEntityFilterState,
+  generateDefaultFilterState,
+  LastEditedTimeRanges,
+} from "./draft-entities/draft-entities-filters";
 import { DraftEntity } from "./draft-entity";
 import { getDraftEntitiesQueryVariables } from "./get-draft-entities-query";
+
+const isDateWithinLastEditedTimeRange = (params: {
+  date: Date;
+  lastEditedTimeRange: LastEditedTimeRanges;
+}) => {
+  const { date, lastEditedTimeRange } = params;
+  const now = new Date();
+  switch (lastEditedTimeRange) {
+    case "anytime":
+      return true;
+    case "last-24-hours":
+      return date >= subHours(now, 1);
+    case "last-7-days":
+      return date >= subDays(now, 7);
+    case "last-30-days":
+      return date >= subDays(now, 30);
+    case "last-365-days":
+      return date >= subDays(now, 365);
+    default:
+      return true;
+  }
+};
 
 export type SortOrder = "created-at-asc" | "created-at-desc";
 
 export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
   sortOrder,
 }) => {
+  const [filterState, setFilterState] = useState<DraftEntityFilterState>();
+
   const { data: draftEntitiesData } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
@@ -86,66 +119,135 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
     [draftEntityHistoriesData],
   );
 
-  const draftEntitiesWithCreatedAt = useMemo(() => {
+  const { users } = useUsers();
+
+  const draftEntitiesWithCreatedAtAndCreators = useMemo(() => {
     if (!draftEntities || !draftEntityHistoriesSubgraph) {
       return undefined;
     }
 
-    return draftEntities.map((entity) => ({
-      entity,
-      createdAt: getFirstRevisionCreatedAt(
+    return draftEntities.map((entity) => {
+      const firstRevision = getFirstRevision(
         draftEntityHistoriesSubgraph,
         entity.metadata.recordId.entityId,
-      ),
-    }));
-  }, [draftEntityHistoriesSubgraph, draftEntities]);
+      );
 
-  const sortedDraftEntitiesWithCreatedAt = useMemo(
+      const creator = users?.find(
+        (user) =>
+          user.accountId ===
+          firstRevision.metadata.provenance.recordCreatedById,
+      );
+
+      if (!creator) {
+        throw new Error(
+          `Could not find creator for draft entity ${entity.metadata.recordId.entityId}`,
+        );
+      }
+
+      return {
+        entity,
+        createdAt: new Date(
+          firstRevision.metadata.temporalVersioning.decisionTime.start.limit,
+        ),
+        creator,
+      };
+    });
+  }, [draftEntityHistoriesSubgraph, draftEntities, users]);
+
+  if (
+    !filterState &&
+    draftEntitiesWithCreatedAtAndCreators &&
+    draftEntitiesSubgraph
+  ) {
+    setFilterState(
+      generateDefaultFilterState({
+        draftEntitiesWithCreatedAtAndCreators,
+        draftEntitiesSubgraph,
+      }),
+    );
+  }
+
+  const filteredAndSortedDraftEntitiesWithCreatedAt = useMemo(
     () =>
-      draftEntitiesWithCreatedAt?.sort((a, b) =>
-        sortOrder === "created-at-asc"
-          ? a.createdAt.getTime() - b.createdAt.getTime()
-          : b.createdAt.getTime() - a.createdAt.getTime(),
-      ),
-    [draftEntitiesWithCreatedAt, sortOrder],
+      filterState && draftEntitiesWithCreatedAtAndCreators
+        ? draftEntitiesWithCreatedAtAndCreators
+            .filter(
+              ({ entity, creator }) =>
+                filterState.entityTypeBaseUrls.includes(
+                  extractBaseUrl(entity.metadata.entityTypeId),
+                ) &&
+                filterState.sourceAccountIds.includes(creator.accountId) &&
+                isDateWithinLastEditedTimeRange({
+                  date: new Date(
+                    entity.metadata.temporalVersioning.decisionTime.start.limit,
+                  ),
+                  lastEditedTimeRange: filterState.lastEditedTimeRange,
+                }),
+            )
+            .sort((a, b) =>
+              sortOrder === "created-at-asc"
+                ? a.createdAt.getTime() - b.createdAt.getTime()
+                : b.createdAt.getTime() - a.createdAt.getTime(),
+            )
+        : undefined,
+    [draftEntitiesWithCreatedAtAndCreators, sortOrder, filterState],
   );
 
   return (
-    <Container>
-      {draftEntitiesWithCreatedAt && draftEntitiesWithCreatedAt.length === 0 ? (
-        <>No drafts</>
-      ) : (
-        <Box
-          sx={{
-            background: ({ palette }) => palette.common.white,
-            borderRadius: "8px",
-            borderColor: ({ palette }) => palette.gray[30],
-            borderWidth: 1,
-            borderStyle: "solid",
-          }}
-        >
-          {sortedDraftEntitiesWithCreatedAt && draftEntitiesSubgraph ? (
-            sortedDraftEntitiesWithCreatedAt.map(
-              ({ entity, createdAt }, i, all) => (
-                <Fragment key={entity.metadata.recordId.entityId}>
-                  <DraftEntity
-                    entity={entity}
-                    createdAt={createdAt}
-                    subgraph={draftEntitiesSubgraph}
-                  />
-                  {i < all.length - 1 ? (
-                    <Divider
-                      sx={{ borderColor: ({ palette }) => palette.gray[30] }}
+    <Container
+      sx={{ display: "flex", columnGap: 3.5, alignItems: "flex-start" }}
+    >
+      <Box
+        sx={{
+          flexGrow: 1,
+        }}
+      >
+        {filteredAndSortedDraftEntitiesWithCreatedAt &&
+        filteredAndSortedDraftEntitiesWithCreatedAt.length === 0 ? (
+          <>No drafts</>
+        ) : (
+          <Box
+            sx={{
+              background: ({ palette }) => palette.common.white,
+              borderRadius: "8px",
+              borderColor: ({ palette }) => palette.gray[30],
+              borderWidth: 1,
+              borderStyle: "solid",
+              flexGrow: 1,
+            }}
+          >
+            {filteredAndSortedDraftEntitiesWithCreatedAt &&
+            draftEntitiesSubgraph ? (
+              filteredAndSortedDraftEntitiesWithCreatedAt.map(
+                ({ entity, createdAt }, i, all) => (
+                  <Fragment key={entity.metadata.recordId.entityId}>
+                    <DraftEntity
+                      entity={entity}
+                      createdAt={createdAt}
+                      subgraph={draftEntitiesSubgraph}
                     />
-                  ) : null}
-                </Fragment>
-              ),
-            )
-          ) : (
-            <>Skeleton</>
-          )}
-        </Box>
-      )}
+                    {i < all.length - 1 ? (
+                      <Divider
+                        sx={{ borderColor: ({ palette }) => palette.gray[30] }}
+                      />
+                    ) : null}
+                  </Fragment>
+                ),
+              )
+            ) : (
+              <>Skeleton</>
+            )}
+          </Box>
+        )}
+      </Box>
+      <DraftEntitiesFilters
+        draftEntitiesWithCreatedAtAndCreators={
+          draftEntitiesWithCreatedAtAndCreators
+        }
+        draftEntitiesSubgraph={draftEntitiesSubgraph}
+        filterState={filterState}
+        setFilterState={setFilterState}
+      />
     </Container>
   );
 };
