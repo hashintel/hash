@@ -4,11 +4,18 @@ import { LocalStorage } from "../../../../shared/storage";
 import { InferenceRequests } from "./log/inference-requests";
 import { Section } from "./shared/section";
 
-export const Log = ({ user }: { user: NonNullable<LocalStorage["user"]> }) => {
+export const Log = ({
+  inferenceRequests,
+  user,
+}: {
+  inferenceRequests: LocalStorage["inferenceRequests"];
+  user: NonNullable<LocalStorage["user"]>;
+}) => {
   return (
     <Box>
-      <Section headerText="Event history" />
-      <InferenceRequests user={user} />
+      <Section headerText="Event history">
+        <InferenceRequests inferenceRequests={inferenceRequests} user={user} />
+      </Section>
     </Box>
   );
 };

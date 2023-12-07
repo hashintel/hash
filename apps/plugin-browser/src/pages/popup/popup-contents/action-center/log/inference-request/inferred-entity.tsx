@@ -4,8 +4,8 @@ import {
   LinkIcon,
   PlusIcon,
 } from "@hashintel/design-system";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/src/simplify-properties";
-import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/src/temporal-types";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
 import type {
   BaseUrl,
   Entity,
@@ -64,12 +64,12 @@ const baseUrlToPropertyTitle = (baseUrl: BaseUrl) =>
     .join(" ");
 
 type InferredEntityProps = {
-  allEntityStatuses: InferEntitiesReturn["contents"];
+  allEntityStatuses: InferEntitiesReturn["contents"][number]["results"];
   expanded: boolean;
   entityType: EntityTypeWithMetadata;
   entityTypes: EntityTypeWithMetadata[];
   indexInType: number;
-  result: InferEntitiesReturn["contents"][number];
+  result: InferEntitiesReturn["contents"][number]["results"][number];
   toggleExpanded: () => void;
   user: NonNullable<LocalStorage["user"]>;
 };

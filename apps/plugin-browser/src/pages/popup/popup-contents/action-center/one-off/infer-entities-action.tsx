@@ -11,7 +11,6 @@ import { LocalStorage } from "../../../../../shared/storage";
 import { sendMessageToBackground } from "../../../../shared/messages";
 import { borderColors } from "../../../../shared/style-values";
 import { useLocalStorage } from "../../../../shared/use-local-storage";
-import { InferenceRequests } from "../log/inference-requests";
 import { EntityTypeSelector } from "../shared/entity-type-selector";
 import { ModelSelector } from "../shared/model-selector";
 import { Section } from "../shared/section";
@@ -88,6 +87,7 @@ export const InferEntitiesAction = ({
         type: "infer-entities",
       });
     } catch (err) {
+      // eslint-disable-next-line no-alert
       alert(
         "Could not access page content – you may need to reload the tab if you just installed the extension, or it may be a page which your browser does not allow extensions to access.",
       );
@@ -194,6 +194,9 @@ export const InferEntitiesAction = ({
                 color: ({ palette }) => palette.gray[80],
                 letterSpacing: 0.5,
                 fontSize: 14,
+                "@media (prefers-color-scheme: dark)": {
+                  color: ({ palette }) => palette.gray[40],
+                },
               }}
             >
               Additional options

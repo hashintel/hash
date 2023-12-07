@@ -74,6 +74,8 @@ export const ActionCenter = ({
       rules: [],
     });
 
+  const [inferenceRequests] = useLocalStorage("inferenceRequests", []);
+
   return (
     <Box sx={{ maxWidth: "100%", width: popupWidth }}>
       <Stack
@@ -147,7 +149,7 @@ export const ActionCenter = ({
             user={user}
           />
         ) : (
-          <Log user={user} />
+          <Log inferenceRequests={inferenceRequests} user={user} />
         )}
       </Box>
     </Box>

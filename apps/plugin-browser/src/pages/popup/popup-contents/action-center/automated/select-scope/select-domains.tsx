@@ -1,9 +1,5 @@
 import { Autocomplete, Chip, MenuItem } from "@hashintel/design-system";
-import {
-  autocompleteClasses,
-  createFilterOptions,
-  outlinedInputClasses,
-} from "@mui/material";
+import { createFilterOptions, outlinedInputClasses } from "@mui/material";
 
 import {
   darkModeBorderColor,

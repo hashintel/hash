@@ -1,7 +1,6 @@
 // @todo encode dark mode in the MUI theme / design system (for optional toggling on)
 
 import { customColors } from "@hashintel/design-system/theme";
-import { SxProps, Theme } from "@mui/material";
 
 export const darkModeBorderColor = customColors.gray[90];
 export const darkModeInputBackgroundColor = "#161616";

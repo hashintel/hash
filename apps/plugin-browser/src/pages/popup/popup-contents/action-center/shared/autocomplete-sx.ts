@@ -1,5 +1,6 @@
 import {
   autocompleteClasses,
+  menuItemClasses,
   outlinedInputClasses,
   SxProps,
   Theme,
@@ -54,6 +55,11 @@ export const menuItemSx: SxProps<Theme> = ({ palette }) => ({
     py: 0.8,
     px: 0.8,
   },
+
+  "&:active": {
+    color: "inherit",
+  },
+
   "@media (prefers-color-scheme: dark)": {
     borderBottom: `1px solid ${darkModeBorderColor}`,
 
@@ -61,7 +67,7 @@ export const menuItemSx: SxProps<Theme> = ({ palette }) => ({
       background: darkModeInputBackgroundColor,
     },
 
-    [`&.${autocompleteClasses.option}`]: {
+    [`&.${menuItemClasses.root}&.${autocompleteClasses.option}`]: {
       borderRadius: 0,
       my: 0.25,
 

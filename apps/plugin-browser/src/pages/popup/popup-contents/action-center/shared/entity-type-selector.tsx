@@ -13,6 +13,17 @@ import {
 import { useEntityTypes } from "../../../../shared/use-entity-types";
 import { menuItemSx } from "./autocomplete-sx";
 
+// This assumes a VersionedURL in the hash.ai/blockprotocol.org format
+const getChipLabelFromId = (id: VersionedUrl) => {
+  const url = new URL(id);
+  const [_emptyString, namespace, _types, _entityType, typeSlug] =
+    url.pathname.split("/");
+
+  return `${
+    url.origin !== FRONTEND_ORIGIN ? `${url.host} / ` : ""
+  }${namespace} / ${typeSlug}`;
+};
+
 type SelectTypesAndInferProps = {
   inputHeight: number;
   multiple: boolean;
@@ -20,7 +31,7 @@ type SelectTypesAndInferProps = {
   targetEntityTypeIds: VersionedUrl[] | null;
 };
 
-const menuWidth = 300;
+const menuWidth = 400;
 
 export const EntityTypeSelector = ({
   inputHeight,
@@ -32,11 +43,10 @@ export const EntityTypeSelector = ({
 
   const selectedEntityTypes = useMemo(
     () =>
-      allEntityTypes.filter(
-        (type) =>
-          targetEntityTypeIds?.some(
-            (targetTypeId) => targetTypeId === type.schema.$id,
-          ),
+      allEntityTypes.filter((type) =>
+        targetEntityTypeIds?.some(
+          (targetTypeId) => targetTypeId === type.schema.$id,
+        ),
       ),
     [allEntityTypes, targetEntityTypeIds],
   );
@@ -155,10 +165,16 @@ export const EntityTypeSelector = ({
               "@media (prefers-color-scheme: dark)": {
                 color: darkModeInputColor,
               },
+              pl: 1,
             }}
           >
             {type.schema.title}
           </Typography>
+          <Chip
+            color="blue"
+            label={getChipLabelFromId(type.schema.$id)}
+            sx={{ ml: 1, fontSize: 13, p: 0 }}
+          />
         </MenuItem>
       )}
       renderTags={(value, getTagProps) =>

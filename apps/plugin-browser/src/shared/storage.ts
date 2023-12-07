@@ -44,10 +44,6 @@ export type PageEntityInference = InferenceStatus & {
   ownedById: OwnedById;
   sourceTitle: string;
   sourceUrl: string;
-  usage?: {
-    completion: number;
-    prompt: number;
-  };
   trigger: "passive" | "user";
 };
 

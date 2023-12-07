@@ -1,9 +1,7 @@
 import { Autocomplete, MenuItem } from "@hashintel/design-system";
-import { Image } from "@local/hash-isomorphic-utils/system-types/shared";
 import { OwnedById } from "@local/hash-subgraph";
 import { Stack, Typography } from "@mui/material";
 import { ReactElement } from "react";
-import { Simulate } from "react-dom/test-utils";
 
 import { LocalStorage } from "../../../../../../shared/storage";
 import {
@@ -13,7 +11,6 @@ import {
 } from "../../../../../shared/style-values";
 import { Avatar } from "../../../shared/avatar";
 import { inputHeight, inputPropsSx, menuItemSx } from "../autocomplete-sx";
-import input = Simulate.input;
 
 type WebOption = {
   avatarComponent: ReactElement;
@@ -32,8 +29,7 @@ type WebSelectorProps = {
 const RenderOptionContent = ({
   avatarComponent,
   label,
-  name,
-}: Pick<WebOption, "avatarComponent" | "label" | "name">) => {
+}: Pick<WebOption, "avatarComponent" | "label">) => {
   return (
     <Stack direction="row" alignItems="center">
       {avatarComponent}

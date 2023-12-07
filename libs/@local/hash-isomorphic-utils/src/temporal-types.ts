@@ -21,7 +21,13 @@ export const inferEntitiesUserArgumentKeys = [
 export type InferEntitiesUserArgumentKey =
   (typeof inferEntitiesUserArgumentKeys)[number];
 
-export type InferenceModelName = "gpt-4" | "gpt-4-turbo" | "gpt-3.5-turbo";
+export const inferenceModelNames = [
+  "gpt-4",
+  "gpt-4-turbo",
+  "gpt-3.5-turbo",
+] as const;
+
+export type InferenceModelName = (typeof inferenceModelNames)[number];
 
 export type InferEntitiesUserArguments = Subtype<
   Record<InferEntitiesUserArgumentKey, unknown>,
@@ -114,6 +120,8 @@ export type InferredEntityChangeResult =
   | InferredEntityUpdateFailure;
 
 export type InferEntitiesReturn = Status<{
+  /** The modifications to the graph as a result of the process, including abandoned attempts */
   results: InferredEntityChangeResult[];
+  /** The number of tokens used during the process, by model call, starting from the first */
   usage: InferenceTokenUsage[];
 }>;
