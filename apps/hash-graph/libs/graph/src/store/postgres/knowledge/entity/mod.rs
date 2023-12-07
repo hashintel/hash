@@ -1,12 +1,15 @@
 mod read;
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    iter::once,
+};
 
 use async_trait::async_trait;
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        EntityPermission, EntityRelationAndSubject, EntityTypeId, EntityTypePermission,
-        WebPermission,
+        EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, EntityTypeId,
+        EntityTypePermission, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -306,6 +309,18 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         link_data: Option<LinkData>,
         relationships: impl IntoIterator<Item = EntityRelationAndSubject> + Send,
     ) -> Result<EntityMetadata, InsertionError> {
+        let relationships = relationships
+            .into_iter()
+            .chain(once(EntityRelationAndSubject::Owner {
+                subject: EntityOwnerSubject::Web { id: owned_by_id },
+                level: 0,
+            }))
+            .collect::<Vec<_>>();
+        if relationships.is_empty() {
+            return Err(Report::new(InsertionError)
+                .attach_printable("At least one relationship must be provided"));
+        }
+
         let entity_type_id = EntityTypeId::from_url(&entity_type_url);
         authorization_api
             .check_entity_type_permission(
@@ -468,12 +483,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .await
                 .change_context(InsertionError)?
         };
-
-        let relationships = relationships.into_iter().collect::<Vec<_>>();
-        if relationships.is_empty() {
-            return Err(Report::new(InsertionError)
-                .attach_printable("At least one relationship must be provided"));
-        }
 
         authorization_api
             .modify_entity_relations(relationships.clone().into_iter().map(

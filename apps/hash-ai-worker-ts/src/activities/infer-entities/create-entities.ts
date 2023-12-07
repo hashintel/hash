@@ -407,7 +407,6 @@ export const createEntities = async ({
                 linkData,
                 ownedById,
                 properties,
-                draft: false,
                 relationships: [
                   {
                     relation: "setting",

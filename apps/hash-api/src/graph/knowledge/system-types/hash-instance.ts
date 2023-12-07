@@ -104,7 +104,14 @@ export const getHashInstance: ImpureGraphFunction<
  * @see {@link EntityModel.create} for the remaining params
  */
 export const createHashInstance: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId" | "ownedById"> & {
+  Omit<
+    CreateEntityParams,
+    | "properties"
+    | "entityTypeId"
+    | "ownedById"
+    | "relationships"
+    | "inheritedPermissions"
+  > & {
     pagesAreEnabled?: boolean;
     userSelfRegistrationIsEnabled?: boolean;
     userRegistrationByInviteIsEnabled?: boolean;
@@ -147,22 +154,14 @@ export const createHashInstance: ImpureGraphFunction<
         params.orgSelfRegistrationIsEnabled ?? true,
     } as HASHInstanceProperties,
     entityTypeId: systemEntityTypes.hashInstance.entityTypeId,
-  });
-  await modifyEntityAuthorizationRelationships(ctx, authentication, [
-    {
-      operation: "create",
-      relationship: {
-        subject: {
-          kind: "public",
-        },
+    relationships: [
+      {
         relation: "viewer",
-        resource: {
-          kind: "entity",
-          resourceId: entity.metadata.recordId.entityId,
-        },
+        subject: { kind: "public" },
       },
-    },
-  ]);
+    ],
+    inheritedPermissions: ["administratorFromWeb", "updateFromWeb"],
+  });
 
   return getHashInstanceFromEntity({ entity });
 };

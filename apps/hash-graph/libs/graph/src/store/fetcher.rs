@@ -2,7 +2,10 @@ use std::{collections::HashSet, mem};
 
 use async_trait::async_trait;
 use authorization::{
-    schema::{EntityRelationAndSubject, WebOwnerSubject},
+    schema::{
+        EntityRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
+        WebOwnerSubject,
+    },
     zanzibar::Consistency,
     AuthorizationApi,
 };
@@ -479,6 +482,7 @@ where
                     authorization_api,
                     fetched_ontology_types.property_types,
                     ConflictBehavior::Skip,
+                    [],
                 )
                 .await?;
         }
@@ -490,6 +494,7 @@ where
                     authorization_api,
                     fetched_ontology_types.entity_types,
                     ConflictBehavior::Skip,
+                    [],
                 )
                 .await?;
         }
@@ -545,6 +550,7 @@ where
                         authorization_api,
                         fetched_ontology_types.property_types,
                         ConflictBehavior::Skip,
+                        [],
                     )
                     .await?
             };
@@ -558,6 +564,7 @@ where
                         authorization_api,
                         fetched_ontology_types.entity_types,
                         ConflictBehavior::Skip,
+                        [],
                     )
                     .await?
             };
@@ -668,9 +675,10 @@ where
         actor_id: AccountId,
         authorization_api: &mut Au,
         owned_by_id: OwnedById,
+        owner: WebOwnerSubject,
     ) -> Result<(), InsertionError> {
         self.store
-            .insert_web_id(actor_id, authorization_api, owned_by_id)
+            .insert_web_id(actor_id, authorization_api, owned_by_id, owner)
             .await
     }
 
@@ -798,6 +806,7 @@ where
             IntoIter: Send,
         > + Send,
         on_conflict: ConflictBehavior,
+        relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
     ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
         let property_types = property_types.into_iter().collect::<Vec<_>>();
         let requested_types = property_types
@@ -823,7 +832,13 @@ where
         })?;
 
         self.store
-            .create_property_types(actor_id, authorization_api, property_types, on_conflict)
+            .create_property_types(
+                actor_id,
+                authorization_api,
+                property_types,
+                on_conflict,
+                relationships,
+            )
             .await
     }
 
@@ -897,6 +912,7 @@ where
         entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
+        relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
     ) -> Result<Vec<EntityTypeMetadata>, InsertionError> {
         let entity_types = entity_types.into_iter().collect::<Vec<_>>();
         let requested_types = entity_types
@@ -920,7 +936,13 @@ where
         })?;
 
         self.store
-            .create_entity_types(actor_id, authorization_api, entity_types, on_conflict)
+            .create_entity_types(
+                actor_id,
+                authorization_api,
+                entity_types,
+                on_conflict,
+                relationships,
+            )
             .await
     }
 

@@ -1,7 +1,7 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   EntityPermission,
-  EntityRelationAndSubject,
+  EntitySetting,
   EntityStructuralQuery,
   Filter,
   GraphResolveDepths,
@@ -25,6 +25,7 @@ import {
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
+  EntityRelationAndSubject,
   EntityRootType,
   EntityUuid,
   extractEntityUuidFromEntityId,
@@ -64,10 +65,8 @@ export type CreateEntityParams = {
   outgoingLinks?: Omit<CreateLinkEntityParams, "leftEntityId">[];
   entityUuid?: EntityUuid;
   draft?: boolean;
-  additional_relationships?: Omit<
-    EntityAuthorizationRelationship,
-    "resource"
-  >[];
+  relationships: EntityRelationAndSubject[];
+  inheritedPermissions: EntitySetting[];
 };
 
 /** @todo: potentially directly export this from the subgraph package */
@@ -93,7 +92,6 @@ export const createEntity: ImpureGraphFunction<
     outgoingLinks,
     entityUuid: overrideEntityUuid,
     draft = false,
-    additional_relationships = [],
   } = params;
 
   const { graphApi } = context;
@@ -105,21 +103,18 @@ export const createEntity: ImpureGraphFunction<
     properties,
     entityUuid: overrideEntityUuid,
     draft,
-    // Concatenate the additional relationships with the default ones
     relationships: [
-      {
-        relation: "setting",
-        subject: { kind: "setting", subjectId: "administratorFromWeb" },
-      },
-      {
-        relation: "setting",
-        subject: { kind: "setting", subjectId: "updateFromWeb" },
-      },
-      {
-        relation: "setting",
-        subject: { kind: "setting", subjectId: "viewFromWeb" },
-      },
-      ...(additional_relationships as EntityRelationAndSubject[]),
+      ...params.inheritedPermissions.map(
+        (setting) =>
+          ({
+            relation: "setting",
+            subject: {
+              kind: "setting",
+              subjectId: setting,
+            },
+          }) as const,
+      ),
+      ...params.relationships,
     ],
   });
 
@@ -244,10 +239,13 @@ export const getOrCreateEntity: ImpureGraphFunction<
   {
     ownedById: OwnedById;
     entityDefinition: Omit<EntityDefinition, "linkedEntities">;
+    relationships: EntityRelationAndSubject[];
+    inheritedPermissions: EntitySetting[];
   },
   Promise<Entity>
 > = async (context, authentication, params) => {
-  const { entityDefinition, ownedById } = params;
+  const { entityDefinition, ownedById, relationships, inheritedPermissions } =
+    params;
   const { entityProperties, existingEntityId } = entityDefinition;
 
   let entity;
@@ -277,6 +275,8 @@ export const getOrCreateEntity: ImpureGraphFunction<
       ownedById,
       entityTypeId,
       properties: entityProperties,
+      relationships,
+      inheritedPermissions: inheritedPermissions,
     });
   } else {
     throw new Error(
@@ -302,10 +302,19 @@ export const createEntityWithLinks: ImpureGraphFunction<
     entityTypeId: VersionedUrl;
     properties: EntityPropertiesObject;
     linkedEntities?: LinkedEntityDefinition[];
+    relationships: EntityRelationAndSubject[];
+    inheritedPermissions: EntitySetting[];
   },
   Promise<Entity>
 > = async (context, authentication, params) => {
-  const { ownedById, entityTypeId, properties, linkedEntities } = params;
+  const {
+    ownedById,
+    entityTypeId,
+    properties,
+    linkedEntities,
+    relationships,
+    inheritedPermissions,
+  } = params;
 
   const entitiesInTree = linkedTreeFlatten<
     EntityDefinition,
@@ -339,6 +348,8 @@ export const createEntityWithLinks: ImpureGraphFunction<
       entity: await getOrCreateEntity(context, authentication, {
         ownedById,
         entityDefinition: definition,
+        relationships,
+        inheritedPermissions,
       }),
     })),
   );
@@ -369,6 +380,8 @@ export const createEntityWithLinks: ImpureGraphFunction<
           rightEntityId: entity.metadata.recordId.entityId,
           leftToRightOrder: link.meta.index ?? undefined,
           ownedById,
+          relationships,
+          inheritedPermissions,
         });
       }
     }),

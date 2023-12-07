@@ -125,7 +125,10 @@ export const getCommentText: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createComment: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
+  Omit<
+    CreateEntityParams,
+    "properties" | "entityTypeId" | "relationships" | "inheritedPermissions"
+  > & {
     author: User;
     parentEntityId: EntityId;
     textualContent: TextToken[];
@@ -142,7 +145,7 @@ export const createComment: ImpureGraphFunction<
       )]: textualContent,
     },
     entityTypeId: systemEntityTypes.text.entityTypeId,
-    additional_relationships: [
+    relationships: [
       {
         // the author has editor permissions (owner), regardless of which web the comment belongs to (ownedById)
         relation: "editor",
@@ -151,6 +154,11 @@ export const createComment: ImpureGraphFunction<
           subjectId: author.accountId,
         },
       },
+    ],
+    inheritedPermissions: [
+      "administratorFromWeb",
+      "updateFromWeb",
+      "viewFromWeb",
     ],
   });
 
@@ -164,12 +172,24 @@ export const createComment: ImpureGraphFunction<
         rightEntityId: parentEntityId,
         ownedById,
         owner: author.accountId,
+        relationships: [],
+        inheritedPermissions: [
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb",
+        ],
       },
       {
         linkEntityTypeId: systemLinkEntityTypes.authoredBy.linkEntityTypeId,
         rightEntityId: author.entity.metadata.recordId.entityId,
         ownedById,
         owner: author.accountId,
+        relationships: [],
+        inheritedPermissions: [
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb",
+        ],
       },
       /**
        * The creation of the `hasText` link entity has to occur last so
@@ -181,9 +201,15 @@ export const createComment: ImpureGraphFunction<
         rightEntityId: textEntity.metadata.recordId.entityId,
         ownedById,
         owner: author.accountId,
+        relationships: [],
+        inheritedPermissions: [
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb",
+        ],
       },
     ],
-    additional_relationships: [
+    relationships: [
       {
         // the author has editor permissions (owner), regardless of which web the comment belongs to (ownedById)
         relation: "editor",
@@ -192,6 +218,11 @@ export const createComment: ImpureGraphFunction<
           subjectId: author.accountId,
         },
       },
+    ],
+    inheritedPermissions: [
+      "administratorFromWeb",
+      "updateFromWeb",
+      "viewFromWeb",
     ],
   });
 

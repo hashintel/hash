@@ -13,8 +13,8 @@ use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
         AccountGroupAdministratorSubject, AccountGroupRelationAndSubject, WebDataTypeViewerSubject,
-        WebEntityTypeViewerSubject, WebOwnerSubject, WebPropertyTypeViewerSubject,
-        WebRelationAndSubject,
+        WebEntityCreatorSubject, WebEntityEditorSubject, WebEntityTypeViewerSubject,
+        WebOwnerSubject, WebPropertyTypeViewerSubject, WebRelationAndSubject, WebSubjectSet,
     },
     AuthorizationApi,
 };
@@ -1303,6 +1303,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         _actor_id: AccountId,
         authorization_api: &mut A,
         owned_by_id: OwnedById,
+        owner: WebOwnerSubject,
     ) -> Result<(), InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
@@ -1313,14 +1314,9 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .change_context(InsertionError)
             .attach_printable(owned_by_id)?;
 
-        let web_owner = transaction
-            .identify_owned_by_id(owned_by_id)
-            .await
-            .change_context(InsertionError)?;
-
-        let relationships = [
+        let mut relationships = vec![
             WebRelationAndSubject::Owner {
-                subject: web_owner,
+                subject: owner,
                 level: 0,
             },
             WebRelationAndSubject::EntityTypeViewer {
@@ -1336,14 +1332,39 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 level: 0,
             },
         ];
+        if let WebOwnerSubject::AccountGroup { id } = owner {
+            relationships.extend([
+                WebRelationAndSubject::EntityCreator {
+                    subject: WebEntityCreatorSubject::AccountGroup {
+                        id,
+                        set: WebSubjectSet::Member,
+                    },
+                    level: 0,
+                },
+                WebRelationAndSubject::EntityEditor {
+                    subject: WebEntityEditorSubject::AccountGroup {
+                        id,
+                        set: WebSubjectSet::Member,
+                    },
+                    level: 0,
+                },
+                // TODO: Add ontology type creators
+            ])
+        }
+
         authorization_api
-            .modify_web_relations(relationships.into_iter().map(|relation_and_subject| {
-                (
-                    ModifyRelationshipOperation::Create,
-                    owned_by_id,
-                    relation_and_subject,
-                )
-            }))
+            .modify_web_relations(
+                relationships
+                    .clone()
+                    .into_iter()
+                    .map(|relation_and_subject| {
+                        (
+                            ModifyRelationshipOperation::Create,
+                            owned_by_id,
+                            relation_and_subject,
+                        )
+                    }),
+            )
             .await
             .change_context(InsertionError)?;
 

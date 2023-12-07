@@ -2575,7 +2575,8 @@
         "type": "object",
         "required": [
           "schema",
-          "ownedById"
+          "ownedById",
+          "relationships"
         ],
         "properties": {
           "icon": {
@@ -2587,6 +2588,12 @@
           },
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityTypeRelationAndSubject"
+            }
           },
           "schema": {
             "oneOf": [
@@ -2607,11 +2614,18 @@
         "type": "object",
         "required": [
           "schema",
-          "ownedById"
+          "ownedById",
+          "relationships"
         ],
         "properties": {
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropertyTypeRelationAndSubject"
+            }
           },
           "schema": {
             "oneOf": [
@@ -2631,11 +2645,15 @@
       "CreateWebRequest": {
         "type": "object",
         "required": [
-          "ownedById"
+          "ownedById",
+          "owner"
         ],
         "properties": {
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/WebOwnerSubject"
           }
         }
       },

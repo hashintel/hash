@@ -249,7 +249,10 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, property_types, authorization_api))]
+    #[tracing::instrument(
+        level = "info",
+        skip(self, property_types, authorization_api, relationships)
+    )]
     async fn create_property_types<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
@@ -259,7 +262,10 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             IntoIter: Send,
         > + Send,
         on_conflict: ConflictBehavior,
+        relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
     ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
+        let requested_relationships = relationships.into_iter().collect::<Vec<_>>();
+
         let property_types = property_types.into_iter();
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
@@ -273,6 +279,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let mut inserted_property_types = Vec::new();
         let mut inserted_property_type_metadata =
             Vec::with_capacity(inserted_property_types.capacity());
+
         for (schema, metadata) in property_types {
             let property_type_id = PropertyTypeId::from_url(schema.id());
             if let PartialCustomOntologyMetadata::Owned { owned_by_id } = &metadata.custom {
@@ -323,6 +330,12 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     transaction_time,
                 ));
             }
+
+            relationships.extend(
+                requested_relationships
+                    .iter()
+                    .map(|relation_and_subject| (property_type_id, *relation_and_subject)),
+            );
         }
 
         for (ontology_id, schema) in inserted_property_types {
@@ -339,20 +352,16 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 .attach_lazy(|| schema.clone())?;
         }
 
-        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
         authorization_api
-            .modify_property_type_relations(
-                relationships
-                    .iter()
-                    .map(|(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Create,
-                            *resource,
-                            *relation_and_subject,
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
+            .modify_property_type_relations(relationships.clone().into_iter().map(
+                |(resource, relation_and_subject)| {
+                    (
+                        ModifyRelationshipOperation::Create,
+                        resource,
+                        relation_and_subject,
+                    )
+                },
+            ))
             .await
             .change_context(InsertionError)?;
 

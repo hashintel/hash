@@ -6,6 +6,7 @@ import {
 import {
   EntityType,
   EntityTypePermission,
+  EntityTypeSetting,
   EntityTypeStructuralQuery,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
@@ -21,6 +22,7 @@ import {
   EntityTypeAuthorizationRelationship,
   EntityTypeInstantiatorSubject,
   EntityTypeMetadata,
+  EntityTypeRelationAndSubject,
   EntityTypeRootType,
   EntityTypeWithMetadata,
   linkEntityTypeUrl,
@@ -95,7 +97,8 @@ export const createEntityType: ImpureGraphFunction<
     labelProperty?: BaseUrl;
     icon?: string | null;
     webShortname?: string;
-    instantiators: EntityTypeInstantiatorSubject[];
+    relationships: EntityTypeRelationAndSubject[];
+    inheritedPermissions: EntityTypeSetting[];
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
@@ -129,26 +132,21 @@ export const createEntityType: ImpureGraphFunction<
       schema,
       labelProperty,
       icon,
+      relationships: [
+        ...params.inheritedPermissions.map(
+          (setting) =>
+            ({
+              relation: "setting",
+              subject: {
+                kind: "setting",
+                subjectId: setting,
+              },
+            }) as const,
+        ),
+        ...params.relationships,
+      ],
     },
   );
-
-  if (params.instantiators.length > 0) {
-    await modifyEntityTypeAuthorizationRelationships(
-      ctx,
-      authentication,
-      params.instantiators.map((subject) => ({
-        operation: "create",
-        relationship: {
-          resource: {
-            kind: "entityType",
-            resourceId: entityTypeId,
-          },
-          relation: "instantiator",
-          subject,
-        },
-      })),
-    );
-  }
 
   return { schema, metadata: metadata as EntityTypeMetadata };
 };

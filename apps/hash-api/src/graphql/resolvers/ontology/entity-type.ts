@@ -44,7 +44,21 @@ export const createEntityTypeResolver: ResolverFn<
     ownedById: ownedById ?? (user.accountId as OwnedById),
     schema: entityType,
     icon: params.icon ?? undefined,
-    instantiators: [{ kind: "public" }],
+    relationships: [
+      {
+        relation: "viewer",
+        subject: {
+          kind: "public",
+        },
+      },
+      {
+        relation: "instantiator",
+        subject: {
+          kind: "public",
+        },
+      },
+    ],
+    inheritedPermissions: ["updateFromWeb"],
   });
 
   return createdEntityType;

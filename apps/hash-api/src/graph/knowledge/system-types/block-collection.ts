@@ -107,6 +107,12 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     // assume that link to block is owned by the same account as the blockCollection
     ownedById: extractOwnedByIdFromEntityId(blockCollectionEntityId),
     properties: canvasPosition || indexPosition,
+    relationships: [],
+    inheritedPermissions: [
+      "administratorFromWeb",
+      "updateFromWeb",
+      "viewFromWeb",
+    ],
   });
 
   return linkEntity as unknown as

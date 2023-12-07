@@ -406,7 +406,10 @@ pub struct EntityTypeInsertion {
 
 #[async_trait]
 impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, entity_types, authorization_api))]
+    #[tracing::instrument(
+        level = "info",
+        skip(self, entity_types, authorization_api, relationships)
+    )]
     async fn create_entity_types<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
@@ -414,7 +417,10 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
+        relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
     ) -> Result<Vec<EntityTypeMetadata>, InsertionError> {
+        let requested_relationships = relationships.into_iter().collect::<Vec<_>>();
+
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
         let (entity_type_schemas, metadatas): (Vec<_>, Vec<_>) = entity_types.into_iter().unzip();
@@ -505,6 +511,12 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                     transaction_time,
                 ));
             }
+
+            relationships.extend(
+                requested_relationships
+                    .iter()
+                    .map(|relation_and_subject| (entity_type_id, *relation_and_subject)),
+            );
         }
 
         for (ontology_id, schema) in inserted_entity_types {
@@ -521,20 +533,16 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 .attach_lazy(|| schema.clone())?;
         }
 
-        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
         authorization_api
-            .modify_entity_type_relations(
-                relationships
-                    .iter()
-                    .map(|(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Create,
-                            *resource,
-                            *relation_and_subject,
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
+            .modify_entity_type_relations(relationships.clone().into_iter().map(
+                |(resource, relation_and_subject)| {
+                    (
+                        ModifyRelationshipOperation::Create,
+                        resource,
+                        relation_and_subject,
+                    )
+                },
+            ))
             .await
             .change_context(InsertionError)?;
 

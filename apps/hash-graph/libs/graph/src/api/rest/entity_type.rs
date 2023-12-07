@@ -147,7 +147,7 @@ impl RoutedResource for EntityTypeResource {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct CreateEntityTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfEntityType,
@@ -157,6 +157,7 @@ struct CreateEntityTypeRequest {
     label_property: Option<BaseUrl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     icon: Option<String>,
+    relationships: Vec<EntityTypeRelationAndSubject>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -382,6 +383,7 @@ where
         owned_by_id,
         label_property,
         icon,
+        relationships,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
@@ -442,6 +444,7 @@ where
             &mut authorization_api,
             entity_types.into_iter().zip(partial_metadata),
             ConflictBehavior::Fail,
+            relationships,
         )
         .await
         .map_err(|report| {
@@ -643,6 +646,7 @@ where
                                 fetched_at: OffsetDateTime::now_utc(),
                             },
                         },
+                        [],
                     )
                     .await
                     .map_err(report_to_response)?
@@ -720,7 +724,7 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UpdateEntityTypeRequest {
     #[schema(value_type = VAR_UPDATE_ENTITY_TYPE)]
     schema: serde_json::Value,
@@ -815,7 +819,7 @@ where
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ArchiveEntityTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_archive: VersionedUrl,
@@ -881,7 +885,7 @@ where
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UnarchiveEntityTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_unarchive: VersionedUrl,

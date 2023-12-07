@@ -87,7 +87,10 @@ export const getBlockById: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createBlock: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
+  Omit<
+    CreateEntityParams,
+    "properties" | "entityTypeId" | "relationships" | "inheritedPermissions"
+  > & {
     componentId: string;
     blockData: Entity;
   },
@@ -103,6 +106,12 @@ export const createBlock: ImpureGraphFunction<
     ownedById,
     properties,
     entityTypeId: systemEntityTypes.block.entityTypeId,
+    relationships: [],
+    inheritedPermissions: [
+      "administratorFromWeb",
+      "updateFromWeb",
+      "viewFromWeb",
+    ],
   });
 
   await createLinkEntity(ctx, authentication, {
@@ -110,6 +119,12 @@ export const createBlock: ImpureGraphFunction<
     leftEntityId: entity.metadata.recordId.entityId,
     rightEntityId: blockData.metadata.recordId.entityId,
     ownedById,
+    relationships: [],
+    inheritedPermissions: [
+      "administratorFromWeb",
+      "updateFromWeb",
+      "viewFromWeb",
+    ],
   });
 
   return getBlockFromEntity({ entity });
@@ -208,6 +223,12 @@ export const updateBlockDataEntity: ImpureGraphFunction<
     ownedById: extractOwnedByIdFromEntityId(
       block.entity.metadata.recordId.entityId,
     ),
+    relationships: [],
+    inheritedPermissions: [
+      "administratorFromWeb",
+      "updateFromWeb",
+      "viewFromWeb",
+    ],
   });
 };
 

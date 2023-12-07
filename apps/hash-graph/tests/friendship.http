@@ -301,7 +301,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "$ref": "{{text_data_type_id}}"
       }
     ]
-  }
+  },
+  "relationships": []
 }
 
 > {%
@@ -510,7 +511,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     ],
     "properties": {}
-  }
+  },
+  "relationships": []
 }
 
 > {%
@@ -631,7 +633,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     }
   },
-  "includeDrafts": false
+  "relationships": []
 }
 
 > {%
@@ -1487,7 +1489,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   },
   "administrator": "{{account_id}}",
   "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
-  "draft": true
+  "draft": true,
+  "relationships": []
 }
 
 > {%
@@ -1658,7 +1661,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "leftEntityId": "{{person_a_entity_id}}",
     "rightEntityId": "{{person_b_entity_id}}"
   },
-  "draft": false
+  "draft": false,
+  "relationships": []
 }
 
 > {%
@@ -1682,7 +1686,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "leftEntityId": "{{person_a_entity_id}}",
     "rightEntityId": "{{person_b_entity_id}}"
   },
-  "draft": true
+  "draft": true,
+  "relationships": []
 }
 
 > {%

@@ -111,6 +111,12 @@ export const createEntityResolver: ResolverFn<
       properties,
       linkEntityTypeId: entityTypeId,
       ownedById: ownedById ?? (user.accountId as OwnedById),
+      relationships: [],
+      inheritedPermissions: [
+        "administratorFromWeb",
+        "updateFromWeb",
+        "viewFromWeb",
+      ],
     });
   } else {
     entity = await createEntityWithLinks(context, authentication, {
@@ -118,6 +124,12 @@ export const createEntityResolver: ResolverFn<
       entityTypeId,
       properties,
       linkedEntities: linkedEntities ?? undefined,
+      relationships: [],
+      inheritedPermissions: [
+        "administratorFromWeb",
+        "updateFromWeb",
+        "viewFromWeb",
+      ],
     });
   }
 

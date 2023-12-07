@@ -68,13 +68,33 @@ describe("Block", () => {
         properties: [],
         outgoingLinks: [],
       }),
-      instantiators: [{ kind: "public" }],
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+        {
+          relation: "instantiator",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
+      inheritedPermissions: [],
     });
 
     testBlockDataEntity = await createEntity(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       properties: {},
       entityTypeId: dummyEntityType.schema.$id,
+      relationships: [],
+      inheritedPermissions: [
+        "administratorFromWeb",
+        "updateFromWeb",
+        "viewFromWeb",
+      ],
     });
   });
 
@@ -128,6 +148,12 @@ describe("Block", () => {
         ownedById: testUser.accountId as OwnedById,
         properties: {},
         entityTypeId: dummyEntityType.schema.$id,
+        relationships: [],
+        inheritedPermissions: [
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb",
+        ],
       },
     );
 

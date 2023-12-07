@@ -46,6 +46,15 @@ export const createPropertyTypeResolver: ResolverFn<
     {
       ownedById: (ownedById ?? user.accountId) as OwnedById,
       schema: propertyType,
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
+      inheritedPermissions: ["updateFromWeb"],
     },
   );
 

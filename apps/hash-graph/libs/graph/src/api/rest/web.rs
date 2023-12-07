@@ -91,9 +91,10 @@ impl RoutedResource for WebResource {
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct CreateWebRequest {
     owned_by_id: OwnedById,
+    owner: WebOwnerSubject,
 }
 
 #[utoipa::path(
@@ -121,7 +122,7 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let CreateWebRequest { owned_by_id } = body;
+    let CreateWebRequest { owned_by_id, owner } = body;
 
     let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
@@ -134,7 +135,7 @@ where
     })?;
 
     store
-        .insert_web_id(actor_id, &mut authorization_api, owned_by_id)
+        .insert_web_id(actor_id, &mut authorization_api, owned_by_id, owner)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create web id");

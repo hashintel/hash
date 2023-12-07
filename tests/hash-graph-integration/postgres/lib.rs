@@ -177,6 +177,7 @@ impl DatabaseTestWrapper {
                 &mut NoAuthorization,
                 property_types_iter,
                 ConflictBehavior::Skip,
+                [],
             )
             .await?;
 
@@ -201,6 +202,7 @@ impl DatabaseTestWrapper {
                 &mut NoAuthorization,
                 entity_types_iter,
                 ConflictBehavior::Skip,
+                [],
             )
             .await?;
 
@@ -312,6 +314,7 @@ impl DatabaseApi<'_> {
                 &mut NoAuthorization,
                 property_type,
                 metadata,
+                [],
             )
             .await
     }
@@ -370,7 +373,13 @@ impl DatabaseApi<'_> {
         };
 
         self.store
-            .create_entity_type(self.account_id, &mut NoAuthorization, entity_type, metadata)
+            .create_entity_type(
+                self.account_id,
+                &mut NoAuthorization,
+                entity_type,
+                metadata,
+                [],
+            )
             .await
     }
 

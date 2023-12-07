@@ -66,17 +66,25 @@ describe("Page", () => {
   const createTestBlock = async () => {
     const authentication = { actorId: testUser.accountId };
 
+    const blockData = await createEntity(graphContext, authentication, {
+      ownedById: testUser.accountId as OwnedById,
+      entityTypeId: systemEntityTypes.text.entityTypeId,
+      properties: {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
+          [],
+      } as TextProperties,
+      relationships: [],
+      inheritedPermissions: [
+        "administratorFromWeb",
+        "updateFromWeb",
+        "viewFromWeb",
+      ],
+    });
+
     return createBlock(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       componentId: "text",
-      blockData: await createEntity(graphContext, authentication, {
-        ownedById: testUser.accountId as OwnedById,
-        entityTypeId: systemEntityTypes.text.entityTypeId,
-        properties: {
-          "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-            [],
-        } as TextProperties,
-      }),
+      blockData,
     });
   };
 

@@ -255,6 +255,7 @@ pub async fn seed<D, P, E, C>(
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
                 },
+                [],
             )
             .await
         {
@@ -289,6 +290,7 @@ pub async fn seed<D, P, E, C>(
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
                 },
+                [],
             )
             .await
         {

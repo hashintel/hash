@@ -102,6 +102,15 @@ describe("Property type CRU", () => {
       {
         ownedById: testOrg.accountGroupId as OwnedById,
         schema: propertyTypeSchema,
+        relationships: [
+          {
+            relation: "viewer",
+            subject: {
+              kind: "public",
+            },
+          },
+        ],
+        inheritedPermissions: ["updateFromWeb"],
       },
     );
   });

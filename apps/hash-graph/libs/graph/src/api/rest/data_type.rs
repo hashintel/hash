@@ -137,7 +137,7 @@ impl RoutedResource for DataTypeResource {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct CreateDataTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfDataType,
@@ -407,7 +407,7 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UpdateDataTypeRequest {
     #[schema(value_type = VAR_UPDATE_DATA_TYPE)]
     schema: serde_json::Value,
@@ -488,7 +488,7 @@ where
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ArchiveDataTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_archive: VersionedUrl,
@@ -554,7 +554,7 @@ where
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UnarchiveDataTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_unarchive: VersionedUrl,

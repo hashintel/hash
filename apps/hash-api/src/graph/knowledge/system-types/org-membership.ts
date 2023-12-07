@@ -62,6 +62,8 @@ export const createOrgMembership: ImpureGraphFunction<
     | "leftEntityId"
     | "rightEntityId"
     | "ownedById"
+    | "relationships"
+    | "inheritedPermissions"
   > & {
     orgEntityId: EntityId;
     userEntityId: EntityId;
@@ -87,6 +89,22 @@ export const createOrgMembership: ImpureGraphFunction<
       leftEntityId: userEntityId,
       rightEntityId: orgEntityId,
       properties: {},
+      inheritedPermissions: ["administratorFromWeb"],
+      relationships: [
+        {
+          relation: "editor",
+          subject: {
+            kind: "account",
+            subjectId: userAccountId,
+          },
+        },
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     });
   } catch (error) {
     await ctx.graphApi.removeAccountGroupMember(

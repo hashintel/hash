@@ -45,6 +45,7 @@ pub trait AccountStore {
         actor_id: AccountId,
         authorization_api: &mut A,
         owned_by_id: OwnedById,
+        owner: WebOwnerSubject,
     ) -> Result<(), InsertionError>;
 
     /// Returns if the [`AccountId`] exists in the database.

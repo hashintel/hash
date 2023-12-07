@@ -93,7 +93,21 @@ describe("Entity CRU", () => {
           properties: {},
           allOf: [{ $ref: linkEntityTypeUrl }],
         },
-        instantiators: [{ kind: "public" }],
+        relationships: [
+          {
+            relation: "viewer",
+            subject: {
+              kind: "public",
+            },
+          },
+          {
+            relation: "instantiator",
+            subject: {
+              kind: "public",
+            },
+          },
+        ],
+        inheritedPermissions: [],
       })
         .then((val) => {
           linkEntityTypeFriend = val;
@@ -108,6 +122,15 @@ describe("Entity CRU", () => {
           title: "Favorite Book",
           oneOf: [{ $ref: textDataTypeId }],
         },
+        relationships: [
+          {
+            relation: "viewer",
+            subject: {
+              kind: "public",
+            },
+          },
+        ],
+        inheritedPermissions: [],
       })
         .then((val) => {
           favoriteBookPropertyType = val;
@@ -122,6 +145,15 @@ describe("Entity CRU", () => {
           title: "Name",
           oneOf: [{ $ref: textDataTypeId }],
         },
+        relationships: [
+          {
+            relation: "viewer",
+            subject: {
+              kind: "public",
+            },
+          },
+        ],
+        inheritedPermissions: [],
       })
         .then((val) => {
           namePropertyType = val;
@@ -152,7 +184,21 @@ describe("Entity CRU", () => {
           },
         ],
       }),
-      instantiators: [{ kind: "public" }],
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+        {
+          relation: "instantiator",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
+      inheritedPermissions: [],
     });
   });
 
@@ -177,6 +223,12 @@ describe("Entity CRU", () => {
         [favoriteBookPropertyType.metadata.recordId.baseUrl]: "some text",
       },
       entityTypeId: entityType.schema.$id,
+      relationships: [],
+      inheritedPermissions: [
+        "administratorFromWeb",
+        "updateFromWeb",
+        "viewFromWeb",
+      ],
     });
   });
 
@@ -290,6 +342,12 @@ describe("Entity CRU", () => {
               existingEntityId: updatedEntity.metadata.recordId.entityId,
             },
           },
+        ],
+        relationships: [],
+        inheritedPermissions: [
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb",
         ],
       },
     );

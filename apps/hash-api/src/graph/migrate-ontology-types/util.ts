@@ -46,12 +46,10 @@ import { getDataTypeById } from "../ontology/primitive/data-type";
 import {
   createEntityType,
   getEntityTypeById,
-  modifyEntityTypeAuthorizationRelationships,
 } from "../ontology/primitive/entity-type";
 import {
   createPropertyType,
   getPropertyTypeById,
-  modifyPropertyTypeAuthorizationRelationships,
 } from "../ontology/primitive/property-type";
 import { systemAccountId } from "../system-account";
 import {
@@ -383,33 +381,20 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
         ownedById: accountGroupId as OwnedById,
         schema: propertyTypeSchema,
         webShortname,
+        inheritedPermissions: [],
+        relationships: [
+          {
+            relation: "viewer",
+            subject: {
+              kind: "public",
+            },
+          },
+        ],
       },
     ).catch((createError) => {
       // logger.warn(`Failed to create property type: ${propertyTypeId}`);
       throw createError;
     });
-
-    // We don't want anyone but the systemAccount being able to modify system types
-    await modifyPropertyTypeAuthorizationRelationships(
-      context,
-      authentication,
-      [
-        {
-          operation: "delete",
-          relationship: {
-            relation: "setting",
-            resource: {
-              kind: "propertyType",
-              resourceId: createdPropertyType.schema.$id,
-            },
-            subject: {
-              kind: "setting",
-              subjectId: "updateFromWeb",
-            },
-          },
-        },
-      ],
-    );
 
     return createdPropertyType;
   }
@@ -602,41 +587,19 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
       ownedById: accountGroupId as OwnedById,
       schema: entityTypeSchema,
       webShortname,
-      instantiators: [],
-    }).catch((createError) => {
-      // logger.warn(`Failed to create entity type: ${entityTypeSchema.$id}`);
-      throw createError;
-    });
-
-    await modifyEntityTypeAuthorizationRelationships(context, authentication, [
-      {
-        operation: "delete",
-        relationship: {
-          relation: "setting",
-          resource: {
-            kind: "entityType",
-            resourceId: createdEntityType.schema.$id,
-          },
-          subject: {
-            kind: "setting",
-            subjectId: "updateFromWeb",
-          },
-        },
-      },
-      {
-        operation: "create",
-        relationship: {
-          resource: {
-            kind: "entityType",
-            resourceId: createdEntityType.schema.$id,
-          },
+      relationships: [
+        {
           relation: "instantiator",
           subject: {
             kind: "public",
           },
         },
-      },
-    ]);
+      ],
+      inheritedPermissions: [],
+    }).catch((createError) => {
+      // logger.warn(`Failed to create entity type: ${entityTypeSchema.$id}`);
+      throw createError;
+    });
 
     return createdEntityType;
   }

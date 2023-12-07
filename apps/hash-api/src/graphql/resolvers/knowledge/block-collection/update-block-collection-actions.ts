@@ -48,6 +48,12 @@ export const createEntityWithPlaceholdersFn =
         ownedById,
         // We've looked up the placeholder ID, and have an actual entity ID at this point.
         entityDefinition,
+        relationships: [],
+        inheritedPermissions: [
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb",
+        ],
       });
     } else {
       return await createEntityWithLinks(context, authentication, {
@@ -55,6 +61,12 @@ export const createEntityWithPlaceholdersFn =
         entityTypeId: entityDefinition.entityTypeId!,
         properties: entityDefinition.entityProperties ?? {},
         linkedEntities: entityDefinition.linkedEntities ?? undefined,
+        relationships: [],
+        inheritedPermissions: [
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb",
+        ],
       });
     }
   };

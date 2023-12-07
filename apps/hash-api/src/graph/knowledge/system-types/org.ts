@@ -89,7 +89,14 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createOrg: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId" | "ownedById"> & {
+  Omit<
+    CreateEntityParams,
+    | "properties"
+    | "entityTypeId"
+    | "ownedById"
+    | "relationships"
+    | "inheritedPermissions"
+  > & {
     shortname: string;
     name: string;
     orgAccountGroupId?: AccountGroupId;
@@ -138,22 +145,16 @@ export const createOrg: ImpureGraphFunction<
     properties,
     entityTypeId: systemEntityTypes.organization.entityTypeId,
     entityUuid: orgAccountGroupId as string as EntityUuid,
-  });
-  await modifyEntityAuthorizationRelationships(ctx, authentication, [
-    {
-      operation: "create",
-      relationship: {
+    relationships: [
+      {
+        relation: "viewer",
         subject: {
           kind: "public",
         },
-        relation: "viewer",
-        resource: {
-          kind: "entity",
-          resourceId: entity.metadata.recordId.entityId,
-        },
       },
-    },
-  ]);
+    ],
+    inheritedPermissions: ["administratorFromWeb", "updateFromWeb"],
+  });
 
   return getOrgFromEntity({ entity });
 };

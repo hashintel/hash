@@ -304,7 +304,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
       } as SyncLinearDataWithProperties,
     });
   } else {
-    const linkEntity = await createLinkEntity(context, authentication, {
+    await createLinkEntity(context, authentication, {
       ownedById: extractOwnedByIdFromEntityId(linearIntegrationEntityId),
       linkEntityTypeId:
         systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
@@ -314,21 +314,18 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
         "https://hash.ai/@hash/types/property-type/linear-team-id/":
           linearTeamIds,
       } as SyncLinearDataWithProperties,
-    });
-
-    // Allow the system account ID to view the link
-    await modifyEntityAuthorizationRelationships(context, authentication, [
-      {
-        operation: "touch",
-        relationship: {
-          resource: {
-            kind: "entity",
-            resourceId: linkEntity.metadata.recordId.entityId,
-          },
+      relationships: [
+        {
+          // Allow the system account ID to view the link
           relation: "viewer",
           subject: { kind: "account", subjectId: systemAccountId },
         },
-      },
-    ]);
+      ],
+      inheritedPermissions: [
+        "administratorFromWeb",
+        "updateFromWeb",
+        "viewFromWeb",
+      ],
+    });
   }
 };

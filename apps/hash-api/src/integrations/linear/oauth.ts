@@ -249,6 +249,12 @@ export const oAuthLinearCallback: RequestHandler<
         entityTypeId: systemEntityTypes.userSecret.entityTypeId,
         ownedById: ownedById as Uuid as OwnedById,
         properties: secretMetadata,
+        relationships: [],
+        inheritedPermissions: [
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb",
+        ],
       });
 
       const linearIntegrationProperties: LinearIntegrationProperties = {
@@ -262,6 +268,12 @@ export const oAuthLinearCallback: RequestHandler<
           entityTypeId: systemEntityTypes.linearIntegration.entityTypeId,
           ownedById: ownedById as Uuid as OwnedById,
           properties: linearIntegrationProperties,
+          relationships: [],
+          inheritedPermissions: [
+            "administratorFromWeb",
+            "updateFromWeb",
+            "viewFromWeb",
+          ],
         },
       );
 
@@ -271,6 +283,12 @@ export const oAuthLinearCallback: RequestHandler<
         leftEntityId: linearIntegrationEntity.metadata.recordId.entityId,
         rightEntityId: userSecretEntity.metadata.recordId.entityId,
         properties: {},
+        relationships: [],
+        inheritedPermissions: [
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb",
+        ],
       });
 
       linearIntegration = getLinearIntegrationFromEntity({

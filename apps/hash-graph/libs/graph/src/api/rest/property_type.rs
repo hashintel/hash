@@ -140,11 +140,12 @@ impl RoutedResource for PropertyTypeResource {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct CreatePropertyTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfPropertyType,
     owned_by_id: OwnedById,
+    relationships: Vec<PropertyTypeRelationAndSubject>,
 }
 
 #[utoipa::path(
@@ -187,6 +188,7 @@ where
     let Json(CreatePropertyTypeRequest {
         schema,
         owned_by_id,
+        relationships,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
@@ -222,6 +224,7 @@ where
             &mut authorization_api,
             property_types.into_iter().zip(partial_metadata),
             ConflictBehavior::Fail,
+            relationships,
         )
         .await
         .map_err(|report| {
@@ -335,6 +338,7 @@ where
                                 fetched_at: OffsetDateTime::now_utc(),
                             },
                         },
+                        [],
                     )
                     .await
                     .map_err(report_to_response)?,
@@ -412,7 +416,7 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UpdatePropertyTypeRequest {
     #[schema(value_type = VAR_UPDATE_PROPERTY_TYPE)]
     schema: serde_json::Value,
@@ -493,7 +497,7 @@ where
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ArchivePropertyTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_archive: VersionedUrl,
@@ -559,7 +563,7 @@ where
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UnarchivePropertyTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_unarchive: VersionedUrl,

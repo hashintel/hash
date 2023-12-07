@@ -114,6 +114,12 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
       ownedById,
       properties: initialProperties,
       entityTypeId,
+      relationships: [],
+      inheritedPermissions: [
+        "administratorFromWeb",
+        "updateFromWeb",
+        "viewFromWeb",
+      ],
     })) as Entity<FileProperties>;
   }
 
@@ -214,6 +220,12 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
           ownedById,
           properties,
           entityTypeId,
+          relationships: [],
+          inheritedPermissions: [
+            "administratorFromWeb",
+            "updateFromWeb",
+            "viewFromWeb",
+          ],
         })) as unknown as File);
   } catch (error) {
     throw new Error(

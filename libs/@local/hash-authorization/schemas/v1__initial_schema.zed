@@ -83,11 +83,15 @@ definition graph/entity_type {
     relation level_00_setting: graph/setting
     relation level_00_owner: graph/web
 
+	// Administration
+	// Note, that the owner of the web is either an account or an account group. but not the members of an account group.
+	permission full_access = level_00_owner->level_00_owner
+
 	// Permissions
     relation level_00_viewer: graph/account:*
 
-	permission update = level_00_setting->level_00_update & level_00_owner->update_entity_type
-	permission view = level_00_viewer + level_00_owner->view_entity_type
+	permission update = full_access + level_00_setting->level_00_update & level_00_owner->update_entity_type
+	permission view = update + level_00_viewer + level_00_owner->view_entity_type
 
 	// Allows to create entities from this entity type
     relation level_00_instantiator: graph/account | graph/account_group#member | graph/account:*
@@ -99,11 +103,15 @@ definition graph/property_type {
     relation level_00_setting: graph/setting
     relation level_00_owner: graph/web
 
+	// Administration
+	// Note, that the owner of the web is either an account or an account group. but not the members of an account group.
+	permission full_access = level_00_owner->level_00_owner
+
 	// Permissions
     relation level_00_viewer: graph/account:*
 
-	permission update = level_00_setting->level_00_update & level_00_owner->update_property_type
-	permission view = level_00_viewer + level_00_owner->view_property_type
+	permission update = full_access + level_00_setting->level_00_update & level_00_owner->update_property_type
+	permission view = update + level_00_viewer + level_00_owner->view_property_type
 }
 
 definition graph/data_type {

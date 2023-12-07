@@ -37,6 +37,7 @@ import { Comment } from "./comment";
 import { Page } from "./page";
 import { Text } from "./text";
 import { User } from "./user";
+import { EntitySetting } from "@local/hash-graph-client";
 
 type Notification = {
   archived?: boolean;
@@ -88,7 +89,10 @@ export const getMentionNotificationFromEntity: PureGraphFunction<
 };
 
 export const createMentionNotification: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
+  Omit<
+    CreateEntityParams,
+    "properties" | "entityTypeId" | "relationships" | "inheritedPermissions"
+  > & {
     triggeredByUser: User;
     occurredInEntity: Page;
     occurredInBlock: Block;
@@ -110,6 +114,12 @@ export const createMentionNotification: ImpureGraphFunction<
     ownedById,
     properties: {},
     entityTypeId: systemEntityTypes.mentionNotification.entityTypeId,
+    relationships: [],
+    inheritedPermissions: [
+      "administratorFromWeb",
+      "updateFromWeb",
+      "viewFromWeb",
+    ],
   });
 
   await Promise.all(
@@ -120,6 +130,12 @@ export const createMentionNotification: ImpureGraphFunction<
         rightEntityId: triggeredByUser.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
+        relationships: [],
+        inheritedPermissions: [
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb",
+        ],
       }),
       createLinkEntity(context, authentication, {
         ownedById,
@@ -127,6 +143,12 @@ export const createMentionNotification: ImpureGraphFunction<
         rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+        relationships: [],
+        inheritedPermissions: [
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb",
+        ],
       }),
       createLinkEntity(context, authentication, {
         ownedById,
@@ -134,6 +156,12 @@ export const createMentionNotification: ImpureGraphFunction<
         rightEntityId: occurredInBlock.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
+        relationships: [],
+        inheritedPermissions: [
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb",
+        ],
       }),
       occurredInComment
         ? createLinkEntity(context, authentication, {
@@ -142,6 +170,12 @@ export const createMentionNotification: ImpureGraphFunction<
             rightEntityId: occurredInComment.entity.metadata.recordId.entityId,
             linkEntityTypeId:
               systemLinkEntityTypes.occurredInComment.linkEntityTypeId,
+            relationships: [],
+            inheritedPermissions: [
+              "administratorFromWeb",
+              "updateFromWeb",
+              "viewFromWeb",
+            ],
           })
         : [],
       createLinkEntity(context, authentication, {
@@ -149,6 +183,12 @@ export const createMentionNotification: ImpureGraphFunction<
         leftEntityId: entity.metadata.recordId.entityId,
         rightEntityId: occurredInText.entity.metadata.recordId.entityId,
         linkEntityTypeId: systemLinkEntityTypes.occurredInText.linkEntityTypeId,
+        relationships: [],
+        inheritedPermissions: [
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb",
+        ],
       }),
     ].flat(),
   );
@@ -311,7 +351,10 @@ export const getCommentNotificationFromEntity: PureGraphFunction<
 };
 
 export const createCommentNotification: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
+  Omit<
+    CreateEntityParams,
+    "properties" | "entityTypeId" | "relationships" | "inheritedPermissions"
+  > & {
     triggeredByUser: User;
     triggeredByComment: Comment;
     occurredInEntity: Page;
@@ -339,24 +382,48 @@ export const createCommentNotification: ImpureGraphFunction<
         rightEntityId: triggeredByUser.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
+        relationships: [],
+        inheritedPermissions: [
+          EntitySetting.AdministratorFromWeb,
+          EntitySetting.UpdateFromWeb,
+          EntitySetting.ViewFromWeb,
+        ],
       },
       {
         ownedById,
         rightEntityId: triggeredByComment.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.triggeredByComment.linkEntityTypeId,
+        relationships: [],
+        inheritedPermissions: [
+          EntitySetting.AdministratorFromWeb,
+          EntitySetting.UpdateFromWeb,
+          EntitySetting.ViewFromWeb,
+        ],
       },
       {
         ownedById,
         rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+        relationships: [],
+        inheritedPermissions: [
+          EntitySetting.AdministratorFromWeb,
+          EntitySetting.UpdateFromWeb,
+          EntitySetting.ViewFromWeb,
+        ],
       },
       {
         ownedById,
         rightEntityId: occurredInBlock.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
+        relationships: [],
+        inheritedPermissions: [
+          EntitySetting.AdministratorFromWeb,
+          EntitySetting.UpdateFromWeb,
+          EntitySetting.ViewFromWeb,
+        ],
       },
       repliedToComment
         ? {
@@ -364,9 +431,21 @@ export const createCommentNotification: ImpureGraphFunction<
             rightEntityId: repliedToComment.entity.metadata.recordId.entityId,
             linkEntityTypeId:
               systemLinkEntityTypes.repliedToComment.linkEntityTypeId,
+            relationships: [],
+            inheritedPermissions: [
+              EntitySetting.AdministratorFromWeb,
+              EntitySetting.UpdateFromWeb,
+              EntitySetting.ViewFromWeb,
+            ],
           }
         : [],
     ].flat(),
+    relationships: [],
+    inheritedPermissions: [
+      "administratorFromWeb",
+      "updateFromWeb",
+      "viewFromWeb",
+    ],
   });
 
   return getCommentNotificationFromEntity({ entity });

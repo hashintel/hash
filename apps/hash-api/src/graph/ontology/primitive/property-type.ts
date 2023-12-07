@@ -3,9 +3,11 @@ import {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
+  EntityTypeSetting,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
   PropertyTypePermission,
+  PropertyTypeSetting,
   PropertyTypeStructuralQuery,
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
@@ -16,11 +18,13 @@ import {
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
+  EntityTypeRelationAndSubject,
   OntologyElementMetadata,
   OntologyTypeRecordId,
   ontologyTypeRecordIdToVersionedUrl,
   OwnedById,
   PropertyTypeAuthorizationRelationship,
+  PropertyTypeRelationAndSubject,
   PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
@@ -48,6 +52,8 @@ export const createPropertyType: ImpureGraphFunction<
     ownedById: OwnedById;
     schema: ConstructPropertyTypeParams;
     webShortname?: string;
+    relationships: PropertyTypeRelationAndSubject[];
+    inheritedPermissions: PropertyTypeSetting[];
   },
   Promise<PropertyTypeWithMetadata>
 > = async (ctx, authentication, params) => {
@@ -79,6 +85,19 @@ export const createPropertyType: ImpureGraphFunction<
     {
       ownedById,
       schema,
+      relationships: [
+        ...params.inheritedPermissions.map(
+          (setting) =>
+            ({
+              relation: "setting",
+              subject: {
+                kind: "setting",
+                subjectId: setting,
+              },
+            }) as const,
+        ),
+        ...params.relationships,
+      ],
     },
   );
 
