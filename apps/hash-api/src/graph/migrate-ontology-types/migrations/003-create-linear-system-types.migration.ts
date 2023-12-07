@@ -511,7 +511,6 @@ const migrate: MigrationFunction = async ({
   if (typeof emailPropertyTypeVersion === "undefined") {
     throw new Error("Expected HASH email property type to have been seeded");
   }
-
   const emailPropertyTypeId = versionedUrlFromComponents(
     emailPropertyTypeBaseUrl,
     emailPropertyTypeVersion,

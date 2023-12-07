@@ -17,7 +17,12 @@ import {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { UpdateEntityType } from "@local/hash-graph-client";
+import {
+  blockProtocolDataTypes,
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   generateTypeBaseUrl,
   SchemaKind,
@@ -33,6 +38,7 @@ import {
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 import {
+  componentsFromVersionedUrl,
   extractBaseUrl,
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
@@ -659,4 +665,98 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
 
     return createdEntityType;
   }
+};
+
+export const getExistingEntityTypeId = ({
+  entityTypeKey,
+  migrationState,
+}: {
+  entityTypeKey: keyof typeof systemEntityTypes;
+  migrationState: MigrationState;
+}) => {
+  const entityTypeBaseUrl = systemEntityTypes[entityTypeKey]
+    .entityTypeBaseUrl as BaseUrl;
+
+  const entityTypeVersion =
+    migrationState.entityTypeVersions[entityTypeBaseUrl];
+
+  if (typeof entityTypeVersion === "undefined") {
+    throw new Error(
+      `Expected '${entityTypeKey}' entity type to have been seeded`,
+    );
+  }
+
+  return versionedUrlFromComponents(entityTypeBaseUrl, entityTypeVersion);
+};
+
+export const getExistingPropertyTypeId = ({
+  propertyTypeKey,
+  migrationState,
+}: {
+  propertyTypeKey: keyof typeof systemPropertyTypes;
+  migrationState: MigrationState;
+}) => {
+  const propertyTypeBaseUrl = systemPropertyTypes[propertyTypeKey]
+    .propertyTypeBaseUrl as BaseUrl;
+
+  const propertyTypeVersion =
+    migrationState.propertyTypeVersions[propertyTypeBaseUrl];
+
+  if (typeof propertyTypeVersion === "undefined") {
+    throw new Error(
+      `Expected '${propertyTypeKey}' property type to have been seeded`,
+    );
+  }
+
+  return versionedUrlFromComponents(propertyTypeBaseUrl, propertyTypeVersion);
+};
+
+type BaseUpdateTypeParameters = {
+  migrationState: MigrationState;
+};
+
+export const updateSystemEntityType: ImpureGraphFunction<
+  {
+    currentEntityTypeId: VersionedUrl;
+    newSchema: UpdateEntityType;
+  } & BaseUpdateTypeParameters,
+  Promise<{ updatedEntityTypeId: VersionedUrl }>
+> = async (
+  context,
+  authentication,
+  { currentEntityTypeId, newSchema, migrationState },
+) => {
+  const { baseUrl, version } = componentsFromVersionedUrl(currentEntityTypeId);
+
+  const versionInMigrationState = migrationState.entityTypeVersions[baseUrl];
+
+  if (!versionInMigrationState) {
+    throw new Error(
+      `Update requested for entity type with current entityTypeId ${currentEntityTypeId}, but it does not exist in migration state.`,
+    );
+  }
+
+  if (versionInMigrationState !== version) {
+    throw new Error(
+      `Update requested for entity type with current entityTypeId ${currentEntityTypeId}, but the current version in migration state is ${versionInMigrationState}`,
+    );
+  }
+
+  const nextVersion = version + 1;
+
+  const updatedEntityTypeId = versionedUrlFromComponents(baseUrl, nextVersion);
+
+  const entityTypeSchema = {
+    ...newSchema,
+    $id: updatedEntityTypeId,
+  };
+
+  await context.graphApi.updateEntityType(authentication.actorId, {
+    typeToUpdate: currentEntityTypeId,
+    schema: entityTypeSchema,
+  });
+
+  migrationState.entityTypeVersions[baseUrl] = nextVersion;
+
+  return { updatedEntityTypeId };
 };
