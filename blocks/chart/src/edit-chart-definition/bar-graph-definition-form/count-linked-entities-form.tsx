@@ -6,10 +6,11 @@ import {
   Subgraph,
   VersionedUrl,
 } from "@blockprotocol/graph";
-import { getEntityTypeById, getRoots } from "@blockprotocol/graph/stdlib";
-import { Subgraph as TemporalSubgraph } from "@blockprotocol/graph/temporal";
-/** @todo: replace with the non-temporal equivalent method */
-import { getIncomingLinksForEntity } from "@blockprotocol/graph/temporal/stdlib";
+import {
+  getEntityTypeById,
+  getIncomingLinksForEntity,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
 import {
   FormControl,
   InputLabel,
@@ -64,10 +65,7 @@ const getIncomingLinkEntityTypes = (params: {
 
   return entities
     .map(({ metadata }) =>
-      getIncomingLinksForEntity(
-        queryResult as unknown as TemporalSubgraph,
-        metadata.recordId.entityId,
-      ),
+      getIncomingLinksForEntity(queryResult, metadata.recordId.entityId),
     )
     .flat()
     .map((linkEntity) => linkEntity.metadata.entityTypeId)
