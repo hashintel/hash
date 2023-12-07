@@ -75,7 +75,7 @@ export const UserBlocksProvider: FunctionComponent<{
              * @todo consider mechanisms for migrating existing blocks
              * to new versions if there are breaking changes
              */
-            bustCache: true,
+            useCachedData: false,
           });
 
           const blockSchema = await fetchBlockSchema({
