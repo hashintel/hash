@@ -82,7 +82,11 @@ export const DraftEntity: FunctionComponent<{
             </Typography>
           </Box>
         </Link>
-        <DraftEntityActionButtons entity={entity} />
+        <DraftEntityActionButtons
+          entity={entity}
+          label={label}
+          subgraph={subgraph}
+        />
       </Box>
       <Box marginTop={1.5} display="flex" justifyContent="space-between">
         <Box display="flex" alignItems="center" columnGap={2}>

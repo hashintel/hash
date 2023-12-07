@@ -25,6 +25,8 @@ export const getDraftEntitiesQueryVariables: StructuralQueryEntitiesQueryVariabl
         inheritsFrom: { outgoing: 255 },
         constrainsPropertiesOn: { outgoing: 255 },
         constrainsValuesOn: { outgoing: 255 },
+        hasLeftEntity: { outgoing: 1, incoming: 1 },
+        hasRightEntity: { outgoing: 1, incoming: 1 },
       },
       includeDrafts: true,
     },
