@@ -104,6 +104,12 @@ describe("Comment Notification", () => {
               "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
                 [],
             } as TextProperties,
+            inheritedPermissions: [
+              "administratorFromWeb",
+              "updateFromWeb",
+              "viewFromWeb",
+            ],
+            relationships: [],
           },
         ),
       },
@@ -186,6 +192,12 @@ describe("Comment Notification", () => {
               "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
                 [],
             } as TextProperties,
+            inheritedPermissions: [
+              "administratorFromWeb",
+              "updateFromWeb",
+              "viewFromWeb",
+            ],
+            relationships: [],
           },
         ),
       },

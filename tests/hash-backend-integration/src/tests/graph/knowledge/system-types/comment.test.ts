@@ -69,6 +69,12 @@ describe("Comment", () => {
               "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
                 [],
             } as TextProperties,
+            inheritedPermissions: [
+              "administratorFromWeb",
+              "updateFromWeb",
+              "viewFromWeb",
+            ],
+            relationships: [],
           },
         ),
       },
