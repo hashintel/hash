@@ -176,11 +176,12 @@ export const BlockSelectDataModal: FunctionComponent<
   return (
     <Modal
       {...modalProps}
-      sx={{
-        "> div": {
-          overflow: "hidden",
-          padding: 0,
-        },
+      contentStyle={{
+        overflow: "hidden",
+        /** @todo: figure out why !important is required here */
+        padding: "0px !important",
+        width: "fit-content !important",
+        maxWidth: "90vw",
       }}
       onClose={onClose}
     >
