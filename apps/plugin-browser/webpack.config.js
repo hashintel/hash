@@ -204,8 +204,8 @@ const options = {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: "src/assets/img/icon-256.png",
-          to: path.join(__dirname, "build"),
+          from: "src/assets/img",
+          to: path.join(__dirname, "build", "[name][ext]"),
           force: true,
         },
       ],

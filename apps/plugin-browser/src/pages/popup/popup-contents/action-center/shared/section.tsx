@@ -33,6 +33,9 @@ export const Section = ({
           color: palette.common.white,
           borderTop: `1px solid ${darkModeBorderColor}`,
         },
+        "&:first-of-type": {
+          borderTop: "none",
+        },
       })}
     >
       <Stack direction="row" justifyContent="space-between" mb={1}>

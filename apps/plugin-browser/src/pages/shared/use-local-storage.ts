@@ -28,18 +28,23 @@ export const useLocalStorage = <Key extends keyof LocalStorage>(
   const [storageChecked, setStorageChecked] = useState(false);
 
   useEffect(() => {
+    if (storageChecked) {
+      return;
+    }
     const getStorageValue = async () => {
       const storageValue = await getFromLocalStorage(key);
 
       if (typeof storageValue !== "undefined") {
         setStateValue(storageValue);
+      } else {
+        setStateValue(initialValue);
       }
 
       setStorageChecked(true);
     };
 
     void getStorageValue();
-  }, [key]);
+  }, [initialValue, key, storageChecked]);
 
   useEffect(() => {
     const listener = (

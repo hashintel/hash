@@ -14,13 +14,12 @@ import type {
 } from "@local/hash-subgraph";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 
-import { getOwnedByIdFromEntityId } from "../../../../../../../shared/get-user";
-import { LocalStorage } from "../../../../../../../shared/storage";
+import { getOwnedByIdFromEntityId } from "../../../../../../shared/get-user";
+import { LocalStorage } from "../../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputColor,
-} from "../../../../../../shared/style-values";
-import { useUser } from "../../../../../../shared/use-user";
+} from "../../../../../shared/style-values";
 import { UpFromLineIcon } from "./inferred-entity/up-from-line-icon";
 
 // @todo consolidate this with generateEntityLabel in hash-frontend
@@ -65,12 +64,12 @@ const baseUrlToPropertyTitle = (baseUrl: BaseUrl) =>
     .join(" ");
 
 type InferredEntityProps = {
-  allEntityStatuses: InferEntitiesReturn["contents"];
+  allEntityStatuses: InferEntitiesReturn["contents"][number]["results"];
   expanded: boolean;
   entityType: EntityTypeWithMetadata;
   entityTypes: EntityTypeWithMetadata[];
   indexInType: number;
-  result: InferEntitiesReturn["contents"][number];
+  result: InferEntitiesReturn["contents"][number]["results"][number];
   toggleExpanded: () => void;
   user: NonNullable<LocalStorage["user"]>;
 };

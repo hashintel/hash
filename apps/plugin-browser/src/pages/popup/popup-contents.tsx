@@ -5,7 +5,7 @@ import { Box, Skeleton, ThemeProvider } from "@mui/material";
 import { useEffect, useState } from "react";
 import browser, { Tabs } from "webextension-polyfill";
 
-import { clearNotifications } from "../../shared/badge";
+import { clearError } from "../../shared/badge";
 import { useUser } from "../shared/use-user";
 import { ActionCenter } from "./popup-contents/action-center";
 import { SignIn } from "./popup-contents/sign-in";
@@ -32,16 +32,16 @@ export const PopupContents = () => {
   useEffect(() => {
     void getCurrentTab().then(setActiveTab);
 
-    void clearNotifications();
+    void clearError();
   }, []);
 
   return (
     <ThemeProvider theme={theme}>
       <Box
         sx={({ palette }) => ({
-          height: "100%",
           fontSize: "15px",
           color: palette.common.black,
+          border: `1px solid ${palette.gray[10]}`,
 
           "@media (prefers-color-scheme: dark)": {
             border: `1px solid ${palette.common.black}`,

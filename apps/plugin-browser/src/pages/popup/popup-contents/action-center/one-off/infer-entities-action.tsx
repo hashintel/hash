@@ -12,11 +12,11 @@ import { sendMessageToBackground } from "../../../../shared/messages";
 import { borderColors } from "../../../../shared/style-values";
 import { useLocalStorage } from "../../../../shared/use-local-storage";
 import { EntityTypeSelector } from "../shared/entity-type-selector";
+import { ModelSelector } from "../shared/model-selector";
 import { Section } from "../shared/section";
 import { SelectWebTarget } from "../shared/select-web-target";
 import { ArrowUpToLineIcon } from "./infer-entities-action/arrow-up-to-line-icon";
 import { CreateEntityIcon } from "./infer-entities-action/create-entity-icon";
-import { InferenceRequests } from "./infer-entities-action/inference-requests";
 
 export const InferEntitiesAction = ({
   activeTab,
@@ -29,6 +29,7 @@ export const InferEntitiesAction = ({
     "manualInferenceConfig",
     {
       createAs: "draft",
+      model: "gpt-4-turbo",
       ownedById: user.webOwnedById,
       targetEntityTypeIds: [],
     },
@@ -36,7 +37,8 @@ export const InferEntitiesAction = ({
 
   const [showAdditionalConfig, setShowAdditionalConfig] = useState(false);
 
-  const { createAs, ownedById, targetEntityTypeIds } = manualInferenceConfig;
+  const { createAs, model, ownedById, targetEntityTypeIds } =
+    manualInferenceConfig;
 
   const [inferenceRequests] = useLocalStorage("inferenceRequests", []);
 
@@ -77,6 +79,7 @@ export const InferEntitiesAction = ({
       void sendMessageToBackground({
         createAs,
         entityTypeIds: targetEntityTypeIds,
+        model,
         ownedById,
         sourceTitle: siteContent.pageTitle,
         sourceUrl: siteContent.pageUrl,
@@ -84,6 +87,7 @@ export const InferEntitiesAction = ({
         type: "infer-entities",
       });
     } catch (err) {
+      // eslint-disable-next-line no-alert
       alert(
         "Could not access page content – you may need to reload the tab if you just installed the extension, or it may be a page which your browser does not allow extensions to access.",
       );
@@ -129,7 +133,20 @@ export const InferEntitiesAction = ({
             }}
           >
             <Typography sx={{ fontSize: 14, fontWeight: 600, mb: 1 }}>
-              Scan for entities
+              Choose inference engine to use
+            </Typography>
+            <ModelSelector
+              selectedModel={model}
+              setSelectedModel={(newModel) =>
+                setManualInferenceConfig({
+                  ...manualInferenceConfig,
+                  model: newModel,
+                })
+              }
+            />
+
+            <Typography sx={{ fontSize: 14, fontWeight: 600, mb: 1, mt: 2 }}>
+              When entities are found...
             </Typography>
             <SelectWebTarget
               createAs={createAs}
@@ -177,6 +194,9 @@ export const InferEntitiesAction = ({
                 color: ({ palette }) => palette.gray[80],
                 letterSpacing: 0.5,
                 fontSize: 14,
+                "@media (prefers-color-scheme: dark)": {
+                  color: ({ palette }) => palette.gray[40],
+                },
               }}
             >
               Additional options
@@ -202,7 +222,6 @@ export const InferEntitiesAction = ({
           </Box>
         </Stack>
       </Box>
-      <InferenceRequests user={user} />
     </Section>
   );
 };
