@@ -25,7 +25,6 @@ browser.runtime.onMessage.addListener(
       const urlObject = new URL(window.location.href);
       const pageUrl = urlObject.href.replace(urlObject.hash, "");
 
-      // @ts-expect-error -- incorrect type on sendResponse
       sendResponse({
         innerText: docContent?.innerText ?? "",
         pageTitle: document.title,
@@ -34,7 +33,6 @@ browser.runtime.onMessage.addListener(
       return;
     }
 
-    // @ts-expect-error -- incorrect type on sendResponse
     sendResponse(`Unrecognised message type ${message.type}`);
   },
 );
