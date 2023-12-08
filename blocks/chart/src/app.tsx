@@ -69,6 +69,19 @@ export const App: BlockComponent<BlockEntity> = ({
     return linkedQueryEntities[0];
   }, [blockEntity, blockEntitySubgraph]);
 
+  const [initialLinkedQueryEditionId, setInitialLinkedQueryEditionId] =
+    useState<string>();
+
+  if (!initialLinkedQueryEditionId && linkedQueryEntity) {
+    setInitialLinkedQueryEditionId(
+      linkedQueryEntity.metadata.recordId.editionId,
+    );
+  }
+
+  const [
+    fetchedQueryForLinkedQueryEditionId,
+    setFetchedQueryForLinkedQueryEditionId,
+  ] = useState<string>();
   const [queryResult, setQueryResult] = useState<Subgraph<EntityRootType>>();
   const [loadingQueryResult, setLoadingQueryResult] = useState<boolean>(false);
 
@@ -115,6 +128,9 @@ export const App: BlockComponent<BlockEntity> = ({
       /** @todo: figure out why `data` is typed wrong */
       const subgraph = data as unknown as Subgraph<EntityRootType>;
 
+      setFetchedQueryForLinkedQueryEditionId(
+        queryEntity.metadata.recordId.editionId,
+      );
       setQueryResult(subgraph);
     },
     [graphModule],
@@ -191,33 +207,97 @@ export const App: BlockComponent<BlockEntity> = ({
     [graphModule, blockEntity],
   );
 
-  useEffect(() => {
-    if (
-      queryResult &&
-      (!chartDefinition ||
-        (Object.entries(chartDefinition).length === 1 &&
-          chartDefinition.kind === "bar-chart"))
-    ) {
-      let generatedChartDefinition: BarChartDefinitionVariant | undefined =
-        generateInitialGroupByPropertyBarChartDefinition({
-          queryResult,
-        });
+  const generatedChartDefinitionForQueryEditionIdRef = useRef<string | null>(
+    null,
+  );
 
-      if (!generatedChartDefinition) {
-        generatedChartDefinition =
-          generateInitialCountLinkedEntitiesBarChartDefinition({
+  if (
+    !generatedChartDefinitionForQueryEditionIdRef.current &&
+    chartDefinition &&
+    fetchedQueryForLinkedQueryEditionId
+  ) {
+    generatedChartDefinitionForQueryEditionIdRef.current =
+      fetchedQueryForLinkedQueryEditionId;
+  }
+
+  useEffect(() => {
+    if (queryResult && fetchedQueryForLinkedQueryEditionId) {
+      if (
+        !chartDefinition ||
+        (Object.entries(chartDefinition).length === 1 &&
+          chartDefinition.kind === "bar-chart")
+      ) {
+        /**
+         * If there isn't an existing chart definition, or if it just specifies `kind: "bar-chart"`,
+         * try to generate a bar chart definition from the query result.
+         */
+        let generatedChartDefinition: BarChartDefinitionVariant | undefined =
+          generateInitialGroupByPropertyBarChartDefinition({
             queryResult,
           });
-      }
 
-      if (generatedChartDefinition) {
-        void updateChartDefinition({
-          ...generatedChartDefinition,
-          kind: "bar-chart",
-        });
+        if (!generatedChartDefinition) {
+          generatedChartDefinition =
+            generateInitialCountLinkedEntitiesBarChartDefinition({
+              queryResult,
+            });
+        }
+
+        if (generatedChartDefinition) {
+          generatedChartDefinitionForQueryEditionIdRef.current =
+            fetchedQueryForLinkedQueryEditionId;
+
+          void updateChartDefinition({
+            ...generatedChartDefinition,
+            kind: "bar-chart",
+          });
+        }
+      } else if (
+        chartDefinition.kind === "bar-chart" &&
+        generatedChartDefinitionForQueryEditionIdRef.current !==
+          fetchedQueryForLinkedQueryEditionId
+      ) {
+        /**
+         * If there is an existing bar chart definition, but the query entity edition has changed,
+         * re-generate the chart definition depending on its variant.
+         */
+        if (chartDefinition.variant === "count-links") {
+          const generatedChartDefinition =
+            generateInitialCountLinkedEntitiesBarChartDefinition({
+              queryResult,
+            });
+
+          if (generatedChartDefinition) {
+            generatedChartDefinitionForQueryEditionIdRef.current =
+              fetchedQueryForLinkedQueryEditionId;
+            void updateChartDefinition({
+              ...generatedChartDefinition,
+              kind: "bar-chart",
+            });
+          }
+        } else if (chartDefinition.variant === "group-by-property") {
+          const generatedChartDefinition =
+            generateInitialGroupByPropertyBarChartDefinition({
+              queryResult,
+            });
+
+          if (generatedChartDefinition) {
+            generatedChartDefinitionForQueryEditionIdRef.current =
+              fetchedQueryForLinkedQueryEditionId;
+            void updateChartDefinition({
+              ...generatedChartDefinition,
+              kind: "bar-chart",
+            });
+          }
+        }
       }
     }
-  }, [queryResult, updateChartDefinition, chartDefinition]);
+  }, [
+    queryResult,
+    updateChartDefinition,
+    chartDefinition,
+    fetchedQueryForLinkedQueryEditionId,
+  ]);
 
   return (
     <ThemeProvider theme={theme}>
