@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 use authorization::{
     backend::ZanzibarBackend,
@@ -13,7 +15,7 @@ use crate::{
 
 pub enum DataTypeRowBatch {
     Schema(Vec<DataTypeRow>),
-    Relations(Vec<(DataTypeId, DataTypeRelationAndSubject)>),
+    Relations(HashMap<DataTypeId, DataTypeRelationAndSubject>),
 }
 
 #[async_trait]

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 use authorization::{
     backend::ZanzibarBackend,
@@ -21,7 +23,7 @@ pub enum PropertyTypeRowBatch {
     Schema(Vec<PropertyTypeRow>),
     ConstrainsValues(Vec<PropertyTypeConstrainsValuesOnRow>),
     ConstrainsProperties(Vec<PropertyTypeConstrainsPropertiesOnRow>),
-    Relations(Vec<(PropertyTypeId, PropertyTypeRelationAndSubject)>),
+    Relations(HashMap<PropertyTypeId, PropertyTypeRelationAndSubject>),
 }
 
 #[async_trait]

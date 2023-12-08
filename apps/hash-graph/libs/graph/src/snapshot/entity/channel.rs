@@ -32,7 +32,7 @@ pub struct EntitySender {
     edition: Sender<EntityEditionRow>,
     temporal_metadata: Sender<EntityTemporalMetadataRow>,
     links: Sender<EntityLinkEdgeRow>,
-    relations: Sender<(EntityUuid, EntityRelationAndSubject)>,
+    relations: Sender<(EntityUuid, Vec<EntityRelationAndSubject>)>,
 }
 
 // This is a direct wrapper around several `Sink<mpsc::Sender>` and `AccountSender` with
@@ -135,12 +135,13 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                 .attach_printable("could not send entity link edges")?;
         }
 
-        for relation in entity.relations {
-            self.relations
-                .start_send_unpin((entity.metadata.record_id.entity_id.entity_uuid, relation))
-                .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send entity relations")?;
-        }
+        self.relations
+            .start_send_unpin((
+                entity.metadata.record_id.entity_id.entity_uuid,
+                entity.relations,
+            ))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not send entity relations")?;
 
         Ok(())
     }
@@ -243,7 +244,16 @@ pub fn channel(chunk_size: usize) -> (EntitySender, EntityReceiver) {
                     .boxed(),
                 relation_rx
                     .ready_chunks(chunk_size)
-                    .map(|relations| EntityRowBatch::Relations(relations.into_iter().collect()))
+                    .map(|relations| {
+                        EntityRowBatch::Relations(
+                            relations
+                                .into_iter()
+                                .flat_map(|(id, relations)| {
+                                    relations.into_iter().map(move |relation| (id, relation))
+                                })
+                                .collect(),
+                        )
+                    })
                     .boxed(),
             ]),
         },

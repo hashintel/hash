@@ -29,7 +29,7 @@ use crate::snapshot::{
 pub struct DataTypeSender {
     metadata: OntologyTypeMetadataSender,
     schema: Sender<DataTypeRow>,
-    relations: Sender<(DataTypeId, DataTypeRelationAndSubject)>,
+    relations: Sender<(DataTypeId, Vec<DataTypeRelationAndSubject>)>,
 }
 
 // This is a direct wrapper around `Sink<mpsc::Sender<DataTypeRow>>` with and
@@ -68,12 +68,10 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;
 
-        for relationships in data_type.relations {
-            self.relations
-                .start_send_unpin((DataTypeId::new(ontology_id), relationships))
-                .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send data relations")?;
-        }
+        self.relations
+            .start_send_unpin((DataTypeId::new(ontology_id), data_type.relations))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not send data relations")?;
 
         Ok(())
     }
@@ -147,7 +145,16 @@ pub fn data_type_channel(
                     .boxed(),
                 relations_rx
                     .ready_chunks(chunk_size)
-                    .map(DataTypeRowBatch::Relations)
+                    .map(|relations| {
+                        DataTypeRowBatch::Relations(
+                            relations
+                                .into_iter()
+                                .flat_map(|(id, relations)| {
+                                    relations.into_iter().map(move |relation| (id, relation))
+                                })
+                                .collect(),
+                        )
+                    })
                     .boxed(),
             ]),
         },

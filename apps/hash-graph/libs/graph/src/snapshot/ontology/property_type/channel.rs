@@ -36,7 +36,7 @@ pub struct PropertyTypeSender {
     schema: Sender<PropertyTypeRow>,
     constrains_values: Sender<Vec<PropertyTypeConstrainsValuesOnRow>>,
     constrains_properties: Sender<Vec<PropertyTypeConstrainsPropertiesOnRow>>,
-    relations: Sender<(PropertyTypeId, PropertyTypeRelationAndSubject)>,
+    relations: Sender<(PropertyTypeId, Vec<PropertyTypeRelationAndSubject>)>,
 }
 
 // This is a direct wrapper around several `Sink<mpsc::Sender>` and `OntologyTypeMetadataSender`
@@ -123,12 +123,10 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;
 
-        for relationships in property_type.relations {
-            self.relations
-                .start_send_unpin((PropertyTypeId::new(ontology_id), relationships))
-                .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send property relations")?;
-        }
+        self.relations
+            .start_send_unpin((PropertyTypeId::new(ontology_id), property_type.relations))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not send property relations")?;
 
         Ok(())
     }
@@ -234,7 +232,16 @@ pub fn property_type_channel(
                     .boxed(),
                 relations_rx
                     .ready_chunks(chunk_size)
-                    .map(PropertyTypeRowBatch::Relations)
+                    .map(|relations| {
+                        PropertyTypeRowBatch::Relations(
+                            relations
+                                .into_iter()
+                                .flat_map(|(id, relations)| {
+                                    relations.into_iter().map(move |relation| (id, relation))
+                                })
+                                .collect(),
+                        )
+                    })
                     .boxed(),
             ]),
         },
