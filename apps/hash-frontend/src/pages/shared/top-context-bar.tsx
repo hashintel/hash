@@ -183,7 +183,7 @@ export const TopContextBar = ({
           ) : null}
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {item && !isItemEntityType(item) && (
+          {item && !isItemEntityType(item) && !isEntityPageEntity(item) && (
             <ShareDropdownMenu entity={item} />
           )}
 
