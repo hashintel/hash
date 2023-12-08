@@ -260,6 +260,9 @@ export const App: BlockComponent<BlockEntity> = ({
         /**
          * If there is an existing bar chart definition, but the query entity edition has changed,
          * re-generate the chart definition depending on its variant.
+         *
+         * A more robust approach would be to check which of the individual chart definition fields
+         * have become invalid, and only update those to persist prior changes made by the user.
          */
         if (chartDefinition.variant === "count-links") {
           const generatedChartDefinition =
