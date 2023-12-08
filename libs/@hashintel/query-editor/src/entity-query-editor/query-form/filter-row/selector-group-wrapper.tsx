@@ -13,6 +13,7 @@ export const SelectorGroupWrapper = ({ children }: { children: ReactNode }) => {
       direction="row"
       sx={{
         flex: 1,
+        minWidth: 0,
         fieldset: {
           boxShadow: "none !important",
         },

@@ -38,7 +38,7 @@ export const QueryForm = ({ entityTypes, propertyTypes }: QueryFormProps) => {
   return (
     <>
       {!!fieldArray.fields.length && (
-        <Stack gap={3} sx={{ alignSelf: "flex-start" }}>
+        <Stack gap={3} sx={{ alignSelf: "flex-start", maxWidth: "100%" }}>
           {fieldArray.fields.map((field, index) => (
             <FilterRow
               index={index}

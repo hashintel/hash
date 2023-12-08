@@ -15,6 +15,7 @@ export const getEntityQuery = gql`
     $isOfType: OutgoingEdgeResolveDepthInput!
     $hasLeftEntity: EdgeResolveDepthsInput!
     $hasRightEntity: EdgeResolveDepthsInput!
+    $includeDrafts: Boolean
   ) {
     getEntity(
       entityId: $entityId
@@ -27,6 +28,7 @@ export const getEntityQuery = gql`
       isOfType: $isOfType
       hasLeftEntity: $hasLeftEntity
       hasRightEntity: $hasRightEntity
+      includeDrafts: $includeDrafts
     ) {
       userPermissionsOnEntities @include(if: $includePermissions)
       subgraph {

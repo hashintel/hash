@@ -1,4 +1,4 @@
-import { EntityId, Subgraph } from "@local/hash-subgraph";
+import { Entity, EntityId, Subgraph } from "@local/hash-subgraph";
 import { getEntityRevisionsByEntityId } from "@local/hash-subgraph/stdlib";
 
 export const getFirstRevisionCreatedAt = (
@@ -17,3 +17,21 @@ export const getFirstRevisionCreatedAt = (
     },
     new Date(),
   );
+
+export const getFirstRevision = (subgraph: Subgraph, entityId: EntityId) => {
+  const revisions = getEntityRevisionsByEntityId(subgraph, entityId);
+
+  return revisions.reduce<Entity>((previous, current) => {
+    const currentCreatedAt = new Date(
+      current.metadata.temporalVersioning.decisionTime.start.limit,
+    );
+
+    const previousCreatedAt = new Date(
+      previous.metadata.temporalVersioning.decisionTime.start.limit,
+    );
+
+    return currentCreatedAt.getTime() < previousCreatedAt.getTime()
+      ? current
+      : previous;
+  }, revisions[0]!);
+};

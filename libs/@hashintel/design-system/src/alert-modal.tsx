@@ -1,5 +1,5 @@
 import { Stack, Typography } from "@mui/material";
-import { ReactElement } from "react";
+import { ReactNode } from "react";
 
 import { Button } from "./button";
 import { Callout } from "./callout";
@@ -7,10 +7,10 @@ import { Modal } from "./modal";
 
 type AlertModalProps = {
   callback?: () => void;
-  calloutMessage: string;
+  calloutMessage: ReactNode;
   close: () => void;
   confirmButtonText?: string;
-  header: ReactElement;
+  header: ReactNode;
   type: "info" | "warning";
 };
 
