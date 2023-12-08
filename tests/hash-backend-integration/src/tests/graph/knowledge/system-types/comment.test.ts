@@ -1,7 +1,11 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import { Block } from "@apps/hash-api/src/graph/knowledge/system-types/block";
+import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import {
+  Block,
+  createBlock,
+} from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import {
   createComment,
   getCommentAuthor,
@@ -16,6 +20,8 @@ import {
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { OwnedById } from "@local/hash-subgraph";
 
 import { resetGraph } from "../../../test-server";
@@ -47,7 +53,29 @@ describe("Comment", () => {
     testUser = await createTestUser(graphContext, "commentTest", logger);
     const authentication = { actorId: testUser.accountId };
 
+    const initialBlock = await createBlock(
+      graphContext,
+      { actorId: testUser.accountId },
+      {
+        ownedById: testUser.accountId as OwnedById,
+        componentId: "text",
+        blockData: await createEntity(
+          graphContext,
+          { actorId: testUser.accountId },
+          {
+            ownedById: testUser.accountId as OwnedById,
+            entityTypeId: systemEntityTypes.text.entityTypeId,
+            properties: {
+              "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
+                [],
+            } as TextProperties,
+          },
+        ),
+      },
+    );
+
     testPage = await createPage(graphContext, authentication, {
+      initialBlocks: [initialBlock],
       ownedById: testUser.accountId as OwnedById,
       title: "test page",
       type: "document",
