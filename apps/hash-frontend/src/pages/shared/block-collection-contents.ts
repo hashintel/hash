@@ -1,4 +1,3 @@
-import { EntityStructuralQuery } from "@local/hash-graph-client";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import {
   currentTimeInstantTemporalAxes,

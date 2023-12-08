@@ -1,4 +1,3 @@
-import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import {
   EntityId,
   extractEntityUuidFromEntityId,
