@@ -11,6 +11,7 @@ import {
   getIncomingLinksForEntity,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
+import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import {
   FormControl,
   InputLabel,
@@ -18,7 +19,6 @@ import {
   Select,
   TextField,
 } from "@mui/material";
-import pluralize from "pluralize";
 import { FunctionComponent, useCallback, useMemo } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 
