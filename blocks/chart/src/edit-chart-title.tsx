@@ -42,6 +42,7 @@ export const EditableChartTitle: FunctionComponent<EditableChartTitleProps> = ({
           width: "100%",
           marginTop: 1,
         },
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- TODO why is this inferred as any?
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >

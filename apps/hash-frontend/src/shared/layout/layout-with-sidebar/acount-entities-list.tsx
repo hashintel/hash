@@ -133,7 +133,7 @@ export const AccountEntitiesList: FunctionComponent<
         }
       >
         <Box component="ul">
-          {loading ? (
+          {loading && sortedEntityTypes.length === 0 ? (
             <LoadingSkeleton />
           ) : (
             <TransitionGroup>

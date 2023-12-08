@@ -26,7 +26,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.1-canary-20231120181031",
+    "@blockprotocol/graph": "0.3.1-canary-20231207113055",
     "twind": "0.16.17"
   },
   "devDependencies": {
@@ -60,7 +60,7 @@
       {}
     ],
     "protocol": "0.3",
-    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/video-block/v/2",
+    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/video-block/v/3",
     "codegen": {
       "outputFolder": "src/types/generated",
       "targets": {

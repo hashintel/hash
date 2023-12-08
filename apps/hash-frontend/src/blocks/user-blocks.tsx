@@ -66,7 +66,17 @@ export const UserBlocksProvider: FunctionComponent<{
 
       const apiBlocksWithSchema = await Promise.all(
         data.getBlockProtocolBlocks.map(async ({ componentId }) => {
-          const fetchedBlock = await fetchBlock(componentId);
+          const fetchedBlock = await fetchBlock(componentId, {
+            /**
+             * We want to avoid using the `blockCache` here as we want to
+             * fetch the latest version of the block once per page-load,
+             * incase there's been an update.
+             *
+             * @todo consider mechanisms for migrating existing blocks
+             * to new versions if there are breaking changes
+             */
+            useCachedData: false,
+          });
 
           const blockSchema = await fetchBlockSchema({
             schemaId: fetchedBlock.meta.schema,

@@ -23,14 +23,16 @@
     "icon": "public/chart-network-regular.svg",
     "properties": {
       "https://blockprotocol.org/@hash/types/property-type/chart-defintion/": {
-        "kind": "graph-chart"
+        "kind": "graph-chart",
+        "variant": "default"
       }
     },
     "examples": [
       {
         "https://blockprotocol.org/@blockprotocol/types/property-type/title/": "Network Graph Chart Title",
         "https://blockprotocol.org/@hash/types/property-type/chart-defintion/": {
-          "kind": "graph-chart"
+          "kind": "graph-chart",
+          "variant": "default"
         }
       }
     ]

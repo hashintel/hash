@@ -1,163 +1,103 @@
-import {
-  EntityRootType,
-  EntityType,
-  extractBaseUrl,
-  PropertyType,
-  Subgraph,
-  VersionedUrl,
-} from "@blockprotocol/graph";
-import {
-  getEntityTypeById,
-  getPropertyTypeById,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
-import {
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-} from "@mui/material";
-import pluralize from "pluralize";
-import { FunctionComponent, useMemo } from "react";
+import { EntityRootType, EntityType, Subgraph } from "@blockprotocol/graph";
+import { FormControl, InputLabel, MenuItem, Select } from "@mui/material";
+import { FunctionComponent } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 
 import { ChartDefinition } from "../types/chart-definition";
+import {
+  CountLinksForm,
+  generateInitialChartDefinition as generateInitialCountLinkedEntitiesChartDefinition,
+  generateXAxisLabel as generateCountLinkedEntitiesXAxisLabel,
+} from "./bar-graph-definition-form/count-linked-entities-form";
+import {
+  generateInitialChartDefinition as generateInitialGroupByPropertyChartDefinition,
+  generateYAxisLabel as generateGroupByPropertyYAxisLabel,
+  GroupByPropertyForm,
+} from "./bar-graph-definition-form/group-by-property-form";
 
-export const getEntityTypePropertyTypes = (
-  subgraph: Subgraph,
-  entityType: EntityType,
-): PropertyType[] => {
-  const propertyTypeIds = Object.values(entityType.properties).map((value) =>
-    "$ref" in value ? value.$ref : value.items.$ref,
-  );
-
-  const propertyTypes = propertyTypeIds.map((propertyTypeId) => {
-    const propertyType = getPropertyTypeById(subgraph, propertyTypeId)?.schema;
-
-    if (!propertyType) {
-      throw new Error(
-        `Could not get property type from subgraph: ${propertyTypeId}`,
-      );
-    }
-
-    return propertyType;
-  });
-
-  return [
-    ...propertyTypes,
-    ...(entityType.allOf
-      ?.map(({ $ref }) => {
-        const inheritsFromEntityType = getEntityTypeById(subgraph, $ref)
-          ?.schema;
-
-        if (!inheritsFromEntityType) {
-          throw new Error(
-            `Could not get inherited entity type from subgraph: ${$ref}`,
-          );
-        }
-
-        return getEntityTypePropertyTypes(subgraph, inheritsFromEntityType);
-      })
-      .flat() ?? []),
-  ];
-};
-
-export const generateXAxisLabel = (params: {
-  entityType: EntityType;
-  groupByPropertyType: PropertyType;
-}) =>
-  `${
-    params.entityType.title
-  } ${params.groupByPropertyType.title.toLowerCase()}`;
-
-export const generateYAxisLabel = (params: { entityType: EntityType }) =>
-  `Number of ${pluralize(params.entityType.title.toLowerCase())}`;
-
-export const generateInitialChartDefinition = (params: {
-  queryResult: Subgraph<EntityRootType>;
-}): ChartDefinition | undefined => {
-  const { queryResult } = params;
-
-  const resultEntity = getRoots(queryResult)[0]!;
-
-  const entityType = getEntityTypeById(
-    queryResult,
-    resultEntity.metadata.entityTypeId,
-  )?.schema;
-
-  if (!entityType) {
-    return undefined;
-  }
-
-  const propertyTypes = getEntityTypePropertyTypes(queryResult, entityType);
-
-  const resultPropertyTypeWithTextValue = propertyTypes.find(
-    ({ $id, oneOf }) =>
-      Object.keys(resultEntity.properties).some(
-        (propertyTypeBaseUrl) => extractBaseUrl($id) === propertyTypeBaseUrl,
-      ) &&
-      oneOf.some(
-        (value) =>
-          "$ref" in value &&
-          value.$ref ===
-            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-      ),
-    [],
-  );
-
-  const groupByPropertyType =
-    resultPropertyTypeWithTextValue ?? propertyTypes[0];
-
-  if (!groupByPropertyType) {
-    return undefined;
-  }
-
-  return {
-    kind: "bar-chart",
-    variant: "group-by-property",
-    entityTypeId: entityType.$id,
-    groupByPropertyTypeId: groupByPropertyType.$id,
-    xAxisLabel: generateXAxisLabel({
-      entityType,
-      groupByPropertyType,
-    }),
-    yAxisLabel: generateYAxisLabel({
-      entityType,
-    }),
-  };
+const barChartVariantNames: Record<
+  ChartDefinition<"bar-chart">["variant"],
+  string
+> = {
+  "group-by-property": "Group by Property",
+  "count-links": "Count Links",
 };
 
 export const BarChartDefinitionForm: FunctionComponent<{
-  queryResult: Subgraph<EntityRootType>;
   entityTypes: EntityType[];
+  queryResult: Subgraph<EntityRootType>;
 }> = ({ entityTypes, queryResult }) => {
-  const { control, register, setValue, watch } =
+  const { control, setValue, watch } =
     useFormContext<ChartDefinition<"bar-chart">>();
 
-  const entityTypeId = watch("entityTypeId");
-
-  const entityType = useMemo(
-    () =>
-      /** @todo: figure out why react hook form makes this always defined */
-      (entityTypeId as VersionedUrl | "") !== ""
-        ? entityTypes.find(({ $id }) => $id === entityTypeId)
-        : undefined,
-    [entityTypes, entityTypeId],
-  );
-
-  const entityTypePropertyTypes = useMemo(() => {
-    if (!entityType) {
-      return undefined;
-    }
-
-    const propertyTypes = getEntityTypePropertyTypes(queryResult, entityType);
-
-    return propertyTypes;
-  }, [entityType, queryResult]);
+  const currentVariant = watch("variant");
 
   return (
     <>
+      <Controller
+        control={control}
+        name="variant"
+        render={({ field }) => (
+          <FormControl sx={{ minWidth: 200 }}>
+            <InputLabel id="bar-chart-variant">Bar Chart Variant</InputLabel>
+            <Select
+              {...field}
+              onChange={(event) => {
+                const updatedVariant = event.target
+                  .value as ChartDefinition<"bar-chart">["variant"];
+
+                if (updatedVariant === "group-by-property") {
+                  const initialDefinition =
+                    generateInitialGroupByPropertyChartDefinition({
+                      queryResult,
+                    });
+
+                  if (initialDefinition) {
+                    setValue("entityTypeId", initialDefinition.entityTypeId);
+                    setValue(
+                      "groupByPropertyTypeId",
+                      initialDefinition.groupByPropertyTypeId,
+                    );
+                    setValue("xAxisLabel", initialDefinition.xAxisLabel);
+                    setValue("yAxisLabel", initialDefinition.yAxisLabel);
+                  }
+                } else {
+                  const initialDefinition =
+                    generateInitialCountLinkedEntitiesChartDefinition({
+                      queryResult,
+                    });
+
+                  if (initialDefinition) {
+                    setValue("entityTypeId", initialDefinition.entityTypeId);
+                    setValue(
+                      "labelPropertyTypeId",
+                      initialDefinition.labelPropertyTypeId,
+                    );
+                    setValue("direction", initialDefinition.direction);
+                    setValue(
+                      "linkEntityTypeId",
+                      initialDefinition.linkEntityTypeId,
+                    );
+                    setValue("xAxisLabel", initialDefinition.xAxisLabel);
+                    setValue("yAxisLabel", initialDefinition.yAxisLabel);
+                  }
+                }
+
+                field.onChange(event);
+              }}
+              labelId="bar-chart-variant"
+              label="Bar Chart Variant"
+              required
+            >
+              {Object.entries(barChartVariantNames).map(([variant, label]) => (
+                <MenuItem key={variant} value={variant}>
+                  {label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+      />
       {entityTypes.length > 0 ? (
         <Controller
           control={control}
@@ -173,10 +113,21 @@ export const BarChartDefinitionForm: FunctionComponent<{
                   );
 
                   if (selectedEntityType) {
-                    setValue(
-                      "yAxisLabel",
-                      generateYAxisLabel({ entityType: selectedEntityType }),
-                    );
+                    if (currentVariant === "group-by-property") {
+                      setValue(
+                        "yAxisLabel",
+                        generateGroupByPropertyYAxisLabel({
+                          entityType: selectedEntityType,
+                        }),
+                      );
+                    } else {
+                      setValue(
+                        "xAxisLabel",
+                        generateCountLinkedEntitiesXAxisLabel({
+                          entityType: selectedEntityType,
+                        }),
+                      );
+                    }
                   }
 
                   field.onChange(event);
@@ -195,60 +146,14 @@ export const BarChartDefinitionForm: FunctionComponent<{
           )}
         />
       ) : null}
-      <Controller
-        control={control}
-        name="groupByPropertyTypeId"
-        disabled={!entityTypePropertyTypes}
-        render={({ field }) => (
-          <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel id="group-by-property">Group by property</InputLabel>
-            <Select
-              {...field}
-              // prevent MUI from logging a warning
-              value={entityTypePropertyTypes ? field.value : ""}
-              onChange={(event) => {
-                const groupByPropertyType = entityTypePropertyTypes?.find(
-                  ({ $id }) => $id === event.target.value,
-                );
-
-                if (entityType && groupByPropertyType) {
-                  setValue(
-                    "xAxisLabel",
-                    generateXAxisLabel({ entityType, groupByPropertyType }),
-                  );
-                }
-
-                field.onChange(event);
-              }}
-              labelId="group-by-property"
-              label="Group by property"
-              required
-            >
-              {entityTypePropertyTypes?.map(({ $id, title }) => (
-                <MenuItem key={$id} value={$id}>
-                  {title}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        )}
-      />
-      <TextField
-        id="x-axis-label"
-        fullWidth
-        label="X Axis Label"
-        /** @todo: figure out why the label isn't shrinking when the value is updated programmatically */
-        InputLabelProps={{ shrink: true }}
-        {...register("xAxisLabel")}
-      />
-      <TextField
-        id="y-axis-label"
-        fullWidth
-        label="Y Axis Label"
-        /** @todo: figure out why the label isn't shrinking when the value is updated programmatically */
-        InputLabelProps={{ shrink: true }}
-        {...register("yAxisLabel")}
-      />
+      {currentVariant === "count-links" ? (
+        <CountLinksForm entityTypes={entityTypes} queryResult={queryResult} />
+      ) : (
+        <GroupByPropertyForm
+          entityTypes={entityTypes}
+          queryResult={queryResult}
+        />
+      )}
     </>
   );
 };
