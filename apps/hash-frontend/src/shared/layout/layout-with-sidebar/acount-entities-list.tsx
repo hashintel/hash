@@ -19,6 +19,7 @@ import {
   SortType,
 } from "./account-entity-type-list/sort-actions-dropdown";
 import { NavLink } from "./nav-link";
+import { LoadingSkeleton } from "./shared/loading-skeleton";
 import { ViewAllLink } from "./view-all-link";
 
 type AccountEntitiesListProps = {
@@ -37,7 +38,7 @@ export const AccountEntitiesList: FunctionComponent<
 
   const { activeWorkspace } = useActiveWorkspace();
 
-  const { latestEntityTypes } = useLatestEntityTypesOptional();
+  const { latestEntityTypes, loading } = useLatestEntityTypesOptional();
 
   const pinnedEntityTypes = useMemo(() => {
     const { pinnedEntityTypeBaseUrls } = activeWorkspace ?? {};
@@ -132,19 +133,24 @@ export const AccountEntitiesList: FunctionComponent<
         }
       >
         <Box component="ul">
-          <TransitionGroup>
-            {sortedEntityTypes.map((root) => (
-              <Collapse key={root.schema.$id}>
-                <EntityTypeItem
-                  entityType={root}
-                  href={`/entities?entityTypeIdOrBaseUrl=${extractBaseUrl(
-                    root.schema.$id,
-                  )}`}
-                  variant="entity"
-                />
-              </Collapse>
-            ))}
-          </TransitionGroup>
+          {loading ? (
+            <LoadingSkeleton />
+          ) : (
+            <TransitionGroup>
+              {sortedEntityTypes.map((root) => (
+                <Collapse key={root.schema.$id}>
+                  <EntityTypeItem
+                    entityType={root}
+                    href={`/entities?entityTypeIdOrBaseUrl=${extractBaseUrl(
+                      root.schema.$id,
+                    )}`}
+                    variant="entity"
+                  />
+                </Collapse>
+              ))}
+            </TransitionGroup>
+          )}
+
           <Box marginLeft={1} marginTop={0.5}>
             <ViewAllLink href="/entities">View all entities</ViewAllLink>
           </Box>

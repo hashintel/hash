@@ -154,14 +154,16 @@ export const prepareBlockCache = (
 // @todo deal with errors, loading, abort etc.
 export const fetchBlock = async (
   componentId: string,
-  options?: { bustCache: boolean },
+  options: { useCachedData: boolean },
 ): Promise<HashBlock> => {
   const baseUrl = componentIdToUrl(componentId);
 
-  if (options?.bustCache) {
-    blockCache.delete(baseUrl);
+  const cachedPromise = blockCache.get(baseUrl);
+
+  if (options.useCachedData && cachedPromise) {
+    return cachedPromise;
   } else if (blockCache.has(baseUrl)) {
-    return blockCache.get(baseUrl)!;
+    blockCache.delete(baseUrl);
   }
 
   const promise = (async () => {

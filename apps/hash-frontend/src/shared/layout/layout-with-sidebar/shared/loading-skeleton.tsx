@@ -25,8 +25,8 @@ const LoadingLine = () => {
   );
 };
 
-export const PagesLoadingState = () => (
-  <Box mx={0.75} px={3.5}>
+export const LoadingSkeleton = ({ page = false }: { page?: boolean }) => (
+  <Box mx={0.75} pl={page ? 3.5 : 1.5} pr={6}>
     <LoadingLine />
     <LoadingLine />
     <LoadingLine />

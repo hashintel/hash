@@ -99,12 +99,7 @@ describe("Page", () => {
       type: "document",
     });
 
-    const initialBlocks = await getPageBlocks(graphContext, authentication, {
-      pageEntityId: testPage.entity.metadata.recordId.entityId,
-      type: "document",
-    });
-
-    expect(initialBlocks).toHaveLength(1);
+    expect(testPage.title).toEqual("Test Page");
   });
 
   let testPage2: Page;
@@ -213,11 +208,27 @@ describe("Page", () => {
 
   let firstKey: string;
 
+  let testPageForBlockManipulation: Page;
+
   it("can insert blocks", async () => {
     const authentication = { actorId: testUser.accountId };
 
+    const firstBlock = await createTestBlock();
+
+    testPageForBlockManipulation = await createPage(
+      graphContext,
+      authentication,
+      {
+        initialBlocks: [firstBlock],
+        ownedById: testUser.accountId as OwnedById,
+        title: "Test Page for Block Manipulation",
+        type: "document",
+      },
+    );
+
     const existingBlocks = await getPageBlocks(graphContext, authentication, {
-      pageEntityId: testPage.entity.metadata.recordId.entityId,
+      pageEntityId:
+        testPageForBlockManipulation.entity.metadata.recordId.entityId,
       type: "document",
     });
 
@@ -237,7 +248,8 @@ describe("Page", () => {
       graphContext,
       authentication,
       {
-        blockCollectionEntityId: testPage.entity.metadata.recordId.entityId,
+        blockCollectionEntityId:
+          testPageForBlockManipulation.entity.metadata.recordId.entityId,
         block: testBlock2,
         position: {
           indexPosition: {
@@ -257,7 +269,8 @@ describe("Page", () => {
       graphContext,
       authentication,
       {
-        blockCollectionEntityId: testPage.entity.metadata.recordId.entityId,
+        blockCollectionEntityId:
+          testPageForBlockManipulation.entity.metadata.recordId.entityId,
         block: testBlock3,
         position: {
           indexPosition: {
@@ -275,7 +288,8 @@ describe("Page", () => {
 
     const blocks = (
       await getPageBlocks(graphContext, authentication, {
-        pageEntityId: testPage.entity.metadata.recordId.entityId,
+        pageEntityId:
+          testPageForBlockManipulation.entity.metadata.recordId.entityId,
         type: "document",
       })
     ).map((contentItem) => contentItem.rightEntity);
@@ -307,7 +321,8 @@ describe("Page", () => {
 
     const initialBlocks = (
       await getPageBlocks(graphContext, authentication, {
-        pageEntityId: testPage.entity.metadata.recordId.entityId,
+        pageEntityId:
+          testPageForBlockManipulation.entity.metadata.recordId.entityId,
         type: "document",
       })
     ).map((contentItem) => contentItem.rightEntity);
@@ -330,7 +345,8 @@ describe("Page", () => {
 
     const updatedBlocks = (
       await getPageBlocks(graphContext, authentication, {
-        pageEntityId: testPage.entity.metadata.recordId.entityId,
+        pageEntityId:
+          testPageForBlockManipulation.entity.metadata.recordId.entityId,
         type: "document",
       })
     ).map((contentItem) => contentItem.rightEntity);
@@ -350,7 +366,8 @@ describe("Page", () => {
 
     const blocks = (
       await getPageBlocks(graphContext, authentication, {
-        pageEntityId: testPage.entity.metadata.recordId.entityId,
+        pageEntityId:
+          testPageForBlockManipulation.entity.metadata.recordId.entityId,
         type: "document",
       })
     ).map((contentItem) => contentItem.rightEntity);

@@ -27,7 +27,7 @@ export const useLatestEntityTypesOptional = (params?: {
 }) => {
   const { includeArchived = false } = params ?? {};
 
-  const { entityTypes, isSpecialEntityTypeLookup } =
+  const { entityTypes, isSpecialEntityTypeLookup, loading } =
     useEntityTypesContextRequired();
 
   const latestEntityTypes = useMemo(() => {
@@ -60,7 +60,7 @@ export const useLatestEntityTypesOptional = (params?: {
         );
   }, [entityTypes, includeArchived]);
 
-  return { latestEntityTypes, isSpecialEntityTypeLookup };
+  return { latestEntityTypes, isSpecialEntityTypeLookup, loading };
 };
 
 /**
