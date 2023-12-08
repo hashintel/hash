@@ -129,6 +129,8 @@ export const BlockSelectDataModal: FunctionComponent<
       }
 
       await refetchBlockSubgraph();
+
+      onClose();
     },
     [
       updateEntity,
@@ -136,6 +138,7 @@ export const BlockSelectDataModal: FunctionComponent<
       blockDataEntity,
       existingQuery,
       createEntity,
+      onClose,
     ],
   );
 
