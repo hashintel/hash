@@ -145,16 +145,7 @@ pub fn data_type_channel(
                     .boxed(),
                 relations_rx
                     .ready_chunks(chunk_size)
-                    .map(|relations| {
-                        DataTypeRowBatch::Relations(
-                            relations
-                                .into_iter()
-                                .flat_map(|(id, relations)| {
-                                    relations.into_iter().map(move |relation| (id, relation))
-                                })
-                                .collect(),
-                        )
-                    })
+                    .map(|relations| DataTypeRowBatch::Relations(relations.into_iter().collect()))
                     .boxed(),
             ]),
         },

@@ -233,14 +233,7 @@ pub fn property_type_channel(
                 relations_rx
                     .ready_chunks(chunk_size)
                     .map(|relations| {
-                        PropertyTypeRowBatch::Relations(
-                            relations
-                                .into_iter()
-                                .flat_map(|(id, relations)| {
-                                    relations.into_iter().map(move |relation| (id, relation))
-                                })
-                                .collect(),
-                        )
+                        PropertyTypeRowBatch::Relations(relations.into_iter().collect())
                     })
                     .boxed(),
             ]),

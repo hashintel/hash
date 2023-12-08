@@ -28,7 +28,7 @@ pub enum EntityTypeRowBatch {
     ConstrainsProperties(Vec<EntityTypeConstrainsPropertiesOnRow>),
     ConstrainsLinks(Vec<EntityTypeConstrainsLinksOnRow>),
     ConstrainsLinkDestinations(Vec<EntityTypeConstrainsLinkDestinationsOnRow>),
-    Relations(HashMap<EntityTypeId, EntityTypeRelationAndSubject>),
+    Relations(HashMap<EntityTypeId, Vec<EntityTypeRelationAndSubject>>),
 }
 
 #[async_trait]
@@ -74,6 +74,7 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
         Ok(())
     }
 
+    #[expect(clippy::too_many_lines)]
     async fn write(
         self,
         postgres_client: &PostgresStore<C>,
@@ -167,9 +168,20 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                     );
                 }
             }
+            #[expect(
+                clippy::needless_collect,
+                reason = "Lifetime error, probably the signatures are wrong"
+            )]
             Self::Relations(relations) => {
                 authorization_api
-                    .touch_relationships(relations)
+                    .touch_relationships(
+                        relations
+                            .into_iter()
+                            .flat_map(|(id, relations)| {
+                                relations.into_iter().map(move |relation| (id, relation))
+                            })
+                            .collect::<Vec<_>>(),
+                    )
                     .await
                     .change_context(InsertionError)?;
             }

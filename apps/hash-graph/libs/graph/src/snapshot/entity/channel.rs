@@ -244,16 +244,7 @@ pub fn channel(chunk_size: usize) -> (EntitySender, EntityReceiver) {
                     .boxed(),
                 relation_rx
                     .ready_chunks(chunk_size)
-                    .map(|relations| {
-                        EntityRowBatch::Relations(
-                            relations
-                                .into_iter()
-                                .flat_map(|(id, relations)| {
-                                    relations.into_iter().map(move |relation| (id, relation))
-                                })
-                                .collect(),
-                        )
-                    })
+                    .map(|relations| EntityRowBatch::Relations(relations.into_iter().collect()))
                     .boxed(),
             ]),
         },

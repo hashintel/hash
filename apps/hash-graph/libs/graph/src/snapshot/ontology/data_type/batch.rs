@@ -15,7 +15,7 @@ use crate::{
 
 pub enum DataTypeRowBatch {
     Schema(Vec<DataTypeRow>),
-    Relations(HashMap<DataTypeId, DataTypeRelationAndSubject>),
+    Relations(HashMap<DataTypeId, Vec<DataTypeRelationAndSubject>>),
 }
 
 #[async_trait]
@@ -60,9 +60,20 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
                     tracing::info!("Read {} data type schemas", rows.len());
                 }
             }
+            #[expect(
+                clippy::needless_collect,
+                reason = "Lifetime error, probably the signatures are wrong"
+            )]
             Self::Relations(relations) => {
                 authorization_api
-                    .touch_relationships(relations)
+                    .touch_relationships(
+                        relations
+                            .into_iter()
+                            .flat_map(|(id, relations)| {
+                                relations.into_iter().map(move |relation| (id, relation))
+                            })
+                            .collect::<Vec<_>>(),
+                    )
                     .await
                     .change_context(InsertionError)?;
             }
