@@ -85,7 +85,7 @@ export const App: BlockComponent<BlockEntity> = ({
                 <div>
                   <EditableField
                     value={titleValue}
-                    placeholder="Untitled Board"
+                    placeholder="Untitled Table"
                     onChange={(event) => setTitleValue(event.target.value)}
                     onBlur={(event) =>
                       updateEntity({ [titleKey]: event.target.value })
