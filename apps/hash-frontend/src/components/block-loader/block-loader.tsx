@@ -325,6 +325,14 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     possiblyStaleSubgraph,
   ]);
 
+  /**
+   * If we are able to derive the `blockSubgraph` without the value from the context,
+   * set it in the context so it becomes available to other consumers of the context.
+   */
+  if (!possiblyStaleSubgraph && blockSubgraph) {
+    setBlockSubgraph(blockSubgraph);
+  }
+
   const lastFetchedBlockEntityId = useRef(blockEntityId);
 
   /**
