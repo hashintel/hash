@@ -1,0 +1,18 @@
+diff --git a/node_modules/@blockprotocol/type-system/dist/wasm/type-system.d.ts b/node_modules/@blockprotocol/type-system/dist/wasm/type-system.d.ts
+index b25b9d7..77fb40a 100644
+--- a/node_modules/@blockprotocol/type-system/dist/wasm/type-system.d.ts
++++ b/node_modules/@blockprotocol/type-system/dist/wasm/type-system.d.ts
+@@ -116,7 +116,12 @@ export interface EntityType extends AllOf<EntityTypeReference>, Object<ValueOrAr
+     examples?: Record<BaseUrl, any>[];
+ }
+ 
+-export type MaybeOneOfEntityTypeReference = OneOf<EntityTypeReference> | Record<string, never>;
++/**
++ * PATCHED BECAUSE:
++ * Using Record<string, never> means that the TS compiler doesn't pick up that items.oneOf in a link schema might be undefined
++ * @todo reconsider these types in the @blockprotocol/type-system package
++ */
++export type MaybeOneOfEntityTypeReference = OneOf<EntityTypeReference> | {};
+ 
+ export type ParseVersionedUrlError = { reason: "IncorrectFormatting" } | { reason: "MissingVersion" } | { reason: "InvalidVersion"; inner: [string, string] } | { reason: "AdditionalEndContent"; inner: string } | { reason: "InvalidBaseUrl"; inner: ParseBaseUrlError } | { reason: "TooLong" };
+ 

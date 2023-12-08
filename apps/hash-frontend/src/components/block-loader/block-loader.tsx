@@ -479,12 +479,12 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
               readonly || // is the entire page readonly?
               /**
                * If we have a blockEntityId, check if the user lacks edit permissions on the block entity.
-               * If we don't have a blockEntityId, this is a newly created entity which the user should have edit permissions on.
+               * If we don't have a blockEntityId or userPermissions, this is a newly created entity which the user should have edit permissions on.
                */
               !!(
                 blockEntityId &&
-                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive on unsafe index access
-                !userPermissions?.[blockEntityId]?.edit
+                userPermissions?.[blockEntityId] &&
+                !userPermissions[blockEntityId]!.edit
               ),
             blockEntitySubgraph:
               blockSubgraph as unknown as BpSubgraph<EntityRootType>,
