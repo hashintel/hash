@@ -32,6 +32,7 @@ import { MeQuery } from "../graphql/api-types.gen";
 import { meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
 import { constructMinimalUser } from "../lib/user-and-org";
+import { DraftEntitiesContextProvider } from "../shared/draft-entities-context";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { FileUploadsProvider } from "../shared/file-upload-context";
 import { KeyboardShortcutsContextProvider } from "../shared/keyboard-shortcuts-context";
@@ -144,26 +145,28 @@ const App: FunctionComponent<AppProps> = ({
                 <KeyboardShortcutsContextProvider>
                   <SnackbarProvider maxSnack={3}>
                     <NotificationsContextProvider>
-                      <EntityTypesContextProvider>
-                        <PropertyTypesContextProvider includeArchived>
-                          <FileUploadsProvider>
-                            <SidebarContextProvider>
-                              <ErrorBoundary
-                                beforeCapture={(scope) => {
-                                  scope.setTag("error-boundary", "_app");
-                                }}
-                                fallback={(props) =>
-                                  getLayoutWithSidebar(
-                                    <ErrorFallback {...props} />,
-                                  )
-                                }
-                              >
-                                {getLayout(<Component {...pageProps} />)}
-                              </ErrorBoundary>
-                            </SidebarContextProvider>
-                          </FileUploadsProvider>
-                        </PropertyTypesContextProvider>
-                      </EntityTypesContextProvider>
+                      <DraftEntitiesContextProvider>
+                        <EntityTypesContextProvider>
+                          <PropertyTypesContextProvider includeArchived>
+                            <FileUploadsProvider>
+                              <SidebarContextProvider>
+                                <ErrorBoundary
+                                  beforeCapture={(scope) => {
+                                    scope.setTag("error-boundary", "_app");
+                                  }}
+                                  fallback={(props) =>
+                                    getLayoutWithSidebar(
+                                      <ErrorFallback {...props} />,
+                                    )
+                                  }
+                                >
+                                  {getLayout(<Component {...pageProps} />)}
+                                </ErrorBoundary>
+                              </SidebarContextProvider>
+                            </FileUploadsProvider>
+                          </PropertyTypesContextProvider>
+                        </EntityTypesContextProvider>
+                      </DraftEntitiesContextProvider>
                     </NotificationsContextProvider>
                   </SnackbarProvider>
                 </KeyboardShortcutsContextProvider>
