@@ -1,8 +1,6 @@
 import {
   EntityTypeReference,
   extractVersion,
-  MaybeOneOfEntityTypeReference,
-  MaybeOrderedArray,
 } from "@blockprotocol/type-system";
 import { VersionedUrl } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
 import { EntityType } from "@blockprotocol/type-system/slim";
