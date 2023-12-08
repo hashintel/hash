@@ -147,7 +147,7 @@ export const createComment: ImpureGraphFunction<
     entityTypeId: systemEntityTypes.text.entityTypeId,
     relationships: [
       {
-        // the author has editor permissions (owner), regardless of which web the comment belongs to (ownedById)
+        // the author has editor permissions, regardless of which web the comment belongs to (ownedById)
         relation: "editor",
         subject: {
           kind: "account",

@@ -26,11 +26,7 @@ import {
   createWeb,
 } from "../../account-permission-management";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import {
-  createEntity,
-  CreateEntityParams,
-  modifyEntityAuthorizationRelationships,
-} from "../primitive/entity";
+import { createEntity, CreateEntityParams } from "../primitive/entity";
 import { User } from "./user";
 
 export type HashInstance = {

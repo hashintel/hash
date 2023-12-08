@@ -276,7 +276,7 @@ export const getOrCreateEntity: ImpureGraphFunction<
       entityTypeId,
       properties: entityProperties,
       relationships,
-      inheritedPermissions: inheritedPermissions,
+      inheritedPermissions,
     });
   } else {
     throw new Error(

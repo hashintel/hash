@@ -20,7 +20,6 @@ import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
   EntityTypeAuthorizationRelationship,
-  EntityTypeInstantiatorSubject,
   EntityTypeMetadata,
   EntityTypeRelationAndSubject,
   EntityTypeRootType,

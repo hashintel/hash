@@ -1,3 +1,4 @@
+import { EntitySetting } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -37,7 +38,6 @@ import { Comment } from "./comment";
 import { Page } from "./page";
 import { Text } from "./text";
 import { User } from "./user";
-import { EntitySetting } from "@local/hash-graph-client";
 
 type Notification = {
   archived?: boolean;

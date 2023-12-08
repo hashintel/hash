@@ -35,7 +35,6 @@ import {
   createEntity,
   CreateEntityParams,
   getLatestEntityById,
-  modifyEntityAuthorizationRelationships,
   updateEntityProperty,
 } from "../primitive/entity";
 import {

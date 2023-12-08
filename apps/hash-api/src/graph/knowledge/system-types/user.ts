@@ -44,7 +44,6 @@ import {
   CreateEntityParams,
   getEntityOutgoingLinks,
   getLatestEntityById,
-  modifyEntityAuthorizationRelationships,
 } from "../primitive/entity";
 import {
   shortnameIsInvalid,

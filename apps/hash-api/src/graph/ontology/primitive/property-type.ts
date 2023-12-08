@@ -3,7 +3,6 @@ import {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
-  EntityTypeSetting,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
   PropertyTypePermission,
@@ -18,7 +17,6 @@ import {
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
-  EntityTypeRelationAndSubject,
   OntologyElementMetadata,
   OntologyTypeRecordId,
   ontologyTypeRecordIdToVersionedUrl,

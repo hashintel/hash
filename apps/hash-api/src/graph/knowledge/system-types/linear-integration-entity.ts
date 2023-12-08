@@ -31,11 +31,7 @@ import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { systemAccountId } from "../../system-account";
-import {
-  getLatestEntityById,
-  modifyEntityAuthorizationRelationships,
-  updateEntity,
-} from "../primitive/entity";
+import { getLatestEntityById, updateEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 
 export type LinearIntegration = {
