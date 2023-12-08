@@ -83,7 +83,7 @@ export const EntityQueryEditor = ({
   return (
     <ReadonlyContextProvider readonly={!!readonly}>
       <FormProvider {...form}>
-        <Stack gap={2.5} sx={sx}>
+        <Stack gap={2.5} position="relative" sx={sx}>
           <QueryForm entityTypes={entityTypes} propertyTypes={propertyTypes} />
 
           <Stack direction="row" gap={1}>
