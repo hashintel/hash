@@ -46,7 +46,7 @@ const isDevelopment = process.env.NODE_ENV !== "production";
 
 if (!isDevelopment && (!env.SENTRY_DSN || !env.SENTRY_AUTH_TOKEN)) {
   throw new Error(
-    "No SENTRY_DSN or SENTRY_AUTH_TOKEN in environment – these must be set for a production build. SENTRY_DSN is relied on at runtime, and they are both needed to build and upload source maps to Sentry.",
+    "Both SENTRY_DSN and SENTRY_AUTH_TOKEN must be set in environment for a production build. SENTRY_DSN is relied on at runtime, and they are both needed to build and upload source maps to Sentry.",
   );
 }
 
