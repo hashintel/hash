@@ -11,6 +11,7 @@ import {
 } from "@local/hash-subgraph";
 
 import { addAccountGroupMember } from "../../../../graph/account-permission-management";
+import { systemAccountId } from "../../../../graph/ensure-hash-system-account-exists";
 import {
   archiveEntity,
   getLatestEntityById,
@@ -22,7 +23,6 @@ import {
   linkIntegrationToWorkspace,
 } from "../../../../graph/knowledge/system-types/linear-integration-entity";
 import { getLinearUserSecretByLinearOrgId } from "../../../../graph/knowledge/system-types/linear-user-secret";
-import { systemAccountId } from "../../../../graph/system-account";
 import { Linear } from "../../../../integrations/linear";
 import {
   MutationSyncLinearIntegrationWithWorkspacesArgs,

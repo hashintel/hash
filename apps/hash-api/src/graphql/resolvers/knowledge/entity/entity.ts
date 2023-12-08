@@ -21,6 +21,7 @@ import {
 } from "apollo-server-express";
 
 import { publicUserAccountId } from "../../../../auth/public-user-account-id";
+import { systemAccountId } from "../../../../graph/ensure-hash-system-account-exists";
 import {
   addEntityAdministrator,
   addEntityEditor,
@@ -42,7 +43,6 @@ import {
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
 import { modifyWebAuthorizationRelationships } from "../../../../graph/ontology/primitive/util";
-import { systemAccountId } from "../../../../graph/system-account";
 import {
   AccountGroupAuthorizationSubjectRelation,
   AuthorizationSubjectKind,

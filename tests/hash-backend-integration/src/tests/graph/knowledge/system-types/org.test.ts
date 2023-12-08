@@ -1,4 +1,5 @@
 import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
+import { systemAccountId } from "@apps/hash-api/src/graph/ensure-hash-system-account-exists";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
   getOrgByShortname,
@@ -6,7 +7,6 @@ import {
   updateOrgName,
   updateOrgShortname,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 

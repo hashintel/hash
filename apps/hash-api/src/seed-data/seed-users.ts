@@ -3,8 +3,8 @@ import { AxiosError } from "axios";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { ImpureGraphContext } from "../graph/context-types";
+import { systemAccountId } from "../graph/ensure-hash-system-account-exists";
 import { createUser, User } from "../graph/knowledge/system-types/user";
-import { systemAccountId } from "../graph/system-account";
 import { isDevEnv, isTestEnv } from "../lib/env-config";
 
 type SeededUser = {

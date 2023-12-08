@@ -1,13 +1,18 @@
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountGroupId, OwnedById } from "@local/hash-subgraph";
+import { AccountGroupId, AccountId, OwnedById } from "@local/hash-subgraph";
 
 import { enabledIntegrations } from "../integrations/enabled-integrations";
 import { logger } from "../logger";
-import { createAccountGroup, createWeb } from "./account-permission-management";
+import {
+  createAccount,
+  createAccountGroup,
+  createWeb,
+} from "./account-permission-management";
 import { ImpureGraphContext } from "./context-types";
-import { systemAccountId } from "./ensusre-system-accounts-exist";
+import { systemAccountId } from "./ensure-hash-system-account-exists";
+import { createMachineEntity } from "./knowledge/system-types/machine";
 import { createOrg, getOrgByShortname } from "./knowledge/system-types/org";
 
 // Whether this is a self-hosted instance, rather than the central HASH hosted instance
@@ -20,6 +25,7 @@ export const isSelfHostedInstance =
 const owningWebs: Record<
   SystemTypeWebShortname,
   {
+    machineActorAccountId?: AccountId;
     accountGroupId?: AccountGroupId;
     enabled: boolean;
     name: string;
@@ -41,53 +47,80 @@ const owningWebs: Record<
 export const getOrCreateOwningAccountGroupId = async (
   context: ImpureGraphContext,
   webShortname: SystemTypeWebShortname,
-) => {
-  const authentication = { actorId: systemAccountId };
-
-  if (isSelfHostedInstance) {
-    throw new Error(
-      "Should not create owning organization for system types on self-hosted instance – system types should be loaded as external types instead",
-    );
-  }
-
+): Promise<{ accountGroupId: AccountGroupId; machineActorId: AccountId }> => {
   // We only need to resolve this once for each shortname during the seeding process
   const resolvedAccountGroupId = owningWebs[webShortname].accountGroupId;
-  if (resolvedAccountGroupId) {
-    return resolvedAccountGroupId;
+  const resolvedMachineActorAccountId =
+    owningWebs[webShortname].machineActorAccountId;
+
+  // After this function has been run once, these should exist
+  if (resolvedAccountGroupId && resolvedMachineActorAccountId) {
+    return {
+      accountGroupId: resolvedAccountGroupId,
+      machineActorId: resolvedMachineActorAccountId,
+    };
   }
 
   try {
     // If this function is used again after the initial seeding, it's possible that we've created the org in the past
-    const foundOrg = await getOrgByShortname(context, authentication, {
-      shortname: webShortname,
-    });
+    const foundOrg = await getOrgByShortname(
+      context,
+      { actorId: systemAccountId },
+      {
+        shortname: webShortname,
+      },
+    );
 
     if (foundOrg) {
+      const machineActorIdForWeb =
+        foundOrg.entity.metadata.provenance.recordCreatedById;
+
       logger.debug(
-        `Found org entity with shortname ${webShortname}, accountGroupId: ${foundOrg.accountGroupId}`,
+        `Found org entity with shortname ${webShortname}, accountGroupId: ${foundOrg.accountGroupId}, machine actor accountId: ${machineActorIdForWeb}`,
       );
       owningWebs[webShortname].accountGroupId = foundOrg.accountGroupId;
-      return foundOrg.accountGroupId;
+      owningWebs[webShortname].machineActorAccountId = machineActorIdForWeb;
     }
   } catch {
-    // No org system type yet, this must be the first time the seeding has run
+    // No org system type yet, this must be the first migration run in which this web was used
   }
 
-  // The systemAccountId will automatically be assigned as an owner of the account group since it creates it
-  const accountGroupId = await createAccountGroup(context, authentication, {});
+  const machineActorIdForWeb =
+    webShortname === "hash"
+      ? systemAccountId
+      : await createAccount(context, { actorId: systemAccountId }, {});
+
+  const authentication = { actorId: machineActorIdForWeb };
+
+  const accountGroupId = await createAccountGroup(
+    context,
+    { actorId: machineActorIdForWeb },
+    {},
+  );
 
   await createWeb(context, authentication, {
     ownedById: accountGroupId as OwnedById,
     owner: { kind: "accountGroup", subjectId: accountGroupId },
   });
 
-  owningWebs[webShortname].accountGroupId = accountGroupId;
+  await createMachineEntity(context, {
+    identifier: webShortname,
+    machineAccountId: machineActorIdForWeb,
+    owningWebAccountGroupId: accountGroupId,
+  });
 
   logger.info(
-    `Created accountGroup for org with shortname ${webShortname}, accountGroupId: ${accountGroupId}`,
+    `Created accountGroup for web with shortname ${webShortname}, accountGroupId: ${accountGroupId}`,
+    `Created machine actor and entity for web with shortname ${webShortname}, machineActorId: ${machineActorIdForWeb}`,
   );
 
-  return accountGroupId;
+  owningWebs[webShortname].accountGroupId = accountGroupId;
+  owningWebs[webShortname].machineActorAccountId = machineActorIdForWeb;
+
+  return {
+    accountGroupId,
+    machineActorId: machineActorIdForWeb,
+  };
 };
 
 export const ensureAccountGroupOrgsExist = async (params: {
@@ -114,20 +147,25 @@ export const ensureAccountGroupOrgsExist = async (params: {
     });
 
     if (!foundOrg) {
-      const orgAccountGroupId = await getOrCreateOwningAccountGroupId(
+      const { accountGroupId, machineActorId } =
+        await getOrCreateOwningAccountGroupId(
+          context,
+          webShortname as SystemTypeWebShortname,
+        );
+
+      await createOrg(
         context,
-        webShortname as SystemTypeWebShortname,
+        { actorId: machineActorId },
+        {
+          orgAccountGroupId: accountGroupId,
+          shortname: webShortname,
+          name,
+          websiteUrl,
+        },
       );
 
-      await createOrg(context, authentication, {
-        orgAccountGroupId,
-        shortname: webShortname,
-        name,
-        websiteUrl,
-      });
-
       logger.info(
-        `Created organization entity for '${webShortname}' with accountGroupId '${orgAccountGroupId}'`,
+        `Created organization entity for '${webShortname}' with accountGroupId '${accountGroupId}'`,
       );
     }
   }

@@ -15,9 +15,9 @@ import {
   LinkEntity,
 } from "@local/hash-subgraph/type-system-patch";
 
+import { systemAccountId } from "../../graph/ensure-hash-system-account-exists";
 import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
 import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret";
-import { systemAccountId } from "../../graph/system-account";
 import { createTemporalClient } from "../../temporal";
 import { genId } from "../../util";
 import { createVaultClient } from "../../vault";

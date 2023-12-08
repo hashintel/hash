@@ -3,7 +3,7 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
 import { ImpureGraphContext } from "./context-types";
-import { systemAccountId } from "./ensusre-system-accounts-exist";
+import { systemAccountId } from "./ensure-hash-system-account-exists";
 import {
   createHashInstance,
   getHashInstance,
