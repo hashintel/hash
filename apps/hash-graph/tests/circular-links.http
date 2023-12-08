@@ -63,7 +63,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "title": "Object",
     "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1" }],
     "properties": {}
-  }
+  },
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "updateFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -121,7 +128,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "ordered": false
       }
     }
-  }
+  },
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "updateFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -164,7 +178,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
   "administrator": "{{account_id}}",
   "entityUuid": "0000000A-0001-0000-0000-000000000000",
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -186,7 +207,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
   "administrator": "{{account_id}}",
   "entityUuid": "0000000B-0001-0000-0000-000000000000",
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -208,7 +236,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
   "administrator": "{{account_id}}",
   "entityUuid": "0000000C-0001-0000-0000-000000000000",
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -230,7 +265,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
   "administrator": "{{account_id}}",
   "entityUuid": "0000000D-0001-0000-0000-000000000000",
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -256,7 +298,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "leftEntityId": "{{entity_a}}",
     "rightEntityId": "{{entity_b}}"
   },
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -281,7 +330,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "leftEntityId": "{{entity_b}}",
     "rightEntityId": "{{entity_c}}"
   },
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -306,7 +362,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "leftEntityId": "{{entity_c}}",
     "rightEntityId": "{{entity_d}}"
   },
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -331,7 +394,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "leftEntityId": "{{entity_d}}",
     "rightEntityId": "{{entity_a}}"
   },
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -357,7 +427,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "leftEntityId": "{{entity_b}}",
     "rightEntityId": "{{entity_a}}"
   },
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -384,7 +461,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "leftEntityId": "{{entity_c}}",
     "rightEntityId": "{{entity_b}}"
   },
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -411,7 +495,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "leftEntityId": "{{entity_d}}",
     "rightEntityId": "{{entity_c}}"
   },
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -438,7 +529,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "leftEntityId": "{{entity_a}}",
     "rightEntityId": "{{entity_d}}"
   },
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
