@@ -139,7 +139,7 @@ export const SortableRow = ({
       style={{ transform: CSS.Transform.toString(transform), transition }}
       {...attributes}
       sx={{
-        height: 48,
+        minHeight: 48,
         display: "flex",
         alignItems: "center",
         borderBottom: "1px solid",

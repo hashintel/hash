@@ -17,6 +17,8 @@ export const NumberOrTextInput = ({
       variant="standard"
       InputProps={{ disableUnderline: true }}
       autoFocus
+      multiline={!isNumber}
+      minRows={1}
       value={value}
       type={isNumber ? "number" : "text"}
       inputMode={isNumber ? "numeric" : "text"}
