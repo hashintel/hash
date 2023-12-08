@@ -369,6 +369,7 @@ export const updateEntity: ImpureGraphFunction<
     entity: Entity;
     entityTypeId?: VersionedUrl;
     properties: EntityPropertiesObject;
+    draft?: boolean;
   },
   Promise<Entity>
 > = async (context, authentication, params) => {
@@ -397,7 +398,10 @@ export const updateEntity: ImpureGraphFunction<
      * */
     entityTypeId: entityTypeId ?? entity.metadata.entityTypeId,
     archived: entity.metadata.archived,
-    draft: entity.metadata.draft,
+    draft:
+      typeof params.draft === "undefined"
+        ? entity.metadata.draft
+        : params.draft,
     properties,
   });
 

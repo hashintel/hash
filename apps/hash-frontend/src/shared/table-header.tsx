@@ -53,9 +53,9 @@ const CheckboxFilter: FunctionComponent<{
   onChange: (checked: boolean) => void;
 }> = ({ label, checked, onChange }) => (
   <FormControlLabel
-    sx={({ palette }) => ({
+    sx={{
       borderRadius: 16,
-      color: palette.gray[70],
+      color: ({ palette }) => palette.gray[70],
       marginX: 0,
       flexShrink: 0,
       gap: 1,
@@ -69,10 +69,10 @@ const CheckboxFilter: FunctionComponent<{
       transition: ({ transitions }) =>
         transitions.create(["background", "color"]),
       "&:hover": {
-        background: palette.gray[10],
-        color: palette.gray[90],
+        background: ({ palette }) => palette.gray[10],
+        color: ({ palette }) => palette.gray[90],
       },
-    })}
+    }}
     label={label}
     control={
       <Checkbox
