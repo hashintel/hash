@@ -302,7 +302,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     ]
   },
-  "relationships": []
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "updateFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -394,7 +400,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "$ref": "{{text_data_type_id}}"
       }
     ]
-  }
+  },
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "updateFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -512,7 +525,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     ],
     "properties": {}
   },
-  "relationships": []
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "updateFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -633,7 +652,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     }
   },
-  "relationships": []
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "updateFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -760,7 +785,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       }
     }
   },
-  "labelProperty": "http://localhost:3000/@alice/types/property-type/name/"
+  "labelProperty": "http://localhost:3000/@alice/types/property-type/name/",
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "updateFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -1319,7 +1351,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "administrator": "{{account_id}}",
   "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1",
   "draft": false,
-  "relationships": []
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+       "kind": "setting",
+       "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -1490,7 +1528,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "administrator": "{{account_id}}",
   "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
   "draft": true,
-  "relationships": []
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+       "kind": "setting",
+       "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -1662,7 +1706,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "rightEntityId": "{{person_b_entity_id}}"
   },
   "draft": false,
-  "relationships": []
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+       "kind": "setting",
+       "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -1687,7 +1737,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "rightEntityId": "{{person_b_entity_id}}"
   },
   "draft": true,
-  "relationships": []
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+       "kind": "setting",
+       "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
