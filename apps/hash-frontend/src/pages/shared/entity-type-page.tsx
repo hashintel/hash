@@ -1,6 +1,8 @@
 import {
   EntityTypeReference,
   extractVersion,
+  MaybeOneOfEntityTypeReference,
+  MaybeOrderedArray,
 } from "@blockprotocol/type-system";
 import { VersionedUrl } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
 import { EntityType } from "@blockprotocol/type-system/slim";
@@ -183,23 +185,25 @@ export const EntityTypePage = ({
 
           const schemaWithConsistentSelfReferences = {
             ...linkSchema,
-            items: {
-              ...linkSchema.items,
-              oneOf: linkSchema.items.oneOf.map((item) => {
-                const isSelfReference = item.$ref === currentEntityTypeId;
-                if (isSelfReference) {
-                  const { baseUrl, version: currentVersion } =
-                    componentsFromVersionedUrl(currentEntityTypeId);
-                  return {
-                    $ref: versionedUrlFromComponents(
-                      baseUrl,
-                      currentVersion + 1,
-                    ),
-                  };
-                }
-                return item;
-              }) as [EntityTypeReference, ...EntityTypeReference[]],
-            },
+            items:
+              "oneOf" in linkSchema.items
+                ? {
+                    oneOf: linkSchema.items.oneOf.map((item) => {
+                      const isSelfReference = item.$ref === currentEntityTypeId;
+                      if (isSelfReference) {
+                        const { baseUrl, version: currentVersion } =
+                          componentsFromVersionedUrl(currentEntityTypeId);
+                        return {
+                          $ref: versionedUrlFromComponents(
+                            baseUrl,
+                            currentVersion + 1,
+                          ),
+                        };
+                      }
+                      return item;
+                    }) as [EntityTypeReference, ...EntityTypeReference[]],
+                  }
+                : {},
           };
 
           accumulator[linkTypeId] = schemaWithConsistentSelfReferences;
