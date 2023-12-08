@@ -55,10 +55,17 @@ export const BarChart: FunctionComponent<{
         {},
       );
 
+      const dataPoints = Object.entries(entitiesByProperty ?? {})
+        .map(([property, entities]) => ({
+          label: property,
+          value: entities.length,
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+
       return {
         xAxis: {
           type: "category",
-          data: Object.keys(entitiesByProperty ?? []),
+          data: dataPoints.map(({ label }) => label),
           name: definition.xAxisLabel,
           nameLocation: "middle",
           nameGap: 25,
@@ -70,9 +77,7 @@ export const BarChart: FunctionComponent<{
           nameGap: 25,
         },
         series: {
-          data: Object.values(entitiesByProperty ?? {}).map(
-            (entityGroup) => entityGroup.length,
-          ),
+          data: dataPoints.map(({ value }) => value),
           type: "bar",
         },
       };
@@ -80,26 +85,26 @@ export const BarChart: FunctionComponent<{
       const { entityTypeId, labelPropertyTypeId, direction, linkEntityTypeId } =
         definition;
 
-      const dataPoints = queryResultsByType[entityTypeId]?.reduce<
-        { label: string; value: number }[]
-      >((prev, entity) => {
-        const entityId = entity.metadata.recordId.entityId;
+      const dataPoints = queryResultsByType[entityTypeId]
+        ?.reduce<{ label: string; value: number }[]>((prev, entity) => {
+          const entityId = entity.metadata.recordId.entityId;
 
-        const links =
-          direction === "outgoing"
-            ? getOutgoingLinksForEntity(queryResult, entityId)
-            : getIncomingLinksForEntity(queryResult, entityId);
+          const links =
+            direction === "outgoing"
+              ? getOutgoingLinksForEntity(queryResult, entityId)
+              : getIncomingLinksForEntity(queryResult, entityId);
 
-        const matchingLinks = links.filter(
-          ({ metadata }) => metadata.entityTypeId === linkEntityTypeId,
-        );
+          const matchingLinks = links.filter(
+            ({ metadata }) => metadata.entityTypeId === linkEntityTypeId,
+          );
 
-        const label = String(
-          entity.properties[extractBaseUrl(labelPropertyTypeId)] ?? "Unknown",
-        );
+          const label = String(
+            entity.properties[extractBaseUrl(labelPropertyTypeId)] ?? "Unknown",
+          );
 
-        return [...prev, { label, value: matchingLinks.length }];
-      }, []);
+          return [...prev, { label, value: matchingLinks.length }];
+        }, [])
+        .sort((a, b) => a.label.localeCompare(b.label));
 
       return {
         xAxis: {
