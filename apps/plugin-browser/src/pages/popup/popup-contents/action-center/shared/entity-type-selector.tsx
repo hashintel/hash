@@ -43,10 +43,11 @@ export const EntityTypeSelector = ({
 
   const selectedEntityTypes = useMemo(
     () =>
-      allEntityTypes.filter((type) =>
-        targetEntityTypeIds?.some(
-          (targetTypeId) => targetTypeId === type.schema.$id,
-        ),
+      allEntityTypes.filter(
+        (type) =>
+          targetEntityTypeIds?.some(
+            (targetTypeId) => targetTypeId === type.schema.$id,
+          ),
       ),
     [allEntityTypes, targetEntityTypeIds],
   );
