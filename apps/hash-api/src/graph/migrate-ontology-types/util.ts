@@ -66,6 +66,7 @@ import {
   PrimitiveDataTypeKey,
 } from "../util";
 import { MigrationState } from "./types";
+import { upgradeEntityTypeDependency } from "./util/upgrade-entity-type-dependencies";
 
 const systemTypeDomain = "https://hash.ai";
 
@@ -667,7 +668,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
   }
 };
 
-export const getExistingEntityTypeId = ({
+export const getExistingHashSystemEntityTypeId = ({
   entityTypeKey,
   migrationState,
 }: {
@@ -759,4 +760,42 @@ export const updateSystemEntityType: ImpureGraphFunction<
   migrationState.entityTypeVersions[baseUrl] = nextVersion;
 
   return { updatedEntityTypeId };
+};
+
+export const upgradeHashEntityTypeDependencies: ImpureGraphFunction<
+  {
+    dependentEntityTypeKeys: (keyof typeof systemEntityTypes)[];
+    upgradedEntityTypeId: VersionedUrl;
+  } & BaseUpdateTypeParameters,
+  Promise<void>
+> = async (
+  context,
+  authentication,
+  { dependentEntityTypeKeys, migrationState, upgradedEntityTypeId },
+) => {
+  for (const dependentEntityTypeKey of dependentEntityTypeKeys) {
+    const currentDependentEntityTypeId = getExistingHashSystemEntityTypeId({
+      entityTypeKey: dependentEntityTypeKey,
+      migrationState,
+    });
+
+    const { schema: dependentSchema } = await getEntityTypeById(
+      context,
+      authentication,
+      {
+        entityTypeId: currentDependentEntityTypeId,
+      },
+    );
+
+    const newDependentSchema = upgradeEntityTypeDependency({
+      schema: dependentSchema,
+      upgradedEntityTypeId,
+    });
+
+    await updateSystemEntityType(context, authentication, {
+      currentEntityTypeId: currentDependentEntityTypeId,
+      migrationState,
+      newSchema: newDependentSchema,
+    });
+  }
 };

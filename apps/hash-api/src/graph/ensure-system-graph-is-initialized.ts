@@ -1,9 +1,9 @@
 import { Logger } from "@local/hash-backend-utils/logger";
 
 import { ImpureGraphContext } from "./context-types";
+import { ensureSystemAccountExists } from "./ensure-system-account-exists";
+import { ensureSystemEntitiesExist } from "./ensure-system-entities-exist";
 import { migrateOntologyTypes } from "./migrate-ontology-types";
-import { ensureSystemAccountExists } from "./system-account";
-import { ensureSystemEntitiesExists } from "./system-entities";
 import { ensureAccountGroupOrgsExist } from "./util";
 
 export const ensureSystemGraphIsInitialized = async (params: {
@@ -16,5 +16,5 @@ export const ensureSystemGraphIsInitialized = async (params: {
 
   await ensureAccountGroupOrgsExist(params);
 
-  await ensureSystemEntitiesExists(params);
+  await ensureSystemEntitiesExist(params);
 };

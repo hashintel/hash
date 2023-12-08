@@ -5,9 +5,10 @@ import { MigrationFunction } from "../types";
 import {
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
-  getExistingEntityTypeId,
+  getExistingHashSystemEntityTypeId,
   getExistingPropertyTypeId,
   updateSystemEntityType,
+  upgradeHashEntityTypeDependencies,
 } from "../util";
 
 const migrate: MigrationFunction = async ({
@@ -20,7 +21,7 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const currentUserEntityTypeId = getExistingEntityTypeId({
+  const currentUserEntityTypeId = getExistingHashSystemEntityTypeId({
     entityTypeKey: "user",
     migrationState,
   });
@@ -97,6 +98,17 @@ const migrate: MigrationFunction = async ({
       migrationState,
       newSchema: newUserEntityTypeSchema,
     });
+
+  await upgradeHashEntityTypeDependencies(context, authentication, {
+    upgradedEntityTypeId: updatedUserEntityTypeId,
+    dependentEntityTypeKeys: [
+      "comment",
+      "commentNotification",
+      "linearIntegration",
+      "mentionNotification",
+    ],
+    migrationState,
+  });
 
   return migrationState;
 };

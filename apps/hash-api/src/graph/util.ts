@@ -7,8 +7,8 @@ import { enabledIntegrations } from "../integrations/enabled-integrations";
 import { logger } from "../logger";
 import { createAccountGroup, createWeb } from "./account-permission-management";
 import { ImpureGraphContext } from "./context-types";
+import { systemAccountId } from "./ensusre-system-accounts-exist";
 import { createOrg, getOrgByShortname } from "./knowledge/system-types/org";
-import { systemAccountId } from "./system-account";
 
 // Whether this is a self-hosted instance, rather than the central HASH hosted instance
 export const isSelfHostedInstance =

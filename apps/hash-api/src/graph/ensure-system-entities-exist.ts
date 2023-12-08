@@ -3,16 +3,16 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
 import { ImpureGraphContext } from "./context-types";
+import { systemAccountId } from "./ensusre-system-accounts-exist";
 import {
   createHashInstance,
   getHashInstance,
 } from "./knowledge/system-types/hash-instance";
-import { systemAccountId } from "./system-account";
 
 /**
  * Ensures the required system entities has been created in the graph.
  */
-export const ensureSystemEntitiesExists = async (params: {
+export const ensureSystemEntitiesExist = async (params: {
   logger: Logger;
   context: ImpureGraphContext;
 }) => {
