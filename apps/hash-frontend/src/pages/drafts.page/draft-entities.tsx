@@ -120,7 +120,7 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
         entity.metadata.recordId.entityId,
       );
 
-      // @todo update to account for machine users – H-1514
+      // @todo update to account for machine users – H-1514
       const creator = users.find(
         (user) =>
           user.accountId ===
