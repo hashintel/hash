@@ -22,12 +22,14 @@ import {
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import {
+  addAccountGroupMember,
   createAccountGroup,
   createWeb,
 } from "../../account-permission-management";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { createEntity, CreateEntityParams } from "../primitive/entity";
 import { User } from "./user";
+import { systemAccountId } from "../../system-account";
 
 export type HashInstance = {
   entity: Entity;
