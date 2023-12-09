@@ -13,19 +13,17 @@ export const getEntityByFilter = async ({
   actorId,
   graphApiClient,
   filter,
-  includeDrafts = false,
 }: {
   actorId: AccountId;
   graphApiClient: GraphApi;
   filter: Filter;
-  includeDrafts?: boolean;
 }): Promise<Entity | undefined> => {
   const matchedEntities = await graphApiClient
     .getEntitiesByQuery(actorId, {
       filter,
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
+      includeDrafts: true,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);

@@ -66,6 +66,13 @@ const log = (message: string) => {
   console.debug(logMessage);
 };
 
+const stringify = (obj: unknown) =>
+  JSON.stringify(
+    obj,
+    undefined,
+    process.env.NODE_ENV === "development" ? 2 : undefined,
+  );
+
 /**
  * A map of the API consumer-facing model names to the values provided to OpenAI.
  * Allows for using preview models before they take over the general alias.
@@ -113,10 +120,8 @@ const requestEntityInference = async (params: {
 
   if (iterationCount > 5) {
     log(
-      `Model reached maximum number of iterations. Messages: ${JSON.stringify(
+      `Model reached maximum number of iterations. Messages: ${stringify(
         completionPayload.messages,
-        undefined,
-        2,
       )}`,
     );
 
@@ -178,9 +183,9 @@ const requestEntityInference = async (params: {
   try {
     data = await openai.chat.completions.create(openApiPayload);
 
-    log(`Response from AI received: ${JSON.stringify(data, undefined, 2)}.`);
+    log(`Response from AI received: ${stringify(data)}.`);
   } catch (err) {
-    log(`Error from AI received: ${JSON.stringify(err, undefined, 2)}.`);
+    log(`Error from AI received: ${stringify(err)}.`);
     return {
       code: StatusCode.Internal,
       contents: [],
@@ -234,13 +239,7 @@ const requestEntityInference = async (params: {
     latestResults: InferredEntityChangeResult[];
     requiresOriginalContext: boolean;
   }) => {
-    log(
-      `Retrying with additional messages: ${JSON.stringify(
-        retryMessages,
-        undefined,
-        2,
-      )}`,
-    );
+    log(`Retrying with additional messages: ${stringify(retryMessages)}`);
 
     const newMessages = [
       ...completionPayload.messages.map((msg, index) =>
@@ -299,10 +298,8 @@ const requestEntityInference = async (params: {
 
     case "content_filter":
       log(
-        `The content filter was triggered on attempt ${iterationCount} with input: ${JSON.stringify(
+        `The content filter was triggered on attempt ${iterationCount} with input: ${stringify(
           completionPayload.messages,
-          undefined,
-          2,
         )}, `,
       );
 
@@ -317,9 +314,7 @@ const requestEntityInference = async (params: {
         const errorMessage =
           "AI Model returned 'tool_calls' finish reason no tool calls";
 
-        log(
-          `${errorMessage}. Message: ${JSON.stringify(message, undefined, 2)}`,
-        );
+        log(`${errorMessage}. Message: ${stringify(message)}`);
 
         return {
           code: StatusCode.Internal,
@@ -345,10 +340,8 @@ const requestEntityInference = async (params: {
           JSON.parse(modelProvidedArgument);
         } catch {
           log(
-            `Could not parse AI Model response on attempt ${iterationCount}: ${JSON.stringify(
+            `Could not parse AI Model response on attempt ${iterationCount}: ${stringify(
               modelProvidedArgument,
-              undefined,
-              2,
             )}`,
           );
 
@@ -357,7 +350,7 @@ const requestEntityInference = async (params: {
               {
                 role: "user",
                 content:
-                  "Your previous response contained invalid JSON. Please try again.",
+                  "Your previous response contained invalid  Please try again.",
               },
             ],
             latestResults: results,
@@ -391,10 +384,8 @@ const requestEntityInference = async (params: {
             validateProposedEntitiesByType(proposedEntitiesByType, false);
           } catch (err) {
             log(
-              `Model provided invalid argument to create_entities function. Argument provided: ${JSON.stringify(
+              `Model provided invalid argument to create_entities function. Argument provided: ${stringify(
                 modelProvidedArgument,
-                undefined,
-                2,
               )}`,
             );
 
@@ -438,27 +429,9 @@ const requestEntityInference = async (params: {
                 requestedEntityTypes: entityTypes,
               });
 
-            log(
-              `Creation successes: ${JSON.stringify(
-                creationSuccesses,
-                undefined,
-                2,
-              )}`,
-            );
-            log(
-              `Creation failures: ${JSON.stringify(
-                creationFailures,
-                undefined,
-                2,
-              )}`,
-            );
-            log(
-              `Update candidates: ${JSON.stringify(
-                updateCandidates,
-                undefined,
-                2,
-              )}`,
-            );
+            log(`Creation successes: ${stringify(creationSuccesses)}`);
+            log(`Creation failures: ${stringify(creationFailures)}`);
+            log(`Update candidates: ${stringify(updateCandidates)}`);
 
             const successes = Object.values(creationSuccesses);
             const failures = Object.values(creationFailures);
@@ -475,9 +448,7 @@ const requestEntityInference = async (params: {
                 ${failures
                   .map(
                     (failure) => `
-                  your proposed entity: ${JSON.stringify(
-                    failure.proposedEntity,
-                  )}
+                  your proposed entity: ${stringify(failure.proposedEntity)}
                   failure reason: ${failure.failureReason}
                 `,
                   )
@@ -493,7 +464,7 @@ const requestEntityInference = async (params: {
               ${updates
                 .map(
                   (updateCandidate) => `
-                your proposed entity: ${JSON.stringify(
+                your proposed entity: ${stringify(
                   updateCandidate.proposedEntity,
                 )}
                 updateEntityId to use: ${
@@ -502,7 +473,7 @@ const requestEntityInference = async (params: {
                 entityTypeId: ${
                   updateCandidate.existingEntity.metadata.entityTypeId
                 }
-                Current properties: ${JSON.stringify(
+                Current properties: ${stringify(
                   updateCandidate.existingEntity.properties,
                 )}
               `,
@@ -572,10 +543,8 @@ const requestEntityInference = async (params: {
             validateProposedEntitiesByType(proposedEntityUpdatesByType, true);
           } catch (err) {
             log(
-              `Model provided invalid argument to update_entities function. Argument provided: ${JSON.stringify(
+              `Model provided invalid argument to update_entities function. Argument provided: ${stringify(
                 modelProvidedArgument,
-                undefined,
-                2,
               )}`,
             );
 
@@ -632,9 +601,7 @@ const requestEntityInference = async (params: {
                   ${failures
                     .map(
                       (failure) => `
-                    your proposed entity: ${JSON.stringify(
-                      failure.proposedEntity,
-                    )}
+                    your proposed entity: ${stringify(failure.proposedEntity)}
                     failure reason: ${failure.failureReason}
                   `,
                     )
@@ -654,7 +621,7 @@ const requestEntityInference = async (params: {
       }
 
       if (retryMessages.length === 0) {
-        log(`Returning results: ${JSON.stringify(results, undefined, 2)}`);
+        log(`Returning results: ${stringify(results)}`);
         return {
           code: StatusCode.Ok,
           contents: [{ results, usage }],
