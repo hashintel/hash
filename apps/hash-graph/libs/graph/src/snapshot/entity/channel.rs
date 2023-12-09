@@ -32,7 +32,7 @@ pub struct EntitySender {
     edition: Sender<EntityEditionRow>,
     temporal_metadata: Sender<EntityTemporalMetadataRow>,
     links: Sender<EntityLinkEdgeRow>,
-    relations: Sender<(EntityUuid, EntityRelationAndSubject)>,
+    relations: Sender<(EntityUuid, Vec<EntityRelationAndSubject>)>,
 }
 
 // This is a direct wrapper around several `Sink<mpsc::Sender>` and `AccountSender` with
@@ -135,12 +135,13 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                 .attach_printable("could not send entity link edges")?;
         }
 
-        for relation in entity.relations {
-            self.relations
-                .start_send_unpin((entity.metadata.record_id.entity_id.entity_uuid, relation))
-                .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send entity relations")?;
-        }
+        self.relations
+            .start_send_unpin((
+                entity.metadata.record_id.entity_id.entity_uuid,
+                entity.relations,
+            ))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not send entity relations")?;
 
         Ok(())
     }
