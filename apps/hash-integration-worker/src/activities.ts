@@ -39,6 +39,13 @@ const createHashEntity = async (params: {
       draft: false,
       relationships: [
         {
+          relation: "administrator",
+          subject: {
+            kind: "account",
+            subjectId: params.authentication.actorId,
+          },
+        },
+        {
           relation: "setting",
           subject: { kind: "setting", subjectId: "administratorFromWeb" },
         },
@@ -67,6 +74,13 @@ const createHashEntity = async (params: {
         properties: {},
         draft: false,
         relationships: [
+          {
+            relation: "administrator",
+            subject: {
+              kind: "account",
+              subjectId: params.authentication.actorId,
+            },
+          },
           {
             relation: "setting",
             subject: { kind: "setting", subjectId: "administratorFromWeb" },

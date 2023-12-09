@@ -249,7 +249,15 @@ export const oAuthLinearCallback: RequestHandler<
         entityTypeId: systemEntityTypes.userSecret.entityTypeId,
         ownedById: ownedById as Uuid as OwnedById,
         properties: secretMetadata,
-        relationships: [],
+        relationships: [
+          {
+            relation: "administrator",
+            subject: {
+              kind: "account",
+              subjectId: authentication.actorId,
+            },
+          },
+        ],
         inheritedPermissions: [
           "administratorFromWeb",
           "updateFromWeb",
@@ -268,7 +276,15 @@ export const oAuthLinearCallback: RequestHandler<
           entityTypeId: systemEntityTypes.linearIntegration.entityTypeId,
           ownedById: ownedById as Uuid as OwnedById,
           properties: linearIntegrationProperties,
-          relationships: [],
+          relationships: [
+            {
+              relation: "administrator",
+              subject: {
+                kind: "account",
+                subjectId: authentication.actorId,
+              },
+            },
+          ],
           inheritedPermissions: [
             "administratorFromWeb",
             "updateFromWeb",
@@ -283,7 +299,15 @@ export const oAuthLinearCallback: RequestHandler<
         leftEntityId: linearIntegrationEntity.metadata.recordId.entityId,
         rightEntityId: userSecretEntity.metadata.recordId.entityId,
         properties: {},
-        relationships: [],
+        relationships: [
+          {
+            relation: "administrator",
+            subject: {
+              kind: "account",
+              subjectId: authentication.actorId,
+            },
+          },
+        ],
         inheritedPermissions: [
           "administratorFromWeb",
           "updateFromWeb",

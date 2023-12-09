@@ -88,14 +88,7 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createOrg: ImpureGraphFunction<
-  Omit<
-    CreateEntityParams,
-    | "properties"
-    | "entityTypeId"
-    | "ownedById"
-    | "relationships"
-    | "inheritedPermissions"
-  > & {
+  {
     shortname: string;
     name: string;
     orgAccountGroupId?: AccountGroupId;
@@ -152,7 +145,7 @@ export const createOrg: ImpureGraphFunction<
         },
       },
     ],
-    inheritedPermissions: ["administratorFromWeb", "updateFromWeb"],
+    inheritedPermissions: ["administratorFromWeb"],
   });
 
   return getOrgFromEntity({ entity });

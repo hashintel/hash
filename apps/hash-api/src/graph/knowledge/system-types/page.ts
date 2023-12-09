@@ -121,10 +121,7 @@ export const getPageById: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createPage: ImpureGraphFunction<
-  Omit<
-    CreateEntityParams,
-    "properties" | "entityTypeId" | "relationships" | "inheritedPermissions"
-  > & {
+  Pick<CreateEntityParams, "ownedById"> & {
     title: string;
     summary?: string;
     prevFractionalIndex?: string;
@@ -155,7 +152,15 @@ export const createPage: ImpureGraphFunction<
       type === "document"
         ? systemEntityTypes.document.entityTypeId
         : systemEntityTypes.canvas.entityTypeId,
-    relationships: [],
+    relationships: [
+      {
+        relation: "administrator",
+        subject: {
+          kind: "account",
+          subjectId: authentication.actorId,
+        },
+      },
+    ],
     inheritedPermissions: [
       "administratorFromWeb",
       "updateFromWeb",
@@ -425,7 +430,15 @@ export const setPageParentPage: ImpureGraphFunction<
       leftEntityId: page.entity.metadata.recordId.entityId,
       rightEntityId: parentPage.entity.metadata.recordId.entityId,
       ownedById: authentication.actorId as OwnedById,
-      relationships: [],
+      relationships: [
+        {
+          relation: "administrator",
+          subject: {
+            kind: "account",
+            subjectId: authentication.actorId,
+          },
+        },
+      ],
       inheritedPermissions: [
         "administratorFromWeb",
         "updateFromWeb",

@@ -55,16 +55,7 @@ export const getOrgMembershipFromLinkEntity: PureGraphFunction<
  * @see {@link createLinkEntity} for the documentation of the remaining parameters
  */
 export const createOrgMembership: ImpureGraphFunction<
-  Omit<
-    CreateLinkEntityParams,
-    | "properties"
-    | "linkEntityTypeId"
-    | "leftEntityId"
-    | "rightEntityId"
-    | "ownedById"
-    | "relationships"
-    | "inheritedPermissions"
-  > & {
+  {
     orgEntityId: EntityId;
     userEntityId: EntityId;
   },
@@ -89,7 +80,7 @@ export const createOrgMembership: ImpureGraphFunction<
       leftEntityId: userEntityId,
       rightEntityId: orgEntityId,
       properties: {},
-      inheritedPermissions: ["administratorFromWeb"],
+      inheritedPermissions: ["administratorFromWeb", "updateFromWeb"],
       relationships: [
         {
           relation: "editor",

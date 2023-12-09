@@ -87,10 +87,7 @@ export const getBlockById: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createBlock: ImpureGraphFunction<
-  Omit<
-    CreateEntityParams,
-    "properties" | "entityTypeId" | "relationships" | "inheritedPermissions"
-  > & {
+  Pick<CreateEntityParams, "ownedById"> & {
     componentId: string;
     blockData: Entity;
   },
@@ -106,7 +103,15 @@ export const createBlock: ImpureGraphFunction<
     ownedById,
     properties,
     entityTypeId: systemEntityTypes.block.entityTypeId,
-    relationships: [],
+    relationships: [
+      {
+        relation: "administrator",
+        subject: {
+          kind: "account",
+          subjectId: authentication.actorId,
+        },
+      },
+    ],
     inheritedPermissions: [
       "administratorFromWeb",
       "updateFromWeb",
@@ -119,7 +124,15 @@ export const createBlock: ImpureGraphFunction<
     leftEntityId: entity.metadata.recordId.entityId,
     rightEntityId: blockData.metadata.recordId.entityId,
     ownedById,
-    relationships: [],
+    relationships: [
+      {
+        relation: "administrator",
+        subject: {
+          kind: "account",
+          subjectId: authentication.actorId,
+        },
+      },
+    ],
     inheritedPermissions: [
       "administratorFromWeb",
       "updateFromWeb",
@@ -223,7 +236,15 @@ export const updateBlockDataEntity: ImpureGraphFunction<
     ownedById: extractOwnedByIdFromEntityId(
       block.entity.metadata.recordId.entityId,
     ),
-    relationships: [],
+    relationships: [
+      {
+        relation: "administrator",
+        subject: {
+          kind: "account",
+          subjectId: authentication.actorId,
+        },
+      },
+    ],
     inheritedPermissions: [
       "administratorFromWeb",
       "updateFromWeb",

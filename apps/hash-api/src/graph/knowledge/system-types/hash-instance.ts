@@ -100,14 +100,7 @@ export const getHashInstance: ImpureGraphFunction<
  * @see {@link EntityModel.create} for the remaining params
  */
 export const createHashInstance: ImpureGraphFunction<
-  Omit<
-    CreateEntityParams,
-    | "properties"
-    | "entityTypeId"
-    | "ownedById"
-    | "relationships"
-    | "inheritedPermissions"
-  > & {
+  {
     pagesAreEnabled?: boolean;
     userSelfRegistrationIsEnabled?: boolean;
     userRegistrationByInviteIsEnabled?: boolean;

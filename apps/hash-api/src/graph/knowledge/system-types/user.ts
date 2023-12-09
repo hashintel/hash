@@ -230,14 +230,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
  * @param params.accountId (optional) - the pre-populated account Id of the user
  */
 export const createUser: ImpureGraphFunction<
-  Omit<
-    CreateEntityParams,
-    | "properties"
-    | "entityTypeId"
-    | "ownedById"
-    | "relationships"
-    | "inheritedPermissions"
-  > & {
+  {
     emails: string[];
     kratosIdentityId: string;
     shortname?: string;

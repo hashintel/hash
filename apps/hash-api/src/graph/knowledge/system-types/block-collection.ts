@@ -107,7 +107,15 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     // assume that link to block is owned by the same account as the blockCollection
     ownedById: extractOwnedByIdFromEntityId(blockCollectionEntityId),
     properties: canvasPosition || indexPosition,
-    relationships: [],
+    relationships: [
+      {
+        relation: "administrator",
+        subject: {
+          kind: "account",
+          subjectId: authentication.actorId,
+        },
+      },
+    ],
     inheritedPermissions: [
       "administratorFromWeb",
       "updateFromWeb",

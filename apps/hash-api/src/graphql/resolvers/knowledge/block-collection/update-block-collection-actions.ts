@@ -48,7 +48,12 @@ export const createEntityWithPlaceholdersFn =
         ownedById,
         // We've looked up the placeholder ID, and have an actual entity ID at this point.
         entityDefinition,
-        relationships: [],
+        relationships: [
+          {
+            relation: "administrator",
+            subject: { kind: "account", subjectId: authentication.actorId },
+          },
+        ],
         inheritedPermissions: [
           "administratorFromWeb",
           "updateFromWeb",
@@ -61,7 +66,12 @@ export const createEntityWithPlaceholdersFn =
         entityTypeId: entityDefinition.entityTypeId!,
         properties: entityDefinition.entityProperties ?? {},
         linkedEntities: entityDefinition.linkedEntities ?? undefined,
-        relationships: [],
+        relationships: [
+          {
+            relation: "administrator",
+            subject: { kind: "account", subjectId: authentication.actorId },
+          },
+        ],
         inheritedPermissions: [
           "administratorFromWeb",
           "updateFromWeb",

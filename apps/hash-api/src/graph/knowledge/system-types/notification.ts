@@ -89,10 +89,7 @@ export const getMentionNotificationFromEntity: PureGraphFunction<
 };
 
 export const createMentionNotification: ImpureGraphFunction<
-  Omit<
-    CreateEntityParams,
-    "properties" | "entityTypeId" | "relationships" | "inheritedPermissions"
-  > & {
+  Pick<CreateEntityParams, "ownedById"> & {
     triggeredByUser: User;
     occurredInEntity: Page;
     occurredInBlock: Block;
@@ -351,10 +348,7 @@ export const getCommentNotificationFromEntity: PureGraphFunction<
 };
 
 export const createCommentNotification: ImpureGraphFunction<
-  Omit<
-    CreateEntityParams,
-    "properties" | "entityTypeId" | "relationships" | "inheritedPermissions"
-  > & {
+  Pick<CreateEntityParams, "ownedById"> & {
     triggeredByUser: User;
     triggeredByComment: Comment;
     occurredInEntity: Page;
@@ -384,10 +378,10 @@ export const createCommentNotification: ImpureGraphFunction<
           systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
         relationships: [],
         inheritedPermissions: [
-          EntitySetting.AdministratorFromWeb,
-          EntitySetting.UpdateFromWeb,
-          EntitySetting.ViewFromWeb,
-        ],
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb",
+        ] satisfies EntitySetting[],
       },
       {
         ownedById,
@@ -396,10 +390,10 @@ export const createCommentNotification: ImpureGraphFunction<
           systemLinkEntityTypes.triggeredByComment.linkEntityTypeId,
         relationships: [],
         inheritedPermissions: [
-          EntitySetting.AdministratorFromWeb,
-          EntitySetting.UpdateFromWeb,
-          EntitySetting.ViewFromWeb,
-        ],
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb",
+        ] satisfies EntitySetting[],
       },
       {
         ownedById,
@@ -408,10 +402,10 @@ export const createCommentNotification: ImpureGraphFunction<
           systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
         relationships: [],
         inheritedPermissions: [
-          EntitySetting.AdministratorFromWeb,
-          EntitySetting.UpdateFromWeb,
-          EntitySetting.ViewFromWeb,
-        ],
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb",
+        ] satisfies EntitySetting[],
       },
       {
         ownedById,
@@ -420,10 +414,10 @@ export const createCommentNotification: ImpureGraphFunction<
           systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
         relationships: [],
         inheritedPermissions: [
-          EntitySetting.AdministratorFromWeb,
-          EntitySetting.UpdateFromWeb,
-          EntitySetting.ViewFromWeb,
-        ],
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb",
+        ] satisfies EntitySetting[],
       },
       repliedToComment
         ? {
@@ -433,10 +427,10 @@ export const createCommentNotification: ImpureGraphFunction<
               systemLinkEntityTypes.repliedToComment.linkEntityTypeId,
             relationships: [],
             inheritedPermissions: [
-              EntitySetting.AdministratorFromWeb,
-              EntitySetting.UpdateFromWeb,
-              EntitySetting.ViewFromWeb,
-            ],
+              "administratorFromWeb",
+              "updateFromWeb",
+              "viewFromWeb",
+            ] satisfies EntitySetting[],
           }
         : [],
     ].flat(),

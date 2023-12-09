@@ -114,7 +114,15 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
       ownedById,
       properties: initialProperties,
       entityTypeId,
-      relationships: [],
+      relationships: [
+        {
+          relation: "administrator",
+          subject: {
+            kind: "account",
+            subjectId: authentication.actorId,
+          },
+        },
+      ],
       inheritedPermissions: [
         "administratorFromWeb",
         "updateFromWeb",
@@ -220,7 +228,15 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
           ownedById,
           properties,
           entityTypeId,
-          relationships: [],
+          relationships: [
+            {
+              relation: "administrator",
+              subject: {
+                kind: "account",
+                subjectId: authentication.actorId,
+              },
+            },
+          ],
           inheritedPermissions: [
             "administratorFromWeb",
             "updateFromWeb",

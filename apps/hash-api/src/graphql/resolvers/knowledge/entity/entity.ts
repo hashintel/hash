@@ -111,7 +111,15 @@ export const createEntityResolver: ResolverFn<
       properties,
       linkEntityTypeId: entityTypeId,
       ownedById: ownedById ?? (user.accountId as OwnedById),
-      relationships: [],
+      relationships: [
+        {
+          relation: "administrator",
+          subject: {
+            kind: "account",
+            subjectId: authentication.actorId,
+          },
+        },
+      ],
       inheritedPermissions: [
         "administratorFromWeb",
         "updateFromWeb",
@@ -124,7 +132,15 @@ export const createEntityResolver: ResolverFn<
       entityTypeId,
       properties,
       linkedEntities: linkedEntities ?? undefined,
-      relationships: [],
+      relationships: [
+        {
+          relation: "administrator",
+          subject: {
+            kind: "account",
+            subjectId: authentication.actorId,
+          },
+        },
+      ],
       inheritedPermissions: [
         "administratorFromWeb",
         "updateFromWeb",

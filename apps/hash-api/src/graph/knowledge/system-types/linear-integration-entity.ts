@@ -313,6 +313,11 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
       relationships: [
         {
           // Allow the system account ID to view the link
+          relation: "administrator",
+          subject: { kind: "account", subjectId: authentication.actorId },
+        },
+        {
+          // Allow the system account ID to view the link
           relation: "viewer",
           subject: { kind: "account", subjectId: systemAccountId },
         },

@@ -125,10 +125,7 @@ export const getCommentText: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createComment: ImpureGraphFunction<
-  Omit<
-    CreateEntityParams,
-    "properties" | "entityTypeId" | "relationships" | "inheritedPermissions"
-  > & {
+  Pick<CreateEntityParams, "ownedById"> & {
     author: User;
     parentEntityId: EntityId;
     textualContent: TextToken[];
@@ -147,8 +144,8 @@ export const createComment: ImpureGraphFunction<
     entityTypeId: systemEntityTypes.text.entityTypeId,
     relationships: [
       {
-        // the author has editor permissions, regardless of which web the comment belongs to (ownedById)
-        relation: "editor",
+        // the author has full access, regardless of which web the comment belongs to (ownedById)
+        relation: "administrator",
         subject: {
           kind: "account",
           subjectId: author.accountId,
@@ -172,7 +169,15 @@ export const createComment: ImpureGraphFunction<
         rightEntityId: parentEntityId,
         ownedById,
         owner: author.accountId,
-        relationships: [],
+        relationships: [
+          {
+            relation: "administrator",
+            subject: {
+              kind: "account",
+              subjectId: author.accountId,
+            },
+          },
+        ],
         inheritedPermissions: [
           "administratorFromWeb",
           "updateFromWeb",
@@ -184,7 +189,15 @@ export const createComment: ImpureGraphFunction<
         rightEntityId: author.entity.metadata.recordId.entityId,
         ownedById,
         owner: author.accountId,
-        relationships: [],
+        relationships: [
+          {
+            relation: "administrator",
+            subject: {
+              kind: "account",
+              subjectId: author.accountId,
+            },
+          },
+        ],
         inheritedPermissions: [
           "administratorFromWeb",
           "updateFromWeb",
@@ -201,7 +214,15 @@ export const createComment: ImpureGraphFunction<
         rightEntityId: textEntity.metadata.recordId.entityId,
         ownedById,
         owner: author.accountId,
-        relationships: [],
+        relationships: [
+          {
+            relation: "administrator",
+            subject: {
+              kind: "account",
+              subjectId: author.accountId,
+            },
+          },
+        ],
         inheritedPermissions: [
           "administratorFromWeb",
           "updateFromWeb",
@@ -211,8 +232,8 @@ export const createComment: ImpureGraphFunction<
     ],
     relationships: [
       {
-        // the author has editor permissions (owner), regardless of which web the comment belongs to (ownedById)
-        relation: "editor",
+        // the author has full access, regardless of which web the comment belongs to (ownedById)
+        relation: "administrator",
         subject: {
           kind: "account",
           subjectId: author.accountId,
@@ -225,37 +246,6 @@ export const createComment: ImpureGraphFunction<
       "viewFromWeb",
     ],
   });
-
-  if (author.accountId !== ownedById) {
-    const outgoingLinks = await getEntityOutgoingLinks(ctx, authentication, {
-      entityId: commentEntity.metadata.recordId.entityId,
-    });
-    /**
-     * If this is a comment on an org's entity, we want the comment to belong to the org's web,
-     * represented by the ownedById (to be renamed to webId for clarity, see H-1063).
-     *
-     * But in terms of _permissions_ we want the comment author to be the 'owner' and members of the org
-     * to be viewers only, so that they cannot edit each other's comments.
-     */
-    await modifyEntityAuthorizationRelationships(
-      ctx,
-      authentication,
-      [textEntity, commentEntity, ...outgoingLinks].map((entity) => ({
-        operation: "create",
-        relationship: {
-          subject: {
-            subjectId: ownedById as AccountGroupId,
-            kind: "accountGroup",
-          },
-          relation: "viewer",
-          resource: {
-            kind: "entity",
-            resourceId: entity.metadata.recordId.entityId,
-          },
-        },
-      })),
-    );
-  }
 
   return getCommentFromEntity({ entity: commentEntity });
 };
