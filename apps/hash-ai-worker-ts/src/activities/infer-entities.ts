@@ -337,7 +337,7 @@ const requestEntityInference = async (params: {
           functionCall;
 
         try {
-          parse(modelProvidedArgument);
+          JSON.parse(modelProvidedArgument);
         } catch {
           log(
             `Could not parse AI Model response on attempt ${iterationCount}: ${stringify(
@@ -364,7 +364,7 @@ const requestEntityInference = async (params: {
             continue;
           }
 
-          const parsedResponse = parse(
+          const parsedResponse = JSON.parse(
             modelProvidedArgument,
           ) as CouldNotInferEntitiesReturn;
 
@@ -378,7 +378,7 @@ const requestEntityInference = async (params: {
         if (functionName === "create_entities") {
           let proposedEntitiesByType: ProposedEntityCreationsByType;
           try {
-            proposedEntitiesByType = parse(
+            proposedEntitiesByType = JSON.parse(
               modelProvidedArgument,
             ) as ProposedEntityCreationsByType;
             validateProposedEntitiesByType(proposedEntitiesByType, false);
@@ -536,7 +536,7 @@ const requestEntityInference = async (params: {
         if (functionName === "update_entities") {
           let proposedEntityUpdatesByType: ProposedEntityUpdatesByType;
           try {
-            proposedEntityUpdatesByType = parse(
+            proposedEntityUpdatesByType = JSON.parse(
               modelProvidedArgument,
             ) as ProposedEntityUpdatesByType;
 
