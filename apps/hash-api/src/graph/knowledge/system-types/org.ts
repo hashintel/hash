@@ -33,7 +33,6 @@ import {
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import {
   createEntity,
-  CreateEntityParams,
   getLatestEntityById,
   updateEntityProperty,
 } from "../primitive/entity";

@@ -26,6 +26,7 @@ import {
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import { systemAccountId } from "../../system-account";
 import {
   createEntity,
   CreateEntityParams,
@@ -38,7 +39,6 @@ import { Comment } from "./comment";
 import { Page } from "./page";
 import { Text } from "./text";
 import { User } from "./user";
-import { systemAccountId } from "../../system-account";
 
 type Notification = {
   archived?: boolean;

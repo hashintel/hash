@@ -7,7 +7,6 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { CommentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { TextToken } from "@local/hash-isomorphic-utils/types";
-import { AccountGroupId, Entity, EntityId } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
@@ -18,7 +17,6 @@ import {
   getEntityIncomingLinks,
   getEntityOutgoingLinks,
   getLatestEntityById,
-  modifyEntityAuthorizationRelationships,
   updateEntityProperties,
   updateEntityProperty,
 } from "../primitive/entity";

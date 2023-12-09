@@ -41,7 +41,6 @@ import { systemAccountId } from "../../system-account";
 import {
   checkEntityPermission,
   createEntity,
-  CreateEntityParams,
   getEntityOutgoingLinks,
   getLatestEntityById,
 } from "../primitive/entity";
