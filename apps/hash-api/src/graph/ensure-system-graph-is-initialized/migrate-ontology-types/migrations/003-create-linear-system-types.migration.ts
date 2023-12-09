@@ -1,8 +1,8 @@
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { BaseUrl, linkEntityTypeUrl } from "@local/hash-subgraph";
-import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
+import { versionedUrlFromComponents } from "@local/hash-subgraph/src/shared/type-system-patch";
 
-import { enabledIntegrations } from "../../../integrations/enabled-integrations";
+import { enabledIntegrations } from "../../../../integrations/enabled-integrations";
 import { MigrationFunction } from "../types";
 import {
   createSystemEntityTypeIfNotExists,

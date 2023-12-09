@@ -12,12 +12,12 @@ import {
 } from "@local/hash-subgraph";
 import { RequestHandler } from "express";
 
-import { systemAccountId } from "../../graph/ensure-hash-system-account-exists";
 import {
   getAllLinearIntegrationsWithLinearOrgId,
   getSyncedWorkspacesForLinearIntegration,
 } from "../../graph/knowledge/system-types/linear-integration-entity";
 import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret";
+import { systemAccountId } from "../../graph/system-account";
 import { logger } from "../../logger";
 import { createTemporalClient } from "../../temporal";
 import { genId } from "../../util";

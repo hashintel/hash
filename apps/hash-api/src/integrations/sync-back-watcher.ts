@@ -13,7 +13,7 @@ import {
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
-import { systemAccountId } from "../graph/ensure-hash-system-account-exists";
+import { systemAccountId } from "../graph/system-account";
 import { logger } from "../logger";
 import { getRequiredEnv } from "../util";
 import {

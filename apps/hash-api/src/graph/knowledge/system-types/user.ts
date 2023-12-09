@@ -37,7 +37,7 @@ import {
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { createAccount, createWeb } from "../../account-permission-management";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import { systemAccountId } from "../../ensure-hash-system-account-exists";
+import { systemAccountId } from "../../system-account";
 import {
   checkEntityPermission,
   createEntity,

@@ -1,19 +1,28 @@
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
 import { AccountGroupId, AccountId, OwnedById } from "@local/hash-subgraph";
 
-import { enabledIntegrations } from "../integrations/enabled-integrations";
-import { logger } from "../logger";
+import { enabledIntegrations } from "../../integrations/enabled-integrations";
+import { NotFoundError } from "../../lib/error";
+import { logger } from "../../logger";
 import {
   createAccount,
   createAccountGroup,
   createWeb,
-} from "./account-permission-management";
-import { ImpureGraphContext } from "./context-types";
-import { systemAccountId } from "./ensure-hash-system-account-exists";
-import { createMachineEntity } from "./knowledge/system-types/machine";
-import { createOrg, getOrgByShortname } from "./knowledge/system-types/org";
+} from "../account-permission-management";
+import { ImpureGraphContext } from "../context-types";
+import {
+  createHashInstance,
+  getHashInstance,
+} from "../knowledge/system-types/hash-instance";
+import {
+  createMachineEntity,
+  getMachineEntity,
+} from "../knowledge/system-types/machine";
+import { createOrg, getOrgByShortname } from "../knowledge/system-types/org";
+import { systemAccountId } from "../system-account";
 
 // Whether this is a self-hosted instance, rather than the central HASH hosted instance
 export const isSelfHostedInstance =
@@ -103,15 +112,9 @@ export const getOrCreateOwningAccountGroupId = async (
     owner: { kind: "accountGroup", subjectId: accountGroupId },
   });
 
-  await createMachineEntity(context, {
-    identifier: webShortname,
-    machineAccountId: machineActorIdForWeb,
-    owningWebAccountGroupId: accountGroupId,
-  });
-
   logger.info(
     `Created accountGroup for web with shortname ${webShortname}, accountGroupId: ${accountGroupId}`,
-    `Created machine actor and entity for web with shortname ${webShortname}, machineActorId: ${machineActorIdForWeb}`,
+    `Created machine actor for web with shortname ${webShortname}, machineActorId: ${machineActorIdForWeb}`,
   );
 
   owningWebs[webShortname].accountGroupId = accountGroupId;
@@ -123,7 +126,14 @@ export const getOrCreateOwningAccountGroupId = async (
   };
 };
 
-export const ensureAccountGroupOrgsExist = async (params: {
+/**
+ * Ensures that there are entities associated with each:
+ * - system web (create an Organization associated with it)
+ * - machine actor that creates the web (create a Machine associated with it)
+ *
+ * Also creates other required system entities, such as the hashInstance entity and AI Assistant.
+ */
+export const ensureSystemEntitiesExist = async (params: {
   context: ImpureGraphContext;
 }) => {
   if (isSelfHostedInstance) {
@@ -132,41 +142,102 @@ export const ensureAccountGroupOrgsExist = async (params: {
 
   const { context } = params;
 
-  logger.debug("Ensuring account group organization entities exist");
+  logger.debug(
+    "Ensuring account group organization and machine entities exist",
+  );
 
-  for (const [webShortname, { enabled, name, websiteUrl }] of Object.entries(
-    owningWebs,
-  )) {
+  for (const [
+    webShortname,
+    { accountGroupId, enabled, machineActorAccountId, name, websiteUrl },
+  ] of typedEntries(owningWebs)) {
     if (!enabled) {
       continue;
     }
 
-    const authentication = { actorId: systemAccountId };
+    if (!accountGroupId) {
+      throw new Error(
+        `Missing accountGroupId for system web with shortname ${webShortname}`,
+      );
+    }
+    if (!machineActorAccountId) {
+      throw new Error(
+        `Missing machineActorAccountId for system web with shortname ${webShortname}`,
+      );
+    }
+
+    const authentication = { actorId: machineActorAccountId };
     const foundOrg = await getOrgByShortname(context, authentication, {
       shortname: webShortname,
     });
 
     if (!foundOrg) {
-      const { accountGroupId, machineActorId } =
-        await getOrCreateOwningAccountGroupId(
-          context,
-          webShortname as SystemTypeWebShortname,
+      await createOrg(context, authentication, {
+        orgAccountGroupId: accountGroupId,
+        shortname: webShortname,
+        name,
+        websiteUrl,
+      });
+    }
+
+    try {
+      await getMachineEntity(context, authentication, {
+        identifier: webShortname,
+      });
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        await createMachineEntity(context, {
+          machineAccountId: machineActorAccountId,
+          identifier: webShortname,
+          owningWebAccountGroupId: accountGroupId,
+        });
+
+        logger.info(
+          `Created machine actor entity for '${webShortname}' for accountId ${machineActorAccountId}`,
         );
+      } else {
+        throw error;
+      }
+    }
+  }
 
-      await createOrg(
+  const authentication = { actorId: systemAccountId };
+  try {
+    await getHashInstance(context, authentication, {});
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      await createHashInstance(context, authentication, {});
+      logger.info("Created hashInstance entity");
+    } else {
+      throw error;
+    }
+  }
+
+  try {
+    await getMachineEntity(context, authentication, {
+      identifier: "ai-assistant",
+    });
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      const aiAssistantAccountId = await createAccount(
         context,
-        { actorId: machineActorId },
-        {
-          orgAccountGroupId: accountGroupId,
-          shortname: webShortname,
-          name,
-          websiteUrl,
-        },
+        authentication,
+        {},
       );
 
-      logger.info(
-        `Created organization entity for '${webShortname}' with accountGroupId '${accountGroupId}'`,
-      );
+      const hashAccountGroupId = owningWebs.hash.accountGroupId;
+      if (!hashAccountGroupId) {
+        throw new Error(
+          `Somehow reached the point of creating the AI Assistant machine actor without a hash accountGroupId`,
+        );
+      }
+
+      await createMachineEntity(context, {
+        identifier: "ai-assistant",
+        machineAccountId: aiAssistantAccountId,
+        owningWebAccountGroupId: hashAccountGroupId,
+      });
+    } else {
+      throw error;
     }
   }
 };

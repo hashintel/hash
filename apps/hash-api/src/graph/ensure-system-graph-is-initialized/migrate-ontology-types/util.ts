@@ -17,10 +17,11 @@ import {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { UpdateEntityType } from "@local/hash-graph-client";
+import { UpdateEntityType, UpdatePropertyType } from "@local/hash-graph-client";
 import {
   blockProtocolDataTypes,
   systemEntityTypes,
+  systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
@@ -41,31 +42,31 @@ import {
   componentsFromVersionedUrl,
   extractBaseUrl,
   versionedUrlFromComponents,
-} from "@local/hash-subgraph/type-system-patch";
+} from "@local/hash-subgraph/src/shared/type-system-patch";
 
-import { NotFoundError } from "../../lib/error";
+import { NotFoundError } from "../../../lib/error";
 import {
   CACHED_DATA_TYPE_SCHEMAS,
   CACHED_ENTITY_TYPE_SCHEMAS,
   CACHED_PROPERTY_TYPE_SCHEMAS,
-} from "../../seed-data";
-import { ImpureGraphFunction } from "../context-types";
-import { getDataTypeById } from "../ontology/primitive/data-type";
+} from "../../../seed-data";
+import { ImpureGraphFunction } from "../../context-types";
+import { getDataTypeById } from "../../ontology/primitive/data-type";
 import {
   createEntityType,
   getEntityTypeById,
-} from "../ontology/primitive/entity-type";
+} from "../../ontology/primitive/entity-type";
 import {
   createPropertyType,
   getPropertyTypeById,
-} from "../ontology/primitive/property-type";
+} from "../../ontology/primitive/property-type";
 import {
   getOrCreateOwningAccountGroupId,
   isSelfHostedInstance,
   PrimitiveDataTypeKey,
-} from "../util";
+} from "../system-webs-and-entities";
 import { MigrationState } from "./types";
-import { upgradeEntityTypeDependency } from "./util/upgrade-entity-type-dependencies";
+import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-dependencies";
 
 const systemTypeDomain = "https://hash.ai";
 
@@ -707,7 +708,32 @@ export const getExistingHashSystemEntityTypeId = ({
   return versionedUrlFromComponents(entityTypeBaseUrl, entityTypeVersion);
 };
 
-export const getExistingPropertyTypeId = ({
+export const getExistingHashLinkEntityTypeId = ({
+  linkEntityTypeKey,
+  migrationState,
+}: {
+  linkEntityTypeKey: keyof typeof systemLinkEntityTypes;
+  migrationState: MigrationState;
+}) => {
+  const linkEntityTypeBaseUrl = systemLinkEntityTypes[linkEntityTypeKey]
+    .linkEntityTypeBaseUrl as BaseUrl;
+
+  const linkEntityTypeVersion =
+    migrationState.entityTypeVersions[linkEntityTypeBaseUrl];
+
+  if (typeof linkEntityTypeVersion === "undefined") {
+    throw new Error(
+      `Expected '${linkEntityTypeKey}' link entity type to have been seeded`,
+    );
+  }
+
+  return versionedUrlFromComponents(
+    linkEntityTypeBaseUrl,
+    linkEntityTypeVersion,
+  );
+};
+
+export const getExistingHashPropertyTypeId = ({
   propertyTypeKey,
   migrationState,
 }: {
@@ -735,6 +761,7 @@ type BaseUpdateTypeParameters = {
 
 export const updateSystemEntityType: ImpureGraphFunction<
   {
+    updateExistingEntitiesToNewVersion: boolean;
     currentEntityTypeId: VersionedUrl;
     newSchema: UpdateEntityType;
   } & BaseUpdateTypeParameters,
@@ -742,7 +769,12 @@ export const updateSystemEntityType: ImpureGraphFunction<
 > = async (
   context,
   authentication,
-  { currentEntityTypeId, newSchema, migrationState },
+  {
+    currentEntityTypeId,
+    newSchema,
+    migrationState,
+    updateExistingEntitiesToNewVersion,
+  },
 ) => {
   const { baseUrl, version } = componentsFromVersionedUrl(currentEntityTypeId);
 
@@ -776,19 +808,86 @@ export const updateSystemEntityType: ImpureGraphFunction<
 
   migrationState.entityTypeVersions[baseUrl] = nextVersion;
 
+  if (updateExistingEntitiesToNewVersion) {
+    // @todo figure out how to manage permissions for updating entities
+    //   – the account doing the migration needs to be able to (a) find and (b) update them
+  }
+
   return { updatedEntityTypeId };
 };
 
-export const upgradeHashEntityTypeDependencies: ImpureGraphFunction<
+export const updateSystemPropertyType: ImpureGraphFunction<
+  {
+    currentPropertyTypeId: VersionedUrl;
+    newSchema: UpdatePropertyType;
+  } & BaseUpdateTypeParameters,
+  Promise<{ updatedPropertyTypeId: VersionedUrl }>
+> = async (
+  context,
+  authentication,
+  { currentPropertyTypeId, newSchema, migrationState },
+) => {
+  const { baseUrl, version } = componentsFromVersionedUrl(
+    currentPropertyTypeId,
+  );
+
+  const versionInMigrationState = migrationState.propertyTypeVersions[baseUrl];
+
+  if (!versionInMigrationState) {
+    throw new Error(
+      `Update requested for property type with current propertyTypeId ${currentPropertyTypeId}, but it does not exist in migration state.`,
+    );
+  }
+
+  if (versionInMigrationState !== version) {
+    throw new Error(
+      `Update requested for property type with current propertyTypeId ${currentPropertyTypeId}, but the current version in migration state is ${versionInMigrationState}`,
+    );
+  }
+
+  const nextVersion = version + 1;
+
+  const updatedPropertyTypeId = versionedUrlFromComponents(
+    baseUrl,
+    nextVersion,
+  );
+
+  const propertyTypeSchema = {
+    ...newSchema,
+    $id: updatedPropertyTypeId,
+  };
+
+  await context.graphApi.updatePropertyType(authentication.actorId, {
+    typeToUpdate: currentPropertyTypeId,
+    schema: propertyTypeSchema,
+  });
+
+  migrationState.propertyTypeVersions[baseUrl] = nextVersion;
+
+  return { updatedPropertyTypeId };
+};
+
+/**
+ * Given a list of upgradedEntityTypeIds, and the keys of types which refer to them, update those types to refer to the new versions.
+ *
+ * @todo have some way of automatically checking all existing types for references to the upgraded types, avoid manually specifying them
+ */
+export const upgradeDependenciesInHashEntityType: ImpureGraphFunction<
   {
     dependentEntityTypeKeys: (keyof typeof systemEntityTypes)[];
-    upgradedEntityTypeId: VersionedUrl;
+    updateExistingEntitiesToNewVersion: boolean;
+    upgradedEntityTypeIds: VersionedUrl[];
   } & BaseUpdateTypeParameters,
   Promise<void>
 > = async (
   context,
   authentication,
-  { dependentEntityTypeKeys, migrationState, upgradedEntityTypeId },
+  {
+    dependentEntityTypeKeys,
+    migrationState,
+    updateExistingEntitiesToNewVersion,
+    upgradedEntityTypeIds,
+  },
 ) => {
   for (const dependentEntityTypeKey of dependentEntityTypeKeys) {
     const currentDependentEntityTypeId = getExistingHashSystemEntityTypeId({
@@ -804,15 +903,22 @@ export const upgradeHashEntityTypeDependencies: ImpureGraphFunction<
       },
     );
 
-    const newDependentSchema = upgradeEntityTypeDependency({
+    const newDependentSchema = upgradeEntityTypeDependencies({
       schema: dependentSchema,
-      upgradedEntityTypeId,
+      upgradedEntityTypeIds,
     });
 
     await updateSystemEntityType(context, authentication, {
       currentEntityTypeId: currentDependentEntityTypeId,
       migrationState,
       newSchema: newDependentSchema,
+      updateExistingEntitiesToNewVersion,
     });
+
+    /**
+     * @todo handle cascading updates – some of the updated system types may themselves be dependencies of other types
+     * ideally we'd have a function to check all existing types for dependencies and update them
+     * would also need to handle circular references as part of this
+     */
   }
 };

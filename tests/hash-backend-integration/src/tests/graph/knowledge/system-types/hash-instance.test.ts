@@ -1,6 +1,5 @@
 import { publicUserAccountId } from "@apps/hash-api/src/auth/public-user-account-id";
 import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
-import { systemAccountId } from "@apps/hash-api/src/graph/ensure-hash-system-account-exists";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
   addHashInstanceAdmin,
@@ -12,6 +11,7 @@ import {
   isUserHashInstanceAdmin,
   User,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
