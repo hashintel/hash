@@ -516,6 +516,7 @@ impl<C: AsClient> SnapshotStore<C> {
         let read_thread = tokio::spawn(
             snapshot
                 .map_err(|report| report.change_context(SnapshotRestoreError::Read))
+                // .map_ok(|entry| dbg!(entry))
                 .forward(
                     snapshot_record_tx
                         .sink_map_err(|report| report.change_context(SnapshotRestoreError::Buffer)),
@@ -548,6 +549,10 @@ impl<C: AsClient> SnapshotStore<C> {
 
         tracing::info!("snapshot reading finished, committing...");
 
+        read_thread
+            .await
+            .change_context(SnapshotRestoreError::Read)??;
+
         SnapshotRecordBatch::commit(&client)
             .await
             .change_context(SnapshotRestoreError::Write)
@@ -575,10 +580,6 @@ impl<C: AsClient> SnapshotStore<C> {
             .await
             .change_context(SnapshotRestoreError::Write)
             .attach_printable("unable to commit snapshot to the store")?;
-
-        read_thread
-            .await
-            .change_context(SnapshotRestoreError::Read)??;
 
         let mut found_metadata = false;
         for metadata in metadata_rx.collect::<Vec<SnapshotMetadata>>().await {

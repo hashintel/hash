@@ -148,16 +148,20 @@ export const SelectScope = ({
         throw new Error("Cannot update a rule without a target entity type");
       }
 
-      const existingRuleForType = rulesByType[targetEntityTypeId];
+      /**
+       * If we're switching the type for the rule, check for an existing rule for that type and merge them
+       */
+      const duplicateRuleForType =
+        targetEntityTypeId !== previousEntityTypeId
+          ? rulesByType[targetEntityTypeId]
+          : undefined;
 
       rulesByType[targetEntityTypeId] = {
         entityTypeId: targetEntityTypeId,
         restrictToDomains: Array.from(
           new Set([
             ...restrictToDomains,
-            // If there's already a rule for this type, merge the existing domains in
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            ...(existingRuleForType?.restrictToDomains ?? []),
+            ...(duplicateRuleForType?.restrictToDomains ?? []),
           ]),
         ),
       };

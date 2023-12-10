@@ -7,13 +7,13 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
-import { Entity, OwnedById } from "@local/hash-subgraph";
+import { Entity, EntityId, OwnedById } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
 import { Box, Typography } from "@mui/material";
-import { FunctionComponent, useCallback, useMemo } from "react";
+import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
 import { useFetchBlockSubgraph } from "../../../../blocks/use-fetch-block-subgraph";
 import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
@@ -73,6 +73,12 @@ export const BlockSelectDataModal: FunctionComponent<
     return existingQueries[0];
   }, [blockSubgraph, blockDataEntity]);
 
+  const [initialQueryEntityId, setInitialQueryEntityId] = useState<EntityId>();
+
+  if (!initialQueryEntityId && existingQuery) {
+    setInitialQueryEntityId(existingQuery.metadata.recordId.entityId);
+  }
+
   const { authenticatedUser } = useAuthenticatedUser();
 
   const { createEntity } = useBlockProtocolCreateEntity(
@@ -129,6 +135,8 @@ export const BlockSelectDataModal: FunctionComponent<
       }
 
       await refetchBlockSubgraph();
+
+      onClose();
     },
     [
       updateEntity,
@@ -136,6 +144,7 @@ export const BlockSelectDataModal: FunctionComponent<
       blockDataEntity,
       existingQuery,
       createEntity,
+      onClose,
     ],
   );
 
@@ -173,11 +182,12 @@ export const BlockSelectDataModal: FunctionComponent<
   return (
     <Modal
       {...modalProps}
-      sx={{
-        "> div": {
-          overflow: "hidden",
-          padding: 0,
-        },
+      contentStyle={{
+        overflow: "hidden",
+        /** @todo: figure out why !important is required here */
+        padding: "0px !important",
+        width: "fit-content !important",
+        maxWidth: "90vw",
       }}
       onClose={onClose}
     >
@@ -213,6 +223,11 @@ export const BlockSelectDataModal: FunctionComponent<
           sx={{ marginBottom: 2 }}
           entityTypes={entityTypeSchemas}
           propertyTypes={propertyTypeSchemas}
+          /**
+           * This ensures the query editor is initialized with the query
+           * incase it isn't available in the first render.
+           */
+          key={initialQueryEntityId ?? "new-query"}
           defaultValue={
             existingQuery
               ? (simplifyProperties(existingQuery.properties)

@@ -75,6 +75,7 @@ const Page: NextPageWithLayout = () => {
           isOfType: { outgoing: 1 },
           hasLeftEntity: { outgoing: 1, incoming: 1 },
           hasRightEntity: { outgoing: 1, incoming: 1 },
+          includeDrafts: true,
         },
       }),
     [lazyGetEntity],

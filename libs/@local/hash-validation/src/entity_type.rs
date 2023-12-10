@@ -192,7 +192,6 @@ where
 
     // TODO: validate link data
     //   see https://linear.app/hash/issue/H-972
-    #[expect(clippy::too_many_lines)]
     async fn validate_value<'a>(
         &'a self,
         link_data: &'a LinkData,
@@ -219,7 +218,7 @@ where
             .map_err(|error| extend_report!(status, error))
             .ok();
 
-        let right_entity_type_id = right_entity.as_ref().map(|entity| {
+        let _right_entity_type_id = right_entity.as_ref().map(|entity| {
             if profile == ValidationProfile::Full && entity.borrow().metadata.draft() {
                 extend_report!(
                     status,
@@ -242,85 +241,85 @@ where
                 );
             }
 
-            let left_entity_type = provider
-                .provide_type(left_entity.borrow().metadata.entity_type_id())
-                .await
-                .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
-                    id: left_entity.borrow().metadata.entity_type_id().clone(),
-                })
-                .map_err(|error| extend_report!(status, error))
-                .ok();
-
-            if let Some(left_entity_type) = left_entity_type {
-                let mut maybe_allowed_targets = left_entity_type.borrow().links().get(self.id());
-                if maybe_allowed_targets.is_none() {
-                    // No exact match found, so we look up parent types
-                    for (link_type, allowed_targets) in left_entity_type.borrow().links() {
-                        if provider
-                            .is_parent_of(self.id(), link_type)
-                            .await
-                            .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
-                                id: self.id().clone(),
-                            })
-                            .map_err(|error| extend_report!(status, error))
-                            .unwrap_or(false)
-                        {
-                            maybe_allowed_targets = Some(allowed_targets);
-                            break;
-                        }
-                    }
-                }
-
-                if let Some(maybe_allowed_targets) = maybe_allowed_targets {
-                    if let (Some(allowed_targets), Some(right_entity_type_id)) =
-                        (maybe_allowed_targets.array().items(), right_entity_type_id)
-                    {
-                        let mut found_match = false;
-                        for allowed_target in allowed_targets.one_of() {
-                            // We test exact matches first to avoid looking up parent types
-                            if allowed_target.url() == right_entity_type_id {
-                                found_match = true;
-                                break;
-                            }
-                        }
-                        if !found_match {
-                            // No exact match found, so we look up parent types
-                            for allowed_target in allowed_targets.one_of() {
-                                if provider
-                                    .is_parent_of(right_entity_type_id, allowed_target.url())
-                                    .await
-                                    .change_context_lazy(|| {
-                                        EntityValidationError::EntityTypeRetrieval {
-                                            id: right_entity_type_id.clone(),
-                                        }
-                                    })
-                                    .map_err(|error| extend_report!(status, error))
-                                    .unwrap_or(false)
-                                {
-                                    found_match = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if !found_match {
-                            extend_report!(
-                                status,
-                                EntityValidationError::InvalidLinkTargetId {
-                                    target_type: right_entity_type_id.clone(),
-                                }
-                            );
-                        }
-                    }
-                } else {
-                    extend_report!(
-                        status,
-                        EntityValidationError::InvalidLinkTypeId {
-                            link_type: self.id().clone(),
-                        }
-                    );
-                }
-            }
+            // let left_entity_type = provider
+            //     .provide_type(left_entity.borrow().metadata.entity_type_id())
+            //     .await
+            //     .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
+            //         id: left_entity.borrow().metadata.entity_type_id().clone(),
+            //     })
+            //     .map_err(|error| extend_report!(status, error))
+            //     .ok();
+            //
+            // if let Some(left_entity_type) = left_entity_type {
+            //     let mut maybe_allowed_targets = left_entity_type.borrow().links().get(self.id());
+            //     if maybe_allowed_targets.is_none() {
+            //         // No exact match found, so we look up parent types
+            //         for (link_type, allowed_targets) in left_entity_type.borrow().links() {
+            //             if provider
+            //                 .is_parent_of(self.id(), link_type)
+            //                 .await
+            //                 .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
+            //                     id: self.id().clone(),
+            //                 })
+            //                 .map_err(|error| extend_report!(status, error))
+            //                 .unwrap_or(false)
+            //             {
+            //                 maybe_allowed_targets = Some(allowed_targets);
+            //                 break;
+            //             }
+            //         }
+            //     }
+            //
+            //     if let Some(maybe_allowed_targets) = maybe_allowed_targets {
+            //         if let (Some(allowed_targets), Some(right_entity_type_id)) =
+            //             (maybe_allowed_targets.array().items(), right_entity_type_id)
+            //         {
+            //             let mut found_match = false;
+            //             for allowed_target in allowed_targets.one_of() {
+            //                 // We test exact matches first to avoid looking up parent types
+            //                 if allowed_target.url() == right_entity_type_id {
+            //                     found_match = true;
+            //                     break;
+            //                 }
+            //             }
+            //             if !found_match {
+            //                 // No exact match found, so we look up parent types
+            //                 for allowed_target in allowed_targets.one_of() {
+            //                     if provider
+            //                         .is_parent_of(right_entity_type_id, allowed_target.url())
+            //                         .await
+            //                         .change_context_lazy(|| {
+            //                             EntityValidationError::EntityTypeRetrieval {
+            //                                 id: right_entity_type_id.clone(),
+            //                             }
+            //                         })
+            //                         .map_err(|error| extend_report!(status, error))
+            //                         .unwrap_or(false)
+            //                     {
+            //                         found_match = true;
+            //                         break;
+            //                     }
+            //                 }
+            //             }
+            //
+            //             if !found_match {
+            //                 extend_report!(
+            //                     status,
+            //                     EntityValidationError::InvalidLinkTargetId {
+            //                         target_type: right_entity_type_id.clone(),
+            //                     }
+            //                 );
+            //             }
+            //         }
+            //     } else {
+            //         extend_report!(
+            //             status,
+            //             EntityValidationError::InvalidLinkTypeId {
+            //                 link_type: self.id().clone(),
+            //             }
+            //         );
+            //     }
+            // }
         }
 
         status

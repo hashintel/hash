@@ -117,7 +117,7 @@ export const createTestOrg = async (
   });
 };
 
-const afterHookTriggerTimeout = 3_000;
+const afterHookTriggerTimeout = 5_000;
 
 export const waitForAfterHookTriggerToComplete = () =>
   new Promise((resolve) => {

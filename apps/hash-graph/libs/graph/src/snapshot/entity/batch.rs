@@ -28,7 +28,7 @@ pub enum EntityRowBatch {
     Editions(Vec<EntityEditionRow>),
     TemporalMetadata(Vec<EntityTemporalMetadataRow>),
     Links(Vec<EntityLinkEdgeRow>),
-    Relations(HashMap<EntityUuid, EntityRelationAndSubject>),
+    Relations(HashMap<EntityUuid, Vec<EntityRelationAndSubject>>),
 }
 
 #[async_trait]
@@ -151,9 +151,20 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     tracing::info!("Read {} entity links", rows.len());
                 }
             }
+            #[expect(
+                clippy::needless_collect,
+                reason = "Lifetime error, probably the signatures are wrong"
+            )]
             Self::Relations(relations) => {
                 authorization_api
-                    .touch_relationships(relations)
+                    .touch_relationships(
+                        relations
+                            .into_iter()
+                            .flat_map(|(id, relations)| {
+                                relations.into_iter().map(move |relation| (id, relation))
+                            })
+                            .collect::<Vec<_>>(),
+                    )
                     .await
                     .change_context(InsertionError)?;
             }

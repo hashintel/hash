@@ -1,9 +1,5 @@
 import { Autocomplete, Chip, MenuItem } from "@hashintel/design-system";
-import {
-  autocompleteClasses,
-  createFilterOptions,
-  outlinedInputClasses,
-} from "@mui/material";
+import { createFilterOptions, outlinedInputClasses } from "@mui/material";
 
 import {
   darkModeBorderColor,
@@ -11,6 +7,7 @@ import {
   darkModeInputColor,
   darkModePlaceholderColor,
 } from "../../../../../shared/style-values";
+import { menuItemSx } from "../../shared/autocomplete-sx";
 
 const filter = createFilterOptions<string>();
 
@@ -53,6 +50,7 @@ export const SelectDomains = ({
         return filtered;
       }}
       freeSolo
+      inputHeight="auto"
       inputProps={{
         endAdornment: <div />,
         placeholder: selectedDomains.length > 0 ? "" : "On any site",
@@ -99,40 +97,7 @@ export const SelectDomains = ({
       }}
       options={options}
       renderOption={(props, domain) => (
-        <MenuItem
-          {...props}
-          key={domain}
-          value={domain}
-          sx={({ palette }) => ({
-            minHeight: 0,
-            borderBottom: `1px solid ${palette.gray[20]}`,
-            "@media (prefers-color-scheme: dark)": {
-              borderBottom: `1px solid ${darkModeBorderColor}`,
-
-              "&:hover": {
-                background: darkModeInputBackgroundColor,
-              },
-
-              [`&.${autocompleteClasses.option}`]: {
-                borderRadius: 0,
-                my: 0.25,
-
-                [`&[aria-selected="true"]`]: {
-                  backgroundColor: `${palette.primary.main} !important`,
-                  color: palette.common.white,
-                },
-
-                "&.Mui-focused": {
-                  backgroundColor: `${palette.common.black} !important`,
-
-                  [`&[aria-selected="true"]`]: {
-                    backgroundColor: `${palette.primary.main} !important`,
-                  },
-                },
-              },
-            },
-          })}
-        >
+        <MenuItem {...props} key={domain} value={domain} sx={menuItemSx}>
           <Chip color="blue" label={domain} sx={{ ml: 1, fontSize: 13 }} />
         </MenuItem>
       )}

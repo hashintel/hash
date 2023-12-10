@@ -149,6 +149,7 @@ export const updateLinkEntity: ImpureGraphFunction<
     properties?: EntityPropertiesObject;
     leftToRightOrder?: number;
     rightToLeftOrder?: number;
+    draft?: boolean;
   },
   Promise<LinkEntity>
 > = async ({ graphApi }, { actorId }, params) => {
@@ -161,7 +162,10 @@ export const updateLinkEntity: ImpureGraphFunction<
     entityTypeId: linkEntity.metadata.entityTypeId,
     properties,
     archived: linkEntity.metadata.archived,
-    draft: linkEntity.metadata.draft,
+    draft:
+      typeof params.draft === "undefined"
+        ? linkEntity.metadata.draft
+        : params.draft,
     leftToRightOrder,
     rightToLeftOrder,
   });

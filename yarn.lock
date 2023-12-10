@@ -7877,10 +7877,10 @@
   dependencies:
     "@types/istanbul-lib-report" "*"
 
-"@types/jest@29.5.10":
-  version "29.5.10"
-  resolved "https://registry.yarnpkg.com/@types/jest/-/jest-29.5.10.tgz#a10fc5bab9e426081c12b2ef73d24d4f0c9b7f50"
-  integrity sha512-tE4yxKEphEyxj9s4inideLHktW/x6DwesIwWZ9NN1FKf9zbJYsnhBoA9vrHA/IuIOKwPa5PcFBNV4lpMIOEzyQ==
+"@types/jest@29.5.11":
+  version "29.5.11"
+  resolved "https://registry.yarnpkg.com/@types/jest/-/jest-29.5.11.tgz#0c13aa0da7d0929f078ab080ae5d4ced80fa2f2c"
+  integrity sha512-S2mHmYIVe13vrm6q4kN6fLYYAka15ALQki/vgDC3mIukEOx8WJlv0kQPM+d4w8Gp6u0uSdKND04IlTXBv0rwnQ==
   dependencies:
     expect "^29.0.0"
     pretty-format "^29.0.0"
@@ -9780,7 +9780,7 @@ base16@^1.0.0:
   resolved "https://registry.yarnpkg.com/base16/-/base16-1.0.0.tgz#e297f60d7ec1014a7a971a39ebc8a98c0b681e70"
   integrity "sha1-4pf2DX7BAUp6lxo568ipjAtoHnA= sha512-pNdYkNPiJUnEhnfXV56+sQy8+AaPcG3POZAUnwr4EeqCUZFz4u2PePbo3e5Gj4ziYPCWGUZT9RHisvJKnwFuBQ=="
 
-base64-js@^1.3.0, base64-js@^1.3.1:
+base64-js@^1.3.0, base64-js@^1.3.1, base64-js@^1.5.1:
   version "1.5.1"
   resolved "https://registry.yarnpkg.com/base64-js/-/base64-js-1.5.1.tgz#1b1b440160a5bf7ad40b650f095963481903930a"
   integrity "sha1-GxtEAWClv3rUC2UPCVljSBkDkwo= sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA=="
@@ -16386,6 +16386,13 @@ js-sdsl@4.3.0, js-sdsl@^4.1.4:
   resolved "https://registry.yarnpkg.com/js-sdsl/-/js-sdsl-4.3.0.tgz#aeefe32a451f7af88425b11fdb5f58c90ae1d711"
   integrity sha512-mifzlm2+5nZ+lEcLJMoBK0/IH/bDg8XnJfd/Wq6IP+xoCjLZsTOnV2QpxlVbX9bMnkl5PdEjNtBJ9Cj1NjifhQ==
 
+js-tiktoken@^1.0.7:
+  version "1.0.8"
+  resolved "https://registry.yarnpkg.com/js-tiktoken/-/js-tiktoken-1.0.8.tgz#21ab8ae222e71226b2ef0d2f4b507fb10d66a114"
+  integrity sha512-r7XK3E9/I+SOrbAGqb39pyO/rHAS1diAOSRAvaaLfHgXjkUSK9AiSd+r84Vn2f/GvXJYRAxKj8NHrUvqlaH5qg==
+  dependencies:
+    base64-js "^1.5.1"
+
 "js-tokens@^3.0.0 || ^4.0.0", js-tokens@^4.0.0:
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/js-tokens/-/js-tokens-4.0.0.tgz#19203fb59991df98e3a287050d4647cdeaf32499"
@@ -18915,6 +18922,13 @@ open@^9.1.0:
     define-lazy-prop "^3.0.0"
     is-inside-container "^1.0.0"
     is-wsl "^2.2.0"
+
+openai-chat-tokens@0.2.8:
+  version "0.2.8"
+  resolved "https://registry.yarnpkg.com/openai-chat-tokens/-/openai-chat-tokens-0.2.8.tgz#cc4a5a8e2d7c8d66b9dea472911d79301cc02422"
+  integrity sha512-nW7QdFDIZlAYe6jsCT/VPJ/Lam3/w2DX9oxf/5wHpebBT49KI3TN43PPhYlq1klq2ajzXWKNOLY6U4FNZM7AoA==
+  dependencies:
+    js-tiktoken "^1.0.7"
 
 openai@4.20.0:
   version "4.20.0"

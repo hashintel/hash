@@ -38,7 +38,7 @@ import {
   BlockEntity,
   HasAddress,
   HasMapImage,
-  RemoteFile,
+  Image,
 } from "./types/generated/block-entity";
 import { Address, useMapbox } from "./use-mapbox";
 
@@ -50,7 +50,7 @@ const MIN_ZOOM_LEVEL = 10;
 
 type BlockEntityKey = keyof BlockEntity["properties"];
 type AddressEntityKey = keyof AddressEntity["properties"];
-type FileUrlEntityKey = keyof RemoteFile["properties"];
+type FileUrlEntityKey = keyof Image["properties"];
 type LinkType = keyof AddressBlockOutgoingLinksByLinkEntityTypeId;
 
 // Root entity property types
@@ -151,7 +151,7 @@ export const App: BlockComponent<BlockEntity> = ({
     [linkedEntities, zoomLevel, addressId],
   );
 
-  const mapEntity: RemoteFile | undefined = mapLinkedEntity?.rightEntity;
+  const mapEntity: Image | undefined = mapLinkedEntity?.rightEntity;
   const mapLinkEntity: HasMapImage | undefined = mapLinkedEntity?.linkEntity;
 
   const mapUrl = mapEntity?.properties[fileUrlKey];

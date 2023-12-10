@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type {
+  InferenceModelName,
   InferEntitiesReturn,
   InferEntitiesUserArguments,
 } from "@local/hash-isomorphic-utils/temporal-types";
@@ -7,11 +8,7 @@ import { OwnedById } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { v4 as uuid } from "uuid";
 
-import {
-  setErroredBadge,
-  setLoadingBadge,
-  setSuccessBadge,
-} from "../../shared/badge";
+import { setErroredBadge } from "../../shared/badge";
 import type { InferEntitiesRequest } from "../../shared/messages";
 import {
   getFromLocalStorage,
@@ -21,10 +18,12 @@ import {
 const inferEntitiesApiCall = async ({
   createAs,
   entityTypeIds,
+  model,
   ownedById,
   textInput,
 }: {
   createAs: "draft" | "live";
+  model: InferenceModelName;
   textInput: string;
   entityTypeIds: VersionedUrl[];
   ownedById: OwnedById;
@@ -33,7 +32,7 @@ const inferEntitiesApiCall = async ({
     createAs,
     entityTypeIds,
     maxTokens: null,
-    model: "gpt-4-1106-preview",
+    model,
     ownedById,
     textInput,
     temperature: 0,
@@ -61,6 +60,7 @@ export const inferEntities = async (
   const {
     createAs,
     entityTypeIds,
+    model,
     ownedById,
     sourceUrl,
     sourceTitle,
@@ -77,6 +77,7 @@ export const inferEntities = async (
       createdAt: new Date().toISOString(),
       entityTypeIds,
       localRequestUuid: localRequestId,
+      model,
       ownedById,
       status: "pending",
       sourceTitle,
@@ -86,12 +87,11 @@ export const inferEntities = async (
     ...(currentValue ?? []),
   ]);
 
-  setLoadingBadge();
-
   try {
     const inferredEntitiesReturn = await inferEntitiesApiCall({
       createAs,
       entityTypeIds,
+      model,
       ownedById,
       textInput,
     });
@@ -100,15 +100,14 @@ export const inferEntities = async (
       throw new Error(inferredEntitiesReturn.message);
     }
 
-    await setSuccessBadge(1);
-
     await setInferenceRequestValue((currentValue) =>
       (currentValue ?? []).map((request) =>
         request.localRequestUuid === localRequestId
           ? {
               ...request,
-              status: "complete",
               data: inferredEntitiesReturn,
+              finishedAt: new Date().toISOString(),
+              status: "complete",
             }
           : request,
       ),
@@ -124,6 +123,7 @@ export const inferEntities = async (
           ? {
               ...request,
               errorMessage: errorMessage ?? "Unknown error – please contact us",
+              finishedAt: new Date().toISOString(),
               status: "error",
             }
           : request,

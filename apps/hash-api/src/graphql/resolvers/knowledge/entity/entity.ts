@@ -319,6 +319,7 @@ export const updateEntityResolver: ResolverFn<
 > = async (
   _,
   {
+    draft,
     entityId,
     updatedProperties,
     leftToRightOrder,
@@ -342,6 +343,7 @@ export const updateEntityResolver: ResolverFn<
 
   const entity = await getLatestEntityById(context, authentication, {
     entityId,
+    includeDrafts: true,
   });
 
   let updatedEntity: Entity;
@@ -395,6 +397,7 @@ export const updateEntityResolver: ResolverFn<
       properties: updatedProperties,
       leftToRightOrder: leftToRightOrder ?? undefined,
       rightToLeftOrder: rightToLeftOrder ?? undefined,
+      draft: draft ?? undefined,
     });
   } else {
     if (leftToRightOrder || rightToLeftOrder) {
@@ -407,6 +410,7 @@ export const updateEntityResolver: ResolverFn<
       entity,
       entityTypeId: entityTypeId ?? undefined,
       properties: updatedProperties,
+      draft: draft ?? undefined,
     });
   }
 
@@ -421,6 +425,7 @@ export const archiveEntityResolver: ResolverFn<
 > = async (_, { entityId }, { dataSources: context, authentication }) => {
   const entity = await getLatestEntityById(context, authentication, {
     entityId,
+    includeDrafts: true,
   });
 
   await archiveEntity(context, authentication, { entity });

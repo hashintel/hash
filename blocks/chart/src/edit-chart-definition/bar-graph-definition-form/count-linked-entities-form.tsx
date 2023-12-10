@@ -83,7 +83,11 @@ export const generateInitialChartDefinition = (params: {
 }): BarChartCountLinkedEntitiesVariant | undefined => {
   const { queryResult } = params;
 
-  const resultEntity = getRoots(queryResult)[0]!;
+  const resultEntity = getRoots(queryResult)[0];
+
+  if (!resultEntity) {
+    return undefined;
+  }
 
   const entityType = getEntityTypeById(
     queryResult,

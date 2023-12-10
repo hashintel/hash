@@ -25,35 +25,6 @@ const MODELS_BY_GROUP: GroupedOptions = {
         description:
           "The best model for many use cases; faster and 10x cheaper than Davinci",
       },
-      {
-        id: "text-davinci-003",
-        icon: <AbstractAiIcon sx={{ fontSize: "inherit" }} />,
-        title: "GPT-3 Davinci",
-        helperText: "text-davinci-003",
-        description:
-          "Great at writing long-form text, complex intent, cause and effect, summarization",
-      },
-      {
-        id: "text-curie-001",
-        icon: <AbstractAiIcon sx={{ fontSize: "inherit" }} />,
-        title: "GPT-3 Curie",
-        helperText: "text-curie-001",
-        description: "Good at language translation, Q&A",
-      },
-      {
-        id: "text-babbage-001",
-        icon: <AbstractAiIcon sx={{ fontSize: "inherit" }} />,
-        title: "GPT-3 Babbage",
-        helperText: "text-babbage-001",
-        description: "Good at moderate classification tasks",
-      },
-      {
-        id: "text-ada-001",
-        icon: <AbstractAiIcon sx={{ fontSize: "inherit" }} />,
-        title: "GPT-3 Ada",
-        helperText: "text-ada-001",
-        description: "Good at parsing, correction, keywords",
-      },
     ],
   },
 };

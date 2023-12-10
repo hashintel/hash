@@ -1,12 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import { Autocomplete, Chip, MenuItem } from "@hashintel/design-system";
 import { BaseUrl, EntityTypeWithMetadata } from "@local/hash-subgraph";
-import {
-  autocompleteClasses,
-  outlinedInputClasses,
-  Typography,
-} from "@mui/material";
-import { useMemo, useState } from "react";
+import { outlinedInputClasses, Typography } from "@mui/material";
+import { useMemo } from "react";
 
 import {
   darkModeBorderColor,
@@ -15,6 +11,18 @@ import {
   darkModePlaceholderColor,
 } from "../../../../shared/style-values";
 import { useEntityTypes } from "../../../../shared/use-entity-types";
+import { menuItemSx } from "./autocomplete-sx";
+
+// This assumes a VersionedURL in the hash.ai/blockprotocol.org format
+const getChipLabelFromId = (id: VersionedUrl) => {
+  const url = new URL(id);
+  const [_emptyString, namespace, _types, _entityType, typeSlug] =
+    url.pathname.split("/");
+
+  return `${
+    url.origin !== FRONTEND_ORIGIN ? `${url.host} / ` : ""
+  }${namespace} / ${typeSlug}`;
+};
 
 type SelectTypesAndInferProps = {
   inputHeight: number;
@@ -23,7 +31,7 @@ type SelectTypesAndInferProps = {
   targetEntityTypeIds: VersionedUrl[] | null;
 };
 
-const menuWidth = 300;
+const menuWidth = 400;
 
 export const EntityTypeSelector = ({
   inputHeight,
@@ -150,35 +158,7 @@ export const EntityTypeSelector = ({
           {...props}
           key={type.schema.$id}
           value={type.schema.$id}
-          sx={({ palette }) => ({
-            minHeight: 0,
-            borderBottom: `1px solid ${palette.gray[20]}`,
-            "@media (prefers-color-scheme: dark)": {
-              borderBottom: `1px solid ${darkModeBorderColor}`,
-
-              "&:hover": {
-                background: darkModeInputBackgroundColor,
-              },
-
-              [`&.${autocompleteClasses.option}`]: {
-                borderRadius: 0,
-                my: 0.25,
-
-                [`&[aria-selected="true"]`]: {
-                  backgroundColor: `${palette.primary.main} !important`,
-                  color: palette.common.white,
-                },
-
-                "&.Mui-focused": {
-                  backgroundColor: `${palette.common.black} !important`,
-
-                  [`&[aria-selected="true"]`]: {
-                    backgroundColor: `${palette.primary.main} !important`,
-                  },
-                },
-              },
-            },
-          })}
+          sx={menuItemSx}
         >
           <Typography
             sx={{
@@ -186,10 +166,16 @@ export const EntityTypeSelector = ({
               "@media (prefers-color-scheme: dark)": {
                 color: darkModeInputColor,
               },
+              pl: 1,
             }}
           >
             {type.schema.title}
           </Typography>
+          <Chip
+            color="blue"
+            label={getChipLabelFromId(type.schema.$id)}
+            sx={{ ml: 1, fontSize: 13, p: 0 }}
+          />
         </MenuItem>
       )}
       renderTags={(value, getTagProps) =>

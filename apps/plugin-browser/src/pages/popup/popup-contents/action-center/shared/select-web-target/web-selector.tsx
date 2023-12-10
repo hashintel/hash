@@ -1,24 +1,19 @@
 import { Autocomplete, MenuItem } from "@hashintel/design-system";
-import { Image } from "@local/hash-isomorphic-utils/system-types/shared";
 import { OwnedById } from "@local/hash-subgraph";
-import {
-  autocompleteClasses,
-  outlinedInputClasses,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Stack, Typography } from "@mui/material";
+import { ReactElement } from "react";
 
 import { LocalStorage } from "../../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
   darkModeInputColor,
-  darkModePlaceholderColor,
 } from "../../../../../shared/style-values";
 import { Avatar } from "../../../shared/avatar";
+import { inputHeight, inputPropsSx, menuItemSx } from "../autocomplete-sx";
 
 type WebOption = {
-  avatar?: Image | null;
+  avatarComponent: ReactElement;
   label: string;
   name: string;
   value: OwnedById;
@@ -32,13 +27,12 @@ type WebSelectorProps = {
 };
 
 const RenderOptionContent = ({
-  avatar,
+  avatarComponent,
   label,
-  name,
-}: Pick<WebOption, "avatar" | "label" | "name">) => {
+}: Pick<WebOption, "avatarComponent" | "label">) => {
   return (
     <Stack direction="row" alignItems="center">
-      <Avatar avatar={avatar} name={name} size={20} />
+      {avatarComponent}
       <Typography
         sx={{
           fontSize: 14,
@@ -63,13 +57,26 @@ export const WebSelector = ({
 }: WebSelectorProps) => {
   const options: WebOption[] = [
     {
-      avatar: user.avatar,
+      avatarComponent: (
+        // Creating the component here reduces loading state in the dropdown
+        <Avatar
+          avatar={user.avatar}
+          name={user.properties.preferredName ?? "?"}
+          size={16}
+        />
+      ),
       label: "My web",
       name: user.properties.preferredName ?? "?",
       value: user.webOwnedById,
     },
     ...user.orgs.map((org) => ({
-      avatar: org.avatar,
+      avatarComponent: (
+        <Avatar
+          avatar={org.avatar}
+          name={org.properties.organizationName}
+          size={16}
+        />
+      ),
       label: org.properties.organizationName,
       name: org.properties.organizationName,
       value: org.webOwnedById,
@@ -96,37 +103,15 @@ export const WebSelector = ({
         popper: { placement: "top" },
       }}
       disableClearable
-      inputHeight={28}
+      inputHeight={inputHeight}
       inputProps={{
         endAdornment: <div />,
-        sx: ({ palette }) => ({
-          height: 25,
-          backgroundColor: active ? "inherit" : palette.gray[10],
-
-          [`&.${outlinedInputClasses.root}`]: {
-            padding: 0,
-          },
-
-          [`.${autocompleteClasses.input}`]: {
-            p: "0 10px !important",
-          },
-
-          "@media (prefers-color-scheme: dark)": {
-            background: darkModeInputBackgroundColor,
-
-            [`.${outlinedInputClasses.notchedOutline}`]: {
-              border: `1px solid ${darkModeBorderColor} !important`,
-            },
-
-            [`.${outlinedInputClasses.input}`]: {
-              color: darkModeInputColor,
-
-              "&::placeholder": {
-                color: `${darkModePlaceholderColor} !important`,
-              },
-            },
-          },
-        }),
+        startAdornment: selectedWeb?.avatarComponent,
+        sx: {
+          ...inputPropsSx,
+          backgroundColor: ({ palette }) =>
+            active ? "inherit" : palette.gray[10],
+        },
       }}
       multiple={false}
       onChange={(_event, option) => {
@@ -138,41 +123,7 @@ export const WebSelector = ({
           {...props}
           key={option.value}
           value={option.value}
-          sx={({ palette }) => ({
-            minHeight: 0,
-            p: 0,
-            borderBottom: `1px solid ${palette.gray[20]}`,
-            [`&.${autocompleteClasses.option}`]: {
-              minHeight: 0,
-              py: 0.5,
-              px: 0.5,
-            },
-            "@media (prefers-color-scheme: dark)": {
-              borderBottom: `1px solid ${darkModeBorderColor}`,
-
-              "&:hover": {
-                background: darkModeInputBackgroundColor,
-              },
-
-              [`&.${autocompleteClasses.option}`]: {
-                borderRadius: 0,
-                my: 0.25,
-
-                [`&[aria-selected="true"]`]: {
-                  backgroundColor: `${palette.primary.main} !important`,
-                  color: palette.common.white,
-                },
-
-                "&.Mui-focused": {
-                  backgroundColor: `${palette.common.black} !important`,
-
-                  [`&[aria-selected="true"]`]: {
-                    backgroundColor: `${palette.primary.main} !important`,
-                  },
-                },
-              },
-            },
-          })}
+          sx={menuItemSx}
         >
           <RenderOptionContent {...option} />
         </MenuItem>

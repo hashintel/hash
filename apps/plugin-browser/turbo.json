@@ -1,0 +1,9 @@
+{
+  "extends": ["//"],
+  "pipeline": {
+    "codegen": {
+      "outputs": ["./src/**/*.gen.*"],
+      "dependsOn": ["^codegen"]
+    }
+  }
+}

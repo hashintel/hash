@@ -1,4 +1,4 @@
-import { PlusIcon } from "@hashintel/design-system";
+import { ListRegularIcon, PlusIcon } from "@hashintel/design-system";
 import {
   Box,
   Stack,
@@ -18,6 +18,7 @@ import {
 } from "../../shared/style-values";
 import { useLocalStorage } from "../../shared/use-local-storage";
 import { Automated } from "./action-center/automated";
+import { Log } from "./action-center/log";
 import { OneOff } from "./action-center/one-off";
 import { WandMagicSparklesIcon } from "./action-center/wand-magic-sparkles-icon";
 import { Avatar } from "./shared/avatar";
@@ -60,25 +61,31 @@ export const ActionCenter = ({
   activeTab?: Tabs.Tab | null;
   user: NonNullable<LocalStorage["user"]>;
 }) => {
-  const [popupTab, setPopupTab] = useState<"one-off" | "automated">("one-off");
+  const [popupTab, setPopupTab] = useState<"one-off" | "automated" | "log">(
+    "one-off",
+  );
 
   const [automaticInferenceConfig, setAutomaticInferenceConfig] =
     useLocalStorage("automaticInferenceConfig", {
       createAs: "draft",
       enabled: false,
+      model: "gpt-4-turbo",
       ownedById: user.webOwnedById,
       rules: [],
     });
+
+  const [inferenceRequests] = useLocalStorage("inferenceRequests", []);
 
   return (
     <Box sx={{ maxWidth: "100%", width: popupWidth }}>
       <Stack
         component="header"
         direction="row"
-        sx={({ palette }) => ({
+        sx={({ palette, boxShadows }) => ({
           alignItems: "center",
           background: palette.common.white,
           borderBottom: `1px solid ${lightModeBorderColor}`,
+          boxShadow: boxShadows.sm,
           justifyContent: "space-between",
           px: 2.5,
           "@media (prefers-color-scheme: dark)": {
@@ -90,7 +97,7 @@ export const ActionCenter = ({
         <Box>
           <MuiTabs
             onChange={(_event, newValue) =>
-              setPopupTab(newValue as "one-off" | "automated")
+              setPopupTab(newValue as "one-off" | "automated" | "log")
             }
             TabIndicatorProps={{ sx: { transition: "none" } }}
             value={popupTab}
@@ -103,13 +110,20 @@ export const ActionCenter = ({
                 PlusIcon,
               )}
             />
-
             <MuiTab
               value="automated"
               {...generateCommonTabProps(
                 popupTab === "automated",
                 "Automated",
                 WandMagicSparklesIcon,
+              )}
+            />
+            <MuiTab
+              value="log"
+              {...generateCommonTabProps(
+                popupTab === "log",
+                "Log",
+                ListRegularIcon,
               )}
             />
           </MuiTabs>
@@ -125,15 +139,17 @@ export const ActionCenter = ({
           name={user.properties.preferredName ?? "?"}
         />
       </Stack>
-      <Box sx={{ maxHeight: 550, overflowY: "scroll" }}>
+      <Box sx={{ maxHeight: 545, overflowY: "scroll" }}>
         {popupTab === "one-off" ? (
           <OneOff activeTab={activeTab} user={user} />
-        ) : (
+        ) : popupTab === "automated" ? (
           <Automated
             automaticInferenceConfig={automaticInferenceConfig}
             setAutomaticInferenceConfig={setAutomaticInferenceConfig}
             user={user}
           />
+        ) : (
+          <Log inferenceRequests={inferenceRequests} user={user} />
         )}
       </Box>
     </Box>

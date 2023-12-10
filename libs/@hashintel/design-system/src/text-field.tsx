@@ -57,7 +57,7 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
           ...(Array.isArray(sx) ? sx : [sx]),
         ]}
         variant={variant}
-        {...textFieldProps}
+        minRows={3}
         error={error}
         label={
           label ? (
@@ -107,7 +107,7 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
             color: error ? palette.red[80] : palette.gray[60],
           }),
         }}
-        minRows={3}
+        {...textFieldProps}
       />
     );
   },
