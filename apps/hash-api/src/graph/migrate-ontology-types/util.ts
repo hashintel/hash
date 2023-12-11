@@ -189,13 +189,6 @@ export const loadExternalPropertyTypeIfNotExists: ImpureGraphFunction<
       ),
       relationships: [
         {
-          relation: "editor",
-          subject: {
-            kind: "account",
-            subjectId: systemAccountId,
-          },
-        },
-        {
           relation: "viewer",
           subject: {
             kind: "public",
@@ -259,13 +252,6 @@ export const loadExternalEntityTypeIfNotExists: ImpureGraphFunction<
         ),
       ),
       relationships: [
-        {
-          relation: "editor",
-          subject: {
-            kind: "account",
-            subjectId: systemAccountId,
-          },
-        },
         {
           relation: "viewer",
           subject: {
