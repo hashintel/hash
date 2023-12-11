@@ -1,6 +1,13 @@
 use std::mem::ManuallyDrop;
 
-use authorization::NoAuthorization;
+use authorization::{
+    schema::{
+        DataTypeRelationAndSubject, DataTypeViewerSubject, EntityTypeInstantiatorSubject,
+        EntityTypeRelationAndSubject, EntityTypeViewerSubject, PropertyTypeRelationAndSubject,
+        PropertyTypeViewerSubject,
+    },
+    NoAuthorization,
+};
 use graph::{
     load_env,
     store::{
@@ -224,6 +231,10 @@ pub async fn seed<D, P, E, C>(
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
                 },
+                [DataTypeRelationAndSubject::Viewer {
+                    subject: DataTypeViewerSubject::Public,
+                    level: 0,
+                }],
             )
             .await
         {
@@ -231,7 +242,15 @@ pub async fn seed<D, P, E, C>(
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_data_type(account_id, &mut NoAuthorization, data_type)
+                        .update_data_type(
+                            account_id,
+                            &mut NoAuthorization,
+                            data_type,
+                            [DataTypeRelationAndSubject::Viewer {
+                                subject: DataTypeViewerSubject::Public,
+                                level: 0,
+                            }],
+                        )
                         .await
                         .expect("failed to update data type");
                 } else {
@@ -256,7 +275,10 @@ pub async fn seed<D, P, E, C>(
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
                 },
-                [],
+                [PropertyTypeRelationAndSubject::Viewer {
+                    subject: PropertyTypeViewerSubject::Public,
+                    level: 0,
+                }],
             )
             .await
         {
@@ -264,7 +286,15 @@ pub async fn seed<D, P, E, C>(
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_property_type(account_id, &mut NoAuthorization, property_type, [])
+                        .update_property_type(
+                            account_id,
+                            &mut NoAuthorization,
+                            property_type,
+                            [PropertyTypeRelationAndSubject::Viewer {
+                                subject: PropertyTypeViewerSubject::Public,
+                                level: 0,
+                            }],
+                        )
                         .await
                         .expect("failed to update property type");
                 } else {
@@ -291,7 +321,16 @@ pub async fn seed<D, P, E, C>(
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
                 },
-                [],
+                [
+                    EntityTypeRelationAndSubject::Viewer {
+                        subject: EntityTypeViewerSubject::Public,
+                        level: 0,
+                    },
+                    EntityTypeRelationAndSubject::Instantiator {
+                        subject: EntityTypeInstantiatorSubject::Public,
+                        level: 0,
+                    },
+                ],
             )
             .await
         {
@@ -305,7 +344,16 @@ pub async fn seed<D, P, E, C>(
                             entity_type,
                             None,
                             None,
-                            [],
+                            [
+                                EntityTypeRelationAndSubject::Viewer {
+                                    subject: EntityTypeViewerSubject::Public,
+                                    level: 0,
+                                },
+                                EntityTypeRelationAndSubject::Instantiator {
+                                    subject: EntityTypeInstantiatorSubject::Public,
+                                    level: 0,
+                                },
+                            ],
                         )
                         .await
                         .expect("failed to update entity type");

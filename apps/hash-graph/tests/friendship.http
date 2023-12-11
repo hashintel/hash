@@ -156,7 +156,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "title": "Number",
       "type": "number"
     }
-  ]
+  ],
+  "relationships": [{
+    "relation": "viewer",
+    "subject": {
+      "kind": "public"
+    }
+  }]
 }
 
 > {%
@@ -179,7 +185,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "title": "Text",
     "description": "An ordered sequence of characters",
     "type": "string"
-  }
+  },
+  "relationships": [{
+    "relation": "viewer",
+    "subject": {
+      "kind": "public"
+    }
+  }]
 }
 
 > {%
@@ -274,7 +286,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "title": "Text",
     "description": "An ordered sequence of characters",
     "type": "string"
-  }
+  },
+  "relationships": [{
+    "relation": "viewer",
+    "subject": {
+      "kind": "public"
+    }
+  }]
 }
 
 > {%

@@ -8,7 +8,7 @@ use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
         PropertyTypeId, PropertyTypeOwnerSubject, PropertyTypePermission,
-        PropertyTypeRelationAndSubject, PropertyTypeViewerSubject, WebPermission,
+        PropertyTypeRelationAndSubject, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -302,14 +302,6 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     property_type_id,
                     PropertyTypeRelationAndSubject::Owner {
                         subject: PropertyTypeOwnerSubject::Web { id: *owned_by_id },
-                        level: 0,
-                    },
-                ));
-            } else {
-                relationships.push((
-                    property_type_id,
-                    PropertyTypeRelationAndSubject::Viewer {
-                        subject: PropertyTypeViewerSubject::Public,
                         level: 0,
                     },
                 ));

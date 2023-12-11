@@ -7,8 +7,8 @@ use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        EntityTypeId, EntityTypeInstantiatorSubject, EntityTypeOwnerSubject, EntityTypePermission,
-        EntityTypeRelationAndSubject, EntityTypeViewerSubject, WebPermission,
+        EntityTypeId, EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject,
+        WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -468,21 +468,6 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                     entity_type_id,
                     EntityTypeRelationAndSubject::Owner {
                         subject: EntityTypeOwnerSubject::Web { id: *owned_by_id },
-                        level: 0,
-                    },
-                ));
-            } else {
-                relationships.push((
-                    entity_type_id,
-                    EntityTypeRelationAndSubject::Viewer {
-                        subject: EntityTypeViewerSubject::Public,
-                        level: 0,
-                    },
-                ));
-                relationships.push((
-                    entity_type_id,
-                    EntityTypeRelationAndSubject::Instantiator {
-                        subject: EntityTypeInstantiatorSubject::Public,
                         level: 0,
                     },
                 ));

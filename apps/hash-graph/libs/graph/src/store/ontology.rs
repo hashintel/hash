@@ -2,7 +2,9 @@ use std::iter;
 
 use async_trait::async_trait;
 use authorization::{
-    schema::{EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject},
+    schema::{
+        DataTypeRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
+    },
     AuthorizationApi,
 };
 use error_stack::Result;
@@ -45,6 +47,7 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
         authorization_api: &mut A,
         schema: DataType,
         metadata: PartialOntologyElementMetadata,
+        relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
     ) -> Result<OntologyElementMetadata, InsertionError> {
         Ok(self
             .create_data_types(
@@ -52,6 +55,7 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
                 authorization_api,
                 iter::once((schema, metadata)),
                 ConflictBehavior::Fail,
+                relationships,
             )
             .await?
             .pop()
@@ -73,6 +77,7 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
         data_types: impl IntoIterator<Item = (DataType, PartialOntologyElementMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
+        relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
     ) -> Result<Vec<OntologyElementMetadata>, InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
@@ -99,6 +104,7 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
         actor_id: AccountId,
         authorization_api: &mut A,
         data_type: DataType,
+        relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
     ) -> Result<OntologyElementMetadata, UpdateError>;
 
     /// Archives the definition of an existing [`DataType`].

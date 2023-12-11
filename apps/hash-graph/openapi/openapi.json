@@ -2506,11 +2506,18 @@
         "type": "object",
         "required": [
           "schema",
-          "ownedById"
+          "ownedById",
+          "relationships"
         ],
         "properties": {
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataTypeRelationAndSubject"
+            }
           },
           "schema": {
             "oneOf": [
@@ -4213,9 +4220,16 @@
           {
             "type": "object",
             "required": [
-              "schema"
+              "schema",
+              "relationships"
             ],
             "properties": {
+              "relationships": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DataTypeRelationAndSubject"
+                }
+              },
               "schema": {
                 "$ref": "./models/data_type.json"
               }
@@ -4239,7 +4253,8 @@
           {
             "type": "object",
             "required": [
-              "schema"
+              "schema",
+              "relationships"
             ],
             "properties": {
               "icon": {
@@ -4248,6 +4263,12 @@
               },
               "label_property": {
                 "$ref": "./models/shared.json#/definitions/BaseUrl"
+              },
+              "relationships": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/EntityTypeRelationAndSubject"
+                }
               },
               "schema": {
                 "$ref": "./models/entity_type.json"
@@ -4272,9 +4293,16 @@
           {
             "type": "object",
             "required": [
-              "schema"
+              "schema",
+              "relationships"
             ],
             "properties": {
+              "relationships": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PropertyTypeRelationAndSubject"
+                }
+              },
               "schema": {
                 "$ref": "./models/property_type.json"
               }
@@ -5358,9 +5386,16 @@
         "type": "object",
         "required": [
           "schema",
-          "typeToUpdate"
+          "typeToUpdate",
+          "relationships"
         ],
         "properties": {
+          "relationships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataTypeRelationAndSubject"
+            }
+          },
           "schema": {
             "$ref": "./models/update_data_type.json"
           },

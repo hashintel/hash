@@ -1,11 +1,14 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    iter::once,
+};
 
 use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
         DataTypeId, DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject,
-        DataTypeViewerSubject, WebPermission,
+        WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -134,7 +137,10 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> DataTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, data_types, authorization_api))]
+    #[tracing::instrument(
+        level = "info",
+        skip(self, data_types, authorization_api, relationships)
+    )]
     async fn create_data_types<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
@@ -142,7 +148,9 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         data_types: impl IntoIterator<Item = (DataType, PartialOntologyElementMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
+        relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
     ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
+        let requested_relationships = relationships.into_iter().collect::<Vec<_>>();
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
         let provenance = ProvenanceMetadata {
@@ -175,15 +183,13 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                         level: 0,
                     },
                 ));
-            } else {
-                relationships.push((
-                    data_type_id,
-                    DataTypeRelationAndSubject::Viewer {
-                        subject: DataTypeViewerSubject::Public,
-                        level: 0,
-                    },
-                ));
             }
+
+            relationships.extend(
+                requested_relationships
+                    .iter()
+                    .map(|relation_and_subject| (data_type_id, *relation_and_subject)),
+            );
 
             if let Some((ontology_id, transaction_time)) = transaction
                 .create_ontology_metadata(
@@ -345,12 +351,16 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
-    #[tracing::instrument(level = "info", skip(self, data_type, authorization_api))]
+    #[tracing::instrument(
+        level = "info",
+        skip(self, data_type, authorization_api, relationships)
+    )]
     async fn update_data_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         data_type: DataType,
+        relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         let old_ontology_id = DataTypeId::from_url(&VersionedUrl {
             base_url: data_type.id().base_url.clone(),
@@ -373,47 +383,38 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let (ontology_id, owned_by_id, metadata) = transaction
             .update::<DataType>(&data_type, RecordCreatedById::new(actor_id))
             .await?;
+        let data_type_id = DataTypeId::from(ontology_id);
 
-        let relationships = [(
-            DataTypeId::from(ontology_id),
-            DataTypeRelationAndSubject::Owner {
+        let relationships = relationships
+            .into_iter()
+            .chain(once(DataTypeRelationAndSubject::Owner {
                 subject: DataTypeOwnerSubject::Web { id: owned_by_id },
                 level: 0,
-            },
-        )];
+            }))
+            .collect::<Vec<_>>();
 
-        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
         authorization_api
-            .modify_data_type_relations(
-                relationships
-                    .iter()
-                    .map(|(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Create,
-                            *resource,
-                            *relation_and_subject,
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
+            .modify_data_type_relations(relationships.clone().into_iter().map(
+                |relation_and_subject| {
+                    (
+                        ModifyRelationshipOperation::Create,
+                        data_type_id,
+                        relation_and_subject,
+                    )
+                },
+            ))
             .await
             .change_context(UpdateError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(UpdateError) {
-            #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
             if let Err(auth_error) = authorization_api
-                .modify_data_type_relations(
-                    relationships
-                        .iter()
-                        .map(|(resource, relation_and_subject)| {
-                            (
-                                ModifyRelationshipOperation::Delete,
-                                *resource,
-                                *relation_and_subject,
-                            )
-                        })
-                        .collect::<Vec<_>>(),
-                )
+                .modify_data_type_relations(relationships.into_iter().map(|relation_and_subject| {
+                    (
+                        ModifyRelationshipOperation::Delete,
+                        data_type_id,
+                        relation_and_subject,
+                    )
+                }))
                 .await
                 .change_context(UpdateError)
             {

@@ -532,6 +532,7 @@ enum LoadExternalEntityTypeRequest {
         label_property: Option<BaseUrl>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         icon: Option<String>,
+        relationships: Vec<EntityTypeRelationAndSubject>,
     },
 }
 
@@ -620,6 +621,7 @@ where
             schema,
             label_property,
             icon,
+            relationships,
         } => {
             let record_id = OntologyTypeRecordId::from(schema.id().clone());
 
@@ -647,7 +649,7 @@ where
                                 fetched_at: OffsetDateTime::now_utc(),
                             },
                         },
-                        [],
+                        relationships,
                     )
                     .await
                     .map_err(report_to_response)?

@@ -262,6 +262,7 @@ enum LoadExternalPropertyTypeRequest {
     Create {
         #[schema(value_type = VAR_PROPERTY_TYPE)]
         schema: PropertyType,
+        relationships: Vec<PropertyTypeRelationAndSubject>,
     },
 }
 
@@ -314,7 +315,10 @@ where
                 )
                 .await?,
         )),
-        LoadExternalPropertyTypeRequest::Create { schema } => {
+        LoadExternalPropertyTypeRequest::Create {
+            schema,
+            relationships,
+        } => {
             let record_id = OntologyTypeRecordId::from(schema.id().clone());
 
             if domain_validator.validate_url(schema.id().base_url.as_str()) {
@@ -339,7 +343,7 @@ where
                                 fetched_at: OffsetDateTime::now_utc(),
                             },
                         },
-                        [],
+                        relationships,
                     )
                     .await
                     .map_err(report_to_response)?,
