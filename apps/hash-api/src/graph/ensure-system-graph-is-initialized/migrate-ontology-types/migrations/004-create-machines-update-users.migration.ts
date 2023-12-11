@@ -1,11 +1,18 @@
-import { EntityType, PropertyType } from "@blockprotocol/type-system";
+import { EntityType } from "@blockprotocol/type-system";
+import {
+  createWebMachineActor,
+  getWebMachineActor,
+} from "@local/hash-backend-utils/machine-actors";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { AccountId, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
+import { NotFoundError } from "../../../../lib/error";
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
 import { MigrationFunction } from "../types";
 import {
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
+  getEntitiesByType,
   getExistingHashLinkEntityTypeId,
   getExistingHashPropertyTypeId,
   getExistingHashSystemEntityTypeId,
@@ -216,6 +223,97 @@ const migrate: MigrationFunction = async ({
     migrationState,
     updateExistingEntitiesToNewVersion: true,
   });
+
+  /**
+   * Step 7: Create web machine actors for existing webs
+   *
+   * This step is only required to transition existing instances, and can be deleted once they have been migrated.
+   */
+  const users = await getEntitiesByType(context, authentication, {
+    entityTypeId: currentUserEntityTypeId,
+  });
+
+  for (const user of users) {
+    const userAccountId = extractOwnedByIdFromEntityId(
+      user.metadata.recordId.entityId,
+    );
+    try {
+      await getWebMachineActor(context, authentication, {
+        ownedById: userAccountId,
+      });
+    } catch (err) {
+      if (err instanceof NotFoundError) {
+        await createWebMachineActor(
+          context,
+          // We have to use the user's authority to add the machine to their web
+          { actorId: userAccountId as AccountId },
+          {
+            ownedById: userAccountId,
+          },
+        );
+      } else {
+        throw new Error(
+          `Unexpected error attempting to retrieve machine web actor for user ${user.metadata.recordId.entityId}`,
+        );
+      }
+    }
+  }
+
+  const orgEntityTypeId = getExistingHashSystemEntityTypeId({
+    entityTypeKey: "organization",
+    migrationState,
+  });
+
+  const orgs = await getEntitiesByType(context, authentication, {
+    entityTypeId: orgEntityTypeId,
+  });
+
+  for (const org of orgs) {
+    const orgAccountGroupId = extractOwnedByIdFromEntityId(
+      org.metadata.recordId.entityId,
+    );
+    try {
+      await getWebMachineActor(context, authentication, {
+        ownedById: orgAccountGroupId,
+      });
+    } catch (err) {
+      if (err instanceof NotFoundError) {
+        const webRelationships = await context.graphApi
+          .getWebAuthorizationRelationships(
+            authentication.actorId,
+            orgAccountGroupId,
+          )
+          .then((resp) => resp.data);
+
+        // We need an org owner's authority to assign a machine actor to the web
+        const someOwnerUser = webRelationships.find(
+          (relationship) =>
+            relationship.relation === "owner" &&
+            relationship.subject.kind === "account",
+        );
+
+        if (!someOwnerUser) {
+          throw new Error(
+            `Could not find user owner for organization ${org.metadata.recordId.entityId}`,
+          );
+        }
+
+        await createWebMachineActor(
+          context,
+          // We have to use the user's authority to add the machine to their web
+          { actorId: someOwnerUser.subject.subjectId },
+          {
+            ownedById: orgAccountGroupId,
+          },
+        );
+      } else {
+        throw new Error(
+          `Unexpected error attempting to retrieve machine web actor for organization ${org.metadata.recordId.entityId}`,
+        );
+      }
+    }
+  }
+  /** End Step 7, which can be deleted once all existing instances have been migrated */
 
   return migrationState;
 };

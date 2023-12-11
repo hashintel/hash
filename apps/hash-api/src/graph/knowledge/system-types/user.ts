@@ -1,3 +1,4 @@
+import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -300,6 +301,10 @@ export const createUser: ImpureGraphFunction<
         },
       },
     );
+
+    await createWebMachineActor(ctx, authentication, {
+      ownedById: userAccountId as OwnedById,
+    });
   }
 
   const properties: UserProperties = {

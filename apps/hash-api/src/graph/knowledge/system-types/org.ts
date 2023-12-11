@@ -1,3 +1,4 @@
+import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -118,6 +119,10 @@ export const createOrg: ImpureGraphFunction<
     await createWeb(ctx, authentication, {
       ownedById: orgAccountGroupId as OwnedById,
       owner: { kind: "accountGroup", subjectId: orgAccountGroupId },
+    });
+
+    await createWebMachineActor(ctx, authentication, {
+      ownedById: orgAccountGroupId as OwnedById,
     });
   }
 

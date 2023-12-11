@@ -1,4 +1,8 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import {
+  createMachineEntity,
+  getMachineEntity,
+} from "@local/hash-backend-utils/machine-actors";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
@@ -17,10 +21,6 @@ import {
   createHashInstance,
   getHashInstance,
 } from "../knowledge/system-types/hash-instance";
-import {
-  createMachineEntity,
-  getMachineEntity,
-} from "../knowledge/system-types/machine";
 import { createOrg, getOrgByShortname } from "../knowledge/system-types/org";
 import { systemAccountId } from "../system-account";
 

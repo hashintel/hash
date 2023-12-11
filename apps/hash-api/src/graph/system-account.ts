@@ -1,14 +1,14 @@
 import { Logger } from "@local/hash-backend-utils/logger";
+import {
+  createMachineEntity,
+  getMachineEntity,
+} from "@local/hash-backend-utils/machine-actors";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { AccountId } from "@local/hash-subgraph";
+import { AccountId, OwnedById } from "@local/hash-subgraph";
 
 import { publicUserAccountId } from "../auth/public-user-account-id";
 import { createAccount } from "./account-permission-management";
 import { ImpureGraphContext } from "./context-types";
-import {
-  createMachineEntity,
-  getMachineEntity,
-} from "./knowledge/system-types/machine";
 import { getOrgByShortname } from "./knowledge/system-types/org";
 import { getEntityTypeById } from "./ontology/primitive/entity-type";
 
@@ -72,7 +72,7 @@ export const ensureHashSystemAccountExists = async (params: {
     await createMachineEntity(context, {
       machineAccountId: systemAccountId,
       identifier: "hash",
-      owningWebAccountGroupId: foundOrg.accountGroupId,
+      ownedById: foundOrg.accountGroupId as OwnedById,
     });
   }
 };

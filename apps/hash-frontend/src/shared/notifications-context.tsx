@@ -403,8 +403,30 @@ export const NotificationsContextProvider: FunctionComponent<
               triggeredByComment,
               triggeredByUser,
             } satisfies NewCommentNotification;
-          }
+          } else if (
+            entityTypeId ===
+            systemEntityTypes.graphChangeNotification.entityTypeId
+          ) {
+            const occurredInEntity = outgoingLinks.find(
+              isLinkAndRightEntityWithLinkType(
+                systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+              ),
+            )?.rightEntity[0];
 
+            if (!occurredInEntity) {
+              throw new Error(
+                `Graph change notification "${entityId}" is missing required links`,
+              );
+            }
+
+            return {
+              kind: "graph-change",
+              readAt,
+              createdAt,
+              entity,
+              occurredInEntity,
+            } satisfies GraphChangeNotification;
+          }
           throw new Error(`Notification of type "${entityTypeId}" not handled`);
         })
         /**

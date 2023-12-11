@@ -19,6 +19,11 @@ import {
 } from "@blockprotocol/type-system";
 import { UpdateEntityType, UpdatePropertyType } from "@local/hash-graph-client";
 import {
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import {
   blockProtocolDataTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -32,6 +37,8 @@ import {
 import {
   BaseUrl,
   DataTypeWithMetadata,
+  Entity,
+  EntityRootType,
   EntityTypeRelationAndSubject,
   EntityTypeWithMetadata,
   OwnedById,
@@ -43,6 +50,10 @@ import {
   extractBaseUrl,
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/src/shared/type-system-patch";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/src/stdlib/subgraph/roots";
 
 import { NotFoundError } from "../../../lib/error";
 import {
@@ -921,4 +932,26 @@ export const upgradeDependenciesInHashEntityType: ImpureGraphFunction<
      * would also need to handle circular references as part of this
      */
   }
+};
+
+export const getEntitiesByType: ImpureGraphFunction<
+  { entityTypeId: VersionedUrl },
+  Promise<Entity[]>
+> = async (context, authentication, { entityTypeId }) => {
+  return await context.graphApi
+    .getEntitiesByQuery(authentication.actorId, {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(entityTypeId, {
+            ignoreParents: true,
+          }),
+        ],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      includeDrafts: false,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    })
+    .then((resp) =>
+      getRoots(mapGraphApiSubgraphToSubgraph<EntityRootType>(resp.data)),
+    );
 };

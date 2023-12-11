@@ -2,6 +2,7 @@ import fs from "node:fs";
 import * as path from "node:path";
 
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { getMachineEntity } from "@local/hash-backend-utils/machine-actors";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -15,6 +16,7 @@ import type {
 } from "@local/hash-isomorphic-utils/temporal-types";
 import { InferredEntityChangeResult } from "@local/hash-isomorphic-utils/temporal-types";
 import type { AccountId, OwnedById, Subgraph } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
@@ -706,7 +708,7 @@ const systemMessage: OpenAI.ChatCompletionSystemMessageParam = {
  * @param userArguments
  */
 export const inferEntities = async ({
-  authentication,
+  authentication: userAuthenticationInfo,
   graphApiClient,
   userArguments,
 }: InferEntitiesCallerParams & {
@@ -722,6 +724,26 @@ export const inferEntities = async ({
     textInput,
   } = userArguments;
 
+  let aiAssistantAccountId: AccountId;
+  try {
+    const aiAssistantEntity = await getMachineEntity(
+      { graphApi: graphApiClient },
+      userAuthenticationInfo,
+      { identifier: "ai-assistant" },
+    );
+    aiAssistantAccountId = extractEntityUuidFromEntityId(
+      aiAssistantEntity.metadata.recordId.entityId,
+    );
+  } catch {
+    return {
+      code: StatusCode.Internal,
+      contents: [],
+      message: "Could not retrieve ai-assistant entity",
+    };
+  }
+
+  const authentication = { actorId: aiAssistantAccountId };
+
   const entityTypes: Record<
     VersionedUrl,
     { isLink: boolean; schema: DereferencedEntityType }
@@ -729,7 +751,7 @@ export const inferEntities = async ({
 
   try {
     const { data: entityTypesSubgraph } =
-      await graphApiClient.getEntityTypesByQuery(authentication.actorId, {
+      await graphApiClient.getEntityTypesByQuery(aiAssistantAccountId, {
         filter: {
           any: entityTypeIds.map((entityTypeId) => ({
             equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
