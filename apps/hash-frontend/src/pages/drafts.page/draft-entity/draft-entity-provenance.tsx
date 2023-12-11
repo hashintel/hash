@@ -52,7 +52,7 @@ export const DraftEntityProvenance: FunctionComponent<{
   );
 
   const formattedCreatedAt = useMemo(
-    () => format(createdAt, "yyyy-MM-dd h:mma"),
+    () => format(createdAt, "yyyy-MM-dd h:mma").toLowerCase(),
     [createdAt],
   );
 
