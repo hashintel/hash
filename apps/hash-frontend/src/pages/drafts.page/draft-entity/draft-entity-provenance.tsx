@@ -17,11 +17,11 @@ const DraftEntityChip = styled(Chip)(({ theme }) => ({
   fontSize: 12,
   textTransform: "none",
   [`& .${chipClasses.icon}`]: {
+    marginLeft: theme.spacing(1.25),
     color: theme.palette.gray[50],
   },
   [`& .${chipClasses.label}`]: {
-    paddingTop: theme.spacing(0.25),
-    paddingBottom: theme.spacing(0.25),
+    padding: theme.spacing(0.5, 1.25),
   },
 }));
 
