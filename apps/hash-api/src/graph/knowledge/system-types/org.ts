@@ -33,9 +33,7 @@ import {
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import {
   createEntity,
-  CreateEntityParams,
   getLatestEntityById,
-  modifyEntityAuthorizationRelationships,
   updateEntityProperty,
 } from "../primitive/entity";
 import {
@@ -89,7 +87,7 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createOrg: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId" | "ownedById"> & {
+  {
     shortname: string;
     name: string;
     orgAccountGroupId?: AccountGroupId;
@@ -138,22 +136,22 @@ export const createOrg: ImpureGraphFunction<
     properties,
     entityTypeId: systemEntityTypes.organization.entityTypeId,
     entityUuid: orgAccountGroupId as string as EntityUuid,
-  });
-  await modifyEntityAuthorizationRelationships(ctx, authentication, [
-    {
-      operation: "create",
-      relationship: {
+    relationships: [
+      {
+        relation: "viewer",
         subject: {
           kind: "public",
         },
-        relation: "viewer",
-        resource: {
-          kind: "entity",
-          resourceId: entity.metadata.recordId.entityId,
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "administratorFromWeb",
         },
       },
-    },
-  ]);
+    ],
+  });
 
   return getOrgFromEntity({ entity });
 };

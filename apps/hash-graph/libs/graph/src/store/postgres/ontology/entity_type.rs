@@ -1,11 +1,14 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    iter::once,
+};
 
 use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        EntityTypeId, EntityTypeInstantiatorSubject, EntityTypeOwnerSubject, EntityTypePermission,
-        EntityTypeRelationAndSubject, EntityTypeSubjectSet, EntityTypeViewerSubject, WebPermission,
+        EntityTypeId, EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject,
+        WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -19,7 +22,6 @@ use graph_types::{
         PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
     },
     provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
-    web::WebId,
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{
@@ -37,7 +39,7 @@ use crate::{
         postgres::{
             ontology::{read::OntologyTypeTraversalData, OntologyId},
             query::ReferenceTable,
-            OntologyTypeSubject, TraversalContext,
+            TraversalContext,
         },
         query::{Filter, FilterExpression, ParameterList},
         AsClient, ConflictBehavior, EntityTypeStore, InsertionError, PostgresStore, QueryError,
@@ -407,7 +409,10 @@ pub struct EntityTypeInsertion {
 
 #[async_trait]
 impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, entity_types, authorization_api))]
+    #[tracing::instrument(
+        level = "info",
+        skip(self, entity_types, authorization_api, relationships)
+    )]
     async fn create_entity_types<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
@@ -415,7 +420,10 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
+        relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
     ) -> Result<Vec<EntityTypeMetadata>, InsertionError> {
+        let requested_relationships = relationships.into_iter().collect::<Vec<_>>();
+
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
         let (entity_type_schemas, metadatas): (Vec<_>, Vec<_>) = entity_types.into_iter().unzip();
@@ -436,34 +444,36 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             Vec::with_capacity(inserted_entity_types.capacity());
 
         for (insertion, metadata) in insertions.into_iter().zip(metadatas) {
+            let EntityTypeInsertion {
+                schema,
+                closed_schema,
+            } = insertion;
+
+            let entity_type_id = EntityTypeId::from_url(schema.id());
+
             if let PartialCustomOntologyMetadata::Owned { owned_by_id } = &metadata.custom {
                 authorization_api
                     .check_web_permission(
                         actor_id,
                         WebPermission::CreateEntityType,
-                        WebId::from(*owned_by_id),
+                        *owned_by_id,
                         Consistency::FullyConsistent,
                     )
                     .await
                     .change_context(InsertionError)?
                     .assert_permission()
                     .change_context(InsertionError)?;
+
+                relationships.push((
+                    entity_type_id,
+                    EntityTypeRelationAndSubject::Owner {
+                        subject: EntityTypeOwnerSubject::Web { id: *owned_by_id },
+                        level: 0,
+                    },
+                ));
             }
 
-            let EntityTypeInsertion {
-                schema,
-                closed_schema,
-            } = insertion;
-
-            relationships.push((
-                EntityTypeId::from_url(schema.id()),
-                EntityTypeRelationAndSubject::Viewer {
-                    subject: EntityTypeViewerSubject::Public,
-                    level: 0,
-                },
-            ));
-
-            if let Some((ontology_id, transaction_time, owner)) = transaction
+            if let Some((ontology_id, transaction_time)) = transaction
                 .create_ontology_metadata(
                     provenance.record_created_by_id,
                     &metadata.record_id,
@@ -488,36 +498,13 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                     provenance,
                     transaction_time,
                 ));
-
-                if let Some(owner) = owner {
-                    match owner {
-                        OntologyTypeSubject::Account { id } => relationships.push((
-                            EntityTypeId::from(ontology_id),
-                            EntityTypeRelationAndSubject::Owner {
-                                subject: EntityTypeOwnerSubject::Account { id },
-                                level: 0,
-                            },
-                        )),
-                        OntologyTypeSubject::AccountGroup { id } => relationships.push((
-                            EntityTypeId::from(ontology_id),
-                            EntityTypeRelationAndSubject::Owner {
-                                subject: EntityTypeOwnerSubject::AccountGroup {
-                                    id,
-                                    set: EntityTypeSubjectSet::Member,
-                                },
-                                level: 0,
-                            },
-                        )),
-                    }
-                } else {
-                    relationships.push((
-                        EntityTypeId::from(ontology_id),
-                        EntityTypeRelationAndSubject::Instantiator {
-                            subject: EntityTypeInstantiatorSubject::Public,
-                        },
-                    ));
-                }
             }
+
+            relationships.extend(
+                requested_relationships
+                    .iter()
+                    .map(|relation_and_subject| (entity_type_id, *relation_and_subject)),
+            );
         }
 
         for (ontology_id, schema) in inserted_entity_types {
@@ -534,20 +521,16 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 .attach_lazy(|| schema.clone())?;
         }
 
-        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
         authorization_api
-            .modify_entity_type_relations(
-                relationships
-                    .iter()
-                    .map(|(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Create,
-                            *resource,
-                            *relation_and_subject,
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
+            .modify_entity_type_relations(relationships.clone().into_iter().map(
+                |(resource, relation_and_subject)| {
+                    (
+                        ModifyRelationshipOperation::Create,
+                        resource,
+                        relation_and_subject,
+                    )
+                },
+            ))
             .await
             .change_context(InsertionError)?;
 
@@ -676,7 +659,10 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
-    #[tracing::instrument(level = "info", skip(self, entity_type, authorization_api))]
+    #[tracing::instrument(
+        level = "info",
+        skip(self, entity_type, authorization_api, relationships)
+    )]
     async fn update_entity_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
@@ -684,6 +670,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         entity_type: EntityType,
         label_property: Option<BaseUrl>,
         icon: Option<String>,
+        relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
     ) -> Result<EntityTypeMetadata, UpdateError> {
         let old_ontology_id = EntityTypeId::from_url(&VersionedUrl {
             base_url: entity_type.id().base_url.clone(),
@@ -711,7 +698,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             record_archived_by_id: None,
         };
 
-        let (ontology_id, owned_by_id, transaction_time, owner) = transaction
+        let (ontology_id, owned_by_id, transaction_time) = transaction
             .update_owned_ontology_id(url, provenance.record_created_by_id)
             .await?;
 
@@ -756,63 +743,39 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             })
             .attach_lazy(|| schema.clone())?;
 
-        let owner = match owner {
-            OntologyTypeSubject::Account { id } => EntityTypeOwnerSubject::Account { id },
-            OntologyTypeSubject::AccountGroup { id } => EntityTypeOwnerSubject::AccountGroup {
-                id,
-                set: EntityTypeSubjectSet::Member,
-            },
-        };
+        let entity_type_id = EntityTypeId::from(ontology_id);
+        let relationships = relationships
+            .into_iter()
+            .chain(once(EntityTypeRelationAndSubject::Owner {
+                subject: EntityTypeOwnerSubject::Web { id: owned_by_id },
+                level: 0,
+            }))
+            .collect::<Vec<_>>();
 
-        let relationships = [
-            (
-                EntityTypeId::from(ontology_id),
-                EntityTypeRelationAndSubject::Owner {
-                    subject: owner,
-                    level: 0,
-                },
-            ),
-            (
-                EntityTypeId::from(ontology_id),
-                EntityTypeRelationAndSubject::Viewer {
-                    subject: EntityTypeViewerSubject::Public,
-                    level: 0,
-                },
-            ),
-        ];
-
-        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
         authorization_api
-            .modify_entity_type_relations(
-                relationships
-                    .iter()
-                    .map(|(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Create,
-                            *resource,
-                            *relation_and_subject,
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
+            .modify_entity_type_relations(relationships.clone().into_iter().map(
+                |relation_and_subject| {
+                    (
+                        ModifyRelationshipOperation::Create,
+                        entity_type_id,
+                        relation_and_subject,
+                    )
+                },
+            ))
             .await
             .change_context(UpdateError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(UpdateError) {
-            #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
             if let Err(auth_error) = authorization_api
-                .modify_entity_type_relations(
-                    relationships
-                        .iter()
-                        .map(|(resource, relation_and_subject)| {
-                            (
-                                ModifyRelationshipOperation::Delete,
-                                *resource,
-                                *relation_and_subject,
-                            )
-                        })
-                        .collect::<Vec<_>>(),
-                )
+                .modify_entity_type_relations(relationships.into_iter().map(
+                    |relation_and_subject| {
+                        (
+                            ModifyRelationshipOperation::Delete,
+                            entity_type_id,
+                            relation_and_subject,
+                        )
+                    },
+                ))
                 .await
                 .change_context(UpdateError)
             {

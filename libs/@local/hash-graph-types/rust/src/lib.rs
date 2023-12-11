@@ -4,5 +4,3 @@ pub mod ontology;
 pub mod provenance;
 
 pub mod account;
-
-pub mod web;

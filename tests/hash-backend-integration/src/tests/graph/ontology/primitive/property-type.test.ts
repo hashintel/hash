@@ -102,6 +102,21 @@ describe("Property type CRU", () => {
       {
         ownedById: testOrg.accountGroupId as OwnedById,
         schema: propertyTypeSchema,
+        relationships: [
+          {
+            relation: "setting",
+            subject: {
+              kind: "setting",
+              subjectId: "updateFromWeb",
+            },
+          },
+          {
+            relation: "viewer",
+            subject: {
+              kind: "public",
+            },
+          },
+        ],
       },
     );
   });
@@ -139,6 +154,15 @@ describe("Property type CRU", () => {
           ...propertyTypeSchema,
           title: updatedTitle,
         },
+        relationships: [
+          {
+            relation: "setting",
+            subject: {
+              kind: "setting",
+              subjectId: "updateFromWeb",
+            },
+          },
+        ],
       },
     ).catch((err) => Promise.reject(err.data));
 

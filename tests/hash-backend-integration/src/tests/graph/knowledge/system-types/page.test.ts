@@ -23,6 +23,7 @@ import {
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   HasIndexedContentProperties,
@@ -66,17 +67,22 @@ describe("Page", () => {
   const createTestBlock = async () => {
     const authentication = { actorId: testUser.accountId };
 
+    const blockData = await createEntity(graphContext, authentication, {
+      ownedById: testUser.accountId as OwnedById,
+      entityTypeId: systemEntityTypes.text.entityTypeId,
+      properties: {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
+          [],
+      } as TextProperties,
+      relationships: createDefaultAuthorizationRelationships({
+        actorId: testUser.accountId,
+      }),
+    });
+
     return createBlock(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       componentId: "text",
-      blockData: await createEntity(graphContext, authentication, {
-        ownedById: testUser.accountId as OwnedById,
-        entityTypeId: systemEntityTypes.text.entityTypeId,
-        properties: {
-          "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-            [],
-        } as TextProperties,
-      }),
+      blockData,
     });
   };
 

@@ -5,12 +5,12 @@ import {
 } from "@blockprotocol/type-system/slim";
 import { Brand } from "@local/advanced-types/brand";
 import {
-  DataTypeRelationAndSubject,
-  EntityRelationAndSubject,
+  DataTypeRelationAndSubject as DataTypeRelationAndSubjectGraph,
+  EntityRelationAndSubject as EntityRelationAndSubjectGraph,
   EntityTypeInstantiatorSubject as EntityTypeInstantiatorSubjectGraph,
-  EntityTypeRelationAndSubject,
-  PropertyTypeRelationAndSubject,
-  WebRelationAndSubject,
+  EntityTypeRelationAndSubject as EntityTypeRelationAndSubjectGraph,
+  PropertyTypeRelationAndSubject as PropertyTypeRelationAndSubjectGraph,
+  WebRelationAndSubject as WebRelationAndSubjectGraph,
 } from "@local/hash-graph-client";
 import { validate as validateUuid } from "uuid";
 
@@ -119,39 +119,50 @@ type BrandRelationship<T extends { subject: object }> = {
   [K in keyof T]: K extends "subject" ? BrandSubject<T[K]> : T[K];
 };
 
+export type EntityTypeInstantiatorSubject =
+  BrandSubject<EntityTypeInstantiatorSubjectGraph>;
+
+export type WebRelationAndSubject =
+  BrandRelationship<WebRelationAndSubjectGraph>;
 export type WebAuthorizationRelationship = {
   resource: {
     kind: "web";
     resourceId: OwnedById;
   };
-} & BrandRelationship<WebRelationAndSubject>;
+} & WebRelationAndSubject;
 
+export type EntityRelationAndSubject =
+  BrandRelationship<EntityRelationAndSubjectGraph>;
 export type EntityAuthorizationRelationship = {
   resource: {
     kind: "entity";
     resourceId: EntityId;
   };
-} & BrandRelationship<EntityRelationAndSubject>;
+} & EntityRelationAndSubject;
 
+export type EntityTypeRelationAndSubject =
+  BrandRelationship<EntityTypeRelationAndSubjectGraph>;
 export type EntityTypeAuthorizationRelationship = {
   resource: {
     kind: "entityType";
     resourceId: VersionedUrl;
   };
-} & BrandRelationship<EntityTypeRelationAndSubject>;
-export type EntityTypeInstantiatorSubject =
-  BrandSubject<EntityTypeInstantiatorSubjectGraph>;
+} & EntityTypeRelationAndSubject;
 
+export type PropertyTypeRelationAndSubject =
+  BrandRelationship<PropertyTypeRelationAndSubjectGraph>;
 export type PropertyTypeAuthorizationRelationship = {
   resource: {
     kind: "propertyType";
     resourceId: VersionedUrl;
   };
-} & BrandRelationship<PropertyTypeRelationAndSubject>;
+} & PropertyTypeRelationAndSubject;
 
+export type DataTypeRelationAndSubject =
+  BrandRelationship<DataTypeRelationAndSubjectGraph>;
 export type DataTypeAuthorizationRelationship = {
   resource: {
     kind: "dataType";
     resourceId: VersionedUrl;
   };
-} & BrandRelationship<DataTypeRelationAndSubject>;
+} & DataTypeRelationAndSubject;

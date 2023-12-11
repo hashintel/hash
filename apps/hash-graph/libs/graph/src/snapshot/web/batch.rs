@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use authorization::{backend::ZanzibarBackend, schema::WebRelationAndSubject};
 use error_stack::{Result, ResultExt};
-use graph_types::web::WebId;
+use graph_types::provenance::OwnedById;
 use tokio_postgres::GenericClient;
 
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
 
 pub enum WebBatch {
     Webs(Vec<WebRow>),
-    Relations(Vec<(WebId, WebRelationAndSubject)>),
+    Relations(Vec<(OwnedById, WebRelationAndSubject)>),
 }
 
 #[async_trait]

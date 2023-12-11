@@ -1,5 +1,8 @@
 mod read;
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    iter::once,
+};
 
 use async_trait::async_trait;
 use authorization::{
@@ -23,7 +26,6 @@ use graph_types::{
         link::{EntityLinkOrder, LinkData},
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
-    web::WebId,
 };
 use hash_status::StatusCode;
 use postgres_types::Json;
@@ -289,13 +291,15 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> EntityStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, properties, authorization_api))]
+    #[tracing::instrument(
+        level = "info",
+        skip(self, properties, authorization_api, relationships)
+    )]
     async fn create_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         owned_by_id: OwnedById,
-        owner: EntityOwnerSubject,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
@@ -303,7 +307,20 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_type_url: VersionedUrl,
         properties: EntityProperties,
         link_data: Option<LinkData>,
+        relationships: impl IntoIterator<Item = EntityRelationAndSubject> + Send,
     ) -> Result<EntityMetadata, InsertionError> {
+        let relationships = relationships
+            .into_iter()
+            .chain(once(EntityRelationAndSubject::Owner {
+                subject: EntityOwnerSubject::Web { id: owned_by_id },
+                level: 0,
+            }))
+            .collect::<Vec<_>>();
+        if relationships.is_empty() {
+            return Err(Report::new(InsertionError)
+                .attach_printable("At least one relationship must be provided"));
+        }
+
         let entity_type_id = EntityTypeId::from_url(&entity_type_url);
         authorization_api
             .check_entity_type_permission(
@@ -323,7 +340,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .check_web_permission(
                     actor_id,
                     WebPermission::CreateEntity,
-                    WebId::from(owned_by_id),
+                    owned_by_id,
                     Consistency::FullyConsistent,
                 )
                 .await
@@ -468,14 +485,15 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         };
 
         authorization_api
-            .modify_entity_relations([(
-                ModifyRelationshipOperation::Create,
-                entity_id,
-                EntityRelationAndSubject::Owner {
-                    subject: owner,
-                    level: 0,
+            .modify_entity_relations(relationships.clone().into_iter().map(
+                |relation_and_subject| {
+                    (
+                        ModifyRelationshipOperation::Create,
+                        entity_id,
+                        relation_and_subject,
+                    )
                 },
-            )])
+            ))
             .await
             .change_context(InsertionError)?;
 
@@ -499,14 +517,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
             if let Err(auth_error) = authorization_api
-                .modify_entity_relations([(
-                    ModifyRelationshipOperation::Delete,
-                    entity_id,
-                    EntityRelationAndSubject::Owner {
-                        subject: owner,
-                        level: 0,
-                    },
-                )])
+                .modify_entity_relations(relationships.into_iter().map(|relation_and_subject| {
+                    (
+                        ModifyRelationshipOperation::Delete,
+                        entity_id,
+                        relation_and_subject,
+                    )
+                }))
                 .await
                 .change_context(InsertionError)
             {

@@ -9,6 +9,8 @@ import {
   Selector,
 } from "@local/hash-graph-client";
 import {
+  AccountId,
+  EntityRelationAndSubject,
   QueryTemporalAxesUnresolved,
   Subgraph,
   SubgraphRootType,
@@ -170,3 +172,36 @@ export const mapGqlSubgraphFieldsFragmentToSubgraph = <
 >(
   subgraph: SubgraphFieldsFragment,
 ) => subgraph as Subgraph<RootType>;
+
+export const createDefaultAuthorizationRelationships = (params: {
+  actorId: AccountId;
+}): EntityRelationAndSubject[] => [
+  {
+    relation: "administrator",
+    subject: {
+      kind: "account",
+      subjectId: params.actorId,
+    },
+  },
+  {
+    relation: "setting",
+    subject: {
+      kind: "setting",
+      subjectId: "administratorFromWeb",
+    },
+  },
+  {
+    relation: "setting",
+    subject: {
+      kind: "setting",
+      subjectId: "updateFromWeb",
+    },
+  },
+  {
+    relation: "setting",
+    subject: {
+      kind: "setting",
+      subjectId: "viewFromWeb",
+    },
+  },
+];
