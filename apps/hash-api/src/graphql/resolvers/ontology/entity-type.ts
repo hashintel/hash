@@ -190,7 +190,18 @@ export const updateEntityTypeResolver: ResolverFn<
             subjectId: "updateFromWeb",
           },
         },
-        { relation: "instantiator", subject: { kind: "public" } },
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+        {
+          relation: "instantiator",
+          subject: {
+            kind: "public",
+          },
+        },
       ],
     },
   );

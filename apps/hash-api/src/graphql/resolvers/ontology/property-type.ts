@@ -175,6 +175,12 @@ export const updatePropertyTypeResolver: ResolverFn<
             subjectId: "updateFromWeb",
           },
         },
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
       ],
     },
   );

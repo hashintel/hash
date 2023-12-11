@@ -26,8 +26,10 @@ import {
 import {
   BaseUrl,
   DataTypeWithMetadata,
+  EntityTypeRelationAndSubject,
   EntityTypeWithMetadata,
   OwnedById,
+  PropertyTypeRelationAndSubject,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 import {
@@ -119,6 +121,14 @@ export const loadExternalDataTypeIfNotExists: ImpureGraphFunction<
           "utf8",
         ),
       ),
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     });
 
     return await getDataTypeById(context, authentication, { dataTypeId });
@@ -177,6 +187,21 @@ export const loadExternalPropertyTypeIfNotExists: ImpureGraphFunction<
           "utf8",
         ),
       ),
+      relationships: [
+        {
+          relation: "editor",
+          subject: {
+            kind: "account",
+            subjectId: systemAccountId,
+          },
+        },
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     });
 
     return await getPropertyTypeById(context, authentication, {
@@ -233,6 +258,27 @@ export const loadExternalEntityTypeIfNotExists: ImpureGraphFunction<
           "utf8",
         ),
       ),
+      relationships: [
+        {
+          relation: "editor",
+          subject: {
+            kind: "account",
+            subjectId: systemAccountId,
+          },
+        },
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+        {
+          relation: "instantiator",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     });
 
     return await getEntityTypeById(context, authentication, { entityTypeId });
@@ -358,11 +404,28 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
     propertyTypeId,
   });
 
+  const relationships: PropertyTypeRelationAndSubject[] = [
+    {
+      relation: "editor",
+      subject: {
+        kind: "account",
+        subjectId: systemAccountId,
+      },
+    },
+    {
+      relation: "viewer",
+      subject: {
+        kind: "public",
+      },
+    },
+  ];
+
   if (isSelfHostedInstance) {
     // If this is a self-hosted instance, the system types will be created as external types without an in-instance web
     await context.graphApi.loadExternalPropertyType(authentication.actorId, {
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
       schema: propertyTypeSchema,
+      relationships,
     });
 
     return await getPropertyTypeById(context, authentication, {
@@ -381,21 +444,7 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
         ownedById: accountGroupId as OwnedById,
         schema: propertyTypeSchema,
         webShortname,
-        relationships: [
-          {
-            relation: "editor",
-            subject: {
-              kind: "account",
-              subjectId: systemAccountId,
-            },
-          },
-          {
-            relation: "viewer",
-            subject: {
-              kind: "public",
-            },
-          },
-        ],
+        relationships,
       },
     ).catch((createError) => {
       // logger.warn(`Failed to create property type: ${propertyTypeId}`);
@@ -572,12 +621,35 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
     entityTypeId,
   });
 
+  const relationships: EntityTypeRelationAndSubject[] = [
+    {
+      relation: "editor",
+      subject: {
+        kind: "account",
+        subjectId: systemAccountId,
+      },
+    },
+    {
+      relation: "viewer",
+      subject: {
+        kind: "public",
+      },
+    },
+    {
+      relation: "instantiator",
+      subject: {
+        kind: "public",
+      },
+    },
+  ];
+
   // The type was missing, try and create it
   if (isSelfHostedInstance) {
     // If this is a self-hosted instance, the system types will be created as external types without an in-instance web
     await context.graphApi.loadExternalEntityType(systemAccountId, {
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
       schema: entityTypeSchema,
+      relationships,
     });
 
     return await getEntityTypeById(context, authentication, {
@@ -593,27 +665,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
       ownedById: accountGroupId as OwnedById,
       schema: entityTypeSchema,
       webShortname,
-      relationships: [
-        {
-          relation: "editor",
-          subject: {
-            kind: "account",
-            subjectId: systemAccountId,
-          },
-        },
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-        {
-          relation: "instantiator",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
+      relationships,
     }).catch((createError) => {
       // logger.warn(`Failed to create entity type: ${entityTypeSchema.$id}`);
       throw createError;
