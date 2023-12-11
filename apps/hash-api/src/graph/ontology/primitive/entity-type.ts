@@ -6,7 +6,6 @@ import {
 import {
   EntityType,
   EntityTypePermission,
-  EntityTypeSetting,
   EntityTypeStructuralQuery,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
@@ -97,7 +96,6 @@ export const createEntityType: ImpureGraphFunction<
     icon?: string | null;
     webShortname?: string;
     relationships: EntityTypeRelationAndSubject[];
-    inheritedPermissions: EntityTypeSetting[];
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
@@ -131,19 +129,7 @@ export const createEntityType: ImpureGraphFunction<
       schema,
       labelProperty,
       icon,
-      relationships: [
-        ...params.inheritedPermissions.map(
-          (setting) =>
-            ({
-              relation: "setting",
-              subject: {
-                kind: "setting",
-                subjectId: setting,
-              },
-            }) as const,
-        ),
-        ...params.relationships,
-      ],
+      relationships: params.relationships,
     },
   );
 
@@ -255,7 +241,6 @@ export const updateEntityType: ImpureGraphFunction<
     labelProperty?: BaseUrl;
     icon?: string | null;
     relationships: EntityTypeRelationAndSubject[];
-    inheritedPermissions: EntityTypeSetting[];
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
@@ -269,19 +254,7 @@ export const updateEntityType: ImpureGraphFunction<
     },
     labelProperty,
     icon,
-    relationships: [
-      ...params.inheritedPermissions.map(
-        (setting) =>
-          ({
-            relation: "setting",
-            subject: {
-              kind: "setting",
-              subjectId: setting,
-            },
-          }) as const,
-      ),
-      ...params.relationships,
-    ],
+    relationships: params.relationships,
   };
 
   const { data: metadata } = await ctx.graphApi.updateEntityType(

@@ -148,8 +148,21 @@ export const createHashInstance: ImpureGraphFunction<
         relation: "viewer",
         subject: { kind: "public" },
       },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "administratorFromWeb",
+        },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "updateFromWeb",
+        },
+      },
     ],
-    inheritedPermissions: ["administratorFromWeb", "updateFromWeb"],
   });
 
   return getHashInstanceFromEntity({ entity });

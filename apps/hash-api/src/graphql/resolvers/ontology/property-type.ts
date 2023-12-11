@@ -48,13 +48,19 @@ export const createPropertyTypeResolver: ResolverFn<
       schema: propertyType,
       relationships: [
         {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "updateFromWeb",
+          },
+        },
+        {
           relation: "viewer",
           subject: {
             kind: "public",
           },
         },
       ],
-      inheritedPermissions: ["updateFromWeb"],
     },
   );
 
@@ -161,8 +167,15 @@ export const updatePropertyTypeResolver: ResolverFn<
     {
       propertyTypeId: params.propertyTypeId,
       schema: params.updatedPropertyType,
-      inheritedPermissions: ["updateFromWeb"],
-      relationships: [],
+      relationships: [
+        {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "updateFromWeb",
+          },
+        },
+      ],
     },
   );
 

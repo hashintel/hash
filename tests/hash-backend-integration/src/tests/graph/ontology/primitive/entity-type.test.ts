@@ -97,7 +97,6 @@ beforeAll(async () => {
           },
         },
       ],
-      inheritedPermissions: [],
     }).then((val) => {
       workerEntityType = val;
     }),
@@ -116,7 +115,6 @@ beforeAll(async () => {
           },
         },
       ],
-      inheritedPermissions: [],
     }).then((val) => {
       addressEntityType = val;
     }),
@@ -134,7 +132,6 @@ beforeAll(async () => {
           },
         },
       ],
-      inheritedPermissions: [],
     }).then((val) => {
       favoriteBookPropertyType = val;
     }),
@@ -152,7 +149,6 @@ beforeAll(async () => {
           },
         },
       ],
-      inheritedPermissions: [],
     }).then((val) => {
       namePropertyType = val;
     }),
@@ -174,7 +170,6 @@ beforeAll(async () => {
           },
         },
       ],
-      inheritedPermissions: [],
     }).then((val) => {
       knowsLinkEntityType = val;
     }),
@@ -195,7 +190,6 @@ beforeAll(async () => {
           },
         },
       ],
-      inheritedPermissions: [],
     }).then((val) => {
       previousAddressLinkEntityType = val;
     }),
@@ -253,13 +247,19 @@ describe("Entity type CRU", () => {
       schema: entityTypeSchema,
       relationships: [
         {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "updateFromWeb",
+          },
+        },
+        {
           relation: "viewer",
           subject: {
             kind: "public",
           },
         },
       ],
-      inheritedPermissions: ["updateFromWeb"],
     });
   });
 
@@ -293,8 +293,14 @@ describe("Entity type CRU", () => {
       {
         entityTypeId: createdEntityType.schema.$id,
         schema: { ...entityTypeSchema, title: updatedTitle },
-        inheritedPermissions: ["updateFromWeb"],
         relationships: [
+          {
+            relation: "setting",
+            subject: {
+              kind: "setting",
+              subjectId: "updateFromWeb",
+            },
+          },
           { relation: "instantiator", subject: { kind: "public" } },
         ],
       },

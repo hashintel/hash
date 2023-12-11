@@ -1,4 +1,5 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { Entity, EntityId, OwnedById } from "@local/hash-subgraph";
 import { UserInputError } from "apollo-server-errors";
 import produce from "immer";
@@ -48,17 +49,7 @@ export const createEntityWithPlaceholdersFn =
         ownedById,
         // We've looked up the placeholder ID, and have an actual entity ID at this point.
         entityDefinition,
-        relationships: [
-          {
-            relation: "administrator",
-            subject: { kind: "account", subjectId: authentication.actorId },
-          },
-        ],
-        inheritedPermissions: [
-          "administratorFromWeb",
-          "updateFromWeb",
-          "viewFromWeb",
-        ],
+        relationships: createDefaultAuthorizationRelationships(authentication),
       });
     } else {
       return await createEntityWithLinks(context, authentication, {
@@ -66,17 +57,7 @@ export const createEntityWithPlaceholdersFn =
         entityTypeId: entityDefinition.entityTypeId!,
         properties: entityDefinition.entityProperties ?? {},
         linkedEntities: entityDefinition.linkedEntities ?? undefined,
-        relationships: [
-          {
-            relation: "administrator",
-            subject: { kind: "account", subjectId: authentication.actorId },
-          },
-        ],
-        inheritedPermissions: [
-          "administratorFromWeb",
-          "updateFromWeb",
-          "viewFromWeb",
-        ],
+        relationships: createDefaultAuthorizationRelationships(authentication),
       });
     }
   };

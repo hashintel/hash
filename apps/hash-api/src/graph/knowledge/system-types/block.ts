@@ -1,4 +1,5 @@
 import {
+  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
@@ -103,20 +104,7 @@ export const createBlock: ImpureGraphFunction<
     ownedById,
     properties,
     entityTypeId: systemEntityTypes.block.entityTypeId,
-    relationships: [
-      {
-        relation: "administrator",
-        subject: {
-          kind: "account",
-          subjectId: authentication.actorId,
-        },
-      },
-    ],
-    inheritedPermissions: [
-      "administratorFromWeb",
-      "updateFromWeb",
-      "viewFromWeb",
-    ],
+    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
   await createLinkEntity(ctx, authentication, {
@@ -124,20 +112,7 @@ export const createBlock: ImpureGraphFunction<
     leftEntityId: entity.metadata.recordId.entityId,
     rightEntityId: blockData.metadata.recordId.entityId,
     ownedById,
-    relationships: [
-      {
-        relation: "administrator",
-        subject: {
-          kind: "account",
-          subjectId: authentication.actorId,
-        },
-      },
-    ],
-    inheritedPermissions: [
-      "administratorFromWeb",
-      "updateFromWeb",
-      "viewFromWeb",
-    ],
+    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
   return getBlockFromEntity({ entity });
@@ -236,20 +211,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
     ownedById: extractOwnedByIdFromEntityId(
       block.entity.metadata.recordId.entityId,
     ),
-    relationships: [
-      {
-        relation: "administrator",
-        subject: {
-          kind: "account",
-          subjectId: authentication.actorId,
-        },
-      },
-    ],
-    inheritedPermissions: [
-      "administratorFromWeb",
-      "updateFromWeb",
-      "viewFromWeb",
-    ],
+    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 };
 

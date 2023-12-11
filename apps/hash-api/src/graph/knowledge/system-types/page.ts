@@ -1,6 +1,7 @@
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import {
+  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -152,20 +153,7 @@ export const createPage: ImpureGraphFunction<
       type === "document"
         ? systemEntityTypes.document.entityTypeId
         : systemEntityTypes.canvas.entityTypeId,
-    relationships: [
-      {
-        relation: "administrator",
-        subject: {
-          kind: "account",
-          subjectId: authentication.actorId,
-        },
-      },
-    ],
-    inheritedPermissions: [
-      "administratorFromWeb",
-      "updateFromWeb",
-      "viewFromWeb",
-    ],
+    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
   const page = getPageFromEntity({ entity });
@@ -430,20 +418,7 @@ export const setPageParentPage: ImpureGraphFunction<
       leftEntityId: page.entity.metadata.recordId.entityId,
       rightEntityId: parentPage.entity.metadata.recordId.entityId,
       ownedById: authentication.actorId as OwnedById,
-      relationships: [
-        {
-          relation: "administrator",
-          subject: {
-            kind: "account",
-            subjectId: authentication.actorId,
-          },
-        },
-      ],
-      inheritedPermissions: [
-        "administratorFromWeb",
-        "updateFromWeb",
-        "viewFromWeb",
-      ],
+      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   }
 

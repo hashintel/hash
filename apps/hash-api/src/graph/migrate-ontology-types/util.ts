@@ -381,7 +381,6 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
         ownedById: accountGroupId as OwnedById,
         schema: propertyTypeSchema,
         webShortname,
-        inheritedPermissions: [],
         relationships: [
           {
             relation: "viewer",
@@ -595,7 +594,6 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
           },
         },
       ],
-      inheritedPermissions: [],
     }).catch((createError) => {
       // logger.warn(`Failed to create entity type: ${entityTypeSchema.$id}`);
       throw createError;

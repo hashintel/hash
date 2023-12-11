@@ -104,13 +104,19 @@ describe("Property type CRU", () => {
         schema: propertyTypeSchema,
         relationships: [
           {
+            relation: "setting",
+            subject: {
+              kind: "setting",
+              subjectId: "updateFromWeb",
+            },
+          },
+          {
             relation: "viewer",
             subject: {
               kind: "public",
             },
           },
         ],
-        inheritedPermissions: ["updateFromWeb"],
       },
     );
   });
@@ -148,8 +154,15 @@ describe("Property type CRU", () => {
           ...propertyTypeSchema,
           title: updatedTitle,
         },
-        inheritedPermissions: ["updateFromWeb"],
-        relationships: [],
+        relationships: [
+          {
+            relation: "setting",
+            subject: {
+              kind: "setting",
+              subjectId: "updateFromWeb",
+            },
+          },
+        ],
       },
     ).catch((err) => Promise.reject(err.data));
 

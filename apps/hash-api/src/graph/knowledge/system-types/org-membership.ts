@@ -79,8 +79,14 @@ export const createOrgMembership: ImpureGraphFunction<
       leftEntityId: userEntityId,
       rightEntityId: orgEntityId,
       properties: {},
-      inheritedPermissions: ["administratorFromWeb"],
       relationships: [
+        {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "administratorFromWeb",
+          },
+        },
         {
           relation: "editor",
           subject: {

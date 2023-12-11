@@ -1,3 +1,4 @@
+import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
@@ -141,21 +142,10 @@ export const createComment: ImpureGraphFunction<
       )]: textualContent,
     },
     entityTypeId: systemEntityTypes.text.entityTypeId,
-    relationships: [
-      {
-        // the author has full access, regardless of which web the comment belongs to (ownedById)
-        relation: "administrator",
-        subject: {
-          kind: "account",
-          subjectId: author.accountId,
-        },
-      },
-    ],
-    inheritedPermissions: [
-      "administratorFromWeb",
-      "updateFromWeb",
-      "viewFromWeb",
-    ],
+    relationships: createDefaultAuthorizationRelationships({
+      // the author has full access, regardless of which web the comment belongs to (ownedById)
+      actorId: author.accountId,
+    }),
   });
 
   const commentEntity = await createEntity(ctx, authentication, {
@@ -168,40 +158,20 @@ export const createComment: ImpureGraphFunction<
         rightEntityId: parentEntityId,
         ownedById,
         owner: author.accountId,
-        relationships: [
-          {
-            relation: "administrator",
-            subject: {
-              kind: "account",
-              subjectId: author.accountId,
-            },
-          },
-        ],
-        inheritedPermissions: [
-          "administratorFromWeb",
-          "updateFromWeb",
-          "viewFromWeb",
-        ],
+        relationships: createDefaultAuthorizationRelationships({
+          // the author has full access, regardless of which web the comment belongs to (ownedById)
+          actorId: author.accountId,
+        }),
       },
       {
         linkEntityTypeId: systemLinkEntityTypes.authoredBy.linkEntityTypeId,
         rightEntityId: author.entity.metadata.recordId.entityId,
         ownedById,
         owner: author.accountId,
-        relationships: [
-          {
-            relation: "administrator",
-            subject: {
-              kind: "account",
-              subjectId: author.accountId,
-            },
-          },
-        ],
-        inheritedPermissions: [
-          "administratorFromWeb",
-          "updateFromWeb",
-          "viewFromWeb",
-        ],
+        relationships: createDefaultAuthorizationRelationships({
+          // the author has full access, regardless of which web the comment belongs to (ownedById)
+          actorId: author.accountId,
+        }),
       },
       /**
        * The creation of the `hasText` link entity has to occur last so
@@ -213,37 +183,16 @@ export const createComment: ImpureGraphFunction<
         rightEntityId: textEntity.metadata.recordId.entityId,
         ownedById,
         owner: author.accountId,
-        relationships: [
-          {
-            relation: "administrator",
-            subject: {
-              kind: "account",
-              subjectId: author.accountId,
-            },
-          },
-        ],
-        inheritedPermissions: [
-          "administratorFromWeb",
-          "updateFromWeb",
-          "viewFromWeb",
-        ],
+        relationships: createDefaultAuthorizationRelationships({
+          // the author has full access, regardless of which web the comment belongs to (ownedById)
+          actorId: author.accountId,
+        }),
       },
     ],
-    relationships: [
-      {
-        // the author has full access, regardless of which web the comment belongs to (ownedById)
-        relation: "administrator",
-        subject: {
-          kind: "account",
-          subjectId: author.accountId,
-        },
-      },
-    ],
-    inheritedPermissions: [
-      "administratorFromWeb",
-      "updateFromWeb",
-      "viewFromWeb",
-    ],
+    relationships: createDefaultAuthorizationRelationships({
+      // the author has full access, regardless of which web the comment belongs to (ownedById)
+      actorId: author.accountId,
+    }),
   });
 
   return getCommentFromEntity({ entity: commentEntity });

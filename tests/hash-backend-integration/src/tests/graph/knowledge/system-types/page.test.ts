@@ -23,6 +23,7 @@ import {
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   HasIndexedContentProperties,
@@ -73,12 +74,9 @@ describe("Page", () => {
         "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
           [],
       } as TextProperties,
-      relationships: [],
-      inheritedPermissions: [
-        "administratorFromWeb",
-        "updateFromWeb",
-        "viewFromWeb",
-      ],
+      relationships: createDefaultAuthorizationRelationships({
+        actorId: testUser.accountId,
+      }),
     });
 
     return createBlock(graphContext, authentication, {

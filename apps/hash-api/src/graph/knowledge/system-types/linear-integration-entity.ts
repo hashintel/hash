@@ -1,4 +1,5 @@
 import {
+  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
@@ -311,21 +312,12 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
           linearTeamIds,
       } as SyncLinearDataWithProperties,
       relationships: [
-        {
-          // Allow the system account ID to view the link
-          relation: "administrator",
-          subject: { kind: "account", subjectId: authentication.actorId },
-        },
+        ...createDefaultAuthorizationRelationships(authentication),
         {
           // Allow the system account ID to view the link
           relation: "viewer",
           subject: { kind: "account", subjectId: systemAccountId },
         },
-      ],
-      inheritedPermissions: [
-        "administratorFromWeb",
-        "updateFromWeb",
-        "viewFromWeb",
       ],
     });
   }

@@ -1,7 +1,6 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   EntityPermission,
-  EntitySetting,
   EntityStructuralQuery,
   Filter,
   GraphResolveDepths,
@@ -66,7 +65,6 @@ export type CreateEntityParams = {
   entityUuid?: EntityUuid;
   draft?: boolean;
   relationships: EntityRelationAndSubject[];
-  inheritedPermissions: EntitySetting[];
 };
 
 /** @todo: potentially directly export this from the subgraph package */
@@ -103,19 +101,7 @@ export const createEntity: ImpureGraphFunction<
     properties,
     entityUuid: overrideEntityUuid,
     draft,
-    relationships: [
-      ...params.inheritedPermissions.map(
-        (setting) =>
-          ({
-            relation: "setting",
-            subject: {
-              kind: "setting",
-              subjectId: setting,
-            },
-          }) as const,
-      ),
-      ...params.relationships,
-    ],
+    relationships: params.relationships,
   });
 
   const entity = { properties, metadata: metadata as EntityMetadata };
@@ -240,12 +226,10 @@ export const getOrCreateEntity: ImpureGraphFunction<
     ownedById: OwnedById;
     entityDefinition: Omit<EntityDefinition, "linkedEntities">;
     relationships: EntityRelationAndSubject[];
-    inheritedPermissions: EntitySetting[];
   },
   Promise<Entity>
 > = async (context, authentication, params) => {
-  const { entityDefinition, ownedById, relationships, inheritedPermissions } =
-    params;
+  const { entityDefinition, ownedById, relationships } = params;
   const { entityProperties, existingEntityId } = entityDefinition;
 
   let entity;
@@ -276,7 +260,6 @@ export const getOrCreateEntity: ImpureGraphFunction<
       entityTypeId,
       properties: entityProperties,
       relationships,
-      inheritedPermissions,
     });
   } else {
     throw new Error(
@@ -303,18 +286,11 @@ export const createEntityWithLinks: ImpureGraphFunction<
     properties: EntityPropertiesObject;
     linkedEntities?: LinkedEntityDefinition[];
     relationships: EntityRelationAndSubject[];
-    inheritedPermissions: EntitySetting[];
   },
   Promise<Entity>
 > = async (context, authentication, params) => {
-  const {
-    ownedById,
-    entityTypeId,
-    properties,
-    linkedEntities,
-    relationships,
-    inheritedPermissions,
-  } = params;
+  const { ownedById, entityTypeId, properties, linkedEntities, relationships } =
+    params;
 
   const entitiesInTree = linkedTreeFlatten<
     EntityDefinition,
@@ -349,7 +325,6 @@ export const createEntityWithLinks: ImpureGraphFunction<
         ownedById,
         entityDefinition: definition,
         relationships,
-        inheritedPermissions,
       }),
     })),
   );
@@ -381,7 +356,6 @@ export const createEntityWithLinks: ImpureGraphFunction<
           leftToRightOrder: link.meta.index ?? undefined,
           ownedById,
           relationships,
-          inheritedPermissions,
         });
       }
     }),

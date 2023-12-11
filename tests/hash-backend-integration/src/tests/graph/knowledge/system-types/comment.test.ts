@@ -20,6 +20,7 @@ import {
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { OwnedById } from "@local/hash-subgraph";
@@ -69,12 +70,9 @@ describe("Comment", () => {
               "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
                 [],
             } as TextProperties,
-            inheritedPermissions: [
-              "administratorFromWeb",
-              "updateFromWeb",
-              "viewFromWeb",
-            ],
-            relationships: [],
+            relationships: createDefaultAuthorizationRelationships({
+              actorId: testUser.accountId,
+            }),
           },
         ),
       },

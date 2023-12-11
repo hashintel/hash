@@ -1,5 +1,6 @@
 import { Filter, QueryTemporalAxesUnresolved } from "@local/hash-graph-client";
 import {
+  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -111,20 +112,7 @@ export const createEntityResolver: ResolverFn<
       properties,
       linkEntityTypeId: entityTypeId,
       ownedById: ownedById ?? (user.accountId as OwnedById),
-      relationships: [
-        {
-          relation: "administrator",
-          subject: {
-            kind: "account",
-            subjectId: authentication.actorId,
-          },
-        },
-      ],
-      inheritedPermissions: [
-        "administratorFromWeb",
-        "updateFromWeb",
-        "viewFromWeb",
-      ],
+      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   } else {
     entity = await createEntityWithLinks(context, authentication, {
@@ -132,20 +120,7 @@ export const createEntityResolver: ResolverFn<
       entityTypeId,
       properties,
       linkedEntities: linkedEntities ?? undefined,
-      relationships: [
-        {
-          relation: "administrator",
-          subject: {
-            kind: "account",
-            subjectId: authentication.actorId,
-          },
-        },
-      ],
-      inheritedPermissions: [
-        "administratorFromWeb",
-        "updateFromWeb",
-        "viewFromWeb",
-      ],
+      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   }
 

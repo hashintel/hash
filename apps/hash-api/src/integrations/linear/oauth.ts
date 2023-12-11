@@ -5,6 +5,7 @@ import {
   apiOrigin,
   frontendUrl,
 } from "@local/hash-isomorphic-utils/environment";
+import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -249,20 +250,7 @@ export const oAuthLinearCallback: RequestHandler<
         entityTypeId: systemEntityTypes.userSecret.entityTypeId,
         ownedById: ownedById as Uuid as OwnedById,
         properties: secretMetadata,
-        relationships: [
-          {
-            relation: "administrator",
-            subject: {
-              kind: "account",
-              subjectId: authentication.actorId,
-            },
-          },
-        ],
-        inheritedPermissions: [
-          "administratorFromWeb",
-          "updateFromWeb",
-          "viewFromWeb",
-        ],
+        relationships: createDefaultAuthorizationRelationships(authentication),
       });
 
       const linearIntegrationProperties: LinearIntegrationProperties = {
@@ -276,20 +264,8 @@ export const oAuthLinearCallback: RequestHandler<
           entityTypeId: systemEntityTypes.linearIntegration.entityTypeId,
           ownedById: ownedById as Uuid as OwnedById,
           properties: linearIntegrationProperties,
-          relationships: [
-            {
-              relation: "administrator",
-              subject: {
-                kind: "account",
-                subjectId: authentication.actorId,
-              },
-            },
-          ],
-          inheritedPermissions: [
-            "administratorFromWeb",
-            "updateFromWeb",
-            "viewFromWeb",
-          ],
+          relationships:
+            createDefaultAuthorizationRelationships(authentication),
         },
       );
 
@@ -299,20 +275,7 @@ export const oAuthLinearCallback: RequestHandler<
         leftEntityId: linearIntegrationEntity.metadata.recordId.entityId,
         rightEntityId: userSecretEntity.metadata.recordId.entityId,
         properties: {},
-        relationships: [
-          {
-            relation: "administrator",
-            subject: {
-              kind: "account",
-              subjectId: authentication.actorId,
-            },
-          },
-        ],
-        inheritedPermissions: [
-          "administratorFromWeb",
-          "updateFromWeb",
-          "viewFromWeb",
-        ],
+        relationships: createDefaultAuthorizationRelationships(authentication),
       });
 
       linearIntegration = getLinearIntegrationFromEntity({

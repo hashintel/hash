@@ -6,7 +6,6 @@ import {
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
   PropertyTypePermission,
-  PropertyTypeSetting,
   PropertyTypeStructuralQuery,
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
@@ -51,7 +50,6 @@ export const createPropertyType: ImpureGraphFunction<
     schema: ConstructPropertyTypeParams;
     webShortname?: string;
     relationships: PropertyTypeRelationAndSubject[];
-    inheritedPermissions: PropertyTypeSetting[];
   },
   Promise<PropertyTypeWithMetadata>
 > = async (ctx, authentication, params) => {
@@ -83,19 +81,7 @@ export const createPropertyType: ImpureGraphFunction<
     {
       ownedById,
       schema,
-      relationships: [
-        ...params.inheritedPermissions.map(
-          (setting) =>
-            ({
-              relation: "setting",
-              subject: {
-                kind: "setting",
-                subjectId: setting,
-              },
-            }) as const,
-        ),
-        ...params.relationships,
-      ],
+      relationships: params.relationships,
     },
   );
 
@@ -203,7 +189,6 @@ export const updatePropertyType: ImpureGraphFunction<
     propertyTypeId: VersionedUrl;
     schema: ConstructPropertyTypeParams;
     relationships: PropertyTypeRelationAndSubject[];
-    inheritedPermissions: PropertyTypeSetting[];
   },
   Promise<PropertyTypeWithMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
@@ -215,19 +200,7 @@ export const updatePropertyType: ImpureGraphFunction<
       kind: "propertyType" as const,
       ...schema,
     },
-    relationships: [
-      ...params.inheritedPermissions.map(
-        (setting) =>
-          ({
-            relation: "setting",
-            subject: {
-              kind: "setting",
-              subjectId: setting,
-            },
-          }) as const,
-      ),
-      ...params.relationships,
-    ],
+    relationships: params.relationships,
   };
 
   const { data: metadata } = await graphApi.updatePropertyType(

@@ -20,6 +20,7 @@ import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
+  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -107,7 +108,6 @@ describe("Entity CRU", () => {
             },
           },
         ],
-        inheritedPermissions: [],
       })
         .then((val) => {
           linkEntityTypeFriend = val;
@@ -130,7 +130,6 @@ describe("Entity CRU", () => {
             },
           },
         ],
-        inheritedPermissions: [],
       })
         .then((val) => {
           favoriteBookPropertyType = val;
@@ -153,7 +152,6 @@ describe("Entity CRU", () => {
             },
           },
         ],
-        inheritedPermissions: [],
       })
         .then((val) => {
           namePropertyType = val;
@@ -198,7 +196,6 @@ describe("Entity CRU", () => {
           },
         },
       ],
-      inheritedPermissions: [],
     });
   });
 
@@ -223,12 +220,7 @@ describe("Entity CRU", () => {
         [favoriteBookPropertyType.metadata.recordId.baseUrl]: "some text",
       },
       entityTypeId: entityType.schema.$id,
-      relationships: [],
-      inheritedPermissions: [
-        "administratorFromWeb",
-        "updateFromWeb",
-        "viewFromWeb",
-      ],
+      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   });
 
@@ -343,12 +335,9 @@ describe("Entity CRU", () => {
             },
           },
         ],
-        relationships: [],
-        inheritedPermissions: [
-          "administratorFromWeb",
-          "updateFromWeb",
-          "viewFromWeb",
-        ],
+        relationships: createDefaultAuthorizationRelationships({
+          actorId: testUser.accountId,
+        }),
       },
     );
 

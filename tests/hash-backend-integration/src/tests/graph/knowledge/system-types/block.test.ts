@@ -14,6 +14,7 @@ import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/migrate
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
@@ -82,19 +83,13 @@ describe("Block", () => {
           },
         },
       ],
-      inheritedPermissions: [],
     });
 
     testBlockDataEntity = await createEntity(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       properties: {},
       entityTypeId: dummyEntityType.schema.$id,
-      relationships: [],
-      inheritedPermissions: [
-        "administratorFromWeb",
-        "updateFromWeb",
-        "viewFromWeb",
-      ],
+      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   });
 
@@ -148,12 +143,7 @@ describe("Block", () => {
         ownedById: testUser.accountId as OwnedById,
         properties: {},
         entityTypeId: dummyEntityType.schema.$id,
-        relationships: [],
-        inheritedPermissions: [
-          "administratorFromWeb",
-          "updateFromWeb",
-          "viewFromWeb",
-        ],
+        relationships: createDefaultAuthorizationRelationships(authentication),
       },
     );
 

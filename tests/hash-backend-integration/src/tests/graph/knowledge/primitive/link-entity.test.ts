@@ -19,6 +19,7 @@ import {
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
@@ -86,7 +87,6 @@ describe("Link entity", () => {
             },
           },
         ],
-        inheritedPermissions: [],
       },
     );
   };
@@ -124,7 +124,6 @@ describe("Link entity", () => {
             },
           },
         ],
-        inheritedPermissions: [],
       }).then((linkEntityType) => {
         friendLinkEntityType = linkEntityType;
       }),
@@ -151,7 +150,6 @@ describe("Link entity", () => {
             },
           },
         ],
-        inheritedPermissions: [],
       }).then((linkEntityType) => {
         acquaintanceLinkEntityType = linkEntityType;
       }),
@@ -179,12 +177,7 @@ describe("Link entity", () => {
         ownedById: testUser.accountId as OwnedById,
         entityTypeId: testEntityType.schema.$id,
         properties: {},
-        relationships: [],
-        inheritedPermissions: [
-          "administratorFromWeb",
-          "updateFromWeb",
-          "viewFromWeb",
-        ],
+        relationships: createDefaultAuthorizationRelationships(authentication),
       }).then((entity) => {
         leftEntity = entity;
       }),
@@ -192,12 +185,7 @@ describe("Link entity", () => {
         ownedById: testUser.accountId as OwnedById,
         entityTypeId: testEntityType.schema.$id,
         properties: {},
-        relationships: [],
-        inheritedPermissions: [
-          "administratorFromWeb",
-          "updateFromWeb",
-          "viewFromWeb",
-        ],
+        relationships: createDefaultAuthorizationRelationships(authentication),
       }).then((entity) => {
         friendRightEntity = entity;
       }),
@@ -205,12 +193,7 @@ describe("Link entity", () => {
         ownedById: testUser.accountId as OwnedById,
         entityTypeId: testEntityType.schema.$id,
         properties: {},
-        relationships: [],
-        inheritedPermissions: [
-          "administratorFromWeb",
-          "updateFromWeb",
-          "viewFromWeb",
-        ],
+        relationships: createDefaultAuthorizationRelationships(authentication),
       }).then((entity) => {
         acquaintanceRightEntity = entity;
       }),
@@ -236,12 +219,7 @@ describe("Link entity", () => {
       leftEntityId: leftEntity.metadata.recordId.entityId,
       linkEntityTypeId: friendLinkEntityType.schema.$id,
       rightEntityId: friendRightEntity.metadata.recordId.entityId,
-      relationships: [],
-      inheritedPermissions: [
-        "administratorFromWeb",
-        "updateFromWeb",
-        "viewFromWeb",
-      ],
+      relationships: createDefaultAuthorizationRelationships(authentication),
     });
 
     linkEntityAcquaintance = await createLinkEntity(
@@ -252,12 +230,7 @@ describe("Link entity", () => {
         leftEntityId: leftEntity.metadata.recordId.entityId,
         linkEntityTypeId: acquaintanceLinkEntityType.schema.$id,
         rightEntityId: acquaintanceRightEntity.metadata.recordId.entityId,
-        relationships: [],
-        inheritedPermissions: [
-          "administratorFromWeb",
-          "updateFromWeb",
-          "viewFromWeb",
-        ],
+        relationships: createDefaultAuthorizationRelationships(authentication),
       },
     );
   });

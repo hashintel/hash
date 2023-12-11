@@ -143,8 +143,14 @@ export const createOrg: ImpureGraphFunction<
           kind: "public",
         },
       },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "administratorFromWeb",
+        },
+      },
     ],
-    inheritedPermissions: ["administratorFromWeb"],
   });
 
   return getOrgFromEntity({ entity });

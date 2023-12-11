@@ -1,4 +1,3 @@
-import { EntitySetting } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -112,13 +111,47 @@ export const createMentionNotification: ImpureGraphFunction<
     ownedById,
     properties: {},
     entityTypeId: systemEntityTypes.mentionNotification.entityTypeId,
-    relationships: [],
-    inheritedPermissions: [
-      "administratorFromWeb",
-      "updateFromWeb",
-      "viewFromWeb",
+    relationships: [
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "administratorFromWeb",
+        },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "updateFromWeb",
+        },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "viewFromWeb",
+        },
+      },
     ],
   });
+
+  const linkRelationships: EntityRelationAndSubject[] = [
+    {
+      relation: "administrator",
+      subject: {
+        kind: "account",
+        subjectId: systemAccountId,
+      },
+    },
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "viewFromWeb",
+      },
+    },
+  ];
 
   await Promise.all(
     [
@@ -128,16 +161,7 @@ export const createMentionNotification: ImpureGraphFunction<
         rightEntityId: triggeredByUser.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
-        relationships: [
-          {
-            relation: "administrator",
-            subject: {
-              kind: "account",
-              subjectId: systemAccountId,
-            },
-          },
-        ] satisfies EntityRelationAndSubject[],
-        inheritedPermissions: ["viewFromWeb"] satisfies EntitySetting[],
+        relationships: linkRelationships,
       }),
       createLinkEntity(context, authentication, {
         ownedById,
@@ -145,16 +169,7 @@ export const createMentionNotification: ImpureGraphFunction<
         rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
-        relationships: [
-          {
-            relation: "administrator",
-            subject: {
-              kind: "account",
-              subjectId: systemAccountId,
-            },
-          },
-        ] satisfies EntityRelationAndSubject[],
-        inheritedPermissions: ["viewFromWeb"] satisfies EntitySetting[],
+        relationships: linkRelationships,
       }),
       createLinkEntity(context, authentication, {
         ownedById,
@@ -162,16 +177,7 @@ export const createMentionNotification: ImpureGraphFunction<
         rightEntityId: occurredInBlock.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
-        relationships: [
-          {
-            relation: "administrator",
-            subject: {
-              kind: "account",
-              subjectId: systemAccountId,
-            },
-          },
-        ] satisfies EntityRelationAndSubject[],
-        inheritedPermissions: ["viewFromWeb"] satisfies EntitySetting[],
+        relationships: linkRelationships,
       }),
       occurredInComment
         ? createLinkEntity(context, authentication, {
@@ -180,16 +186,7 @@ export const createMentionNotification: ImpureGraphFunction<
             rightEntityId: occurredInComment.entity.metadata.recordId.entityId,
             linkEntityTypeId:
               systemLinkEntityTypes.occurredInComment.linkEntityTypeId,
-            relationships: [
-              {
-                relation: "administrator",
-                subject: {
-                  kind: "account",
-                  subjectId: systemAccountId,
-                },
-              },
-            ] satisfies EntityRelationAndSubject[],
-            inheritedPermissions: ["viewFromWeb"] satisfies EntitySetting[],
+            relationships: linkRelationships,
           })
         : [],
       createLinkEntity(context, authentication, {
@@ -197,16 +194,7 @@ export const createMentionNotification: ImpureGraphFunction<
         leftEntityId: entity.metadata.recordId.entityId,
         rightEntityId: occurredInText.entity.metadata.recordId.entityId,
         linkEntityTypeId: systemLinkEntityTypes.occurredInText.linkEntityTypeId,
-        relationships: [
-          {
-            relation: "administrator",
-            subject: {
-              kind: "account",
-              subjectId: systemAccountId,
-            },
-          },
-        ] satisfies EntityRelationAndSubject[],
-        inheritedPermissions: ["viewFromWeb"] satisfies EntitySetting[],
+        relationships: linkRelationships,
       }),
     ].flat(),
   );
@@ -387,6 +375,23 @@ export const createCommentNotification: ImpureGraphFunction<
     ownedById,
   } = params;
 
+  const linkRelationships: EntityRelationAndSubject[] = [
+    {
+      relation: "administrator",
+      subject: {
+        kind: "account",
+        subjectId: systemAccountId,
+      },
+    },
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "viewFromWeb",
+      },
+    },
+  ];
+
   const entity = await createEntity(context, authentication, {
     ownedById,
     properties: {},
@@ -397,64 +402,28 @@ export const createCommentNotification: ImpureGraphFunction<
         rightEntityId: triggeredByUser.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
-        relationships: [
-          {
-            relation: "administrator",
-            subject: {
-              kind: "account",
-              subjectId: systemAccountId,
-            },
-          },
-        ] satisfies EntityRelationAndSubject[],
-        inheritedPermissions: ["viewFromWeb"] satisfies EntitySetting[],
+        relationships: linkRelationships,
       },
       {
         ownedById,
         rightEntityId: triggeredByComment.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.triggeredByComment.linkEntityTypeId,
-        relationships: [
-          {
-            relation: "administrator",
-            subject: {
-              kind: "account",
-              subjectId: systemAccountId,
-            },
-          },
-        ] satisfies EntityRelationAndSubject[],
-        inheritedPermissions: ["viewFromWeb"] satisfies EntitySetting[],
+        relationships: linkRelationships,
       },
       {
         ownedById,
         rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
-        relationships: [
-          {
-            relation: "administrator",
-            subject: {
-              kind: "account",
-              subjectId: systemAccountId,
-            },
-          },
-        ] satisfies EntityRelationAndSubject[],
-        inheritedPermissions: ["viewFromWeb"] satisfies EntitySetting[],
+        relationships: linkRelationships,
       },
       {
         ownedById,
         rightEntityId: occurredInBlock.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
-        relationships: [
-          {
-            relation: "administrator",
-            subject: {
-              kind: "account",
-              subjectId: systemAccountId,
-            },
-          },
-        ] satisfies EntityRelationAndSubject[],
-        inheritedPermissions: ["viewFromWeb"] satisfies EntitySetting[],
+        relationships: linkRelationships,
       },
       repliedToComment
         ? {
@@ -462,24 +431,32 @@ export const createCommentNotification: ImpureGraphFunction<
             rightEntityId: repliedToComment.entity.metadata.recordId.entityId,
             linkEntityTypeId:
               systemLinkEntityTypes.repliedToComment.linkEntityTypeId,
-            relationships: [
-              {
-                relation: "administrator",
-                subject: {
-                  kind: "account",
-                  subjectId: systemAccountId,
-                },
-              },
-            ] satisfies EntityRelationAndSubject[],
-            inheritedPermissions: ["viewFromWeb"] satisfies EntitySetting[],
+            relationships: linkRelationships,
           }
         : [],
     ].flat(),
-    relationships: [],
-    inheritedPermissions: [
-      "administratorFromWeb",
-      "updateFromWeb",
-      "viewFromWeb",
+    relationships: [
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "administratorFromWeb",
+        },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "updateFromWeb",
+        },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "viewFromWeb",
+        },
+      },
     ],
   });
 

@@ -349,8 +349,14 @@ export const createUser: ImpureGraphFunction<
             kind: "public",
           },
         },
+        {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "updateFromWeb",
+          },
+        },
       ],
-      inheritedPermissions: ["updateFromWeb"],
     },
   );
 

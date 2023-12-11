@@ -1,5 +1,4 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { EntitySetting } from "@local/hash-graph-client";
 import {
   AccountGroupId,
   AccountId,
@@ -32,7 +31,6 @@ export type CreateLinkEntityParams = {
   rightEntityId: EntityId;
   rightToLeftOrder?: number;
   relationships: EntityRelationAndSubject[];
-  inheritedPermissions: EntitySetting[];
 };
 
 export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
@@ -99,19 +97,7 @@ export const createLinkEntity: ImpureGraphFunction<
       entityTypeId: linkEntityType.schema.$id,
       properties,
       draft,
-      relationships: [
-        ...params.inheritedPermissions.map(
-          (setting) =>
-            ({
-              relation: "setting",
-              subject: {
-                kind: "setting",
-                subjectId: setting,
-              },
-            }) as const,
-        ),
-        ...params.relationships,
-      ],
+      relationships: params.relationships,
     },
   );
 

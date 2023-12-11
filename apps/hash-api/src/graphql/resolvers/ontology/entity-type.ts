@@ -46,6 +46,13 @@ export const createEntityTypeResolver: ResolverFn<
     icon: params.icon ?? undefined,
     relationships: [
       {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "updateFromWeb",
+        },
+      },
+      {
         relation: "viewer",
         subject: {
           kind: "public",
@@ -58,7 +65,6 @@ export const createEntityTypeResolver: ResolverFn<
         },
       },
     ],
-    inheritedPermissions: ["updateFromWeb"],
   });
 
   return createdEntityType;
@@ -176,8 +182,14 @@ export const updateEntityTypeResolver: ResolverFn<
       schema: params.updatedEntityType,
       labelProperty: params.labelProperty ?? undefined,
       icon: params.icon ?? undefined,
-      inheritedPermissions: ["updateFromWeb"],
       relationships: [
+        {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "updateFromWeb",
+          },
+        },
         { relation: "instantiator", subject: { kind: "public" } },
       ],
     },
