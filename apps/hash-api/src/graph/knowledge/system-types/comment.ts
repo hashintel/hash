@@ -1,4 +1,3 @@
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,

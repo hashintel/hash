@@ -519,7 +519,13 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "type": "object",
     "title": "Link",
     "properties": {}
-  }
+  },
+  "relationships": [{
+    "relation": "viewer",
+    "subject": {
+      "kind": "public"
+    }
+  }]
 }
 
 ### Insert Friendship entity link type
