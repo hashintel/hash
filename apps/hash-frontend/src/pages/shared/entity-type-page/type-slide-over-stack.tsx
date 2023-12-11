@@ -40,6 +40,7 @@ export const TypeSlideOverStack: FunctionComponent<{
           onClose={handleClose}
           onNavigateToType={(url) => setItems([...items, url])}
           typeUrl={typeId}
+          stackPosition={index}
         />
       ))}
     </Backdrop>

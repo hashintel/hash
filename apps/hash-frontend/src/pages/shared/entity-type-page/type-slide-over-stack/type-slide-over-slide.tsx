@@ -28,6 +28,7 @@ import { useEntityTypeValue } from "../use-entity-type-value";
 const SLIDE_WIDTH = 1000;
 
 interface TypeSlideOverSlideProps {
+  stackPosition: number;
   open: boolean;
   onBack?: () => void;
   onClose: () => void;
@@ -36,6 +37,7 @@ interface TypeSlideOverSlideProps {
 }
 
 export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
+  stackPosition,
   onNavigateToType,
   typeUrl,
   open,
@@ -115,6 +117,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
           top: 0,
           right: 0,
           overflowY: "auto",
+          zIndex: stackPosition * 10000,
         }}
       >
         <Box
