@@ -1033,50 +1033,27 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         } else {
             ValidationProfile::Full
         };
-        // TODO: Always validate source and target entities when updating a link, currently we only
-        //       do that when the draft state changes.
-        //   see https://linear.app/hash/issue/H-1413
-        if draft == was_draft_before {
-            // If the draft state does not change we only validate the properties
-            properties
-                .validate(
-                    &closed_schema,
-                    validation_profile,
-                    &StoreProvider {
-                        store: &transaction,
-                        cache: StoreCache::default(),
-                        authorization: Some((
-                            authorization_api,
-                            actor_id,
-                            Consistency::FullyConsistent,
-                        )),
-                    },
-                )
-                .await
-                .change_context(UpdateError)
-                .attach(StatusCode::InvalidArgument)?;
-        } else {
-            transaction
-                .validate_entity(
-                    actor_id,
-                    authorization_api,
-                    Consistency::FullyConsistent,
-                    EntityValidationType::Schema(&closed_schema),
-                    &properties,
-                    previous_entity
-                        .link_data
-                        .map(|link_data| LinkData {
-                            left_entity_id: link_data.left_entity_id,
-                            right_entity_id: link_data.right_entity_id,
-                            order: link_order,
-                        })
-                        .as_ref(),
-                    validation_profile,
-                )
-                .await
-                .change_context(UpdateError)
-                .attach(StatusCode::InvalidArgument)?;
-        }
+
+        transaction
+            .validate_entity(
+                actor_id,
+                authorization_api,
+                Consistency::FullyConsistent,
+                EntityValidationType::Schema(&closed_schema),
+                &properties,
+                previous_entity
+                    .link_data
+                    .map(|link_data| LinkData {
+                        left_entity_id: link_data.left_entity_id,
+                        right_entity_id: link_data.right_entity_id,
+                        order: link_order,
+                    })
+                    .as_ref(),
+                validation_profile,
+            )
+            .await
+            .change_context(UpdateError)
+            .attach(StatusCode::InvalidArgument)?;
 
         transaction.commit().await.change_context(UpdateError)?;
 

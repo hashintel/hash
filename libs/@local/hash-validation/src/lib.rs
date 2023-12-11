@@ -97,7 +97,7 @@ pub trait OntologyTypeProvider<O> {
 }
 
 pub trait EntityTypeProvider: OntologyTypeProvider<EntityType> {
-    fn is_parent_of(
+    fn type_matches_base_url(
         &self,
         child: &VersionedUrl,
         parent: &VersionedUrl,
@@ -196,7 +196,7 @@ mod tests {
     }
 
     impl EntityTypeProvider for Provider {
-        async fn is_parent_of(
+        async fn type_matches_base_url(
             &self,
             child: &VersionedUrl,
             parent: &VersionedUrl,
