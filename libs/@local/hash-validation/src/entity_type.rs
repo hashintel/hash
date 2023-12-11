@@ -109,19 +109,15 @@ where
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());
 
         let is_link = provider
-            .type_matches_base_url(
+            .is_parent_of(
                 schema.id(),
                 // TODO: The link type should be a const but the type system crate does not allow
                 //       to make this a `const` variable.
                 //   see https://linear.app/hash/issue/BP-57
-                &VersionedUrl {
-                    base_url: BaseUrl::new(
-                        "https://blockprotocol.org/@blockprotocol/types/entity-type/link/"
-                            .to_owned(),
-                    )
-                    .expect("Not a valid URL"),
-                    version: 1,
-                },
+                &BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/link/".to_owned(),
+                )
+                .expect("Not a valid URL"),
             )
             .await
             .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
@@ -258,7 +254,7 @@ where
                     for (link_type, allowed_targets) in left_entity_type.borrow().links() {
                         if self.id().base_url == link_type.base_url
                             || provider
-                                .type_matches_base_url(self.id(), link_type)
+                                .is_parent_of(self.id(), &link_type.base_url)
                                 .await
                                 .change_context_lazy(|| {
                                     EntityValidationError::EntityTypeRetrieval {
@@ -290,9 +286,9 @@ where
                             // No exact match found, so we look up parent types
                             for allowed_target in allowed_targets.one_of() {
                                 if provider
-                                    .type_matches_base_url(
+                                    .is_parent_of(
                                         right_entity_type_id,
-                                        allowed_target.url(),
+                                        &allowed_target.url().base_url,
                                     )
                                     .await
                                     .change_context_lazy(|| {

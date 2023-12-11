@@ -18,7 +18,10 @@ use graph_types::{
 };
 use tokio::sync::RwLock;
 use tokio_postgres::GenericClient;
-use type_system::{url::VersionedUrl, DataType, EntityType, PropertyType};
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    DataType, EntityType, PropertyType,
+};
 use validation::{EntityProvider, EntityTypeProvider, OntologyTypeProvider};
 
 use crate::{
@@ -370,10 +373,10 @@ where
     A: AuthorizationApi + Sync,
 {
     #[expect(refining_impl_trait)]
-    async fn type_matches_base_url(
+    async fn is_parent_of(
         &self,
         child: &VersionedUrl,
-        parent: &VersionedUrl,
+        parent: &BaseUrl,
     ) -> Result<bool, Report<QueryError>> {
         let client = self.store.as_client().client();
         let child_id = EntityTypeId::from_url(child);
@@ -389,7 +392,7 @@ where
                           AND ontology_ids.base_url = $2
                     );
                 ",
-                &[child_id.as_uuid(), &parent.base_url.as_str()],
+                &[child_id.as_uuid(), &parent.as_str()],
             )
             .await
             .change_context(QueryError)?
