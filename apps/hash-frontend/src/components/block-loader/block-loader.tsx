@@ -31,6 +31,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 
 import { useBlockLoadedContext } from "../../blocks/on-block-loaded";
@@ -333,17 +334,25 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     setBlockSubgraph(blockSubgraph);
   }
 
-  const lastFetchedBlockEntityId = useRef(blockEntityId);
+  const lastFetchedBlockEntityId = useRef<EntityId | null>(null);
+
+  const [fetchingBlockSubgraph, setFetchingBlockSubgraph] =
+    useState<boolean>(false);
 
   /**
    * Fetch the block's subgraph and permissions on load and when the block's entityId changes
    */
   useEffect(() => {
-    if (blockSubgraph && blockEntityId === lastFetchedBlockEntityId.current) {
+    if (
+      (blockSubgraph && blockEntityId === lastFetchedBlockEntityId.current) ||
+      fetchingBlockSubgraph
+    ) {
       return;
     }
 
-    lastFetchedBlockEntityId.current = blockEntityId;
+    lastFetchedBlockEntityId.current = blockEntityId ?? null;
+
+    setFetchingBlockSubgraph(true);
 
     /**
      * Fetch the block's subgraph and permissions to replace any initially loaded data.
@@ -357,8 +366,10 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     ).then((newBlockSubgraph) => {
       setBlockSubgraph(newBlockSubgraph.subgraph);
       setUserPermissions(newBlockSubgraph.userPermissionsOnEntities);
+      setFetchingBlockSubgraph(false);
     });
   }, [
+    fetchingBlockSubgraph,
     blockEntityId,
     blockEntityTypeId,
     blockSubgraph,
