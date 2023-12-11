@@ -2,7 +2,10 @@ import fs from "node:fs";
 import * as path from "node:path";
 
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { getMachineEntity } from "@local/hash-backend-utils/machine-actors";
+import {
+  getMachineActorId,
+  getWebMachineActorId,
+} from "@local/hash-backend-utils/machine-actors";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -16,7 +19,6 @@ import type {
 } from "@local/hash-isomorphic-utils/temporal-types";
 import { InferredEntityChangeResult } from "@local/hash-isomorphic-utils/temporal-types";
 import type { AccountId, OwnedById, Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
@@ -726,13 +728,10 @@ export const inferEntities = async ({
 
   let aiAssistantAccountId: AccountId;
   try {
-    const aiAssistantEntity = await getMachineEntity(
+    aiAssistantAccountId = await getMachineActorId(
       { graphApi: graphApiClient },
       userAuthenticationInfo,
       { identifier: "ai-assistant" },
-    );
-    aiAssistantAccountId = extractEntityUuidFromEntityId(
-      aiAssistantEntity.metadata.recordId.entityId,
     );
   } catch {
     return {
@@ -740,6 +739,37 @@ export const inferEntities = async ({
       contents: [],
       message: "Could not retrieve ai-assistant entity",
     };
+  }
+
+  const aiAssistantHasPermission = await graphApiClient
+    .checkWebPermission(aiAssistantAccountId, ownedById, "update_entity")
+    .then((resp) => resp.data.has_permission);
+
+  if (!aiAssistantHasPermission) {
+    const webMachineActorId = await getWebMachineActorId(
+      { graphApi: graphApiClient },
+      userAuthenticationInfo,
+      {
+        ownedById,
+      },
+    );
+
+    await graphApiClient.modifyWebAuthorizationRelationships(
+      webMachineActorId,
+      [
+        {
+          operation: "create",
+          resource: ownedById,
+          relationAndSubject: {
+            subject: {
+              kind: "account",
+              subjectId: aiAssistantAccountId,
+            },
+            relation: "entityEditor",
+          },
+        },
+      ],
+    );
   }
 
   const authentication = { actorId: aiAssistantAccountId };

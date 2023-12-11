@@ -301,11 +301,15 @@ export const createUser: ImpureGraphFunction<
         },
       },
     );
-
-    await createWebMachineActor(ctx, authentication, {
-      ownedById: userAccountId as OwnedById,
-    });
   }
+
+  const userWebMachineActorId = await createWebMachineActor(
+    ctx,
+    authentication,
+    {
+      ownedById: userAccountId as OwnedById,
+    },
+  );
 
   const properties: UserProperties = {
     "https://hash.ai/@hash/types/property-type/email/": emails as [
@@ -332,9 +336,27 @@ export const createUser: ImpureGraphFunction<
     hashInstance.entity.metadata.recordId.entityId,
   ) as AccountGroupId;
 
+  /** Grant permissions to the web machine actor to create a user entity */
+  await ctx.graphApi.modifyEntityTypeAuthorizationRelationships(
+    systemAccountId,
+    [
+      {
+        operation: "create",
+        resource: systemEntityTypes.user.entityTypeId,
+        relationAndSubject: {
+          subject: {
+            kind: "account",
+            subjectId: userWebMachineActorId,
+          },
+          relation: "instantiator",
+        },
+      },
+    ],
+  );
+
   const entity = await createEntity(
     ctx,
-    { actorId: userAccountId },
+    { actorId: userWebMachineActorId },
     {
       ownedById: userAccountId as OwnedById,
       properties,
@@ -363,6 +385,24 @@ export const createUser: ImpureGraphFunction<
         },
       ],
     },
+  );
+
+  /** Remove permission from the web machine actor to create a user entity */
+  await ctx.graphApi.modifyEntityTypeAuthorizationRelationships(
+    systemAccountId,
+    [
+      {
+        operation: "delete",
+        resource: systemEntityTypes.user.entityTypeId,
+        relationAndSubject: {
+          subject: {
+            kind: "account",
+            subjectId: userWebMachineActorId,
+          },
+          relation: "instantiator",
+        },
+      },
+    ],
   );
 
   const user = getUserFromEntity({ entity });

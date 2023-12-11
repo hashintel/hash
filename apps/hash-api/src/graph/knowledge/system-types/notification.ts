@@ -1,3 +1,4 @@
+import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -97,7 +98,7 @@ export const createMentionNotification: ImpureGraphFunction<
     occurredInText: Text;
   },
   Promise<MentionNotification>
-> = async (context, authentication, params) => {
+> = async (context, userAuthentication, params) => {
   const {
     triggeredByUser,
     occurredInText,
@@ -106,6 +107,13 @@ export const createMentionNotification: ImpureGraphFunction<
     occurredInComment,
     ownedById,
   } = params;
+
+  const webMachineActorId = await getWebMachineActorId(
+    context,
+    userAuthentication,
+    { ownedById },
+  );
+  const authentication = { actorId: webMachineActorId };
 
   const entity = await createEntity(context, authentication, {
     ownedById,
@@ -365,7 +373,7 @@ export const createCommentNotification: ImpureGraphFunction<
     repliedToComment?: Comment;
   },
   Promise<CommentNotification>
-> = async (context, authentication, params) => {
+> = async (context, userAuthentication, params) => {
   const {
     triggeredByUser,
     triggeredByComment,
@@ -374,6 +382,13 @@ export const createCommentNotification: ImpureGraphFunction<
     repliedToComment,
     ownedById,
   } = params;
+
+  const webMachineActorId = await getWebMachineActorId(
+    context,
+    userAuthentication,
+    { ownedById },
+  );
+  const authentication = { actorId: webMachineActorId };
 
   const linkRelationships: EntityRelationAndSubject[] = [
     {

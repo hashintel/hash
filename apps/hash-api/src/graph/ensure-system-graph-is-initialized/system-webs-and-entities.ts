@@ -1,7 +1,7 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
-  createMachineEntity,
-  getMachineEntity,
+  createMachineActor,
+  getMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -180,15 +180,17 @@ export const ensureSystemEntitiesExist = async (params: {
     }
 
     try {
-      await getMachineEntity(context, authentication, {
+      await getMachineActorId(context, authentication, {
         identifier: webShortname,
       });
     } catch (error) {
       if (error instanceof NotFoundError) {
-        await createMachineEntity(context, {
+        await createMachineActor(context, {
+          description: `The ${webShortname} machine user`,
           machineAccountId: machineActorAccountId,
           identifier: webShortname,
-          owningWebAccountGroupId: accountGroupId,
+          ownedById: accountGroupId as OwnedById,
+          preferredName: `${webShortname}[bot]`,
         });
 
         logger.info(
@@ -213,7 +215,7 @@ export const ensureSystemEntitiesExist = async (params: {
   }
 
   try {
-    await getMachineEntity(context, authentication, {
+    await getMachineActorId(context, authentication, {
       identifier: "ai-assistant",
     });
   } catch (error) {
@@ -231,10 +233,12 @@ export const ensureSystemEntitiesExist = async (params: {
         );
       }
 
-      await createMachineEntity(context, {
+      await createMachineActor(context, {
+        description: "The AI Assistant machine user",
         identifier: "ai-assistant",
         machineAccountId: aiAssistantAccountId,
-        owningWebAccountGroupId: hashAccountGroupId,
+        ownedById: hashAccountGroupId as OwnedById,
+        preferredName: "AI Assistant",
       });
     } else {
       throw error;

@@ -96,8 +96,6 @@ export const getHashInstance: ImpureGraphFunction<
  * @param params.userSelfRegistrationIsEnabled - whether or not user self registration is enabled
  * @param params.userRegistrationByInviteIsEnabled - whether or not user registration by invitation is enabled
  * @param params.orgSelfRegistrationIsEnabled - whether or not org registration is enabled
- *
- * @see {@link EntityModel.create} for the remaining params
  */
 export const createHashInstance: ImpureGraphFunction<
   {

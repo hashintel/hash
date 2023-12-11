@@ -39,6 +39,7 @@ import {
   DataTypeWithMetadata,
   Entity,
   EntityRootType,
+  EntityTypeInstantiatorSubject,
   EntityTypeRelationAndSubject,
   EntityTypeWithMetadata,
   OwnedById,
@@ -71,6 +72,7 @@ import {
   createPropertyType,
   getPropertyTypeById,
 } from "../../ontology/primitive/property-type";
+import { systemAccountId } from "../../system-account";
 import {
   getOrCreateOwningAccountGroupId,
   isSelfHostedInstance,
@@ -408,12 +410,15 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
     propertyTypeId,
   });
 
+  const { accountGroupId, machineActorId } =
+    await getOrCreateOwningAccountGroupId(context, webShortname);
+
   const relationships: PropertyTypeRelationAndSubject[] = [
     {
       relation: "editor",
       subject: {
         kind: "account",
-        subjectId: systemAccountId,
+        subjectId: machineActorId,
       },
     },
     {
@@ -425,11 +430,6 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
   ];
 
   if (isSelfHostedInstance) {
-    const { machineActorId } = await getOrCreateOwningAccountGroupId(
-      context,
-      webShortname,
-    );
-
     /**
      * If this is a self-hosted instance, the system types will be created as external types that don't belong to an in-instance web,
      * although they will be created by a machine actor associated with an equivalently named web.
@@ -445,9 +445,6 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
     });
   } else {
     // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
-    const { accountGroupId, machineActorId } =
-      await getOrCreateOwningAccountGroupId(context, webShortname);
-
     const createdPropertyType = await createPropertyType(
       context,
       { actorId: machineActorId },
@@ -594,12 +591,13 @@ export const generateSystemEntityTypeSchema = (
 export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
   {
     entityTypeDefinition: Omit<EntityTypeDefinition, "entityTypeId">;
+    instantiator: EntityTypeInstantiatorSubject | null;
   } & BaseCreateTypeIfNotExistsParameters,
   Promise<EntityTypeWithMetadata>
 > = async (
   context,
   authentication,
-  { entityTypeDefinition, migrationState, webShortname },
+  { entityTypeDefinition, instantiator, migrationState, webShortname },
 ) => {
   const { title } = entityTypeDefinition;
   const baseUrl = generateSystemTypeBaseUrl({
@@ -632,12 +630,15 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
     entityTypeId,
   });
 
+  const { accountGroupId, machineActorId } =
+    await getOrCreateOwningAccountGroupId(context, webShortname);
+
   const relationships: EntityTypeRelationAndSubject[] = [
     {
       relation: "editor",
       subject: {
         kind: "account",
-        subjectId: systemAccountId,
+        subjectId: machineActorId,
       },
     },
     {
@@ -646,21 +647,17 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
         kind: "public",
       },
     },
-    {
-      relation: "instantiator",
-      subject: {
-        kind: "public",
-      },
-    },
   ];
+
+  if (instantiator) {
+    relationships.push({
+      relation: "instantiator",
+      subject: instantiator,
+    });
+  }
 
   // The type was missing, try and create it
   if (isSelfHostedInstance) {
-    const { machineActorId } = await getOrCreateOwningAccountGroupId(
-      context,
-      webShortname,
-    );
-
     /**
      * If this is a self-hosted instance, the system types will be created as external types that don't belong to an in-instance web,
      * although they will be created by a machine actor associated with an equivalently named web.
@@ -675,10 +672,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
       entityTypeId: entityTypeSchema.$id,
     });
   } else {
-    // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
-    const { accountGroupId, machineActorId } =
-      await getOrCreateOwningAccountGroupId(context, webShortname);
-
+    // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we create the system types in a web
     const createdEntityType = await createEntityType(
       context,
       { actorId: machineActorId },
@@ -812,9 +806,17 @@ export const updateSystemEntityType: ImpureGraphFunction<
     $id: updatedEntityTypeId,
   };
 
+  const currentRelationships = await context.graphApi
+    .getEntityTypeAuthorizationRelationships(
+      authentication.actorId,
+      currentEntityTypeId,
+    )
+    .then((resp) => resp.data);
+
   await context.graphApi.updateEntityType(authentication.actorId, {
     typeToUpdate: currentEntityTypeId,
     schema: entityTypeSchema,
+    relationships: currentRelationships,
   });
 
   migrationState.entityTypeVersions[baseUrl] = nextVersion;
@@ -868,9 +870,17 @@ export const updateSystemPropertyType: ImpureGraphFunction<
     $id: updatedPropertyTypeId,
   };
 
+  const currentRelationships = await context.graphApi
+    .getPropertyTypeAuthorizationRelationships(
+      authentication.actorId,
+      currentPropertyTypeId,
+    )
+    .then((resp) => resp.data);
+
   await context.graphApi.updatePropertyType(authentication.actorId, {
     typeToUpdate: currentPropertyTypeId,
     schema: propertyTypeSchema,
+    relationships: currentRelationships,
   });
 
   migrationState.propertyTypeVersions[baseUrl] = nextVersion;
@@ -954,4 +964,8 @@ export const getEntitiesByType: ImpureGraphFunction<
     .then((resp) =>
       getRoots(mapGraphApiSubgraphToSubgraph<EntityRootType>(resp.data)),
     );
+};
+
+export const anyUserInstantiator: EntityTypeInstantiatorSubject = {
+  kind: "public",
 };

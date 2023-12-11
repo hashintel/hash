@@ -1,7 +1,7 @@
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
-  createMachineEntity,
-  getMachineEntity,
+  createMachineActor,
+  getMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { AccountId, OwnedById } from "@local/hash-subgraph";
@@ -52,7 +52,7 @@ export const ensureHashSystemAccountExists = async (params: {
    *    in favour of letting the `getOrCreateOwningAccountGroupId` function handle it for new instances.
    */
   try {
-    await getMachineEntity(context, authentication, {
+    await getMachineActorId(context, authentication, {
       identifier: "hash",
     });
   } catch {
@@ -69,10 +69,12 @@ export const ensureHashSystemAccountExists = async (params: {
       return;
     }
 
-    await createMachineEntity(context, {
+    await createMachineActor(context, {
+      description: "The hash machine user",
       machineAccountId: systemAccountId,
       identifier: "hash",
       ownedById: foundOrg.accountGroupId as OwnedById,
+      preferredName: "hash[bot]",
     });
   }
 };

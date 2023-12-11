@@ -1,10 +1,14 @@
 import { EntityType } from "@blockprotocol/type-system";
 import {
   createWebMachineActor,
-  getWebMachineActor,
+  getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { AccountId, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import {
+  AccountId,
+  descriptionPropertyTypeUrl,
+  extractOwnedByIdFromEntityId,
+} from "@local/hash-subgraph";
 
 import { NotFoundError } from "../../../../lib/error";
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
@@ -50,6 +54,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "hash",
       migrationState,
+      instantiator: null,
     },
   );
 
@@ -76,11 +81,16 @@ const migrate: MigrationFunction = async ({
           propertyType: machineIdentifierPropertyType,
           required: true,
         },
+        {
+          propertyType: descriptionPropertyTypeUrl,
+          required: true,
+        },
       ],
       allOf: [actorEntityType.schema.$id],
     },
     webShortname: "hash",
     migrationState,
+    instantiator: null,
   });
 
   /** Step 3: Update the User entity type to inherit from Actor */
@@ -206,6 +216,7 @@ const migrate: MigrationFunction = async ({
     },
     webShortname: "hash",
     migrationState,
+    instantiator: null,
   });
 
   /** Step 6: Update the dependencies of entity types which we've updated above */
@@ -238,7 +249,7 @@ const migrate: MigrationFunction = async ({
       user.metadata.recordId.entityId,
     );
     try {
-      await getWebMachineActor(context, authentication, {
+      await getWebMachineActorId(context, authentication, {
         ownedById: userAccountId,
       });
     } catch (err) {
@@ -273,35 +284,17 @@ const migrate: MigrationFunction = async ({
       org.metadata.recordId.entityId,
     );
     try {
-      await getWebMachineActor(context, authentication, {
+      await getWebMachineActorId(context, authentication, {
         ownedById: orgAccountGroupId,
       });
     } catch (err) {
       if (err instanceof NotFoundError) {
-        const webRelationships = await context.graphApi
-          .getWebAuthorizationRelationships(
-            authentication.actorId,
-            orgAccountGroupId,
-          )
-          .then((resp) => resp.data);
-
-        // We need an org owner's authority to assign a machine actor to the web
-        const someOwnerUser = webRelationships.find(
-          (relationship) =>
-            relationship.relation === "owner" &&
-            relationship.subject.kind === "account",
-        );
-
-        if (!someOwnerUser) {
-          throw new Error(
-            `Could not find user owner for organization ${org.metadata.recordId.entityId}`,
-          );
-        }
+        const orgAdminAccountId = org.metadata.provenance.recordCreatedById;
 
         await createWebMachineActor(
           context,
-          // We have to use the user's authority to add the machine to their web
-          { actorId: someOwnerUser.subject.subjectId },
+          // We have to use an org admin's authority to add the machine to their web
+          { actorId: orgAdminAccountId },
           {
             ownedById: orgAccountGroupId,
           },
