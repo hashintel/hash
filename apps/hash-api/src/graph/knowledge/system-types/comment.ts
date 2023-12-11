@@ -138,20 +138,7 @@ export const createComment: ImpureGraphFunction<
 > = async (ctx, authentication, params): Promise<Comment> => {
   const { ownedById, textualContent, parentEntityId, author } = params;
 
-  const textEntity = await createEntity(ctx, authentication, {
-    ownedById,
-    properties: {
-      [extractBaseUrl(
-        blockProtocolPropertyTypes.textualContent.propertyTypeId,
-      )]: textualContent,
-    },
-    entityTypeId: systemEntityTypes.text.entityTypeId,
-    relationships: createDefaultAuthorizationRelationships({
-      // the author has full access, regardless of which web the comment belongs to (ownedById)
-      actorId: author.accountId,
-    }),
-  });
-
+  // the author has full access, regardless of which web the comment belongs to (ownedById)
   const relationships: EntityRelationAndSubject[] = [
     {
       relation: "administrator",
@@ -175,6 +162,17 @@ export const createComment: ImpureGraphFunction<
       },
     },
   ];
+
+  const textEntity = await createEntity(ctx, authentication, {
+    ownedById,
+    properties: {
+      [extractBaseUrl(
+        blockProtocolPropertyTypes.textualContent.propertyTypeId,
+      )]: textualContent,
+    },
+    entityTypeId: systemEntityTypes.text.entityTypeId,
+    relationships,
+  });
 
   const commentEntity = await createEntity(ctx, authentication, {
     ownedById,
