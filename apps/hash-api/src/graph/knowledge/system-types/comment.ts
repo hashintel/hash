@@ -8,7 +8,11 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { CommentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { TextToken } from "@local/hash-isomorphic-utils/types";
-import { Entity, EntityId } from "@local/hash-subgraph";
+import {
+  Entity,
+  EntityId,
+  EntityRelationAndSubject,
+} from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
@@ -148,6 +152,30 @@ export const createComment: ImpureGraphFunction<
     }),
   });
 
+  const relationships: EntityRelationAndSubject[] = [
+    {
+      relation: "administrator",
+      subject: {
+        kind: "account",
+        subjectId: author.accountId,
+      },
+    },
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "administratorFromWeb",
+      },
+    },
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "viewFromWeb",
+      },
+    },
+  ];
+
   const commentEntity = await createEntity(ctx, authentication, {
     ownedById,
     properties: {},
@@ -158,20 +186,14 @@ export const createComment: ImpureGraphFunction<
         rightEntityId: parentEntityId,
         ownedById,
         owner: author.accountId,
-        relationships: createDefaultAuthorizationRelationships({
-          // the author has full access, regardless of which web the comment belongs to (ownedById)
-          actorId: author.accountId,
-        }),
+        relationships,
       },
       {
         linkEntityTypeId: systemLinkEntityTypes.authoredBy.linkEntityTypeId,
         rightEntityId: author.entity.metadata.recordId.entityId,
         ownedById,
         owner: author.accountId,
-        relationships: createDefaultAuthorizationRelationships({
-          // the author has full access, regardless of which web the comment belongs to (ownedById)
-          actorId: author.accountId,
-        }),
+        relationships,
       },
       /**
        * The creation of the `hasText` link entity has to occur last so
@@ -183,35 +205,10 @@ export const createComment: ImpureGraphFunction<
         rightEntityId: textEntity.metadata.recordId.entityId,
         ownedById,
         owner: author.accountId,
-        relationships: createDefaultAuthorizationRelationships({
-          // the author has full access, regardless of which web the comment belongs to (ownedById)
-          actorId: author.accountId,
-        }),
+        relationships,
       },
     ],
-    relationships: [
-      {
-        relation: "administrator",
-        subject: {
-          kind: "account",
-          subjectId: author.accountId,
-        },
-      },
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "administratorFromWeb",
-        },
-      },
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "viewFromWeb",
-        },
-      },
-    ],
+    relationships,
   });
 
   return getCommentFromEntity({ entity: commentEntity });
