@@ -189,10 +189,29 @@ export const createComment: ImpureGraphFunction<
         }),
       },
     ],
-    relationships: createDefaultAuthorizationRelationships({
-      // the author has full access, regardless of which web the comment belongs to (ownedById)
-      actorId: author.accountId,
-    }),
+    relationships: [
+      {
+        relation: "administrator",
+        subject: {
+          kind: "account",
+          subjectId: author.accountId,
+        },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "administratorFromWeb",
+        },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "viewFromWeb",
+        },
+      },
+    ],
   });
 
   return getCommentFromEntity({ entity: commentEntity });
