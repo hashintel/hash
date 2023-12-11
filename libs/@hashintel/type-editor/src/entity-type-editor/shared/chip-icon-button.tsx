@@ -9,6 +9,9 @@ export const ChipIconButton = styled(IconButton)(({ theme }) => ({
   "&:hover": {
     background: theme.palette.blue[30],
     color: theme.palette.blue[70],
+    cursor: "pointer",
+    svg: {
+      cursor: "pointer",
+    },
   },
-  cursor: "pointer",
 }));
