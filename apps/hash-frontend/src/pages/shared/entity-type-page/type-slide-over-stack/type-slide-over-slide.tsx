@@ -1,6 +1,7 @@
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   ArrowLeftIcon,
+  CloseIcon,
   LoadingSpinner,
   OntologyChip,
   parseUrlForOntologyChip,
@@ -29,6 +30,7 @@ const SLIDE_WIDTH = 1000;
 interface TypeSlideOverSlideProps {
   open: boolean;
   onBack?: () => void;
+  onClose: () => void;
   onNavigateToType: (url: VersionedUrl) => void;
   typeUrl: VersionedUrl;
 }
@@ -38,6 +40,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
   typeUrl,
   open,
   onBack,
+  onClose,
 }) => {
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
 
@@ -114,7 +117,21 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
           overflowY: "auto",
         }}
       >
-        <Box paddingX={4} paddingY={2}>
+        <Box
+          paddingX={4}
+          paddingY={2}
+          display="flex"
+          justifyContent="space-between"
+          flexDirection="row-reverse"
+        >
+          <Button
+            size="xs"
+            variant="tertiary_quiet"
+            onClick={onClose}
+            endIcon={<CloseIcon />}
+          >
+            Close
+          </Button>
           {onBack ? (
             <Button
               size="xs"
@@ -143,7 +160,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
             <LoadingSpinner size={24} />
           </Box>
         ) : (
-          <Box padding={8} paddingTop={onBack ? 4 : 8}>
+          <Box padding={8} paddingTop={2}>
             <EntityTypeFormProvider {...formMethods}>
               <EntityTypeContext.Provider value={remoteEntityType.schema}>
                 <EntityTypeHeader

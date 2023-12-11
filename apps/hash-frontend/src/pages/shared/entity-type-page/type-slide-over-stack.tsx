@@ -37,6 +37,7 @@ export const TypeSlideOverStack: FunctionComponent<{
           key={`${index}-${typeId}`}
           open={!animateOut}
           onBack={index > 0 ? () => setItems(items.slice(0, index)) : undefined}
+          onClose={handleClose}
           onNavigateToType={(url) => setItems([...items, url])}
           typeUrl={typeId}
         />
