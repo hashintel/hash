@@ -20,7 +20,11 @@ use crate::error::GraphError;
 pub struct SnapshotDumpArgs;
 
 #[derive(Debug, Parser)]
-pub struct SnapshotRestoreArgs;
+pub struct SnapshotRestoreArgs {
+    /// Whether to skip the validation checks.
+    #[clap(long)]
+    pub skip_validation: bool,
+}
 
 #[derive(Debug, Parser)]
 pub enum SnapshotCommand {
@@ -96,7 +100,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
 
             tracing::info!("Snapshot dumped successfully");
         }
-        SnapshotCommand::Restore(_) => {
+        SnapshotCommand::Restore(args) => {
             SnapshotStore::new(pool.acquire().await.change_context(GraphError).map_err(
                 |report| {
                     tracing::error!(error = ?report, "Failed to acquire database connection");
@@ -110,6 +114,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
                 ),
                 &mut authorization_api,
                 10_000,
+                !args.skip_validation,
             )
             .await
             .change_context(GraphError)
