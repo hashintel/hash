@@ -1,20 +1,71 @@
-import {
-  createEntity,
-  CreateEntityParams,
-} from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import { GraphApi } from "@local/hash-graph-client";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
+  systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { AccountId, EntityId, Timestamp } from "@local/hash-subgraph";
+import {
+  AccountId,
+  EntityId,
+  EntityRelationAndSubject,
+  Timestamp,
+} from "@local/hash-subgraph";
+
+export const createNotificationEntityPermissions = ({
+  machineActorId,
+}: {
+  machineActorId: AccountId;
+}): {
+  linkEntityRelationships: EntityRelationAndSubject[];
+  notificationEntityRelationships: EntityRelationAndSubject[];
+} => ({
+  linkEntityRelationships: [
+    {
+      relation: "administrator",
+      subject: {
+        kind: "account",
+        subjectId: machineActorId,
+      },
+    },
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "viewFromWeb",
+      },
+    },
+  ],
+  notificationEntityRelationships: [
+    {
+      relation: "administrator",
+      subject: {
+        kind: "account",
+        subjectId: machineActorId,
+      },
+    },
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "updateFromWeb",
+      },
+    },
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "viewFromWeb",
+      },
+    },
+  ],
+});
 
 export const createGraphChangeNotification = async (
   context: { graphApi: GraphApi },
-  authentication: { machineActorId: AccountId },
+  { machineActorId }: { machineActorId: AccountId },
   params: {
-    entityId: EntityId;
-    editionId: Timestamp;
+    changedEntityId: EntityId;
+    changedEntityEditionId: Timestamp;
     operation: "create" | "update";
     notifiedUserAccountId: AccountId;
   },
@@ -22,36 +73,41 @@ export const createGraphChangeNotification = async (
   const { graphApi } = context;
 
   const {
-    entityId,
-    editionId,
+    changedEntityId,
+    changedEntityEditionId,
     operation,
     notifiedUserAccountId,
   } = params;
 
-  const entity = await createEntity(context, authentication, {
-    ownedById,
-    properties: {},
-    entityTypeId: systemEntityTypes.mentionNotification.entityTypeId,
-    relationships: [],
-    inheritedPermissions: [
-      "administratorFromWeb",
-      "updateFromWeb",
-      "viewFromWeb",
-    ],
+  const { linkEntityRelationships, notificationEntityRelationships } =
+    createNotificationEntityPermissions({
+      machineActorId,
+    });
+
+  const notificationEntityMetadata = await graphApi
+    .createEntity(machineActorId, {
+      draft: false,
+      entityTypeId: systemEntityTypes.mentionNotification.entityTypeId,
+      ownedById: notifiedUserAccountId,
+      properties: {
+        [systemPropertyTypes.graphChangeType.propertyTypeBaseUrl]: operation,
+      },
+      relationships: notificationEntityRelationships,
+    })
+    .then((resp) => resp.data);
+
+  await graphApi.createEntity(machineActorId, {
+    draft: false,
+    entityTypeId: systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+    ownedById: notifiedUserAccountId,
+    linkData: {
+      leftEntityId: notificationEntityMetadata.recordId.entityId,
+      rightEntityId: changedEntityId,
+    },
+    properties: {
+      [systemPropertyTypes.entityEditionId.propertyTypeBaseUrl]:
+        changedEntityEditionId,
+    },
+    relationships: linkEntityRelationships,
   });
-
-  await createLinkEntity(context, authentication, {
-        ownedById,
-        leftEntityId: entity.metadata.recordId.entityId,
-        rightEntityId: triggeredByUser.entity.metadata.recordId.entityId,
-        linkEntityTypeId:
-          systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
-        relationships: [],
-        inheritedPermissions: [
-          "administratorFromWeb",
-          "updateFromWeb",
-          "viewFromWeb",
-        ],
-      }),
-
 };

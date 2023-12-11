@@ -4,11 +4,7 @@ import {
   getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  AccountId,
-  descriptionPropertyTypeUrl,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
+import { AccountId, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { NotFoundError } from "../../../../lib/error";
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
@@ -79,10 +75,6 @@ const migrate: MigrationFunction = async ({
       properties: [
         {
           propertyType: machineIdentifierPropertyType,
-          required: true,
-        },
-        {
-          propertyType: descriptionPropertyTypeUrl,
           required: true,
         },
       ],

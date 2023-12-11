@@ -104,14 +104,11 @@ export const getMachineActorId = async (
 export const createMachineActor = async (
   context: { graphApi: GraphApi },
   {
-    description,
     identifier,
     machineAccountId,
     ownedById,
     preferredName,
   }: {
-    // A description for the machine actor
-    description: string;
     // A unique identifier for the machine actor
     identifier: MachineActorIdentifier;
     // An existing accountId for the machine actor, which will also be used to authenticate the request
@@ -130,8 +127,6 @@ export const createMachineActor = async (
       properties: {
         [systemPropertyTypes.preferredName.propertyTypeBaseUrl]: preferredName,
         [systemPropertyTypes.machineIdentifier.propertyTypeBaseUrl]: identifier,
-        [blockProtocolPropertyTypes.description.propertyTypeBaseUrl]:
-          description,
       },
       relationships: [
         {
@@ -213,11 +208,10 @@ export const createWebMachineActor = async (
   );
 
   return await createMachineActor(context, {
-    description: `A system bot for the web with id ${ownedById}`,
     identifier: `system-${ownedById}`,
     machineAccountId: machineAccountId as AccountId,
     ownedById,
-    preferredName: "system",
+    preferredName: "HASH",
   });
 };
 

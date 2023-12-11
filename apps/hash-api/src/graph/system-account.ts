@@ -70,11 +70,10 @@ export const ensureHashSystemAccountExists = async (params: {
     }
 
     await createMachineActor(context, {
-      description: "The hash machine user",
       machineAccountId: systemAccountId,
       identifier: "hash",
       ownedById: foundOrg.accountGroupId as OwnedById,
-      preferredName: "hash[bot]",
+      preferredName: "HASH",
     });
   }
 };

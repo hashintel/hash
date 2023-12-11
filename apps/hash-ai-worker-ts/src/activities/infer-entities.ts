@@ -6,6 +6,7 @@ import {
   getMachineActorId,
   getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
+import { createGraphChangeNotification } from "@local/hash-backend-utils/notifications";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -18,7 +19,12 @@ import type {
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/temporal-types";
 import { InferredEntityChangeResult } from "@local/hash-isomorphic-utils/temporal-types";
-import type { AccountId, OwnedById, Subgraph } from "@local/hash-subgraph";
+import type {
+  AccountId,
+  Entity,
+  OwnedById,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
@@ -98,7 +104,7 @@ const modelToContextWindow: Record<SpecificModel, number> = {
 const firstUserMessageIndex = 1;
 
 const requestEntityInference = async (params: {
-  authentication: { actorId: AccountId };
+  authentication: { machineActorId: AccountId };
   createAs: "draft" | "live";
   completionPayload: Omit<
     OpenAI.ChatCompletionCreateParams,
@@ -109,6 +115,7 @@ const requestEntityInference = async (params: {
   graphApiClient: GraphApi;
   ownedById: OwnedById;
   results: InferredEntityChangeResult[];
+  requestingUserAccountId: AccountId;
   usage: InferenceTokenUsage[];
 }): Promise<InferEntitiesReturn> => {
   const {
@@ -119,6 +126,7 @@ const requestEntityInference = async (params: {
     iterationCount,
     graphApiClient,
     ownedById,
+    requestingUserAccountId,
     results,
   } = params;
 
@@ -137,6 +145,28 @@ const requestEntityInference = async (params: {
   }
 
   log(`Iteration ${iterationCount} begun.`);
+
+  const createInferredEntityNotification = async ({
+    entity,
+    operation,
+  }: {
+    entity: Entity;
+    operation: "create" | "update";
+  }) => {
+    const entityEditionTimestamp =
+      entity.metadata.temporalVersioning.decisionTime.start.limit;
+
+    await createGraphChangeNotification(
+      { graphApi: graphApiClient },
+      authentication,
+      {
+        changedEntityId: entity.metadata.recordId.entityId,
+        changedEntityEditionId: entityEditionTimestamp,
+        notifiedUserAccountId: requestingUserAccountId,
+        operation,
+      },
+    );
+  };
 
   const entityTypeIds = Object.keys(entityTypes);
 
@@ -424,7 +454,7 @@ const requestEntityInference = async (params: {
           try {
             const { creationSuccesses, creationFailures, updateCandidates } =
               await createEntities({
-                actorId: authentication.actorId,
+                actorId: authentication.machineActorId,
                 createAsDraft: createAs === "draft",
                 graphApiClient,
                 log,
@@ -440,6 +470,13 @@ const requestEntityInference = async (params: {
             const successes = Object.values(creationSuccesses);
             const failures = Object.values(creationFailures);
             const updates = Object.values(updateCandidates);
+
+            for (const success of successes) {
+              void createInferredEntityNotification({
+                entity: success.entity,
+                operation: "create",
+              });
+            }
 
             results.push(...successes, ...failures);
 
@@ -582,7 +619,7 @@ const requestEntityInference = async (params: {
 
           try {
             const { updateSuccesses, updateFailures } = await updateEntities({
-              actorId: authentication.actorId,
+              actorId: authentication.machineActorId,
               graphApiClient,
               log,
               ownedById,
@@ -592,6 +629,13 @@ const requestEntityInference = async (params: {
 
             const successes = Object.values(updateSuccesses);
             const failures = Object.values(updateFailures);
+
+            for (const success of successes) {
+              void createInferredEntityNotification({
+                entity: success.entity,
+                operation: "update",
+              });
+            }
 
             results.push(...successes, ...failures);
 
@@ -772,8 +816,6 @@ export const inferEntities = async ({
     );
   }
 
-  const authentication = { actorId: aiAssistantAccountId };
-
   const entityTypes: Record<
     VersionedUrl,
     { isLink: boolean; schema: DereferencedEntityType }
@@ -816,7 +858,7 @@ export const inferEntities = async ({
   const model = modelAliasToSpecificModel[modelAlias];
 
   return requestEntityInference({
-    authentication,
+    authentication: { machineActorId: aiAssistantAccountId },
     completionPayload: {
       max_tokens: maxTokens,
       messages: [
@@ -834,6 +876,7 @@ export const inferEntities = async ({
     graphApiClient,
     iterationCount: 1,
     ownedById,
+    requestingUserAccountId: userAuthenticationInfo.actorId,
     results: [],
     usage: [],
   });

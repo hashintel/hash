@@ -184,13 +184,24 @@ export const ensureSystemEntitiesExist = async (params: {
         identifier: webShortname,
       });
     } catch (error) {
+      let preferredName;
+      if (webShortname === "hash") {
+        preferredName = "HASH";
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      } else if (webShortname === "linear") {
+        preferredName = "Linear Integration";
+      } else {
+        throw new Error(
+          `Unhandled web shortname ${webShortname} requires a display name for the machine actor specified`,
+        );
+      }
+
       if (error instanceof NotFoundError) {
         await createMachineActor(context, {
-          description: `The ${webShortname} machine user`,
           machineAccountId: machineActorAccountId,
           identifier: webShortname,
           ownedById: accountGroupId as OwnedById,
-          preferredName: `${webShortname}[bot]`,
+          preferredName,
         });
 
         logger.info(
@@ -234,11 +245,10 @@ export const ensureSystemEntitiesExist = async (params: {
       }
 
       await createMachineActor(context, {
-        description: "The AI Assistant machine user",
         identifier: "ai-assistant",
         machineAccountId: aiAssistantAccountId,
         ownedById: hashAccountGroupId as OwnedById,
-        preferredName: "AI Assistant",
+        preferredName: "HASH AI",
       });
     } else {
       throw error;
