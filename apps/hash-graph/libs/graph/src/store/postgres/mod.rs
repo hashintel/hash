@@ -19,13 +19,12 @@ use authorization::{
     AuthorizationApi,
 };
 use error_stack::{Report, Result, ResultExt};
-#[cfg(hash_graph_test_environment)]
-use graph_types::knowledge::{
-    entity::{EntityEditionId, EntityId, EntityProperties, EntityTemporalMetadata},
-    link::LinkOrder,
-};
 use graph_types::{
     account::{AccountGroupId, AccountId},
+    knowledge::{
+        entity::{EntityEditionId, EntityId, EntityProperties, EntityTemporalMetadata},
+        link::LinkOrder,
+    },
     ontology::{
         CustomOntologyMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
         OntologyTypeRecordId, OntologyTypeVersion, PartialCustomOntologyMetadata,
@@ -34,13 +33,11 @@ use graph_types::{
 };
 use postgres_types::Json;
 use serde::Serialize;
-#[cfg(hash_graph_test_environment)]
-use temporal_versioning::{DecisionTime, Timestamp};
-use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
+use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
 use time::OffsetDateTime;
-#[cfg(hash_graph_test_environment)]
-use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
-use tokio_postgres::{error::SqlState, GenericClient};
+use tokio_postgres::{
+    binary_copy::BinaryCopyInWriter, error::SqlState, types::Type, GenericClient,
+};
 use type_system::{
     url::{BaseUrl, VersionedUrl},
     DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
@@ -50,10 +47,11 @@ pub use self::{
     pool::{AsClient, PostgresStorePool},
     traversal_context::TraversalContext,
 };
-#[cfg(hash_graph_test_environment)]
-use crate::store::error::DeletionError;
 use crate::store::{
-    error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
+    error::{
+        DeletionError, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
+        VersionedUrlAlreadyExists,
+    },
     postgres::ontology::{OntologyDatabaseType, OntologyId},
     AccountStore, BaseUrlAlreadyExists, ConflictBehavior, InsertionError, QueryError, StoreError,
     UpdateError,
@@ -919,8 +917,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         self.client.rollback().await.change_context(StoreError)
     }
 
-    #[doc(hidden)]
-    #[cfg(hash_graph_test_environment)]
     async fn insert_entity_ids(
         &self,
         entity_uuids: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
@@ -950,8 +946,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         writer.finish().await.change_context(InsertionError)
     }
 
-    #[doc(hidden)]
-    #[cfg(hash_graph_test_environment)]
     async fn insert_entity_is_of_type(
         &self,
         entity_edition_ids: impl IntoIterator<Item = EntityEditionId, IntoIter: Send> + Send,
@@ -981,8 +975,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         writer.finish().await.change_context(InsertionError)
     }
 
-    #[doc(hidden)]
-    #[cfg(hash_graph_test_environment)]
     async fn insert_entity_links(
         &self,
         left_right: &'static str,
@@ -1021,8 +1013,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         writer.finish().await.change_context(InsertionError)
     }
 
-    #[doc(hidden)]
-    #[cfg(hash_graph_test_environment)]
     async fn insert_entity_records(
         &self,
         entities: impl IntoIterator<
@@ -1128,8 +1118,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         Ok(entity_edition_ids)
     }
 
-    #[doc(hidden)]
-    #[cfg(hash_graph_test_environment)]
     async fn insert_entity_versions(
         &self,
         entities: impl IntoIterator<
@@ -1453,7 +1441,6 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
 
 impl<C: AsClient> PostgresStore<C> {
     #[tracing::instrument(level = "trace", skip(self, _authorization_api))]
-    #[cfg(hash_graph_test_environment)]
     pub async fn delete_accounts<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,

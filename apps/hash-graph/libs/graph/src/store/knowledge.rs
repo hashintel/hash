@@ -112,8 +112,6 @@ pub trait EntityStore: crud::Read<Entity> {
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
     /// [`EntityType`]: type_system::EntityType
-    #[doc(hidden)]
-    #[cfg(hash_graph_test_environment)]
     async fn insert_entities_batched_by_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,

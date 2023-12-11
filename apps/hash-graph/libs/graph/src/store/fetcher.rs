@@ -1117,8 +1117,6 @@ where
             .await
     }
 
-    #[doc(hidden)]
-    #[cfg(hash_graph_test_environment)]
     async fn insert_entities_batched_by_type<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
