@@ -31,7 +31,7 @@ import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PageErrorState } from "../../components/page-error-state";
 import { EntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
@@ -229,8 +229,14 @@ export const EntityTypePage = ({
   const [previewEntityTypeUrl, setPreviewEntityTypeUrl] =
     useState<VersionedUrl | null>(null);
 
+  const titleWrapperRef = useRef<HTMLDivElement>(null);
+
   const onNavigateToType = (url: VersionedUrl) => {
-    setPreviewEntityTypeUrl(url);
+    if (entityType && url === entityType.$id) {
+      titleWrapperRef.current?.scrollIntoView({ behavior: "smooth" });
+    } else {
+      setPreviewEntityTypeUrl(url);
+    }
   };
 
   if (!entityType) {
@@ -363,6 +369,7 @@ export const EntityTypePage = ({
               )}
 
               <Box
+                ref={titleWrapperRef}
                 sx={{
                   borderBottom: 1,
                   borderColor: "gray.20",
