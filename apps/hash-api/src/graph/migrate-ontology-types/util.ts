@@ -383,6 +383,13 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
         webShortname,
         relationships: [
           {
+            relation: "editor",
+            subject: {
+              kind: "account",
+              subjectId: systemAccountId,
+            },
+          },
+          {
             relation: "viewer",
             subject: {
               kind: "public",
@@ -587,6 +594,19 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
       schema: entityTypeSchema,
       webShortname,
       relationships: [
+        {
+          relation: "editor",
+          subject: {
+            kind: "account",
+            subjectId: systemAccountId,
+          },
+        },
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
         {
           relation: "instantiator",
           subject: {
