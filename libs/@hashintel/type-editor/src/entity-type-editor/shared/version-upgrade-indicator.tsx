@@ -32,13 +32,13 @@ export const VersionUpgradeIndicator = ({
         minHeight: 0,
         fontSize: 11,
         fontWeight: 700,
-        color: ({ palette }) => palette.blue[70],
+        color: ({ palette }) => palette.blue[40],
         textTransform: "uppercase",
         gap: 0.625,
         lineHeight: "18px",
         ":hover": {
           color: ({ palette }) => palette.blue[70],
-
+          background: "transparent",
           [`.${svgIconClasses.root}`]: {
             transform: "rotate(360deg)",
             transition: ({ transitions }) => transitions.create("transform"),

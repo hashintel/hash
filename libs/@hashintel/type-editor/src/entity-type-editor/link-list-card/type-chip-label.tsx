@@ -1,9 +1,9 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
+import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
-  faArrowUpRightFromSquare,
-  faAsterisk,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
+  ArrowUpRightRegularIcon,
+  FontAwesomeIcon,
+} from "@hashintel/design-system";
 import { Box, IconButton, Stack } from "@mui/material";
 import { ReactNode } from "react";
 
@@ -52,17 +52,18 @@ export const TypeChipLabel = ({
             sx={{
               padding: 0,
               background: "transparent !important",
-              color: "inherit",
+              color: ({ palette }) => palette.blue[40],
+              "&:hover": {
+                color: ({ palette }) => palette.blue[70],
+              },
               cursor: "pointer",
             }}
           >
-            <FontAwesomeIcon
-              icon={faArrowUpRightFromSquare}
-              sx={({ palette }) => ({
-                height: "11px",
-                width: "11px",
-                "&:hover": { fill: palette.primary.light },
-              })}
+            <ArrowUpRightRegularIcon
+              sx={{
+                width: 14,
+                height: 14,
+              }}
             />
           </IconButton>
         </Link>
