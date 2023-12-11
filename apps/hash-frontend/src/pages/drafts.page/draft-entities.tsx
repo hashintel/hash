@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { Skeleton } from "@hashintel/design-system";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   fullDecisionTimeAxis,
   mapGqlSubgraphFieldsFragmentToSubgraph,
@@ -158,7 +159,9 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
 
   const filteredAndSortedDraftEntitiesWithCreatedAt = useMemo(
     () =>
-      filterState && draftEntitiesWithCreatedAtAndCreators
+      filterState &&
+      draftEntitiesWithCreatedAtAndCreators &&
+      draftEntitiesSubgraph
         ? draftEntitiesWithCreatedAtAndCreators
             .filter(
               ({ entity, creator }) =>
@@ -174,12 +177,24 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
                 }),
             )
             .sort((a, b) =>
-              sortOrder === "created-at-asc"
-                ? a.createdAt.getTime() - b.createdAt.getTime()
-                : b.createdAt.getTime() - a.createdAt.getTime(),
+              a.createdAt.getTime() === b.createdAt.getTime()
+                ? generateEntityLabel(
+                    draftEntitiesSubgraph,
+                    a.entity,
+                  ).localeCompare(
+                    generateEntityLabel(draftEntitiesSubgraph, b.entity),
+                  )
+                : sortOrder === "created-at-asc"
+                  ? a.createdAt.getTime() - b.createdAt.getTime()
+                  : b.createdAt.getTime() - a.createdAt.getTime(),
             )
         : undefined,
-    [draftEntitiesWithCreatedAtAndCreators, sortOrder, filterState],
+    [
+      draftEntitiesWithCreatedAtAndCreators,
+      sortOrder,
+      filterState,
+      draftEntitiesSubgraph,
+    ],
   );
 
   return (
