@@ -4,10 +4,11 @@ import {
   ArrowUpRightRegularIcon,
   FontAwesomeIcon,
 } from "@hashintel/design-system";
-import { Box, IconButton, Stack } from "@mui/material";
+import { Box, Stack, Tooltip, Typography } from "@mui/material";
 import { ReactNode } from "react";
 
 import { useIsReadonly } from "../../shared/read-only-context";
+import { ChipIconButton } from "../shared/chip-icon-button";
 import { Link } from "../shared/link";
 import { VersionUpgradeIndicator } from "../shared/version-upgrade-indicator";
 
@@ -48,24 +49,24 @@ export const TypeChipLabel = ({
 
       {versionedUrl && (
         <Link href={versionedUrl}>
-          <IconButton
-            sx={{
-              padding: 0,
-              background: "transparent !important",
-              color: ({ palette }) => palette.blue[40],
-              "&:hover": {
-                color: ({ palette }) => palette.blue[70],
-              },
-              cursor: "pointer",
-            }}
+          <Tooltip
+            disableInteractive
+            title={
+              <Typography variant="smallTextLabels" fontWeight={500}>
+                Inspect this type
+              </Typography>
+            }
+            placement="top"
           >
-            <ArrowUpRightRegularIcon
-              sx={{
-                width: 14,
-                height: 14,
-              }}
-            />
-          </IconButton>
+            <ChipIconButton>
+              <ArrowUpRightRegularIcon
+                sx={{
+                  width: 14,
+                  height: 14,
+                }}
+              />
+            </ChipIconButton>
+          </Tooltip>
         </Link>
       )}
     </Stack>
