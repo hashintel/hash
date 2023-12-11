@@ -50,7 +50,7 @@ where
                     ModifyRelationshipOperation::Touch,
                     (
                         SettingName::Entity(EntitySetting::AdministratorFromWeb),
-                        SettingRelationAndSubject::Update {
+                        SettingRelationAndSubject::Administrator {
                             subject: SettingSubject::Public,
                             level: 0,
                         },

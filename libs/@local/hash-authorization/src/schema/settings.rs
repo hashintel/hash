@@ -43,6 +43,7 @@ impl Resource for SettingName {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SettingResourceRelation {
+    Administrator,
     Update,
     View,
 }
@@ -99,6 +100,11 @@ impl Resource for SettingSubject {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation")]
 pub enum SettingRelationAndSubject {
+    Administrator {
+        subject: SettingSubject,
+        #[serde(skip)]
+        level: u8,
+    },
     Update {
         subject: SettingSubject,
         #[serde(skip)]
@@ -122,6 +128,16 @@ impl Relationship for (SettingName, SettingRelationAndSubject) {
         Ok((
             parts.resource,
             match parts.relation.name {
+                SettingResourceRelation::Administrator => {
+                    match (parts.subject, parts.subject_set) {
+                        (SettingSubject::Public, None) => {
+                            SettingRelationAndSubject::Administrator {
+                                subject: SettingSubject::Public,
+                                level: parts.relation.level,
+                            }
+                        }
+                    }
+                }
                 SettingResourceRelation::Update => match (parts.subject, parts.subject_set) {
                     (SettingSubject::Public, None) => SettingRelationAndSubject::Update {
                         subject: SettingSubject::Public,
@@ -144,6 +160,13 @@ impl Relationship for (SettingName, SettingRelationAndSubject) {
 
     fn into_parts(self) -> RelationshipParts<Self> {
         let (relation, (subject, subject_set)) = match self.1 {
+            SettingRelationAndSubject::Administrator { subject, level } => (
+                LeveledRelation {
+                    name: SettingResourceRelation::Administrator,
+                    level,
+                },
+                (subject, None),
+            ),
             SettingRelationAndSubject::Update { subject, level } => (
                 LeveledRelation {
                     name: SettingResourceRelation::Update,
