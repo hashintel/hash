@@ -73,7 +73,6 @@ import {
   createPropertyType,
   getPropertyTypeById,
 } from "../../ontology/primitive/property-type";
-import { systemAccountId } from "../../system-account";
 import {
   getOrCreateOwningAccountGroupId,
   isSelfHostedInstance,
