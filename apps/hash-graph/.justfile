@@ -4,7 +4,6 @@ set fallback
 
 repo := `git rev-parse --show-toplevel`
 profile := env_var_or_default('PROFILE', "dev")
-test-env-flags := "--cfg hash_graph_test_environment"
 
 [private]
 default:
@@ -31,17 +30,20 @@ test-unit *arguments:
   cargo nextest run --workspace --all-features --cargo-profile {{profile}} --lib --bins {{arguments}}
   cargo test --profile {{profile}} --workspace --all-features --doc
 
-  @RUSTFLAGS="{{ test-env-flags }}" just run server --write-openapi-specs
+  @just run server --write-openapi-specs
   git --no-pager diff --exit-code --color openapi
 
 [private]
 test-integration *arguments:
   @just install-cargo-nextest
 
-  @RUSTFLAGS="{{ test-env-flags }}" cargo test --workspace --all-features --bench '*' --profile {{profile}} {{arguments}}
+  @cargo test --workspace --all-features --bench '*' --profile {{profile}} {{arguments}}
+  @just yarn graph:reset-database
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/friendship.http
+  @just yarn graph:reset-database
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/circular-links.http
+  @just yarn graph:reset-database
 
 [private]
 bench *arguments:
-  @RUSTFLAGS="{{ test-env-flags }}" just --justfile {{repo}}/.justfile bench {{arguments}}
+  @just --justfile {{repo}}/.justfile bench {{arguments}}

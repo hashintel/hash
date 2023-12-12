@@ -30,12 +30,11 @@ use type_system::{
 };
 use uuid::Uuid;
 
-#[cfg(hash_graph_test_environment)]
-use crate::store::error::DeletionError;
 use crate::{
     ontology::EntityTypeQueryPath,
     store::{
         crud::Read,
+        error::DeletionError,
         postgres::{
             ontology::{read::OntologyTypeTraversalData, OntologyId},
             query::ReferenceTable,
@@ -247,7 +246,6 @@ impl<C: AsClient> PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    #[cfg(hash_graph_test_environment)]
     pub async fn delete_entity_types(&mut self) -> Result<(), DeletionError> {
         let transaction = self.transaction().await.change_context(DeletionError)?;
 
