@@ -1,0 +1,24 @@
+diff --git a/node_modules/@blockprotocol/graph/dist/cjs/codegen.cjs b/node_modules/@blockprotocol/graph/dist/cjs/codegen.cjs
+index 8618e27..050e7ca 100644
+--- a/node_modules/@blockprotocol/graph/dist/cjs/codegen.cjs
++++ b/node_modules/@blockprotocol/graph/dist/cjs/codegen.cjs
+@@ -4,7 +4,7 @@ var path = require('node:path');
+ var slim = require('@blockprotocol/type-system/slim');
+ var jsonSchemaToTypescript = require('json-schema-to-typescript');
+ var fs = require('node:fs/promises');
+-var fetch = require('node-fetch');
++// PATCH: rely on native fetch
+ var ts = require('typescript');
+ 
+ function _interopNamespaceDefault(e) {
+@@ -337,6 +337,10 @@ class TypeDependencyMap {
+         const flattenedDependencies = new Set();
+         const dependencyQueue = [this.dependencyMap[typeId]] ?? [];
+         while (dependencyQueue.length > 0) {
++            // PATCH REASON: The dependencyQueue can have an undefined value for entity types with no properties
++            if (!dependencyQueue[0]) {
++                break;
++            }
+             const dependencies = mustBeDefined(dependencyQueue.pop());
+             if (flattenedDependencies.has(dependencies.typeId)) {
+                 continue;
