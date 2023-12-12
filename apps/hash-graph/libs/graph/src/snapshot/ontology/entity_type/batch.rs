@@ -190,7 +190,10 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
     }
 
     #[expect(clippy::too_many_lines, reason = "TODO: Move out common parts")]
-    async fn commit(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+    async fn commit(
+        postgres_client: &PostgresStore<C>,
+        _validation: bool,
+    ) -> Result<(), InsertionError> {
         // Insert types which don't need updating so they are available in the graph for the resolve
         // step below.
         postgres_client

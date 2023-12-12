@@ -67,7 +67,10 @@ impl<C: AsClient> WriteBatch<C> for WebBatch {
         Ok(())
     }
 
-    async fn commit(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+    async fn commit(
+        postgres_client: &PostgresStore<C>,
+        _validation: bool,
+    ) -> Result<(), InsertionError> {
         postgres_client
             .as_client()
             .client()

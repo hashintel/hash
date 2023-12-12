@@ -163,7 +163,10 @@ trait WriteBatch<C> {
         postgres_client: &PostgresStore<C>,
         authorization_api: &mut (impl ZanzibarBackend + Send),
     ) -> Result<(), InsertionError>;
-    async fn commit(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError>;
+    async fn commit(
+        postgres_client: &PostgresStore<C>,
+        validation: bool,
+    ) -> Result<(), InsertionError>;
 }
 
 pub struct SnapshotStore<C>(PostgresStore<C>);
@@ -508,6 +511,7 @@ impl<C: AsClient> SnapshotStore<C> {
         snapshot: impl Stream<Item = Result<SnapshotEntry, impl Context>> + Send + 'static,
         authorization_api: &mut (impl ZanzibarBackend + Send),
         chunk_size: usize,
+        validation: bool,
     ) -> Result<(), SnapshotRestoreError> {
         tracing::info!("snapshot restore started");
 
@@ -553,7 +557,7 @@ impl<C: AsClient> SnapshotStore<C> {
             .await
             .change_context(SnapshotRestoreError::Read)??;
 
-        SnapshotRecordBatch::commit(&client)
+        SnapshotRecordBatch::commit(&client, validation)
             .await
             .change_context(SnapshotRestoreError::Write)
             .map_err(|report| {
