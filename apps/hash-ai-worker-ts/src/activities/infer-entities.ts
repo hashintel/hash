@@ -782,7 +782,7 @@ export const inferEntities = async ({
     return {
       code: StatusCode.Internal,
       contents: [],
-      message: "Could not retrieve ai-assistant entity",
+      message: "Could not retrieve hash-ai entity",
     };
   }
 
