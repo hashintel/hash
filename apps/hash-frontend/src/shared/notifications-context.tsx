@@ -219,7 +219,7 @@ export const NotificationsContextProvider: FunctionComponent<
           hasRightEntity: { outgoing: 1, incoming: 0 },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
+        includeDrafts: true,
       },
     },
     skip: !authenticatedUser,
@@ -273,6 +273,8 @@ export const NotificationsContextProvider: FunctionComponent<
             outgoingLinksSubgraph,
             entityId,
           );
+
+          console.log({ outgoingLinksSubgraph, entity });
 
           if (
             entityTypeId === systemEntityTypes.mentionNotification.entityTypeId
