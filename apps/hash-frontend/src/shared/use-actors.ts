@@ -49,7 +49,10 @@ export const useActors = (params: {
           any: (params.accountIds ?? []).map((accountId) => ({
             all: [
               {
-                equal: [{ path: ["uuid"] }, { parameter: accountId }],
+                equal: [
+                  { path: ["recordCreatedById"] },
+                  { parameter: accountId },
+                ],
               },
               generateVersionedUrlMatchingFilter(
                 systemEntityTypes.machine.entityTypeId,

@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import { getRoots } from "@blockprotocol/graph/temporal/stdlib";
 import { Skeleton } from "@hashintel/design-system";
 import {
   fullDecisionTimeAxis,
@@ -108,7 +109,13 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
   );
 
   const accountIds = useMemo(() => {
-    if (!draftEntities || !draftEntityHistoriesSubgraph) {
+    if (
+      !draftEntities ||
+      !draftEntityHistoriesSubgraph ||
+      // We may have a stale subgraph that doesn't contain the revisions for all of the draft entities yet
+      getRoots(draftEntityHistoriesSubgraph as any).length !==
+        draftEntities.length
+    ) {
       return undefined;
     }
 

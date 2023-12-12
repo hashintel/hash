@@ -1,12 +1,12 @@
 import { Chip } from "@hashintel/design-system";
-import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import { Entity } from "@local/hash-subgraph";
 import { Box, chipClasses, styled, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { FunctionComponent, useMemo } from "react";
 
-import { useUsers } from "../../../components/hooks/use-users";
 import { ClockRegularIcon } from "../../../shared/icons/clock-regular-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";
+import { useActors } from "../../../shared/use-actors";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 
 const DraftEntityChip = styled(Chip)(({ theme }) => ({
@@ -38,17 +38,17 @@ export const DraftEntityProvenance: FunctionComponent<{
   createdAt: Date;
 }> = ({ entity, createdAt }) => {
   const { authenticatedUser } = useAuthenticatedUser();
-  const { users } = useUsers();
+
+  const recordCreatedById = entity.metadata.provenance.recordCreatedById;
+
+  const { actors } = useActors({
+    accountIds: [recordCreatedById],
+  });
 
   /** @todo: account for machine users */
   const createdBy = useMemo(
-    () =>
-      users?.find(
-        ({ accountId }) =>
-          accountId ===
-          extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
-      ),
-    [users, entity],
+    () => actors?.find(({ accountId }) => accountId === recordCreatedById),
+    [actors, recordCreatedById],
   );
 
   const formattedCreatedAt = useMemo(
@@ -63,9 +63,13 @@ export const DraftEntityProvenance: FunctionComponent<{
         sx={{ marginRight: 1 }}
         icon={<UserIcon />}
         label={
-          createdBy?.accountId === authenticatedUser.accountId
-            ? "Me"
-            : createdBy?.preferredName
+          createdBy
+            ? createdBy.accountId === authenticatedUser.accountId
+              ? "Me"
+              : "displayName" in createdBy
+                ? createdBy.displayName
+                : createdBy.preferredName
+            : ""
         }
       />
       <DraftEntityTypography>at</DraftEntityTypography>

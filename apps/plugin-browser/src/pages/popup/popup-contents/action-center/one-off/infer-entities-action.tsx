@@ -129,10 +129,9 @@ export const InferEntitiesAction = ({
               borderStyle: "solid",
               borderWidth: 1,
               ...borderColors,
-              mb: 1.5,
             }}
           >
-            <Typography sx={{ fontSize: 14, fontWeight: 600, mb: 1 }}>
+            <Typography sx={{ fontSize: 14, fontWeight: 600, pb: 1 }}>
               Choose inference engine to use
             </Typography>
             <ModelSelector
@@ -145,7 +144,7 @@ export const InferEntitiesAction = ({
               }
             />
 
-            <Typography sx={{ fontSize: 14, fontWeight: 600, mb: 1, mt: 2 }}>
+            <Typography sx={{ fontSize: 14, fontWeight: 600, pb: 1, pt: 2 }}>
               When entities are found...
             </Typography>
             <SelectWebTarget
@@ -167,7 +166,7 @@ export const InferEntitiesAction = ({
             />
           </Box>
         </Collapse>
-        <Stack alignItems="center" direction="row">
+        <Stack alignItems="center" direction="row" mt={1.5}>
           <Button
             disabled={pendingInferenceRequest || targetEntityTypeIds.length < 1}
             size="small"

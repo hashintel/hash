@@ -222,7 +222,7 @@ const options = {
       chunks: ["popup"],
       cache: false,
     }),
-    env.SENTRY_AUTH_TOKEN && env.SENTRY_DSN
+    env.SENTRY_AUTH_TOKEN && env.SENTRY_DSN && !isDevelopment
       ? sentryWebpackPlugin({
           authToken: env.SENTRY_AUTH_TOKEN,
           org: "hashintel",

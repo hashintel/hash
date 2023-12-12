@@ -101,19 +101,19 @@ const GraphChangeNotificationContent = ({
   handleNotificationClick: () => void;
   targetHref?: string;
 }) => {
-  const { entityLabel, entity, operation } = notification;
+  const { occurredInEntityLabel, occurredInEntity, operation } = notification;
 
   return (
     <Typography component="span">
-      A {entity.metadata.draft ? "draft" : "live"} entity,{" "}
+      HASH AI {operation}d{" "}
       <Link
         href={targetHref ?? ""}
         noLinkStyle
         onClick={handleNotificationClick}
       >
-        {entityLabel}
-      </Link>
-      , was {operation}d
+        {occurredInEntityLabel}
+      </Link>{" "}
+      {occurredInEntity.metadata.draft ? "as draft" : ""}
     </Typography>
   );
 };
@@ -182,7 +182,9 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
     }
 
     if (kind === "graph-change") {
-      return `/${entityOwningShortname}/entities/${occurredInEntity.metadata.recordId.entityId}`;
+      return `/@${entityOwningShortname}/entities/${extractEntityUuidFromEntityId(
+        occurredInEntity.metadata.recordId.entityId,
+      )}`;
     }
 
     const { occurredInBlock } = notification;
