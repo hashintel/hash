@@ -371,7 +371,11 @@ export const DraftEntitiesFilters: FunctionComponent<{
           const label =
             authenticatedUser.accountId === source.accountId
               ? "Me"
-              : source.preferredName ?? "Unknown";
+              : "preferredName" in source
+                ? source.preferredName
+                : "displayName" in source
+                  ? source.displayName
+                  : "Unknown";
           return (
             <CheckboxFilter
               key={source.accountId}
