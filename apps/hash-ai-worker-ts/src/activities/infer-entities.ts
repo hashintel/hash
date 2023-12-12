@@ -776,7 +776,7 @@ export const inferEntities = async ({
     aiAssistantAccountId = await getMachineActorId(
       { graphApi: graphApiClient },
       userAuthenticationInfo,
-      { identifier: "ai-assistant" },
+      { identifier: "hash-ai" },
     );
   } catch {
     return {

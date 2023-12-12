@@ -28,7 +28,7 @@ export type WebMachineActorIdentifier = `system-${OwnedById}`;
 
 const globalMachineActorIdentifiers = [
   ...systemTypeWebShortnames,
-  "ai-assistant",
+  "hash-ai",
 ] as const;
 
 export type GlobalMachineActorIdentifier =

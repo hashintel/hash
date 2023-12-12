@@ -144,7 +144,7 @@ export const getOrCreateOwningAccountGroupId = async (
  * - system web (create an Organization associated with it)
  * - machine actor that creates the web (create a Machine associated with it)
  *
- * Also creates other required system entities, such as the hashInstance entity and AI Assistant.
+ * Also creates other required system entities, such as the hashInstance entity and HASH AI Assistant.
  */
 export const ensureSystemEntitiesExist = async (params: {
   context: ImpureGraphContext;
@@ -243,7 +243,7 @@ export const ensureSystemEntitiesExist = async (params: {
    */
   try {
     await getMachineActorId(context, authentication, {
-      identifier: "ai-assistant",
+      identifier: "hash-ai",
     });
   } catch (error) {
     if (error instanceof NotFoundError) {
@@ -256,40 +256,12 @@ export const ensureSystemEntitiesExist = async (params: {
       const hashAccountGroupId = owningWebs.hash.accountGroupId;
       if (!hashAccountGroupId) {
         throw new Error(
-          `Somehow reached the point of creating the AI Assistant machine actor without a hash accountGroupId`,
+          `Somehow reached the point of creating the HASH AI machine actor without a hash accountGroupId`,
         );
       }
 
-      await context.graphApi.modifyWebAuthorizationRelationships(
-        systemAccountId,
-        [
-          {
-            operation: "create",
-            resource: hashAccountGroupId,
-            relationAndSubject: {
-              subject: {
-                kind: "account",
-                subjectId: aiAssistantAccountId,
-              },
-              relation: "entityCreator",
-            },
-          },
-          {
-            operation: "create",
-            resource: hashAccountGroupId,
-            relationAndSubject: {
-              subject: {
-                kind: "account",
-                subjectId: aiAssistantAccountId,
-              },
-              relation: "entityEditor",
-            },
-          },
-        ],
-      );
-
       await createMachineActorEntity(context, {
-        identifier: "ai-assistant",
+        identifier: "hash-ai",
         machineAccountId: aiAssistantAccountId,
         ownedById: hashAccountGroupId as OwnedById,
         displayName: "HASH AI",
@@ -297,7 +269,7 @@ export const ensureSystemEntitiesExist = async (params: {
         systemAccountId,
       });
 
-      logger.info("Created HASH AI Assistant entity");
+      logger.info("Created HASH AI entity");
     } else {
       throw error;
     }
