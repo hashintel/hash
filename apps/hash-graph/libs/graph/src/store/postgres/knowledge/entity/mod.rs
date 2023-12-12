@@ -30,19 +30,16 @@ use graph_types::{
 use hash_status::StatusCode;
 use postgres_types::Json;
 use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp};
-#[cfg(hash_graph_test_environment)]
 use tokio_postgres::GenericClient;
 use type_system::{url::VersionedUrl, EntityType};
 use uuid::Uuid;
 use validation::{Validate, ValidationProfile};
 
-#[cfg(hash_graph_test_environment)]
-use crate::store::error::DeletionError;
 use crate::{
     ontology::EntityTypeQueryPath,
     store::{
         crud::Read,
-        error::{EntityDoesNotExist, RaceConditionOnUpdate},
+        error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
         knowledge::{EntityValidationType, ValidateEntityError},
         postgres::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
@@ -268,7 +265,6 @@ impl<C: AsClient> PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    #[cfg(hash_graph_test_environment)]
     pub async fn delete_entities(&mut self) -> Result<(), DeletionError> {
         self.as_client()
             .client()
@@ -671,8 +667,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .attach(StatusCode::InvalidArgument)
     }
 
-    #[doc(hidden)]
-    #[cfg(hash_graph_test_environment)]
     #[expect(clippy::too_many_lines)]
     async fn insert_entities_batched_by_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
@@ -1050,50 +1044,27 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         } else {
             ValidationProfile::Full
         };
-        // TODO: Always validate source and target entities when updating a link, currently we only
-        //       do that when the draft state changes.
-        //   see https://linear.app/hash/issue/H-1413
-        if draft == was_draft_before {
-            // If the draft state does not change we only validate the properties
-            properties
-                .validate(
-                    &closed_schema,
-                    validation_profile,
-                    &StoreProvider {
-                        store: &transaction,
-                        cache: StoreCache::default(),
-                        authorization: Some((
-                            authorization_api,
-                            actor_id,
-                            Consistency::FullyConsistent,
-                        )),
-                    },
-                )
-                .await
-                .change_context(UpdateError)
-                .attach(StatusCode::InvalidArgument)?;
-        } else {
-            transaction
-                .validate_entity(
-                    actor_id,
-                    authorization_api,
-                    Consistency::FullyConsistent,
-                    EntityValidationType::Schema(&closed_schema),
-                    &properties,
-                    previous_entity
-                        .link_data
-                        .map(|link_data| LinkData {
-                            left_entity_id: link_data.left_entity_id,
-                            right_entity_id: link_data.right_entity_id,
-                            order: link_order,
-                        })
-                        .as_ref(),
-                    validation_profile,
-                )
-                .await
-                .change_context(UpdateError)
-                .attach(StatusCode::InvalidArgument)?;
-        }
+
+        transaction
+            .validate_entity(
+                actor_id,
+                authorization_api,
+                Consistency::FullyConsistent,
+                EntityValidationType::Schema(&closed_schema),
+                &properties,
+                previous_entity
+                    .link_data
+                    .map(|link_data| LinkData {
+                        left_entity_id: link_data.left_entity_id,
+                        right_entity_id: link_data.right_entity_id,
+                        order: link_order,
+                    })
+                    .as_ref(),
+                validation_profile,
+            )
+            .await
+            .change_context(UpdateError)
+            .attach(StatusCode::InvalidArgument)?;
 
         transaction.commit().await.change_context(UpdateError)?;
 

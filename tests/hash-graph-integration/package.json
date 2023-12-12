@@ -5,7 +5,7 @@
   "scripts": {
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
-    "test:integration": "RUSTFLAGS='--cfg hash_graph_test_environment' cargo nextest run --all-features --all-targets"
+    "test:integration": "cargo nextest run --all-features --all-targets"
   },
   "dependencies": {
     "@apps/hash-graph": "0.0.0-private",

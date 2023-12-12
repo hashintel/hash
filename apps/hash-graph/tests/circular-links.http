@@ -44,8 +44,20 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "type": "object",
     "title": "Link",
     "properties": {}
-  }
+  },
+  "relationships": [{
+    "relation": "viewer",
+    "subject": {
+      "kind": "public"
+    }
+  }]
 }
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
 
 ### Insert link entity type
 POST http://127.0.0.1:4000/entity-types

@@ -61,14 +61,17 @@ impl<C: AsClient> WriteBatch<C> for SnapshotRecordBatch {
         }
     }
 
-    async fn commit(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
-        AccountRowBatch::commit(postgres_client).await?;
-        WebBatch::commit(postgres_client).await?;
-        OntologyTypeMetadataRowBatch::commit(postgres_client).await?;
-        DataTypeRowBatch::commit(postgres_client).await?;
-        PropertyTypeRowBatch::commit(postgres_client).await?;
-        EntityTypeRowBatch::commit(postgres_client).await?;
-        EntityRowBatch::commit(postgres_client).await?;
+    async fn commit(
+        postgres_client: &PostgresStore<C>,
+        validation: bool,
+    ) -> Result<(), InsertionError> {
+        AccountRowBatch::commit(postgres_client, validation).await?;
+        WebBatch::commit(postgres_client, validation).await?;
+        OntologyTypeMetadataRowBatch::commit(postgres_client, validation).await?;
+        DataTypeRowBatch::commit(postgres_client, validation).await?;
+        PropertyTypeRowBatch::commit(postgres_client, validation).await?;
+        EntityTypeRowBatch::commit(postgres_client, validation).await?;
+        EntityRowBatch::commit(postgres_client, validation).await?;
         Ok(())
     }
 }

@@ -1,0 +1,50 @@
+
+### Delete entities
+DELETE http://127.0.0.1:4001/entities
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.global.set("account_id", response.body.toString());
+    });
+%}
+
+### Delete entity types
+DELETE http://127.0.0.1:4001/entity-types
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.global.set("account_id", response.body.toString());
+    });
+%}
+
+### Delete property types
+DELETE http://127.0.0.1:4001/property-types
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.global.set("account_id", response.body.toString());
+    });
+%}
+
+### Delete data types
+DELETE http://127.0.0.1:4001/data-types
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.global.set("account_id", response.body.toString());
+    });
+%}
+
+### Delete data types
+DELETE http://127.0.0.1:4001/accounts
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.global.set("account_id", response.body.toString());
+    });
+%}

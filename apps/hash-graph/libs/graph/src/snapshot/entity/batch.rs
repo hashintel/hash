@@ -172,7 +172,10 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
         Ok(())
     }
 
-    async fn commit(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+    async fn commit(
+        postgres_client: &PostgresStore<C>,
+        validation: bool,
+    ) -> Result<(), InsertionError> {
         postgres_client
             .as_client()
             .client()
@@ -223,46 +226,48 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             .await
             .change_context(InsertionError)?;
 
-        let entities = Read::<Entity>::read_vec(
-            postgres_client,
-            &Filter::All(Vec::new()),
-            None,
-            None,
-            None,
-            true,
-        )
-        .await
-        .change_context(InsertionError)?;
-
-        let schemas = postgres_client
-            .read_closed_schemas(&Filter::All(Vec::new()), None)
-            .await
-            .change_context(InsertionError)?
-            .try_collect::<HashMap<_, _>>()
+        if validation {
+            let entities = Read::<Entity>::read_vec(
+                postgres_client,
+                &Filter::All(Vec::new()),
+                None,
+                None,
+                None,
+                true,
+            )
             .await
             .change_context(InsertionError)?;
 
-        let validator_provider = StoreProvider::<_, NoAuthorization> {
-            store: postgres_client,
-            cache: StoreCache::default(),
-            authorization: None,
-        };
-
-        for entity in entities {
-            let entity_type_id = EntityTypeId::from_url(entity.metadata.entity_type_id());
-            let schema = schemas.get(&entity_type_id).ok_or(InsertionError)?;
-            entity
-                .validate(
-                    schema,
-                    if entity.metadata.draft() {
-                        ValidationProfile::Draft
-                    } else {
-                        ValidationProfile::Full
-                    },
-                    &validator_provider,
-                )
+            let schemas = postgres_client
+                .read_closed_schemas(&Filter::All(Vec::new()), None)
+                .await
+                .change_context(InsertionError)?
+                .try_collect::<HashMap<_, _>>()
                 .await
                 .change_context(InsertionError)?;
+
+            let validator_provider = StoreProvider::<_, NoAuthorization> {
+                store: postgres_client,
+                cache: StoreCache::default(),
+                authorization: None,
+            };
+
+            for entity in entities {
+                let entity_type_id = EntityTypeId::from_url(entity.metadata.entity_type_id());
+                let schema = schemas.get(&entity_type_id).ok_or(InsertionError)?;
+                entity
+                    .validate(
+                        schema,
+                        if entity.metadata.draft() {
+                            ValidationProfile::Draft
+                        } else {
+                            ValidationProfile::Full
+                        },
+                        &validator_provider,
+                    )
+                    .await
+                    .change_context(InsertionError)?;
+            }
         }
 
         Ok(())

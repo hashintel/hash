@@ -119,6 +119,7 @@ where
             ),
             &mut authorization_api,
             10_000,
+            true,
         )
         .await
         .map_err(|report| {
