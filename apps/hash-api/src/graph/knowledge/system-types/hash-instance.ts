@@ -216,11 +216,24 @@ export const removeHashInstanceAdmin: ImpureGraphFunction<
 > = async (ctx, authentication, params): Promise<void> => {
   const hashInstance = await getHashInstance(ctx, authentication, {});
 
+  const entityPermissions = await ctx.graphApi
+    .getEntityAuthorizationRelationships(
+      authentication.actorId,
+      hashInstance.entity.metadata.recordId.entityId,
+    )
+    .then((resp) => resp.data);
+
+  const entityAdmin = entityPermissions.find(
+    (permission) => permission.relation === "administrator",
+  )?.subject;
+
+  if (!entityAdmin || !("subjectId" in entityAdmin)) {
+    throw new Error("No administrator role over HASH Instance entity.");
+  }
+
   await ctx.graphApi.removeAccountGroupMember(
     authentication.actorId,
-    extractOwnedByIdFromEntityId(
-      hashInstance.entity.metadata.recordId.entityId,
-    ),
+    entityAdmin.subjectId,
     params.user.accountId,
   );
 };
