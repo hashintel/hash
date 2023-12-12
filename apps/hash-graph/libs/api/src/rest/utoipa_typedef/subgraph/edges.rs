@@ -3,6 +3,13 @@ use std::{
     hash::Hash,
 };
 
+use graph::subgraph::{
+    edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, OutwardEdge, SharedEdgeKind},
+    identifier::{
+        DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, PropertyTypeVertexId,
+    },
+    temporal_axes::VariableAxis,
+};
 use graph_types::{knowledge::entity::EntityId, ontology::OntologyTypeVersion};
 use serde::Serialize;
 use temporal_versioning::Timestamp;
@@ -12,16 +19,7 @@ use utoipa::{
     ToSchema,
 };
 
-use crate::{
-    api::rest::utoipa_typedef::subgraph::vertices::OntologyTypeVertexId,
-    subgraph::{
-        edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, OutwardEdge, SharedEdgeKind},
-        identifier::{
-            DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, PropertyTypeVertexId,
-        },
-        temporal_axes::VariableAxis,
-    },
-};
+use super::vertices::OntologyTypeVertexId;
 
 #[derive(Debug, Hash, PartialEq, Eq, Serialize)]
 #[serde(untagged)]
@@ -177,8 +175,8 @@ fn collect_merge<T: Hash + Eq, U: Ord, V>(
     accumulator
 }
 
-impl From<crate::subgraph::edges::Edges> for Edges {
-    fn from(edges: crate::subgraph::edges::Edges) -> Self {
+impl From<graph::subgraph::edges::Edges> for Edges {
+    fn from(edges: graph::subgraph::edges::Edges) -> Self {
         Self {
             ontology: OntologyRootedEdges(
                 edges
@@ -241,6 +239,10 @@ impl ToSchema<'_> for Edges {
 
 #[cfg(test)]
 mod tests {
+    use graph::subgraph::{
+        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
+        identifier::{EntityIdWithInterval, EntityTypeVertexId, EntityVertexId},
+    };
     use graph_types::{
         knowledge::entity::{EntityId, EntityUuid},
         ontology::OntologyTypeVersion,
@@ -252,13 +254,7 @@ mod tests {
     use type_system::url::BaseUrl;
     use uuid::Uuid;
 
-    use crate::{
-        api::rest::utoipa_typedef::subgraph::Edges,
-        subgraph::{
-            edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
-            identifier::{EntityIdWithInterval, EntityTypeVertexId, EntityVertexId},
-        },
-    };
+    use crate::rest::utoipa_typedef::subgraph::Edges;
 
     #[test]
     fn merge_ontology() {
@@ -270,7 +266,7 @@ mod tests {
             revision_id: Timestamp::now(),
         };
 
-        let mut edges = crate::subgraph::edges::Edges::default();
+        let mut edges = graph::subgraph::edges::Edges::default();
 
         // the data used does not matter, what only matters is that we actually merged the data
         edges.entity_to_entity.insert(

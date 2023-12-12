@@ -21,6 +21,20 @@ use axum::{
     Extension, Router,
 };
 use error_stack::Report;
+use graph::{
+    ontology::{
+        domain_validator::{DomainValidator, ValidateOntologyType},
+        patch_id_and_parse, EntityTypeQueryToken,
+    },
+    store::{
+        error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
+        ConflictBehavior, EntityTypeStore, StorePool,
+    },
+    subgraph::{
+        identifier::EntityTypeVertexId,
+        query::{EntityTypeStructuralQuery, StructuralQuery},
+    },
+};
 use graph_types::{
     ontology::{
         EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
@@ -39,27 +53,13 @@ use type_system::{
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
-    api::{
-        error::{ErrorInfo, Status, StatusPayloads},
-        rest::{
-            api_resource::RoutedResource,
-            json::Json,
-            status::{report_to_response, status_to_response},
-            utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
-            AuthenticatedUserHeader, Cursor, Pagination, PermissionResponse, RestApiStore,
-        },
-    },
-    ontology::{
-        domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, EntityTypeQueryToken,
-    },
-    store::{
-        error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
-        ConflictBehavior, EntityTypeStore, StorePool,
-    },
-    subgraph::{
-        identifier::EntityTypeVertexId,
-        query::{EntityTypeStructuralQuery, StructuralQuery},
+    error::{ErrorInfo, Status, StatusPayloads},
+    rest::{
+        api_resource::RoutedResource,
+        json::Json,
+        status::{report_to_response, status_to_response},
+        utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
+        AuthenticatedUserHeader, Cursor, Pagination, PermissionResponse, RestApiStore,
     },
 };
 

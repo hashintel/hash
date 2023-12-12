@@ -16,7 +16,7 @@ use hash_status::StatusCode;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::error::Category;
 
-use crate::api::{
+use crate::{
     error::{ErrorInfo, Status, StatusPayloads},
     rest::status::status_to_response,
 };

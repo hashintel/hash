@@ -1,5 +1,6 @@
 use std::collections::{hash_map::Entry, BTreeMap, HashMap};
 
+use graph::subgraph::temporal_axes::VariableAxis;
 use graph_types::{knowledge::entity::EntityId, ontology::OntologyTypeVersion};
 use serde::Serialize;
 use temporal_versioning::Timestamp;
@@ -10,7 +11,6 @@ use utoipa::{
 };
 
 pub use self::vertex::*;
-use crate::subgraph::temporal_axes::VariableAxis;
 
 pub mod vertex;
 
@@ -33,8 +33,8 @@ pub struct Vertices {
     knowledge_graph: KnowledgeGraphVertices,
 }
 
-impl From<crate::subgraph::vertices::Vertices> for Vertices {
-    fn from(vertices: crate::subgraph::vertices::Vertices) -> Self {
+impl From<graph::subgraph::vertices::Vertices> for Vertices {
+    fn from(vertices: graph::subgraph::vertices::Vertices) -> Self {
         let data_types = vertices
             .data_types
             .into_iter()

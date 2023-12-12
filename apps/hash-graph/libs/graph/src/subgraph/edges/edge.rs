@@ -46,12 +46,13 @@ impl EdgeDirection {
 
 // Utoipa doesn't seem to be able to generate sensible interfaces for this, it gets confused by
 // the generic
+// TODO: move to utoipa, this has nothing to do with the graph
 impl<'s, K, E> OutwardEdge<K, E>
 where
     K: ToSchema<'s>,
     E: ToSchema<'s>,
 {
-    pub(crate) fn generate_schema(title: impl Into<String>) -> openapi::RefOr<openapi::Schema> {
+    pub fn generate_schema(title: impl Into<String>) -> openapi::RefOr<openapi::Schema> {
         openapi::ObjectBuilder::new()
             .title(Some(title))
             .property("kind", openapi::Ref::from_schema_name(K::schema().0))

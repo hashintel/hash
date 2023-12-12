@@ -9,6 +9,7 @@ description = "The entity-graph query-layer for the HASH datastore"
 
 [dependencies]
 graph = { workspace = true, features = ["clap"] }
+graph-api = { workspace = true }
 graph-types = { workspace = true }
 validation = { workspace = true }
 type-fetcher = { workspace = true }

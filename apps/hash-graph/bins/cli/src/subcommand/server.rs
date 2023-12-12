@@ -12,11 +12,11 @@ use authorization::{
 use clap::Parser;
 use error_stack::{Report, Result, ResultExt};
 use graph::{
-    api::rest::{rest_api_router, OpenApiDocumentation, RestRouterDependencies},
     logging::{init_logger, LoggingArgs},
     ontology::domain_validator::DomainValidator,
     store::{DatabaseConnectionInfo, FetchingPool, PostgresStorePool, StorePool},
 };
+use graph_api::rest::{rest_api_router, OpenApiDocumentation, RestRouterDependencies};
 use regex::Regex;
 use reqwest::Client;
 use tokio::{net::TcpListener, time::timeout};

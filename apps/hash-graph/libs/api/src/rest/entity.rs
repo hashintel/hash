@@ -21,6 +21,17 @@ use axum::{
     Extension, Router,
 };
 use error_stack::{Report, ResultExt};
+use graph::{
+    knowledge::EntityQueryToken,
+    store::{
+        error::{EntityDoesNotExist, RaceConditionOnUpdate},
+        AccountStore, EntityStore, EntityValidationType, StorePool,
+    },
+    subgraph::{
+        identifier::EntityVertexId,
+        query::{EntityStructuralQuery, StructuralQuery},
+    },
+};
 use graph_types::{
     knowledge::{
         entity::{
@@ -36,21 +47,10 @@ use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
 use validation::ValidationProfile;
 
-use crate::{
-    api::rest::{
-        api_resource::RoutedResource, json::Json, status::report_to_response,
-        utoipa_typedef::subgraph::Subgraph, AuthenticatedUserHeader, Cursor, Pagination,
-        PermissionResponse,
-    },
-    knowledge::EntityQueryToken,
-    store::{
-        error::{EntityDoesNotExist, RaceConditionOnUpdate},
-        AccountStore, EntityStore, EntityValidationType, StorePool,
-    },
-    subgraph::{
-        identifier::EntityVertexId,
-        query::{EntityStructuralQuery, StructuralQuery},
-    },
+use crate::rest::{
+    api_resource::RoutedResource, json::Json, status::report_to_response,
+    utoipa_typedef::subgraph::Subgraph, AuthenticatedUserHeader, Cursor, Pagination,
+    PermissionResponse,
 };
 
 #[derive(OpenApi)]

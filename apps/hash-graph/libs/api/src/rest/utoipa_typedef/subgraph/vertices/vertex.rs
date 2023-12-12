@@ -1,3 +1,4 @@
+use graph::subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId};
 use graph_types::{
     knowledge::entity::Entity,
     ontology::{
@@ -7,8 +8,6 @@ use graph_types::{
 use serde::Serialize;
 use type_system::url::BaseUrl;
 use utoipa::ToSchema;
-
-use crate::subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(untagged)]

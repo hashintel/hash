@@ -21,6 +21,20 @@ use axum::{
     Extension, Router,
 };
 use error_stack::Report;
+use graph::{
+    ontology::{
+        domain_validator::{DomainValidator, ValidateOntologyType},
+        patch_id_and_parse, PropertyTypeQueryToken,
+    },
+    store::{
+        error::VersionedUrlAlreadyExists, BaseUrlAlreadyExists, ConflictBehavior,
+        OntologyVersionDoesNotExist, PropertyTypeStore, StorePool,
+    },
+    subgraph::{
+        identifier::PropertyTypeVertexId,
+        query::{PropertyTypeStructuralQuery, StructuralQuery},
+    },
+};
 use graph_types::{
     ontology::{
         OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,
@@ -36,25 +50,11 @@ use type_system::{url::VersionedUrl, PropertyType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
-use crate::{
-    api::rest::{
-        json::Json,
-        status::{report_to_response, status_to_response},
-        utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfPropertyType},
-        AuthenticatedUserHeader, Cursor, Pagination, PermissionResponse, RestApiStore,
-    },
-    ontology::{
-        domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, PropertyTypeQueryToken,
-    },
-    store::{
-        error::VersionedUrlAlreadyExists, BaseUrlAlreadyExists, ConflictBehavior,
-        OntologyVersionDoesNotExist, PropertyTypeStore, StorePool,
-    },
-    subgraph::{
-        identifier::PropertyTypeVertexId,
-        query::{PropertyTypeStructuralQuery, StructuralQuery},
-    },
+use crate::rest::{
+    json::Json,
+    status::{report_to_response, status_to_response},
+    utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfPropertyType},
+    AuthenticatedUserHeader, Cursor, Pagination, PermissionResponse, RestApiStore,
 };
 
 #[derive(OpenApi)]

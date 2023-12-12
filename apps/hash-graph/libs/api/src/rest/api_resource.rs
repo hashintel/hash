@@ -1,7 +1,8 @@
 use authorization::AuthorizationApiPool;
 use axum::Router;
+use graph::store::StorePool;
 
-use crate::{api::rest::RestApiStore, store::StorePool};
+use crate::rest::RestApiStore;
 
 /// With REST, we define resources that can be acted on. These resources are defined through
 /// routes and HTTP methods.
