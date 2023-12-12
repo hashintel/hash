@@ -13,9 +13,7 @@ export type ActorOutgoingLinksByLinkEntityTypeId = {};
 /**
  * Someone or something that can perform actions in the system
  */
-export type ActorProperties = {
-  "https://hash.ai/@hash/types/property-type/preferred-name/": PreferredNamePropertyValue;
-};
+export type ActorProperties = {};
 
 /**
  * Whether or not something has been archived.
@@ -772,6 +770,7 @@ export type UserProperties2 = {
         PinnedEntityTypeBaseURLPropertyValue,
         PinnedEntityTypeBaseURLPropertyValue,
       ];
+  "https://hash.ai/@hash/types/property-type/preferred-name/"?: PreferredNamePropertyValue;
   "https://hash.ai/@hash/types/property-type/preferred-pronouns/"?: PreferredPronounsPropertyValue;
   "https://hash.ai/@hash/types/property-type/shortname/"?: ShortnamePropertyValue;
   "https://hash.ai/@hash/types/property-type/website-url/"?: WebsiteURLPropertyValue;

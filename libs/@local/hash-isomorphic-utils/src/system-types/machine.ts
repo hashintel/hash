@@ -9,7 +9,7 @@ import {
   ActorOutgoingLinkAndTarget,
   ActorOutgoingLinksByLinkEntityTypeId,
   ActorProperties,
-  PreferredNamePropertyValue,
+  DisplayNamePropertyValue,
   TextDataType,
 } from "./shared";
 
@@ -18,7 +18,7 @@ export type {
   ActorOutgoingLinkAndTarget,
   ActorOutgoingLinksByLinkEntityTypeId,
   ActorProperties,
-  PreferredNamePropertyValue,
+  DisplayNamePropertyValue,
   TextDataType,
 };
 
@@ -40,5 +40,6 @@ export type MachineProperties = MachineProperties1 & MachineProperties2;
 export type MachineProperties1 = ActorProperties;
 
 export type MachineProperties2 = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValue;
   "https://hash.ai/@hash/types/property-type/machine-identifier/": MachineIdentifierPropertyValue;
 };

@@ -1,5 +1,5 @@
 import { EntityType } from "@blockprotocol/type-system";
-import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
 import { systemAccountId } from "../../../system-account";
@@ -8,7 +8,6 @@ import {
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
   getExistingHashLinkEntityTypeId,
-  getExistingHashPropertyTypeId,
   getExistingHashSystemEntityTypeId,
   updateSystemEntityType,
   upgradeDependenciesInHashEntityType,
@@ -22,11 +21,6 @@ const migrate: MigrationFunction = async ({
   /**
    * Step 1. Create the Actor entity type, which User and Machine will inherit from
    */
-  const preferredNamePropertyTypeId = getExistingHashPropertyTypeId({
-    propertyTypeKey: "preferredName",
-    migrationState,
-  });
-
   const actorEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
@@ -35,12 +29,6 @@ const migrate: MigrationFunction = async ({
         title: "Actor",
         description:
           "Someone or something that can perform actions in the system",
-        properties: [
-          {
-            propertyType: preferredNamePropertyTypeId,
-            required: true,
-          },
-        ],
       },
       webShortname: "hash",
       migrationState,
@@ -69,6 +57,10 @@ const migrate: MigrationFunction = async ({
       properties: [
         {
           propertyType: machineIdentifierPropertyType,
+          required: true,
+        },
+        {
+          propertyType: blockProtocolPropertyTypes.displayName.propertyTypeId,
           required: true,
         },
       ],
@@ -100,12 +92,6 @@ const migrate: MigrationFunction = async ({
   const newUserEntityTypeSchema = {
     ...userEntityTypeSchema,
     allOf: [{ $ref: actorEntityType.schema.$id }],
-    properties: Object.fromEntries(
-      Object.entries(userEntityTypeSchema.properties).filter(
-        ([baseUrl]) =>
-          baseUrl !== systemPropertyTypes.preferredName.propertyTypeBaseUrl,
-      ),
-    ),
   };
 
   const { updatedEntityTypeId: updatedUserEntityTypeId } =

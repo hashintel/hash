@@ -183,6 +183,10 @@ export const ensureSystemEntitiesExist = async (params: {
       });
     }
 
+    /**
+     * Create a machine entity associated with each actor that created system types.
+     * These machines may also be added to other webs as needed (e.g. for integration workflows).
+     */
     try {
       await getMachineActorId(context, authentication, {
         identifier: webShortname,
@@ -205,12 +209,13 @@ export const ensureSystemEntitiesExist = async (params: {
           machineAccountId: machineActorAccountId,
           identifier: webShortname,
           ownedById: accountGroupId as OwnedById,
-          preferredName,
+          displayName: preferredName,
+          shouldBeAbleToCreateMoreMachineEntities: false,
           systemAccountId,
         });
 
         logger.info(
-          `Created machine actor entity for accountId ${machineActorAccountId} for '${webShortname}' with accountGroupId '${accountGroupId}`,
+          `Created machine actor entity for '${webShortname}' machine types, using accountId ${machineActorAccountId} in accountGroupId '${accountGroupId}`,
         );
       } else {
         throw error;
@@ -218,6 +223,9 @@ export const ensureSystemEntitiesExist = async (params: {
     }
   }
 
+  /**
+   * Create the HASH Instance entity, which stores configuration settings for the instance
+   */
   const authentication = { actorId: systemAccountId };
   try {
     await getHashInstance(context, authentication, {});
@@ -230,6 +238,9 @@ export const ensureSystemEntitiesExist = async (params: {
     }
   }
 
+  /**
+   * Create the HASH AI Machine actor and entity, which is added as needed to webs to run AI-related workflows.
+   */
   try {
     await getMachineActorId(context, authentication, {
       identifier: "ai-assistant",
@@ -281,7 +292,8 @@ export const ensureSystemEntitiesExist = async (params: {
         identifier: "ai-assistant",
         machineAccountId: aiAssistantAccountId,
         ownedById: hashAccountGroupId as OwnedById,
-        preferredName: "HASH AI",
+        displayName: "HASH AI",
+        shouldBeAbleToCreateMoreMachineEntities: false,
         systemAccountId,
       });
 
@@ -292,12 +304,13 @@ export const ensureSystemEntitiesExist = async (params: {
   }
 
   /**
-   * Mop up step: create web machine actors for existing webs – bots with permissions to add other bots to each existing web.
+   * Mop up step: create web machine actors for existing webs – bots with permissions to add other bots to each existing web,
+   * and to create notifications that aren't tied to specific integrations (e.g. related to comments and @mentions).
    *
    * This step is only required to transition existing instances in Dec 2023, and can be deleted once they have been migrated.
    */
   const users = await getEntitiesByType(context, authentication, {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/1",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/1", // @todo this may need to change depending on migration strategy
   });
 
   for (const user of users) {

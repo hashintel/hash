@@ -6,6 +6,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  blockProtocolPropertyTypes,
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -106,7 +107,8 @@ export const createMachineActorEntity = async (
     identifier,
     machineAccountId,
     ownedById,
-    preferredName,
+    displayName,
+    shouldBeAbleToCreateMoreMachineEntities,
     systemAccountId,
   }: {
     // A unique identifier for the machine actor
@@ -116,12 +118,32 @@ export const createMachineActorEntity = async (
     // The OwnedById of the web the actor's entity will belong to
     ownedById: OwnedById;
     // A display name for the machine actor, to display to users
-    preferredName: string;
+    displayName: string;
+    // Whether or not this machine should be able to create more machine entities after creating itself
+    shouldBeAbleToCreateMoreMachineEntities: boolean;
     // The accountId of the system account, used to grant the machine actor permissions to instantiate system types
     systemAccountId: AccountId;
   },
 ): Promise<EntityMetadata> => {
-  // Give the machine actor permissions to instantiate the machine entity type
+  // Give the machine actor permissions to generate graph change notifications
+  await context.graphApi.modifyEntityTypeAuthorizationRelationships(
+    systemAccountId,
+    [
+      {
+        operation: "touch",
+        resource: systemEntityTypes.graphChangeNotification.entityTypeId,
+        relationAndSubject: {
+          subject: {
+            kind: "account",
+            subjectId: machineAccountId,
+          },
+          relation: "instantiator",
+        },
+      },
+    ],
+  );
+
+  // Give the machine actor permissions to instantiate its own entity (entities of type Machine)
   await context.graphApi.modifyEntityTypeAuthorizationRelationships(
     systemAccountId,
     [
@@ -139,13 +161,14 @@ export const createMachineActorEntity = async (
     ],
   );
 
-  return await context.graphApi
+  const metadata = await context.graphApi
     .createEntity(machineAccountId, {
       draft: false,
       entityTypeId: systemEntityTypes.machine.entityTypeId,
       ownedById,
       properties: {
-        [systemPropertyTypes.preferredName.propertyTypeBaseUrl]: preferredName,
+        [blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl]:
+          displayName,
         [systemPropertyTypes.machineIdentifier.propertyTypeBaseUrl]: identifier,
       },
       relationships: [
@@ -165,17 +188,38 @@ export const createMachineActorEntity = async (
       ],
     })
     .then((resp) => mapGraphApiEntityMetadataToMetadata(resp.data));
+
+  if (!shouldBeAbleToCreateMoreMachineEntities) {
+    await context.graphApi.modifyEntityTypeAuthorizationRelationships(
+      systemAccountId,
+      [
+        {
+          operation: "delete",
+          resource: systemEntityTypes.machine.entityTypeId,
+          relationAndSubject: {
+            subject: {
+              kind: "account",
+              subjectId: machineAccountId,
+            },
+            relation: "instantiator",
+          },
+        },
+      ],
+    );
+  }
+
+  return metadata;
 };
 
 const entityTypeIdsWebMachinesCanInstantiate = [
   systemEntityTypes.commentNotification.entityTypeId,
-  systemEntityTypes.graphChangeNotification.entityTypeId,
   systemEntityTypes.mentionNotification.entityTypeId,
 ];
 
 /**
- * Creates an account for a machine and grants it ownership permissions for the specified web
- * and the permissions to create special system types.
+ * 1. Creates an account for a machine and grants it ownership permissions for the specified web
+ * 2. Grants it the permissions to create some special system types
+ * 3. Creates an entity associated with the machine
  */
 export const createWebMachineActor = async (
   context: { graphApi: GraphApi },
@@ -230,7 +274,8 @@ export const createWebMachineActor = async (
     identifier: `system-${ownedById}`,
     machineAccountId: machineAccountId as AccountId,
     ownedById,
-    preferredName: "HASH",
+    displayName: "HASH",
+    shouldBeAbleToCreateMoreMachineEntities: true,
     systemAccountId,
   });
 
