@@ -23,7 +23,7 @@ import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PageErrorState } from "../../components/page-error-state";
 import { EntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
@@ -42,7 +42,7 @@ import { FileUploadsTab } from "./entity-type-page/file-uploads-tab";
 import { EntityTypeContext } from "./entity-type-page/shared/entity-type-context";
 import { EntityTypeHeader } from "./entity-type-page/shared/entity-type-header";
 import { useCurrentTab } from "./entity-type-page/shared/tabs";
-import { TypePreviewSlide } from "./entity-type-page/type-preview-slide";
+import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
 import { useEntityTypeValue } from "./entity-type-page/use-entity-type-value";
 import { TopContextBar } from "./top-context-bar";
 
@@ -195,8 +195,14 @@ export const EntityTypePage = ({
   const [previewEntityTypeUrl, setPreviewEntityTypeUrl] =
     useState<VersionedUrl | null>(null);
 
+  const titleWrapperRef = useRef<HTMLDivElement>(null);
+
   const onNavigateToType = (url: VersionedUrl) => {
-    setPreviewEntityTypeUrl(url);
+    if (entityType && url === entityType.$id) {
+      titleWrapperRef.current?.scrollIntoView({ behavior: "smooth" });
+    } else {
+      setPreviewEntityTypeUrl(url);
+    }
   };
 
   if (!entityType) {
@@ -329,6 +335,7 @@ export const EntityTypePage = ({
               )}
 
               <Box
+                ref={titleWrapperRef}
                 sx={{
                   borderBottom: 1,
                   borderColor: "gray.20",
@@ -388,11 +395,9 @@ export const EntityTypePage = ({
       </EntityTypeFormProvider>
 
       {previewEntityTypeUrl ? (
-        <TypePreviewSlide
-          key={previewEntityTypeUrl}
+        <TypeSlideOverStack
+          rootTypeId={previewEntityTypeUrl}
           onClose={() => setPreviewEntityTypeUrl(null)}
-          onNavigateToType={onNavigateToType}
-          typeUrl={previewEntityTypeUrl}
         />
       ) : null}
 
