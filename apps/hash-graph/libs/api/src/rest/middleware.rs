@@ -26,7 +26,7 @@ use tracing::{enabled, field::Empty, Level};
 
 /// A development-environment-focused `axum` Handler function to buffer the body of requests and
 /// responses and log them. Overhead should be minimal when not in `Level::Trace`
-pub(super) async fn log_request_and_response(
+pub async fn log_request_and_response(
     request: Request<Body>,
     next: Next,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {

@@ -936,6 +936,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "graph-api"
+version = "0.1.0"
+dependencies = [
+ "axum 0.7.2",
+ "graph",
+ "hash-status",
+ "serde",
+]
+
+[[package]]
 name = "graph-benches"
 version = "0.0.0"
 dependencies = [
