@@ -29,7 +29,6 @@ import {
   useMemo,
 } from "react";
 
-import { MinimalUser } from "../../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { AsteriskLightIcon } from "../../../shared/icons/asterisk-light-icon";
 import { CalendarDayLightIcon } from "../../../shared/icons/calendar-day-light-icon";
@@ -40,6 +39,7 @@ import { CalendarsLightIcon } from "../../../shared/icons/calendars-light-icon";
 import { LinkRegularIcon } from "../../../shared/icons/link-regular-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";
 import { Button } from "../../../shared/ui";
+import { MinimalActor } from "../../../shared/use-actors";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 
 const CheckboxFilter: FunctionComponent<{
@@ -148,9 +148,9 @@ const getDraftEntitySources = (params: {
   draftEntitiesWithCreatedAtAndCreators: {
     entity: Entity;
     createdAt: Date;
-    creator: MinimalUser;
+    creator: MinimalActor;
   }[];
-}): MinimalUser[] =>
+}): MinimalActor[] =>
   params.draftEntitiesWithCreatedAtAndCreators
     .map(({ creator }) => creator)
     .filter(
@@ -163,7 +163,7 @@ export const generateDefaultFilterState = (params: {
   draftEntitiesWithCreatedAtAndCreators: {
     entity: Entity;
     createdAt: Date;
-    creator: MinimalUser;
+    creator: MinimalActor;
   }[];
   draftEntitiesSubgraph: Subgraph<EntityRootType>;
 }): DraftEntityFilterState => {
@@ -203,7 +203,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
   draftEntitiesWithCreatedAtAndCreators?: {
     entity: Entity;
     createdAt: Date;
-    creator: MinimalUser;
+    creator: MinimalActor;
   }[];
   draftEntitiesSubgraph?: Subgraph<EntityRootType>;
   filterState?: DraftEntityFilterState;
