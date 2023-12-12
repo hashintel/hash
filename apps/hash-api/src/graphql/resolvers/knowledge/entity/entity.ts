@@ -564,23 +564,31 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
     { entityId },
   );
 
-  // TODO: Align definitions with the ones in the API
-  return relationships.map(({ resource, relation, subject }) => ({
-    objectEntityId: resource.resourceId,
-    relation:
-      relation === "editor"
-        ? EntityAuthorizationRelation.Editor
-        : relation === "administrator"
-          ? EntityAuthorizationRelation.Owner
-          : EntityAuthorizationRelation.Viewer,
-    subject:
-      subject.kind === "accountGroup"
-        ? {
-            accountGroupId: subject.subjectId,
-            relation: AccountGroupAuthorizationSubjectRelation.Member,
-          }
-        : subject.kind === "account"
-          ? { accountId: subject.subjectId }
-          : { public: true },
-  }));
+  /**
+   * @todo align definitions with the ones in the API
+   *
+   * @see https://linear.app/hash/issue/H-1115/use-permission-types-from-graph-in-graphql
+   */
+  return relationships
+    .filter(({ subject }) =>
+      ["account", "accountGroup", "public"].includes(subject.kind),
+    )
+    .map(({ resource, relation, subject }) => ({
+      objectEntityId: resource.resourceId,
+      relation:
+        relation === "editor"
+          ? EntityAuthorizationRelation.Editor
+          : relation === "administrator"
+            ? EntityAuthorizationRelation.Owner
+            : EntityAuthorizationRelation.Viewer,
+      subject:
+        subject.kind === "accountGroup"
+          ? {
+              accountGroupId: subject.subjectId,
+              relation: AccountGroupAuthorizationSubjectRelation.Member,
+            }
+          : subject.kind === "account"
+            ? { accountId: subject.subjectId }
+            : { public: true },
+    }));
 };
