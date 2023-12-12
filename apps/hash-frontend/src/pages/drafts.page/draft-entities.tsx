@@ -14,7 +14,6 @@ import { Box, Container, Divider, Typography } from "@mui/material";
 import { subDays, subHours } from "date-fns";
 import { Fragment, FunctionComponent, useMemo, useState } from "react";
 
-import { useUsers } from "../../components/hooks/use-users";
 import {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,

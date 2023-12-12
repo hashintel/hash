@@ -27,12 +27,12 @@ import {
   PageProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/commentnotification";
-import { GraphChangeNotification } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import {
   Entity,
   EntityRootType,
   LinkEntityAndRightEntity,
+  Timestamp,
 } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
@@ -84,6 +84,12 @@ export type NewCommentNotification = {
 export type CommentReplyNotification = {
   kind: "comment-reply";
   repliedToComment: Entity<CommentProperties>;
+} & Omit<NewCommentNotification, "kind">;
+
+export type GraphChangeNotification = {
+  entityEditionTimestamp: Timestamp;
+  kind: "graph-change";
+  occurredInEntity: Entity;
 } & Omit<NewCommentNotification, "kind">;
 
 export type Notification =

@@ -27,7 +27,6 @@ import {
 } from "@local/hash-subgraph/type-system-patch";
 
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import { systemAccountId } from "../../system-account";
 import {
   createEntity,
   CreateEntityParams,
