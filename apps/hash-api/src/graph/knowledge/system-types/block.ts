@@ -1,4 +1,5 @@
 import {
+  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
@@ -87,7 +88,7 @@ export const getBlockById: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createBlock: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
+  Pick<CreateEntityParams, "ownedById"> & {
     componentId: string;
     blockData: Entity;
   },
@@ -103,6 +104,7 @@ export const createBlock: ImpureGraphFunction<
     ownedById,
     properties,
     entityTypeId: systemEntityTypes.block.entityTypeId,
+    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
   await createLinkEntity(ctx, authentication, {
@@ -110,6 +112,7 @@ export const createBlock: ImpureGraphFunction<
     leftEntityId: entity.metadata.recordId.entityId,
     rightEntityId: blockData.metadata.recordId.entityId,
     ownedById,
+    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
   return getBlockFromEntity({ entity });
@@ -208,6 +211,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
     ownedById: extractOwnedByIdFromEntityId(
       block.entity.metadata.recordId.entityId,
     ),
+    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 };
 

@@ -8,7 +8,7 @@ use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
         AccountGroupMemberSubject, AccountGroupPermission, AccountGroupRelationAndSubject,
-        WebSubject,
+        WebOwnerSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
@@ -168,7 +168,7 @@ where
             tracing::error!(error=?report, "Could not identify account");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
-    if account != WebSubject::Account(actor_id) {
+    if account != (WebOwnerSubject::Account { id: actor_id }) {
         tracing::error!("Account does not exist in the graph");
         return Err(StatusCode::NOT_FOUND);
     }

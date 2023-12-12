@@ -4,19 +4,13 @@ mod ontology_id;
 mod property_type;
 mod read;
 
-#[cfg(hash_graph_test_environment)]
 use error_stack::{Result, ResultExt};
-use graph_types::{
-    account::{AccountGroupId, AccountId},
-    ontology::OntologyType,
-};
+use graph_types::ontology::OntologyType;
 use tokio_postgres::Transaction;
 use type_system::{DataType, EntityType, PropertyType};
 
 pub use self::ontology_id::OntologyId;
-use crate::store::PostgresStore;
-#[cfg(hash_graph_test_environment)]
-use crate::store::{error::DeletionError, AsClient};
+use crate::store::{error::DeletionError, AsClient, PostgresStore};
 
 /// Provides an abstraction over elements of the Type System stored in the Database.
 ///
@@ -46,7 +40,6 @@ impl OntologyDatabaseType for EntityType {
 
 impl PostgresStore<Transaction<'_>> {
     #[tracing::instrument(level = "trace", skip(self))]
-    #[cfg(hash_graph_test_environment)]
     pub async fn delete_ontology_ids(
         &self,
         ontology_ids: &[OntologyId],
@@ -113,10 +106,4 @@ impl PostgresStore<Transaction<'_>> {
 
         Ok(())
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum OntologyTypeSubject {
-    Account { id: AccountId },
-    AccountGroup { id: AccountGroupId },
 }

@@ -16,6 +16,7 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractOwnedByIdFromEntityId, OwnedById } from "@local/hash-subgraph";
@@ -104,6 +105,9 @@ describe("Comment Notification", () => {
               "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
                 [],
             } as TextProperties,
+            relationships: createDefaultAuthorizationRelationships({
+              actorId: recipientUser.accountId,
+            }),
           },
         ),
       },
@@ -186,6 +190,9 @@ describe("Comment Notification", () => {
               "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
                 [],
             } as TextProperties,
+            relationships: createDefaultAuthorizationRelationships({
+              actorId: triggerUser.accountId,
+            }),
           },
         ),
       },

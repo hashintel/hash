@@ -1,5 +1,6 @@
 import { Filter, QueryTemporalAxesUnresolved } from "@local/hash-graph-client";
 import {
+  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -21,8 +22,8 @@ import {
 
 import { publicUserAccountId } from "../../../../auth/public-user-account-id";
 import {
+  addEntityAdministrator,
   addEntityEditor,
-  addEntityOwner,
   archiveEntity,
   checkEntityPermission,
   createEntityWithLinks,
@@ -30,8 +31,8 @@ import {
   getEntityAuthorizationRelationships,
   getLatestEntityById,
   modifyEntityAuthorizationRelationships,
+  removeEntityAdministrator,
   removeEntityEditor,
-  removeEntityOwner,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
 import { bpMultiFilterToGraphFilter } from "../../../../graph/knowledge/primitive/entity/query";
@@ -111,6 +112,7 @@ export const createEntityResolver: ResolverFn<
       properties,
       linkEntityTypeId: entityTypeId,
       ownedById: ownedById ?? (user.accountId as OwnedById),
+      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   } else {
     entity = await createEntityWithLinks(context, authentication, {
@@ -118,6 +120,7 @@ export const createEntityResolver: ResolverFn<
       entityTypeId,
       properties,
       linkedEntities: linkedEntities ?? undefined,
+      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   }
 
@@ -413,7 +416,10 @@ export const addEntityOwnerResolver: ResolverFn<
 > = async (_, { entityId, owner }, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  await addEntityOwner(context, authentication, { entityId, owner });
+  await addEntityAdministrator(context, authentication, {
+    entityId,
+    administrator: owner,
+  });
 
   return true;
 };
@@ -426,7 +432,10 @@ export const removeEntityOwnerResolver: ResolverFn<
 > = async (_, { entityId, owner }, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  await removeEntityOwner(context, authentication, { entityId, owner });
+  await removeEntityAdministrator(context, authentication, {
+    entityId,
+    administrator: owner,
+  });
 
   return true;
 };
@@ -561,7 +570,7 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
     relation:
       relation === "editor"
         ? EntityAuthorizationRelation.Editor
-        : relation === "owner"
+        : relation === "administrator"
           ? EntityAuthorizationRelation.Owner
           : EntityAuthorizationRelation.Viewer,
     subject:

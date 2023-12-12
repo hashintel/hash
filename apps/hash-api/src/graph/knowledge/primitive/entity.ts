@@ -24,6 +24,7 @@ import {
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
+  EntityRelationAndSubject,
   EntityRootType,
   EntityUuid,
   extractEntityUuidFromEntityId,
@@ -62,8 +63,8 @@ export type CreateEntityParams = {
   entityTypeId: VersionedUrl;
   outgoingLinks?: Omit<CreateLinkEntityParams, "leftEntityId">[];
   entityUuid?: EntityUuid;
-  owner?: AccountId | AccountGroupId;
   draft?: boolean;
+  relationships: EntityRelationAndSubject[];
 };
 
 /** @todo: potentially directly export this from the subgraph package */
@@ -99,8 +100,8 @@ export const createEntity: ImpureGraphFunction<
     entityTypeId,
     properties,
     entityUuid: overrideEntityUuid,
-    owner: params.owner ?? ownedById,
     draft,
+    relationships: params.relationships,
   });
 
   const entity = { properties, metadata: metadata as EntityMetadata };
@@ -224,10 +225,11 @@ export const getOrCreateEntity: ImpureGraphFunction<
   {
     ownedById: OwnedById;
     entityDefinition: Omit<EntityDefinition, "linkedEntities">;
+    relationships: EntityRelationAndSubject[];
   },
   Promise<Entity>
 > = async (context, authentication, params) => {
-  const { entityDefinition, ownedById } = params;
+  const { entityDefinition, ownedById, relationships } = params;
   const { entityProperties, existingEntityId } = entityDefinition;
 
   let entity;
@@ -257,6 +259,7 @@ export const getOrCreateEntity: ImpureGraphFunction<
       ownedById,
       entityTypeId,
       properties: entityProperties,
+      relationships,
     });
   } else {
     throw new Error(
@@ -282,10 +285,12 @@ export const createEntityWithLinks: ImpureGraphFunction<
     entityTypeId: VersionedUrl;
     properties: EntityPropertiesObject;
     linkedEntities?: LinkedEntityDefinition[];
+    relationships: EntityRelationAndSubject[];
   },
   Promise<Entity>
 > = async (context, authentication, params) => {
-  const { ownedById, entityTypeId, properties, linkedEntities } = params;
+  const { ownedById, entityTypeId, properties, linkedEntities, relationships } =
+    params;
 
   const entitiesInTree = linkedTreeFlatten<
     EntityDefinition,
@@ -319,6 +324,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
       entity: await getOrCreateEntity(context, authentication, {
         ownedById,
         entityDefinition: definition,
+        relationships,
       }),
     })),
   );
@@ -349,6 +355,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
           rightEntityId: entity.metadata.recordId.entityId,
           leftToRightOrder: link.meta.index ?? undefined,
           ownedById,
+          relationships,
         });
       }
     }),
@@ -755,18 +762,26 @@ export const modifyEntityAuthorizationRelationships: ImpureGraphFunction<
   );
 };
 
-export const addEntityOwner: ImpureGraphFunction<
-  { entityId: EntityId; owner: AccountId | AccountGroupId },
+export const addEntityAdministrator: ImpureGraphFunction<
+  { entityId: EntityId; administrator: AccountId | AccountGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.addEntityOwner(actorId, params.entityId, params.owner);
+  await graphApi.addEntityAdministrator(
+    actorId,
+    params.entityId,
+    params.administrator,
+  );
 };
 
-export const removeEntityOwner: ImpureGraphFunction<
-  { entityId: EntityId; owner: AccountId | AccountGroupId },
+export const removeEntityAdministrator: ImpureGraphFunction<
+  { entityId: EntityId; administrator: AccountId | AccountGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.removeEntityOwner(actorId, params.entityId, params.owner);
+  await graphApi.removeEntityAdministrator(
+    actorId,
+    params.entityId,
+    params.administrator,
+  );
 };
 
 export const addEntityEditor: ImpureGraphFunction<

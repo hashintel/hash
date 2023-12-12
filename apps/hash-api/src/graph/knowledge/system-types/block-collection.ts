@@ -1,5 +1,6 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
+import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -107,6 +108,7 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     // assume that link to block is owned by the same account as the blockCollection
     ownedById: extractOwnedByIdFromEntityId(blockCollectionEntityId),
     properties: canvasPosition || indexPosition,
+    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
   return linkEntity as unknown as

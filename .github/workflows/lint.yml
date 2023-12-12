@@ -48,8 +48,6 @@ jobs:
       fail-fast: false
     if: needs.setup.outputs.packages != '{"package":[],"include":[]}'
     runs-on: ubuntu-22.04
-    env:
-      RUSTFLAGS: "--cfg hash_graph_test_environment"
     steps:
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -112,7 +110,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@d211c4be5a95cbcd52a0870dda7d63a107a58368 # v2.21.26
+        uses: taiki-e/install-action@6ee6c3ab83eab434138dfa928d72abc7eae14793 # v2.22.0
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
@@ -159,12 +157,6 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: |
           just lint-toml "check"
-
-          # Clippy does not use RUSTFLAGS from `.cargo/config.toml` as `RUSTFLAGS` is set above.
-          CONFIG_FILE="$(cargo metadata --format-version 1 | jq -r '.workspace_root')/.cargo/config.toml"
-          RUSTFLAGS="$(yq -oy '.target["cfg(all())"].rustflags | join(" ")' $CONFIG_FILE) $RUSTFLAGS"
-          # If `export` would be on the same line this would not fail the workflow if the above line fails
-          export RUSTFLAGS
 
           just clippy --message-format=json \
             | clippy-sarif \

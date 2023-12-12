@@ -26,11 +26,7 @@ import {
   createWeb,
 } from "../../account-permission-management";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import {
-  createEntity,
-  CreateEntityParams,
-  modifyEntityAuthorizationRelationships,
-} from "../primitive/entity";
+import { createEntity } from "../primitive/entity";
 import { User } from "./user";
 
 export type HashInstance = {
@@ -104,7 +100,7 @@ export const getHashInstance: ImpureGraphFunction<
  * @see {@link EntityModel.create} for the remaining params
  */
 export const createHashInstance: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId" | "ownedById"> & {
+  {
     pagesAreEnabled?: boolean;
     userSelfRegistrationIsEnabled?: boolean;
     userRegistrationByInviteIsEnabled?: boolean;
@@ -147,22 +143,27 @@ export const createHashInstance: ImpureGraphFunction<
         params.orgSelfRegistrationIsEnabled ?? true,
     } as HASHInstanceProperties,
     entityTypeId: systemEntityTypes.hashInstance.entityTypeId,
-  });
-  await modifyEntityAuthorizationRelationships(ctx, authentication, [
-    {
-      operation: "create",
-      relationship: {
-        subject: {
-          kind: "public",
-        },
+    relationships: [
+      {
         relation: "viewer",
-        resource: {
-          kind: "entity",
-          resourceId: entity.metadata.recordId.entityId,
+        subject: { kind: "public" },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "administratorFromWeb",
         },
       },
-    },
-  ]);
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "updateFromWeb",
+        },
+      },
+    ],
+  });
 
   return getHashInstanceFromEntity({ entity });
 };

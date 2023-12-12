@@ -13,7 +13,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { CommentNotificationProperties } from "@local/hash-isomorphic-utils/system-types/commentnotification";
 import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import { NotificationProperties } from "@local/hash-isomorphic-utils/system-types/notification";
-import { Entity } from "@local/hash-subgraph";
+import { Entity, EntityRelationAndSubject } from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
   getRoots,
@@ -25,6 +25,7 @@ import {
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import { systemAccountId } from "../../system-account";
 import {
   createEntity,
   CreateEntityParams,
@@ -88,7 +89,7 @@ export const getMentionNotificationFromEntity: PureGraphFunction<
 };
 
 export const createMentionNotification: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
+  Pick<CreateEntityParams, "ownedById"> & {
     triggeredByUser: User;
     occurredInEntity: Page;
     occurredInBlock: Block;
@@ -110,7 +111,47 @@ export const createMentionNotification: ImpureGraphFunction<
     ownedById,
     properties: {},
     entityTypeId: systemEntityTypes.mentionNotification.entityTypeId,
+    relationships: [
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "administratorFromWeb",
+        },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "updateFromWeb",
+        },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "viewFromWeb",
+        },
+      },
+    ],
   });
+
+  const linkRelationships: EntityRelationAndSubject[] = [
+    {
+      relation: "administrator",
+      subject: {
+        kind: "account",
+        subjectId: systemAccountId,
+      },
+    },
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "viewFromWeb",
+      },
+    },
+  ];
 
   await Promise.all(
     [
@@ -120,6 +161,7 @@ export const createMentionNotification: ImpureGraphFunction<
         rightEntityId: triggeredByUser.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
+        relationships: linkRelationships,
       }),
       createLinkEntity(context, authentication, {
         ownedById,
@@ -127,6 +169,7 @@ export const createMentionNotification: ImpureGraphFunction<
         rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+        relationships: linkRelationships,
       }),
       createLinkEntity(context, authentication, {
         ownedById,
@@ -134,6 +177,7 @@ export const createMentionNotification: ImpureGraphFunction<
         rightEntityId: occurredInBlock.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
+        relationships: linkRelationships,
       }),
       occurredInComment
         ? createLinkEntity(context, authentication, {
@@ -142,6 +186,7 @@ export const createMentionNotification: ImpureGraphFunction<
             rightEntityId: occurredInComment.entity.metadata.recordId.entityId,
             linkEntityTypeId:
               systemLinkEntityTypes.occurredInComment.linkEntityTypeId,
+            relationships: linkRelationships,
           })
         : [],
       createLinkEntity(context, authentication, {
@@ -149,6 +194,7 @@ export const createMentionNotification: ImpureGraphFunction<
         leftEntityId: entity.metadata.recordId.entityId,
         rightEntityId: occurredInText.entity.metadata.recordId.entityId,
         linkEntityTypeId: systemLinkEntityTypes.occurredInText.linkEntityTypeId,
+        relationships: linkRelationships,
       }),
     ].flat(),
   );
@@ -311,7 +357,7 @@ export const getCommentNotificationFromEntity: PureGraphFunction<
 };
 
 export const createCommentNotification: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
+  Pick<CreateEntityParams, "ownedById"> & {
     triggeredByUser: User;
     triggeredByComment: Comment;
     occurredInEntity: Page;
@@ -329,6 +375,23 @@ export const createCommentNotification: ImpureGraphFunction<
     ownedById,
   } = params;
 
+  const linkRelationships: EntityRelationAndSubject[] = [
+    {
+      relation: "administrator",
+      subject: {
+        kind: "account",
+        subjectId: systemAccountId,
+      },
+    },
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "viewFromWeb",
+      },
+    },
+  ];
+
   const entity = await createEntity(context, authentication, {
     ownedById,
     properties: {},
@@ -339,24 +402,28 @@ export const createCommentNotification: ImpureGraphFunction<
         rightEntityId: triggeredByUser.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
+        relationships: linkRelationships,
       },
       {
         ownedById,
         rightEntityId: triggeredByComment.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.triggeredByComment.linkEntityTypeId,
+        relationships: linkRelationships,
       },
       {
         ownedById,
         rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+        relationships: linkRelationships,
       },
       {
         ownedById,
         rightEntityId: occurredInBlock.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
+        relationships: linkRelationships,
       },
       repliedToComment
         ? {
@@ -364,9 +431,33 @@ export const createCommentNotification: ImpureGraphFunction<
             rightEntityId: repliedToComment.entity.metadata.recordId.entityId,
             linkEntityTypeId:
               systemLinkEntityTypes.repliedToComment.linkEntityTypeId,
+            relationships: linkRelationships,
           }
         : [],
     ].flat(),
+    relationships: [
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "administratorFromWeb",
+        },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "updateFromWeb",
+        },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "viewFromWeb",
+        },
+      },
+    ],
   });
 
   return getCommentNotificationFromEntity({ entity });

@@ -46,6 +46,21 @@ export const createPropertyTypeResolver: ResolverFn<
     {
       ownedById: (ownedById ?? user.accountId) as OwnedById,
       schema: propertyType,
+      relationships: [
+        {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "updateFromWeb",
+          },
+        },
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     },
   );
 
@@ -152,6 +167,21 @@ export const updatePropertyTypeResolver: ResolverFn<
     {
       propertyTypeId: params.propertyTypeId,
       schema: params.updatedPropertyType,
+      relationships: [
+        {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "updateFromWeb",
+          },
+        },
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     },
   );
 

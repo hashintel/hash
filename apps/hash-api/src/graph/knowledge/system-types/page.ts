@@ -1,6 +1,7 @@
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import {
+  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -121,7 +122,7 @@ export const getPageById: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createPage: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
+  Pick<CreateEntityParams, "ownedById"> & {
     title: string;
     summary?: string;
     prevFractionalIndex?: string;
@@ -152,6 +153,7 @@ export const createPage: ImpureGraphFunction<
       type === "document"
         ? systemEntityTypes.document.entityTypeId
         : systemEntityTypes.canvas.entityTypeId,
+    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
   const page = getPageFromEntity({ entity });
@@ -416,6 +418,7 @@ export const setPageParentPage: ImpureGraphFunction<
       leftEntityId: page.entity.metadata.recordId.entityId,
       rightEntityId: parentPage.entity.metadata.recordId.entityId,
       ownedById: authentication.actorId as OwnedById,
+      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   }
 

@@ -19,8 +19,8 @@ import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
   EntityTypeAuthorizationRelationship,
-  EntityTypeInstantiatorSubject,
   EntityTypeMetadata,
+  EntityTypeRelationAndSubject,
   EntityTypeRootType,
   EntityTypeWithMetadata,
   linkEntityTypeUrl,
@@ -95,7 +95,7 @@ export const createEntityType: ImpureGraphFunction<
     labelProperty?: BaseUrl;
     icon?: string | null;
     webShortname?: string;
-    instantiators: EntityTypeInstantiatorSubject[];
+    relationships: EntityTypeRelationAndSubject[];
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
@@ -129,26 +129,9 @@ export const createEntityType: ImpureGraphFunction<
       schema,
       labelProperty,
       icon,
+      relationships: params.relationships,
     },
   );
-
-  if (params.instantiators.length > 0) {
-    await modifyEntityTypeAuthorizationRelationships(
-      ctx,
-      authentication,
-      params.instantiators.map((subject) => ({
-        operation: "create",
-        relationship: {
-          resource: {
-            kind: "entityType",
-            resourceId: entityTypeId,
-          },
-          relation: "instantiator",
-          subject,
-        },
-      })),
-    );
-  }
 
   return { schema, metadata: metadata as EntityTypeMetadata };
 };
@@ -257,7 +240,7 @@ export const updateEntityType: ImpureGraphFunction<
     schema: ConstructEntityTypeParams;
     labelProperty?: BaseUrl;
     icon?: string | null;
-    instantiators: EntityTypeInstantiatorSubject[];
+    relationships: EntityTypeRelationAndSubject[];
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
@@ -271,6 +254,7 @@ export const updateEntityType: ImpureGraphFunction<
     },
     labelProperty,
     icon,
+    relationships: params.relationships,
   };
 
   const { data: metadata } = await ctx.graphApi.updateEntityType(
@@ -280,22 +264,6 @@ export const updateEntityType: ImpureGraphFunction<
 
   const newEntityTypeId = ontologyTypeRecordIdToVersionedUrl(
     metadata.recordId as OntologyTypeRecordId,
-  );
-
-  await modifyEntityTypeAuthorizationRelationships(
-    ctx,
-    authentication,
-    params.instantiators.map((subject) => ({
-      operation: "create",
-      relationship: {
-        resource: {
-          kind: "entityType",
-          resourceId: newEntityTypeId,
-        },
-        relation: "instantiator",
-        subject,
-      },
-    })),
   );
 
   return {

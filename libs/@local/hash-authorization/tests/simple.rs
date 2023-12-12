@@ -8,7 +8,9 @@ use std::error::Error;
 
 use authorization::{
     backend::ZanzibarBackend,
-    schema::{EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, EntityViewerSubject},
+    schema::{
+        EntityEditorSubject, EntityPermission, EntityRelationAndSubject, EntityViewerSubject,
+    },
     zanzibar::Consistency,
 };
 
@@ -37,8 +39,8 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
         .touch_relationships([
             (
                 ENTITY_A,
-                EntityRelationAndSubject::Owner {
-                    subject: EntityOwnerSubject::Account { id: ALICE },
+                EntityRelationAndSubject::Editor {
+                    subject: EntityEditorSubject::Account { id: ALICE },
                     level: 0,
                 },
             ),
@@ -51,8 +53,8 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
             ),
             (
                 ENTITY_B,
-                EntityRelationAndSubject::Owner {
-                    subject: EntityOwnerSubject::Account { id: BOB },
+                EntityRelationAndSubject::Editor {
+                    subject: EntityEditorSubject::Account { id: BOB },
                     level: 0,
                 },
             ),

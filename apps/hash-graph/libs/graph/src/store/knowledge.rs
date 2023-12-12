@@ -1,7 +1,7 @@
 use std::{error::Error, fmt};
 
 use async_trait::async_trait;
-use authorization::{schema::EntityOwnerSubject, zanzibar::Consistency, AuthorizationApi};
+use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency, AuthorizationApi};
 use error_stack::Result;
 use graph_types::{
     account::AccountId,
@@ -63,7 +63,6 @@ pub trait EntityStore: crud::Read<Entity> {
         actor_id: AccountId,
         authorization_api: &mut A,
         owned_by_id: OwnedById,
-        owner: EntityOwnerSubject,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
@@ -71,6 +70,7 @@ pub trait EntityStore: crud::Read<Entity> {
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_data: Option<LinkData>,
+        relationships: impl IntoIterator<Item = EntityRelationAndSubject> + Send,
     ) -> Result<EntityMetadata, InsertionError>;
 
     /// Validates an [`Entity`].
@@ -112,8 +112,6 @@ pub trait EntityStore: crud::Read<Entity> {
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
     /// [`EntityType`]: type_system::EntityType
-    #[doc(hidden)]
-    #[cfg(hash_graph_test_environment)]
     async fn insert_entities_batched_by_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,

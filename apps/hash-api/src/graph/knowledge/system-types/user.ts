@@ -12,6 +12,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountEntityId,
+  AccountGroupId,
   AccountId,
   Entity,
   EntityId,
@@ -19,6 +20,7 @@ import {
   EntityUuid,
   extractAccountId,
   extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
   OwnedById,
 } from "@local/hash-subgraph";
 import {
@@ -39,10 +41,8 @@ import { systemAccountId } from "../../system-account";
 import {
   checkEntityPermission,
   createEntity,
-  CreateEntityParams,
   getEntityOutgoingLinks,
   getLatestEntityById,
-  modifyEntityAuthorizationRelationships,
 } from "../primitive/entity";
 import {
   shortnameIsInvalid,
@@ -229,7 +229,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
  * @param params.accountId (optional) - the pre-populated account Id of the user
  */
 export const createUser: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId" | "ownedById"> & {
+  {
     emails: string[];
     kratosIdentityId: string;
     shortname?: string;
@@ -322,6 +322,11 @@ export const createUser: ImpureGraphFunction<
       : {}),
   };
 
+  const hashInstance = await getHashInstance(ctx, authentication, {});
+  const hashInstanceAdmins = extractOwnedByIdFromEntityId(
+    hashInstance.entity.metadata.recordId.entityId,
+  ) as AccountGroupId;
+
   const entity = await createEntity(
     ctx,
     { actorId: userAccountId },
@@ -330,26 +335,29 @@ export const createUser: ImpureGraphFunction<
       properties,
       entityTypeId: systemEntityTypes.user.entityTypeId,
       entityUuid: userAccountId as string as EntityUuid,
-    },
-  );
-  await modifyEntityAuthorizationRelationships(
-    ctx,
-    { actorId: userAccountId },
-    [
-      {
-        operation: "create",
-        relationship: {
+      relationships: [
+        {
+          relation: "administrator",
+          subject: {
+            kind: "accountGroup",
+            subjectId: hashInstanceAdmins,
+          },
+        },
+        {
+          relation: "viewer",
           subject: {
             kind: "public",
           },
-          relation: "viewer",
-          resource: {
-            kind: "entity",
-            resourceId: entity.metadata.recordId.entityId,
+        },
+        {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "updateFromWeb",
           },
         },
-      },
-    ],
+      ],
+    },
   );
 
   const user = getUserFromEntity({ entity });

@@ -6,6 +6,7 @@ import {
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
+  EntityRelationAndSubject,
   LinkData,
   OwnedById,
 } from "@local/hash-subgraph";
@@ -29,6 +30,7 @@ export type CreateLinkEntityParams = {
   leftToRightOrder?: number;
   rightEntityId: EntityId;
   rightToLeftOrder?: number;
+  relationships: EntityRelationAndSubject[];
 };
 
 export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
@@ -94,8 +96,8 @@ export const createLinkEntity: ImpureGraphFunction<
       linkData,
       entityTypeId: linkEntityType.schema.$id,
       properties,
-      owner: params.owner ?? ownedById,
       draft,
+      relationships: params.relationships,
     },
   );
 

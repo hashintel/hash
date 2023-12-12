@@ -1,8 +1,5 @@
 use async_trait::async_trait;
-use authorization::{
-    schema::{WebOwnerSubject, WebSubject},
-    AuthorizationApi,
-};
+use authorization::{schema::WebOwnerSubject, AuthorizationApi};
 use error_stack::Result;
 use graph_types::{
     account::{AccountGroupId, AccountId},
@@ -64,5 +61,8 @@ pub trait AccountStore {
     ///
     /// - if the [`OwnedById`] does not exist
     /// - if the [`OwnedById`] exists but is both, an [`AccountId`] and an [`AccountGroupId`]
-    async fn identify_owned_by_id(&self, owned_by_id: OwnedById) -> Result<WebSubject, QueryError>;
+    async fn identify_owned_by_id(
+        &self,
+        owned_by_id: OwnedById,
+    ) -> Result<WebOwnerSubject, QueryError>;
 }

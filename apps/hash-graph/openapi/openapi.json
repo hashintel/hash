@@ -970,6 +970,96 @@
         }
       }
     },
+    "/entities/{entity_id}/administrators/{administrator}": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "add_entity_administrator",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "entity_id",
+            "in": "path",
+            "description": "The Entity to add the administrator to",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/EntityId"
+            }
+          },
+          {
+            "name": "administrator",
+            "in": "path",
+            "description": "The administrator to add to the entity",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/OwnedById"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The administrator was added to the entity"
+          },
+          "403": {
+            "description": "Permission denied"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "remove_entity_administrator",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "entity_id",
+            "in": "path",
+            "description": "The Entity to remove the administrator from",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/EntityId"
+            }
+          },
+          {
+            "name": "administrator",
+            "in": "path",
+            "description": "The administrator to remove from the entity",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/OwnedById"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The administrator was removed from the entity"
+          },
+          "403": {
+            "description": "Permission denied"
+          }
+        }
+      }
+    },
     "/entities/{entity_id}/editors/{editor}": {
       "post": {
         "tags": [
@@ -1053,96 +1143,6 @@
         "responses": {
           "204": {
             "description": "The editor was removed from the entity"
-          },
-          "403": {
-            "description": "Permission denied"
-          }
-        }
-      }
-    },
-    "/entities/{entity_id}/owners/{owner}": {
-      "post": {
-        "tags": [
-          "Graph",
-          "Entity"
-        ],
-        "operationId": "add_entity_owner",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountId"
-            }
-          },
-          {
-            "name": "entity_id",
-            "in": "path",
-            "description": "The Entity to add the owner to",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntityId"
-            }
-          },
-          {
-            "name": "owner",
-            "in": "path",
-            "description": "The owner to add to the entity",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/OwnedById"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "The owner was added to the entity"
-          },
-          "403": {
-            "description": "Permission denied"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Graph",
-          "Entity"
-        ],
-        "operationId": "remove_entity_owner",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountId"
-            }
-          },
-          {
-            "name": "entity_id",
-            "in": "path",
-            "description": "The Entity to remove the owner from",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntityId"
-            }
-          },
-          {
-            "name": "owner",
-            "in": "path",
-            "description": "The owner to remove from the entity",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/OwnedById"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "The owner was removed from the entity"
           },
           "403": {
             "description": "Permission denied"
@@ -2506,11 +2506,18 @@
         "type": "object",
         "required": [
           "schema",
-          "ownedById"
+          "ownedById",
+          "relationships"
         ],
         "properties": {
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataTypeRelationAndSubject"
+            }
           },
           "schema": {
             "oneOf": [
@@ -2533,8 +2540,8 @@
           "properties",
           "entityTypeId",
           "ownedById",
-          "owner",
-          "draft"
+          "draft",
+          "relationships"
         ],
         "properties": {
           "draft": {
@@ -2560,11 +2567,14 @@
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
           },
-          "owner": {
-            "$ref": "#/components/schemas/OwnedById"
-          },
           "properties": {
             "$ref": "#/components/schemas/EntityProperties"
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityRelationAndSubject"
+            }
           }
         }
       },
@@ -2572,7 +2582,8 @@
         "type": "object",
         "required": [
           "schema",
-          "ownedById"
+          "ownedById",
+          "relationships"
         ],
         "properties": {
           "icon": {
@@ -2584,6 +2595,12 @@
           },
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityTypeRelationAndSubject"
+            }
           },
           "schema": {
             "oneOf": [
@@ -2604,11 +2621,18 @@
         "type": "object",
         "required": [
           "schema",
-          "ownedById"
+          "ownedById",
+          "relationships"
         ],
         "properties": {
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropertyTypeRelationAndSubject"
+            }
           },
           "schema": {
             "oneOf": [
@@ -2696,29 +2720,11 @@
               "kind": {
                 "type": "string",
                 "enum": [
-                  "account"
+                  "web"
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountId"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "accountGroup"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/AccountGroupId"
+                "$ref": "#/components/schemas/OwnedById"
               }
             }
           }
@@ -2931,6 +2937,49 @@
           }
         }
       },
+      "EntityAdministratorSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "accountGroup"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
       "EntityEditionId": {
         "type": "string",
         "format": "uuid"
@@ -3059,29 +3108,11 @@
               "kind": {
                 "type": "string",
                 "enum": [
-                  "account"
+                  "web"
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountId"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "accountGroup"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/AccountGroupId"
+                "$ref": "#/components/schemas/OwnedById"
               }
             }
           }
@@ -3093,6 +3124,7 @@
       "EntityPermission": {
         "type": "string",
         "enum": [
+          "full_access",
           "update",
           "view"
         ]
@@ -3148,11 +3180,47 @@
               "relation": {
                 "type": "string",
                 "enum": [
+                  "setting"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/EntitySettingSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
                   "owner"
                 ]
               },
               "subject": {
                 "$ref": "#/components/schemas/EntityOwnerSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "administrator"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/EntityAdministratorSubject"
               }
             }
           },
@@ -3197,6 +3265,39 @@
           "propertyName": "relation"
         }
       },
+      "EntitySetting": {
+        "type": "string",
+        "enum": [
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb"
+        ]
+      },
+      "EntitySettingSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "setting"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/EntitySetting"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
       "EntityStructuralQuery": {
         "type": "object",
         "required": [
@@ -3235,7 +3336,7 @@
           }
         }
       },
-      "EntityTypeInstantiatorSubject": {
+      "EntityTypeEditorSubject": {
         "oneOf": [
           {
             "type": "object",
@@ -3272,7 +3373,14 @@
                 "$ref": "#/components/schemas/AccountGroupId"
               }
             }
-          },
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "EntityTypeInstantiatorSubject": {
+        "oneOf": [
           {
             "type": "object",
             "required": [
@@ -3284,6 +3392,42 @@
                 "enum": [
                   "public"
                 ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "accountGroup"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
               }
             }
           }
@@ -3331,29 +3475,11 @@
               "kind": {
                 "type": "string",
                 "enum": [
-                  "account"
+                  "web"
                 ]
               },
               "subjectId": {
-                "$ref": "#/components/schemas/AccountId"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "accountGroup"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/AccountGroupId"
+                "$ref": "#/components/schemas/OwnedById"
               }
             }
           }
@@ -3422,6 +3548,42 @@
               "relation": {
                 "type": "string",
                 "enum": [
+                  "setting"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/EntityTypeSettingSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "editor"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/EntityTypeEditorSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
                   "viewer"
                 ]
               },
@@ -3451,6 +3613,37 @@
         ],
         "discriminator": {
           "propertyName": "relation"
+        }
+      },
+      "EntityTypeSetting": {
+        "type": "string",
+        "enum": [
+          "updateFromWeb"
+        ]
+      },
+      "EntityTypeSettingSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "setting"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/EntityTypeSetting"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
         }
       },
       "EntityTypeStructuralQuery": {
@@ -4027,9 +4220,16 @@
           {
             "type": "object",
             "required": [
-              "schema"
+              "schema",
+              "relationships"
             ],
             "properties": {
+              "relationships": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DataTypeRelationAndSubject"
+                }
+              },
               "schema": {
                 "$ref": "./models/data_type.json"
               }
@@ -4053,7 +4253,8 @@
           {
             "type": "object",
             "required": [
-              "schema"
+              "schema",
+              "relationships"
             ],
             "properties": {
               "icon": {
@@ -4062,6 +4263,12 @@
               },
               "label_property": {
                 "$ref": "./models/shared.json#/definitions/BaseUrl"
+              },
+              "relationships": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/EntityTypeRelationAndSubject"
+                }
               },
               "schema": {
                 "$ref": "./models/entity_type.json"
@@ -4086,9 +4293,16 @@
           {
             "type": "object",
             "required": [
-              "schema"
+              "schema",
+              "relationships"
             ],
             "properties": {
+              "relationships": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PropertyTypeRelationAndSubject"
+                }
+              },
               "schema": {
                 "$ref": "./models/property_type.json"
               }
@@ -4488,7 +4702,7 @@
           }
         }
       },
-      "PropertyTypeOwnerSubject": {
+      "PropertyTypeEditorSubject": {
         "oneOf": [
           {
             "type": "object",
@@ -4523,6 +4737,31 @@
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountGroupId"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "PropertyTypeOwnerSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "web"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/OwnedById"
               }
             }
           }
@@ -4584,6 +4823,42 @@
               "relation": {
                 "type": "string",
                 "enum": [
+                  "setting"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/PropertyTypeSettingSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "editor"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/PropertyTypeEditorSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
                   "viewer"
                 ]
               },
@@ -4595,6 +4870,37 @@
         ],
         "discriminator": {
           "propertyName": "relation"
+        }
+      },
+      "PropertyTypeSetting": {
+        "type": "string",
+        "enum": [
+          "updateFromWeb"
+        ]
+      },
+      "PropertyTypeSettingSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "setting"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/PropertyTypeSetting"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
         }
       },
       "PropertyTypeStructuralQuery": {
@@ -5080,9 +5386,16 @@
         "type": "object",
         "required": [
           "schema",
-          "typeToUpdate"
+          "typeToUpdate",
+          "relationships"
         ],
         "properties": {
+          "relationships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataTypeRelationAndSubject"
+            }
+          },
           "schema": {
             "$ref": "./models/update_data_type.json"
           },
@@ -5129,7 +5442,8 @@
         "type": "object",
         "required": [
           "schema",
-          "typeToUpdate"
+          "typeToUpdate",
+          "relationships"
         ],
         "properties": {
           "icon": {
@@ -5138,6 +5452,12 @@
           },
           "labelProperty": {
             "$ref": "./models/shared.json#/definitions/BaseUrl"
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityTypeRelationAndSubject"
+            }
           },
           "schema": {
             "$ref": "./models/update_entity_type.json"
@@ -5151,9 +5471,16 @@
         "type": "object",
         "required": [
           "schema",
-          "typeToUpdate"
+          "typeToUpdate",
+          "relationships"
         ],
         "properties": {
+          "relationships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropertyTypeRelationAndSubject"
+            }
+          },
           "schema": {
             "$ref": "./models/update_property_type.json"
           },
@@ -5228,6 +5555,185 @@
           }
         }
       },
+      "WebDataTypeViewerSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "public"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "WebEntityCreatorSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "accountGroup"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "WebEntityEditorSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "accountGroup"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "WebEntityTypeViewerSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "public"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "WebEntityViewerSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "public"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "accountGroup"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
       "WebOwnerSubject": {
         "oneOf": [
           {
@@ -5274,11 +5780,31 @@
       "WebPermission": {
         "type": "string",
         "enum": [
-          "update",
+          "change_permissions",
           "create_entity",
+          "update_entity",
+          "view_entity",
           "create_entity_type",
           "create_property_type",
           "create_data_type"
+        ]
+      },
+      "WebPropertyTypeViewerSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "public"
+                ]
+              }
+            }
+          }
         ]
       },
       "WebRelationAndSubject": {
@@ -5298,6 +5824,114 @@
               },
               "subject": {
                 "$ref": "#/components/schemas/WebOwnerSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "entityCreator"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/WebEntityCreatorSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "entityEditor"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/WebEntityEditorSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "entityViewer"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/WebEntityViewerSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "entityTypeViewer"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/WebEntityTypeViewerSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "propertyTypeViewer"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/WebPropertyTypeViewerSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "dataTypeViewer"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/WebDataTypeViewerSubject"
               }
             }
           }

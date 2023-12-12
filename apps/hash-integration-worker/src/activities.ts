@@ -36,8 +36,28 @@ const createHashEntity = async (params: {
     params.authentication.actorId,
     {
       ownedById,
-      owner: ownedById,
       draft: false,
+      relationships: [
+        {
+          relation: "administrator",
+          subject: {
+            kind: "account",
+            subjectId: params.authentication.actorId,
+          },
+        },
+        {
+          relation: "setting",
+          subject: { kind: "setting", subjectId: "administratorFromWeb" },
+        },
+        {
+          relation: "setting",
+          subject: { kind: "setting", subjectId: "updateFromWeb" },
+        },
+        {
+          relation: "setting",
+          subject: { kind: "setting", subjectId: "viewFromWeb" },
+        },
+      ],
       ...params.partialEntity,
     },
   );
@@ -46,7 +66,6 @@ const createHashEntity = async (params: {
     params.outgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) =>
       graphApiClient.createEntity(params.authentication.actorId, {
         ownedById,
-        owner: ownedById,
         linkData: {
           leftEntityId: entity.recordId.entityId,
           rightEntityId: destinationEntityId,
@@ -54,6 +73,27 @@ const createHashEntity = async (params: {
         entityTypeId: linkEntityTypeId,
         properties: {},
         draft: false,
+        relationships: [
+          {
+            relation: "administrator",
+            subject: {
+              kind: "account",
+              subjectId: params.authentication.actorId,
+            },
+          },
+          {
+            relation: "setting",
+            subject: { kind: "setting", subjectId: "administratorFromWeb" },
+          },
+          {
+            relation: "setting",
+            subject: { kind: "setting", subjectId: "updateFromWeb" },
+          },
+          {
+            relation: "setting",
+            subject: { kind: "setting", subjectId: "viewFromWeb" },
+          },
+        ],
       }),
     ),
   );
@@ -132,8 +172,21 @@ const createOrUpdateHashEntity = async (params: {
           },
           properties: {},
           ownedById: params.ownedById,
-          owner: params.ownedById,
           draft: false,
+          relationships: [
+            {
+              relation: "setting",
+              subject: { kind: "setting", subjectId: "administratorFromWeb" },
+            },
+            {
+              relation: "setting",
+              subject: { kind: "setting", subjectId: "updateFromWeb" },
+            },
+            {
+              relation: "setting",
+              subject: { kind: "setting", subjectId: "viewFromWeb" },
+            },
+          ],
         }),
       ),
     ]);

@@ -19,6 +19,7 @@ import {
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
@@ -72,7 +73,20 @@ describe("Link entity", () => {
           entityTypeId,
           ...params,
         }),
-        instantiators: [{ kind: "public" }],
+        relationships: [
+          {
+            relation: "viewer",
+            subject: {
+              kind: "public",
+            },
+          },
+          {
+            relation: "instantiator",
+            subject: {
+              kind: "public",
+            },
+          },
+        ],
       },
     );
   };
@@ -96,7 +110,20 @@ describe("Link entity", () => {
           allOf: [{ $ref: linkEntityTypeUrl }],
           properties: {},
         },
-        instantiators: [{ kind: "public" }],
+        relationships: [
+          {
+            relation: "viewer",
+            subject: {
+              kind: "public",
+            },
+          },
+          {
+            relation: "instantiator",
+            subject: {
+              kind: "public",
+            },
+          },
+        ],
       }).then((linkEntityType) => {
         friendLinkEntityType = linkEntityType;
       }),
@@ -109,7 +136,20 @@ describe("Link entity", () => {
           allOf: [{ $ref: linkEntityTypeUrl }],
           properties: {},
         },
-        instantiators: [{ kind: "public" }],
+        relationships: [
+          {
+            relation: "viewer",
+            subject: {
+              kind: "public",
+            },
+          },
+          {
+            relation: "instantiator",
+            subject: {
+              kind: "public",
+            },
+          },
+        ],
       }).then((linkEntityType) => {
         acquaintanceLinkEntityType = linkEntityType;
       }),
@@ -137,6 +177,7 @@ describe("Link entity", () => {
         ownedById: testUser.accountId as OwnedById,
         entityTypeId: testEntityType.schema.$id,
         properties: {},
+        relationships: createDefaultAuthorizationRelationships(authentication),
       }).then((entity) => {
         leftEntity = entity;
       }),
@@ -144,6 +185,7 @@ describe("Link entity", () => {
         ownedById: testUser.accountId as OwnedById,
         entityTypeId: testEntityType.schema.$id,
         properties: {},
+        relationships: createDefaultAuthorizationRelationships(authentication),
       }).then((entity) => {
         friendRightEntity = entity;
       }),
@@ -151,6 +193,7 @@ describe("Link entity", () => {
         ownedById: testUser.accountId as OwnedById,
         entityTypeId: testEntityType.schema.$id,
         properties: {},
+        relationships: createDefaultAuthorizationRelationships(authentication),
       }).then((entity) => {
         acquaintanceRightEntity = entity;
       }),
@@ -176,6 +219,7 @@ describe("Link entity", () => {
       leftEntityId: leftEntity.metadata.recordId.entityId,
       linkEntityTypeId: friendLinkEntityType.schema.$id,
       rightEntityId: friendRightEntity.metadata.recordId.entityId,
+      relationships: createDefaultAuthorizationRelationships(authentication),
     });
 
     linkEntityAcquaintance = await createLinkEntity(
@@ -186,6 +230,7 @@ describe("Link entity", () => {
         leftEntityId: leftEntity.metadata.recordId.entityId,
         linkEntityTypeId: acquaintanceLinkEntityType.schema.$id,
         rightEntityId: acquaintanceRightEntity.metadata.recordId.entityId,
+        relationships: createDefaultAuthorizationRelationships(authentication),
       },
     );
   });

@@ -1,11 +1,14 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    iter::once,
+};
 
 use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
         DataTypeId, DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject,
-        DataTypeSubjectSet, DataTypeViewerSubject, WebPermission,
+        WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -18,17 +21,15 @@ use graph_types::{
         PartialCustomOntologyMetadata, PartialOntologyElementMetadata,
     },
     provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
-    web::WebId,
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{url::VersionedUrl, DataType};
 
-#[cfg(hash_graph_test_environment)]
-use crate::store::error::DeletionError;
 use crate::{
     store::{
         crud::Read,
-        postgres::{ontology::OntologyId, OntologyTypeSubject, TraversalContext},
+        error::DeletionError,
+        postgres::{ontology::OntologyId, TraversalContext},
         AsClient, ConflictBehavior, DataTypeStore, InsertionError, PostgresStore, QueryError,
         Record, UpdateError,
     },
@@ -106,7 +107,6 @@ impl<C: AsClient> PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    #[cfg(hash_graph_test_environment)]
     pub async fn delete_data_types(&mut self) -> Result<(), DeletionError> {
         let transaction = self.transaction().await.change_context(DeletionError)?;
 
@@ -135,7 +135,10 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> DataTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, data_types, authorization_api))]
+    #[tracing::instrument(
+        level = "info",
+        skip(self, data_types, authorization_api, relationships)
+    )]
     async fn create_data_types<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
@@ -143,7 +146,9 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         data_types: impl IntoIterator<Item = (DataType, PartialOntologyElementMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
+        relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
     ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
+        let requested_relationships = relationships.into_iter().collect::<Vec<_>>();
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
         let provenance = ProvenanceMetadata {
@@ -155,29 +160,36 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
         let mut inserted_data_type_metadata = Vec::new();
         for (schema, metadata) in data_types {
+            let data_type_id = DataTypeId::from_url(schema.id());
             if let PartialCustomOntologyMetadata::Owned { owned_by_id } = &metadata.custom {
                 authorization_api
                     .check_web_permission(
                         actor_id,
                         WebPermission::CreateDataType,
-                        WebId::from(*owned_by_id),
+                        *owned_by_id,
                         Consistency::FullyConsistent,
                     )
                     .await
                     .change_context(InsertionError)?
                     .assert_permission()
                     .change_context(InsertionError)?;
+
+                relationships.push((
+                    data_type_id,
+                    DataTypeRelationAndSubject::Owner {
+                        subject: DataTypeOwnerSubject::Web { id: *owned_by_id },
+                        level: 0,
+                    },
+                ));
             }
 
-            relationships.push((
-                DataTypeId::from_url(schema.id()),
-                DataTypeRelationAndSubject::Viewer {
-                    subject: DataTypeViewerSubject::Public,
-                    level: 0,
-                },
-            ));
+            relationships.extend(
+                requested_relationships
+                    .iter()
+                    .map(|relation_and_subject| (data_type_id, *relation_and_subject)),
+            );
 
-            if let Some((ontology_id, transaction_time, owner)) = transaction
+            if let Some((ontology_id, transaction_time)) = transaction
                 .create_ontology_metadata(
                     provenance.record_created_by_id,
                     &metadata.record_id,
@@ -192,28 +204,6 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     provenance,
                     transaction_time,
                 ));
-
-                if let Some(owner) = owner {
-                    match owner {
-                        OntologyTypeSubject::Account { id } => relationships.push((
-                            DataTypeId::from(ontology_id),
-                            DataTypeRelationAndSubject::Owner {
-                                subject: DataTypeOwnerSubject::Account { id },
-                                level: 0,
-                            },
-                        )),
-                        OntologyTypeSubject::AccountGroup { id } => relationships.push((
-                            DataTypeId::from(ontology_id),
-                            DataTypeRelationAndSubject::Owner {
-                                subject: DataTypeOwnerSubject::AccountGroup {
-                                    id,
-                                    set: DataTypeSubjectSet::Member,
-                                },
-                                level: 0,
-                            },
-                        )),
-                    }
-                }
             }
         }
 
@@ -255,10 +245,6 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
             Err(error)
         } else {
-            if relationships.is_empty() {
-                tracing::warn!("Inserted datayptes without adding permissions to them");
-            }
-
             Ok(inserted_data_type_metadata)
         }
     }
@@ -363,12 +349,16 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
-    #[tracing::instrument(level = "info", skip(self, data_type, authorization_api))]
+    #[tracing::instrument(
+        level = "info",
+        skip(self, data_type, authorization_api, relationships)
+    )]
     async fn update_data_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         data_type: DataType,
+        relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         let old_ontology_id = DataTypeId::from_url(&VersionedUrl {
             base_url: data_type.id().base_url.clone(),
@@ -388,67 +378,41 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
-        let (ontology_id, metadata, owner) = transaction
+        let (ontology_id, owned_by_id, metadata) = transaction
             .update::<DataType>(&data_type, RecordCreatedById::new(actor_id))
             .await?;
+        let data_type_id = DataTypeId::from(ontology_id);
 
-        let owner = match owner {
-            OntologyTypeSubject::Account { id } => DataTypeOwnerSubject::Account { id },
-            OntologyTypeSubject::AccountGroup { id } => DataTypeOwnerSubject::AccountGroup {
-                id,
-                set: DataTypeSubjectSet::Member,
-            },
-        };
+        let relationships = relationships
+            .into_iter()
+            .chain(once(DataTypeRelationAndSubject::Owner {
+                subject: DataTypeOwnerSubject::Web { id: owned_by_id },
+                level: 0,
+            }))
+            .collect::<Vec<_>>();
 
-        let relationships = [
-            (
-                DataTypeId::from(ontology_id),
-                DataTypeRelationAndSubject::Owner {
-                    subject: owner,
-                    level: 0,
-                },
-            ),
-            (
-                DataTypeId::from(ontology_id),
-                DataTypeRelationAndSubject::Viewer {
-                    subject: DataTypeViewerSubject::Public,
-                    level: 0,
-                },
-            ),
-        ];
-
-        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
         authorization_api
-            .modify_data_type_relations(
-                relationships
-                    .iter()
-                    .map(|(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Create,
-                            *resource,
-                            *relation_and_subject,
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
+            .modify_data_type_relations(relationships.clone().into_iter().map(
+                |relation_and_subject| {
+                    (
+                        ModifyRelationshipOperation::Create,
+                        data_type_id,
+                        relation_and_subject,
+                    )
+                },
+            ))
             .await
             .change_context(UpdateError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(UpdateError) {
-            #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
             if let Err(auth_error) = authorization_api
-                .modify_data_type_relations(
-                    relationships
-                        .iter()
-                        .map(|(resource, relation_and_subject)| {
-                            (
-                                ModifyRelationshipOperation::Delete,
-                                *resource,
-                                *relation_and_subject,
-                            )
-                        })
-                        .collect::<Vec<_>>(),
-                )
+                .modify_data_type_relations(relationships.into_iter().map(|relation_and_subject| {
+                    (
+                        ModifyRelationshipOperation::Delete,
+                        data_type_id,
+                        relation_and_subject,
+                    )
+                }))
                 .await
                 .change_context(UpdateError)
             {

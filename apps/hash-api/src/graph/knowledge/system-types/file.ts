@@ -1,4 +1,5 @@
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   File,
@@ -114,6 +115,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
       ownedById,
       properties: initialProperties,
       entityTypeId,
+      relationships: createDefaultAuthorizationRelationships(authentication),
     })) as Entity<FileProperties>;
   }
 
@@ -214,6 +216,8 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
           ownedById,
           properties,
           entityTypeId,
+          relationships:
+            createDefaultAuthorizationRelationships(authentication),
         })) as unknown as File);
   } catch (error) {
     throw new Error(

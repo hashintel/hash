@@ -4,7 +4,7 @@ use error_stack::{Context, Result};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
-    web::WebId,
+    provenance::OwnedById,
 };
 
 use crate::{
@@ -21,6 +21,9 @@ use crate::{
 };
 
 pub trait AuthorizationApi {
+    fn seed(&mut self)
+    -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
     ////////////////////////////////////////////////////////////////////////////
     // Account group authorization
     ////////////////////////////////////////////////////////////////////////////
@@ -51,7 +54,7 @@ pub trait AuthorizationApi {
         &self,
         actor: AccountId,
         permission: WebPermission,
-        web: WebId,
+        web: OwnedById,
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
 
@@ -59,9 +62,9 @@ pub trait AuthorizationApi {
         &self,
         actor: AccountId,
         permission: WebPermission,
-        entities: impl IntoIterator<Item = WebId, IntoIter: Send> + Send,
+        entities: impl IntoIterator<Item = OwnedById, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<(HashMap<WebId, bool>, Zookie<'static>), CheckError>> + Send
+    ) -> impl Future<Output = Result<(HashMap<OwnedById, bool>, Zookie<'static>), CheckError>> + Send
     where
         Self: Sync,
     {
@@ -85,14 +88,18 @@ pub trait AuthorizationApi {
     fn modify_web_relations(
         &mut self,
         relationships: impl IntoIterator<
-            Item = (ModifyRelationshipOperation, WebId, WebRelationAndSubject),
+            Item = (
+                ModifyRelationshipOperation,
+                OwnedById,
+                WebRelationAndSubject,
+            ),
             IntoIter: Send,
         > + Send,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn get_web_relations(
         &self,
-        web: WebId,
+        web: OwnedById,
         consistency: Consistency<'static>,
     ) -> impl Future<Output = Result<Vec<WebRelationAndSubject>, ReadError>> + Send;
 
