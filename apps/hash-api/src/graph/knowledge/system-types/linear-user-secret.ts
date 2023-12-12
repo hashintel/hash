@@ -1,4 +1,8 @@
 import {
+  EntityTypeMismatchError,
+  NotFoundError,
+} from "@local/hash-backend-utils/error";
+import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
@@ -26,7 +30,6 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import { VaultClient } from "../../../vault";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 

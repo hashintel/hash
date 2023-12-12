@@ -5780,7 +5780,7 @@
       "WebPermission": {
         "type": "string",
         "enum": [
-          "change_permissions",
+          "change_permission",
           "create_entity",
           "update_entity",
           "view_entity",

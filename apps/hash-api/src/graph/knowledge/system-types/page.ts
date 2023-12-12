@@ -1,3 +1,4 @@
+import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import {
@@ -43,7 +44,6 @@ import {
 import { ApolloError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
-import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import {
   archiveEntity,

@@ -16,14 +16,14 @@ const authentication = { actorId: publicUserAccountId };
  * Ensure the `systemAccountId` exists by fetching it or creating it. Note this
  * method is designed to be run before the system types are initialized.
  */
-export const ensureSystemAccountExists = async (params: {
+export const ensureHashSystemAccountExists = async (params: {
   logger: Logger;
   context: ImpureGraphContext;
 }) => {
   const { logger, context } = params;
 
   try {
-    // The system account is the creator of the system types
+    // The system account is the creator of the HASH system types
     const orgEntityType = await getEntityTypeById(context, authentication, {
       entityTypeId: systemEntityTypes.organization.entityTypeId,
     });
@@ -31,7 +31,7 @@ export const ensureSystemAccountExists = async (params: {
     systemAccountId =
       orgEntityType.metadata.custom.provenance.recordCreatedById;
 
-    logger.info(`Using existing system account id: ${systemAccountId}`);
+    logger.debug(`Using existing system account id: ${systemAccountId}`);
   } catch {
     // We don't have any system types yet, so we need to create the system account, which will create them
 

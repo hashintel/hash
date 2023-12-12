@@ -17,8 +17,21 @@ import {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { NotFoundError } from "@local/hash-backend-utils/error";
+import { UpdatePropertyType } from "@local/hash-graph-client";
 import {
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  blockProtocolDataTypes,
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  generateLinkMapWithConsistentSelfReferences,
   generateTypeBaseUrl,
   SchemaKind,
   SystemTypeWebShortname,
@@ -26,6 +39,9 @@ import {
 import {
   BaseUrl,
   DataTypeWithMetadata,
+  Entity,
+  EntityRootType,
+  EntityTypeInstantiatorSubject,
   EntityTypeRelationAndSubject,
   EntityTypeWithMetadata,
   OwnedById,
@@ -33,33 +49,37 @@ import {
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
+import {
+  componentsFromVersionedUrl,
   extractBaseUrl,
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
 
-import { NotFoundError } from "../../lib/error";
 import {
   CACHED_DATA_TYPE_SCHEMAS,
   CACHED_ENTITY_TYPE_SCHEMAS,
   CACHED_PROPERTY_TYPE_SCHEMAS,
-} from "../../seed-data";
-import { ImpureGraphFunction } from "../context-types";
-import { getDataTypeById } from "../ontology/primitive/data-type";
+} from "../../../seed-data";
+import { ImpureGraphFunction } from "../../context-types";
+import { getDataTypeById } from "../../ontology/primitive/data-type";
 import {
   createEntityType,
   getEntityTypeById,
-} from "../ontology/primitive/entity-type";
+} from "../../ontology/primitive/entity-type";
 import {
   createPropertyType,
   getPropertyTypeById,
-} from "../ontology/primitive/property-type";
-import { systemAccountId } from "../system-account";
+} from "../../ontology/primitive/property-type";
 import {
   getOrCreateOwningAccountGroupId,
   isSelfHostedInstance,
   PrimitiveDataTypeKey,
-} from "../util";
+} from "../system-webs-and-entities";
 import { MigrationState } from "./types";
+import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-dependencies";
 
 const systemTypeDomain = "https://hash.ai";
 
@@ -112,6 +132,7 @@ export const loadExternalDataTypeIfNotExists: ImpureGraphFunction<
         fs.readFileSync(
           path.join(
             __dirname,
+            "..",
             "..",
             "..",
             "seed-data",
@@ -180,6 +201,7 @@ export const loadExternalPropertyTypeIfNotExists: ImpureGraphFunction<
             __dirname,
             "..",
             "..",
+            "..",
             "seed-data",
             "property_type",
             cached_file_name,
@@ -242,6 +264,7 @@ export const loadExternalEntityTypeIfNotExists: ImpureGraphFunction<
         fs.readFileSync(
           path.join(
             __dirname,
+            "..",
             "..",
             "..",
             "seed-data",
@@ -390,12 +413,15 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
     propertyTypeId,
   });
 
+  const { accountGroupId, machineActorId } =
+    await getOrCreateOwningAccountGroupId(context, webShortname);
+
   const relationships: PropertyTypeRelationAndSubject[] = [
     {
       relation: "editor",
       subject: {
         kind: "account",
-        subjectId: systemAccountId,
+        subjectId: machineActorId,
       },
     },
     {
@@ -407,8 +433,11 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
   ];
 
   if (isSelfHostedInstance) {
-    // If this is a self-hosted instance, the system types will be created as external types without an in-instance web
-    await context.graphApi.loadExternalPropertyType(authentication.actorId, {
+    /**
+     * If this is a self-hosted instance, the system types will be created as external types that don't belong to an in-instance web,
+     * although they will be created by a machine actor associated with an equivalently named web.
+     */
+    await context.graphApi.loadExternalPropertyType(machineActorId, {
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
       schema: propertyTypeSchema,
       relationships,
@@ -419,13 +448,9 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
     });
   } else {
     // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
-    const accountGroupId = await getOrCreateOwningAccountGroupId(
-      context,
-      webShortname,
-    );
     const createdPropertyType = await createPropertyType(
       context,
-      authentication,
+      { actorId: machineActorId },
       {
         ownedById: accountGroupId as OwnedById,
         schema: propertyTypeSchema,
@@ -569,12 +594,13 @@ export const generateSystemEntityTypeSchema = (
 export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
   {
     entityTypeDefinition: Omit<EntityTypeDefinition, "entityTypeId">;
+    instantiator: EntityTypeInstantiatorSubject | null;
   } & BaseCreateTypeIfNotExistsParameters,
   Promise<EntityTypeWithMetadata>
 > = async (
   context,
   authentication,
-  { entityTypeDefinition, migrationState, webShortname },
+  { entityTypeDefinition, instantiator, migrationState, webShortname },
 ) => {
   const { title } = entityTypeDefinition;
   const baseUrl = generateSystemTypeBaseUrl({
@@ -607,12 +633,15 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
     entityTypeId,
   });
 
+  const { accountGroupId, machineActorId } =
+    await getOrCreateOwningAccountGroupId(context, webShortname);
+
   const relationships: EntityTypeRelationAndSubject[] = [
     {
       relation: "editor",
       subject: {
         kind: "account",
-        subjectId: systemAccountId,
+        subjectId: machineActorId,
       },
     },
     {
@@ -621,18 +650,22 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
         kind: "public",
       },
     },
-    {
-      relation: "instantiator",
-      subject: {
-        kind: "public",
-      },
-    },
   ];
+
+  if (instantiator) {
+    relationships.push({
+      relation: "instantiator",
+      subject: instantiator,
+    });
+  }
 
   // The type was missing, try and create it
   if (isSelfHostedInstance) {
-    // If this is a self-hosted instance, the system types will be created as external types without an in-instance web
-    await context.graphApi.loadExternalEntityType(systemAccountId, {
+    /**
+     * If this is a self-hosted instance, the system types will be created as external types that don't belong to an in-instance web,
+     * although they will be created by a machine actor associated with an equivalently named web.
+     */
+    await context.graphApi.loadExternalEntityType(machineActorId, {
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
       schema: entityTypeSchema,
       relationships,
@@ -642,21 +675,331 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
       entityTypeId: entityTypeSchema.$id,
     });
   } else {
-    // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
-    const accountGroupId = await getOrCreateOwningAccountGroupId(
+    // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we create the system types in a web
+    const createdEntityType = await createEntityType(
       context,
-      webShortname,
-    );
-    const createdEntityType = await createEntityType(context, authentication, {
-      ownedById: accountGroupId as OwnedById,
-      schema: entityTypeSchema,
-      webShortname,
-      relationships,
-    }).catch((createError) => {
+      { actorId: machineActorId },
+      {
+        ownedById: accountGroupId as OwnedById,
+        schema: entityTypeSchema,
+        webShortname,
+        relationships,
+      },
+    ).catch((createError) => {
       // logger.warn(`Failed to create entity type: ${entityTypeSchema.$id}`);
       throw createError;
     });
 
     return createdEntityType;
   }
+};
+
+export const getCurrentHashSystemEntityTypeId = ({
+  entityTypeKey,
+  migrationState,
+}: {
+  entityTypeKey: keyof typeof systemEntityTypes;
+  migrationState: MigrationState;
+}) => {
+  const entityTypeBaseUrl = systemEntityTypes[entityTypeKey]
+    .entityTypeBaseUrl as BaseUrl;
+
+  const entityTypeVersion =
+    migrationState.entityTypeVersions[entityTypeBaseUrl];
+
+  if (typeof entityTypeVersion === "undefined") {
+    throw new Error(
+      `Expected '${entityTypeKey}' entity type to have been seeded`,
+    );
+  }
+
+  return versionedUrlFromComponents(entityTypeBaseUrl, entityTypeVersion);
+};
+
+export const getExistingHashLinkEntityTypeId = ({
+  linkEntityTypeKey,
+  migrationState,
+}: {
+  linkEntityTypeKey: keyof typeof systemLinkEntityTypes;
+  migrationState: MigrationState;
+}) => {
+  const linkEntityTypeBaseUrl = systemLinkEntityTypes[linkEntityTypeKey]
+    .linkEntityTypeBaseUrl as BaseUrl;
+
+  const linkEntityTypeVersion =
+    migrationState.entityTypeVersions[linkEntityTypeBaseUrl];
+
+  if (typeof linkEntityTypeVersion === "undefined") {
+    throw new Error(
+      `Expected '${linkEntityTypeKey}' link entity type to have been seeded`,
+    );
+  }
+
+  return versionedUrlFromComponents(
+    linkEntityTypeBaseUrl,
+    linkEntityTypeVersion,
+  );
+};
+
+export const getExistingHashPropertyTypeId = ({
+  propertyTypeKey,
+  migrationState,
+}: {
+  propertyTypeKey: keyof typeof systemPropertyTypes;
+  migrationState: MigrationState;
+}) => {
+  const propertyTypeBaseUrl = systemPropertyTypes[propertyTypeKey]
+    .propertyTypeBaseUrl as BaseUrl;
+
+  const propertyTypeVersion =
+    migrationState.propertyTypeVersions[propertyTypeBaseUrl];
+
+  if (typeof propertyTypeVersion === "undefined") {
+    throw new Error(
+      `Expected '${propertyTypeKey}' property type to have been seeded`,
+    );
+  }
+
+  return versionedUrlFromComponents(propertyTypeBaseUrl, propertyTypeVersion);
+};
+
+type BaseUpdateTypeParameters = {
+  migrationState: MigrationState;
+};
+
+export const updateSystemEntityType: ImpureGraphFunction<
+  {
+    currentEntityTypeId: VersionedUrl;
+    newSchema: EntityType & { $id?: VersionedUrl };
+  } & BaseUpdateTypeParameters,
+  Promise<{ updatedEntityTypeId: VersionedUrl }>
+> = async (
+  context,
+  authentication,
+  { currentEntityTypeId, newSchema, migrationState },
+) => {
+  const { baseUrl, version } = componentsFromVersionedUrl(currentEntityTypeId);
+
+  const versionInMigrationState = migrationState.entityTypeVersions[baseUrl];
+
+  if (!versionInMigrationState) {
+    throw new Error(
+      `Update requested for entity type with current entityTypeId ${currentEntityTypeId}, but it does not exist in migration state.`,
+    );
+  }
+
+  if (versionInMigrationState !== version) {
+    throw new Error(
+      `Update requested for entity type with current entityTypeId ${currentEntityTypeId}, but the current version in migration state is ${versionInMigrationState}`,
+    );
+  }
+
+  try {
+    const nextEntityTypeId = versionedUrlFromComponents(baseUrl, version + 1);
+    await getEntityTypeById(context, authentication, {
+      entityTypeId: nextEntityTypeId,
+    });
+    return { updatedEntityTypeId: nextEntityTypeId };
+  } catch {
+    // the next version doesn't exist, continue to create it
+  }
+
+  const currentRelationships = await context.graphApi
+    .getEntityTypeAuthorizationRelationships(
+      authentication.actorId,
+      currentEntityTypeId,
+    )
+    .then((resp) =>
+      resp.data.filter(
+        (rel) =>
+          // the Graph API automatically reapplies the existing ownership relationship between the type and the web
+          rel.subject.kind !== "web",
+      ),
+    );
+
+  const { $id: _, ...schemaWithout$id } = newSchema;
+
+  const schemaWithConsistentSelfReferences = {
+    ...schemaWithout$id,
+    links: generateLinkMapWithConsistentSelfReferences(
+      schemaWithout$id,
+      currentEntityTypeId,
+    ),
+  };
+
+  const updatedTypeMetadata = await context.graphApi
+    .updateEntityType(authentication.actorId, {
+      typeToUpdate: currentEntityTypeId,
+      schema: schemaWithConsistentSelfReferences,
+      relationships: currentRelationships,
+    })
+    .then((resp) => resp.data);
+
+  const { version: newVersion } = updatedTypeMetadata.recordId;
+
+  migrationState.entityTypeVersions[baseUrl] = newVersion;
+
+  return {
+    updatedEntityTypeId: versionedUrlFromComponents(baseUrl, newVersion),
+  };
+};
+
+export const updateSystemPropertyType: ImpureGraphFunction<
+  {
+    currentPropertyTypeId: VersionedUrl;
+    newSchema: UpdatePropertyType & { $id?: VersionedUrl };
+  } & BaseUpdateTypeParameters,
+  Promise<{ updatedPropertyTypeId: VersionedUrl }>
+> = async (
+  context,
+  authentication,
+  { currentPropertyTypeId, newSchema, migrationState },
+) => {
+  const { baseUrl, version } = componentsFromVersionedUrl(
+    currentPropertyTypeId,
+  );
+
+  const versionInMigrationState = migrationState.propertyTypeVersions[baseUrl];
+
+  if (!versionInMigrationState) {
+    throw new Error(
+      `Update requested for property type with current propertyTypeId ${currentPropertyTypeId}, but it does not exist in migration state.`,
+    );
+  }
+
+  if (versionInMigrationState !== version) {
+    throw new Error(
+      `Update requested for property type with current propertyTypeId ${currentPropertyTypeId}, but the current version in migration state is ${versionInMigrationState}`,
+    );
+  }
+
+  try {
+    const nextPropertyTypeId = versionedUrlFromComponents(baseUrl, version + 1);
+    await getPropertyTypeById(context, authentication, {
+      propertyTypeId: nextPropertyTypeId,
+    });
+    return { updatedPropertyTypeId: nextPropertyTypeId };
+  } catch {
+    // the next version doesn't exist, continue to create it
+  }
+
+  const currentRelationships = await context.graphApi
+    .getPropertyTypeAuthorizationRelationships(
+      authentication.actorId,
+      currentPropertyTypeId,
+    )
+    .then((resp) => resp.data);
+
+  const { $id: _, ...schemaWithout$id } = newSchema;
+
+  const updatedPropertyTypeMetadata = await context.graphApi
+    .updatePropertyType(authentication.actorId, {
+      typeToUpdate: currentPropertyTypeId,
+      schema: schemaWithout$id,
+      relationships: currentRelationships,
+    })
+    .then((resp) => resp.data);
+
+  const { version: newVersion } = updatedPropertyTypeMetadata.recordId;
+
+  migrationState.propertyTypeVersions[baseUrl] = newVersion;
+
+  return {
+    updatedPropertyTypeId: versionedUrlFromComponents(baseUrl, newVersion),
+  };
+};
+
+/**
+ * Given a list of upgradedEntityTypeIds, and the keys of types which refer to them, update those types to refer to the new versions.
+ *
+ * @todo have some way of automatically checking all existing types for references to the upgraded types, avoid manually specifying them
+ */
+export const upgradeDependenciesInHashEntityType: ImpureGraphFunction<
+  {
+    dependentEntityTypeKeys: (keyof typeof systemEntityTypes)[];
+    upgradedEntityTypeIds: VersionedUrl[];
+  } & BaseUpdateTypeParameters,
+  Promise<void>
+> = async (
+  context,
+  authentication,
+  { dependentEntityTypeKeys, migrationState, upgradedEntityTypeIds },
+) => {
+  /**
+   * Because the dependents will be updated, we also need to make sure that any cross-references within them are updated
+   */
+  const nextDependentEntityTypeIds = dependentEntityTypeKeys.map((key) => {
+    const currentDependentEntityTypeId = getCurrentHashSystemEntityTypeId({
+      entityTypeKey: key,
+      migrationState,
+    });
+
+    const { baseUrl, version } = componentsFromVersionedUrl(
+      currentDependentEntityTypeId,
+    );
+
+    return versionedUrlFromComponents(baseUrl, version + 1);
+  });
+
+  for (const dependentEntityTypeKey of dependentEntityTypeKeys) {
+    const currentDependentEntityTypeId = getCurrentHashSystemEntityTypeId({
+      entityTypeKey: dependentEntityTypeKey,
+      migrationState,
+    });
+
+    const { schema: dependentSchema } = await getEntityTypeById(
+      context,
+      authentication,
+      {
+        entityTypeId: currentDependentEntityTypeId,
+      },
+    );
+
+    const newDependentSchema = upgradeEntityTypeDependencies({
+      schema: dependentSchema,
+      upgradedEntityTypeIds: [
+        ...upgradedEntityTypeIds,
+        ...nextDependentEntityTypeIds,
+      ],
+    });
+
+    await updateSystemEntityType(context, authentication, {
+      currentEntityTypeId: currentDependentEntityTypeId,
+      migrationState,
+      newSchema: newDependentSchema,
+    });
+
+    /**
+     * @todo handle cascading updates – some of the updated system types may themselves be dependencies of other types
+     *    not covered by the logic above
+     * ideally we'd have a function to check all existing types for dependencies and update them
+     * would also need to handle circular references as part of this
+     */
+  }
+};
+
+export const getEntitiesByType: ImpureGraphFunction<
+  { entityTypeId: VersionedUrl },
+  Promise<Entity[]>
+> = async (context, authentication, { entityTypeId }) => {
+  return await context.graphApi
+    .getEntitiesByQuery(authentication.actorId, {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(entityTypeId, {
+            ignoreParents: true,
+          }),
+        ],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      includeDrafts: false,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    })
+    .then((resp) =>
+      getRoots(mapGraphApiSubgraphToSubgraph<EntityRootType>(resp.data)),
+    );
+};
+
+export const anyUserInstantiator: EntityTypeInstantiatorSubject = {
+  kind: "public",
 };

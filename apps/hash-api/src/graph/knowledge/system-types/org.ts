@@ -1,3 +1,5 @@
+import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -25,7 +27,6 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { EntityTypeMismatchError } from "../../../lib/error";
 import {
   createAccountGroup,
   createWeb,
@@ -118,6 +119,10 @@ export const createOrg: ImpureGraphFunction<
     await createWeb(ctx, authentication, {
       ownedById: orgAccountGroupId as OwnedById,
       owner: { kind: "accountGroup", subjectId: orgAccountGroupId },
+    });
+
+    await createWebMachineActor(ctx, authentication, {
+      ownedById: orgAccountGroupId as OwnedById,
     });
   }
 

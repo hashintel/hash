@@ -1,5 +1,6 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { linearTypeMappings } from "@local/hash-backend-utils/linear-type-mappings";
+import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/temporal-workflow-types";
 import { GraphApi } from "@local/hash-graph-client";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -53,12 +54,17 @@ export const processEntityChange = async (
     );
   }
 
-  if (entity.metadata.provenance.recordCreatedById === systemAccountId) {
+  const linearMachineActorId = await getMachineActorId(
+    { graphApi },
+    { actorId: systemAccountId },
+    { identifier: "linear" },
+  );
+
+  if (entity.metadata.provenance.recordCreatedById === linearMachineActorId) {
     /**
      * To prevent update loops where changes from linear are saved in HASH, and
      * then propagate back to linear, only consider entity editions that weren't
-     * created by the system account ID (currently the actor for all updates in
-     * the linear integration).
+     * created by the Linear machine account's actorId.
      */
     return;
   }
@@ -69,7 +75,7 @@ export const processEntityChange = async (
     ? entity
     : await getLatestEntityById(
         { graphApi },
-        { actorId: systemAccountId },
+        { actorId: linearMachineActorId },
         { entityId: (entity as LinkEntity).linkData.leftEntityId },
       );
 
@@ -103,12 +109,7 @@ export const processEntityChange = async (
 
   const linearApiKey = await getLinearSecretValueByHashWorkspaceId(
     { graphApi },
-    /**
-     * We currently assign the integration permissions to the system account ID,
-     * in the `syncLinearIntegrationWithWorkspaces` resolver, so we user the
-     * `systemAccountId` here for now.
-     */
-    { actorId: systemAccountId },
+    { actorId: linearMachineActorId },
     {
       hashWorkspaceEntityId,
       vaultClient,
@@ -133,7 +134,7 @@ export const processEntityChange = async (
         {
           apiKey: linearApiKey,
           linearId: linearId as string,
-          authentication: { actorId: systemAccountId },
+          authentication: { actorId: linearMachineActorId },
           entityTypeId: linearEntityToUpdate.metadata.entityTypeId,
           entity: linearEntityToUpdate,
         },

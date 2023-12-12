@@ -3,12 +3,12 @@ import path from "node:path";
 
 import { Logger } from "@local/hash-backend-utils/logger";
 
-import { ImpureGraphContext } from "./context-types";
+import { ImpureGraphContext } from "../context-types";
+import { systemAccountId } from "../system-account";
 import {
   MigrationFunction,
   MigrationState,
 } from "./migrate-ontology-types/types";
-import { systemAccountId } from "./system-account";
 
 /**
  * Migrate the ontology types in the Graph API.
