@@ -2,6 +2,7 @@ import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   ArrowLeftIcon,
   CloseIcon,
+  IconButton,
   LoadingSpinner,
   OntologyChip,
   parseUrlForOntologyChip,
@@ -14,11 +15,12 @@ import {
   useEntityTypeForm,
 } from "@hashintel/type-editor";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box, Slide } from "@mui/material";
+import { Box, Slide, Tooltip } from "@mui/material";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { Button, Link } from "../../../../shared/ui";
+import { ArrowRightIcon } from "../../../../shared/icons/arrow-right";
+import { Link } from "../../../../shared/ui";
 import { useRouteNamespace } from "../../../[shortname]/shared/use-route-namespace";
 import { EntityTypeContext } from "../shared/entity-type-context";
 import { EntityTypeHeader } from "../shared/entity-type-header";
@@ -31,6 +33,7 @@ interface TypeSlideOverSlideProps {
   stackPosition: number;
   open: boolean;
   onBack?: () => void;
+  onForward?: () => void;
   onClose: () => void;
   onNavigateToType: (url: VersionedUrl) => void;
   typeUrl: VersionedUrl;
@@ -43,6 +46,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
   open,
   onBack,
   onClose,
+  onForward,
 }) => {
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
 
@@ -125,26 +129,28 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
           paddingY={2}
           display="flex"
           justifyContent="space-between"
-          flexDirection="row-reverse"
         >
-          <Button
-            size="xs"
-            variant="tertiary_quiet"
-            onClick={onClose}
-            endIcon={<CloseIcon />}
-          >
-            Close
-          </Button>
-          {onBack ? (
-            <Button
-              size="xs"
-              variant="tertiary_quiet"
-              onClick={handleBackClick}
-              startIcon={<ArrowLeftIcon />}
-            >
-              Back
-            </Button>
-          ) : null}
+          <Box display="flex" justifyContent="space-between" gap={1}>
+            {onBack || onForward ? (
+              <Tooltip title="Back" placement="bottom">
+                <IconButton disabled={!onBack} onClick={handleBackClick}>
+                  <ArrowLeftIcon />
+                </IconButton>
+              </Tooltip>
+            ) : null}
+            {onForward ? (
+              <Tooltip title="Forward" placement="bottom">
+                <IconButton onClick={onForward}>
+                  <ArrowRightIcon />
+                </IconButton>
+              </Tooltip>
+            ) : null}
+          </Box>
+          <Tooltip title="Close" placement="bottom">
+            <IconButton onClick={onClose}>
+              <CloseIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
         {loadingNamespace ||
         loadingRemoteEntityType ||
