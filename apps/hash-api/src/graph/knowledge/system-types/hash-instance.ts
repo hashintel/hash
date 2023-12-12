@@ -13,12 +13,7 @@ import {
   simplifyProperties,
 } from "@local/hash-isomorphic-utils/simplify-properties";
 import { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import {
-  Entity,
-  EntityRootType,
-  extractOwnedByIdFromEntityId,
-  OwnedById,
-} from "@local/hash-subgraph";
+import { Entity, EntityRootType, OwnedById } from "@local/hash-subgraph";
 import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
