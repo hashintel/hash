@@ -13,7 +13,7 @@ export const TypeSlideOverStack: FunctionComponent<{
   const [currentIndex, setCurrentIndex] = useState<number>(0);
 
   if (rootTypeId !== items[0]) {
-    setCurrentIndex(0)
+    setCurrentIndex(0);
     setItems([rootTypeId]);
   }
 
