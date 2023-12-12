@@ -75,7 +75,7 @@ export const DraftEntity: FunctionComponent<{
                 sx={{
                   color: ({ palette }) => palette.blue[70],
                   position: "relative",
-                  top: 2,
+                  top: 5,
                   marginLeft: 0.5,
                 }}
               />
