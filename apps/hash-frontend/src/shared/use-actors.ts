@@ -5,10 +5,7 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  blockProtocolPropertyTypes,
-  systemEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
 import { AccountId, EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -27,7 +24,7 @@ export type MinimalActor =
   | {
       accountId: AccountId;
       kind: "machine";
-      preferredName: string;
+      displayName: string;
     };
 
 export const useActors = (params: {
@@ -83,8 +80,8 @@ export const useActors = (params: {
       return {
         accountId: entity.metadata.provenance.recordCreatedById,
         kind: "machine" as const,
-        preferredName: (entity.properties as MachineProperties)[
-          blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl
+        displayName: (entity.properties as MachineProperties)[
+          "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"
         ],
       };
     });

@@ -6,11 +6,11 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  blockProtocolPropertyTypes,
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-types";
+import { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
 import {
   AccountId,
   EntityMetadata,
@@ -39,10 +39,7 @@ export type MachineActorIdentifier =
   | WebMachineActorIdentifier;
 
 /**
- * Retrieve a machine
- * @param context
- * @param authentication
- * @param identifier
+ * Retrieve a machine actor's accountId by its unique identifier
  */
 
 export const getMachineActorId = async (
@@ -167,10 +164,11 @@ export const createMachineActorEntity = async (
       entityTypeId: systemEntityTypes.machine.entityTypeId,
       ownedById,
       properties: {
-        [blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl]:
+        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
           displayName,
-        [systemPropertyTypes.machineIdentifier.propertyTypeBaseUrl]: identifier,
-      },
+        "https://hash.ai/@hash/types/property-type/machine-identifier/":
+          identifier,
+      } as MachineProperties,
       relationships: [
         {
           relation: "administrator",
