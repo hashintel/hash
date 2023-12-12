@@ -5,6 +5,10 @@
 import { Entity, LinkData } from "@blockprotocol/graph";
 
 import {
+  Actor,
+  ActorOutgoingLinkAndTarget,
+  ActorOutgoingLinksByLinkEntityTypeId,
+  ActorProperties,
   ArchivedPropertyValue,
   AuthoredBy,
   AuthoredByOutgoingLinkAndTarget,
@@ -32,6 +36,7 @@ import {
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
   EmailPropertyValue,
+  EntityEditionIdPropertyValue,
   File,
   FileHashPropertyValue,
   FileNamePropertyValue,
@@ -165,6 +170,10 @@ import {
 } from "./shared";
 
 export type {
+  Actor,
+  ActorOutgoingLinkAndTarget,
+  ActorOutgoingLinksByLinkEntityTypeId,
+  ActorProperties,
   ArchivedPropertyValue,
   AuthoredBy,
   AuthoredByOutgoingLinkAndTarget,
@@ -192,6 +201,7 @@ export type {
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
   EmailPropertyValue,
+  EntityEditionIdPropertyValue,
   File,
   FileHashPropertyValue,
   FileNamePropertyValue,
@@ -356,7 +366,7 @@ export type MentionNotificationOutgoingLinkAndTarget =
 export type MentionNotificationOutgoingLinksByLinkEntityTypeId = {
   "https://hash.ai/@hash/types/entity-type/occurred-in-block/v/1": MentionNotificationOccurredInBlockLink;
   "https://hash.ai/@hash/types/entity-type/occurred-in-comment/v/1": MentionNotificationOccurredInCommentLink;
-  "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/1": MentionNotificationOccurredInEntityLink;
+  "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/2": MentionNotificationOccurredInEntityLink;
   "https://hash.ai/@hash/types/entity-type/occurred-in-text/v/1": MentionNotificationOccurredInTextLink;
   "https://hash.ai/@hash/types/entity-type/triggered-by-user/v/1": MentionNotificationTriggeredByUserLink;
 };

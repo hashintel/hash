@@ -1,20 +1,17 @@
 import { Logger } from "@local/hash-backend-utils/logger";
 
 import { ImpureGraphContext } from "./context-types";
-import { migrateOntologyTypes } from "./migrate-ontology-types";
-import { ensureSystemAccountExists } from "./system-account";
-import { ensureSystemEntitiesExists } from "./system-entities";
-import { ensureAccountGroupOrgsExist } from "./util";
+import { migrateOntologyTypes } from "./ensure-system-graph-is-initialized/migrate-ontology-types";
+import { ensureSystemEntitiesExist } from "./ensure-system-graph-is-initialized/system-webs-and-entities";
+import { ensureHashSystemAccountExists } from "./system-account";
 
 export const ensureSystemGraphIsInitialized = async (params: {
   logger: Logger;
   context: ImpureGraphContext;
 }) => {
-  await ensureSystemAccountExists(params);
+  await ensureHashSystemAccountExists(params);
 
   await migrateOntologyTypes(params);
 
-  await ensureAccountGroupOrgsExist(params);
-
-  await ensureSystemEntitiesExists(params);
+  await ensureSystemEntitiesExist(params);
 };

@@ -4,6 +4,17 @@
 
 import { Entity, LinkData } from "@blockprotocol/graph";
 
+export type Actor = Entity<ActorProperties>;
+
+export type ActorOutgoingLinkAndTarget = never;
+
+export type ActorOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Someone or something that can perform actions in the system
+ */
+export type ActorProperties = {};
+
 /**
  * Whether or not something has been archived.
  */
@@ -119,6 +130,11 @@ export type DisplayNamePropertyValue = TextDataType;
  * An email address
  */
 export type EmailPropertyValue = TextDataType;
+
+/**
+ * An identifier for an edition of an entity
+ */
+export type EntityEditionIdPropertyValue = TextDataType;
 
 /**
  * Stringified timestamp of when something expired.
@@ -446,7 +462,9 @@ export type OccurredInEntityProperties = OccurredInEntityProperties1 &
   OccurredInEntityProperties2;
 export type OccurredInEntityProperties1 = LinkProperties;
 
-export type OccurredInEntityProperties2 = {};
+export type OccurredInEntityProperties2 = {
+  "https://hash.ai/@hash/types/property-type/entity-edition-id/"?: EntityEditionIdPropertyValue;
+};
 
 export type Organization = Entity<OrganizationProperties>;
 
@@ -711,7 +729,10 @@ export type UserOutgoingLinksByLinkEntityTypeId = {
 /**
  * A user of the HASH application.
  */
-export type UserProperties = {
+export type UserProperties = UserProperties1 & UserProperties2;
+export type UserProperties1 = ActorProperties;
+
+export type UserProperties2 = {
   /**
    * @minItems 1
    */

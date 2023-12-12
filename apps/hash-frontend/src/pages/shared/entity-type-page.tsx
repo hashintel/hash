@@ -1,9 +1,5 @@
-import {
-  EntityTypeReference,
-  extractVersion,
-} from "@blockprotocol/type-system";
-import { VersionedUrl } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
-import { EntityType } from "@blockprotocol/type-system/slim";
+import { extractVersion } from "@blockprotocol/type-system";
+import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   EntityTypeIcon,
   LinkTypeIcon,
@@ -16,17 +12,13 @@ import {
   getSchemaFromFormData,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import { typedEntries } from "@local/advanced-types/typed-entries";
+import { generateLinkMapWithConsistentSelfReferences } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
   BaseUrl,
   linkEntityTypeUrl,
   OwnedById,
 } from "@local/hash-subgraph";
-import {
-  componentsFromVersionedUrl,
-  versionedUrlFromComponents,
-} from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 import { useRouter } from "next/router";
@@ -163,56 +155,30 @@ export const EntityTypePage = ({
       );
       reset(data);
     } else {
+      const currentEntityTypeId = entityType?.$id;
+      if (!currentEntityTypeId) {
+        throw new Error(
+          "Cannot update entity type without existing entityType schema",
+        );
+      }
+
       /**
        * If an entity type refers to itself as a link destination, e.g. a Company may have a Parent which is a Company,
        * we want the version specified as the link target in the schema to be the same as the version of the entity type.
        * This rewriting of the schema ensures that by looking for self references and giving them the expected next version.
        * If we don't do this, creating a new version of Company means the new version will have a link to the previous version.
        */
-      const linkRecordWithConsistentSelfReferences = {
+      const schemaWithConsistentSelfReferences = {
         ...entityTypeSchema,
-        links: typedEntries(entityTypeSchema.links).reduce<
-          NonNullable<EntityType["links"]>
-        >((accumulator, [linkTypeId, linkSchema]) => {
-          const currentEntityTypeId = entityType?.$id;
-          if (!currentEntityTypeId) {
-            throw new Error(
-              "Cannot update entity type without existing entityType schema",
-            );
-          }
-
-          const schemaWithConsistentSelfReferences = {
-            ...linkSchema,
-            items:
-              "oneOf" in linkSchema.items
-                ? {
-                    oneOf: linkSchema.items.oneOf.map((item) => {
-                      const isSelfReference = item.$ref === currentEntityTypeId;
-                      if (isSelfReference) {
-                        const { baseUrl, version: currentVersion } =
-                          componentsFromVersionedUrl(currentEntityTypeId);
-                        return {
-                          $ref: versionedUrlFromComponents(
-                            baseUrl,
-                            currentVersion + 1,
-                          ),
-                        };
-                      }
-                      return item;
-                    }) as [EntityTypeReference, ...EntityTypeReference[]],
-                  }
-                : {},
-          };
-
-          accumulator[linkTypeId] = schemaWithConsistentSelfReferences;
-          return accumulator;
-        }, {}),
+        links: generateLinkMapWithConsistentSelfReferences(
+          entityTypeSchema,
+          currentEntityTypeId,
+        ),
       };
 
-      const res = await updateEntityType(
-        linkRecordWithConsistentSelfReferences,
-        { icon: data.icon },
-      );
+      const res = await updateEntityType(schemaWithConsistentSelfReferences, {
+        icon: data.icon,
+      });
 
       if (!res.errors?.length && res.data) {
         void router.push(

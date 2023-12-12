@@ -2,9 +2,10 @@ import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-
 import { BaseUrl, linkEntityTypeUrl } from "@local/hash-subgraph";
 import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
-import { enabledIntegrations } from "../../../integrations/enabled-integrations";
+import { enabledIntegrations } from "../../../../integrations/enabled-integrations";
 import { MigrationFunction } from "../types";
 import {
+  anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
 } from "../util";
@@ -425,6 +426,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
+      instantiator: anyUserInstantiator,
     },
   );
 
@@ -511,7 +513,6 @@ const migrate: MigrationFunction = async ({
   if (typeof emailPropertyTypeVersion === "undefined") {
     throw new Error("Expected HASH email property type to have been seeded");
   }
-
   const emailPropertyTypeId = versionedUrlFromComponents(
     emailPropertyTypeBaseUrl,
     emailPropertyTypeVersion,
@@ -599,6 +600,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
+      instantiator: anyUserInstantiator,
     });
 
   const statusEmojiPropertyType = await createSystemPropertyTypeIfNotExists(
@@ -684,6 +686,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
+      instantiator: anyUserInstantiator,
     },
   );
 
@@ -789,6 +792,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
+      instantiator: anyUserInstantiator,
     },
   );
 
@@ -804,6 +808,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
+      instantiator: anyUserInstantiator,
     },
   );
 
@@ -821,6 +826,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
+      instantiator: anyUserInstantiator,
     },
   );
 
@@ -920,6 +926,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
+      instantiator: anyUserInstantiator,
     });
 
   const markdownDescriptionPropertyType =
@@ -1014,6 +1021,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
+      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1070,6 +1078,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
+      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1143,6 +1152,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
+      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1170,6 +1180,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
+      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1388,6 +1399,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
+      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1419,6 +1431,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
+      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1559,6 +1572,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
+      instantiator: anyUserInstantiator,
     },
   );
 

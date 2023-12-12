@@ -1,4 +1,8 @@
 export const systemEntityTypes = {
+  actor: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/actor/v/1",
+    entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/actor/",
+  },
   block: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/block/v/1",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/block/",
@@ -14,12 +18,12 @@ export const systemEntityTypes = {
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/canvas/",
   },
   comment: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/1",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/2",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/comment/",
   },
   commentNotification: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/comment-notification/v/1",
+      "https://hash.ai/@hash/types/entity-type/comment-notification/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/comment-notification/",
   },
@@ -42,6 +46,12 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/github-account/",
   },
+  graphChangeNotification: {
+    entityTypeId:
+      "https://hash.ai/@hash/types/entity-type/graph-change-notification/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/graph-change-notification/",
+  },
   hashInstance: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/hash-instance/v/1",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/hash-instance/",
@@ -58,7 +68,7 @@ export const systemEntityTypes = {
   },
   linearIntegration: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/linear-integration/v/1",
+      "https://hash.ai/@hash/types/entity-type/linear-integration/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/linear-integration/",
   },
@@ -68,9 +78,13 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/linkedin-account/",
   },
+  machine: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/machine/v/1",
+    entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/machine/",
+  },
   mentionNotification: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/mention-notification/v/1",
+      "https://hash.ai/@hash/types/entity-type/mention-notification/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/mention-notification/",
   },
@@ -114,7 +128,7 @@ export const systemEntityTypes = {
       "https://hash.ai/@hash/types/entity-type/twitter-account/",
   },
   user: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/1",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/2",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/user/",
   },
   userSecret: {
@@ -195,7 +209,7 @@ export const systemLinkEntityTypes = {
   },
   occurredInEntity: {
     linkEntityTypeId:
-      "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/1",
+      "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/2",
     linkEntityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/occurred-in-entity/",
   },
@@ -263,6 +277,12 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/email/v/1",
     propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/email/",
   },
+  entityEditionId: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/entity-edition-id/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/entity-edition-id/",
+  },
   expiredAt: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/expired-at/v/1",
     propertyTypeBaseUrl:
@@ -310,6 +330,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/fractional-index/",
   },
+  graphChangeType: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/graph-change-type/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/graph-change-type/",
+  },
   heightInPixels: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/height-in-pixels/v/1",
@@ -341,6 +367,12 @@ export const systemPropertyTypes = {
   location: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/location/v/1",
     propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/location/",
+  },
+  machineIdentifier: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/machine-identifier/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/machine-identifier/",
   },
   orgSelfRegistrationIsEnabled: {
     propertyTypeId:
@@ -774,29 +806,11 @@ export const linearPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@linear/types/property-type/profile-url/",
   },
-  projectUpdateRemindersDay: {
-    propertyTypeId:
-      "https://hash.ai/@linear/types/property-type/project-update-reminders-day/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@linear/types/property-type/project-update-reminders-day/",
-  },
   projectUpdateRemindersHour: {
     propertyTypeId:
       "https://hash.ai/@linear/types/property-type/project-update-reminders-hour/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@linear/types/property-type/project-update-reminders-hour/",
-  },
-  projectUpdatesReminderFrequency: {
-    propertyTypeId:
-      "https://hash.ai/@linear/types/property-type/project-updates-reminder-frequency/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@linear/types/property-type/project-updates-reminder-frequency/",
-  },
-  releaseChannel: {
-    propertyTypeId:
-      "https://hash.ai/@linear/types/property-type/release-channel/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@linear/types/property-type/release-channel/",
   },
   roadmapEnabled: {
     propertyTypeId:
@@ -815,12 +829,6 @@ export const linearPropertyTypes = {
       "https://hash.ai/@linear/types/property-type/scim-enabled/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@linear/types/property-type/scim-enabled/",
-  },
-  slaDayCount: {
-    propertyTypeId:
-      "https://hash.ai/@linear/types/property-type/sla-day-count/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@linear/types/property-type/sla-day-count/",
   },
   snoozedUntilAt: {
     propertyTypeId:
@@ -940,6 +948,12 @@ export const blockProtocolEntityTypes = {
     entityTypeBaseUrl:
       "https://blockprotocol.org/@hash/types/entity-type/query/",
   },
+  thing: {
+    entityTypeId:
+      "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/1",
+    entityTypeBaseUrl:
+      "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/",
+  },
 } as const;
 
 export const blockProtocolLinkEntityTypes = {
@@ -993,6 +1007,12 @@ export const blockProtocolPropertyTypes = {
       "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/v/1",
     propertyTypeBaseUrl:
       "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/",
+  },
+  name: {
+    propertyTypeId:
+      "https://blockprotocol.org/@blockprotocol/types/property-type/name/v/1",
+    propertyTypeBaseUrl:
+      "https://blockprotocol.org/@blockprotocol/types/property-type/name/",
   },
   originalFileName: {
     propertyTypeId:

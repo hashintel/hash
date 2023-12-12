@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 
 import { tupleIncludes } from "@local/advanced-types/includes";
+import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import {
   supportedLinearTypes,
   WorkflowTypeMap,
@@ -92,9 +93,15 @@ export const linearWebhook: RequestHandler<{}, string, string> = async (
     return;
   }
 
+  const linearBotAccountId = await getMachineActorId(
+    req.context,
+    { actorId: systemAccountId },
+    { identifier: "linear" },
+  );
+
   const linearIntegrations = await getAllLinearIntegrationsWithLinearOrgId(
     { graphApi },
-    { actorId: systemAccountId },
+    { actorId: linearBotAccountId },
     { linearOrgId: organizationId },
   );
 
@@ -109,7 +116,7 @@ export const linearWebhook: RequestHandler<{}, string, string> = async (
       linearIntegrations.map(async (linearIntegration) => {
         const syncedWorkspaces = await getSyncedWorkspacesForLinearIntegration(
           { graphApi },
-          { actorId: systemAccountId },
+          { actorId: linearBotAccountId },
           {
             linearIntegrationEntityId:
               linearIntegration.entity.metadata.recordId.entityId,
@@ -136,12 +143,7 @@ export const linearWebhook: RequestHandler<{}, string, string> = async (
 
             const linearApiKey = await getLinearSecretValueByHashWorkspaceId(
               { graphApi },
-              /**
-               * We currently assign the integration permissions to the system account ID,
-               * in the `syncLinearIntegrationWithWorkspaces` resolver, so we user the
-               * `systemAccountId` here for now.
-               */
-              { actorId: systemAccountId },
+              { actorId: linearBotAccountId },
               {
                 hashWorkspaceEntityId,
                 vaultClient,
@@ -154,7 +156,7 @@ export const linearWebhook: RequestHandler<{}, string, string> = async (
               taskQueue: "integration",
               args: [
                 {
-                  authentication: { actorId: systemAccountId },
+                  authentication: { actorId: linearBotAccountId },
                   linearType,
                   linearId,
                   linearApiKey,
