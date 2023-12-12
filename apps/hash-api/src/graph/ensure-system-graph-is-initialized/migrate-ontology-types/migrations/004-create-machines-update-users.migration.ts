@@ -7,8 +7,8 @@ import { MigrationFunction } from "../types";
 import {
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
+  getCurrentHashSystemEntityTypeId,
   getExistingHashLinkEntityTypeId,
-  getExistingHashSystemEntityTypeId,
   updateSystemEntityType,
   upgradeDependenciesInHashEntityType,
 } from "../util";
@@ -76,7 +76,7 @@ const migrate: MigrationFunction = async ({
 
   /** Step 3: Update the User entity type to inherit from Actor */
 
-  const currentUserEntityTypeId = getExistingHashSystemEntityTypeId({
+  const currentUserEntityTypeId = getCurrentHashSystemEntityTypeId({
     entityTypeKey: "user",
     migrationState,
   });
@@ -148,7 +148,7 @@ const migrate: MigrationFunction = async ({
 
   /** Step 5: Create a new Graph Change notification type to notify of generic CRUD operations in the graph */
 
-  const notificationEntityType = getExistingHashSystemEntityTypeId({
+  const notificationEntityType = getCurrentHashSystemEntityTypeId({
     entityTypeKey: "notification",
     migrationState,
   });

@@ -694,7 +694,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
   }
 };
 
-export const getExistingHashSystemEntityTypeId = ({
+export const getCurrentHashSystemEntityTypeId = ({
   entityTypeKey,
   migrationState,
 }: {
@@ -929,7 +929,7 @@ export const upgradeDependenciesInHashEntityType: ImpureGraphFunction<
    * Because the dependents will be updated, we also need to make sure that any cross-references within them are updated
    */
   const nextDependentEntityTypeIds = dependentEntityTypeKeys.map((key) => {
-    const currentDependentEntityTypeId = getExistingHashSystemEntityTypeId({
+    const currentDependentEntityTypeId = getCurrentHashSystemEntityTypeId({
       entityTypeKey: key,
       migrationState,
     });
@@ -942,7 +942,7 @@ export const upgradeDependenciesInHashEntityType: ImpureGraphFunction<
   });
 
   for (const dependentEntityTypeKey of dependentEntityTypeKeys) {
-    const currentDependentEntityTypeId = getExistingHashSystemEntityTypeId({
+    const currentDependentEntityTypeId = getCurrentHashSystemEntityTypeId({
       entityTypeKey: dependentEntityTypeKey,
       migrationState,
     });
