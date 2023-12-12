@@ -18,7 +18,10 @@ use graph_types::{
 };
 use tokio::sync::RwLock;
 use tokio_postgres::GenericClient;
-use type_system::{url::VersionedUrl, DataType, EntityType, PropertyType};
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    DataType, EntityType, PropertyType,
+};
 use validation::{EntityProvider, EntityTypeProvider, OntologyTypeProvider};
 
 use crate::{
@@ -373,22 +376,23 @@ where
     async fn is_parent_of(
         &self,
         child: &VersionedUrl,
-        parent: &VersionedUrl,
+        parent: &BaseUrl,
     ) -> Result<bool, Report<QueryError>> {
         let client = self.store.as_client().client();
         let child_id = EntityTypeId::from_url(child);
-        let parent_id = EntityTypeId::from_url(parent);
 
         Ok(client
             .query_one(
                 "
                     SELECT EXISTS (
                         SELECT 1 FROM closed_entity_type_inherits_from
+                         JOIN ontology_ids
+                           ON ontology_ids.ontology_id = target_entity_type_ontology_id
                         WHERE source_entity_type_ontology_id = $1
-                          AND target_entity_type_ontology_id = $2
+                          AND ontology_ids.base_url = $2
                     );
                 ",
-                &[child_id.as_uuid(), parent_id.as_uuid()],
+                &[child_id.as_uuid(), &parent.as_str()],
             )
             .await
             .change_context(QueryError)?
