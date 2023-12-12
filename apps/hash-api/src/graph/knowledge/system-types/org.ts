@@ -1,3 +1,4 @@
+import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
 import {
   currentTimeInstantTemporalAxes,
@@ -26,7 +27,6 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { EntityTypeMismatchError } from "../../../lib/error";
 import {
   createAccountGroup,
   createWeb,

@@ -1,4 +1,8 @@
 import {
+  EntityTypeMismatchError,
+  NotFoundError,
+} from "@local/hash-backend-utils/error";
+import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
@@ -20,7 +24,6 @@ import {
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
-import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import {
   createAccountGroup,
   createWeb,

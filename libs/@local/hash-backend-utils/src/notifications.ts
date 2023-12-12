@@ -69,7 +69,7 @@ export const createGraphChangeNotification = async (
     operation: "create" | "update";
     notifiedUserAccountId: AccountId;
   },
-): Promise<GraphChangeNotification> => {
+) => {
   const { graphApi } = context;
 
   const {

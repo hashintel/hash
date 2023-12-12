@@ -1,3 +1,4 @@
+import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { createNotificationEntityPermissions } from "@local/hash-backend-utils/notifications";
 import {
@@ -25,8 +26,8 @@ import {
   LinkEntity,
 } from "@local/hash-subgraph/type-system-patch";
 
-import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import { systemAccountId } from "../../system-account";
 import {
   createEntity,
   CreateEntityParams,

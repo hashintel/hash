@@ -1,15 +1,22 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
-  createMachineActor,
+  createMachineActorEntity,
+  createWebMachineActor,
   getMachineActorId,
+  getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountGroupId, AccountId, OwnedById } from "@local/hash-subgraph";
+import {
+  AccountGroupId,
+  AccountId,
+  extractOwnedByIdFromEntityId,
+  OwnedById,
+} from "@local/hash-subgraph";
 
 import { enabledIntegrations } from "../../integrations/enabled-integrations";
-import { NotFoundError } from "../../lib/error";
 import { logger } from "../../logger";
 import {
   createAccount,
@@ -23,6 +30,7 @@ import {
 } from "../knowledge/system-types/hash-instance";
 import { createOrg, getOrgByShortname } from "../knowledge/system-types/org";
 import { systemAccountId } from "../system-account";
+import { getEntitiesByType } from "./migrate-ontology-types/util";
 
 // Whether this is a self-hosted instance, rather than the central HASH hosted instance
 export const isSelfHostedInstance =
@@ -89,6 +97,11 @@ export const getOrCreateOwningAccountGroupId = async (
       );
       owningWebs[webShortname].accountGroupId = foundOrg.accountGroupId;
       owningWebs[webShortname].machineActorAccountId = machineActorIdForWeb;
+
+      return {
+        accountGroupId: foundOrg.accountGroupId,
+        machineActorId: machineActorIdForWeb,
+      };
     }
   } catch {
     // No org system type yet, this must be the first migration run in which this web was used
@@ -146,24 +159,15 @@ export const ensureSystemEntitiesExist = async (params: {
     "Ensuring account group organization and machine entities exist",
   );
 
-  for (const [
-    webShortname,
-    { accountGroupId, enabled, machineActorAccountId, name, websiteUrl },
-  ] of typedEntries(owningWebs)) {
+  for (const [webShortname, { enabled, name, websiteUrl }] of typedEntries(
+    owningWebs,
+  )) {
     if (!enabled) {
       continue;
     }
 
-    if (!accountGroupId) {
-      throw new Error(
-        `Missing accountGroupId for system web with shortname ${webShortname}`,
-      );
-    }
-    if (!machineActorAccountId) {
-      throw new Error(
-        `Missing machineActorAccountId for system web with shortname ${webShortname}`,
-      );
-    }
+    const { accountGroupId, machineActorId: machineActorAccountId } =
+      await getOrCreateOwningAccountGroupId(context, webShortname);
 
     const authentication = { actorId: machineActorAccountId };
     const foundOrg = await getOrgByShortname(context, authentication, {
@@ -197,15 +201,16 @@ export const ensureSystemEntitiesExist = async (params: {
       }
 
       if (error instanceof NotFoundError) {
-        await createMachineActor(context, {
+        await createMachineActorEntity(context, {
           machineAccountId: machineActorAccountId,
           identifier: webShortname,
           ownedById: accountGroupId as OwnedById,
           preferredName,
+          systemAccountId,
         });
 
         logger.info(
-          `Created machine actor entity for '${webShortname}' for accountId ${machineActorAccountId}`,
+          `Created machine actor entity for accountId ${machineActorAccountId} for '${webShortname}' with accountGroupId '${accountGroupId}`,
         );
       } else {
         throw error;
@@ -244,16 +249,117 @@ export const ensureSystemEntitiesExist = async (params: {
         );
       }
 
-      await createMachineActor(context, {
+      await context.graphApi.modifyWebAuthorizationRelationships(
+        systemAccountId,
+        [
+          {
+            operation: "create",
+            resource: hashAccountGroupId,
+            relationAndSubject: {
+              subject: {
+                kind: "account",
+                subjectId: aiAssistantAccountId,
+              },
+              relation: "entityCreator",
+            },
+          },
+          {
+            operation: "create",
+            resource: hashAccountGroupId,
+            relationAndSubject: {
+              subject: {
+                kind: "account",
+                subjectId: aiAssistantAccountId,
+              },
+              relation: "entityEditor",
+            },
+          },
+        ],
+      );
+
+      await createMachineActorEntity(context, {
         identifier: "ai-assistant",
         machineAccountId: aiAssistantAccountId,
         ownedById: hashAccountGroupId as OwnedById,
         preferredName: "HASH AI",
+        systemAccountId,
       });
+
+      logger.info("Created HASH AI Assistant entity");
     } else {
       throw error;
     }
   }
+
+  /**
+   * Mop up step: create web machine actors for existing webs – bots with permissions to add other bots to each existing web.
+   *
+   * This step is only required to transition existing instances in Dec 2023, and can be deleted once they have been migrated.
+   */
+  const users = await getEntitiesByType(context, authentication, {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/1",
+  });
+
+  for (const user of users) {
+    const userAccountId = extractOwnedByIdFromEntityId(
+      user.metadata.recordId.entityId,
+    );
+    try {
+      await getWebMachineActorId(context, authentication, {
+        ownedById: userAccountId,
+      });
+    } catch (err) {
+      if (err instanceof NotFoundError) {
+        await createWebMachineActor(
+          context,
+          // We have to use the user's authority to add the machine to their web
+          { actorId: userAccountId as AccountId },
+          {
+            ownedById: userAccountId,
+          },
+        );
+        logger.info(`Created web machine actor for user ${userAccountId}`);
+      } else {
+        throw new Error(
+          `Unexpected error attempting to retrieve machine web actor for user ${user.metadata.recordId.entityId}`,
+        );
+      }
+    }
+  }
+
+  const orgs = await getEntitiesByType(context, authentication, {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/organization/v/1",
+  });
+
+  for (const org of orgs) {
+    const orgAccountGroupId = extractOwnedByIdFromEntityId(
+      org.metadata.recordId.entityId,
+    );
+    try {
+      await getWebMachineActorId(context, authentication, {
+        ownedById: orgAccountGroupId,
+      });
+    } catch (err) {
+      if (err instanceof NotFoundError) {
+        const orgAdminAccountId = org.metadata.provenance.recordCreatedById;
+
+        await createWebMachineActor(
+          context,
+          // We have to use an org admin's authority to add the machine to their web
+          { actorId: orgAdminAccountId },
+          {
+            ownedById: orgAccountGroupId,
+          },
+        );
+        logger.info(`Created web machine actor for org ${orgAccountGroupId}`);
+      } else {
+        throw new Error(
+          `Unexpected error attempting to retrieve machine web actor for organization ${org.metadata.recordId.entityId}`,
+        );
+      }
+    }
+  }
+  /** End mop-up step, which can be deleted once all existing instances have been migrated */
 };
 
 export type PrimitiveDataTypeKey = keyof typeof blockProtocolDataTypes;

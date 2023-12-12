@@ -4,7 +4,7 @@ import {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import { extractBaseUrl } from "@local/hash-subgraph/src/shared/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 const replaceEntityTypeReference = ({
   reference,

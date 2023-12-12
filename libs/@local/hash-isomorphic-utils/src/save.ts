@@ -9,11 +9,11 @@ import {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { LinkEntity } from "@local/hash-subgraph/src/shared/type-system-patch";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { generateNKeysBetween } from "fractional-indexing";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";

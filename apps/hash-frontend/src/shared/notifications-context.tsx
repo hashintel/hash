@@ -27,6 +27,7 @@ import {
   PageProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/commentnotification";
+import { GraphChangeNotification } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import {
   Entity,

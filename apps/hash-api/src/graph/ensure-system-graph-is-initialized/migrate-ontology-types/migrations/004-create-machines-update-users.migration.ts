@@ -1,18 +1,12 @@
 import { EntityType } from "@blockprotocol/type-system";
-import {
-  createWebMachineActor,
-  getWebMachineActorId,
-} from "@local/hash-backend-utils/machine-actors";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { AccountId, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
-import { NotFoundError } from "../../../../lib/error";
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
+import { systemAccountId } from "../../../system-account";
 import { MigrationFunction } from "../types";
 import {
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
-  getEntitiesByType,
   getExistingHashLinkEntityTypeId,
   getExistingHashPropertyTypeId,
   getExistingHashSystemEntityTypeId,
@@ -82,7 +76,10 @@ const migrate: MigrationFunction = async ({
     },
     webShortname: "hash",
     migrationState,
-    instantiator: null,
+    instantiator: {
+      kind: "account",
+      subjectId: systemAccountId,
+    },
   });
 
   /** Step 3: Update the User entity type to inherit from Actor */
@@ -116,7 +113,6 @@ const migrate: MigrationFunction = async ({
       currentEntityTypeId: currentUserEntityTypeId,
       migrationState,
       newSchema: newUserEntityTypeSchema,
-      updateExistingEntitiesToNewVersion: true,
     });
 
   /** Step 4: Update the Occurred in Entity link type to have an Entity Edition Id property, to track which edition was created */
@@ -162,7 +158,6 @@ const migrate: MigrationFunction = async ({
       currentEntityTypeId: currentOccurredInEntityEntityTypeId,
       migrationState,
       newSchema: newOccurredInEntityEntityTypeSchema,
-      updateExistingEntitiesToNewVersion: true,
     });
 
   /** Step 5: Create a new Graph Change notification type to notify of generic CRUD operations in the graph */
@@ -224,81 +219,7 @@ const migrate: MigrationFunction = async ({
       "mentionNotification",
     ],
     migrationState,
-    updateExistingEntitiesToNewVersion: true,
   });
-
-  /**
-   * Step 7: Create web machine actors for existing webs
-   *
-   * This step is only required to transition existing instances, and can be deleted once they have been migrated.
-   */
-  const users = await getEntitiesByType(context, authentication, {
-    entityTypeId: currentUserEntityTypeId,
-  });
-
-  for (const user of users) {
-    const userAccountId = extractOwnedByIdFromEntityId(
-      user.metadata.recordId.entityId,
-    );
-    try {
-      await getWebMachineActorId(context, authentication, {
-        ownedById: userAccountId,
-      });
-    } catch (err) {
-      if (err instanceof NotFoundError) {
-        await createWebMachineActor(
-          context,
-          // We have to use the user's authority to add the machine to their web
-          { actorId: userAccountId as AccountId },
-          {
-            ownedById: userAccountId,
-          },
-        );
-      } else {
-        throw new Error(
-          `Unexpected error attempting to retrieve machine web actor for user ${user.metadata.recordId.entityId}`,
-        );
-      }
-    }
-  }
-
-  const orgEntityTypeId = getExistingHashSystemEntityTypeId({
-    entityTypeKey: "organization",
-    migrationState,
-  });
-
-  const orgs = await getEntitiesByType(context, authentication, {
-    entityTypeId: orgEntityTypeId,
-  });
-
-  for (const org of orgs) {
-    const orgAccountGroupId = extractOwnedByIdFromEntityId(
-      org.metadata.recordId.entityId,
-    );
-    try {
-      await getWebMachineActorId(context, authentication, {
-        ownedById: orgAccountGroupId,
-      });
-    } catch (err) {
-      if (err instanceof NotFoundError) {
-        const orgAdminAccountId = org.metadata.provenance.recordCreatedById;
-
-        await createWebMachineActor(
-          context,
-          // We have to use an org admin's authority to add the machine to their web
-          { actorId: orgAdminAccountId },
-          {
-            ownedById: orgAccountGroupId,
-          },
-        );
-      } else {
-        throw new Error(
-          `Unexpected error attempting to retrieve machine web actor for organization ${org.metadata.recordId.entityId}`,
-        );
-      }
-    }
-  }
-  /** End Step 7, which can be deleted once all existing instances have been migrated */
 
   return migrationState;
 };

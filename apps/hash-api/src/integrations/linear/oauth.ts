@@ -274,6 +274,17 @@ export const oAuthLinearCallback: RequestHandler<
                 kind: "account",
                 subjectId: linearBotAccountId,
               },
+              relation: "entityCreator",
+            },
+          },
+          {
+            operation: "create",
+            resource: ownedById,
+            relationAndSubject: {
+              subject: {
+                kind: "account",
+                subjectId: linearBotAccountId,
+              },
               relation: "entityEditor",
             },
           },

@@ -3,6 +3,10 @@
  */
 
 import {
+  Actor,
+  ActorOutgoingLinkAndTarget,
+  ActorOutgoingLinksByLinkEntityTypeId,
+  ActorProperties,
   Block,
   BlockCollection,
   BlockCollectionOutgoingLinkAndTarget,
@@ -110,6 +114,10 @@ import {
 } from "./shared";
 
 export type {
+  Actor,
+  ActorOutgoingLinkAndTarget,
+  ActorOutgoingLinksByLinkEntityTypeId,
+  ActorProperties,
   Block,
   BlockCollection,
   BlockCollectionOutgoingLinkAndTarget,

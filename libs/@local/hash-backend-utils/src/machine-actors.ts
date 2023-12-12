@@ -1,4 +1,4 @@
-import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
+import { NotFoundError } from "@local/hash-backend-utils/error";
 import { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -6,16 +6,14 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  blockProtocolPropertyTypes,
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-types";
 import {
-  AccountEntityId,
   AccountId,
+  EntityMetadata,
   EntityRootType,
-  extractAccountId,
   OwnedById,
 } from "@local/hash-subgraph";
 import {
@@ -91,23 +89,25 @@ export const getMachineActorId = async (
   }
 
   if (!machineEntity) {
-    throw new Error(
+    throw new NotFoundError(
       `Critical: No machine entity with identifier ${identifier} found in the graph.`,
     );
   }
 
-  return extractAccountId(
-    machineEntity.metadata.recordId.entityId as AccountEntityId,
-  );
+  return machineEntity.metadata.provenance.recordCreatedById;
 };
 
-export const createMachineActor = async (
+/**
+ * Creates a Machine entity for an existing machine account that already has permissions in the specified web.
+ */
+export const createMachineActorEntity = async (
   context: { graphApi: GraphApi },
   {
     identifier,
     machineAccountId,
     ownedById,
     preferredName,
+    systemAccountId,
   }: {
     // A unique identifier for the machine actor
     identifier: MachineActorIdentifier;
@@ -117,8 +117,28 @@ export const createMachineActor = async (
     ownedById: OwnedById;
     // A display name for the machine actor, to display to users
     preferredName: string;
+    // The accountId of the system account, used to grant the machine actor permissions to instantiate system types
+    systemAccountId: AccountId;
   },
-): Promise<AccountId> => {
+): Promise<EntityMetadata> => {
+  // Give the machine actor permissions to instantiate the machine entity type
+  await context.graphApi.modifyEntityTypeAuthorizationRelationships(
+    systemAccountId,
+    [
+      {
+        operation: "touch",
+        resource: systemEntityTypes.machine.entityTypeId,
+        relationAndSubject: {
+          subject: {
+            kind: "account",
+            subjectId: machineAccountId,
+          },
+          relation: "instantiator",
+        },
+      },
+    ],
+  );
+
   return await context.graphApi
     .createEntity(machineAccountId, {
       draft: false,
@@ -144,24 +164,19 @@ export const createMachineActor = async (
         },
       ],
     })
-    .then(({ data }) => {
-      const metadata = mapGraphApiEntityMetadataToMetadata(data);
-
-      const accountId = extractAccountId(
-        metadata.recordId.entityId as AccountEntityId,
-      );
-
-      return accountId;
-    });
+    .then((resp) => mapGraphApiEntityMetadataToMetadata(resp.data));
 };
 
-const entityTypeIdsMachinesCanInstantiate = [
+const entityTypeIdsWebMachinesCanInstantiate = [
   systemEntityTypes.commentNotification.entityTypeId,
   systemEntityTypes.graphChangeNotification.entityTypeId,
   systemEntityTypes.mentionNotification.entityTypeId,
-  systemEntityTypes.machine.entityTypeId,
 ];
 
+/**
+ * Creates an account for a machine and grants it ownership permissions for the specified web
+ * and the permissions to create special system types.
+ */
 export const createWebMachineActor = async (
   context: { graphApi: GraphApi },
   authentication: { actorId: AccountId },
@@ -191,10 +206,14 @@ export const createWebMachineActor = async (
     },
   ]);
 
+  const systemAccountId = await getMachineActorId(context, authentication, {
+    identifier: "hash",
+  });
+
   /** Grant permissions to the web machine actor to create entities that normal users cannot */
   await graphApi.modifyEntityTypeAuthorizationRelationships(
     systemAccountId,
-    entityTypeIdsMachinesCanInstantiate.map((entityTypeId) => ({
+    entityTypeIdsWebMachinesCanInstantiate.map((entityTypeId) => ({
       operation: "create",
       resource: entityTypeId,
       relationAndSubject: {
@@ -207,12 +226,15 @@ export const createWebMachineActor = async (
     })),
   );
 
-  return await createMachineActor(context, {
+  await createMachineActorEntity(context, {
     identifier: `system-${ownedById}`,
     machineAccountId: machineAccountId as AccountId,
     ownedById,
     preferredName: "HASH",
+    systemAccountId,
   });
+
+  return machineAccountId as AccountId;
 };
 
 export const getWebMachineActorId = async (
@@ -224,9 +246,7 @@ export const getWebMachineActorId = async (
     ownedById: OwnedById;
   },
 ): Promise<AccountId> => {
-  const entity = await getMachineActorId(context, authentication, {
+  return getMachineActorId(context, authentication, {
     identifier: `system-${ownedById}`,
   });
-
-  return extractAccountId(entity.metadata.recordId.entityId as AccountEntityId);
 };

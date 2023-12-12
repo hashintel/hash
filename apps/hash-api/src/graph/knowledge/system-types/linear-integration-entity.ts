@@ -1,3 +1,4 @@
+import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -29,7 +30,6 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { systemAccountId } from "../../system-account";
 import { getLatestEntityById, updateEntity } from "../primitive/entity";

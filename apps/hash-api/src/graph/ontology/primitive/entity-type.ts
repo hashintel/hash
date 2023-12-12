@@ -3,6 +3,7 @@ import {
   ENTITY_TYPE_META_SCHEMA,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
   EntityType,
   EntityTypePermission,
@@ -34,7 +35,6 @@ import {
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
-import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname, isExternalTypeId } from "./util";
 

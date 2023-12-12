@@ -809,6 +809,17 @@ export const inferEntities = async ({
               kind: "account",
               subjectId: aiAssistantAccountId,
             },
+            relation: "entityCreator",
+          },
+        },
+        {
+          operation: "create",
+          resource: ownedById,
+          relationAndSubject: {
+            subject: {
+              kind: "account",
+              subjectId: aiAssistantAccountId,
+            },
             relation: "entityEditor",
           },
         },

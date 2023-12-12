@@ -1,3 +1,4 @@
+import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
 import {
   currentTimeInstantTemporalAxes,
@@ -35,7 +36,6 @@ import {
   KratosUserIdentity,
   KratosUserIdentityTraits,
 } from "../../../auth/ory-kratos";
-import { EntityTypeMismatchError } from "../../../lib/error";
 import { createAccount, createWeb } from "../../account-permission-management";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { systemAccountId } from "../../system-account";
@@ -305,7 +305,7 @@ export const createUser: ImpureGraphFunction<
 
   const userWebMachineActorId = await createWebMachineActor(
     ctx,
-    authentication,
+    { actorId: userAccountId },
     {
       ownedById: userAccountId as OwnedById,
     },
