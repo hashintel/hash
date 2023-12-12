@@ -260,6 +260,34 @@ export const ensureSystemEntitiesExist = async (params: {
         );
       }
 
+      await context.graphApi.modifyWebAuthorizationRelationships(
+        systemAccountId,
+        [
+          {
+            operation: "create",
+            resource: hashAccountGroupId,
+            relationAndSubject: {
+              subject: {
+                kind: "account",
+                subjectId: aiAssistantAccountId,
+              },
+              relation: "entityCreator",
+            },
+          },
+          {
+            operation: "create",
+            resource: hashAccountGroupId,
+            relationAndSubject: {
+              subject: {
+                kind: "account",
+                subjectId: aiAssistantAccountId,
+              },
+              relation: "entityEditor",
+            },
+          },
+        ],
+      );
+
       await createMachineActorEntity(context, {
         identifier: "hash-ai",
         machineAccountId: aiAssistantAccountId,
