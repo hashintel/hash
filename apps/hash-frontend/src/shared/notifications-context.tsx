@@ -274,8 +274,6 @@ export const NotificationsContextProvider: FunctionComponent<
             entityId,
           );
 
-          console.log({ outgoingLinksSubgraph, entity });
-
           if (
             entityTypeId === systemEntityTypes.mentionNotification.entityTypeId
           ) {
