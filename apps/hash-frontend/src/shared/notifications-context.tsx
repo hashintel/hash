@@ -4,6 +4,7 @@ import {
   getFirstEntityRevision,
   TextProperties,
 } from "@local/hash-isomorphic-utils/entity";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -24,15 +25,16 @@ import {
   CommentNotificationProperties,
   CommentProperties,
   NotificationProperties,
+  OccurredInEntityProperties,
   PageProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/commentnotification";
+import { GraphChangeNotificationProperties } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import {
   Entity,
   EntityRootType,
   LinkEntityAndRightEntity,
-  Timestamp,
 } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
@@ -86,17 +88,23 @@ export type CommentReplyNotification = {
   repliedToComment: Entity<CommentProperties>;
 } & Omit<NewCommentNotification, "kind">;
 
-export type GraphChangeNotification = {
-  entityEditionTimestamp: Timestamp;
-  kind: "graph-change";
-  occurredInEntity: Entity;
-} & Omit<NewCommentNotification, "kind">;
-
-export type Notification =
+export type PageRelatedNotification =
   | PageMentionNotification
   | CommentMentionNotification
   | NewCommentNotification
   | CommentReplyNotification;
+
+export type GraphChangeNotification = {
+  createdAt: Date;
+  entity: Entity<GraphChangeNotificationProperties>;
+  kind: "graph-change";
+  entityEditionTimestamp: string | undefined;
+  entityLabel: string;
+  occurredInEntity: Entity;
+  operation: string;
+} & SimpleProperties<NotificationProperties>;
+
+export type Notification = PageRelatedNotification | GraphChangeNotification;
 
 export type NotificationsContextValues = {
   notifications?: Notification[];
@@ -204,6 +212,7 @@ export const NotificationsContextProvider: FunctionComponent<
         filter: getNotificationsQueryFilter,
         graphResolveDepths: {
           ...zeroedGraphResolveDepths,
+          inheritsFrom: { outgoing: 255 },
           isOfType: { outgoing: 1 },
           // Retrieve the outgoing linked entities of the notification entity at depth 1
           hasLeftEntity: { outgoing: 0, incoming: 1 },
@@ -414,24 +423,52 @@ export const NotificationsContextProvider: FunctionComponent<
             entityTypeId ===
             systemEntityTypes.graphChangeNotification.entityTypeId
           ) {
-            const occurredInEntity = outgoingLinks.find(
+            const occurredInEntityLink = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            );
 
-            if (!occurredInEntity) {
+            if (!occurredInEntityLink) {
               throw new Error(
                 `Graph change notification "${entityId}" is missing required links`,
               );
             }
 
+            const entityEditionTimestamp = (
+              occurredInEntityLink
+                .linkEntity[0] as Entity<OccurredInEntityProperties>
+            ).properties[
+              "https://hash.ai/@hash/types/property-type/entity-edition-id/"
+            ];
+
+            if (!entityEditionTimestamp) {
+              throw new Error(
+                `Graph change notification "${entityId}" Occurred In Entity link is missing required entityEditionId property`,
+              );
+            }
+
+            const occurredInEntity = occurredInEntityLink.rightEntity[0];
+            if (!occurredInEntity) {
+              throw new Error(
+                `Graph change notification "${entityId}" is missing right entity to Occurred In Entity link`,
+              );
+            }
+
+            const graphChangeEntity =
+              entity as Entity<GraphChangeNotificationProperties>;
+
             return {
               kind: "graph-change",
-              readAt,
-              createdAt,
-              entity,
+              createdAt: new Date(entityEditionTimestamp),
+              entity: graphChangeEntity,
+              entityLabel: generateEntityLabel(outgoingLinksSubgraph, entity),
+              entityEditionTimestamp,
               occurredInEntity,
+              operation:
+                graphChangeEntity.properties[
+                  "https://hash.ai/@hash/types/property-type/graph-change-type/"
+                ],
             } satisfies GraphChangeNotification;
           }
           throw new Error(`Notification of type "${entityTypeId}" not handled`);

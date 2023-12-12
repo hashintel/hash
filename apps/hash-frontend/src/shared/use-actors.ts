@@ -6,8 +6,8 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  blockProtocolPropertyTypes,
   systemEntityTypes,
-  systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
 import { AccountId, EntityRootType } from "@local/hash-subgraph";
@@ -49,20 +49,17 @@ export const useActors = (params: {
       includePermissions: false,
       query: {
         filter: {
-          any: [
-            {
-              equal: [{ path: ["uuid"] }, { parameter: params.accountIds }],
-            },
-
-            {
-              any: [
-                generateVersionedUrlMatchingFilter(
-                  systemEntityTypes.machine.entityTypeId,
-                  { ignoreParents: true },
-                ),
-              ],
-            },
-          ],
+          any: (params.accountIds ?? []).map((accountId) => ({
+            all: [
+              {
+                equal: [{ path: ["uuid"] }, { parameter: accountId }],
+              },
+              generateVersionedUrlMatchingFilter(
+                systemEntityTypes.machine.entityTypeId,
+                { ignoreParents: true },
+              ),
+            ],
+          })),
         },
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
@@ -87,7 +84,7 @@ export const useActors = (params: {
         accountId: entity.metadata.provenance.recordCreatedById,
         kind: "machine" as const,
         preferredName: (entity.properties as MachineProperties)[
-          systemPropertyTypes.preferredName.propertyTypeBaseUrl
+          blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl
         ],
       };
     });

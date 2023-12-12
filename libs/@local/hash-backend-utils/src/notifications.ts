@@ -87,7 +87,7 @@ export const createGraphChangeNotification = async (
   const notificationEntityMetadata = await graphApi
     .createEntity(machineActorId, {
       draft: false,
-      entityTypeId: systemEntityTypes.mentionNotification.entityTypeId,
+      entityTypeId: systemEntityTypes.graphChangeNotification.entityTypeId,
       ownedById: notifiedUserAccountId,
       properties: {
         [systemPropertyTypes.graphChangeType.propertyTypeBaseUrl]: operation,

@@ -382,9 +382,10 @@ const requestEntityInference = async (params: {
           return retryWithMessages({
             retryMessages: [
               {
-                role: "user",
+                role: "tool",
                 content:
-                  "Your previous response contained invalid  Please try again.",
+                  "Your previous response contained invalid JSON. Please try again.",
+                tool_call_id: toolCallId,
               },
             ],
             latestResults: results,
