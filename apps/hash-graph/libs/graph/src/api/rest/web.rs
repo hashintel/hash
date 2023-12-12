@@ -281,7 +281,7 @@ where
     let (permissions, _zookie) = authorization_api
         .check_webs_permission(
             actor_id,
-            WebPermission::ChangePermissions,
+            WebPermission::ChangePermission,
             webs,
             Consistency::FullyConsistent,
         )
