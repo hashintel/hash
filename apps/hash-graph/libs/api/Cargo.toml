@@ -18,31 +18,28 @@ validation = { workspace = true }
 async-trait = "0.1.74"
 axum = "0.7.2"
 base64 = "0.21.5"
+bytes = "1.5.0"
 error-stack = { workspace = true }
+futures = { workspace = true }
+http-body-util = "0.1.0"
 hyper = "1.0.1"
 include_dir = "0.7.3"
+mime = "0.3.17"
+opentelemetry = "0.21.0"
+opentelemetry_sdk = { version = "0.21.1", features = ["rt-tokio"] }
 sentry = { version = "0.32.0", features = ["tracing", "tower", "tower-http"], default-features = false }
 serde = { version = "1.0.193", features = ['derive'] }
 serde_json = "1.0.108"
-tracing = "0.1.40"
-utoipa = "4.1.0"
-uuid = "1.6.1"
 time = { workspace = true }
-bytes = "1.5.0"
-http-body-util = "0.1.0"
-opentelemetry_sdk = { version = "0.21.1", features = ["rt-tokio"] }
-opentelemetry = "0.21.0"
-opentelemetry-otlp = "0.14.0"
-tower = "0.4.13"
-tower-http = { version = "0.5.0", features = ["trace"] }
-tracing-appender = "0.2.3"
-tracing-error = "0.2.0"
-tracing-opentelemetry = "0.22.0"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
-futures = { workspace = true }
 tokio = { workspace = true, features = ["macros"], optional = true }
 tokio-postgres = { version = "0.7.10", default-features = false, optional = true }
 tokio-util = { workspace = true, features = ["io"], optional = true }
+tower = "0.4.13"
+tower-http = { version = "0.5.0", features = ["trace"] }
+tracing = "0.1.40"
+tracing-opentelemetry = "0.22.0"
+utoipa = "4.1.0"
+uuid = "1.6.1"
 
 [features]
 test-server = ["dep:tokio", "dep:tokio-postgres", "dep:tokio-util"]

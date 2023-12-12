@@ -24,17 +24,12 @@ tracing = { workspace = true }
 
 async-trait = "0.1.74"
 async-scoped = { version = "0.8.0", features = ["use-tokio"] }
-axum = "0.7.2"
-base64 = "0.21.5"
 bb8-postgres = "0.8.1"
 bytes = { workspace = true }
 clap = { version = "4.4.11", features = ["derive", "env"], optional = true }
 derivative = "2.2.0"
 dotenv-flow = "0.16.2"
 futures = { workspace = true }
-hyper = "1.0.1"
-http-body-util = "0.1.0"
-include_dir = "0.7.3"
 mime = "0.3.17"
 opentelemetry_sdk = { version = "0.21.1", features = ["rt-tokio"] }
 opentelemetry = "0.21.0"
@@ -50,8 +45,6 @@ tokio = { workspace = true, features = ["macros"] }
 tokio-postgres = { version = "0.7.10", default-features = false }
 tokio-serde = { version = "0.8", features = ["json"] }
 tokio-util = { workspace = true, features = ["io"] }
-tower = "0.4.13"
-tower-http = { version = "0.5.0", features = ["trace"] }
 tracing-appender = "0.2.3"
 tracing-error = "0.2.0"
 tracing-opentelemetry = "0.22.0"
