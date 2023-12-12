@@ -14,7 +14,12 @@ mod property_type;
 use std::{borrow::Cow, str::FromStr};
 
 use authorization::{
-    schema::{EntityOwnerSubject, WebOwnerSubject},
+    schema::{
+        DataTypeRelationAndSubject, DataTypeViewerSubject, EntityTypeInstantiatorSubject,
+        EntityTypeRelationAndSubject, EntityTypeSetting, EntityTypeSettingSubject,
+        EntityTypeViewerSubject, PropertyTypeRelationAndSubject, PropertyTypeSetting,
+        PropertyTypeSettingSubject, PropertyTypeViewerSubject, WebOwnerSubject,
+    },
     NoAuthorization,
 };
 use error_stack::Result;
@@ -68,6 +73,47 @@ pub struct DatabaseTestWrapper {
 pub struct DatabaseApi<'pool> {
     store: PostgresStore<Transaction<'pool>>,
     account_id: AccountId,
+}
+
+const fn data_type_relationships() -> [DataTypeRelationAndSubject; 1] {
+    [DataTypeRelationAndSubject::Viewer {
+        subject: DataTypeViewerSubject::Public,
+        level: 0,
+    }]
+}
+
+const fn property_type_relationships() -> [PropertyTypeRelationAndSubject; 2] {
+    [
+        PropertyTypeRelationAndSubject::Setting {
+            subject: PropertyTypeSettingSubject::Setting {
+                id: PropertyTypeSetting::UpdateFromWeb,
+            },
+            level: 0,
+        },
+        PropertyTypeRelationAndSubject::Viewer {
+            subject: PropertyTypeViewerSubject::Public,
+            level: 0,
+        },
+    ]
+}
+
+const fn entity_type_relationships() -> [EntityTypeRelationAndSubject; 3] {
+    [
+        EntityTypeRelationAndSubject::Setting {
+            subject: EntityTypeSettingSubject::Setting {
+                id: EntityTypeSetting::UpdateFromWeb,
+            },
+            level: 0,
+        },
+        EntityTypeRelationAndSubject::Viewer {
+            subject: EntityTypeViewerSubject::Public,
+            level: 0,
+        },
+        EntityTypeRelationAndSubject::Instantiator {
+            subject: EntityTypeInstantiatorSubject::Public,
+            level: 0,
+        },
+    ]
 }
 
 impl DatabaseTestWrapper {
@@ -159,6 +205,7 @@ impl DatabaseTestWrapper {
                 &mut NoAuthorization,
                 data_types_iter,
                 ConflictBehavior::Skip,
+                data_type_relationships(),
             )
             .await?;
 
@@ -181,6 +228,7 @@ impl DatabaseTestWrapper {
                 &mut NoAuthorization,
                 property_types_iter,
                 ConflictBehavior::Skip,
+                property_type_relationships(),
             )
             .await?;
 
@@ -205,6 +253,7 @@ impl DatabaseTestWrapper {
                 &mut NoAuthorization,
                 entity_types_iter,
                 ConflictBehavior::Skip,
+                entity_type_relationships(),
             )
             .await?;
 
@@ -239,7 +288,13 @@ impl DatabaseApi<'_> {
         };
 
         self.store
-            .create_data_type(self.account_id, &mut NoAuthorization, data_type, metadata)
+            .create_data_type(
+                self.account_id,
+                &mut NoAuthorization,
+                data_type,
+                metadata,
+                data_type_relationships(),
+            )
             .await
     }
 
@@ -255,7 +310,13 @@ impl DatabaseApi<'_> {
         };
 
         self.store
-            .create_data_type(self.account_id, &mut NoAuthorization, data_type, metadata)
+            .create_data_type(
+                self.account_id,
+                &mut NoAuthorization,
+                data_type,
+                metadata,
+                data_type_relationships(),
+            )
             .await
     }
 
@@ -295,7 +356,12 @@ impl DatabaseApi<'_> {
         data_type: DataType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
-            .update_data_type(self.account_id, &mut NoAuthorization, data_type)
+            .update_data_type(
+                self.account_id,
+                &mut NoAuthorization,
+                data_type,
+                data_type_relationships(),
+            )
             .await
     }
 
@@ -316,6 +382,7 @@ impl DatabaseApi<'_> {
                 &mut NoAuthorization,
                 property_type,
                 metadata,
+                property_type_relationships(),
             )
             .await
     }
@@ -356,7 +423,12 @@ impl DatabaseApi<'_> {
         property_type: PropertyType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
-            .update_property_type(self.account_id, &mut NoAuthorization, property_type)
+            .update_property_type(
+                self.account_id,
+                &mut NoAuthorization,
+                property_type,
+                property_type_relationships(),
+            )
             .await
     }
 
@@ -374,7 +446,13 @@ impl DatabaseApi<'_> {
         };
 
         self.store
-            .create_entity_type(self.account_id, &mut NoAuthorization, entity_type, metadata)
+            .create_entity_type(
+                self.account_id,
+                &mut NoAuthorization,
+                entity_type,
+                metadata,
+                entity_type_relationships(),
+            )
             .await
     }
 
@@ -420,6 +498,7 @@ impl DatabaseApi<'_> {
                 entity_type,
                 None,
                 None,
+                entity_type_relationships(),
             )
             .await
     }
@@ -435,9 +514,6 @@ impl DatabaseApi<'_> {
                 self.account_id,
                 &mut NoAuthorization,
                 OwnedById::new(self.account_id.into_uuid()),
-                EntityOwnerSubject::Account {
-                    id: self.account_id,
-                },
                 entity_uuid,
                 Some(generate_decision_time()),
                 false,
@@ -445,6 +521,7 @@ impl DatabaseApi<'_> {
                 entity_type_id,
                 properties,
                 None,
+                [],
             )
             .await
     }
@@ -573,9 +650,6 @@ impl DatabaseApi<'_> {
                 self.account_id,
                 &mut NoAuthorization,
                 OwnedById::new(self.account_id.into_uuid()),
-                EntityOwnerSubject::Account {
-                    id: self.account_id,
-                },
                 entity_uuid,
                 None,
                 false,
@@ -590,6 +664,7 @@ impl DatabaseApi<'_> {
                         right_to_left: None,
                     },
                 }),
+                [],
             )
             .await
     }

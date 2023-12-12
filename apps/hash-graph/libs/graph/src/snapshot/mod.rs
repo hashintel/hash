@@ -37,7 +37,7 @@ use futures::{
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{Entity, EntityUuid},
-    web::WebId,
+    provenance::OwnedById,
 };
 use hash_status::StatusCode;
 use postgres_types::ToSql;
@@ -73,7 +73,7 @@ pub struct AccountGroup {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Web {
-    id: WebId,
+    id: OwnedById,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     relations: Vec<WebRelationAndSubject>,
 }
@@ -163,7 +163,10 @@ trait WriteBatch<C> {
         postgres_client: &PostgresStore<C>,
         authorization_api: &mut (impl ZanzibarBackend + Send),
     ) -> Result<(), InsertionError>;
-    async fn commit(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError>;
+    async fn commit(
+        postgres_client: &PostgresStore<C>,
+        validation: bool,
+    ) -> Result<(), InsertionError>;
 }
 
 pub struct SnapshotStore<C>(PostgresStore<C>);
@@ -257,11 +260,11 @@ where
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))
             .and_then(move |row| async move {
-                let id = WebId::new(row.get(0));
+                let id = OwnedById::new(row.get(0));
                 Ok(Web {
                     id,
                     relations: authorization_api
-                        .read_relations::<(WebId, WebRelationAndSubject)>(
+                        .read_relations::<(OwnedById, WebRelationAndSubject)>(
                             RelationshipFilter::from_resource(id),
                             Consistency::FullyConsistent,
                         )
@@ -508,6 +511,7 @@ impl<C: AsClient> SnapshotStore<C> {
         snapshot: impl Stream<Item = Result<SnapshotEntry, impl Context>> + Send + 'static,
         authorization_api: &mut (impl ZanzibarBackend + Send),
         chunk_size: usize,
+        validation: bool,
     ) -> Result<(), SnapshotRestoreError> {
         tracing::info!("snapshot restore started");
 
@@ -516,6 +520,7 @@ impl<C: AsClient> SnapshotStore<C> {
         let read_thread = tokio::spawn(
             snapshot
                 .map_err(|report| report.change_context(SnapshotRestoreError::Read))
+                // .map_ok(|entry| dbg!(entry))
                 .forward(
                     snapshot_record_tx
                         .sink_map_err(|report| report.change_context(SnapshotRestoreError::Buffer)),
@@ -548,7 +553,11 @@ impl<C: AsClient> SnapshotStore<C> {
 
         tracing::info!("snapshot reading finished, committing...");
 
-        SnapshotRecordBatch::commit(&client)
+        read_thread
+            .await
+            .change_context(SnapshotRestoreError::Read)??;
+
+        SnapshotRecordBatch::commit(&client, validation)
             .await
             .change_context(SnapshotRestoreError::Write)
             .map_err(|report| {
@@ -575,10 +584,6 @@ impl<C: AsClient> SnapshotStore<C> {
             .await
             .change_context(SnapshotRestoreError::Write)
             .attach_printable("unable to commit snapshot to the store")?;
-
-        read_thread
-            .await
-            .change_context(SnapshotRestoreError::Read)??;
 
         let mut found_metadata = false;
         for metadata in metadata_rx.collect::<Vec<SnapshotMetadata>>().await {

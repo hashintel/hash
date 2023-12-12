@@ -69,6 +69,7 @@ describe("Data type CRU", () => {
     createdDataType = await createDataType(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       schema: dataTypeSchema,
+      relationships: [{ relation: "viewer", subject: { kind: "public" } }],
     });
   });
 
@@ -98,6 +99,7 @@ describe("Data type CRU", () => {
     const updatedDataType = await updateDataType(graphContext, authentication, {
       dataTypeId: createdDataType.schema.$id,
       schema: { ...dataTypeSchema, title: updatedTitle },
+      relationships: [{ relation: "viewer", subject: { kind: "public" } }],
     }).catch((err) => Promise.reject(err.data));
 
     expect(

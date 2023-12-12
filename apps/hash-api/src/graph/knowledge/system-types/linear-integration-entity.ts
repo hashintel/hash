@@ -1,4 +1,5 @@
 import {
+  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
@@ -31,11 +32,7 @@ import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { systemAccountId } from "../../system-account";
-import {
-  getLatestEntityById,
-  modifyEntityAuthorizationRelationships,
-  updateEntity,
-} from "../primitive/entity";
+import { getLatestEntityById, updateEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 
 export type LinearIntegration = {
@@ -304,7 +301,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
       } as SyncLinearDataWithProperties,
     });
   } else {
-    const linkEntity = await createLinkEntity(context, authentication, {
+    await createLinkEntity(context, authentication, {
       ownedById: extractOwnedByIdFromEntityId(linearIntegrationEntityId),
       linkEntityTypeId:
         systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
@@ -314,21 +311,14 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
         "https://hash.ai/@hash/types/property-type/linear-team-id/":
           linearTeamIds,
       } as SyncLinearDataWithProperties,
-    });
-
-    // Allow the system account ID to view the link
-    await modifyEntityAuthorizationRelationships(context, authentication, [
-      {
-        operation: "touch",
-        relationship: {
-          resource: {
-            kind: "entity",
-            resourceId: linkEntity.metadata.recordId.entityId,
-          },
+      relationships: [
+        ...createDefaultAuthorizationRelationships(authentication),
+        {
+          // Allow the system account ID to view the link
           relation: "viewer",
           subject: { kind: "account", subjectId: systemAccountId },
         },
-      },
-    ]);
+      ],
+    });
   }
 };

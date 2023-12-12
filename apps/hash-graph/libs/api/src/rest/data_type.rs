@@ -75,8 +75,8 @@ use crate::rest::{
         schemas(
             DataTypeWithMetadata,
 
-            DataTypeViewerSubject,
             DataTypeOwnerSubject,
+            DataTypeViewerSubject,
             DataTypePermission,
             DataTypeRelationAndSubject,
             ModifyDataTypeAuthorizationRelationship,
@@ -137,11 +137,12 @@ impl RoutedResource for DataTypeResource {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct CreateDataTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfDataType,
     owned_by_id: OwnedById,
+    relationships: Vec<DataTypeRelationAndSubject>,
 }
 
 #[utoipa::path(
@@ -189,6 +190,7 @@ where
     let Json(CreateDataTypeRequest {
         schema,
         owned_by_id,
+        relationships,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
@@ -217,6 +219,7 @@ where
             &mut authorization_api,
             data_types.into_iter().zip(partial_metadata),
             ConflictBehavior::Fail,
+            relationships,
         )
         .await
         .map_err(|report| {
@@ -254,6 +257,7 @@ enum LoadExternalDataTypeRequest {
     Create {
         #[schema(value_type = VAR_DATA_TYPE)]
         schema: DataType,
+        relationships: Vec<DataTypeRelationAndSubject>,
     },
 }
 
@@ -306,7 +310,10 @@ where
                 )
                 .await?,
         )),
-        LoadExternalDataTypeRequest::Create { schema } => {
+        LoadExternalDataTypeRequest::Create {
+            schema,
+            relationships,
+        } => {
             let record_id = OntologyTypeRecordId::from(schema.id().clone());
 
             if domain_validator.validate_url(schema.id().base_url.as_str()) {
@@ -331,6 +338,7 @@ where
                                 fetched_at: OffsetDateTime::now_utc(),
                             },
                         },
+                        relationships,
                     )
                     .await
                     .map_err(report_to_response)?,
@@ -407,12 +415,13 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UpdateDataTypeRequest {
     #[schema(value_type = VAR_UPDATE_DATA_TYPE)]
     schema: serde_json::Value,
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_update: VersionedUrl,
+    relationships: Vec<DataTypeRelationAndSubject>,
 }
 
 #[utoipa::path(
@@ -447,6 +456,7 @@ where
     let Json(UpdateDataTypeRequest {
         schema,
         mut type_to_update,
+        relationships,
     }) = body;
 
     type_to_update.version += 1;
@@ -469,7 +479,7 @@ where
     })?;
 
     store
-        .update_data_type(actor_id, &mut authorization_api, data_type)
+        .update_data_type(actor_id, &mut authorization_api, data_type, relationships)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update data type");
@@ -488,7 +498,7 @@ where
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ArchiveDataTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_archive: VersionedUrl,
@@ -554,7 +564,7 @@ where
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UnarchiveDataTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_unarchive: VersionedUrl,

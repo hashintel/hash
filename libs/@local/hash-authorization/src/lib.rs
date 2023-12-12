@@ -25,7 +25,7 @@ use error_stack::Result;
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
-    web::WebId,
+    provenance::OwnedById,
 };
 
 use crate::{
@@ -40,6 +40,10 @@ use crate::{
 pub struct NoAuthorization;
 
 impl AuthorizationApi for NoAuthorization {
+    async fn seed(&mut self) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
     async fn check_account_group_permission(
         &self,
         _actor: AccountId,
@@ -71,7 +75,7 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _actor: AccountId,
         _permission: WebPermission,
-        _web: WebId,
+        _web: OwnedById,
         _consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         Ok(CheckResponse {
@@ -83,7 +87,11 @@ impl AuthorizationApi for NoAuthorization {
     async fn modify_web_relations(
         &mut self,
         _relationships: impl IntoIterator<
-            Item = (ModifyRelationshipOperation, WebId, WebRelationAndSubject),
+            Item = (
+                ModifyRelationshipOperation,
+                OwnedById,
+                WebRelationAndSubject,
+            ),
             IntoIter: Send,
         > + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
@@ -92,7 +100,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn get_web_relations(
         &self,
-        _web: WebId,
+        _web: OwnedById,
         _consistency: Consistency<'static>,
     ) -> Result<Vec<WebRelationAndSubject>, ReadError> {
         Ok(Vec::new())

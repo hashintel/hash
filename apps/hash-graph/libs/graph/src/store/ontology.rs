@@ -1,7 +1,12 @@
 use std::iter;
 
 use async_trait::async_trait;
-use authorization::AuthorizationApi;
+use authorization::{
+    schema::{
+        DataTypeRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
+    },
+    AuthorizationApi,
+};
 use error_stack::Result;
 use graph_types::{
     account::AccountId,
@@ -42,6 +47,7 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
         authorization_api: &mut A,
         schema: DataType,
         metadata: PartialOntologyElementMetadata,
+        relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
     ) -> Result<OntologyElementMetadata, InsertionError> {
         Ok(self
             .create_data_types(
@@ -49,6 +55,7 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
                 authorization_api,
                 iter::once((schema, metadata)),
                 ConflictBehavior::Fail,
+                relationships,
             )
             .await?
             .pop()
@@ -70,6 +77,7 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
         data_types: impl IntoIterator<Item = (DataType, PartialOntologyElementMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
+        relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
     ) -> Result<Vec<OntologyElementMetadata>, InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
@@ -96,6 +104,7 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
         actor_id: AccountId,
         authorization_api: &mut A,
         data_type: DataType,
+        relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
     ) -> Result<OntologyElementMetadata, UpdateError>;
 
     /// Archives the definition of an existing [`DataType`].
@@ -140,6 +149,7 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
         authorization_api: &mut A,
         schema: PropertyType,
         metadata: PartialOntologyElementMetadata,
+        relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
     ) -> Result<OntologyElementMetadata, InsertionError> {
         Ok(self
             .create_property_types(
@@ -147,6 +157,7 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
                 authorization_api,
                 iter::once((schema, metadata)),
                 ConflictBehavior::Fail,
+                relationships,
             )
             .await?
             .pop()
@@ -170,6 +181,7 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
             IntoIter: Send,
         > + Send,
         on_conflict: ConflictBehavior,
+        relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
     ) -> Result<Vec<OntologyElementMetadata>, InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
@@ -196,6 +208,7 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
         actor_id: AccountId,
         authorization_api: &mut A,
         property_type: PropertyType,
+        relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
     ) -> Result<OntologyElementMetadata, UpdateError>;
 
     /// Archives the definition of an existing [`PropertyType`].
@@ -240,6 +253,7 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
         authorization_api: &mut A,
         schema: EntityType,
         metadata: PartialEntityTypeMetadata,
+        relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
     ) -> Result<EntityTypeMetadata, InsertionError> {
         Ok(self
             .create_entity_types(
@@ -247,6 +261,7 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
                 authorization_api,
                 iter::once((schema, metadata)),
                 ConflictBehavior::Fail,
+                relationships,
             )
             .await?
             .pop()
@@ -268,6 +283,7 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
         entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
+        relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
     ) -> Result<Vec<EntityTypeMetadata>, InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
@@ -296,6 +312,7 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
         entity_type: EntityType,
         label_property: Option<BaseUrl>,
         icon: Option<String>,
+        relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
     ) -> Result<EntityTypeMetadata, UpdateError>;
 
     /// Archives the definition of an existing [`EntityType`].

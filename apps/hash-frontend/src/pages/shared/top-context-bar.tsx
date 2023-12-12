@@ -112,6 +112,7 @@ type TopContextBarProps = {
   defaultCrumbIcon?: ReactNode;
   scrollToTop?: () => void;
   sx?: SxProps<Theme>;
+  breadcrumbsEndAdornment?: ReactNode;
 };
 
 export const TopContextBar = ({
@@ -121,6 +122,7 @@ export const TopContextBar = ({
   defaultCrumbIcon = <FontAwesomeIcon icon={faFile} />,
   scrollToTop = () => {},
   sx = [],
+  breadcrumbsEndAdornment,
 }: TopContextBarProps) => {
   const [displayRestoredMessage, setDisplayRestoredMessage] = useState(false);
 
@@ -181,9 +183,10 @@ export const TopContextBar = ({
                   : "Entity"
             } restored!`}</PageRestoredMessageWrapper>
           ) : null}
+          {breadcrumbsEndAdornment}
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {item && !isItemEntityType(item) && (
+          {item && !isItemEntityType(item) && !isEntityPageEntity(item) && (
             <ShareDropdownMenu entity={item} />
           )}
 

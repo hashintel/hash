@@ -2,7 +2,7 @@ mod completions;
 mod migrate;
 mod server;
 mod snapshot;
-#[cfg(all(hash_graph_test_environment, feature = "test-server"))]
+#[cfg(feature = "test-server")]
 mod test_server;
 mod type_fetcher;
 
@@ -10,7 +10,7 @@ use std::future::Future;
 
 use error_stack::Result;
 
-#[cfg(all(hash_graph_test_environment, feature = "test-server"))]
+#[cfg(feature = "test-server")]
 pub use self::test_server::{test_server, TestServerArgs};
 pub use self::{
     completions::{completions, CompletionsArgs},
@@ -35,7 +35,7 @@ pub enum Subcommand {
     /// Snapshot API for the database.
     Snapshot(SnapshotArgs),
     /// Test server
-    #[cfg(all(hash_graph_test_environment, feature = "test-server"))]
+    #[cfg(feature = "test-server")]
     TestServer(TestServerArgs),
 }
 
@@ -58,7 +58,7 @@ impl Subcommand {
                 Ok(())
             }
             Self::Snapshot(args) => block_on(snapshot(args)),
-            #[cfg(all(hash_graph_test_environment, feature = "test-server"))]
+            #[cfg(feature = "test-server")]
             Self::TestServer(args) => block_on(test_server(args)),
         }
     }

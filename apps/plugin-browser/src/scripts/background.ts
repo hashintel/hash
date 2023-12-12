@@ -1,7 +1,6 @@
-import * as domain from "node:domain";
-
 import browser from "webextension-polyfill";
 
+import { setDisabledBadge, setEnabledBadge } from "../shared/badge";
 import { getUser } from "../shared/get-user";
 import {
   GetSiteContentRequest,
@@ -96,6 +95,7 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
             {
               createAs: automaticInferenceConfig.createAs,
               entityTypeIds: entityTypeIdsToInfer,
+              model: automaticInferenceConfig.model,
               ownedById: automaticInferenceConfig.ownedById,
               sourceTitle: pageDetails.pageTitle,
               sourceUrl: pageDetails.pageUrl,
@@ -117,6 +117,14 @@ void getUser().then((user) => {
     void setInLocalStorage("user", user);
   } else {
     void clearLocalStorage();
+  }
+});
+
+void getFromLocalStorage("automaticInferenceConfig").then((config) => {
+  if (config?.enabled) {
+    setEnabledBadge();
+  } else {
+    setDisabledBadge();
   }
 });
 

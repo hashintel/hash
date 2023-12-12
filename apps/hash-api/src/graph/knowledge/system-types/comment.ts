@@ -7,7 +7,11 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { CommentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { TextToken } from "@local/hash-isomorphic-utils/types";
-import { AccountGroupId, Entity, EntityId } from "@local/hash-subgraph";
+import {
+  Entity,
+  EntityId,
+  EntityRelationAndSubject,
+} from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
@@ -18,7 +22,6 @@ import {
   getEntityIncomingLinks,
   getEntityOutgoingLinks,
   getLatestEntityById,
-  modifyEntityAuthorizationRelationships,
   updateEntityProperties,
   updateEntityProperty,
 } from "../primitive/entity";
@@ -125,7 +128,7 @@ export const getCommentText: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createComment: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
+  Pick<CreateEntityParams, "ownedById"> & {
     author: User;
     parentEntityId: EntityId;
     textualContent: TextToken[];
@@ -134,20 +137,44 @@ export const createComment: ImpureGraphFunction<
 > = async (ctx, authentication, params): Promise<Comment> => {
   const { ownedById, textualContent, parentEntityId, author } = params;
 
+  // the author has full access, regardless of which web the comment belongs to (ownedById)
+  const relationships: EntityRelationAndSubject[] = [
+    {
+      relation: "administrator",
+      subject: {
+        kind: "account",
+        subjectId: author.accountId,
+      },
+    },
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "administratorFromWeb",
+      },
+    },
+    {
+      relation: "setting",
+      subject: {
+        kind: "setting",
+        subjectId: "viewFromWeb",
+      },
+    },
+  ];
+
   const textEntity = await createEntity(ctx, authentication, {
     ownedById,
-    owner: author.accountId,
     properties: {
       [extractBaseUrl(
         blockProtocolPropertyTypes.textualContent.propertyTypeId,
       )]: textualContent,
     },
     entityTypeId: systemEntityTypes.text.entityTypeId,
+    relationships,
   });
 
   const commentEntity = await createEntity(ctx, authentication, {
     ownedById,
-    owner: author.accountId, // the author has ownership permissions (owner), regardless of which web the comment belongs to (ownedById)
     properties: {},
     entityTypeId: systemEntityTypes.comment.entityTypeId,
     outgoingLinks: [
@@ -156,12 +183,14 @@ export const createComment: ImpureGraphFunction<
         rightEntityId: parentEntityId,
         ownedById,
         owner: author.accountId,
+        relationships,
       },
       {
         linkEntityTypeId: systemLinkEntityTypes.authoredBy.linkEntityTypeId,
         rightEntityId: author.entity.metadata.recordId.entityId,
         ownedById,
         owner: author.accountId,
+        relationships,
       },
       /**
        * The creation of the `hasText` link entity has to occur last so
@@ -173,40 +202,11 @@ export const createComment: ImpureGraphFunction<
         rightEntityId: textEntity.metadata.recordId.entityId,
         ownedById,
         owner: author.accountId,
+        relationships,
       },
     ],
+    relationships,
   });
-
-  if (author.accountId !== ownedById) {
-    const outgoingLinks = await getEntityOutgoingLinks(ctx, authentication, {
-      entityId: commentEntity.metadata.recordId.entityId,
-    });
-    /**
-     * If this is a comment on an org's entity, we want the comment to belong to the org's web,
-     * represented by the ownedById (to be renamed to webId for clarity, see H-1063).
-     *
-     * But in terms of _permissions_ we want the comment author to be the 'owner' and members of the org
-     * to be viewers only, so that they cannot edit each other's comments.
-     */
-    await modifyEntityAuthorizationRelationships(
-      ctx,
-      authentication,
-      [textEntity, commentEntity, ...outgoingLinks].map((entity) => ({
-        operation: "create",
-        relationship: {
-          subject: {
-            subjectId: ownedById as AccountGroupId,
-            kind: "accountGroup",
-          },
-          relation: "viewer",
-          resource: {
-            kind: "entity",
-            resourceId: entity.metadata.recordId.entityId,
-          },
-        },
-      })),
-    );
-  }
 
   return getCommentFromEntity({ entity: commentEntity });
 };

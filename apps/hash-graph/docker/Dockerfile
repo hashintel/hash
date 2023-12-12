@@ -61,7 +61,6 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/src/apps/hash-graph/target,sharing=locked \
     FEATURES=(); \
     if [[ ${ENABLE_TEST_SERVER^^} == Y* || ${ENABLE_TEST_SERVER^^} == T* || $ENABLE_TEST_SERVER == 1 ]]; then \
-      export RUSTFLAGS="$RUSTFLAGS --cfg hash_graph_test_environment"; \
       FEATURES+=("test-server"); \
     fi; \
     if [[ ${PROFILE} == dev ]]; then \

@@ -129,7 +129,7 @@ export const AccountEntityTypeList: FunctionComponent<
         }
       >
         <Box component="ul">
-          {loading ? (
+          {loading && filteredEntityTypes.length === 0 ? (
             <LoadingSkeleton />
           ) : (
             <TransitionGroup>

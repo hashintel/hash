@@ -14,6 +14,7 @@ import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/migrate
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
@@ -68,13 +69,27 @@ describe("Block", () => {
         properties: [],
         outgoingLinks: [],
       }),
-      instantiators: [{ kind: "public" }],
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+        {
+          relation: "instantiator",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     });
 
     testBlockDataEntity = await createEntity(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       properties: {},
       entityTypeId: dummyEntityType.schema.$id,
+      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   });
 
@@ -128,6 +143,7 @@ describe("Block", () => {
         ownedById: testUser.accountId as OwnedById,
         properties: {},
         entityTypeId: dummyEntityType.schema.$id,
+        relationships: createDefaultAuthorizationRelationships(authentication),
       },
     );
 

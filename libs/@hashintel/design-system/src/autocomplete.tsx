@@ -27,7 +27,7 @@ type AutocompleteProps<
   MUIAutocompleteProps<T, Multiple, DisableClearable, FreeSolo>,
   "renderInput"
 > & {
-  inputHeight?: number;
+  inputHeight?: number | string;
   inputRef?: Ref<any>;
   inputLabel?: string;
   inputPlaceholder?: string;
@@ -155,7 +155,10 @@ export const Autocomplete = <
               (theme) => ({
                 // The popover needs to know how tall this is to draw
                 // a shadow around it
-                height: inputHeight + (inputLabel ? textFieldLabelHeight : 0),
+                height:
+                  typeof inputHeight === "number"
+                    ? inputHeight + (inputLabel ? textFieldLabelHeight : 0)
+                    : undefined,
 
                 // Focus is handled by the options popover
                 "&.Mui-focused": {

@@ -10,6 +10,7 @@ import {
   TextCell,
 } from "@glideapps/glide-data-grid";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
+import { ListRegularIcon } from "@hashintel/design-system";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -47,7 +48,6 @@ import { BlankCell, blankCell } from "../../components/grid/utils";
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { useEntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
 import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
-import { ListRegularIcon } from "../../shared/icons/list-regular-icon";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import {
   FilterState,

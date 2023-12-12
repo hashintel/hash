@@ -20,7 +20,10 @@ use std::{borrow::Borrow, future::Future};
 
 use error_stack::{Context, Report};
 use graph_types::knowledge::entity::{Entity, EntityId};
-use type_system::{url::VersionedUrl, EntityType};
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    EntityType,
+};
 
 trait Schema<V: ?Sized, P: Sync> {
     type Error: Context;
@@ -100,7 +103,7 @@ pub trait EntityTypeProvider: OntologyTypeProvider<EntityType> {
     fn is_parent_of(
         &self,
         child: &VersionedUrl,
-        parent: &VersionedUrl,
+        parent: &BaseUrl,
     ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
 }
 pub trait EntityProvider {
@@ -199,7 +202,7 @@ mod tests {
         async fn is_parent_of(
             &self,
             child: &VersionedUrl,
-            parent: &VersionedUrl,
+            parent: &BaseUrl,
         ) -> Result<bool, Report<InvalidEntityType>> {
             Ok(
                 OntologyTypeProvider::<EntityType>::provide_type(self, child)
@@ -207,7 +210,7 @@ mod tests {
                     .inherits_from()
                     .all_of()
                     .iter()
-                    .any(|id| id.url() == parent),
+                    .any(|id| id.url().base_url == *parent),
             )
         }
     }

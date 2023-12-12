@@ -8,6 +8,7 @@ use std::{
 use authorization::{
     backend::{SpiceDbOpenApi, ZanzibarBackend},
     zanzibar::ZanzibarClient,
+    AuthorizationApi,
 };
 use clap::Parser;
 use error_stack::{Report, Result, ResultExt};
@@ -189,9 +190,12 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
         .await
         .change_context(GraphError)?;
 
+    let mut zanzibar_client = ZanzibarClient::new(spicedb_client);
+    zanzibar_client.seed().await.change_context(GraphError)?;
+
     let router = rest_api_router(RestRouterDependencies {
         store: Arc::new(pool),
-        authorization_api: Arc::new(ZanzibarClient::new(spicedb_client)),
+        authorization_api: Arc::new(zanzibar_client),
         domain_regex: DomainValidator::new(args.allowed_url_domain),
     });
 

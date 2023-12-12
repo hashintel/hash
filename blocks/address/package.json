@@ -70,7 +70,7 @@
     "image": "public/block-preview.png",
     "name": "@hash/address",
     "protocol": "0.3",
-    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/address-block/v/3",
+    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/address-block/v/4",
     "codegen": {
       "outputFolder": "src/types/generated",
       "targets": {

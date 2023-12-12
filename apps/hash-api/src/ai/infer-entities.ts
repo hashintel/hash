@@ -1,4 +1,5 @@
 import {
+  inferenceModelNames,
   InferEntitiesCallerParams,
   InferEntitiesReturn,
   inferEntitiesUserArgumentKeys,
@@ -44,6 +45,17 @@ export const inferEntitiesController: RequestHandler<
       code: StatusCode.InvalidArgument,
       contents: [],
       message: `Invalid request body – expected an object containing all of ${inferEntitiesUserArgumentKeys.join(
+        ", ",
+      )}`,
+    });
+    return;
+  }
+
+  if (!inferenceModelNames.includes(userArguments.model)) {
+    res.status(400).send({
+      code: StatusCode.InvalidArgument,
+      contents: [],
+      message: `Invalid request body – expected 'model' to be one of ${inferenceModelNames.join(
         ", ",
       )}`,
     });

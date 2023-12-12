@@ -2,7 +2,11 @@ use std::{collections::HashSet, mem};
 
 use async_trait::async_trait;
 use authorization::{
-    schema::{EntityOwnerSubject, WebOwnerSubject, WebSubject},
+    schema::{
+        DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
+        EntityTypeInstantiatorSubject, EntityTypeRelationAndSubject, EntityTypeViewerSubject,
+        PropertyTypeRelationAndSubject, PropertyTypeViewerSubject, WebOwnerSubject,
+    },
     zanzibar::Consistency,
     AuthorizationApi,
 };
@@ -129,6 +133,27 @@ pub struct FetchingStore<S, A> {
     store: S,
     connection_info: Option<TypeFetcherConnectionInfo<A>>,
 }
+
+const DATA_TYPE_RELATIONSHIPS: [DataTypeRelationAndSubject; 1] =
+    [DataTypeRelationAndSubject::Viewer {
+        subject: DataTypeViewerSubject::Public,
+        level: 0,
+    }];
+const PROPERTY_TYPE_RELATIONSHIPS: [PropertyTypeRelationAndSubject; 1] =
+    [PropertyTypeRelationAndSubject::Viewer {
+        subject: PropertyTypeViewerSubject::Public,
+        level: 0,
+    }];
+const ENTITY_TYPE_RELATIONSHIPS: [EntityTypeRelationAndSubject; 2] = [
+    EntityTypeRelationAndSubject::Viewer {
+        subject: EntityTypeViewerSubject::Public,
+        level: 0,
+    },
+    EntityTypeRelationAndSubject::Instantiator {
+        subject: EntityTypeInstantiatorSubject::Public,
+        level: 0,
+    },
+];
 
 impl<S, A> FetchingStore<S, A>
 where
@@ -468,6 +493,7 @@ where
                     authorization_api,
                     fetched_ontology_types.data_types,
                     ConflictBehavior::Skip,
+                    DATA_TYPE_RELATIONSHIPS,
                 )
                 .await?;
         }
@@ -479,6 +505,7 @@ where
                     authorization_api,
                     fetched_ontology_types.property_types,
                     ConflictBehavior::Skip,
+                    PROPERTY_TYPE_RELATIONSHIPS,
                 )
                 .await?;
         }
@@ -490,6 +517,7 @@ where
                     authorization_api,
                     fetched_ontology_types.entity_types,
                     ConflictBehavior::Skip,
+                    ENTITY_TYPE_RELATIONSHIPS,
                 )
                 .await?;
         }
@@ -532,6 +560,7 @@ where
                         authorization_api,
                         fetched_ontology_types.data_types,
                         ConflictBehavior::Skip,
+                        DATA_TYPE_RELATIONSHIPS,
                     )
                     .await?
             };
@@ -545,6 +574,7 @@ where
                         authorization_api,
                         fetched_ontology_types.property_types,
                         ConflictBehavior::Skip,
+                        PROPERTY_TYPE_RELATIONSHIPS,
                     )
                     .await?
             };
@@ -558,6 +588,7 @@ where
                         authorization_api,
                         fetched_ontology_types.entity_types,
                         ConflictBehavior::Skip,
+                        ENTITY_TYPE_RELATIONSHIPS,
                     )
                     .await?
             };
@@ -679,7 +710,10 @@ where
         self.store.has_account(account_id).await
     }
 
-    async fn identify_owned_by_id(&self, owned_by_id: OwnedById) -> Result<WebSubject, QueryError> {
+    async fn identify_owned_by_id(
+        &self,
+        owned_by_id: OwnedById,
+    ) -> Result<WebOwnerSubject, QueryError> {
         self.store.identify_owned_by_id(owned_by_id).await
     }
 }
@@ -697,6 +731,7 @@ where
         data_types: impl IntoIterator<Item = (DataType, PartialOntologyElementMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
+        relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
     ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
         let data_types = data_types.into_iter().collect::<Vec<_>>();
         let requested_types = data_types
@@ -720,7 +755,13 @@ where
         })?;
 
         self.store
-            .create_data_types(actor_id, authorization_api, data_types, on_conflict)
+            .create_data_types(
+                actor_id,
+                authorization_api,
+                data_types,
+                on_conflict,
+                relationships,
+            )
             .await
     }
 
@@ -742,6 +783,7 @@ where
         actor_id: AccountId,
         authorization_api: &mut Au,
         data_type: DataType,
+        relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.insert_external_types(
             actor_id,
@@ -754,7 +796,7 @@ where
         .attach_printable_lazy(|| data_type.id().clone())?;
 
         self.store
-            .update_data_type(actor_id, authorization_api, data_type)
+            .update_data_type(actor_id, authorization_api, data_type, relationships)
             .await
     }
 
@@ -796,6 +838,7 @@ where
             IntoIter: Send,
         > + Send,
         on_conflict: ConflictBehavior,
+        relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
     ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
         let property_types = property_types.into_iter().collect::<Vec<_>>();
         let requested_types = property_types
@@ -821,7 +864,13 @@ where
         })?;
 
         self.store
-            .create_property_types(actor_id, authorization_api, property_types, on_conflict)
+            .create_property_types(
+                actor_id,
+                authorization_api,
+                property_types,
+                on_conflict,
+                relationships,
+            )
             .await
     }
 
@@ -843,6 +892,7 @@ where
         actor_id: AccountId,
         authorization_api: &mut Au,
         property_type: PropertyType,
+        relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.insert_external_types(
             actor_id,
@@ -855,7 +905,7 @@ where
         .attach_printable_lazy(|| property_type.id().clone())?;
 
         self.store
-            .update_property_type(actor_id, authorization_api, property_type)
+            .update_property_type(actor_id, authorization_api, property_type, relationships)
             .await
     }
 
@@ -895,6 +945,7 @@ where
         entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
+        relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
     ) -> Result<Vec<EntityTypeMetadata>, InsertionError> {
         let entity_types = entity_types.into_iter().collect::<Vec<_>>();
         let requested_types = entity_types
@@ -918,7 +969,13 @@ where
         })?;
 
         self.store
-            .create_entity_types(actor_id, authorization_api, entity_types, on_conflict)
+            .create_entity_types(
+                actor_id,
+                authorization_api,
+                entity_types,
+                on_conflict,
+                relationships,
+            )
             .await
     }
 
@@ -942,6 +999,7 @@ where
         entity_type: EntityType,
         label_property: Option<BaseUrl>,
         icon: Option<String>,
+        relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
     ) -> Result<EntityTypeMetadata, UpdateError> {
         self.insert_external_types(
             actor_id,
@@ -960,6 +1018,7 @@ where
                 entity_type,
                 label_property,
                 icon,
+                relationships,
             )
             .await
     }
@@ -998,7 +1057,6 @@ where
         actor_id: AccountId,
         authorization_api: &mut Au,
         owned_by_id: OwnedById,
-        owner: EntityOwnerSubject,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
@@ -1006,6 +1064,7 @@ where
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_data: Option<LinkData>,
+        relationships: impl IntoIterator<Item = EntityRelationAndSubject> + Send,
     ) -> Result<EntityMetadata, InsertionError> {
         let entity_type_reference = EntityTypeReference::new(entity_type_id.clone());
         self.insert_external_types_by_reference(
@@ -1023,7 +1082,6 @@ where
                 actor_id,
                 authorization_api,
                 owned_by_id,
-                owner,
                 entity_uuid,
                 decision_time,
                 archived,
@@ -1031,6 +1089,7 @@ where
                 entity_type_id,
                 properties,
                 link_data,
+                relationships,
             )
             .await
     }
@@ -1058,8 +1117,6 @@ where
             .await
     }
 
-    #[doc(hidden)]
-    #[cfg(hash_graph_test_environment)]
     async fn insert_entities_batched_by_type<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,

@@ -20,6 +20,7 @@ import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
+  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -93,7 +94,20 @@ describe("Entity CRU", () => {
           properties: {},
           allOf: [{ $ref: linkEntityTypeUrl }],
         },
-        instantiators: [{ kind: "public" }],
+        relationships: [
+          {
+            relation: "viewer",
+            subject: {
+              kind: "public",
+            },
+          },
+          {
+            relation: "instantiator",
+            subject: {
+              kind: "public",
+            },
+          },
+        ],
       })
         .then((val) => {
           linkEntityTypeFriend = val;
@@ -108,6 +122,14 @@ describe("Entity CRU", () => {
           title: "Favorite Book",
           oneOf: [{ $ref: textDataTypeId }],
         },
+        relationships: [
+          {
+            relation: "viewer",
+            subject: {
+              kind: "public",
+            },
+          },
+        ],
       })
         .then((val) => {
           favoriteBookPropertyType = val;
@@ -122,6 +144,14 @@ describe("Entity CRU", () => {
           title: "Name",
           oneOf: [{ $ref: textDataTypeId }],
         },
+        relationships: [
+          {
+            relation: "viewer",
+            subject: {
+              kind: "public",
+            },
+          },
+        ],
       })
         .then((val) => {
           namePropertyType = val;
@@ -152,7 +182,20 @@ describe("Entity CRU", () => {
           },
         ],
       }),
-      instantiators: [{ kind: "public" }],
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+        {
+          relation: "instantiator",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     });
   });
 
@@ -177,6 +220,7 @@ describe("Entity CRU", () => {
         [favoriteBookPropertyType.metadata.recordId.baseUrl]: "some text",
       },
       entityTypeId: entityType.schema.$id,
+      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   });
 
@@ -291,6 +335,9 @@ describe("Entity CRU", () => {
             },
           },
         ],
+        relationships: createDefaultAuthorizationRelationships({
+          actorId: testUser.accountId,
+        }),
       },
     );
 

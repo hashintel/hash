@@ -96,7 +96,7 @@
     "@types/dedent": "0.7.0",
     "@types/express-http-proxy": "1.6.3",
     "@types/html-to-text": "8.1.1",
-    "@types/jest": "29.5.10",
+    "@types/jest": "29.5.11",
     "@types/jsonpath": "0.2.0",
     "@types/lodash": "4.14.188",
     "@types/mime-types": "2.1.1",

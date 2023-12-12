@@ -1,5 +1,8 @@
 mod read;
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    iter::once,
+};
 
 use async_trait::async_trait;
 use authorization::{
@@ -23,24 +26,20 @@ use graph_types::{
         link::{EntityLinkOrder, LinkData},
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
-    web::WebId,
 };
 use hash_status::StatusCode;
 use postgres_types::Json;
 use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp};
-#[cfg(hash_graph_test_environment)]
 use tokio_postgres::GenericClient;
 use type_system::{url::VersionedUrl, EntityType};
 use uuid::Uuid;
 use validation::{Validate, ValidationProfile};
 
-#[cfg(hash_graph_test_environment)]
-use crate::store::error::DeletionError;
 use crate::{
     ontology::EntityTypeQueryPath,
     store::{
         crud::Read,
-        error::{EntityDoesNotExist, RaceConditionOnUpdate},
+        error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
         knowledge::{EntityValidationType, ValidateEntityError},
         postgres::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
@@ -266,7 +265,6 @@ impl<C: AsClient> PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    #[cfg(hash_graph_test_environment)]
     pub async fn delete_entities(&mut self) -> Result<(), DeletionError> {
         self.as_client()
             .client()
@@ -289,13 +287,15 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> EntityStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, properties, authorization_api))]
+    #[tracing::instrument(
+        level = "info",
+        skip(self, properties, authorization_api, relationships)
+    )]
     async fn create_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         owned_by_id: OwnedById,
-        owner: EntityOwnerSubject,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
@@ -303,7 +303,20 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_type_url: VersionedUrl,
         properties: EntityProperties,
         link_data: Option<LinkData>,
+        relationships: impl IntoIterator<Item = EntityRelationAndSubject> + Send,
     ) -> Result<EntityMetadata, InsertionError> {
+        let relationships = relationships
+            .into_iter()
+            .chain(once(EntityRelationAndSubject::Owner {
+                subject: EntityOwnerSubject::Web { id: owned_by_id },
+                level: 0,
+            }))
+            .collect::<Vec<_>>();
+        if relationships.is_empty() {
+            return Err(Report::new(InsertionError)
+                .attach_printable("At least one relationship must be provided"));
+        }
+
         let entity_type_id = EntityTypeId::from_url(&entity_type_url);
         authorization_api
             .check_entity_type_permission(
@@ -323,7 +336,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .check_web_permission(
                     actor_id,
                     WebPermission::CreateEntity,
-                    WebId::from(owned_by_id),
+                    owned_by_id,
                     Consistency::FullyConsistent,
                 )
                 .await
@@ -468,14 +481,15 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         };
 
         authorization_api
-            .modify_entity_relations([(
-                ModifyRelationshipOperation::Create,
-                entity_id,
-                EntityRelationAndSubject::Owner {
-                    subject: owner,
-                    level: 0,
+            .modify_entity_relations(relationships.clone().into_iter().map(
+                |relation_and_subject| {
+                    (
+                        ModifyRelationshipOperation::Create,
+                        entity_id,
+                        relation_and_subject,
+                    )
                 },
-            )])
+            ))
             .await
             .change_context(InsertionError)?;
 
@@ -499,14 +513,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
             if let Err(auth_error) = authorization_api
-                .modify_entity_relations([(
-                    ModifyRelationshipOperation::Delete,
-                    entity_id,
-                    EntityRelationAndSubject::Owner {
-                        subject: owner,
-                        level: 0,
-                    },
-                )])
+                .modify_entity_relations(relationships.into_iter().map(|relation_and_subject| {
+                    (
+                        ModifyRelationshipOperation::Delete,
+                        entity_id,
+                        relation_and_subject,
+                    )
+                }))
                 .await
                 .change_context(InsertionError)
             {
@@ -654,8 +667,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .attach(StatusCode::InvalidArgument)
     }
 
-    #[doc(hidden)]
-    #[cfg(hash_graph_test_environment)]
     #[expect(clippy::too_many_lines)]
     async fn insert_entities_batched_by_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
@@ -1033,50 +1044,27 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         } else {
             ValidationProfile::Full
         };
-        // TODO: Always validate source and target entities when updating a link, currently we only
-        //       do that when the draft state changes.
-        //   see https://linear.app/hash/issue/H-1413
-        if draft == was_draft_before {
-            // If the draft state does not change we only validate the properties
-            properties
-                .validate(
-                    &closed_schema,
-                    validation_profile,
-                    &StoreProvider {
-                        store: &transaction,
-                        cache: StoreCache::default(),
-                        authorization: Some((
-                            authorization_api,
-                            actor_id,
-                            Consistency::FullyConsistent,
-                        )),
-                    },
-                )
-                .await
-                .change_context(UpdateError)
-                .attach(StatusCode::InvalidArgument)?;
-        } else {
-            transaction
-                .validate_entity(
-                    actor_id,
-                    authorization_api,
-                    Consistency::FullyConsistent,
-                    EntityValidationType::Schema(&closed_schema),
-                    &properties,
-                    previous_entity
-                        .link_data
-                        .map(|link_data| LinkData {
-                            left_entity_id: link_data.left_entity_id,
-                            right_entity_id: link_data.right_entity_id,
-                            order: link_order,
-                        })
-                        .as_ref(),
-                    validation_profile,
-                )
-                .await
-                .change_context(UpdateError)
-                .attach(StatusCode::InvalidArgument)?;
-        }
+
+        transaction
+            .validate_entity(
+                actor_id,
+                authorization_api,
+                Consistency::FullyConsistent,
+                EntityValidationType::Schema(&closed_schema),
+                &properties,
+                previous_entity
+                    .link_data
+                    .map(|link_data| LinkData {
+                        left_entity_id: link_data.left_entity_id,
+                        right_entity_id: link_data.right_entity_id,
+                        order: link_order,
+                    })
+                    .as_ref(),
+                validation_profile,
+            )
+            .await
+            .change_context(UpdateError)
+            .attach(StatusCode::InvalidArgument)?;
 
         transaction.commit().await.change_context(UpdateError)?;
 

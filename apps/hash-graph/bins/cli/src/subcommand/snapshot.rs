@@ -1,4 +1,8 @@
-use authorization::backend::{SpiceDbOpenApi, ZanzibarBackend};
+use authorization::{
+    backend::{SpiceDbOpenApi, ZanzibarBackend},
+    zanzibar::ZanzibarClient,
+    AuthorizationApi,
+};
 use clap::Parser;
 use error_stack::{Result, ResultExt};
 use graph::{
@@ -16,7 +20,11 @@ use crate::error::GraphError;
 pub struct SnapshotDumpArgs;
 
 #[derive(Debug, Parser)]
-pub struct SnapshotRestoreArgs;
+pub struct SnapshotRestoreArgs {
+    /// Whether to skip the validation checks.
+    #[clap(long)]
+    pub skip_validation: bool,
+}
 
 #[derive(Debug, Parser)]
 pub enum SnapshotCommand {
@@ -61,17 +69,21 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
             report
         })?;
 
-    let mut authorization_api = SpiceDbOpenApi::new(
+    let mut spicedb_client = SpiceDbOpenApi::new(
         format!("{}:{}", args.spicedb_host, args.spicedb_http_port),
         args.spicedb_grpc_preshared_key.as_deref(),
     )
     .change_context(GraphError)?;
-    authorization_api
+    spicedb_client
         .import_schema(include_str!(
             "../../../../../../libs/@local/hash-authorization/schemas/v1__initial_schema.zed"
         ))
         .await
         .change_context(GraphError)?;
+
+    let mut zanzibar_client = ZanzibarClient::new(spicedb_client);
+    zanzibar_client.seed().await.change_context(GraphError)?;
+    let mut authorization_api = zanzibar_client.into_backend();
 
     match args.command {
         SnapshotCommand::Dump(_) => {
@@ -88,7 +100,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
 
             tracing::info!("Snapshot dumped successfully");
         }
-        SnapshotCommand::Restore(_) => {
+        SnapshotCommand::Restore(args) => {
             SnapshotStore::new(pool.acquire().await.change_context(GraphError).map_err(
                 |report| {
                     tracing::error!(error = ?report, "Failed to acquire database connection");
@@ -102,6 +114,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
                 ),
                 &mut authorization_api,
                 10_000,
+                !args.skip_validation,
             )
             .await
             .change_context(GraphError)

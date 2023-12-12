@@ -7,8 +7,9 @@ use std::{collections::hash_map, sync::Arc};
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        EntityTypeId, EntityTypeInstantiatorSubject, EntityTypeOwnerSubject, EntityTypePermission,
-        EntityTypeRelationAndSubject, EntityTypeViewerSubject,
+        EntityTypeEditorSubject, EntityTypeId, EntityTypeInstantiatorSubject,
+        EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject,
+        EntityTypeSetting, EntityTypeSettingSubject, EntityTypeViewerSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
@@ -80,9 +81,12 @@ use crate::{
     components(
         schemas(
             EntityTypeWithMetadata,
+            EntityTypeSetting,
 
-            EntityTypeViewerSubject,
+            EntityTypeSettingSubject,
             EntityTypeOwnerSubject,
+            EntityTypeEditorSubject,
+            EntityTypeViewerSubject,
             EntityTypeInstantiatorSubject,
             EntityTypePermission,
             EntityTypeRelationAndSubject,
@@ -144,7 +148,7 @@ impl RoutedResource for EntityTypeResource {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct CreateEntityTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfEntityType,
@@ -154,6 +158,7 @@ struct CreateEntityTypeRequest {
     label_property: Option<BaseUrl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     icon: Option<String>,
+    relationships: Vec<EntityTypeRelationAndSubject>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -379,6 +384,7 @@ where
         owned_by_id,
         label_property,
         icon,
+        relationships,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
@@ -439,6 +445,7 @@ where
             &mut authorization_api,
             entity_types.into_iter().zip(partial_metadata),
             ConflictBehavior::Fail,
+            relationships,
         )
         .await
         .map_err(|report| {
@@ -525,6 +532,7 @@ enum LoadExternalEntityTypeRequest {
         label_property: Option<BaseUrl>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         icon: Option<String>,
+        relationships: Vec<EntityTypeRelationAndSubject>,
     },
 }
 
@@ -613,6 +621,7 @@ where
             schema,
             label_property,
             icon,
+            relationships,
         } => {
             let record_id = OntologyTypeRecordId::from(schema.id().clone());
 
@@ -640,6 +649,7 @@ where
                                 fetched_at: OffsetDateTime::now_utc(),
                             },
                         },
+                        relationships,
                     )
                     .await
                     .map_err(report_to_response)?
@@ -717,7 +727,7 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UpdateEntityTypeRequest {
     #[schema(value_type = VAR_UPDATE_ENTITY_TYPE)]
     schema: serde_json::Value,
@@ -728,6 +738,7 @@ struct UpdateEntityTypeRequest {
     label_property: Option<BaseUrl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     icon: Option<String>,
+    relationships: Vec<EntityTypeRelationAndSubject>,
 }
 
 #[utoipa::path(
@@ -764,6 +775,7 @@ where
         mut type_to_update,
         label_property,
         icon,
+        relationships,
     }) = body;
 
     type_to_update.version += 1;
@@ -793,6 +805,7 @@ where
             entity_type,
             label_property,
             icon,
+            relationships,
         )
         .await
         .map_err(|report| {
@@ -812,7 +825,7 @@ where
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ArchiveEntityTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_archive: VersionedUrl,
@@ -878,7 +891,7 @@ where
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UnarchiveEntityTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_unarchive: VersionedUrl,

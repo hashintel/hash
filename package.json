@@ -19,6 +19,8 @@
     "dev:backend:search-loader": "turbo dev --log-order stream --filter '@apps/hash-search-loader' --",
     "dev:frontend": "turbo dev --log-order stream --filter '@apps/hash-frontend' --",
     "dev:graph": "yarn workspace @apps/hash-graph dev",
+    "dev:graph:test-server": "yarn workspace @apps/hash-graph dev:test-server",
+    "graph:reset-database": "yarn workspace @apps/hash-graph reset-database",
     "external-services": "turbo deploy --filter '@apps/hash-external-services' --",
     "external-services:offline": "turbo deploy:offline --filter '@apps/hash-external-services' --",
     "external-services:test": "turbo deploy:test --filter '@apps/hash-external-services' --",
@@ -101,7 +103,7 @@
     "prettier-plugin-sh": "0.13.1",
     "prettier-plugin-sql": "0.12.1",
     "suppress-exit-code": "3.1.0",
-    "turbo": "1.10.16",
+    "turbo": "1.11",
     "wait-on": "6.0.1",
     "yarn-deduplicate": "6.0.2"
   }

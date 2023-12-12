@@ -19,7 +19,7 @@ error-stack = { git = "https://github.com/hashintel/hash", rev = "0829935", defa
 
 deer = { path = "..", default-features = false }
 
-justjson = { version = "0.2.3", default-features = false, features = ['alloc'] }
+justjson = { version = "0.3.0", default-features = false, features = ['alloc'] }
 lexical = { version = "6.1.1", default-features = false, features = ['parse-floats', 'parse-integers', 'format'] }
 memchr = "2.6.4"
 

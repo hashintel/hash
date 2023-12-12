@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use graph_types::account::AccountId;
 use serde::{Deserialize, Serialize};
 
@@ -15,9 +13,10 @@ impl Resource for AccountId {
     type Id = Self;
     type Kind = AccountNamespace;
 
-    fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
+    #[expect(refining_impl_trait)]
+    fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, !> {
         match kind {
-            AccountNamespace::Account => Ok::<_, !>(id),
+            AccountNamespace::Account => Ok(id),
         }
     }
 
@@ -34,8 +33,9 @@ impl Subject for AccountId {
     type Relation = !;
     type Resource = Self;
 
-    fn from_parts(resource: Self::Resource, _relation: Option<!>) -> Result<Self, impl Error> {
-        Ok::<_, !>(resource)
+    #[expect(refining_impl_trait)]
+    fn from_parts(resource: Self::Resource, _relation: Option<!>) -> Result<Self, !> {
+        Ok(resource)
     }
 
     fn into_parts(self) -> (Self::Resource, Option<Self::Relation>) {
@@ -57,9 +57,10 @@ impl Resource for PublicAccess {
     type Id = Self;
     type Kind = AccountNamespace;
 
-    fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
+    #[expect(refining_impl_trait)]
+    fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, !> {
         match kind {
-            AccountNamespace::Account => Ok::<_, !>(id),
+            AccountNamespace::Account => Ok(id),
         }
     }
 
@@ -76,8 +77,9 @@ impl Subject for PublicAccess {
     type Relation = !;
     type Resource = Self;
 
-    fn from_parts(resource: Self::Resource, _relation: Option<!>) -> Result<Self, impl Error> {
-        Ok::<_, !>(resource)
+    #[expect(refining_impl_trait)]
+    fn from_parts(resource: Self::Resource, _relation: Option<!>) -> Result<Self, !> {
+        Ok(resource)
     }
 
     fn into_parts(self) -> (Self::Resource, Option<Self::Relation>) {

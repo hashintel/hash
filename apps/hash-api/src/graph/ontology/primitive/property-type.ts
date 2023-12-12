@@ -21,6 +21,7 @@ import {
   ontologyTypeRecordIdToVersionedUrl,
   OwnedById,
   PropertyTypeAuthorizationRelationship,
+  PropertyTypeRelationAndSubject,
   PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
@@ -48,6 +49,7 @@ export const createPropertyType: ImpureGraphFunction<
     ownedById: OwnedById;
     schema: ConstructPropertyTypeParams;
     webShortname?: string;
+    relationships: PropertyTypeRelationAndSubject[];
   },
   Promise<PropertyTypeWithMetadata>
 > = async (ctx, authentication, params) => {
@@ -79,6 +81,7 @@ export const createPropertyType: ImpureGraphFunction<
     {
       ownedById,
       schema,
+      relationships: params.relationships,
     },
   );
 
@@ -185,6 +188,7 @@ export const updatePropertyType: ImpureGraphFunction<
   {
     propertyTypeId: VersionedUrl;
     schema: ConstructPropertyTypeParams;
+    relationships: PropertyTypeRelationAndSubject[];
   },
   Promise<PropertyTypeWithMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
@@ -196,6 +200,7 @@ export const updatePropertyType: ImpureGraphFunction<
       kind: "propertyType" as const,
       ...schema,
     },
+    relationships: params.relationships,
   };
 
   const { data: metadata } = await graphApi.updatePropertyType(

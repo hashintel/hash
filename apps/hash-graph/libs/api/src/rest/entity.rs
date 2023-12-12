@@ -7,8 +7,9 @@ use std::{collections::HashSet, sync::Arc};
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        EntityEditorSubject, EntityOwnerSubject, EntityPermission, EntityRelationAndSubject,
-        EntitySubjectSet, EntityViewerSubject, WebSubject,
+        EntityAdministratorSubject, EntityEditorSubject, EntityOwnerSubject, EntityPermission,
+        EntityRelationAndSubject, EntitySetting, EntitySettingSubject, EntitySubjectSet,
+        EntityViewerSubject, WebOwnerSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
@@ -65,8 +66,8 @@ use crate::rest::{
         get_entity_authorization_relationships,
         modify_entity_authorization_relationships,
 
-        add_entity_owner,
-        remove_entity_owner,
+        add_entity_administrator,
+        remove_entity_administrator,
         add_entity_editor,
         remove_entity_editor,
     ),
@@ -81,11 +82,14 @@ use crate::rest::{
 
             EntityRelationAndSubject,
             EntityPermission,
+            EntitySettingSubject,
             EntityOwnerSubject,
+            EntityAdministratorSubject,
             EntityEditorSubject,
             EntityViewerSubject,
             ModifyEntityAuthorizationRelationship,
             ModifyRelationshipOperation,
+            EntitySetting,
 
             Entity,
             EntityUuid,
@@ -132,8 +136,9 @@ impl RoutedResource for EntityResource {
                             get(get_entity_authorization_relationships::<A>),
                         )
                         .route(
-                            "/owners/:owner",
-                            post(add_entity_owner::<A, S>).delete(remove_entity_owner::<A, S>),
+                            "/administrators/:administrator",
+                            post(add_entity_administrator::<A, S>)
+                                .delete(remove_entity_administrator::<A, S>),
                         )
                         .route(
                             "/editors/:editor",
@@ -156,13 +161,13 @@ struct CreateEntityRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     entity_type_id: VersionedUrl,
     owned_by_id: OwnedById,
-    owner: OwnedById,
     #[schema(nullable = false)]
     entity_uuid: Option<EntityUuid>,
     #[serde(default)]
     #[schema(nullable = false)]
     link_data: Option<LinkData>,
     draft: bool,
+    relationships: Vec<EntityRelationAndSubject>,
 }
 
 #[utoipa::path(
@@ -195,11 +200,11 @@ where
     let Json(CreateEntityRequest {
         properties,
         entity_type_id,
-        owner,
         owned_by_id,
         entity_uuid,
         link_data,
         draft,
+        relationships,
     }) = body;
 
     let mut store = store_pool.acquire().await.map_err(report_to_response)?;
@@ -208,26 +213,11 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let owner_id = store
-        .identify_owned_by_id(owner)
-        .await
-        .attach(hash_status::StatusCode::NotFound)
-        .map_err(report_to_response)?;
-
-    let owner = match owner_id {
-        WebSubject::Account(id) => EntityOwnerSubject::Account { id },
-        WebSubject::AccountGroup(id) => EntityOwnerSubject::AccountGroup {
-            id,
-            set: EntitySubjectSet::Member,
-        },
-    };
-
     store
         .create_entity(
             actor_id,
             &mut authorization_api,
             owned_by_id,
-            owner,
             entity_uuid,
             None,
             false,
@@ -235,6 +225,7 @@ where
             entity_type_id,
             properties,
             link_data,
+            relationships,
         )
         .await
         .map_err(report_to_response)
@@ -640,108 +631,21 @@ where
 
 #[utoipa::path(
     post,
-    path = "/entities/{entity_id}/owners/{owner}",
+    path = "/entities/{entity_id}/administrators/{administrator}",
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("entity_id" = EntityId, Path, description = "The Entity to add the owner to"),
-        ("owner" = OwnedById, Path, description = "The owner to add to the entity"),
+        ("entity_id" = EntityId, Path, description = "The Entity to add the administrator to"),
+        ("administrator" = OwnedById, Path, description = "The administrator to add to the entity"),
     ),
     responses(
-        (status = 204, description = "The owner was added to the entity"),
+        (status = 204, description = "The administrator was added to the entity"),
 
         (status = 403, description = "Permission denied"),
 )
 )]
 #[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
-async fn add_entity_owner<A, S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((entity_id, owned_by_id)): Path<(EntityId, OwnedById)>,
-    store_pool: Extension<Arc<S>>,
-    authorization_api_pool: Extension<Arc<A>>,
-) -> Result<StatusCode, StatusCode>
-where
-    S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-{
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let has_permission = authorization_api
-        .check_entity_permission(
-            actor_id,
-            EntityPermission::Update,
-            entity_id,
-            Consistency::FullyConsistent,
-        )
-        .await
-        .map_err(|error| {
-            tracing::error!(?error, "Could not check if owner can be added to entity");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?
-        .has_permission;
-
-    if !has_permission {
-        return Err(StatusCode::FORBIDDEN);
-    }
-
-    let store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-    let owner_id = store
-        .identify_owned_by_id(owned_by_id)
-        .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not identify account or account group");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    let owner = match owner_id {
-        WebSubject::Account(id) => EntityOwnerSubject::Account { id },
-        WebSubject::AccountGroup(id) => EntityOwnerSubject::AccountGroup {
-            id,
-            set: EntitySubjectSet::Member,
-        },
-    };
-
-    authorization_api
-        .modify_entity_relations([(
-            ModifyRelationshipOperation::Create,
-            entity_id,
-            EntityRelationAndSubject::Owner {
-                subject: owner,
-                level: 0,
-            },
-        )])
-        .await
-        .map_err(|error| {
-            tracing::error!(?error, "Could not add entity owner");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(StatusCode::NO_CONTENT)
-}
-
-#[utoipa::path(
-    delete,
-    path = "/entities/{entity_id}/owners/{owner}",
-    tag = "Entity",
-    params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("entity_id" = EntityId, Path, description = "The Entity to remove the owner from"),
-        ("owner" = OwnedById, Path, description = "The owner to remove from the entity"),
-    ),
-    responses(
-        (status = 204, description = "The owner was removed from the entity"),
-
-        (status = 403, description = "Permission denied"),
-    )
-)]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
-async fn remove_entity_owner<A, S>(
+async fn add_entity_administrator<A, S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path((entity_id, owned_by_id)): Path<(EntityId, OwnedById)>,
     store_pool: Extension<Arc<S>>,
@@ -767,7 +671,7 @@ where
         .map_err(|error| {
             tracing::error!(
                 ?error,
-                "Could not check if owner can be removed from entity"
+                "Could not check if administrator can be added to entity"
             );
             StatusCode::INTERNAL_SERVER_ERROR
         })?
@@ -781,7 +685,7 @@ where
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
-    let owner_id = store
+    let administrator_id = store
         .identify_owned_by_id(owned_by_id)
         .await
         .map_err(|report| {
@@ -789,9 +693,99 @@ where
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    let subject = match owner_id {
-        WebSubject::Account(id) => EntityOwnerSubject::Account { id },
-        WebSubject::AccountGroup(id) => EntityOwnerSubject::AccountGroup {
+    let administrator = match administrator_id {
+        WebOwnerSubject::Account { id } => EntityAdministratorSubject::Account { id },
+        WebOwnerSubject::AccountGroup { id } => EntityAdministratorSubject::AccountGroup {
+            id,
+            set: EntitySubjectSet::Member,
+        },
+    };
+
+    authorization_api
+        .modify_entity_relations([(
+            ModifyRelationshipOperation::Create,
+            entity_id,
+            EntityRelationAndSubject::Administrator {
+                subject: administrator,
+                level: 0,
+            },
+        )])
+        .await
+        .map_err(|error| {
+            tracing::error!(?error, "Could not add entity administrator");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    delete,
+    path = "/entities/{entity_id}/administrators/{administrator}",
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("entity_id" = EntityId, Path, description = "The Entity to remove the administrator from"),
+        ("administrator" = OwnedById, Path, description = "The administrator to remove from the entity"),
+    ),
+    responses(
+        (status = 204, description = "The administrator was removed from the entity"),
+
+        (status = 403, description = "Permission denied"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+async fn remove_entity_administrator<A, S>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path((entity_id, owned_by_id)): Path<(EntityId, OwnedById)>,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+) -> Result<StatusCode, StatusCode>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let has_permission = authorization_api
+        .check_entity_permission(
+            actor_id,
+            EntityPermission::FullAccess,
+            entity_id,
+            Consistency::FullyConsistent,
+        )
+        .await
+        .map_err(|error| {
+            tracing::error!(
+                ?error,
+                "Could not check if administrator can be removed from entity"
+            );
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .has_permission;
+
+    if !has_permission {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    let store = store_pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    let administrator_id = store
+        .identify_owned_by_id(owned_by_id)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not identify account or account group");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let administrator = match administrator_id {
+        WebOwnerSubject::Account { id } => EntityAdministratorSubject::Account { id },
+        WebOwnerSubject::AccountGroup { id } => EntityAdministratorSubject::AccountGroup {
             id,
             set: EntitySubjectSet::Member,
         },
@@ -801,11 +795,14 @@ where
         .modify_entity_relations([(
             ModifyRelationshipOperation::Delete,
             entity_id,
-            EntityRelationAndSubject::Owner { subject, level: 0 },
+            EntityRelationAndSubject::Administrator {
+                subject: administrator,
+                level: 0,
+            },
         )])
         .await
         .map_err(|error| {
-            tracing::error!(?error, "Could not remove entity owner");
+            tracing::error!(?error, "Could not remove entity administrator");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
@@ -846,7 +843,7 @@ where
     let has_permission = authorization_api
         .check_entity_permission(
             actor_id,
-            EntityPermission::Update,
+            EntityPermission::FullAccess,
             entity_id,
             Consistency::FullyConsistent,
         )
@@ -871,8 +868,8 @@ where
     })?;
 
     let subject = match editor_id {
-        WebSubject::Account(id) => EntityEditorSubject::Account { id },
-        WebSubject::AccountGroup(id) => EntityEditorSubject::AccountGroup {
+        WebOwnerSubject::Account { id } => EntityEditorSubject::Account { id },
+        WebOwnerSubject::AccountGroup { id } => EntityEditorSubject::AccountGroup {
             id,
             set: EntitySubjectSet::Member,
         },
@@ -955,8 +952,8 @@ where
     })?;
 
     let subject = match editor_id {
-        WebSubject::Account(id) => EntityEditorSubject::Account { id },
-        WebSubject::AccountGroup(id) => EntityEditorSubject::AccountGroup {
+        WebOwnerSubject::Account { id } => EntityEditorSubject::Account { id },
+        WebOwnerSubject::AccountGroup { id } => EntityEditorSubject::AccountGroup {
             id,
             set: EntitySubjectSet::Member,
         },

@@ -89,7 +89,14 @@ beforeAll(async () => {
         type: "object",
         properties: {},
       },
-      instantiators: [{ kind: "public" }],
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     }).then((val) => {
       workerEntityType = val;
     }),
@@ -100,7 +107,14 @@ beforeAll(async () => {
         type: "object",
         properties: {},
       },
-      instantiators: [{ kind: "public" }],
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     }).then((val) => {
       addressEntityType = val;
     }),
@@ -110,6 +124,14 @@ beforeAll(async () => {
         title: "Favorite Book",
         oneOf: [{ $ref: textDataTypeId }],
       },
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     }).then((val) => {
       favoriteBookPropertyType = val;
     }),
@@ -119,6 +141,14 @@ beforeAll(async () => {
         title: "Name",
         oneOf: [{ $ref: textDataTypeId }],
       },
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     }).then((val) => {
       namePropertyType = val;
     }),
@@ -132,7 +162,14 @@ beforeAll(async () => {
         properties: {},
         ...({} as Record<SystemDefinedProperties, never>),
       },
-      instantiators: [{ kind: "public" }],
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     }).then((val) => {
       knowsLinkEntityType = val;
     }),
@@ -145,7 +182,14 @@ beforeAll(async () => {
         allOf: [{ $ref: linkEntityTypeUrl }],
         properties: {},
       },
-      instantiators: [{ kind: "public" }],
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     }).then((val) => {
       previousAddressLinkEntityType = val;
     }),
@@ -201,7 +245,21 @@ describe("Entity type CRU", () => {
     createdEntityType = await createEntityType(graphContext, authentication, {
       ownedById: testOrg.accountGroupId as OwnedById,
       schema: entityTypeSchema,
-      instantiators: [{ kind: "public" }],
+      relationships: [
+        {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "updateFromWeb",
+          },
+        },
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     });
   });
 
@@ -235,7 +293,16 @@ describe("Entity type CRU", () => {
       {
         entityTypeId: createdEntityType.schema.$id,
         schema: { ...entityTypeSchema, title: updatedTitle },
-        instantiators: [{ kind: "public" }],
+        relationships: [
+          {
+            relation: "setting",
+            subject: {
+              kind: "setting",
+              subjectId: "updateFromWeb",
+            },
+          },
+          { relation: "instantiator", subject: { kind: "public" } },
+        ],
       },
     ).catch((err) => Promise.reject(err.data));
 

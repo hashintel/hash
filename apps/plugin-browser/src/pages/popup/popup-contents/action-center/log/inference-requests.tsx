@@ -12,13 +12,12 @@ import { useState } from "react";
 import {
   LocalStorage,
   PageEntityInference,
-} from "../../../../../../shared/storage";
+} from "../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
   darkModePlaceholderColor,
-} from "../../../../../shared/style-values";
-import { useLocalStorage } from "../../../../../shared/use-local-storage";
+} from "../../../../shared/style-values";
 import { InferenceRequest } from "./inference-request";
 
 const InferenceRequestContainer = ({
@@ -115,14 +114,15 @@ const InferenceRequestContainer = ({
 };
 
 export const InferenceRequests = ({
+  inferenceRequests,
   user,
 }: {
+  inferenceRequests: LocalStorage["inferenceRequests"];
   user: NonNullable<LocalStorage["user"]>;
 }) => {
   const [expandedStatusUuid, setExpandedStatusUuid] = useState<string | null>(
     null,
   );
-  const [inferenceStatus] = useLocalStorage("inferenceRequests", []);
 
   const toggleExpanded = (statusUuid: string) => {
     setExpandedStatusUuid((currentExpanded) =>
@@ -130,9 +130,26 @@ export const InferenceRequests = ({
     );
   };
 
+  if (inferenceRequests.length === 0) {
+    return (
+      <Typography
+        sx={({ palette }) => ({
+          fontSize: 14,
+          color: palette.gray[90],
+          "@media (prefers-color-scheme: dark)": {
+            color: palette.gray[30],
+          },
+        })}
+      >
+        Nothing here yet – a record of entities created or updated will appear
+        here as you use the plugin.
+      </Typography>
+    );
+  }
+
   return (
     <Box mt={2}>
-      {inferenceStatus.map((request) => {
+      {inferenceRequests.map((request) => {
         const requestId = request.localRequestUuid;
 
         return (

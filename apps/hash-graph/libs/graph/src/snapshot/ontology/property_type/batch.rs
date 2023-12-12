@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 use authorization::{
     backend::ZanzibarBackend,
@@ -21,7 +23,7 @@ pub enum PropertyTypeRowBatch {
     Schema(Vec<PropertyTypeRow>),
     ConstrainsValues(Vec<PropertyTypeConstrainsValuesOnRow>),
     ConstrainsProperties(Vec<PropertyTypeConstrainsPropertiesOnRow>),
-    Relations(Vec<(PropertyTypeId, PropertyTypeRelationAndSubject)>),
+    Relations(HashMap<PropertyTypeId, Vec<PropertyTypeRelationAndSubject>>),
 }
 
 #[async_trait]
@@ -112,9 +114,20 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
                     tracing::info!("Read {} property type property type constrains", rows.len());
                 }
             }
+            #[expect(
+                clippy::needless_collect,
+                reason = "Lifetime error, probably the signatures are wrong"
+            )]
             Self::Relations(relations) => {
                 authorization_api
-                    .touch_relationships(relations)
+                    .touch_relationships(
+                        relations
+                            .into_iter()
+                            .flat_map(|(id, relations)| {
+                                relations.into_iter().map(move |relation| (id, relation))
+                            })
+                            .collect::<Vec<_>>(),
+                    )
                     .await
                     .change_context(InsertionError)?;
             }
@@ -122,7 +135,10 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
         Ok(())
     }
 
-    async fn commit(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+    async fn commit(
+        postgres_client: &PostgresStore<C>,
+        _validation: bool,
+    ) -> Result<(), InsertionError> {
         postgres_client
             .as_client()
             .client()

@@ -16,6 +16,7 @@ import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { ConstructDataTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
   DataTypeAuthorizationRelationship,
+  DataTypeRelationAndSubject,
   DataTypeRootType,
   DataTypeWithMetadata,
   OntologyElementMetadata,
@@ -53,6 +54,7 @@ export const createDataType: ImpureGraphFunction<
     ownedById: OwnedById;
     schema: ConstructDataTypeParams;
     webShortname?: string;
+    relationships: DataTypeRelationAndSubject[];
   },
   Promise<DataTypeWithMetadata>
 > = async (ctx, authentication, params) => {
@@ -84,6 +86,7 @@ export const createDataType: ImpureGraphFunction<
     {
       schema,
       ownedById,
+      relationships: params.relationships,
     },
   );
 
@@ -195,6 +198,7 @@ export const updateDataType: ImpureGraphFunction<
   {
     dataTypeId: VersionedUrl;
     schema: ConstructDataTypeParams;
+    relationships: DataTypeRelationAndSubject[];
   },
   Promise<DataTypeWithMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
@@ -207,6 +211,7 @@ export const updateDataType: ImpureGraphFunction<
       kind: "dataType",
       ...schema,
     },
+    relationships: params.relationships,
   });
 
   const { recordId } = metadata;

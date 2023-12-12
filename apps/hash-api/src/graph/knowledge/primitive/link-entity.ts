@@ -6,6 +6,7 @@ import {
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
+  EntityRelationAndSubject,
   LinkData,
   OwnedById,
 } from "@local/hash-subgraph";
@@ -29,6 +30,7 @@ export type CreateLinkEntityParams = {
   leftToRightOrder?: number;
   rightEntityId: EntityId;
   rightToLeftOrder?: number;
+  relationships: EntityRelationAndSubject[];
 };
 
 export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
@@ -94,8 +96,8 @@ export const createLinkEntity: ImpureGraphFunction<
       linkData,
       entityTypeId: linkEntityType.schema.$id,
       properties,
-      owner: params.owner ?? ownedById,
       draft,
+      relationships: params.relationships,
     },
   );
 
@@ -133,6 +135,7 @@ export const updateLinkEntity: ImpureGraphFunction<
     properties?: EntityPropertiesObject;
     leftToRightOrder?: number;
     rightToLeftOrder?: number;
+    draft?: boolean;
   },
   Promise<LinkEntity>
 > = async ({ graphApi }, { actorId }, params) => {
@@ -145,7 +148,10 @@ export const updateLinkEntity: ImpureGraphFunction<
     entityTypeId: linkEntity.metadata.entityTypeId,
     properties,
     archived: linkEntity.metadata.archived,
-    draft: linkEntity.metadata.draft,
+    draft:
+      typeof params.draft === "undefined"
+        ? linkEntity.metadata.draft
+        : params.draft,
     leftToRightOrder,
     rightToLeftOrder,
   });

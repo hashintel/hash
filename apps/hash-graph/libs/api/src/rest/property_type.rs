@@ -7,8 +7,9 @@ use std::sync::Arc;
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        PropertyTypeId, PropertyTypeOwnerSubject, PropertyTypePermission,
-        PropertyTypeRelationAndSubject, PropertyTypeViewerSubject,
+        PropertyTypeEditorSubject, PropertyTypeId, PropertyTypeOwnerSubject,
+        PropertyTypePermission, PropertyTypeRelationAndSubject, PropertyTypeSetting,
+        PropertyTypeSettingSubject, PropertyTypeViewerSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
@@ -74,9 +75,12 @@ use crate::rest::{
     components(
         schemas(
             PropertyTypeWithMetadata,
+            PropertyTypeSetting,
 
-            PropertyTypeViewerSubject,
+            PropertyTypeSettingSubject,
             PropertyTypeOwnerSubject,
+            PropertyTypeEditorSubject,
+            PropertyTypeViewerSubject,
             PropertyTypePermission,
             PropertyTypeRelationAndSubject,
             ModifyPropertyTypeAuthorizationRelationship,
@@ -137,11 +141,12 @@ impl RoutedResource for PropertyTypeResource {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct CreatePropertyTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfPropertyType,
     owned_by_id: OwnedById,
+    relationships: Vec<PropertyTypeRelationAndSubject>,
 }
 
 #[utoipa::path(
@@ -184,6 +189,7 @@ where
     let Json(CreatePropertyTypeRequest {
         schema,
         owned_by_id,
+        relationships,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
@@ -219,6 +225,7 @@ where
             &mut authorization_api,
             property_types.into_iter().zip(partial_metadata),
             ConflictBehavior::Fail,
+            relationships,
         )
         .await
         .map_err(|report| {
@@ -255,6 +262,7 @@ enum LoadExternalPropertyTypeRequest {
     Create {
         #[schema(value_type = VAR_PROPERTY_TYPE)]
         schema: PropertyType,
+        relationships: Vec<PropertyTypeRelationAndSubject>,
     },
 }
 
@@ -307,7 +315,10 @@ where
                 )
                 .await?,
         )),
-        LoadExternalPropertyTypeRequest::Create { schema } => {
+        LoadExternalPropertyTypeRequest::Create {
+            schema,
+            relationships,
+        } => {
             let record_id = OntologyTypeRecordId::from(schema.id().clone());
 
             if domain_validator.validate_url(schema.id().base_url.as_str()) {
@@ -332,6 +343,7 @@ where
                                 fetched_at: OffsetDateTime::now_utc(),
                             },
                         },
+                        relationships,
                     )
                     .await
                     .map_err(report_to_response)?,
@@ -409,12 +421,13 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UpdatePropertyTypeRequest {
     #[schema(value_type = VAR_UPDATE_PROPERTY_TYPE)]
     schema: serde_json::Value,
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_update: VersionedUrl,
+    relationships: Vec<PropertyTypeRelationAndSubject>,
 }
 
 #[utoipa::path(
@@ -449,6 +462,7 @@ where
     let Json(UpdatePropertyTypeRequest {
         schema,
         mut type_to_update,
+        relationships,
     }) = body;
 
     type_to_update.version += 1;
@@ -471,7 +485,12 @@ where
     })?;
 
     store
-        .update_property_type(actor_id, &mut authorization_api, property_type)
+        .update_property_type(
+            actor_id,
+            &mut authorization_api,
+            property_type,
+            relationships,
+        )
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update property type");
@@ -490,7 +509,7 @@ where
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ArchivePropertyTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_archive: VersionedUrl,
@@ -556,7 +575,7 @@ where
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UnarchivePropertyTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_unarchive: VersionedUrl,

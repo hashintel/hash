@@ -1,5 +1,3 @@
-import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, Select, SelectProps } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
@@ -15,10 +13,7 @@ import {
   Box,
   Divider,
   Fade,
-  inputBaseClasses,
-  selectClasses,
   Skeleton,
-  styled,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -31,7 +26,6 @@ import {
 import {
   Fragment,
   FunctionComponent,
-  Ref,
   useCallback,
   useMemo,
   useState,
@@ -49,6 +43,7 @@ import { PlusRegularIcon } from "../../shared/icons/plus-regular";
 import { Button, Link, MenuItem } from "../../shared/ui";
 import { useEntityIcon } from "../../shared/use-entity-icon";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
+import { InlineSelect } from "../shared/inline-select";
 import { ProfilePageTab } from "./util";
 
 const EntityRow: FunctionComponent<{
@@ -132,38 +127,6 @@ const EntityRow: FunctionComponent<{
     </Link>
   );
 };
-
-const InlineSelectChevronDown = () => (
-  <FontAwesomeIcon
-    icon={faCaretDown}
-    sx={{ fontSize: 12, position: "absolute", top: 3, right: 14 }}
-  />
-);
-
-const InlineSelect = styled(
-  <T extends {}>(props: SelectProps<T> & { ref?: Ref<HTMLSelectElement> }) => (
-    <Select
-      variant="standard"
-      disableUnderline
-      IconComponent={InlineSelectChevronDown}
-      {...props}
-    />
-  ),
-)(({ theme }) => ({
-  position: "relative",
-  top: 1,
-  [`.${selectClasses.select}.${inputBaseClasses.input}`]: {
-    fontSize: 12,
-    height: 12,
-    fontWeight: 600,
-    color: theme.palette.gray[90],
-    minHeight: "unset",
-    paddingRight: 18,
-    "&:focus": {
-      background: "transparent",
-    },
-  },
-}));
 
 type SortOrder =
   | "updated-at-asc"
