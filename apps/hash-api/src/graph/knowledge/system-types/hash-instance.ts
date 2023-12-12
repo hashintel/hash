@@ -24,12 +24,10 @@ import {
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
-import {
-  createAccountGroup,
-  createWeb,
-} from "../../account-permission-management";
+import { createAccountGroup } from "../../account-permission-management";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { createEntity } from "../primitive/entity";
+import { getOrgByShortname } from "./org";
 import { User } from "./user";
 
 export type HashInstance = {
@@ -122,17 +120,27 @@ export const createHashInstance: ImpureGraphFunction<
   });
 
   if (existingHashInstance) {
-    throw new Error("Hash instance entity already exists.");
+    throw new Error("HASH instance entity already exists.");
   }
 
-  const hashInstanceAdmins = await createAccountGroup(ctx, authentication, {});
-  await createWeb(ctx, authentication, {
-    ownedById: hashInstanceAdmins as OwnedById,
-    owner: { kind: "accountGroup", subjectId: hashInstanceAdmins },
+  const hashInstanceAdminsAccountGroupId = await createAccountGroup(
+    ctx,
+    authentication,
+    {},
+  );
+
+  const hashOrg = await getOrgByShortname(ctx, authentication, {
+    shortname: "hash",
   });
 
+  if (!hashOrg) {
+    throw new Error(
+      "Cannot create HASH Instance entity before HASH Org is created",
+    );
+  }
+
   const entity = await createEntity(ctx, authentication, {
-    ownedById: hashInstanceAdmins as OwnedById,
+    ownedById: hashOrg.accountGroupId as OwnedById,
     properties: {
       "https://hash.ai/@hash/types/property-type/pages-are-enabled/":
         params.pagesAreEnabled ?? true,
@@ -150,17 +158,10 @@ export const createHashInstance: ImpureGraphFunction<
         subject: { kind: "public" },
       },
       {
-        relation: "setting",
+        relation: "administrator",
         subject: {
-          kind: "setting",
-          subjectId: "administratorFromWeb",
-        },
-      },
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "updateFromWeb",
+          kind: "accountGroup",
+          subjectId: hashInstanceAdminsAccountGroupId,
         },
       },
     ],
