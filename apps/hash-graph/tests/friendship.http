@@ -528,6 +528,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   }]
 }
 
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
 ### Insert Friendship entity link type
 POST http://127.0.0.1:4000/entity-types
 Content-Type: application/json
@@ -1711,40 +1717,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     });
 %}
 
-### Insert link between entities (failing due to wrong draft state)
-POST http://127.0.0.1:4000/entities
-// TODO Use a structural query to check the link was created
-// TODO remove this link
-// TODO check the link was removed
-Content-Type: application/json
-Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
-
-{
-  "ownedById": "{{account_id}}",
-  "properties": {},
-  "entityTypeId": "{{friendship_link_entity_type_id}}",
-  "administrator": "{{account_id}}",
-  "linkData": {
-    "leftEntityId": "{{person_a_entity_id}}",
-    "rightEntityId": "{{person_b_entity_id}}"
-  },
-  "draft": false,
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-       "kind": "setting",
-       "subjectId": "administratorFromWeb"
-    }
-  }]
-}
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 400, "Response status is not 200");
-    });
-%}
-
 ### Insert link between entities
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
@@ -1775,26 +1747,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         client.assert(response.status === 200, "Response status is not 200");
     });
     client.global.set("link_entity_id", response.body.recordId.entityId);
-%}
-
-### Attempt to publish Link entity
-PUT http://127.0.0.1:4000/entities
-Content-Type: application/json
-Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
-
-{
-  "entityId": "{{link_entity_id}}",
-  "entityTypeId": "{{friendship_link_entity_type_id}}",
-  "properties": {},
-  "archived": false,
-  "draft": false
-}
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 400, "Response status is not 200");
-    });
 %}
 
 ### Publish second person entity

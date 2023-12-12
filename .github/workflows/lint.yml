@@ -48,8 +48,6 @@ jobs:
       fail-fast: false
     if: needs.setup.outputs.packages != '{"package":[],"include":[]}'
     runs-on: ubuntu-22.04
-    env:
-      RUSTFLAGS: "--cfg hash_graph_test_environment"
     steps:
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -159,12 +157,6 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: |
           just lint-toml "check"
-
-          # Clippy does not use RUSTFLAGS from `.cargo/config.toml` as `RUSTFLAGS` is set above.
-          CONFIG_FILE="$(cargo metadata --format-version 1 | jq -r '.workspace_root')/.cargo/config.toml"
-          RUSTFLAGS="$(yq -oy '.target["cfg(all())"].rustflags | join(" ")' $CONFIG_FILE) $RUSTFLAGS"
-          # If `export` would be on the same line this would not fail the workflow if the above line fails
-          export RUSTFLAGS
 
           just clippy --message-format=json \
             | clippy-sarif \
