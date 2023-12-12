@@ -1,5 +1,5 @@
 diff --git a/node_modules/@blockprotocol/graph/dist/cjs/codegen.cjs b/node_modules/@blockprotocol/graph/dist/cjs/codegen.cjs
-index 8618e27..050e7ca 100644
+index 8618e27..ffd7ec4 100644
 --- a/node_modules/@blockprotocol/graph/dist/cjs/codegen.cjs
 +++ b/node_modules/@blockprotocol/graph/dist/cjs/codegen.cjs
 @@ -4,7 +4,7 @@ var path = require('node:path');
@@ -7,7 +7,7 @@ index 8618e27..050e7ca 100644
  var jsonSchemaToTypescript = require('json-schema-to-typescript');
  var fs = require('node:fs/promises');
 -var fetch = require('node-fetch');
-+// PATCH: rely on native fetch
++// PATCH: rely on native fetch until https://github.com/blockprotocol/blockprotocol/pull/1310 is merged and released
  var ts = require('typescript');
  
  function _interopNamespaceDefault(e) {
