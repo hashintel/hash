@@ -1,4 +1,5 @@
 use serde::{ser::SerializeStruct, Serialize, Serializer};
+#[cfg(feature = "utoipa")]
 use utoipa::{openapi, ToSchema};
 
 #[derive(Debug, Hash, PartialEq, Eq)]
@@ -46,7 +47,7 @@ impl EdgeDirection {
 
 // Utoipa doesn't seem to be able to generate sensible interfaces for this, it gets confused by
 // the generic
-// TODO: move to utoipa, this has nothing to do with the graph
+#[cfg(feature = "utoipa")]
 impl<'s, K, E> OutwardEdge<K, E>
 where
     K: ToSchema<'s>,

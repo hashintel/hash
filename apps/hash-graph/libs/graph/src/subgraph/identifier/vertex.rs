@@ -9,6 +9,7 @@ use graph_types::{
 use serde::{Deserialize, Serialize};
 use temporal_versioning::Timestamp;
 use type_system::url::{BaseUrl, VersionedUrl};
+#[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 use crate::subgraph::{temporal_axes::VariableAxis, vertices::Vertices, EdgeEndpoint};
@@ -37,10 +38,11 @@ pub trait VertexId: Sized {
 
 macro_rules! define_ontology_type_vertex_id {
     ($name:ident, $ontology_type:ty, $vertex_set:ident) => {
-        #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+        #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+        #[cfg_attr(feature = "utoipa", derive(ToSchema))]
         #[serde(rename_all = "camelCase")]
         pub struct $name {
-            #[schema(value_type = SHARED_BaseUrl)]
+            #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_BaseUrl))]
             pub base_id: BaseUrl,
             pub revision_id: OntologyTypeVersion,
         }
@@ -102,7 +104,8 @@ define_ontology_type_vertex_id!(
 );
 define_ontology_type_vertex_id!(EntityTypeVertexId, EntityTypeWithMetadata, entity_types);
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct EntityVertexId {
     pub base_id: EntityId,
@@ -134,7 +137,8 @@ impl VertexId for EntityVertexId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(untagged)]
 pub enum GraphElementVertexId {
     DataType(DataTypeVertexId),

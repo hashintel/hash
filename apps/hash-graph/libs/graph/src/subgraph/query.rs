@@ -6,6 +6,7 @@ use graph_types::{
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };
 use serde::Deserialize;
+#[cfg(feature = "utoipa")]
 use utoipa::{
     openapi,
     openapi::{ObjectBuilder, Ref, RefOr, Schema},
@@ -168,6 +169,7 @@ pub struct StructuralQuery<'p, R: Record> {
     pub include_drafts: bool,
 }
 
+#[cfg(feature = "utoipa")]
 impl<'p, R: Record> StructuralQuery<'p, R>
 where
     R::VertexId: ToSchema<'static>,
@@ -202,6 +204,7 @@ pub type PropertyTypeStructuralQuery = StructuralQuery<'static, PropertyTypeWith
 pub type EntityTypeStructuralQuery = StructuralQuery<'static, EntityTypeWithMetadata>;
 pub type EntityStructuralQuery = StructuralQuery<'static, Entity>;
 
+#[cfg(feature = "utoipa")]
 impl<'p> ToSchema<'_> for StructuralQuery<'p, DataTypeWithMetadata> {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
@@ -211,6 +214,7 @@ impl<'p> ToSchema<'_> for StructuralQuery<'p, DataTypeWithMetadata> {
     }
 }
 
+#[cfg(feature = "utoipa")]
 impl<'p> ToSchema<'_> for StructuralQuery<'p, PropertyTypeWithMetadata> {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
@@ -220,6 +224,7 @@ impl<'p> ToSchema<'_> for StructuralQuery<'p, PropertyTypeWithMetadata> {
     }
 }
 
+#[cfg(feature = "utoipa")]
 impl<'p> ToSchema<'_> for StructuralQuery<'p, EntityTypeWithMetadata> {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
@@ -229,6 +234,7 @@ impl<'p> ToSchema<'_> for StructuralQuery<'p, EntityTypeWithMetadata> {
     }
 }
 
+#[cfg(feature = "utoipa")]
 impl<'p> ToSchema<'_> for StructuralQuery<'p, Entity> {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (

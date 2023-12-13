@@ -4,6 +4,7 @@ use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize, Serialize,
 };
+#[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 use crate::{
@@ -285,7 +286,8 @@ impl fmt::Display for DataTypeQueryPath<'_> {
 }
 
 /// A single token in a [`DataTypeQueryPath`].
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum DataTypeQueryToken {
     BaseUrl,

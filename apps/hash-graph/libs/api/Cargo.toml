@@ -8,7 +8,7 @@ edition.workspace = true
 
 [dependencies]
 hash-status = { workspace = true }
-graph = { workspace = true }
+graph = { workspace = true, features = ["utoipa"] }
 graph-types = { workspace = true }
 temporal-versioning = { workspace = true }
 authorization = { workspace = true }

@@ -1,6 +1,7 @@
 use graph_types::knowledge::entity::EntityId;
 use serde::{Deserialize, Serialize};
 use temporal_versioning::LeftClosedTemporalInterval;
+#[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 use crate::subgraph::temporal_axes::VariableAxis;
@@ -13,7 +14,8 @@ pub trait EdgeEndpoint {
     fn revision_id(&self) -> Self::RevisionId;
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct EntityIdWithInterval {
     pub entity_id: EntityId,

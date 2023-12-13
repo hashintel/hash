@@ -19,7 +19,7 @@ type-system = { workspace = true }
 
 postgres-types = { workspace = true, features = ["derive", "with-serde_json-1"] }
 serde = { workspace = true, features = ["derive"] }
-utoipa = { workspace = true, features = ["uuid"] }
+utoipa = { workspace = true, features = ["uuid"], optional = true }
 tracing = { workspace = true }
 
 async-trait = "0.1.74"
@@ -59,3 +59,4 @@ tokio = { workspace = true, features = ["macros"] }
 
 [features]
 clap = ["dep:clap"]
+utoipa = ["dep:utoipa"]
