@@ -4,6 +4,7 @@ use temporal_versioning::{
     DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound, RightBoundedTemporalInterval,
     TemporalBound, TemporalInterval, TemporalTagged, TimeAxis, Timestamp, TransactionTime,
 };
+#[cfg(feature = "utoipa")]
 use utoipa::{openapi, ToSchema};
 
 /// Marker trait for any temporal axis.
@@ -92,6 +93,7 @@ pub struct RightBoundedTemporalIntervalUnresolved<A> {
     pub end: Option<LimitedTemporalBound<A>>,
 }
 
+#[cfg(feature = "utoipa")]
 impl<'s, A> ToSchema<'s> for RightBoundedTemporalIntervalUnresolved<A>
 where
     A: ToSchema<'s>,
@@ -129,6 +131,7 @@ where
     }
 }
 
+#[cfg(feature = "utoipa")]
 impl<'s, A> ToSchema<'s> for PinnedTemporalAxisUnresolved<A>
 where
     A: ToSchema<'s> + TemporalAxisSchema,
@@ -189,6 +192,7 @@ impl<A: Default> VariableTemporalAxisUnresolved<A> {
     }
 }
 
+#[cfg(feature = "utoipa")]
 impl<'s, A> ToSchema<'s> for VariableTemporalAxisUnresolved<A>
 where
     A: ToSchema<'s> + TemporalAxisSchema,
@@ -219,21 +223,28 @@ where
 /// bounds an inclusive bound at the timestamp at point of resolving is assumed.
 ///
 /// [`Subgraph`]: crate::subgraph::Subgraph
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(untagged)]
 pub enum QueryTemporalAxesUnresolved {
-    #[schema(title = "QueryTemporalAxesUnresolvedDecisionTime")]
+    #[cfg_attr(
+        feature = "utoipa",
+        schema(title = "QueryTemporalAxesUnresolvedDecisionTime")
+    )]
     DecisionTime {
-        #[schema(inline)]
+        #[cfg_attr(feature = "utoipa", schema(inline))]
         pinned: PinnedTemporalAxisUnresolved<TransactionTime>,
-        #[schema(inline)]
+        #[cfg_attr(feature = "utoipa", schema(inline))]
         variable: VariableTemporalAxisUnresolved<DecisionTime>,
     },
-    #[schema(title = "QueryTemporalAxesUnresolvedTransactionTime")]
+    #[cfg_attr(
+        feature = "utoipa",
+        schema(title = "QueryTemporalAxesUnresolvedTransactionTime")
+    )]
     TransactionTime {
-        #[schema(inline)]
+        #[cfg_attr(feature = "utoipa", schema(inline))]
         pinned: PinnedTemporalAxisUnresolved<DecisionTime>,
-        #[schema(inline)]
+        #[cfg_attr(feature = "utoipa", schema(inline))]
         variable: VariableTemporalAxisUnresolved<TransactionTime>,
     },
 }
@@ -276,6 +287,7 @@ pub struct PinnedTemporalAxis<A> {
     pub timestamp: Timestamp<A>,
 }
 
+#[cfg(feature = "utoipa")]
 impl<'s, A> ToSchema<'s> for PinnedTemporalAxis<A>
 where
     A: ToSchema<'s> + TemporalAxisSchema,
@@ -316,6 +328,7 @@ impl<A> VariableTemporalAxis<A> {
     }
 }
 
+#[cfg(feature = "utoipa")]
 impl<'s, A> ToSchema<'s> for VariableTemporalAxis<A>
 where
     A: ToSchema<'s> + TemporalAxisSchema,
@@ -354,21 +367,22 @@ where
 ///
 /// [`Subgraph`]: crate::subgraph::Subgraph
 /// [`Interval`]: temporal_versioning::Interval
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(untagged)]
 pub enum QueryTemporalAxes {
-    #[schema(title = "QueryTemporalAxesDecisionTime")]
+    #[cfg_attr(feature = "utoipa", schema(title = "QueryTemporalAxesDecisionTime"))]
     DecisionTime {
-        #[schema(inline)]
+        #[cfg_attr(feature = "utoipa", schema(inline))]
         pinned: PinnedTemporalAxis<TransactionTime>,
-        #[schema(inline)]
+        #[cfg_attr(feature = "utoipa", schema(inline))]
         variable: VariableTemporalAxis<DecisionTime>,
     },
-    #[schema(title = "QueryTemporalAxesTransactionTime")]
+    #[cfg_attr(feature = "utoipa", schema(title = "QueryTemporalAxesTransactionTime"))]
     TransactionTime {
-        #[schema(inline)]
+        #[cfg_attr(feature = "utoipa", schema(inline))]
         pinned: PinnedTemporalAxis<DecisionTime>,
-        #[schema(inline)]
+        #[cfg_attr(feature = "utoipa", schema(inline))]
         variable: VariableTemporalAxis<TransactionTime>,
     },
 }
@@ -463,7 +477,8 @@ impl QueryTemporalAxes {
     }
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct SubgraphTemporalAxes {
     pub initial: QueryTemporalAxesUnresolved,
     pub resolved: QueryTemporalAxes,

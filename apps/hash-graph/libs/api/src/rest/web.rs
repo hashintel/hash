@@ -22,15 +22,13 @@ use axum::{
     Extension, Json, Router,
 };
 use error_stack::Report;
+use graph::store::{AccountStore, StorePool};
 use graph_types::provenance::OwnedById;
 use serde::Deserialize;
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
-use crate::{
-    api::rest::{status::report_to_response, AuthenticatedUserHeader, PermissionResponse},
-    store::{AccountStore, StorePool},
-};
+use crate::rest::{status::report_to_response, AuthenticatedUserHeader, PermissionResponse};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -60,7 +58,7 @@ use crate::{
         (name = "Web", description = "Web management API")
     )
 )]
-pub struct WebResource;
+pub(crate) struct WebResource;
 
 impl RoutedResource for WebResource {
     /// Create routes for interacting with accounts.

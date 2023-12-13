@@ -6,6 +6,7 @@ use serde::{
     Deserialize, Deserializer,
 };
 use temporal_versioning::{ClosedTemporalBound, TemporalTagged, TimeAxis};
+#[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 use crate::{
@@ -392,7 +393,8 @@ impl QueryPath for EntityQueryPath<'_> {
 }
 
 /// A single token in an [`EntityQueryPath`].
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum EntityQueryToken {
     // TODO: we want to expose `EntityId` here instead

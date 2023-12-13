@@ -3,6 +3,13 @@ use std::{
     hash::Hash,
 };
 
+use graph::subgraph::{
+    edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, OutwardEdge, SharedEdgeKind},
+    identifier::{
+        DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, PropertyTypeVertexId,
+    },
+    temporal_axes::VariableAxis,
+};
 use graph_types::{knowledge::entity::EntityId, ontology::OntologyTypeVersion};
 use serde::Serialize;
 use temporal_versioning::Timestamp;
@@ -12,20 +19,11 @@ use utoipa::{
     ToSchema,
 };
 
-use crate::{
-    api::rest::utoipa_typedef::subgraph::vertices::OntologyTypeVertexId,
-    subgraph::{
-        edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, OutwardEdge, SharedEdgeKind},
-        identifier::{
-            DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, PropertyTypeVertexId,
-        },
-        temporal_axes::VariableAxis,
-    },
-};
+use super::vertices::OntologyTypeVertexId;
 
 #[derive(Debug, Hash, PartialEq, Eq, Serialize)]
 #[serde(untagged)]
-pub enum OntologyOutwardEdge {
+pub(crate) enum OntologyOutwardEdge {
     ToOntology(OutwardEdge<OntologyEdgeKind, OntologyTypeVertexId>),
     ToKnowledgeGraph(OutwardEdge<SharedEdgeKind, EntityIdWithInterval>),
 }
@@ -91,7 +89,7 @@ impl ToSchema<'_> for OntologyOutwardEdge {
 
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
-pub enum KnowledgeGraphOutwardEdge {
+pub(crate) enum KnowledgeGraphOutwardEdge {
     ToKnowledgeGraph(OutwardEdge<KnowledgeGraphEdgeKind, EntityIdWithInterval>),
     ToOntology(OutwardEdge<SharedEdgeKind, OntologyTypeVertexId>),
 }
@@ -137,22 +135,22 @@ impl ToSchema<'_> for KnowledgeGraphOutwardEdge {
 
 #[derive(Default, Debug, Serialize)]
 #[serde(transparent)]
-pub struct KnowledgeGraphRootedEdges(
-    pub HashMap<EntityId, BTreeMap<Timestamp<VariableAxis>, Vec<KnowledgeGraphOutwardEdge>>>,
+pub(crate) struct KnowledgeGraphRootedEdges(
+    pub(crate) HashMap<EntityId, BTreeMap<Timestamp<VariableAxis>, Vec<KnowledgeGraphOutwardEdge>>>,
 );
 
 #[derive(Default, Debug, Serialize)]
 #[serde(transparent)]
-pub struct OntologyRootedEdges(
-    pub HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, Vec<OntologyOutwardEdge>>>,
+pub(crate) struct OntologyRootedEdges(
+    pub(crate) HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, Vec<OntologyOutwardEdge>>>,
 );
 
 #[derive(Serialize)]
-pub struct Edges {
+pub(crate) struct Edges {
     #[serde(flatten)]
-    pub ontology: OntologyRootedEdges,
+    pub(crate) ontology: OntologyRootedEdges,
     #[serde(flatten)]
-    pub knowledge_graph: KnowledgeGraphRootedEdges,
+    pub(crate) knowledge_graph: KnowledgeGraphRootedEdges,
 }
 
 fn collect_merge<T: Hash + Eq, U: Ord, V>(
@@ -177,8 +175,8 @@ fn collect_merge<T: Hash + Eq, U: Ord, V>(
     accumulator
 }
 
-impl From<crate::subgraph::edges::Edges> for Edges {
-    fn from(edges: crate::subgraph::edges::Edges) -> Self {
+impl From<graph::subgraph::edges::Edges> for Edges {
+    fn from(edges: graph::subgraph::edges::Edges) -> Self {
         Self {
             ontology: OntologyRootedEdges(
                 edges
@@ -241,6 +239,10 @@ impl ToSchema<'_> for Edges {
 
 #[cfg(test)]
 mod tests {
+    use graph::subgraph::{
+        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
+        identifier::{EntityIdWithInterval, EntityTypeVertexId, EntityVertexId},
+    };
     use graph_types::{
         knowledge::entity::{EntityId, EntityUuid},
         ontology::OntologyTypeVersion,
@@ -252,13 +254,7 @@ mod tests {
     use type_system::url::BaseUrl;
     use uuid::Uuid;
 
-    use crate::{
-        api::rest::utoipa_typedef::subgraph::Edges,
-        subgraph::{
-            edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
-            identifier::{EntityIdWithInterval, EntityTypeVertexId, EntityVertexId},
-        },
-    };
+    use crate::rest::utoipa_typedef::subgraph::Edges;
 
     #[test]
     fn merge_ontology() {
@@ -270,7 +266,7 @@ mod tests {
             revision_id: Timestamp::now(),
         };
 
-        let mut edges = crate::subgraph::edges::Edges::default();
+        let mut edges = graph::subgraph::edges::Edges::default();
 
         // the data used does not matter, what only matters is that we actually merged the data
         edges.entity_to_entity.insert(

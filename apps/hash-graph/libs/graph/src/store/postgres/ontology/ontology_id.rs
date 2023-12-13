@@ -4,12 +4,12 @@ use authorization::schema::{DataTypeId, EntityTypeId, PropertyTypeId};
 use graph_types::ontology::OntologyTypeRecordId;
 use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, FromSql, ToSql,
-)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, FromSql, ToSql)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[repr(transparent)]
 #[postgres(transparent)]
 pub struct OntologyId(Uuid);

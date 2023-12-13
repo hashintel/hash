@@ -1,4 +1,4 @@
-pub mod subgraph;
+pub(crate) mod subgraph;
 
 use graph_types::ontology::{EntityTypeMetadata, OntologyElementMetadata};
 use serde::{Deserialize, Serialize};
@@ -16,7 +16,7 @@ enum Action {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum ListOrValue<T> {
+pub(crate) enum ListOrValue<T> {
     List(Vec<T>),
     Value(T),
 }
@@ -37,7 +37,7 @@ impl<T> ListOrValue<T> {
     }
 }
 
-pub type MaybeListOfOntologyElementMetadata = ListOrValue<OntologyElementMetadata>;
+pub(crate) type MaybeListOfOntologyElementMetadata = ListOrValue<OntologyElementMetadata>;
 impl ToSchema<'_> for MaybeListOfOntologyElementMetadata {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
@@ -47,7 +47,7 @@ impl ToSchema<'_> for MaybeListOfOntologyElementMetadata {
     }
 }
 
-pub type MaybeListOfEntityTypeMetadata = ListOrValue<EntityTypeMetadata>;
+pub(crate) type MaybeListOfEntityTypeMetadata = ListOrValue<EntityTypeMetadata>;
 impl ToSchema<'_> for MaybeListOfEntityTypeMetadata {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
@@ -57,7 +57,7 @@ impl ToSchema<'_> for MaybeListOfEntityTypeMetadata {
     }
 }
 
-pub type MaybeListOfDataType = ListOrValue<DataType>;
+pub(crate) type MaybeListOfDataType = ListOrValue<DataType>;
 impl ToSchema<'_> for MaybeListOfDataType {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
@@ -67,7 +67,7 @@ impl ToSchema<'_> for MaybeListOfDataType {
     }
 }
 
-pub type MaybeListOfPropertyType = ListOrValue<PropertyType>;
+pub(crate) type MaybeListOfPropertyType = ListOrValue<PropertyType>;
 impl ToSchema<'_> for MaybeListOfPropertyType {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
@@ -77,7 +77,7 @@ impl ToSchema<'_> for MaybeListOfPropertyType {
     }
 }
 
-pub type MaybeListOfEntityType = ListOrValue<EntityType>;
+pub(crate) type MaybeListOfEntityType = ListOrValue<EntityType>;
 impl ToSchema<'_> for MaybeListOfEntityType {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (

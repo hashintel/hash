@@ -19,6 +19,7 @@ use axum::{
     routing::{get, post},
     Extension, Router,
 };
+use graph::store::{AccountStore, StorePool};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     provenance::OwnedById,
@@ -27,10 +28,7 @@ use utoipa::OpenApi;
 use uuid::Uuid;
 
 use super::api_resource::RoutedResource;
-use crate::{
-    api::rest::{json::Json, AuthenticatedUserHeader, PermissionResponse},
-    store::{AccountStore, StorePool},
-};
+use crate::rest::{json::Json, AuthenticatedUserHeader, PermissionResponse};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -53,7 +51,7 @@ use crate::{
         (name = "Account", description = "Account management API")
     )
 )]
-pub struct AccountResource;
+pub(crate) struct AccountResource;
 
 impl RoutedResource for AccountResource {
     /// Create routes for interacting with accounts.

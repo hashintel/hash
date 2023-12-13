@@ -1,5 +1,6 @@
 use std::collections::{hash_map::Entry, BTreeMap, HashMap};
 
+use graph::subgraph::temporal_axes::VariableAxis;
 use graph_types::{knowledge::entity::EntityId, ontology::OntologyTypeVersion};
 use serde::Serialize;
 use temporal_versioning::Timestamp;
@@ -9,32 +10,33 @@ use utoipa::{
     ToSchema,
 };
 
-pub use self::vertex::*;
-use crate::subgraph::temporal_axes::VariableAxis;
+pub(crate) use self::vertex::*;
 
-pub mod vertex;
-
-#[derive(Serialize, ToSchema)]
-#[serde(transparent)]
-pub struct OntologyVertices(pub HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, OntologyVertex>>);
+pub(crate) mod vertex;
 
 #[derive(Serialize, ToSchema)]
 #[serde(transparent)]
-pub struct KnowledgeGraphVertices(
+pub(crate) struct OntologyVertices(
+    pub(crate) HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, OntologyVertex>>,
+);
+
+#[derive(Serialize, ToSchema)]
+#[serde(transparent)]
+pub(crate) struct KnowledgeGraphVertices(
     HashMap<EntityId, BTreeMap<Timestamp<VariableAxis>, KnowledgeGraphVertex>>,
 );
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Vertices {
+pub(crate) struct Vertices {
     #[serde(flatten)]
     ontology: OntologyVertices,
     #[serde(flatten)]
     knowledge_graph: KnowledgeGraphVertices,
 }
 
-impl From<crate::subgraph::vertices::Vertices> for Vertices {
-    fn from(vertices: crate::subgraph::vertices::Vertices) -> Self {
+impl From<graph::subgraph::vertices::Vertices> for Vertices {
+    fn from(vertices: graph::subgraph::vertices::Vertices) -> Self {
         let data_types = vertices
             .data_types
             .into_iter()

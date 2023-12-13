@@ -1,24 +1,24 @@
 mod edges;
 mod vertices;
 
+use graph::subgraph::{
+    edges::GraphResolveDepths, identifier::GraphElementVertexId,
+    temporal_axes::SubgraphTemporalAxes,
+};
 use serde::Serialize;
 use utoipa::ToSchema;
 
-pub use self::{
+pub(crate) use self::{
     edges::{Edges, KnowledgeGraphOutwardEdge, OntologyOutwardEdge},
     vertices::{
         KnowledgeGraphVertex, KnowledgeGraphVertices, OntologyTypeVertexId, OntologyVertex,
         OntologyVertices, Vertex, Vertices,
     },
 };
-use crate::subgraph::{
-    edges::GraphResolveDepths, identifier::GraphElementVertexId,
-    temporal_axes::SubgraphTemporalAxes,
-};
 
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct Subgraph {
+pub(crate) struct Subgraph {
     roots: Vec<GraphElementVertexId>,
     vertices: Vertices,
     edges: Edges,
@@ -26,8 +26,8 @@ pub struct Subgraph {
     temporal_axes: SubgraphTemporalAxes,
 }
 
-impl From<crate::subgraph::Subgraph> for Subgraph {
-    fn from(subgraph: crate::subgraph::Subgraph) -> Self {
+impl From<graph::subgraph::Subgraph> for Subgraph {
+    fn from(subgraph: graph::subgraph::Subgraph) -> Self {
         Self {
             roots: subgraph.roots.into_iter().collect(),
             vertices: subgraph.vertices.into(),

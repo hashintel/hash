@@ -8,7 +8,7 @@ use error_stack::{Context, Report};
 use hash_status::{Status, StatusCode};
 use serde::Serialize;
 
-pub fn status_to_response<T>(status: Status<T>) -> Response
+pub(crate) fn status_to_response<T>(status: Status<T>) -> Response
 where
     T: Serialize + Send + Sync + Debug,
 {
@@ -19,7 +19,7 @@ where
     response
 }
 
-pub fn report_to_response<C>(report: impl Into<Report<C>>) -> Response
+pub(crate) fn report_to_response<C>(report: impl Into<Report<C>>) -> Response
 where
     C: Context,
 {

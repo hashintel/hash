@@ -17,6 +17,10 @@ use axum::{
 };
 use error_stack::{Context, Report};
 use futures::TryStreamExt;
+use graph::{
+    snapshot::SnapshotStore,
+    store::{PostgresStorePool, StorePool},
+};
 use graph_types::account::AccountId;
 use hash_status::{Status, StatusCode};
 use tokio::io;
@@ -25,15 +29,11 @@ use tokio_util::{codec::FramedRead, io::StreamReader};
 use uuid::Uuid;
 
 use crate::{
-    api::{
-        error::{ErrorInfo, StatusPayloads},
-        rest::{
-            middleware::{log_request_and_response, span_trace_layer},
-            status::status_to_response,
-        },
+    error::{ErrorInfo, StatusPayloads},
+    rest::{
+        middleware::{log_request_and_response, span_trace_layer},
+        status::status_to_response,
     },
-    snapshot::SnapshotStore,
-    store::{PostgresStorePool, StorePool},
 };
 
 /// Create routes for interacting with entities.

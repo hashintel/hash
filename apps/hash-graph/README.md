@@ -86,7 +86,7 @@ As such, when modifying return values related to these types, it's important to 
 Responses containing non-OK statuses are returned according to the `Status` format defined in the [`@local/status`](/libs/@local/status/README.md) package.
 
 The [`status.json`](libs/graph/src/api/rest/json_schemas/status.json) schema is responsible for the definition of this type, and should be updated whenever new payloads are added within [`./type-defs`](./type-defs).
-JSON schema definitions can be generated within the build directory by uncommenting the line in the lib's [`build.rs`](./libs/graph/build.rs).
+JSON schema definitions can be generated within the build directory by uncommenting the line in the lib's [`build.rs`](libs/api/build.rs).
 
 To locate the build directory, run with `cargo build -vv` and search for "Generated files in:"
 

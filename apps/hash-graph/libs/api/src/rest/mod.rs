@@ -31,6 +31,24 @@ use axum::{
 };
 use base64::Engine;
 use error_stack::{Report, ResultExt};
+use graph::{
+    ontology::{domain_validator::DomainValidator, Selector},
+    store::{error::VersionedUrlAlreadyExists, Store, StorePool, TypeFetcher},
+    subgraph::{
+        edges::{
+            EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
+            OutgoingEdgeResolveDepth, SharedEdgeKind,
+        },
+        identifier::{
+            DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,
+            GraphElementVertexId, PropertyTypeVertexId,
+        },
+        temporal_axes::{
+            QueryTemporalAxes, QueryTemporalAxesUnresolved, RightBoundedTemporalIntervalUnresolved,
+            SubgraphTemporalAxes,
+        },
+    },
+};
 use graph_types::{
     account::AccountId,
     ontology::{
@@ -57,35 +75,17 @@ use utoipa::{
 };
 use uuid::Uuid;
 
-use self::{api_resource::RoutedResource, middleware::span_trace_layer};
-use crate::{
-    api::rest::{
-        middleware::log_request_and_response,
-        status::{report_to_response, status_to_response},
-        utoipa_typedef::{
-            subgraph::{
-                Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphVertex, KnowledgeGraphVertices,
-                OntologyOutwardEdge, OntologyTypeVertexId, OntologyVertex, OntologyVertices,
-                Subgraph, Vertex, Vertices,
-            },
-            MaybeListOfEntityTypeMetadata, MaybeListOfOntologyElementMetadata,
+use self::{
+    api_resource::RoutedResource,
+    middleware::{log_request_and_response, span_trace_layer},
+    status::{report_to_response, status_to_response},
+    utoipa_typedef::{
+        subgraph::{
+            Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphVertex, KnowledgeGraphVertices,
+            OntologyOutwardEdge, OntologyTypeVertexId, OntologyVertex, OntologyVertices, Subgraph,
+            Vertex, Vertices,
         },
-    },
-    ontology::{domain_validator::DomainValidator, Selector},
-    store::{error::VersionedUrlAlreadyExists, Store, StorePool, TypeFetcher},
-    subgraph::{
-        edges::{
-            EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
-            OutgoingEdgeResolveDepth, SharedEdgeKind,
-        },
-        identifier::{
-            DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,
-            GraphElementVertexId, PropertyTypeVertexId,
-        },
-        temporal_axes::{
-            QueryTemporalAxes, QueryTemporalAxesUnresolved, RightBoundedTemporalIntervalUnresolved,
-            SubgraphTemporalAxes,
-        },
+        MaybeListOfEntityTypeMetadata, MaybeListOfOntologyElementMetadata,
     },
 };
 
@@ -225,7 +225,7 @@ where
     }
 }
 
-static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
+static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/rest/json_schemas");
 
 fn api_resources<S, A>() -> Vec<Router>
 where
@@ -325,6 +325,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
     tags(
         (name = "Graph", description = "HASH Graph API")
     ),
+    info(title = "graph"),
     modifiers(
         &MergeAddon,
         &ExternalRefAddon,
@@ -412,7 +413,6 @@ impl OpenApiDocumentation {
 
         let model_def_path = std::path::Path::new(&env!("CARGO_MANIFEST_DIR"))
             .join("src")
-            .join("api")
             .join("rest")
             .join("json_schemas");
 
