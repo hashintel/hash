@@ -6,6 +6,7 @@ import { Container } from "@mui/system";
 import { useRouter } from "next/router";
 import { ReactNode, useContext } from "react";
 
+import { FeatherRegularIcon } from "../../../../../shared/icons/feather-regular-icon";
 import { TopContextBar } from "../../../../shared/top-context-bar";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
 
@@ -70,6 +71,28 @@ export const EntityPageHeader = ({
             <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: 40 }} />
             <Typography variant="h1" fontWeight="bold">
               {entityLabel}
+              {entity?.metadata.draft ? (
+                <Box
+                  component="span"
+                  sx={{
+                    marginLeft: 1.5,
+                    position: "relative",
+                    top: -12,
+                    fontSize: 16,
+                    background: ({ palette }) => palette.gray[20],
+                    padding: 1,
+                    borderRadius: "6px",
+                    svg: {
+                      position: "relative",
+                      top: 1,
+                      fontSize: 14,
+                      marginRight: 0.5,
+                    },
+                  }}
+                >
+                  <FeatherRegularIcon /> Draft
+                </Box>
+              ) : null}
             </Typography>
           </Stack>
         </Container>
