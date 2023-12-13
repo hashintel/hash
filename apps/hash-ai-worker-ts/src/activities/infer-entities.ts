@@ -314,19 +314,35 @@ const requestEntityInference = async (params: {
       };
     }
 
-    case "length":
+    case "length": {
       log(
         `AI Model returned 'length' finish reason on attempt ${iterationCount}.`,
       );
 
-      // @todo request more tokens and track where a message is a continuation of a previous message
+      const toolCallId = toolCalls?.[0]?.id;
+      if (!toolCallId) {
+        return {
+          code: StatusCode.ResourceExhausted,
+          contents: [],
+          message:
+            "The maximum amount of tokens was reached before the model returned a completion, with no tool call to respond to.",
+        };
+      }
 
-      return {
-        code: StatusCode.ResourceExhausted,
-        contents: [],
-        message:
-          "The maximum amount of tokens was reached before the model returned a completion.",
-      };
+      return retryWithMessages({
+        retryMessages: [
+          {
+            role: "tool",
+            content:
+              // @todo see if we can get the model to respond continuing off the previous JSON argument to the function call
+              "Your previous response was cut off for length – please respond again with a shorter function call.",
+            tool_call_id: toolCallId,
+          },
+        ],
+        latestResults: results,
+        requiresOriginalContext: true,
+      });
+    }
 
     case "content_filter":
       log(
@@ -746,7 +762,9 @@ const systemMessage: OpenAI.ChatCompletionSystemMessageParam = {
     The user may respond advising you that some proposed entities already exist, and give you a new string identifier for them,
       as well as their existing properties. You can then call update_entities instead to update the relevant entities, 
       making sure that you retain any useful information in the existing properties, augmenting it with what you have inferred. 
-    The more entities you infer, the happier the user will be!
+    The more entities you infer, the happier the user will be! 
+    The user has requested that you fill out as many properties as possible, so please do so. Do not optimise for short responses
+    – this user is hungry for lots of data.
   `),
 };
 
@@ -769,6 +787,8 @@ export const inferEntities = async ({
     maxTokens,
     model: modelAlias,
     ownedById,
+    sourceTitle,
+    sourceUrl,
     temperature,
     textInput,
   } = userArguments;
@@ -871,6 +891,17 @@ export const inferEntities = async ({
 
   const model = modelAliasToSpecificModel[modelAlias];
 
+  const content = dedent(`
+    Please infer as many entities as you can, with many properties as you can, from the following website content.
+    The website page title is ${sourceTitle}, hosted at ${sourceUrl}.
+    Pay particular attention to providing responses for entities which are most prominent in the page,
+      and any which are mentioned in the title or URL – but include as many other entities as you can find also.
+    Here is the website body content:
+    ${textInput}
+    
+    Your detailed, comprehensive response, with as many entities and properties as possible:
+  `);
+
   return requestEntityInference({
     authentication: { machineActorId: aiAssistantAccountId },
     completionPayload: {
@@ -879,7 +910,7 @@ export const inferEntities = async ({
         systemMessage,
         {
           role: "user",
-          content: textInput,
+          content,
         },
       ],
       model,

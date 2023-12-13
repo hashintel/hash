@@ -37,6 +37,8 @@ export type InferEntitiesUserArguments = Subtype<
     maxTokens: number | null;
     model: InferenceModelName;
     ownedById: OwnedById;
+    sourceTitle: string;
+    sourceUrl: string;
     temperature: number;
     textInput: string;
   }

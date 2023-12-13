@@ -20,6 +20,8 @@ const inferEntitiesApiCall = async ({
   entityTypeIds,
   model,
   ownedById,
+  sourceTitle,
+  sourceUrl,
   textInput,
 }: {
   createAs: "draft" | "live";
@@ -27,6 +29,8 @@ const inferEntitiesApiCall = async ({
   textInput: string;
   entityTypeIds: VersionedUrl[];
   ownedById: OwnedById;
+  sourceTitle: string;
+  sourceUrl: string;
 }) => {
   const requestBody: InferEntitiesUserArguments = {
     createAs,
@@ -34,6 +38,8 @@ const inferEntitiesApiCall = async ({
     maxTokens: null,
     model,
     ownedById,
+    sourceTitle,
+    sourceUrl,
     textInput,
     temperature: 0,
   };
@@ -93,6 +99,8 @@ export const inferEntities = async (
       entityTypeIds,
       model,
       ownedById,
+      sourceTitle,
+      sourceUrl,
       textInput,
     });
 
