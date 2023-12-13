@@ -18,7 +18,7 @@ import {
 } from "../../shared/style-values";
 import { useLocalStorage } from "../../shared/use-local-storage";
 import { Automated } from "./action-center/automated";
-import { defaultRules } from "./action-center/default-rules";
+import { defaultProductionRules } from "./action-center/default-production-rules";
 import { Log } from "./action-center/log";
 import { OneOff } from "./action-center/one-off";
 import { WandMagicSparklesIcon } from "./action-center/wand-magic-sparkles-icon";
@@ -72,7 +72,8 @@ export const ActionCenter = ({
       enabled: false,
       model: "gpt-4-turbo",
       ownedById: user.webOwnedById,
-      rules: defaultRules,
+      rules:
+        FRONTEND_ORIGIN === "https://app.hash.ai" ? defaultProductionRules : [],
     });
 
   const [inferenceRequests] = useLocalStorage("inferenceRequests", []);
