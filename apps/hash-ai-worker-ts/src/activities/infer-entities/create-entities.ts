@@ -23,7 +23,7 @@ import isMatch from "lodash.ismatch";
 
 import type { DereferencedEntityType } from "./dereference-entity-type";
 import type { ProposedEntityCreationsByType } from "./generate-tools";
-import { extractErrorMessage } from "./shared/extractValidationFailureDetails";
+import { extractErrorMessage } from "./shared/extract-validation-failure-details";
 import { getEntityByFilter } from "./shared/get-entity-by-filter";
 import { stringify } from "./stringify";
 

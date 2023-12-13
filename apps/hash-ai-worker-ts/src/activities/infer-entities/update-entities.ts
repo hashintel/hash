@@ -18,7 +18,7 @@ import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib
 
 import type { DereferencedEntityType } from "./dereference-entity-type";
 import { ProposedEntityUpdatesByType } from "./generate-tools";
-import { extractErrorMessage } from "./shared/extractValidationFailureDetails";
+import { extractErrorMessage } from "./shared/extract-validation-failure-details";
 import { getEntityByFilter } from "./shared/get-entity-by-filter";
 import { stringify } from "./stringify";
 
