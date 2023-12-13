@@ -937,6 +937,7 @@ dependencies = [
  "axum 0.7.2",
  "base64",
  "bytes",
+ "codec",
  "error-stack",
  "futures",
  "graph",

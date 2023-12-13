@@ -58,5 +58,4 @@ criterion = "0.5.1"
 tokio = { workspace = true, features = ["macros"] }
 
 [features]
-test-server = []
 clap = ["dep:clap"]

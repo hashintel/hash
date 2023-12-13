@@ -10,7 +10,7 @@ use crate::rest::RestApiStore;
 /// This trait encapsulates a way to define related resource operations
 /// through a `Router`, making it explicitly clear we want to provide `OpenApi` specification as
 /// documentation for the routes.
-pub trait RoutedResource: utoipa::OpenApi {
+pub(crate) trait RoutedResource: utoipa::OpenApi {
     fn routes<S, A>() -> Router
     where
         S: StorePool + Send + Sync + 'static,

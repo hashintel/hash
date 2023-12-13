@@ -23,7 +23,7 @@ use crate::{
 
 #[derive(Debug, Clone, Copy, Default)]
 #[must_use]
-pub struct Json<T>(pub T);
+pub(crate) struct Json<T>(pub(crate) T);
 
 #[async_trait]
 impl<T, S> FromRequest<S> for Json<T>

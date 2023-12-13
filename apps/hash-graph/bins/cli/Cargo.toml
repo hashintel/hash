@@ -38,7 +38,7 @@ tracing = "0.1.40"
 uuid = "1.6.1"
 
 [features]
-test-server = ["graph/test-server"]
+test-server = ["graph-api/test-server"]
 
 [lints.rust]
 unreachable-pub = "allow"

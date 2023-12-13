@@ -14,6 +14,7 @@ temporal-versioning = { workspace = true }
 authorization = { workspace = true }
 type-system = { workspace = true }
 validation = { workspace = true }
+codec = { workspace = true, optional = true }
 
 async-trait = "0.1.74"
 axum = "0.7.2"
@@ -42,4 +43,4 @@ utoipa = "4.1.0"
 uuid = "1.6.1"
 
 [features]
-test-server = ["dep:tokio", "dep:tokio-postgres", "dep:tokio-util"]
+test-server = ["dep:tokio", "dep:tokio-postgres", "dep:tokio-util", "dep:codec"]
