@@ -10,23 +10,23 @@ use utoipa::{
     ToSchema,
 };
 
-pub use self::vertex::*;
+pub(crate) use self::vertex::*;
 
-pub mod vertex;
-
-#[derive(Serialize, ToSchema)]
-#[serde(transparent)]
-pub struct OntologyVertices(pub HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, OntologyVertex>>);
+pub(crate) mod vertex;
 
 #[derive(Serialize, ToSchema)]
 #[serde(transparent)]
-pub struct KnowledgeGraphVertices(
+pub(crate) struct OntologyVertices(pub(crate) HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, OntologyVertex>>);
+
+#[derive(Serialize, ToSchema)]
+#[serde(transparent)]
+pub(crate) struct KnowledgeGraphVertices(
     HashMap<EntityId, BTreeMap<Timestamp<VariableAxis>, KnowledgeGraphVertex>>,
 );
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Vertices {
+pub(crate) struct Vertices {
     #[serde(flatten)]
     ontology: OntologyVertices,
     #[serde(flatten)]

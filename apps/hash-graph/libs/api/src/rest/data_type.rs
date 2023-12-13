@@ -94,7 +94,7 @@ use crate::rest::{
         (name = "DataType", description = "Data Type management API")
     )
 )]
-pub struct DataTypeResource;
+pub(crate) struct DataTypeResource;
 
 impl RoutedResource for DataTypeResource {
     /// Create routes for interacting with data types.

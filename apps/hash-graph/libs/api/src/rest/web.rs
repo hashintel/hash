@@ -58,7 +58,7 @@ use crate::rest::{status::report_to_response, AuthenticatedUserHeader, Permissio
         (name = "Web", description = "Web management API")
     )
 )]
-pub struct WebResource;
+pub(crate) struct WebResource;
 
 impl RoutedResource for WebResource {
     /// Create routes for interacting with accounts.

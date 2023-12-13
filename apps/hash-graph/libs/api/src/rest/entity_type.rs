@@ -105,7 +105,7 @@ use crate::{
         (name = "EntityType", description = "Entity type management API")
     )
 )]
-pub struct EntityTypeResource;
+pub(crate) struct EntityTypeResource;
 
 impl RoutedResource for EntityTypeResource {
     /// Create routes for interacting with entity types.

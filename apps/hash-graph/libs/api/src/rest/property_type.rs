@@ -98,7 +98,7 @@ use crate::rest::{
         (name = "PropertyType", description = "Property type management API")
     )
 )]
-pub struct PropertyTypeResource;
+pub(crate) struct PropertyTypeResource;
 
 impl RoutedResource for PropertyTypeResource {
     /// Create routes for interacting with property types.

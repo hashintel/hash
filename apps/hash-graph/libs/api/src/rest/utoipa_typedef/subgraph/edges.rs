@@ -23,7 +23,7 @@ use super::vertices::OntologyTypeVertexId;
 
 #[derive(Debug, Hash, PartialEq, Eq, Serialize)]
 #[serde(untagged)]
-pub enum OntologyOutwardEdge {
+pub(crate) enum OntologyOutwardEdge {
     ToOntology(OutwardEdge<OntologyEdgeKind, OntologyTypeVertexId>),
     ToKnowledgeGraph(OutwardEdge<SharedEdgeKind, EntityIdWithInterval>),
 }
@@ -89,7 +89,7 @@ impl ToSchema<'_> for OntologyOutwardEdge {
 
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
-pub enum KnowledgeGraphOutwardEdge {
+pub(crate) enum KnowledgeGraphOutwardEdge {
     ToKnowledgeGraph(OutwardEdge<KnowledgeGraphEdgeKind, EntityIdWithInterval>),
     ToOntology(OutwardEdge<SharedEdgeKind, OntologyTypeVertexId>),
 }
@@ -135,22 +135,22 @@ impl ToSchema<'_> for KnowledgeGraphOutwardEdge {
 
 #[derive(Default, Debug, Serialize)]
 #[serde(transparent)]
-pub struct KnowledgeGraphRootedEdges(
-    pub HashMap<EntityId, BTreeMap<Timestamp<VariableAxis>, Vec<KnowledgeGraphOutwardEdge>>>,
+pub(crate) struct KnowledgeGraphRootedEdges(
+    pub(crate) HashMap<EntityId, BTreeMap<Timestamp<VariableAxis>, Vec<KnowledgeGraphOutwardEdge>>>,
 );
 
 #[derive(Default, Debug, Serialize)]
 #[serde(transparent)]
-pub struct OntologyRootedEdges(
-    pub HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, Vec<OntologyOutwardEdge>>>,
+pub(crate) struct OntologyRootedEdges(
+    pub(crate) HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, Vec<OntologyOutwardEdge>>>,
 );
 
 #[derive(Serialize)]
-pub struct Edges {
+pub(crate) struct Edges {
     #[serde(flatten)]
-    pub ontology: OntologyRootedEdges,
+    pub(crate) ontology: OntologyRootedEdges,
     #[serde(flatten)]
-    pub knowledge_graph: KnowledgeGraphRootedEdges,
+    pub(crate) knowledge_graph: KnowledgeGraphRootedEdges,
 }
 
 fn collect_merge<T: Hash + Eq, U: Ord, V>(

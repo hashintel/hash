@@ -109,7 +109,7 @@ use crate::rest::{
         (name = "Entity", description = "entity management API")
     )
 )]
-pub struct EntityResource;
+pub(crate) struct EntityResource;
 
 impl RoutedResource for EntityResource {
     /// Create routes for interacting with entities.

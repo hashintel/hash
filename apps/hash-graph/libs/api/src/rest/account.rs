@@ -51,7 +51,7 @@ use crate::rest::{json::Json, AuthenticatedUserHeader, PermissionResponse};
         (name = "Account", description = "Account management API")
     )
 )]
-pub struct AccountResource;
+pub(crate) struct AccountResource;
 
 impl RoutedResource for AccountResource {
     /// Create routes for interacting with accounts.

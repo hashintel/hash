@@ -8,7 +8,7 @@ use graph::subgraph::{
 use serde::Serialize;
 use utoipa::ToSchema;
 
-pub use self::{
+pub(crate) use self::{
     edges::{Edges, KnowledgeGraphOutwardEdge, OntologyOutwardEdge},
     vertices::{
         KnowledgeGraphVertex, KnowledgeGraphVertices, OntologyTypeVertexId, OntologyVertex,
@@ -18,7 +18,7 @@ pub use self::{
 
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct Subgraph {
+pub(crate) struct Subgraph {
     roots: Vec<GraphElementVertexId>,
     vertices: Vertices,
     edges: Edges,
