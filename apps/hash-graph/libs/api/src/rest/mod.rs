@@ -325,6 +325,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
     tags(
         (name = "Graph", description = "HASH Graph API")
     ),
+    info(title = "graph"),
     modifiers(
         &MergeAddon,
         &ExternalRefAddon,

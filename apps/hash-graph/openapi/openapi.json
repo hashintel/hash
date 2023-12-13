@@ -3,6 +3,9 @@
   "info": {
     "title": "graph",
     "description": "HASH Graph API",
+    "contact": {
+      "name": "HASH"
+    },
     "license": {
       "name": ""
     },
