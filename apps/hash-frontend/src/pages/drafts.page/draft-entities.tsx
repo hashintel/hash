@@ -206,8 +206,8 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
                     generateEntityLabel(draftEntitiesSubgraph, b.entity),
                   )
                 : sortOrder === "created-at-asc"
-                ? a.createdAt.getTime() - b.createdAt.getTime()
-                : b.createdAt.getTime() - a.createdAt.getTime(),
+                  ? a.createdAt.getTime() - b.createdAt.getTime()
+                  : b.createdAt.getTime() - a.createdAt.getTime(),
             )
         : undefined,
     [
