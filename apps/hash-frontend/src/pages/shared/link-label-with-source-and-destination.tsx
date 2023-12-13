@@ -82,6 +82,7 @@ const LeftOrRightEntity: FunctionComponent<{
             fontSize: 11,
             textTransform: "uppercase",
             fontWeight: 600,
+            marginBottom: 0.5,
           }}
         >
           {label}
