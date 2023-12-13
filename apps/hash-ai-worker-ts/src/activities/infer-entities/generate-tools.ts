@@ -4,7 +4,7 @@ import type { Subtype } from "@local/advanced-types/subtype";
 import {
   ProposedEntity,
   ProposedEntitySchemaOrData,
-} from "@local/hash-isomorphic-utils/temporal-types";
+} from "@local/hash-isomorphic-utils/ai-inference-types";
 import { Entity } from "@local/hash-subgraph";
 import dedent from "dedent";
 import OpenAI from "openai";

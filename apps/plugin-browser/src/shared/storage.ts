@@ -1,14 +1,14 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
+  InferenceModelName,
+  InferEntitiesReturn,
+} from "@local/hash-isomorphic-utils/src/ai-inference-types";
+import type {
   ImageProperties,
   OrganizationProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {
-  InferenceModelName,
-  InferEntitiesReturn,
-} from "@local/hash-isomorphic-utils/temporal-types";
 import {
   Entity,
   EntityTypeWithMetadata,
@@ -39,7 +39,7 @@ export type PageEntityInference = InferenceStatus & {
   createdAt: string;
   entityTypeIds: VersionedUrl[];
   finishedAt?: string;
-  localRequestUuid: string;
+  requestUuid: string;
   model: InferenceModelName;
   ownedById: OwnedById;
   sourceTitle: string;

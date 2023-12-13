@@ -32,7 +32,10 @@ import { createHttpTerminator } from "http-terminator";
 import { customAlphabet } from "nanoid";
 
 import { inferEntitiesController } from "./ai/infer-entities";
-import setupAuth from "./auth";
+import {
+  addKratosHandlers,
+  createAuthMiddleware,
+} from "./auth/create-auth-handlers";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { RedisCache } from "./cache";
 import {
@@ -206,7 +209,9 @@ const main = async () => {
   });
 
   // Set up authentication related middleware and routes
-  setupAuth({ app, logger, context });
+  addKratosHandlers({ app, context });
+  const authMiddleware = createAuthMiddleware({ logger, context });
+  app.use(authMiddleware);
 
   // Create an email transporter
   const emailTransporter =
@@ -223,18 +228,18 @@ const main = async () => {
             : undefined,
         })
       : process.env.AWS_REGION
-        ? new AwsSesEmailTransporter({
-            from: `${getRequiredEnv(
-              "SYSTEM_EMAIL_SENDER_NAME",
-            )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
-            region: getAwsRegion(),
-            subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
-          })
-        : ({
-            sendMail: (mail) => {
-              logger.info(`Tried to send mail to ${mail.to}:\n${mail.html}`);
-            },
-          } as EmailTransporter);
+      ? new AwsSesEmailTransporter({
+          from: `${getRequiredEnv(
+            "SYSTEM_EMAIL_SENDER_NAME",
+          )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
+          region: getAwsRegion(),
+          subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
+        })
+      : ({
+          sendMail: (mail) => {
+            logger.info(`Tried to send mail to ${mail.to}:\n${mail.html}`);
+          },
+        } as EmailTransporter);
 
   let search: OpenSearch | undefined;
   if (process.env.HASH_OPENSEARCH_ENABLED === "true") {
@@ -405,8 +410,9 @@ const main = async () => {
   });
 
   if (realtimeSyncEnabled) {
-    const integrationSyncBackWatcher =
-      await createIntegrationSyncBackWatcher(graphApi);
+    const integrationSyncBackWatcher = await createIntegrationSyncBackWatcher(
+      graphApi,
+    );
 
     void integrationSyncBackWatcher.start();
 

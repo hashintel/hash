@@ -5,7 +5,7 @@ import {
   PlusIcon,
 } from "@hashintel/design-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
+import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/src/ai-inference-types";
 import type {
   BaseUrl,
   Entity,

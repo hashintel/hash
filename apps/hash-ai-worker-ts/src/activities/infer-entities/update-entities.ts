@@ -3,7 +3,7 @@ import type { GraphApi } from "@local/hash-graph-client";
 import type {
   InferredEntityUpdateFailure,
   InferredEntityUpdateSuccess,
-} from "@local/hash-isomorphic-utils/temporal-types";
+} from "@local/hash-isomorphic-utils/ai-inference-types";
 import type {
   AccountId,
   Entity,

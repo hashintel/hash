@@ -8,21 +8,21 @@ import {
 } from "@local/hash-backend-utils/machine-actors";
 import { createGraphChangeNotification } from "@local/hash-backend-utils/notifications";
 import type { GraphApi } from "@local/hash-graph-client";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   InferenceModelName,
   InferenceTokenUsage,
   InferEntitiesCallerParams,
   InferEntitiesReturn,
   InferredEntityUpdateSuccess,
-} from "@local/hash-isomorphic-utils/temporal-types";
+} from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
   InferredEntityChangeResult,
   InferredEntityCreationSuccess,
-} from "@local/hash-isomorphic-utils/temporal-types";
+} from "@local/hash-isomorphic-utils/ai-inference-types";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   AccountId,
   Entity,

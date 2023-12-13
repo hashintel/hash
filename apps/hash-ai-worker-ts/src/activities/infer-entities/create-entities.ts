@@ -1,13 +1,13 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import type { Entity, GraphApi } from "@local/hash-graph-client";
-import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   InferredEntityCreationFailure,
   InferredEntityCreationSuccess,
   InferredEntityUpdateSuccess,
   ProposedEntity,
-} from "@local/hash-isomorphic-utils/temporal-types";
+} from "@local/hash-isomorphic-utils/ai-inference-types";
+import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   AccountId,
   EntityId,

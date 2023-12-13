@@ -86,6 +86,7 @@ type InferredEntityResultBase = {
   entityTypeId: VersionedUrl;
   operation: "create" | "update";
   proposedEntity: ProposedEntity;
+  requestUuid: string;
   status: "success" | "failure";
 };
 
@@ -127,3 +128,13 @@ export type InferEntitiesReturn = Status<{
   /** The number of tokens used during the process, by model call, starting from the first */
   usage: InferenceTokenUsage[];
 }>;
+
+export type InferEntitiesWebSocketRequestMessage = {
+  type: "infer-entities";
+  contents: InferEntitiesUserArguments;
+};
+
+export type InferEntitiesWebSocketResponseMessage = {
+  type: "infer-entities";
+  contents: InferEntitiesReturn;
+};

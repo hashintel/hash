@@ -4,7 +4,7 @@ import {
   InferEntitiesReturn,
   inferEntitiesUserArgumentKeys,
   InferEntitiesUserArguments,
-} from "@local/hash-isomorphic-utils/temporal-types";
+} from "@local/hash-isomorphic-utils/ai-inference-types";
 import { StatusCode } from "@local/status";
 import { ApplicationFailure } from "@temporalio/client";
 import { WorkflowFailedError } from "@temporalio/client/src/errors";

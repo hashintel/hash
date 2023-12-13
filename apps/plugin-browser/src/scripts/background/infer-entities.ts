@@ -3,9 +3,11 @@ import type {
   InferenceModelName,
   InferEntitiesReturn,
   InferEntitiesUserArguments,
-} from "@local/hash-isomorphic-utils/temporal-types";
+  InferEntitiesWebSocketResponseMessage,
+} from "@local/hash-isomorphic-utils/ai-inference-types";
 import { OwnedById } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
+import { io } from "socket.io-client";
 import { v4 as uuid } from "uuid";
 
 import { setErroredBadge } from "../../shared/badge";
@@ -15,43 +17,83 @@ import {
   getSetFromLocalStorageValue,
 } from "../../shared/storage";
 
-const inferEntitiesApiCall = async ({
-  createAs,
-  entityTypeIds,
-  model,
-  ownedById,
-  sourceTitle,
-  sourceUrl,
-  textInput,
-}: {
+const socket = io(API_ORIGIN, { autoConnect: false, withCredentials: true });
+
+let socketDisconnectTimeout: NodeJS.Timer;
+
+const setInferenceRequestValue =
+  getSetFromLocalStorageValue("inferenceRequests");
+
+socket.on("message", async (message: InferEntitiesWebSocketResponseMessage) => {
+  const inferredEntitiesReturn = message.contents;
+
+  if (inferredEntitiesReturn.code !== "OK") {
+    const errorMessage = inferredEntitiesReturn.message;
+
+    await setInferenceRequestValue((currentValue) =>
+      (currentValue ?? []).map((request) =>
+        request.requestUuid === inferredEntitiesReturn.requestUuid
+          ? {
+              ...request,
+              errorMessage: errorMessage ?? "Unknown error – please contact us",
+              finishedAt: new Date().toISOString(),
+              status: "error",
+            }
+          : request,
+      ),
+    );
+  }
+
+  await setInferenceRequestValue((currentValue) =>
+    (currentValue ?? []).map((request) =>
+      request.requestUuid === localRequestId
+        ? {
+            ...request,
+            data: inferredEntitiesReturn,
+            finishedAt: new Date().toISOString(),
+            status: "complete",
+          }
+        : request,
+    ),
+  );
+
+  const inferenceRequests = await getFromLocalStorage("inferenceRequests");
+  const pendingRequests = inferenceRequests?.filter(
+    (request) => request.status === "pending",
+  );
+  if (!pendingRequests?.length) {
+    socketDisconnectTimeout = setTimeout(() => {
+      socket.disconnect();
+    }, 30_000);
+  }
+});
+
+const sendInferEntitiesMessage = async (params: {
   createAs: "draft" | "live";
   model: InferenceModelName;
   textInput: string;
   entityTypeIds: VersionedUrl[];
   ownedById: OwnedById;
+  requestUuid: string;
   sourceTitle: string;
   sourceUrl: string;
 }) => {
-  const requestBody: InferEntitiesUserArguments = {
-    createAs,
-    entityTypeIds,
+  clearTimeout(socketDisconnectTimeout);
+
+  const inferMessageContent: InferEntitiesUserArguments = {
+    ...params,
     maxTokens: null,
-    model,
-    ownedById,
-    sourceTitle,
-    sourceUrl,
-    textInput,
     temperature: 0,
   };
 
-  return fetch(`${API_ORIGIN}/entities/infer`, {
-    body: JSON.stringify(requestBody),
-    credentials: "include",
-    headers: {
-      "content-type": "application/json",
-    },
-    method: "POST",
-  }).then((resp) => resp.json() as Promise<InferEntitiesReturn>);
+  while (!socket.connected) {
+    socket.connect();
+    await new Promise((resolve) => {
+      setTimeout(resolve, 500);
+    });
+  }
+
+  socket.send(inferMessageContent);
 };
 
 export const inferEntities = async (
@@ -73,7 +115,7 @@ export const inferEntities = async (
     textInput,
   } = message;
 
-  const localRequestId = uuid();
+  const requestUuid = uuid();
 
   const setInferenceRequestValue =
     getSetFromLocalStorageValue("inferenceRequests");
@@ -82,7 +124,7 @@ export const inferEntities = async (
     {
       createdAt: new Date().toISOString(),
       entityTypeIds,
-      localRequestUuid: localRequestId,
+      requestUuid,
       model,
       ownedById,
       status: "pending",
@@ -94,32 +136,16 @@ export const inferEntities = async (
   ]);
 
   try {
-    const inferredEntitiesReturn = await inferEntitiesApiCall({
+    await sendInferEntitiesMessage({
       createAs,
       entityTypeIds,
       model,
       ownedById,
+      requestUuid,
       sourceTitle,
       sourceUrl,
       textInput,
     });
-
-    if (inferredEntitiesReturn.code !== "OK") {
-      throw new Error(inferredEntitiesReturn.message);
-    }
-
-    await setInferenceRequestValue((currentValue) =>
-      (currentValue ?? []).map((request) =>
-        request.localRequestUuid === localRequestId
-          ? {
-              ...request,
-              data: inferredEntitiesReturn,
-              finishedAt: new Date().toISOString(),
-              status: "complete",
-            }
-          : request,
-      ),
-    );
   } catch (err) {
     setErroredBadge();
 
@@ -127,7 +153,7 @@ export const inferEntities = async (
 
     await setInferenceRequestValue((currentValue) =>
       (currentValue ?? []).map((request) =>
-        request.localRequestUuid === localRequestId
+        request.requestUuid === requestUuid
           ? {
               ...request,
               errorMessage: errorMessage ?? "Unknown error – please contact us",
