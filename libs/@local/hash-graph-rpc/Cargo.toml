@@ -11,3 +11,8 @@ publish = false
 graph-types = { workspace = true }
 
 tarpc = "0.33.0"
+minicbor = "0.20.0"
+tonic = "0.10.2"
+tonic-rpc = { version = "0.2.1", features = ['json'] }
+bincode = "2.0.0-rc.3"
+bytes = "1.5.0"
