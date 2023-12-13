@@ -832,7 +832,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "hash",
       migrationState,
-      instantiator: null,
+      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1449,7 +1449,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "hash",
       migrationState,
-      instantiator: null,
+      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1566,7 +1566,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "hash",
       migrationState,
-      instantiator: null,
+      instantiator: anyUserInstantiator,
     });
 
   /** Comment Notification entity type */
@@ -1636,7 +1636,7 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "hash",
       migrationState,
-      instantiator: null,
+      instantiator: anyUserInstantiator,
     });
 
   return migrationState;
