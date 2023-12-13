@@ -734,7 +734,7 @@ impl EntityEditions<'static> {
         match self {
             Self::EditionId | Self::RecordCreatedById => ParameterType::Uuid,
             Self::Properties(_) => ParameterType::Any,
-            Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::Number,
+            Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::I32,
             Self::Archived | Self::Draft => ParameterType::Boolean,
         }
     }
@@ -761,7 +761,7 @@ impl EntityIsOfType {
     pub const fn parameter_type(self) -> ParameterType {
         match self {
             Self::EntityEditionId | Self::EntityTypeOntologyId => ParameterType::Uuid,
-            Self::InheritanceDepth => ParameterType::Number,
+            Self::InheritanceDepth => ParameterType::I32,
         }
     }
 }
@@ -906,7 +906,7 @@ impl EntityTypeConstrainsPropertiesOn {
             Self::SourceEntityTypeOntologyId | Self::TargetPropertyTypeOntologyId => {
                 ParameterType::Uuid
             }
-            Self::InheritanceDepth => ParameterType::Number,
+            Self::InheritanceDepth => ParameterType::I32,
         }
     }
 }
@@ -937,7 +937,7 @@ impl EntityTypeInheritsFrom {
             Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
                 ParameterType::Uuid
             }
-            Self::InheritanceDepth => ParameterType::Number,
+            Self::InheritanceDepth => ParameterType::I32,
         }
     }
 }
@@ -968,7 +968,7 @@ impl EntityTypeConstrainsLinksOn {
             Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
                 ParameterType::Uuid
             }
-            Self::InheritanceDepth => ParameterType::Number,
+            Self::InheritanceDepth => ParameterType::I32,
         }
     }
 }
@@ -999,7 +999,7 @@ impl EntityTypeConstrainsLinkDestinationsOn {
             Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
                 ParameterType::Uuid
             }
-            Self::InheritanceDepth => ParameterType::Number,
+            Self::InheritanceDepth => ParameterType::I32,
         }
     }
 }

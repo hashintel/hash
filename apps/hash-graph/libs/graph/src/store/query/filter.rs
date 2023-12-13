@@ -1,10 +1,11 @@
-use std::{borrow::Cow, fmt, str::FromStr};
+use std::{borrow::Cow, fmt, mem, str::FromStr};
 
 use derivative::Derivative;
 use error_stack::{bail, Context, Report, ResultExt};
 use graph_types::{
     knowledge::entity::{Entity, EntityId},
     ontology::OntologyTypeVersion,
+    Embedding,
 };
 use serde::Deserialize;
 use serde_json::{Number, Value};
@@ -42,6 +43,21 @@ pub enum Filter<'p, R: Record + ?Sized> {
     NotEqual(
         Option<FilterExpression<'p, R>>,
         Option<FilterExpression<'p, R>>,
+    ),
+    L2Distance(
+        FilterExpression<'p, R>,
+        FilterExpression<'p, R>,
+        FilterExpression<'p, R>,
+    ),
+    CosineDistance(
+        FilterExpression<'p, R>,
+        FilterExpression<'p, R>,
+        FilterExpression<'p, R>,
+    ),
+    InnerProduct(
+        FilterExpression<'p, R>,
+        FilterExpression<'p, R>,
+        FilterExpression<'p, R>,
     ),
     #[serde(skip)]
     In(FilterExpression<'p, R>, ParameterList<'p>),
@@ -123,6 +139,20 @@ where
                 ) => parameter.convert_to_parameter_type(path.expected_type())?,
                 (..) => {}
             },
+            Self::L2Distance(lhs, rhs, max)
+            | Self::CosineDistance(lhs, rhs, max)
+            | Self::InnerProduct(lhs, rhs, max) => {
+                if let FilterExpression::Parameter(parameter) = max {
+                    parameter.convert_to_parameter_type(ParameterType::F64)?;
+                }
+                match (lhs, rhs) {
+                    (FilterExpression::Parameter(parameter), FilterExpression::Path(path))
+                    | (FilterExpression::Path(path), FilterExpression::Parameter(parameter)) => {
+                        parameter.convert_to_parameter_type(path.expected_type())?;
+                    }
+                    (..) => {}
+                }
+            }
             Self::In(lhs, rhs) => {
                 if let FilterExpression::Parameter(parameter) = lhs {
                     match rhs {
@@ -164,12 +194,14 @@ pub enum FilterExpression<'p, R: Record + ?Sized> {
     Parameter(Parameter<'p>),
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize)]
+#[derive(Debug, PartialEq, Deserialize)]
 #[serde(untagged)]
 pub enum Parameter<'p> {
     Boolean(bool),
-    Number(i32),
+    I32(i32),
+    F64(f64),
     Text(Cow<'p, str>),
+    Vector(Embedding<'p>),
     Any(Value),
     #[serde(skip)]
     Uuid(Uuid),
@@ -188,8 +220,10 @@ impl Parameter<'_> {
     fn to_owned(&self) -> Parameter<'static> {
         match self {
             Parameter::Boolean(bool) => Parameter::Boolean(*bool),
-            Parameter::Number(number) => Parameter::Number(*number),
+            Parameter::I32(number) => Parameter::I32(*number),
+            Parameter::F64(number) => Parameter::F64(*number),
             Parameter::Text(text) => Parameter::Text(Cow::Owned(text.to_string())),
+            Parameter::Vector(vector) => Parameter::Vector(vector.to_owned()),
             Parameter::Any(value) => Parameter::Any(value.clone()),
             Parameter::Uuid(uuid) => Parameter::Uuid(*uuid),
             Parameter::OntologyTypeVersion(version) => Parameter::OntologyTypeVersion(*version),
@@ -212,9 +246,11 @@ impl fmt::Display for ParameterConversionError {
             Parameter::Boolean(boolean) | Parameter::Any(Value::Bool(boolean)) => {
                 boolean.to_string()
             }
-            Parameter::Number(number) => number.to_string(),
+            Parameter::I32(number) => number.to_string(),
+            Parameter::F64(number) => number.to_string(),
             Parameter::Any(Value::Number(number)) => number.to_string(),
             Parameter::Text(text) => text.to_string(),
+            Parameter::Vector(_) => "vector".to_owned(),
             Parameter::Any(Value::String(string)) => string.clone(),
             Parameter::Uuid(uuid) => uuid.to_string(),
             Parameter::OntologyTypeVersion(version) => version.inner().to_string(),
@@ -230,6 +266,11 @@ impl fmt::Display for ParameterConversionError {
 impl Context for ParameterConversionError {}
 
 impl Parameter<'_> {
+    #[expect(
+        clippy::too_many_lines,
+        reason = "This is one big match statement. Structural queries has to be changed in the \
+                  near future so we keep the structure as it is."
+    )]
     fn convert_to_parameter_type(
         &mut self,
         expected: ParameterType,
@@ -237,9 +278,11 @@ impl Parameter<'_> {
         match (&mut *self, expected) {
             // identity
             (Parameter::Boolean(_), ParameterType::Boolean)
-            | (Parameter::Number(_), ParameterType::Number)
+            | (Parameter::I32(_), ParameterType::I32)
+            | (Parameter::F64(_), ParameterType::F64)
             | (Parameter::Text(_), ParameterType::Text)
-            | (Parameter::Any(_), ParameterType::Any) => {}
+            | (Parameter::Any(_), ParameterType::Any)
+            | (Parameter::Vector(_), ParameterType::Vector) => {}
 
             // Boolean conversions
             (Parameter::Boolean(bool), ParameterType::Any) => {
@@ -249,25 +292,25 @@ impl Parameter<'_> {
                 *self = Parameter::Boolean(*bool);
             }
 
-            // Number conversions
-            (Parameter::Number(number), ParameterType::Any) => {
+            // Integral conversions
+            (Parameter::I32(number), ParameterType::Any) => {
                 *self = Parameter::Any(Value::Number(Number::from(*number)));
             }
-            (Parameter::Any(Value::Number(number)), ParameterType::Number) => {
+            (Parameter::Any(Value::Number(number)), ParameterType::I32) => {
                 let number = number.as_i64().ok_or_else(|| {
                     Report::new(ParameterConversionError {
                         actual: self.to_owned(),
                         expected,
                     })
                 })?;
-                *self = Parameter::Number(i32::try_from(number).change_context_lazy(|| {
+                *self = Parameter::I32(i32::try_from(number).change_context_lazy(|| {
                     ParameterConversionError {
                         actual: self.to_owned(),
                         expected: ParameterType::OntologyTypeVersion,
                     }
                 })?);
             }
-            (Parameter::Number(number), ParameterType::OntologyTypeVersion) => {
+            (Parameter::I32(number), ParameterType::OntologyTypeVersion) => {
                 *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
                     u32::try_from(*number).change_context_lazy(|| ParameterConversionError {
                         actual: self.to_owned(),
@@ -277,6 +320,26 @@ impl Parameter<'_> {
             }
             (Parameter::Text(text), ParameterType::OntologyTypeVersion) if text == "latest" => {
                 // Special case for checking `version == "latest"
+            }
+
+            // Floating point conversions
+            (Parameter::F64(number), ParameterType::Any) => {
+                *self = Parameter::Any(Value::Number(Number::from_f64(*number).ok_or_else(
+                    || {
+                        Report::new(ParameterConversionError {
+                            actual: self.to_owned(),
+                            expected,
+                        })
+                    },
+                )?));
+            }
+            (Parameter::Any(Value::Number(number)), ParameterType::F64) => {
+                *self = Parameter::F64(number.as_f64().ok_or_else(|| {
+                    Report::new(ParameterConversionError {
+                        actual: self.to_owned(),
+                        expected,
+                    })
+                })?);
             }
 
             // Text conversions
@@ -301,6 +364,47 @@ impl Parameter<'_> {
                         expected: ParameterType::Uuid,
                     }
                 })?);
+            }
+
+            // Vector conversions
+            (Parameter::Vector(vector), ParameterType::Any) => {
+                *self = Parameter::Any(Value::Array(
+                    vector
+                        .iter()
+                        .map(|value| {
+                            Number::from_f64(f64::from(value))
+                                .ok_or_else(|| {
+                                    Report::new(ParameterConversionError {
+                                        actual: Parameter::Vector(vector.to_owned()),
+                                        expected,
+                                    })
+                                })
+                                .map(Value::Number)
+                        })
+                        .collect::<Result<_, _>>()?,
+                ));
+            }
+            (Parameter::Any(Value::Array(array)), ParameterType::Vector) => {
+                *self = Parameter::Vector(
+                    mem::take(array)
+                        .into_iter()
+                        .map(|value| {
+                            #[expect(
+                                clippy::cast_possible_truncation,
+                                reason = "truncation is expected"
+                            )]
+                            value
+                                .as_f64()
+                                .ok_or_else(|| {
+                                    Report::new(ParameterConversionError {
+                                        actual: self.to_owned(),
+                                        expected,
+                                    })
+                                })
+                                .map(|value| value as f32)
+                        })
+                        .collect::<Result<_, _>>()?,
+                );
             }
 
             // Fallback

@@ -366,6 +366,21 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                 rhs.as_ref()
                     .map(|expression| self.compile_filter_expression(expression).0),
             ),
+            Filter::L2Distance(lhs, rhs, max) => Condition::L2Distance(
+                self.compile_filter_expression(lhs).0,
+                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(max).0,
+            ),
+            Filter::CosineDistance(lhs, rhs, max) => Condition::CosineDistance(
+                self.compile_filter_expression(lhs).0,
+                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(max).0,
+            ),
+            Filter::InnerProduct(lhs, rhs, max) => Condition::InnerProduct(
+                self.compile_filter_expression(lhs).0,
+                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(max).0,
+            ),
             Filter::In(lhs, rhs) => Condition::In(
                 self.compile_filter_expression(lhs).0,
                 self.compile_parameter_list(rhs).0,
@@ -566,9 +581,13 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
         parameter: &'p Parameter<'f>,
     ) -> (Expression, ParameterType) {
         let parameter_type = match parameter {
-            Parameter::Number(number) => {
+            Parameter::I32(number) => {
                 self.artifacts.parameters.push(number);
-                ParameterType::Number
+                ParameterType::I32
+            }
+            Parameter::F64(number) => {
+                self.artifacts.parameters.push(number);
+                ParameterType::F64
             }
             Parameter::Text(text) => {
                 self.artifacts.parameters.push(text);
@@ -577,6 +596,10 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
             Parameter::Boolean(bool) => {
                 self.artifacts.parameters.push(bool);
                 ParameterType::Boolean
+            }
+            Parameter::Vector(vector) => {
+                self.artifacts.parameters.push(vector);
+                ParameterType::Vector
             }
             Parameter::Any(json) => {
                 self.artifacts.parameters.push(json);

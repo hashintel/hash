@@ -84,7 +84,7 @@ mod tests {
             ),
             Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                Some(FilterExpression::Parameter(Parameter::Number(1))),
+                Some(FilterExpression::Parameter(Parameter::I32(1))),
             ),
         ]);
         where_clause.add_condition(compiler.compile_filter(&filter_b));
