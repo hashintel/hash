@@ -16,7 +16,9 @@ pub(crate) mod vertex;
 
 #[derive(Serialize, ToSchema)]
 #[serde(transparent)]
-pub(crate) struct OntologyVertices(pub(crate) HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, OntologyVertex>>);
+pub(crate) struct OntologyVertices(
+    pub(crate) HashMap<BaseUrl, BTreeMap<OntologyTypeVersion, OntologyVertex>>,
+);
 
 #[derive(Serialize, ToSchema)]
 #[serde(transparent)]

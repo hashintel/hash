@@ -520,7 +520,6 @@ impl<C: AsClient> SnapshotStore<C> {
         let read_thread = tokio::spawn(
             snapshot
                 .map_err(|report| report.change_context(SnapshotRestoreError::Read))
-                // .map_ok(|entry| dbg!(entry))
                 .forward(
                     snapshot_record_tx
                         .sink_map_err(|report| report.change_context(SnapshotRestoreError::Buffer)),
