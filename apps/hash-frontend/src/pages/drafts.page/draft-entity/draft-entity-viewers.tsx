@@ -79,7 +79,15 @@ export const DraftEntityViewers: FunctionComponent<{
         return "Visible to anyone";
       }
 
-      if (authorizationRelationships.length === 1) {
+      if (
+        authorizationRelationships.length === 1 ||
+        /**
+         * @todo: remove this when the GQL resolver returns the correct number of authorization relationships
+         *
+         * @see https://linear.app/hash/issue/H-1115/use-permission-types-from-graph-in-graphql
+         */
+        authorizationRelationships.length === 0
+      ) {
         return "Only visible to me";
       }
 
