@@ -1,5 +1,11 @@
 import { VersionedUrl } from "@blockprotocol/graph";
-import { Button, ButtonProps, PlusIcon } from "@hashintel/design-system";
+import {
+  Button,
+  ButtonProps,
+  CloseIcon,
+  IconButton,
+  PlusIcon,
+} from "@hashintel/design-system";
 import {
   Box,
   Stack,
@@ -174,6 +180,26 @@ export const SelectScope = ({
     [inferenceConfig, setInferenceConfig, rules],
   );
 
+  const removeRule = ({
+    targetEntityTypeId,
+  }: {
+    targetEntityTypeId: VersionedUrl;
+  }) => {
+    const rulesByType = rules.reduce<
+      Record<VersionedUrl, LocalStorage["automaticInferenceConfig"]["rules"][0]>
+    >((acc, rule) => {
+      if (rule.entityTypeId !== targetEntityTypeId) {
+        acc[rule.entityTypeId] = rule;
+      }
+      return acc;
+    }, {});
+
+    setInferenceConfig({
+      ...inferenceConfig,
+      rules: Object.values(rulesByType),
+    });
+  };
+
   if (!anyTypesSelected && !showTable) {
     return (
       <Box>
@@ -225,8 +251,8 @@ export const SelectScope = ({
             },
           },
           "th, td": {
-            px: 1.5,
-            py: 1,
+            px: 1,
+            py: 0.8,
             borderStyle: "solid",
             borderWidth: 1,
             borderRadius: 1,
@@ -240,10 +266,10 @@ export const SelectScope = ({
         <TableHead>
           <TableRow>
             <TableCell>
-              <Typography>Types to find</Typography>
+              <Typography>Type</Typography>
             </TableCell>
-            <TableCell>
-              <Typography>Look for this type on...</Typography>
+            <TableCell colSpan={2}>
+              <Typography>Where</Typography>
             </TableCell>
           </TableRow>
         </TableHead>
@@ -285,6 +311,18 @@ export const SelectScope = ({
                       }}
                     />
                   </TableCell>
+                  <TableCell sx={{ width: 20, p: `4px !important` }}>
+                    {entityTypeId && (
+                      <IconButton
+                        onClick={() =>
+                          removeRule({ targetEntityTypeId: entityTypeId })
+                        }
+                        size="small"
+                      >
+                        <CloseIcon />
+                      </IconButton>
+                    )}
+                  </TableCell>
                 </TableRow>
               );
             },
@@ -292,7 +330,7 @@ export const SelectScope = ({
         </TableBody>
         <TableFooter>
           <TableRow>
-            <TableCell colSpan={2}>
+            <TableCell colSpan={3}>
               <AddTypeButton
                 disabled={!!draftRule}
                 onClick={() => setDraftRule({ restrictToDomains: [] })}
