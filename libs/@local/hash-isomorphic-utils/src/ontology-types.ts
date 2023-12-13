@@ -97,7 +97,13 @@ export const generateLinkMapWithConsistentSelfReferences = (
       const schemaWithConsistentSelfReferences = {
         ...linkSchema,
         items:
-          "oneOf" in linkSchema.items
+          /**
+           * @todo remove array check when it's no longer possible for  the value of
+           * `oneOf` to be `{}`
+           *
+           * @see TODO
+           */
+          "oneOf" in linkSchema.items && Array.isArray(linkSchema.items.oneOf)
             ? {
                 oneOf: linkSchema.items.oneOf.map((item) => {
                   const isSelfReference = item.$ref === currentEntityTypeId;
