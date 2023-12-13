@@ -4,7 +4,7 @@ import {
   CACHED_DATA_TYPE_SCHEMAS,
   CACHED_ENTITY_TYPE_SCHEMAS,
   CACHED_PROPERTY_TYPE_SCHEMAS,
-} from "../../../seed-data";
+} from "../../../../seed-data";
 import { MigrationFunction } from "../types";
 import {
   loadExternalDataTypeIfNotExists,

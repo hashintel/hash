@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "HASH Assistant",
+  "name": "HASH AI",
   "description": "A browser extension for gathering info from the web into your HASH account.",
   "options_page": "options.html",
   "background": {

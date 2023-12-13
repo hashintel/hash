@@ -68,6 +68,8 @@ export const useDraftEntities = () => {
   return draftEntitiesContext;
 };
 
+const draftEntitiesPollingInterval = 10_000;
+
 export const DraftEntitiesContextProvider: FunctionComponent<
   PropsWithChildren
 > = ({ children }) => {
@@ -86,7 +88,7 @@ export const DraftEntitiesContextProvider: FunctionComponent<
   >(structuralQueryEntitiesQuery, {
     variables: getDraftEntitiesQueryVariables,
     onCompleted: (data) => setPreviouslyFetchedDraftEntitiesData(data),
-    pollInterval: 5000,
+    pollInterval: draftEntitiesPollingInterval,
   });
 
   const draftEntitiesSubgraph = useMemo(

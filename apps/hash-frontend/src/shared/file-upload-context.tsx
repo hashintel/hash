@@ -7,7 +7,7 @@ import {
   EntityPropertiesObject,
   OwnedById,
 } from "@local/hash-subgraph";
-import { LinkEntity } from "@local/hash-subgraph/src/shared/type-system-patch";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import {
   createContext,
   PropsWithChildren,

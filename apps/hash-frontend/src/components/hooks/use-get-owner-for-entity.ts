@@ -1,4 +1,3 @@
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
@@ -32,18 +31,6 @@ export const useGetOwnerForEntity = () => {
         orgs.find((org) => ownedById === org.accountGroupId);
 
       if (!owner) {
-        // The HASH Instance is owned by an account group without an org
-        if (
-          entity.metadata.entityTypeId ===
-          systemEntityTypes.hashInstance.entityTypeId
-        ) {
-          return {
-            ownedById,
-            // This will create a link to an entity page that doesn't actually work. @todo decide what to do about this
-            shortname: "system",
-          };
-        }
-
         throw new Error(
           `Owner with accountId ${ownedById} not found – possibly a caching issue if it has been created mid-session`,
         );

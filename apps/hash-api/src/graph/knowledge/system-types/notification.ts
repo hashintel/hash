@@ -1,3 +1,7 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
+import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { createNotificationEntityPermissions } from "@local/hash-backend-utils/notifications";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -13,7 +17,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { CommentNotificationProperties } from "@local/hash-isomorphic-utils/system-types/commentnotification";
 import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import { NotificationProperties } from "@local/hash-isomorphic-utils/system-types/notification";
-import { Entity, EntityRelationAndSubject } from "@local/hash-subgraph";
+import { Entity, EntityId } from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
   getRoots,
@@ -23,9 +27,7 @@ import {
   LinkEntity,
 } from "@local/hash-subgraph/type-system-patch";
 
-import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import { systemAccountId } from "../../system-account";
 import {
   createEntity,
   CreateEntityParams,
@@ -97,7 +99,7 @@ export const createMentionNotification: ImpureGraphFunction<
     occurredInText: Text;
   },
   Promise<MentionNotification>
-> = async (context, authentication, params) => {
+> = async (context, userAuthentication, params) => {
   const {
     triggeredByUser,
     occurredInText,
@@ -107,94 +109,74 @@ export const createMentionNotification: ImpureGraphFunction<
     ownedById,
   } = params;
 
-  const entity = await createEntity(context, authentication, {
+  const webMachineActorId = await getWebMachineActorId(
+    context,
+    userAuthentication,
+    { ownedById },
+  );
+  const botAuthentication = { actorId: webMachineActorId };
+
+  const { linkEntityRelationships, notificationEntityRelationships } =
+    createNotificationEntityPermissions({
+      machineActorId: webMachineActorId,
+    });
+
+  const entity = await createEntity(context, botAuthentication, {
     ownedById,
     properties: {},
     entityTypeId: systemEntityTypes.mentionNotification.entityTypeId,
-    relationships: [
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "administratorFromWeb",
-        },
-      },
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "updateFromWeb",
-        },
-      },
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "viewFromWeb",
-        },
-      },
-    ],
+    relationships: notificationEntityRelationships,
   });
-
-  const linkRelationships: EntityRelationAndSubject[] = [
-    {
-      relation: "administrator",
-      subject: {
-        kind: "account",
-        subjectId: systemAccountId,
-      },
-    },
-    {
-      relation: "setting",
-      subject: {
-        kind: "setting",
-        subjectId: "viewFromWeb",
-      },
-    },
-  ];
 
   await Promise.all(
     [
-      createLinkEntity(context, authentication, {
+      /**
+       * We do this separately with the user's authority because we need to use the user's authority to create the links
+       * We cannot use a bot scoped to the user's web, because the thing that we are linking to (comments, pages)
+       * might be in different webs, e.g. if the page is in an organization's web, which the bot can't read.
+       *
+       * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605
+       */
+      createLinkEntity(context, userAuthentication, {
         ownedById,
         leftEntityId: entity.metadata.recordId.entityId,
         rightEntityId: triggeredByUser.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
-        relationships: linkRelationships,
+        relationships: linkEntityRelationships,
       }),
-      createLinkEntity(context, authentication, {
+      createLinkEntity(context, userAuthentication, {
         ownedById,
         leftEntityId: entity.metadata.recordId.entityId,
         rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
-        relationships: linkRelationships,
+        relationships: linkEntityRelationships,
       }),
-      createLinkEntity(context, authentication, {
+      createLinkEntity(context, userAuthentication, {
         ownedById,
         leftEntityId: entity.metadata.recordId.entityId,
         rightEntityId: occurredInBlock.entity.metadata.recordId.entityId,
         linkEntityTypeId:
           systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
-        relationships: linkRelationships,
+        relationships: linkEntityRelationships,
       }),
       occurredInComment
-        ? createLinkEntity(context, authentication, {
+        ? createLinkEntity(context, userAuthentication, {
             ownedById,
             leftEntityId: entity.metadata.recordId.entityId,
             rightEntityId: occurredInComment.entity.metadata.recordId.entityId,
             linkEntityTypeId:
               systemLinkEntityTypes.occurredInComment.linkEntityTypeId,
-            relationships: linkRelationships,
+            relationships: linkEntityRelationships,
           })
         : [],
-      createLinkEntity(context, authentication, {
+      createLinkEntity(context, userAuthentication, {
         ownedById,
         leftEntityId: entity.metadata.recordId.entityId,
         rightEntityId: occurredInText.entity.metadata.recordId.entityId,
         linkEntityTypeId: systemLinkEntityTypes.occurredInText.linkEntityTypeId,
-        relationships: linkRelationships,
+        relationships: linkEntityRelationships,
       }),
     ].flat(),
   );
@@ -365,7 +347,7 @@ export const createCommentNotification: ImpureGraphFunction<
     repliedToComment?: Comment;
   },
   Promise<CommentNotification>
-> = async (context, authentication, params) => {
+> = async (context, userAuthentication, params) => {
   const {
     triggeredByUser,
     triggeredByComment,
@@ -375,92 +357,77 @@ export const createCommentNotification: ImpureGraphFunction<
     ownedById,
   } = params;
 
-  const linkRelationships: EntityRelationAndSubject[] = [
-    {
-      relation: "administrator",
-      subject: {
-        kind: "account",
-        subjectId: systemAccountId,
-      },
-    },
-    {
-      relation: "setting",
-      subject: {
-        kind: "setting",
-        subjectId: "viewFromWeb",
-      },
-    },
-  ];
+  const webMachineActorId = await getWebMachineActorId(
+    context,
+    userAuthentication,
+    { ownedById },
+  );
+  const authentication = { actorId: webMachineActorId };
 
-  const entity = await createEntity(context, authentication, {
+  const { linkEntityRelationships, notificationEntityRelationships } =
+    createNotificationEntityPermissions({
+      machineActorId: webMachineActorId,
+    });
+
+  const notificationEntity = await createEntity(context, authentication, {
     ownedById,
     properties: {},
     entityTypeId: systemEntityTypes.commentNotification.entityTypeId,
-    outgoingLinks: [
-      {
-        ownedById,
-        rightEntityId: triggeredByUser.entity.metadata.recordId.entityId,
-        linkEntityTypeId:
-          systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
-        relationships: linkRelationships,
-      },
-      {
-        ownedById,
-        rightEntityId: triggeredByComment.entity.metadata.recordId.entityId,
-        linkEntityTypeId:
-          systemLinkEntityTypes.triggeredByComment.linkEntityTypeId,
-        relationships: linkRelationships,
-      },
-      {
-        ownedById,
-        rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
-        linkEntityTypeId:
-          systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
-        relationships: linkRelationships,
-      },
-      {
-        ownedById,
-        rightEntityId: occurredInBlock.entity.metadata.recordId.entityId,
-        linkEntityTypeId:
-          systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
-        relationships: linkRelationships,
-      },
-      repliedToComment
-        ? {
-            ownedById,
-            rightEntityId: repliedToComment.entity.metadata.recordId.entityId,
-            linkEntityTypeId:
-              systemLinkEntityTypes.repliedToComment.linkEntityTypeId,
-            relationships: linkRelationships,
-          }
-        : [],
-    ].flat(),
-    relationships: [
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "administratorFromWeb",
-        },
-      },
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "updateFromWeb",
-        },
-      },
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "viewFromWeb",
-        },
-      },
-    ],
+    relationships: notificationEntityRelationships,
   });
 
-  return getCommentNotificationFromEntity({ entity });
+  const leftEntityId = notificationEntity.metadata.recordId.entityId;
+
+  const linksToCreate: {
+    rightEntityId: EntityId;
+    linkEntityTypeId: VersionedUrl;
+  }[] = [
+    {
+      rightEntityId: triggeredByUser.entity.metadata.recordId.entityId,
+      linkEntityTypeId: systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
+    },
+    {
+      rightEntityId: triggeredByComment.entity.metadata.recordId.entityId,
+      linkEntityTypeId:
+        systemLinkEntityTypes.triggeredByComment.linkEntityTypeId,
+    },
+    {
+      rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
+      linkEntityTypeId: systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+    },
+    {
+      rightEntityId: occurredInBlock.entity.metadata.recordId.entityId,
+      linkEntityTypeId: systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
+    },
+  ];
+
+  if (repliedToComment) {
+    linksToCreate.push({
+      rightEntityId: repliedToComment.entity.metadata.recordId.entityId,
+      linkEntityTypeId: systemLinkEntityTypes.repliedToComment.linkEntityTypeId,
+    });
+  }
+
+  await Promise.all(
+    linksToCreate.map(({ rightEntityId, linkEntityTypeId }) =>
+      /**
+       * We do this separately with the user's authority because we need to use the user's authority to create the links
+       * We cannot use a bot scoped to the user's web, because the thing that we are linking to (comments, pages)
+       * might be in different webs, e.g. if the page is in an organization's web, which the bot can't read.
+       *
+       * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605
+       */
+      createLinkEntity(context, userAuthentication, {
+        linkEntityTypeId,
+        leftEntityId,
+        rightEntityId,
+        ownedById,
+        relationships: linkEntityRelationships,
+      }),
+    ),
+  );
+
+  return getCommentNotificationFromEntity({ entity: notificationEntity });
 };
 
 export const getCommentNotification: ImpureGraphFunction<

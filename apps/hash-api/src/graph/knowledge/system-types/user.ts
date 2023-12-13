@@ -1,3 +1,5 @@
+import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -34,7 +36,6 @@ import {
   KratosUserIdentity,
   KratosUserIdentityTraits,
 } from "../../../auth/ory-kratos";
-import { EntityTypeMismatchError } from "../../../lib/error";
 import { createAccount, createWeb } from "../../account-permission-management";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { systemAccountId } from "../../system-account";
@@ -302,6 +303,14 @@ export const createUser: ImpureGraphFunction<
     );
   }
 
+  const userWebMachineActorId = await createWebMachineActor(
+    ctx,
+    { actorId: userAccountId },
+    {
+      ownedById: userAccountId as OwnedById,
+    },
+  );
+
   const properties: UserProperties = {
     "https://hash.ai/@hash/types/property-type/email/": emails as [
       string,
@@ -327,9 +336,27 @@ export const createUser: ImpureGraphFunction<
     hashInstance.entity.metadata.recordId.entityId,
   ) as AccountGroupId;
 
+  /** Grant permissions to the web machine actor to create a user entity */
+  await ctx.graphApi.modifyEntityTypeAuthorizationRelationships(
+    systemAccountId,
+    [
+      {
+        operation: "create",
+        resource: systemEntityTypes.user.entityTypeId,
+        relationAndSubject: {
+          subject: {
+            kind: "account",
+            subjectId: userWebMachineActorId,
+          },
+          relation: "instantiator",
+        },
+      },
+    ],
+  );
+
   const entity = await createEntity(
     ctx,
-    { actorId: userAccountId },
+    { actorId: userWebMachineActorId },
     {
       ownedById: userAccountId as OwnedById,
       properties,
@@ -358,6 +385,24 @@ export const createUser: ImpureGraphFunction<
         },
       ],
     },
+  );
+
+  /** Remove permission from the web machine actor to create a user entity */
+  await ctx.graphApi.modifyEntityTypeAuthorizationRelationships(
+    systemAccountId,
+    [
+      {
+        operation: "delete",
+        resource: systemEntityTypes.user.entityTypeId,
+        relationAndSubject: {
+          subject: {
+            kind: "account",
+            subjectId: userWebMachineActorId,
+          },
+          relation: "instantiator",
+        },
+      },
+    ],
   );
 
   const user = getUserFromEntity({ entity });

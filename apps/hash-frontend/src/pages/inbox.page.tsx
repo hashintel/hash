@@ -29,7 +29,9 @@ import { useUserOrOrgShortnameByOwnedById } from "../components/hooks/use-user-o
 import { constructPageRelativeUrl } from "../lib/routes";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import {
+  GraphChangeNotification,
   Notification,
+  PageRelatedNotification,
   useNotifications,
 } from "../shared/notifications-context";
 import { Button, Link } from "../shared/ui";
@@ -90,39 +92,42 @@ const TableCell = styled(MuiTableCell)(({ theme }) => ({
   },
 }));
 
-const NotificationRow: FunctionComponent<Notification> = (notification) => {
-  const { markNotificationAsRead } = useNotifications();
-  const {
-    kind,
-    triggeredByUser,
-    occurredInEntity,
-    occurredInBlock,
-    readAt,
-    createdAt,
-  } = notification;
+const GraphChangeNotificationContent = ({
+  notification,
+  handleNotificationClick,
+  targetHref,
+}: {
+  notification: GraphChangeNotification;
+  handleNotificationClick: () => void;
+  targetHref?: string;
+}) => {
+  const { entityLabel, entity, operation } = notification;
 
-  const ownedById = useMemo(
-    () =>
-      extractOwnedByIdFromEntityId(occurredInEntity.metadata.recordId.entityId),
-    [occurredInEntity],
+  return (
+    <Typography component="span">
+      A {entity.metadata.draft ? "draft" : "live"} entity,{" "}
+      <Link
+        href={targetHref ?? ""}
+        noLinkStyle
+        onClick={handleNotificationClick}
+      >
+        {entityLabel}
+      </Link>
+      , was {operation}d
+    </Typography>
   );
+};
 
-  const { shortname } = useUserOrOrgShortnameByOwnedById({ ownedById });
-
-  const pageHref = useMemo(() => {
-    if (!shortname) {
-      return undefined;
-    }
-
-    /** @todo: append query param if the mention was in a comment */
-    return constructPageRelativeUrl({
-      workspaceShortname: shortname,
-      pageEntityUuid: extractEntityUuidFromEntityId(
-        occurredInEntity.metadata.recordId.entityId,
-      ),
-      highlightedBlockEntityId: occurredInBlock.metadata.recordId.entityId,
-    });
-  }, [shortname, occurredInEntity, occurredInBlock]);
+const PageRelatedNotificationContent = ({
+  notification,
+  handleNotificationClick,
+  targetHref,
+}: {
+  notification: PageRelatedNotification;
+  handleNotificationClick: () => void;
+  targetHref?: string;
+}) => {
+  const { kind, triggeredByUser, occurredInEntity } = notification;
 
   const pageTitle = useMemo(() => {
     const { title } = simplifyProperties(occurredInEntity.properties);
@@ -130,9 +135,67 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
     return title;
   }, [occurredInEntity]);
 
+  return (
+    <>
+      <Link noLinkStyle href={`/@${triggeredByUser.shortname}`}>
+        {triggeredByUser.preferredName}
+      </Link>{" "}
+      {kind === "new-comment"
+        ? "commented on "
+        : kind === "comment-reply"
+          ? "replied to your comment on "
+          : kind === "page-mention"
+            ? "mentioned you in "
+            : "mentioned you in a comment on "}
+      <Link
+        noLinkStyle
+        href={targetHref ?? ""}
+        onClick={handleNotificationClick}
+      >
+        {pageTitle}
+      </Link>
+    </>
+  );
+};
+
+const NotificationRow: FunctionComponent<Notification> = (notification) => {
+  const { markNotificationAsRead } = useNotifications();
+  const { kind, occurredInEntity, readAt, createdAt } = notification;
+
   const handleNotificationClick = useCallback(async () => {
     await markNotificationAsRead({ notification });
   }, [markNotificationAsRead, notification]);
+
+  const ownedById = useMemo(
+    () =>
+      extractOwnedByIdFromEntityId(occurredInEntity.metadata.recordId.entityId),
+    [occurredInEntity],
+  );
+
+  const { shortname: entityOwningShortname } = useUserOrOrgShortnameByOwnedById(
+    { ownedById },
+  );
+
+  const targetHref = useMemo(() => {
+    if (!entityOwningShortname) {
+      return undefined;
+    }
+
+    if (kind === "graph-change") {
+      return `/${entityOwningShortname}/entities/${occurredInEntity.metadata.recordId.entityId}`;
+    }
+
+    const { occurredInBlock } = notification;
+
+    /** @todo: append query param if the mention was in a comment */
+    return constructPageRelativeUrl({
+      workspaceShortname: entityOwningShortname,
+      pageEntityUuid: extractEntityUuidFromEntityId(
+        occurredInEntity.metadata.recordId.entityId,
+      ),
+      highlightedBlockEntityId: occurredInBlock.metadata.recordId.entityId,
+    });
+  }, [entityOwningShortname, kind, occurredInEntity, notification]);
 
   const humanReadableCreatedAt = useMemo(() => {
     const now = new Date();
@@ -190,31 +253,29 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
           },
         }}
       >
-        <Link noLinkStyle href={`/@${triggeredByUser.shortname}`}>
-          {triggeredByUser.preferredName}
-        </Link>{" "}
-        {kind === "new-comment"
-          ? "commented on "
-          : kind === "comment-reply"
-            ? "replied to your comment on "
-            : kind === "page-mention"
-              ? "mentioned you in "
-              : "mentioned you in a comment on "}
-        <Link
-          noLinkStyle
-          href={pageHref ?? ""}
-          onClick={handleNotificationClick}
-        >
-          {pageTitle}
-        </Link>{" "}
+        {kind === "graph-change" ? (
+          <GraphChangeNotificationContent
+            notification={notification}
+            handleNotificationClick={handleNotificationClick}
+            targetHref={targetHref}
+          />
+        ) : (
+          <PageRelatedNotificationContent
+            handleNotificationClick={handleNotificationClick}
+            notification={notification}
+            targetHref={targetHref}
+          />
+        )}
       </TableCell>
       <TableCell sx={{ display: "flex", columnGap: 1 }}>
-        <Button href={pageHref} onClick={handleNotificationClick} size="xs">
+        <Button href={targetHref} onClick={handleNotificationClick} size="xs">
           {kind === "new-comment" ||
           kind === "comment-reply" ||
           kind === "comment-mention"
             ? "View comment"
-            : "View page"}
+            : kind === "graph-change"
+              ? "View entity"
+              : "View page"}
         </Button>
         {readAt ? null : (
           <Button

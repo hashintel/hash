@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { Skeleton } from "@hashintel/design-system";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   fullDecisionTimeAxis,
   mapGqlSubgraphFieldsFragmentToSubgraph,
@@ -14,7 +15,6 @@ import { Box, Container, Divider, Typography } from "@mui/material";
 import { subDays, subHours } from "date-fns";
 import { Fragment, FunctionComponent, useMemo, useState } from "react";
 
-import { useUsers } from "../../components/hooks/use-users";
 import {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
@@ -22,6 +22,7 @@ import {
 import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { getFirstRevision } from "../../shared/entity-utils";
+import { useActors } from "../../shared/use-actors";
 import {
   DraftEntitiesFilters,
   DraftEntityFilterState,
@@ -107,10 +108,8 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
     [draftEntityHistoriesData, previouslyFetchedDraftEntityHistoriesData],
   );
 
-  const { users } = useUsers();
-
-  const draftEntitiesWithCreatedAtAndCreators = useMemo(() => {
-    if (!draftEntities || !draftEntityHistoriesSubgraph || !users) {
+  const accountIds = useMemo(() => {
+    if (!draftEntities || !draftEntityHistoriesSubgraph) {
       return undefined;
     }
 
@@ -120,10 +119,26 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
         entity.metadata.recordId.entityId,
       );
 
-      // @todo update to account for machine users – H-1514
-      const creator = users.find(
-        (user) =>
-          user.accountId ===
+      return firstRevision.metadata.provenance.recordCreatedById;
+    });
+  }, [draftEntities, draftEntityHistoriesSubgraph]);
+
+  const { actors } = useActors({ accountIds });
+
+  const draftEntitiesWithCreatedAtAndCreators = useMemo(() => {
+    if (!draftEntities || !draftEntityHistoriesSubgraph || !actors) {
+      return undefined;
+    }
+
+    return draftEntities.map((entity) => {
+      const firstRevision = getFirstRevision(
+        draftEntityHistoriesSubgraph,
+        entity.metadata.recordId.entityId,
+      );
+
+      const creator = actors.find(
+        (actor) =>
+          actor.accountId ===
           firstRevision.metadata.provenance.recordCreatedById,
       );
 
@@ -141,7 +156,7 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
         creator,
       };
     });
-  }, [draftEntityHistoriesSubgraph, draftEntities, users]);
+  }, [actors, draftEntityHistoriesSubgraph, draftEntities]);
 
   if (
     !filterState &&
@@ -158,7 +173,9 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
 
   const filteredAndSortedDraftEntitiesWithCreatedAt = useMemo(
     () =>
-      filterState && draftEntitiesWithCreatedAtAndCreators
+      filterState &&
+      draftEntitiesWithCreatedAtAndCreators &&
+      draftEntitiesSubgraph
         ? draftEntitiesWithCreatedAtAndCreators
             .filter(
               ({ entity, creator }) =>
@@ -174,12 +191,24 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
                 }),
             )
             .sort((a, b) =>
-              sortOrder === "created-at-asc"
-                ? a.createdAt.getTime() - b.createdAt.getTime()
-                : b.createdAt.getTime() - a.createdAt.getTime(),
+              a.createdAt.getTime() === b.createdAt.getTime()
+                ? generateEntityLabel(
+                    draftEntitiesSubgraph,
+                    a.entity,
+                  ).localeCompare(
+                    generateEntityLabel(draftEntitiesSubgraph, b.entity),
+                  )
+                : sortOrder === "created-at-asc"
+                  ? a.createdAt.getTime() - b.createdAt.getTime()
+                  : b.createdAt.getTime() - a.createdAt.getTime(),
             )
         : undefined,
-    [draftEntitiesWithCreatedAtAndCreators, sortOrder, filterState],
+    [
+      draftEntitiesWithCreatedAtAndCreators,
+      sortOrder,
+      filterState,
+      draftEntitiesSubgraph,
+    ],
   );
 
   return (
