@@ -71,6 +71,9 @@ export const useActors = (params: {
   });
 
   const actors = useMemo(() => {
+    if (accountIds && accountIds.length === 0) {
+      return [];
+    }
     if (!machineActorsData || !userActors) {
       return;
     }
@@ -90,7 +93,7 @@ export const useActors = (params: {
     });
 
     return [...machineActors, ...userActors];
-  }, [userActors, machineActorsData]);
+  }, [userActors, machineActorsData, accountIds]);
 
   return {
     actors,
