@@ -5,6 +5,7 @@ import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
 import { systemAccountId } from "../../../system-account";
 import { MigrationFunction } from "../types";
 import {
+  anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
   getCurrentHashSystemEntityTypeId,
@@ -189,7 +190,7 @@ const migrate: MigrationFunction = async ({
     },
     webShortname: "hash",
     migrationState,
-    instantiator: null,
+    instantiator: anyUserInstantiator,
   });
 
   /** Step 6: Update the dependencies of entity types which we've updated above */
