@@ -325,6 +325,19 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Properties(Option<JsonPath<'p>>),
+    /// The embedding for the whole entity blob.
+    ///
+    /// Deserializes from `["embedding"]`:
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["embedding"]))?;
+    /// assert_eq!(path, EntityQueryPath::Embedding,);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    Embedding,
 }
 
 impl fmt::Display for EntityQueryPath<'_> {
@@ -340,6 +353,7 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::Archived => fmt.write_str("archived"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
+            Self::Embedding => fmt.write_str("embedding"),
             Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path,
@@ -384,6 +398,7 @@ impl QueryPath for EntityQueryPath<'_> {
             }
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
             Self::Properties(_) => ParameterType::Any,
+            Self::Embedding => ParameterType::Vector,
             Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::I32,
             Self::Archived | Self::Draft => ParameterType::Boolean,
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
@@ -406,6 +421,7 @@ pub enum EntityQueryToken {
     RecordCreatedById,
     Type,
     Properties,
+    Embedding,
     IncomingLinks,
     OutgoingLinks,
     LeftEntity,
@@ -421,10 +437,10 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `uuid`, `editionId`, `archived`, `draft`, \
-                                         `ownedById`, `recordCreatedById`, `type`, `properties`, \
-                                         `incomingLinks`, `outgoingLinks`, `leftEntity`, \
-                                         `rightEntity`, `leftToRightOrder`, `rightToLeftOrder`";
+    pub const EXPECTING: &'static str =
+        "one of `uuid`, `editionId`, `archived`, `draft`, `ownedById`, `recordCreatedById`, \
+         `type`, `properties`, `embedding`, `incomingLinks`, `outgoingLinks`, `leftEntity`, \
+         `rightEntity`, `leftToRightOrder`, `rightToLeftOrder`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -456,6 +472,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::RecordCreatedById => EntityQueryPath::RecordCreatedById,
             EntityQueryToken::Archived => EntityQueryPath::Archived,
             EntityQueryToken::Draft => EntityQueryPath::Draft,
+            EntityQueryToken::Embedding => EntityQueryPath::Embedding,
             EntityQueryToken::Type => EntityQueryPath::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path: EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
