@@ -799,6 +799,9 @@ export const updateSystemEntityType: ImpureGraphFunction<
     await getEntityTypeById(context, authentication, {
       entityTypeId: nextEntityTypeId,
     });
+
+    migrationState.entityTypeVersions[baseUrl] = version + 1;
+
     return { updatedEntityTypeId: nextEntityTypeId };
   } catch {
     // the next version doesn't exist, continue to create it

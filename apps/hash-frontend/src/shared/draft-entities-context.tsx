@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
@@ -10,16 +10,26 @@ import {
   createContext,
   FunctionComponent,
   PropsWithChildren,
+  useCallback,
   useContext,
   useMemo,
   useState,
 } from "react";
 
 import {
+  ArchiveEntityMutation,
+  ArchiveEntityMutationVariables,
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
 } from "../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
+import {
+  archiveEntityMutation,
+  structuralQueryEntitiesQuery,
+  updateEntityMutation,
+} from "../graphql/queries/knowledge/entity.queries";
+import { useNotifications } from "./notifications-context";
 
 const getDraftEntitiesQueryVariables: StructuralQueryEntitiesQueryVariables = {
   query: {
@@ -53,6 +63,8 @@ export type DraftEntitiesContextValue = {
   draftEntitiesSubgraph?: Subgraph<EntityRootType>;
   loading: boolean;
   refetch: () => Promise<void>;
+  discardDraftEntity: (params: { draftEntity: Entity }) => Promise<void>;
+  acceptDraftEntity: (params: { draftEntity: Entity }) => Promise<void>;
 };
 
 export const DraftEntitiesContext =
@@ -107,6 +119,72 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     [draftEntitiesSubgraph],
   );
 
+  const { notifications, archiveNotification } = useNotifications();
+
+  const archiveRelatedNotifications = useCallback(
+    async (params: { draftEntity: Entity }) => {
+      const relatedNotifications = notifications?.filter(
+        (notification) =>
+          notification.occurredInEntity.metadata.recordId.entityId ===
+          params.draftEntity.metadata.recordId.entityId,
+      );
+
+      if (!relatedNotifications) {
+        return;
+      }
+
+      await Promise.all(
+        relatedNotifications.map((notification) => {
+          return archiveNotification({
+            notificationEntityId:
+              notification.entity.metadata.recordId.entityId,
+          });
+        }),
+      );
+    },
+    [notifications, archiveNotification],
+  );
+
+  const [archiveEntity] = useMutation<
+    ArchiveEntityMutation,
+    ArchiveEntityMutationVariables
+  >(archiveEntityMutation);
+
+  const discardDraftEntity = useCallback(
+    async (params: { draftEntity: Entity }) => {
+      await archiveRelatedNotifications(params);
+
+      await archiveEntity({
+        variables: {
+          entityId: params.draftEntity.metadata.recordId.entityId,
+        },
+      });
+
+      await refetch();
+    },
+    [archiveEntity, archiveRelatedNotifications, refetch],
+  );
+
+  const [updateEntity] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation);
+
+  const acceptDraftEntity = useCallback(
+    async (params: { draftEntity: Entity }) => {
+      await updateEntity({
+        variables: {
+          entityId: params.draftEntity.metadata.recordId.entityId,
+          updatedProperties: params.draftEntity.properties,
+          draft: false,
+        },
+      });
+
+      await refetch();
+    },
+    [updateEntity, refetch],
+  );
+
   const value = useMemo<DraftEntitiesContextValue>(
     () => ({
       draftEntities,
@@ -115,8 +193,17 @@ export const DraftEntitiesContextProvider: FunctionComponent<
       refetch: async () => {
         await refetch();
       },
+      discardDraftEntity,
+      acceptDraftEntity,
     }),
-    [draftEntities, draftEntitiesSubgraph, loading, refetch],
+    [
+      draftEntities,
+      draftEntitiesSubgraph,
+      loading,
+      refetch,
+      discardDraftEntity,
+      acceptDraftEntity,
+    ],
   );
 
   return (

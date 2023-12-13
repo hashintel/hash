@@ -1,4 +1,3 @@
-import { useMutation } from "@apollo/client";
 import { AlertModal, CloseIcon } from "@hashintel/design-system";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
@@ -10,16 +9,6 @@ import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { Box, BoxProps, buttonClasses, Typography } from "@mui/material";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
-import {
-  ArchiveEntityMutation,
-  ArchiveEntityMutationVariables,
-  UpdateEntityMutation,
-  UpdateEntityMutationVariables,
-} from "../../../graphql/api-types.gen";
-import {
-  archiveEntityMutation,
-  updateEntityMutation,
-} from "../../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../../shared/draft-entities-context";
 import { CheckRegularIcon } from "../../../shared/icons/check-regular-icon";
 import { FeatherRegularIcon } from "../../../shared/icons/feather-regular-icon";
@@ -75,12 +64,7 @@ export const DraftEntityActionButtons: FunctionComponent<{
   entity: Entity;
   subgraph: Subgraph<EntityRootType>;
 }> = ({ entity, subgraph, label }) => {
-  const { refetch: refetchDraftEntities } = useDraftEntities();
-
-  const [archiveEntity] = useMutation<
-    ArchiveEntityMutation,
-    ArchiveEntityMutationVariables
-  >(archiveEntityMutation);
+  const { discardDraftEntity, acceptDraftEntity } = useDraftEntities();
 
   const [
     showDraftEntityWithDraftLinksWarning,
@@ -126,48 +110,22 @@ export const DraftEntityActionButtons: FunctionComponent<{
     if (hasIncomingOrOutgoingDraftLinks) {
       setShowDraftEntityWithDraftLinksWarning(true);
     } else {
-      await archiveEntity({
-        variables: {
-          entityId: entity.metadata.recordId.entityId,
-        },
-      });
-
-      await refetchDraftEntities();
+      await discardDraftEntity({ draftEntity: entity });
     }
-  }, [
-    hasIncomingOrOutgoingDraftLinks,
-    archiveEntity,
-    entity,
-    refetchDraftEntities,
-  ]);
+  }, [hasIncomingOrOutgoingDraftLinks, entity, discardDraftEntity]);
 
   const handleIgnoreDraftEntityWithDraftLinks = useCallback(async () => {
     await Promise.all(
       [...(incomingDraftLinks ?? []), ...(outgoingDraftLinks ?? [])].map(
         (linkEntity) =>
-          archiveEntity({
-            variables: { entityId: linkEntity.metadata.recordId.entityId },
+          discardDraftEntity({
+            draftEntity: linkEntity,
           }),
       ),
     );
 
-    await archiveEntity({
-      variables: { entityId: entity.metadata.recordId.entityId },
-    });
-
-    await refetchDraftEntities();
-  }, [
-    incomingDraftLinks,
-    outgoingDraftLinks,
-    entity,
-    archiveEntity,
-    refetchDraftEntities,
-  ]);
-
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation);
+    await discardDraftEntity({ draftEntity: entity });
+  }, [incomingDraftLinks, outgoingDraftLinks, entity, discardDraftEntity]);
 
   const { draftLeftEntity, draftRightEntity } = useMemo(() => {
     if (entity.linkData) {
@@ -204,50 +162,24 @@ export const DraftEntityActionButtons: FunctionComponent<{
     if (hasLeftOrRightDraftEntity) {
       setShowDraftLinkEntityWithDraftLeftOrRightEntityWarning(true);
     } else {
-      await updateEntity({
-        variables: {
-          entityId: entity.metadata.recordId.entityId,
-          updatedProperties: entity.properties,
-          draft: false,
-        },
+      await acceptDraftEntity({
+        draftEntity: entity,
       });
-
-      await refetchDraftEntities();
     }
-  }, [hasLeftOrRightDraftEntity, updateEntity, entity, refetchDraftEntities]);
+  }, [hasLeftOrRightDraftEntity, acceptDraftEntity, entity]);
 
   const handleAcceptDraftLinkEntityWithDraftLeftOrRightEntities =
     useCallback(async () => {
       await Promise.all(
         [draftLeftEntity ?? [], draftRightEntity ?? []]
           .flat()
-          .map((draftEntity) =>
-            updateEntity({
-              variables: {
-                entityId: draftEntity.metadata.recordId.entityId,
-                updatedProperties: draftEntity.properties,
-                draft: false,
-              },
-            }),
-          ),
+          .map((draftEntity) => acceptDraftEntity({ draftEntity })),
       );
 
-      await updateEntity({
-        variables: {
-          entityId: entity.metadata.recordId.entityId,
-          updatedProperties: entity.properties,
-          draft: false,
-        },
+      await acceptDraftEntity({
+        draftEntity: entity,
       });
-
-      await refetchDraftEntities();
-    }, [
-      draftLeftEntity,
-      entity,
-      draftRightEntity,
-      updateEntity,
-      refetchDraftEntities,
-    ]);
+    }, [draftLeftEntity, entity, draftRightEntity, acceptDraftEntity]);
 
   return (
     <>
@@ -329,7 +261,7 @@ export const DraftEntityActionButtons: FunctionComponent<{
           />
         </AlertModal>
       )}
-      <Box display="flex" columnGap={1}>
+      <Box marginLeft={1} display="flex" columnGap={1}>
         <Button
           onClick={handleIgnore}
           size="xs"

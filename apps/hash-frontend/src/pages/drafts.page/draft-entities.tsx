@@ -7,7 +7,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  AccountId,
+  Entity,
   EntityId,
   EntityRootType,
   extractEntityUuidFromEntityId,
@@ -26,7 +26,7 @@ import {
 import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { getFirstRevision } from "../../shared/entity-utils";
-import { useActors } from "../../shared/use-actors";
+import { MinimalActor, useActors } from "../../shared/use-actors";
 import {
   DraftEntitiesFilters,
   DraftEntityFilterState,
@@ -123,8 +123,6 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
     [draftEntityHistoriesData, previouslyFetchedDraftEntityHistoriesData],
   );
 
-  const previouslyDerivedCreatorAccountIds = useRef<AccountId[] | null>(null);
-
   const creatorAccountIds = useMemo(() => {
     if (
       !draftEntities ||
@@ -137,7 +135,7 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
         ),
       })
     ) {
-      return previouslyDerivedCreatorAccountIds.current ?? undefined;
+      return undefined;
     }
 
     const derivedCreatorAccountIds = draftEntities.map((entity) => {
@@ -149,19 +147,26 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
       return firstRevision.metadata.provenance.recordCreatedById;
     });
 
-    previouslyDerivedCreatorAccountIds.current = derivedCreatorAccountIds;
-
     return derivedCreatorAccountIds;
   }, [draftEntities, draftEntityHistoriesSubgraph]);
 
   const { actors } = useActors({ accountIds: creatorAccountIds });
 
+  const previousDraftEntitiesWithCreatedAtAndCreators = useRef<
+    | {
+        entity: Entity;
+        createdAt: Date;
+        creator: MinimalActor;
+      }[]
+    | null
+  >(null);
+
   const draftEntitiesWithCreatedAtAndCreators = useMemo(() => {
     if (!draftEntities || !draftEntityHistoriesSubgraph || !actors) {
-      return undefined;
+      return previousDraftEntitiesWithCreatedAtAndCreators.current ?? undefined;
     }
 
-    return draftEntities.map((entity) => {
+    const derived = draftEntities.map((entity) => {
       const firstRevision = getFirstRevision(
         draftEntityHistoriesSubgraph,
         entity.metadata.recordId.entityId,
@@ -187,6 +192,10 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
         creator,
       };
     });
+
+    previousDraftEntitiesWithCreatedAtAndCreators.current = derived;
+
+    return derived;
   }, [actors, draftEntityHistoriesSubgraph, draftEntities]);
 
   if (
