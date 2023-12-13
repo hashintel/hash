@@ -1,6 +1,6 @@
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
-import { Box, Skeleton, Stack, Typography } from "@mui/material";
+import { Box, Link, Skeleton, Stack, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 
 import type {
@@ -14,16 +14,27 @@ import {
 import { useEntityTypes } from "../../../../shared/use-entity-types";
 import { InferredEntity } from "./inference-request/inferred-entity";
 
+const metadataFontSize = 12;
+
 const MetadataItem = ({ label, value }: { label: string; value: string }) => (
   <Stack
     component="span"
     direction="row"
     sx={{ "&:not(:last-child)": { mr: 1.5 } }}
   >
-    <Typography sx={{ fontSize: 12, fontWeight: 600, opacity: 0.5, mr: 0.3 }}>
+    <Typography
+      sx={{
+        fontSize: metadataFontSize,
+        fontWeight: 600,
+        opacity: 0.5,
+        mr: 0.3,
+      }}
+    >
       {label}:
     </Typography>
-    <Typography sx={{ fontSize: 12, opacity: 0.6 }}>{value}</Typography>
+    <Typography sx={{ fontSize: metadataFontSize, opacity: 0.6 }}>
+      {value}
+    </Typography>
   </Stack>
 );
 
@@ -44,18 +55,15 @@ export const InferenceRequest = ({
       entityTypeIds.some((typeId) => typeId === type.schema.$id),
     );
 
-    return entityTypes.reduce(
-      (acc, type) => {
-        acc[type.schema.$id] =
-          status === "complete"
-            ? request.data.contents[0].results.filter(
-                (result) => result.entityTypeId === type.schema.$id,
-              )
-            : [];
-        return acc;
-      },
-      {} as Record<string, InferEntitiesReturn["contents"][0]["results"]>,
-    );
+    return entityTypes.reduce((acc, type) => {
+      acc[type.schema.$id] =
+        status === "complete"
+          ? request.data.contents[0].results.filter(
+              (result) => result.entityTypeId === type.schema.$id,
+            )
+          : [];
+      return acc;
+    }, {} as Record<string, InferEntitiesReturn["contents"][0]["results"]>);
   }, [allEntityTypes, entityTypeIds, request, status]);
 
   if (status === "pending" || status === "not-started") {
@@ -168,7 +176,28 @@ export const InferenceRequest = ({
           );
         },
       )}
-      <Stack direction="row" justifyContent="flex-end">
+      <Stack alignItems="center" direction="row" justifyContent="flex-end">
+        <Box
+          component="a"
+          href={request.sourceUrl}
+          sx={({ palette, transitions }) => ({
+            color: palette.blue[70],
+            textDecoration: "none",
+            fontSize: metadataFontSize,
+            fontWeight: 600,
+            lineHeight: 1.5,
+            marginBottom: "1px",
+            mr: 1.5,
+            opacity: 0.7,
+            transition: transitions.create("opacity"),
+            "&:hover": {
+              opacity: 1,
+            },
+          })}
+          target="blank"
+        >
+          Visit page
+        </Box>
         <MetadataItem label="Model" value={request.model} />
         {usage && <MetadataItem label="Tokens used" value={usage.toString()} />}
       </Stack>
