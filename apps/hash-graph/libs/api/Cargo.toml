@@ -1,8 +1,10 @@
 [package]
 name = "graph-api"
-version = "0.1.0"
+version = "0.0.0"
 authors.workspace = true
 edition.workspace = true
+publish = false
+description = "HASH Graph API"
 
 [dependencies]
 hash-status = { workspace = true }
