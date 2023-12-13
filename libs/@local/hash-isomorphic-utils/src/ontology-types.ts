@@ -101,7 +101,7 @@ export const generateLinkMapWithConsistentSelfReferences = (
            * @todo remove array check when it's no longer possible for  the value of
            * `oneOf` to be `{}`
            *
-           * @see TODO
+           * @see https://linear.app/hash/issue/BP-74/omit-emtpy-oneof-and-allof-in-types
            */
           "oneOf" in linkSchema.items && Array.isArray(linkSchema.items.oneOf)
             ? {
