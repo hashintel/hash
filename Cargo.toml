@@ -10,7 +10,7 @@ members = [
     "libs/@local/hash-validation",
     "libs/@local/temporal-versioning",
     "tests/hash-graph-integration",
-    "tests/hash-graph-test-data/rust",
+    "tests/hash-graph-test-data/rust", "libs/@local/hash-graph-rpc",
 ]
 exclude = [
     "libs/antsi",

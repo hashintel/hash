@@ -1106,6 +1106,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-graph-rpc"
+version = "0.0.0"
+dependencies = [
+ "graph-types",
+ "tarpc",
+]
+
+[[package]]
 name = "hash-status"
 version = "0.0.0"
 dependencies = [
