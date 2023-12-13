@@ -1,6 +1,6 @@
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
-import { Box, Skeleton, Stack, Typography } from "@mui/material";
+import { Box, Link, Skeleton, Stack, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 
 import type {
@@ -55,18 +55,15 @@ export const InferenceRequest = ({
       entityTypeIds.some((typeId) => typeId === type.schema.$id),
     );
 
-    return entityTypes.reduce(
-      (acc, type) => {
-        acc[type.schema.$id] =
-          status === "complete"
-            ? request.data.contents[0].results.filter(
-                (result) => result.entityTypeId === type.schema.$id,
-              )
-            : [];
-        return acc;
-      },
-      {} as Record<string, InferEntitiesReturn["contents"][0]["results"]>,
-    );
+    return entityTypes.reduce((acc, type) => {
+      acc[type.schema.$id] =
+        status === "complete"
+          ? request.data.contents[0].results.filter(
+              (result) => result.entityTypeId === type.schema.$id,
+            )
+          : [];
+      return acc;
+    }, {} as Record<string, InferEntitiesReturn["contents"][0]["results"]>);
   }, [allEntityTypes, entityTypeIds, request, status]);
 
   if (status === "pending" || status === "not-started") {
