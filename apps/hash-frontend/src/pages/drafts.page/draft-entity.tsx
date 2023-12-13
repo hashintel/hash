@@ -42,7 +42,11 @@ export const DraftEntity: FunctionComponent<{
 
   return (
     <Box paddingY={4.5} paddingX={3.25}>
-      <Box display="flex" justifyContent="space-between">
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="flex-start"
+      >
         {/* @todo: open in a slide-over instead of redirecting */}
         <Link
           noLinkStyle

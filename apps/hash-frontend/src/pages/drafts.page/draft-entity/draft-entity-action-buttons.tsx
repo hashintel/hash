@@ -358,7 +358,7 @@ export const DraftEntityActionButtons: FunctionComponent<{
           />
         </AlertModal>
       )}
-      <Box display="flex" columnGap={1}>
+      <Box marginLeft={1} display="flex" columnGap={1}>
         <Button
           onClick={handleIgnore}
           size="xs"
