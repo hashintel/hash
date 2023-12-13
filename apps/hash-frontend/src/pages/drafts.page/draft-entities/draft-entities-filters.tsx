@@ -367,44 +367,46 @@ export const DraftEntitiesFilters: FunctionComponent<{
       </Box>
       <Box>
         <FilterSectionHeading>Source</FilterSectionHeading>
-        {sources?.map((source) => {
-          const label =
-            authenticatedUser.accountId === source.accountId
-              ? "Me"
-              : "preferredName" in source
-                ? source.preferredName
-                : "displayName" in source
-                  ? source.displayName
-                  : "Unknown";
-          return (
-            <CheckboxFilter
-              key={source.accountId}
-              label={
-                <>
-                  <UserIcon />
-                  {label}
-                </>
-              }
-              checked={
-                !!filterState?.sourceAccountIds.includes(source.accountId)
-              }
-              onChange={(checked) =>
-                setFilterState((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        sourceAccountIds: checked
-                          ? [...prev.sourceAccountIds, source.accountId]
-                          : prev.sourceAccountIds.filter(
-                              (accountId) => accountId !== source.accountId,
-                            ),
-                      }
-                    : undefined,
-                )
-              }
-            />
-          );
-        })}
+        <Box display="flex" flexDirection="column">
+          {sources?.map((source) => {
+            const label =
+              authenticatedUser.accountId === source.accountId
+                ? "Me"
+                : "preferredName" in source
+                  ? source.preferredName
+                  : "displayName" in source
+                    ? source.displayName
+                    : "Unknown";
+            return (
+              <CheckboxFilter
+                key={source.accountId}
+                label={
+                  <>
+                    <UserIcon />
+                    {label}
+                  </>
+                }
+                checked={
+                  !!filterState?.sourceAccountIds.includes(source.accountId)
+                }
+                onChange={(checked) =>
+                  setFilterState((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          sourceAccountIds: checked
+                            ? [...prev.sourceAccountIds, source.accountId]
+                            : prev.sourceAccountIds.filter(
+                                (accountId) => accountId !== source.accountId,
+                              ),
+                        }
+                      : undefined,
+                  )
+                }
+              />
+            );
+          })}
+        </Box>
       </Box>
       <Box>
         <FilterSectionHeading>Last edited</FilterSectionHeading>
