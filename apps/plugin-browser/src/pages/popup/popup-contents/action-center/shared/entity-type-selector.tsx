@@ -25,7 +25,7 @@ const getChipLabelFromId = (id: VersionedUrl) => {
 };
 
 type SelectTypesAndInferProps = {
-  inputHeight: number;
+  inputHeight: number | string;
   multiple: boolean;
   setTargetEntityTypeIds: (typeIds: VersionedUrl[]) => void;
   targetEntityTypeIds: VersionedUrl[] | null;

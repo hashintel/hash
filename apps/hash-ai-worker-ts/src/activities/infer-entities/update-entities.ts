@@ -18,7 +18,9 @@ import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib
 
 import type { DereferencedEntityType } from "./dereference-entity-type";
 import { ProposedEntityUpdatesByType } from "./generate-tools";
-import { getEntityByFilter } from "./get-entity-by-filter";
+import { extractErrorMessage } from "./shared/extract-validation-failure-details";
+import { getEntityByFilter } from "./shared/get-entity-by-filter";
+import { stringify } from "./stringify";
 
 type StatusByTemporaryId<T> = Record<string, T>;
 
@@ -144,14 +146,18 @@ export const updateEntities = async ({
                 proposedEntity.entityId
               } and entityId ${
                 existingEntity?.metadata.recordId.entityId ?? "unknown"
-              } failed with err: ${JSON.stringify(err, undefined, 2)}`,
+              } failed with err: ${stringify(err)}}`,
             );
+
+            const failureReason = `${extractErrorMessage(
+              err,
+            )}. The schema is ${JSON.stringify(entityType.schema)}.`;
 
             entityStatusMap.updateFailures[proposedEntity.entityId] = {
               entityTypeId,
               entity: existingEntity,
               proposedEntity,
-              failureReason: (err as Error).message,
+              failureReason,
               operation: "update",
               status: "failure",
             };

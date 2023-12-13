@@ -17,8 +17,12 @@ import type {
   InferenceTokenUsage,
   InferEntitiesCallerParams,
   InferEntitiesReturn,
+  InferredEntityUpdateSuccess,
 } from "@local/hash-isomorphic-utils/temporal-types";
-import { InferredEntityChangeResult } from "@local/hash-isomorphic-utils/temporal-types";
+import {
+  InferredEntityChangeResult,
+  InferredEntityCreationSuccess,
+} from "@local/hash-isomorphic-utils/temporal-types";
 import type {
   AccountId,
   Entity,
@@ -43,6 +47,7 @@ import {
   ProposedEntityUpdatesByType,
   validateProposedEntitiesByType,
 } from "./infer-entities/generate-tools";
+import { stringify } from "./infer-entities/stringify";
 import { updateEntities } from "./infer-entities/update-entities";
 
 if (!process.env.OPENAI_API_KEY) {
@@ -75,13 +80,6 @@ const log = (message: string) => {
   // eslint-disable-next-line no-console
   console.debug(logMessage);
 };
-
-const stringify = (obj: unknown) =>
-  JSON.stringify(
-    obj,
-    undefined,
-    process.env.NODE_ENV === "development" ? 2 : undefined,
-  );
 
 /**
  * A map of the API consumer-facing model names to the values provided to OpenAI.
@@ -440,16 +438,14 @@ const requestEntityInference = async (params: {
               !entityTypeIds.includes(providedEntityTypeId as VersionedUrl),
           );
 
+          let retryMessageContent = "";
+          let requiresOriginalContextForRetry = false;
+
           if (notRequestedTypes.length > 0) {
-            retryMessages.push({
-              content: `You provided entities of types ${notRequestedTypes.join(
-                ", ",
-              )}, which were not requested. Please try again`,
-              requiresOriginalContext: true,
-              role: "tool",
-              tool_call_id: toolCallId,
-            });
-            continue;
+            requiresOriginalContextForRetry = true;
+            retryMessageContent += `You provided entities of types ${notRequestedTypes.join(
+              ", ",
+            )}, which were not requested. Please try again without them\n`;
           }
 
           try {
@@ -460,6 +456,18 @@ const requestEntityInference = async (params: {
                 graphApiClient,
                 log,
                 ownedById,
+                previousSuccesses: results.reduce<
+                  Record<
+                    number,
+                    InferredEntityCreationSuccess | InferredEntityUpdateSuccess
+                  >
+                >((acc, result) => {
+                  if (result.status === "success") {
+                    acc[result.proposedEntity.entityId] = result;
+                  }
+
+                  return acc;
+                }, {}),
                 proposedEntitiesByType,
                 requestedEntityTypes: entityTypes,
               });
@@ -480,8 +488,6 @@ const requestEntityInference = async (params: {
             }
 
             results.push(...successes, ...failures);
-
-            let retryMessageContent = "";
 
             if (failures.length > 0) {
               retryMessageContent += dedent(`
@@ -524,7 +530,6 @@ const requestEntityInference = async (params: {
               `);
             }
 
-            let requiresOriginalContextForRetry = false;
             /**
              * If this is the first iteration and some types have been requested by the user but not inferred,
              * ask the model to try again. This is a common oversight of GPT-4 Turbo at least, as of Dec 2023.
@@ -542,9 +547,6 @@ const requestEntityInference = async (params: {
                   )}`,
                 );
 
-                /**
-                 * This is the only creation failure that requires the original input to infer entities from.
-                 */
                 requiresOriginalContextForRetry = true;
                 retryMessageContent += dedent(`
                    You did not suggest any entities of the following entity types: ${typesWithNoSuggestions.join(
