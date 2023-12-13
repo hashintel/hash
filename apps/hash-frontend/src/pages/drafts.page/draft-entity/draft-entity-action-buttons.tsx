@@ -278,7 +278,11 @@ export const DraftEntityActionButtons: FunctionComponent<{
             </>
           }
           close={() => setShowDraftEntityWithDraftLinksWarning(false)}
-          header={<>Ignore draft entity: {label}</>}
+          header={
+            <>
+              Ignore draft entity: <strong>{label}</strong>
+            </>
+          }
           type="info"
         />
       )}
@@ -298,7 +302,11 @@ export const DraftEntityActionButtons: FunctionComponent<{
           close={() =>
             setShowDraftLinkEntityWithDraftLeftOrRightEntityWarning(false)
           }
-          header={<>Accept draft link: {label}</>}
+          header={
+            <>
+              Accept draft link: <strong>{label}</strong>
+            </>
+          }
           type="info"
         >
           <LinkLabelWithSourceAndDestination
