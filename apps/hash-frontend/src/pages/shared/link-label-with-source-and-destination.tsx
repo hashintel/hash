@@ -36,10 +36,11 @@ const ContentTypography = styled(Typography)(({ theme }) => ({
 const LeftOrRightEntity: FunctionComponent<{
   entity: Entity;
   subgraph: Subgraph<EntityRootType>;
+  openInNew?: boolean;
   endAdornment?: ReactNode;
   label?: ReactNode;
   sx?: BoxProps["sx"];
-}> = ({ subgraph, entity, endAdornment, sx, label }) => {
+}> = ({ subgraph, entity, endAdornment, sx, label, openInNew }) => {
   const entityLabel = useMemo(
     () => generateEntityLabel(subgraph, entity),
     [subgraph, entity],
@@ -89,6 +90,7 @@ const LeftOrRightEntity: FunctionComponent<{
         </Typography>
       ) : null}
       <Link
+        openInNew={openInNew}
         href={href}
         noLinkStyle
         sx={{
@@ -142,6 +144,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   leftEntitySx?: BoxProps["sx"];
   rightEntitySx?: BoxProps["sx"];
   displayLabels?: boolean;
+  openInNew?: boolean;
 }> = ({
   linkEntity,
   subgraph,
@@ -150,6 +153,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   leftEntitySx,
   rightEntitySx,
   displayLabels = false,
+  openInNew = false,
 }) => {
   const { leftEntity, rightEntity, linkEntityType } = useMemo(() => {
     return {
@@ -186,10 +190,12 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
           entity={leftEntity}
           subgraph={subgraph}
           endAdornment={leftEntityEndAdornment}
+          openInNew={openInNew}
           label={displayLabels ? "Source entity" : undefined}
           sx={leftEntitySx}
         />
         <Link
+          openInNew={openInNew}
           href={generateLinkParameters(linkEntityType.schema.$id).href}
           noLinkStyle
           sx={{
@@ -247,6 +253,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
           subgraph={subgraph}
           endAdornment={rightEntityEndAdornment}
           sx={rightEntitySx}
+          openInNew={openInNew}
           label={displayLabels ? "Target entity" : undefined}
         />
       </Box>

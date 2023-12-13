@@ -310,6 +310,7 @@ export const DraftEntityActionButtons: FunctionComponent<{
           type="info"
         >
           <LinkLabelWithSourceAndDestination
+            openInNew
             linkEntity={entity as LinkEntity}
             subgraph={subgraph}
             leftEntityEndAdornment={
