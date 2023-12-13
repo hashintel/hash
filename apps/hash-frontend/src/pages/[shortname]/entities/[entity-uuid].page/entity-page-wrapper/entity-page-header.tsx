@@ -1,12 +1,11 @@
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { FeatherRegularIcon, FontAwesomeIcon } from "@hashintel/design-system";
 import { Entity } from "@local/hash-subgraph";
 import { Box, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 import { useRouter } from "next/router";
 import { ReactNode, useContext } from "react";
 
-import { FeatherRegularIcon } from "../../../../../shared/icons/feather-regular-icon";
 import { TopContextBar } from "../../../../shared/top-context-bar";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
 

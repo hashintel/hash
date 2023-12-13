@@ -1,3 +1,4 @@
+import { useQuery } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   ArrowLeftIcon,
@@ -6,6 +7,12 @@ import {
 } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import {
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   Entity,
   EntityId,
@@ -24,7 +31,11 @@ import {
   useState,
 } from "react";
 
-import { useQueryEntities } from "../../../../../../../../../components/hooks/use-query-entities";
+import {
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
+} from "../../../../../../../../../graphql/api-types.gen";
+import { structuralQueryEntitiesQuery } from "../../../../../../../../../graphql/queries/knowledge/entity.queries";
 import { useEntityTypesContextRequired } from "../../../../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useFileUploads } from "../../../../../../../../../shared/file-upload-context";
 import { Button } from "../../../../../../../../../shared/ui/button";
@@ -33,6 +44,7 @@ import { WorkspaceContext } from "../../../../../../../../shared/workspace-conte
 import { useEntityEditor } from "../../../../entity-editor-context";
 
 interface EntitySelectorProps {
+  includeDrafts: boolean;
   onSelect: (
     option: Entity,
     sourceSubgraph: Subgraph<EntityRootType> | null,
@@ -71,6 +83,7 @@ const FileCreationPane = (props: PaperProps) => {
 };
 
 export const EntitySelector = ({
+  includeDrafts,
   onSelect,
   onFinishedEditing,
   expectedEntityTypes,
@@ -98,9 +111,39 @@ export const EntitySelector = ({
         isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.isImage,
     );
 
-  const { entitiesSubgraph, loading } = useQueryEntities({
-    includeEntityTypeIds: expectedEntityTypes.map((type) => type.schema.$id),
+  const { data: entitiesData, loading } = useQuery<
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
+    variables: {
+      query: {
+        filter:
+          expectedEntityTypes.length === 0
+            ? { all: [] }
+            : {
+                any: expectedEntityTypes.map(({ schema }) =>
+                  generateVersionedUrlMatchingFilter(schema.$id, {
+                    ignoreParents: true,
+                  }),
+                ),
+              },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          inheritsFrom: { outgoing: 255 },
+          isOfType: { outgoing: 1 },
+        },
+        includeDrafts,
+      },
+      includePermissions: false,
+    },
   });
+
+  const entitiesSubgraph = entitiesData
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        entitiesData.structuralQueryEntities.subgraph,
+      )
+    : undefined;
 
   const highlightedRef = useRef<null | Entity>(null);
 
@@ -111,7 +154,8 @@ export const EntitySelector = ({
     return [...getRoots(entitiesSubgraph)]
       .filter(
         (entity) =>
-          !entityIdsToFilterOut?.includes(entity.metadata.recordId.entityId),
+          !entityIdsToFilterOut?.includes(entity.metadata.recordId.entityId) &&
+          !entity.metadata.archived,
       )
       .sort((a, b) =>
         a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
@@ -231,6 +275,7 @@ export const EntitySelector = ({
            * */
           typeId: entity.metadata.entityTypeId,
           title: generateEntityLabel(entitiesSubgraph!, entity),
+          draft: entity.metadata.draft,
         })}
         inputPlaceholder={isFileType ? "No file" : "No entity"}
         inputValue={search}

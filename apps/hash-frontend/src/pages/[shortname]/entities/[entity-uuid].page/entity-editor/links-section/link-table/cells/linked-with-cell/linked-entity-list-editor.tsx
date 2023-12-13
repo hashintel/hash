@@ -91,6 +91,8 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
   const [addingLink, setAddingLink] = useState(!linkAndTargetEntities.length);
 
+  const entity = useMemo(() => getRoots(entitySubgraph)[0]!, [entitySubgraph]);
+
   const onSelect = (
     selectedEntity: Entity,
     sourceSubgraph: Subgraph<EntityRootType> | null,
@@ -106,8 +108,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       return setAddingLink(false);
     }
 
-    const leftEntityId = getRoots(entitySubgraph)[0]?.metadata.recordId
-      .entityId as EntityId;
+    const leftEntityId = entity.metadata.recordId.entityId;
     const rightEntityId = selectedEntity.metadata.recordId.entityId;
 
     const linkEntity = createDraftLinkEntity({
@@ -188,6 +189,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       {canAddMore &&
         (addingLink ? (
           <EntitySelector
+            includeDrafts={entity.metadata.draft}
             onSelect={onSelect}
             onFinishedEditing={onFinishedEditing}
             expectedEntityTypes={expectedEntityTypes}

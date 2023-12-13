@@ -1,4 +1,8 @@
-import { AlertModal, CloseIcon } from "@hashintel/design-system";
+import {
+  AlertModal,
+  CloseIcon,
+  FeatherRegularIcon,
+} from "@hashintel/design-system";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getEntityRevision,
@@ -11,7 +15,6 @@ import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
 import { useDraftEntities } from "../../../shared/draft-entities-context";
 import { CheckRegularIcon } from "../../../shared/icons/check-regular-icon";
-import { FeatherRegularIcon } from "../../../shared/icons/feather-regular-icon";
 import { Button } from "../../../shared/ui";
 import { LinkLabelWithSourceAndDestination } from "../../shared/link-label-with-source-and-destination";
 
