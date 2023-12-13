@@ -114,6 +114,7 @@ export const DraftEntityViewers: FunctionComponent<{
         fontSize: 11,
         fontWeight: 600,
         textTransform: "uppercase",
+        flexShrink: 0,
       }}
     >
       {copy}

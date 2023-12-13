@@ -24,7 +24,7 @@ export const DraftEntityType: FunctionComponent<{
   }, [entity, subgraph]);
 
   return (
-    <Box display="flex" alignItems="stretch">
+    <Box display="flex" alignItems="stretch" flexShrink={0}>
       <Box
         sx={{
           borderTopLeftRadius: 13,
