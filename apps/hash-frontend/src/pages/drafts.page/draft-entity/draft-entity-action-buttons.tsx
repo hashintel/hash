@@ -278,11 +278,7 @@ export const DraftEntityActionButtons: FunctionComponent<{
             </>
           }
           close={() => setShowDraftEntityWithDraftLinksWarning(false)}
-          header={
-            <>
-              Ignore the <strong>{label}</strong> draft entity
-            </>
-          }
+          header={<>Ignore draft entity: {label}</>}
           type="info"
         />
       )}
@@ -291,26 +287,18 @@ export const DraftEntityActionButtons: FunctionComponent<{
           callback={handleAcceptDraftLinkEntityWithDraftLeftOrRightEntities}
           calloutMessage={
             <>
-              The <strong>{label}</strong> draft link has a{" "}
-              <strong>draft</strong>{" "}
-              {draftLeftEntity ? <strong>source</strong> : null}{" "}
-              {draftRightEntity ? (
-                <>
-                  {draftLeftEntity ? "and " : ""}
-                  <strong>draft target</strong>
-                </>
-              ) : null}{" "}
-              entity which will be accepted as well.
+              This <strong>{label}</strong> link establishes a relationship{" "}
+              {draftLeftEntity && draftRightEntity
+                ? "between two other entities which are in draft, which will be accepted as well."
+                : draftLeftEntity
+                  ? "between a draft entity, and a published entity. If you continue the former will be accepted as well."
+                  : "between a published entity, and a draft entity. If you continue the latter will be accepted as well."}
             </>
           }
           close={() =>
             setShowDraftLinkEntityWithDraftLeftOrRightEntityWarning(false)
           }
-          header={
-            <>
-              Accept the <strong>{label}</strong> draft link
-            </>
-          }
+          header={<>Accept draft link: {label}</>}
           type="info"
         >
           <LinkLabelWithSourceAndDestination
