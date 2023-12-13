@@ -368,16 +368,33 @@ export const DraftEntitiesFilters: FunctionComponent<{
       <Box>
         <FilterSectionHeading>Source</FilterSectionHeading>
         <Box display="flex" flexDirection="column">
-          {sources?.map((source) => {
-            const label =
-              authenticatedUser.accountId === source.accountId
-                ? "Me"
-                : "preferredName" in source
-                  ? source.preferredName
-                  : "displayName" in source
-                    ? source.displayName
-                    : "Unknown";
-            return (
+          {sources
+            ?.map((source) => {
+              const label =
+                authenticatedUser.accountId === source.accountId
+                  ? "Me"
+                  : "preferredName" in source
+                    ? source.preferredName!
+                    : "displayName" in source
+                      ? source.displayName
+                      : "Unknown";
+
+              return { label, source };
+            })
+            .sort(
+              (
+                { label: labelA, source: sourceA },
+                { label: labelB, source: sourceB },
+              ) => {
+                if (authenticatedUser.accountId === sourceA.accountId) {
+                  return -1;
+                } else if (authenticatedUser.accountId === sourceB.accountId) {
+                  return 1;
+                }
+                return labelA.localeCompare(labelB);
+              },
+            )
+            .map(({ source, label }) => (
               <CheckboxFilter
                 key={source.accountId}
                 label={
@@ -404,8 +421,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
                   )
                 }
               />
-            );
-          })}
+            ))}
         </Box>
       </Box>
       <Box>
