@@ -1,4 +1,6 @@
-use std::{borrow::Cow, error::Error};
+use std::borrow::Cow;
+#[cfg(feature = "postgres")]
+use std::error::Error;
 
 #[cfg(feature = "postgres")]
 use bytes::{BufMut, BytesMut};

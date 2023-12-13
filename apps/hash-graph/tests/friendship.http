@@ -2120,10 +2120,9 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
-    "cosineDistance": [
-      { "path": ["embedding"] },
-      { "parameter": [10, 20, 30, 40] },
-      { "parameter": 10.0 }
+    "containsSegment": [
+      { "path": ["properties", "http://localhost:3000/@alice/types/property-type/name/"] },
+      { "parameter": "Alice" }
     ]
   },
   "graphResolveDepths": {
