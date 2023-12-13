@@ -33,6 +33,7 @@ import { GraphChangeNotificationProperties } from "@local/hash-isomorphic-utils/
 import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import {
   Entity,
+  EntityId,
   EntityRootType,
   LinkEntityAndRightEntity,
 } from "@local/hash-subgraph";
@@ -112,6 +113,9 @@ export type NotificationsContextValues = {
   refetch: () => Promise<void>;
   markNotificationAsRead: (params: {
     notification: Notification;
+  }) => Promise<void>;
+  archiveNotification: (params: {
+    notificationEntityId: EntityId;
   }) => Promise<void>;
 };
 
@@ -535,6 +539,35 @@ export const NotificationsContextProvider: FunctionComponent<
     [updateEntity, refetch],
   );
 
+  const archiveNotification = useCallback(
+    async (params: { notificationEntityId: EntityId }) => {
+      const notification = notifications?.find(
+        ({ entity }) =>
+          entity.metadata.recordId.entityId === params.notificationEntityId,
+      );
+
+      if (!notification) {
+        throw new Error(
+          `Cannot archive notification with entity ID "${params.notificationEntityId}" because it was not found`,
+        );
+      }
+
+      await updateEntity({
+        data: {
+          entityId: notification.entity.metadata.recordId.entityId,
+          entityTypeId: notification.entity.metadata.entityTypeId,
+          properties: {
+            ...notification.entity.properties,
+            "https://hash.ai/@hash/types/property-type/archived/": true,
+          } as NotificationProperties,
+        },
+      });
+
+      await refetch();
+    },
+    [updateEntity, refetch, notifications],
+  );
+
   const value = useMemo<NotificationsContextValues>(
     () => ({
       notifications,
@@ -542,6 +575,7 @@ export const NotificationsContextProvider: FunctionComponent<
         loadingNotificationRevisions || loadingNotificationsWithOutgoingLinks,
       refetch,
       markNotificationAsRead,
+      archiveNotification,
     }),
     [
       notifications,
@@ -549,6 +583,7 @@ export const NotificationsContextProvider: FunctionComponent<
       loadingNotificationsWithOutgoingLinks,
       refetch,
       markNotificationAsRead,
+      archiveNotification,
     ],
   );
 

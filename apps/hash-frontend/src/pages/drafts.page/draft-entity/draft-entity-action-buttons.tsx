@@ -23,6 +23,7 @@ import {
 import { useDraftEntities } from "../../../shared/draft-entities-context";
 import { CheckRegularIcon } from "../../../shared/icons/check-regular-icon";
 import { FeatherRegularIcon } from "../../../shared/icons/feather-regular-icon";
+import { useNotifications } from "../../../shared/notifications-context";
 import { Button } from "../../../shared/ui";
 import { LinkLabelWithSourceAndDestination } from "../../shared/link-label-with-source-and-destination";
 
@@ -122,10 +123,34 @@ export const DraftEntityActionButtons: FunctionComponent<{
     [outgoingDraftLinks, incomingDraftLinks],
   );
 
+  const { notifications, archiveNotification } = useNotifications();
+
+  const archiveRelatedNotifications = useCallback(async () => {
+    const relatedNotifications = notifications?.filter(
+      (notification) =>
+        notification.occurredInEntity.metadata.recordId.entityId ===
+        entity.metadata.recordId.entityId,
+    );
+
+    if (!relatedNotifications) {
+      return;
+    }
+
+    await Promise.all(
+      relatedNotifications.map((notification) => {
+        return archiveNotification({
+          notificationEntityId: notification.entity.metadata.recordId.entityId,
+        });
+      }),
+    );
+  }, [entity, notifications, archiveNotification]);
+
   const handleIgnore = useCallback(async () => {
     if (hasIncomingOrOutgoingDraftLinks) {
       setShowDraftEntityWithDraftLinksWarning(true);
     } else {
+      await archiveRelatedNotifications();
+
       await archiveEntity({
         variables: {
           entityId: entity.metadata.recordId.entityId,
@@ -139,9 +164,12 @@ export const DraftEntityActionButtons: FunctionComponent<{
     archiveEntity,
     entity,
     refetchDraftEntities,
+    archiveRelatedNotifications,
   ]);
 
   const handleIgnoreDraftEntityWithDraftLinks = useCallback(async () => {
+    await archiveRelatedNotifications();
+
     await Promise.all(
       [...(incomingDraftLinks ?? []), ...(outgoingDraftLinks ?? [])].map(
         (linkEntity) =>
@@ -162,6 +190,7 @@ export const DraftEntityActionButtons: FunctionComponent<{
     entity,
     archiveEntity,
     refetchDraftEntities,
+    archiveRelatedNotifications,
   ]);
 
   const [updateEntity] = useMutation<
