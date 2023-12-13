@@ -8,13 +8,14 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  AccountId,
   EntityRootType,
   extractEntityUuidFromEntityId,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Divider, Typography } from "@mui/material";
 import { subDays, subHours } from "date-fns";
-import { Fragment, FunctionComponent, useMemo, useState } from "react";
+import { Fragment, FunctionComponent, useMemo, useRef, useState } from "react";
 
 import {
   StructuralQueryEntitiesQuery,
@@ -109,6 +110,8 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
     [draftEntityHistoriesData, previouslyFetchedDraftEntityHistoriesData],
   );
 
+  const previouslyDerivedCreatorAccountIds = useRef<AccountId[] | null>(null);
+
   const creatorAccountIds = useMemo(() => {
     if (
       !draftEntities ||
@@ -117,10 +120,10 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
       getRoots(draftEntityHistoriesSubgraph as any).length !==
         draftEntities.length
     ) {
-      return undefined;
+      return previouslyDerivedCreatorAccountIds.current ?? undefined;
     }
 
-    return draftEntities.map((entity) => {
+    const derivedCreatorAccountIds = draftEntities.map((entity) => {
       const firstRevision = getFirstRevision(
         draftEntityHistoriesSubgraph,
         entity.metadata.recordId.entityId,
@@ -128,6 +131,10 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
 
       return firstRevision.metadata.provenance.recordCreatedById;
     });
+
+    previouslyDerivedCreatorAccountIds.current = derivedCreatorAccountIds;
+
+    return derivedCreatorAccountIds;
   }, [draftEntities, draftEntityHistoriesSubgraph]);
 
   const { actors } = useActors({ accountIds: creatorAccountIds });
