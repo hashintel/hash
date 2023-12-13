@@ -82,7 +82,12 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
           const pendingRequest = inferenceRequests?.find((request) => {
             return (
               request.sourceUrl === pageDetails.pageUrl &&
-              request.status === "pending" &&
+              (request.status === "pending" ||
+                // Prevent requests for the same page refiring within 30 seconds of a previous one
+                (request.status === "complete" &&
+                  new Date().valueOf() -
+                    new Date(request.finishedAt ?? "").valueOf() <
+                    30_000)) &&
               request.trigger === "passive"
             );
           });
