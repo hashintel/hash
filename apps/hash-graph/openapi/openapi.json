@@ -3876,6 +3876,57 @@
           },
           {
             "type": "object",
+            "title": "L2DistanceFilter",
+            "required": [
+              "l2Distance"
+            ],
+            "properties": {
+              "l2Distance": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FilterExpression"
+                },
+                "maxItems": 3,
+                "minItems": 3
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "CosineDistanceFilter",
+            "required": [
+              "cosineDistance"
+            ],
+            "properties": {
+              "cosineDistance": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FilterExpression"
+                },
+                "maxItems": 3,
+                "minItems": 3
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "InnerProductFilter",
+            "required": [
+              "innerProduct"
+            ],
+            "properties": {
+              "innerProduct": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FilterExpression"
+                },
+                "maxItems": 3,
+                "minItems": 3
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "StartsWithFilter",
             "required": [
               "startsWith"
