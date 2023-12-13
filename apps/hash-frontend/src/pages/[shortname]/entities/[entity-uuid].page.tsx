@@ -240,6 +240,7 @@ const Page: NextPageWithLayout = () => {
           }}
         />
       }
+      hideDraftEntityBanner={showEditBar}
       handleSaveChanges={handleSaveChanges}
       entityLabel={entityLabel}
       entityUuid={entityUuid}

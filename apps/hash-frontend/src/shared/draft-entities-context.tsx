@@ -64,7 +64,7 @@ export type DraftEntitiesContextValue = {
   loading: boolean;
   refetch: () => Promise<void>;
   discardDraftEntity: (params: { draftEntity: Entity }) => Promise<void>;
-  acceptDraftEntity: (params: { draftEntity: Entity }) => Promise<void>;
+  acceptDraftEntity: (params: { draftEntity: Entity }) => Promise<Entity>;
 };
 
 export const DraftEntitiesContext =
@@ -172,7 +172,7 @@ export const DraftEntitiesContextProvider: FunctionComponent<
 
   const acceptDraftEntity = useCallback(
     async (params: { draftEntity: Entity }) => {
-      await updateEntity({
+      const response = await updateEntity({
         variables: {
           entityId: params.draftEntity.metadata.recordId.entityId,
           updatedProperties: params.draftEntity.properties,
@@ -181,6 +181,12 @@ export const DraftEntitiesContextProvider: FunctionComponent<
       });
 
       await refetch();
+
+      if (!response.data) {
+        throw new Error("An error occurred accepting the draft entity.");
+      }
+
+      return response.data.updateEntity;
     },
     [updateEntity, refetch],
   );

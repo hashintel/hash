@@ -35,7 +35,7 @@ import { useIsReadonly } from "../../shared/read-only-context";
  * THIS MUST BE KEPT IN SYNC WITH EDIT_BAR_HEIGHT IN hash-frontend
  * @todo make this a prop / shared some other way
  */
-const EDIT_BAR_HEIGHT = 66;
+const EDIT_BAR_HEIGHT = 50;
 
 const isSafariBrowser = () =>
   typeof window !== "undefined" &&

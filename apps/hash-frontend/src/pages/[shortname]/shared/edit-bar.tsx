@@ -75,7 +75,7 @@ export const EditBarContents = ({
  * THIS MUST BE KEPT IN SYNC WITH EDIT_BAR_HEIGHT IN @hashintel/type-editor
  * @todo make this a prop / shared some other way
  */
-export const EDIT_BAR_HEIGHT = 66;
+export const EDIT_BAR_HEIGHT = 50;
 
 /**
  * The edit bar transitions its height in and out which can cause the contents
