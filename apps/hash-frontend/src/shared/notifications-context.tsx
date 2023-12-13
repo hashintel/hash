@@ -98,8 +98,8 @@ export type GraphChangeNotification = {
   createdAt: Date;
   entity: Entity<GraphChangeNotificationProperties>;
   kind: "graph-change";
-  entityEditionTimestamp: string | undefined;
-  entityLabel: string;
+  occurredInEntityEditionTimestamp: string | undefined;
+  occurredInEntityLabel: string;
   occurredInEntity: Entity;
   operation: string;
 } & SimpleProperties<NotificationProperties>;
@@ -258,7 +258,7 @@ export const NotificationsContextProvider: FunctionComponent<
 
           const firstRevision = getFirstEntityRevision(
             revisionsSubgraph,
-            entity.metadata.recordId.entityId,
+            entityId,
           );
 
           const createdAt = new Date(
@@ -435,14 +435,14 @@ export const NotificationsContextProvider: FunctionComponent<
               );
             }
 
-            const entityEditionTimestamp = (
+            const occurredInEntityEditionTimestamp = (
               occurredInEntityLink
                 .linkEntity[0] as Entity<OccurredInEntityProperties>
             ).properties[
               "https://hash.ai/@hash/types/property-type/entity-edition-id/"
             ];
 
-            if (!entityEditionTimestamp) {
+            if (!occurredInEntityEditionTimestamp) {
               throw new Error(
                 `Graph change notification "${entityId}" Occurred In Entity link is missing required entityEditionId property`,
               );
@@ -450,9 +450,8 @@ export const NotificationsContextProvider: FunctionComponent<
 
             const occurredInEntity = occurredInEntityLink.rightEntity[0];
             if (!occurredInEntity) {
-              throw new Error(
-                `Graph change notification "${entityId}" is missing right entity to Occurred In Entity link`,
-              );
+              // @todo archive the notification when the entity it occurred in is archived
+              return null;
             }
 
             const graphChangeEntity =
@@ -460,10 +459,13 @@ export const NotificationsContextProvider: FunctionComponent<
 
             return {
               kind: "graph-change",
-              createdAt: new Date(entityEditionTimestamp),
+              createdAt: new Date(occurredInEntityEditionTimestamp),
               entity: graphChangeEntity,
-              entityLabel: generateEntityLabel(outgoingLinksSubgraph, entity),
-              entityEditionTimestamp,
+              occurredInEntityLabel: generateEntityLabel(
+                outgoingLinksSubgraph,
+                occurredInEntity,
+              ),
+              occurredInEntityEditionTimestamp,
               occurredInEntity,
               operation:
                 graphChangeEntity.properties[
@@ -473,6 +475,10 @@ export const NotificationsContextProvider: FunctionComponent<
           }
           throw new Error(`Notification of type "${entityTypeId}" not handled`);
         })
+        .filter(
+          (notification): notification is NonNullable<typeof notification> =>
+            !!notification,
+        )
         /**
          * Order the notifications by when their revisions were created
          *

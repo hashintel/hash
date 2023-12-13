@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import { getRoots } from "@blockprotocol/graph/temporal/stdlib";
 import { Skeleton } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
@@ -7,13 +8,14 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  AccountId,
   EntityRootType,
   extractEntityUuidFromEntityId,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Divider, Typography } from "@mui/material";
 import { subDays, subHours } from "date-fns";
-import { Fragment, FunctionComponent, useMemo, useState } from "react";
+import { Fragment, FunctionComponent, useMemo, useRef, useState } from "react";
 
 import {
   StructuralQueryEntitiesQuery,
@@ -108,12 +110,20 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
     [draftEntityHistoriesData, previouslyFetchedDraftEntityHistoriesData],
   );
 
-  const accountIds = useMemo(() => {
-    if (!draftEntities || !draftEntityHistoriesSubgraph) {
-      return undefined;
+  const previouslyDerivedCreatorAccountIds = useRef<AccountId[] | null>(null);
+
+  const creatorAccountIds = useMemo(() => {
+    if (
+      !draftEntities ||
+      !draftEntityHistoriesSubgraph ||
+      // We may have a stale subgraph that doesn't contain the revisions for all of the draft entities yet
+      getRoots(draftEntityHistoriesSubgraph as any).length !==
+        draftEntities.length
+    ) {
+      return previouslyDerivedCreatorAccountIds.current ?? undefined;
     }
 
-    return draftEntities.map((entity) => {
+    const derivedCreatorAccountIds = draftEntities.map((entity) => {
       const firstRevision = getFirstRevision(
         draftEntityHistoriesSubgraph,
         entity.metadata.recordId.entityId,
@@ -121,9 +131,13 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
 
       return firstRevision.metadata.provenance.recordCreatedById;
     });
+
+    previouslyDerivedCreatorAccountIds.current = derivedCreatorAccountIds;
+
+    return derivedCreatorAccountIds;
   }, [draftEntities, draftEntityHistoriesSubgraph]);
 
-  const { actors } = useActors({ accountIds });
+  const { actors } = useActors({ accountIds: creatorAccountIds });
 
   const draftEntitiesWithCreatedAtAndCreators = useMemo(() => {
     if (!draftEntities || !draftEntityHistoriesSubgraph || !actors) {

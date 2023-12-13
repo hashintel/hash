@@ -367,44 +367,62 @@ export const DraftEntitiesFilters: FunctionComponent<{
       </Box>
       <Box>
         <FilterSectionHeading>Source</FilterSectionHeading>
-        {sources?.map((source) => {
-          const label =
-            authenticatedUser.accountId === source.accountId
-              ? "Me"
-              : "preferredName" in source
-                ? source.preferredName
-                : "displayName" in source
-                  ? source.displayName
-                  : "Unknown";
-          return (
-            <CheckboxFilter
-              key={source.accountId}
-              label={
-                <>
-                  <UserIcon />
-                  {label}
-                </>
-              }
-              checked={
-                !!filterState?.sourceAccountIds.includes(source.accountId)
-              }
-              onChange={(checked) =>
-                setFilterState((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        sourceAccountIds: checked
-                          ? [...prev.sourceAccountIds, source.accountId]
-                          : prev.sourceAccountIds.filter(
-                              (accountId) => accountId !== source.accountId,
-                            ),
-                      }
-                    : undefined,
-                )
-              }
-            />
-          );
-        })}
+        <Box display="flex" flexDirection="column">
+          {sources
+            ?.map((source) => {
+              const label =
+                authenticatedUser.accountId === source.accountId
+                  ? "Me"
+                  : "preferredName" in source
+                    ? source.preferredName!
+                    : "displayName" in source
+                      ? source.displayName
+                      : "Unknown";
+
+              return { label, source };
+            })
+            .sort(
+              (
+                { label: labelA, source: sourceA },
+                { label: labelB, source: sourceB },
+              ) => {
+                if (authenticatedUser.accountId === sourceA.accountId) {
+                  return -1;
+                } else if (authenticatedUser.accountId === sourceB.accountId) {
+                  return 1;
+                }
+                return labelA.localeCompare(labelB);
+              },
+            )
+            .map(({ source, label }) => (
+              <CheckboxFilter
+                key={source.accountId}
+                label={
+                  <>
+                    <UserIcon />
+                    {label}
+                  </>
+                }
+                checked={
+                  !!filterState?.sourceAccountIds.includes(source.accountId)
+                }
+                onChange={(checked) =>
+                  setFilterState((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          sourceAccountIds: checked
+                            ? [...prev.sourceAccountIds, source.accountId]
+                            : prev.sourceAccountIds.filter(
+                                (accountId) => accountId !== source.accountId,
+                              ),
+                        }
+                      : undefined,
+                  )
+                }
+              />
+            ))}
+        </Box>
       </Box>
       <Box>
         <FilterSectionHeading>Last edited</FilterSectionHeading>
