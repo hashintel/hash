@@ -20,7 +20,7 @@ interface EntityEditorPageProps extends EntityEditorProps {
   entityUuid: string;
   isQueryEntity?: boolean;
   isDraft?: boolean;
-  hideDraftEntityBanner?: boolean;
+  isModifyingEntity?: boolean;
   handleSaveChanges: (
     overrideProperties?: EntityPropertiesObject,
   ) => Promise<void>;
@@ -35,7 +35,7 @@ export const EntityEditorPage = ({
   isDraft,
   isQueryEntity,
   handleSaveChanges,
-  hideDraftEntityBanner,
+  isModifyingEntity,
   ...entityEditorProps
 }: EntityEditorPageProps) => {
   const [shouldShowQueryEditor, setShouldShowQueryEditor] = useState(true);
@@ -78,7 +78,7 @@ export const EntityEditorPage = ({
             <EntityPageHeader
               entity={entity}
               entitySubgraph={entitySubgraph}
-              hideDraftEntityBanner={hideDraftEntityBanner}
+              isModifyingEntity={isModifyingEntity}
               setEntity={setEntity}
               entityLabel={entityLabel}
               editBar={editBar}

@@ -18,7 +18,7 @@ export const EntityPageHeader = ({
   lightTitle,
   chip,
   editBar,
-  hideDraftEntityBanner,
+  isModifyingEntity,
 }: {
   entity?: Entity;
   entitySubgraph?: Subgraph<EntityRootType>;
@@ -27,7 +27,7 @@ export const EntityPageHeader = ({
   lightTitle?: boolean;
   chip: ReactNode;
   editBar?: ReactNode;
-  hideDraftEntityBanner?: boolean;
+  isModifyingEntity?: boolean;
 }) => {
   const router = useRouter();
 
@@ -61,10 +61,11 @@ export const EntityPageHeader = ({
       />
 
       {entity && entitySubgraph ? (
-        <Collapse in={entity.metadata.draft && !hideDraftEntityBanner}>
+        <Collapse in={entity.metadata.draft}>
           <DraftEntityBanner
             draftEntity={entity}
             draftEntitySubgraph={entitySubgraph}
+            isModifyingEntity={isModifyingEntity}
             setDraftEntity={setEntity}
           />
         </Collapse>

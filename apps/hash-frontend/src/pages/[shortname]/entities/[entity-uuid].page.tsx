@@ -217,7 +217,7 @@ const Page: NextPageWithLayout = () => {
   }
 
   const entityLabel = generateEntityLabel(draftEntitySubgraph);
-  const showEditBar =
+  const isModifyingEntity =
     isDirty || !!draftLinksToCreate.length || !!draftLinksToArchive.length;
 
   const isQueryEntity =
@@ -229,7 +229,7 @@ const Page: NextPageWithLayout = () => {
       entity={entityFromDb}
       editBar={
         <EditBar
-          visible={showEditBar}
+          visible={isModifyingEntity}
           discardButtonProps={{
             onClick: discardChanges,
           }}
@@ -240,7 +240,7 @@ const Page: NextPageWithLayout = () => {
           }}
         />
       }
-      hideDraftEntityBanner={showEditBar}
+      isModifyingEntity={isModifyingEntity}
       handleSaveChanges={handleSaveChanges}
       entityLabel={entityLabel}
       entityUuid={entityUuid}

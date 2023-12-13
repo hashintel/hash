@@ -31,8 +31,14 @@ const buttonSx: ButtonProps["sx"] = ({ palette }) => ({
 export const DraftEntityBanner: FunctionComponent<{
   draftEntity: Entity;
   draftEntitySubgraph: Subgraph<EntityRootType>;
+  isModifyingEntity?: boolean;
   setDraftEntity?: (entity: Entity) => void;
-}> = ({ draftEntity, draftEntitySubgraph, setDraftEntity }) => {
+}> = ({
+  draftEntity,
+  draftEntitySubgraph,
+  isModifyingEntity = false,
+  setDraftEntity,
+}) => {
   const router = useRouter();
 
   const handleDiscardedEntity = useCallback(() => {
@@ -48,6 +54,8 @@ export const DraftEntityBanner: FunctionComponent<{
         borderLeftWidth: 0,
         borderRightWidth: 0,
         background: palette.gray[10],
+        minHeight: 50,
+        display: "flex",
       })}
     >
       <Container
@@ -71,26 +79,32 @@ export const DraftEntityBanner: FunctionComponent<{
           This is a{" "}
           <strong>draft {draftEntity.linkData ? "link" : "entity"}</strong>
         </Typography>
-        <Box display="flex" gap={1.5}>
-          <DiscardDraftEntityButton
-            draftEntity={draftEntity}
-            draftEntitySubgraph={draftEntitySubgraph}
-            onDiscardedEntity={handleDiscardedEntity}
-            variant="secondary"
-            sx={buttonSx}
-          >
-            Discard draft
-          </DiscardDraftEntityButton>
-          <AcceptDraftEntityButton
-            draftEntity={draftEntity}
-            draftEntitySubgraph={draftEntitySubgraph}
-            onAcceptedEntity={setDraftEntity}
-            variant="secondary"
-            sx={buttonSx}
-          >
-            Create this {draftEntity.linkData ? "link" : "entity"}
-          </AcceptDraftEntityButton>
-        </Box>
+        {isModifyingEntity ? (
+          <Typography sx={{ fontSize: 14 }}>
+            Save changes in order to discard or create this entity.
+          </Typography>
+        ) : (
+          <Box display="flex" gap={1.5}>
+            <DiscardDraftEntityButton
+              draftEntity={draftEntity}
+              draftEntitySubgraph={draftEntitySubgraph}
+              onDiscardedEntity={handleDiscardedEntity}
+              variant="secondary"
+              sx={buttonSx}
+            >
+              Discard draft
+            </DiscardDraftEntityButton>
+            <AcceptDraftEntityButton
+              draftEntity={draftEntity}
+              draftEntitySubgraph={draftEntitySubgraph}
+              onAcceptedEntity={setDraftEntity}
+              variant="secondary"
+              sx={buttonSx}
+            >
+              Create this {draftEntity.linkData ? "link" : "entity"}
+            </AcceptDraftEntityButton>
+          </Box>
+        )}
       </Container>
     </Box>
   );
