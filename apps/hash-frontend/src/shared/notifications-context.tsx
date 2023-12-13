@@ -258,7 +258,7 @@ export const NotificationsContextProvider: FunctionComponent<
 
           const firstRevision = getFirstEntityRevision(
             revisionsSubgraph,
-            entity.metadata.recordId.entityId,
+            entityId,
           );
 
           const createdAt = new Date(

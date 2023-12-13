@@ -109,7 +109,7 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
     [draftEntityHistoriesData, previouslyFetchedDraftEntityHistoriesData],
   );
 
-  const accountIds = useMemo(() => {
+  const creatorAccountIds = useMemo(() => {
     if (
       !draftEntities ||
       !draftEntityHistoriesSubgraph ||
@@ -130,7 +130,7 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
     });
   }, [draftEntities, draftEntityHistoriesSubgraph]);
 
-  const { actors } = useActors({ accountIds });
+  const { actors } = useActors({ accountIds: creatorAccountIds });
 
   const draftEntitiesWithCreatedAtAndCreators = useMemo(() => {
     if (!draftEntities || !draftEntityHistoriesSubgraph || !actors) {
@@ -206,8 +206,8 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
                     generateEntityLabel(draftEntitiesSubgraph, b.entity),
                   )
                 : sortOrder === "created-at-asc"
-                  ? a.createdAt.getTime() - b.createdAt.getTime()
-                  : b.createdAt.getTime() - a.createdAt.getTime(),
+                ? a.createdAt.getTime() - b.createdAt.getTime()
+                : b.createdAt.getTime() - a.createdAt.getTime(),
             )
         : undefined,
     [
