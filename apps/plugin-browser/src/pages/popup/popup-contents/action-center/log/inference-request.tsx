@@ -1,6 +1,6 @@
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
-import { Box, Link, Skeleton, Stack, Typography } from "@mui/material";
+import { Box, Skeleton, Stack, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 
 import type {
