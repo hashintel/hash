@@ -412,8 +412,6 @@ impl OpenApiDocumentation {
 
         let model_def_path = std::path::Path::new(&env!("CARGO_MANIFEST_DIR"))
             .join("src")
-            .join("api")
-            .join("rest")
             .join("json_schemas");
 
         let model_path_dir = path.join("models");
