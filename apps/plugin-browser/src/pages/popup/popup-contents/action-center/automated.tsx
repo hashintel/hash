@@ -27,7 +27,7 @@ export const Automated = ({
   const { createAs, enabled, model, ownedById } = automaticInferenceConfig;
 
   return (
-    <Box pb={1}>
+    <Box>
       <Section
         description="Automatically identify entities and attributes for you as you browse"
         headerText="Auto-inference Actions"
@@ -87,23 +87,25 @@ export const Automated = ({
         description="Decide what happens when new entities and properties are identified"
         headerText="Entity processing"
       >
-        <SelectWebTarget
-          createAs={createAs}
-          setCreateAs={(newCreateAs) =>
-            setAutomaticInferenceConfig({
-              ...automaticInferenceConfig,
-              createAs: newCreateAs,
-            })
-          }
-          ownedById={ownedById}
-          setOwnedById={(newOwnedById) =>
-            setAutomaticInferenceConfig({
-              ...automaticInferenceConfig,
-              ownedById: newOwnedById,
-            })
-          }
-          user={user}
-        />
+        <Box pb={1}>
+          <SelectWebTarget
+            createAs={createAs}
+            setCreateAs={(newCreateAs) =>
+              setAutomaticInferenceConfig({
+                ...automaticInferenceConfig,
+                createAs: newCreateAs,
+              })
+            }
+            ownedById={ownedById}
+            setOwnedById={(newOwnedById) =>
+              setAutomaticInferenceConfig({
+                ...automaticInferenceConfig,
+                ownedById: newOwnedById,
+              })
+            }
+            user={user}
+          />
+        </Box>
       </Section>
     </Box>
   );
