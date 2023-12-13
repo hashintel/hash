@@ -41,7 +41,7 @@ export const EntityEditorPage = ({
   const [shouldShowQueryEditor, setShouldShowQueryEditor] = useState(true);
   const { triggerSnackbar } = useSnackbar();
 
-  const { entitySubgraph, setEntity } = entityEditorProps;
+  const { entitySubgraph, replaceWithLatestDbVersion } = entityEditorProps;
 
   return (
     <>
@@ -79,7 +79,8 @@ export const EntityEditorPage = ({
               entity={entity}
               entitySubgraph={entitySubgraph}
               isModifyingEntity={isModifyingEntity}
-              setEntity={setEntity}
+              /** @todo: figure out how to replace the entity in the form state directly */
+              onEntityUpdated={() => replaceWithLatestDbVersion()}
               entityLabel={entityLabel}
               editBar={editBar}
               chip={

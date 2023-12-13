@@ -32,12 +32,12 @@ export const DraftEntityBanner: FunctionComponent<{
   draftEntity: Entity;
   draftEntitySubgraph: Subgraph<EntityRootType>;
   isModifyingEntity?: boolean;
-  setDraftEntity?: (entity: Entity) => void;
+  onAcceptedEntity?: (entity: Entity) => void;
 }> = ({
   draftEntity,
   draftEntitySubgraph,
   isModifyingEntity = false,
-  setDraftEntity,
+  onAcceptedEntity,
 }) => {
   const router = useRouter();
 
@@ -97,7 +97,7 @@ export const DraftEntityBanner: FunctionComponent<{
             <AcceptDraftEntityButton
               draftEntity={draftEntity}
               draftEntitySubgraph={draftEntitySubgraph}
-              onAcceptedEntity={setDraftEntity}
+              onAcceptedEntity={onAcceptedEntity}
               variant="secondary"
               sx={buttonSx}
             >

@@ -13,7 +13,7 @@ import { DraftEntityBanner } from "./draft-entity-banner";
 export const EntityPageHeader = ({
   entity,
   entitySubgraph,
-  setEntity,
+  onEntityUpdated,
   entityLabel,
   lightTitle,
   chip,
@@ -22,7 +22,7 @@ export const EntityPageHeader = ({
 }: {
   entity?: Entity;
   entitySubgraph?: Subgraph<EntityRootType>;
-  setEntity?: (entity: Entity) => void;
+  onEntityUpdated?: (entity: Entity) => void;
   entityLabel: string;
   lightTitle?: boolean;
   chip: ReactNode;
@@ -66,7 +66,7 @@ export const EntityPageHeader = ({
             draftEntity={entity}
             draftEntitySubgraph={entitySubgraph}
             isModifyingEntity={isModifyingEntity}
-            setDraftEntity={setEntity}
+            onAcceptedEntity={onEntityUpdated}
           />
         </Collapse>
       ) : null}
