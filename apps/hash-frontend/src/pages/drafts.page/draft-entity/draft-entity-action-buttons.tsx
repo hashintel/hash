@@ -1,4 +1,3 @@
-import { useMutation } from "@apollo/client";
 import { AlertModal, CloseIcon } from "@hashintel/design-system";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
@@ -10,16 +9,6 @@ import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { Box, BoxProps, buttonClasses, Typography } from "@mui/material";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
-import {
-  ArchiveEntityMutation,
-  ArchiveEntityMutationVariables,
-  UpdateEntityMutation,
-  UpdateEntityMutationVariables,
-} from "../../../graphql/api-types.gen";
-import {
-  archiveEntityMutation,
-  updateEntityMutation,
-} from "../../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../../shared/draft-entities-context";
 import { CheckRegularIcon } from "../../../shared/icons/check-regular-icon";
 import { FeatherRegularIcon } from "../../../shared/icons/feather-regular-icon";
@@ -77,11 +66,6 @@ export const DraftEntityActionButtons: FunctionComponent<{
 }> = ({ entity, subgraph, label }) => {
   const { discardDraftEntity, acceptDraftEntity } = useDraftEntities();
 
-  const [archiveEntity] = useMutation<
-    ArchiveEntityMutation,
-    ArchiveEntityMutationVariables
-  >(archiveEntityMutation);
-
   const [
     showDraftEntityWithDraftLinksWarning,
     setShowDraftEntityWithDraftLinksWarning,
@@ -134,25 +118,14 @@ export const DraftEntityActionButtons: FunctionComponent<{
     await Promise.all(
       [...(incomingDraftLinks ?? []), ...(outgoingDraftLinks ?? [])].map(
         (linkEntity) =>
-          archiveEntity({
-            variables: { entityId: linkEntity.metadata.recordId.entityId },
+          discardDraftEntity({
+            draftEntity: linkEntity,
           }),
       ),
     );
 
     await discardDraftEntity({ draftEntity: entity });
-  }, [
-    incomingDraftLinks,
-    outgoingDraftLinks,
-    entity,
-    archiveEntity,
-    discardDraftEntity,
-  ]);
-
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation);
+  }, [incomingDraftLinks, outgoingDraftLinks, entity, discardDraftEntity]);
 
   const { draftLeftEntity, draftRightEntity } = useMemo(() => {
     if (entity.linkData) {
@@ -200,27 +173,13 @@ export const DraftEntityActionButtons: FunctionComponent<{
       await Promise.all(
         [draftLeftEntity ?? [], draftRightEntity ?? []]
           .flat()
-          .map((draftEntity) =>
-            updateEntity({
-              variables: {
-                entityId: draftEntity.metadata.recordId.entityId,
-                updatedProperties: draftEntity.properties,
-                draft: false,
-              },
-            }),
-          ),
+          .map((draftEntity) => acceptDraftEntity({ draftEntity })),
       );
 
       await acceptDraftEntity({
         draftEntity: entity,
       });
-    }, [
-      draftLeftEntity,
-      entity,
-      draftRightEntity,
-      updateEntity,
-      acceptDraftEntity,
-    ]);
+    }, [draftLeftEntity, entity, draftRightEntity, acceptDraftEntity]);
 
   return (
     <>
