@@ -1,5 +1,4 @@
 import { useQuery } from "@apollo/client";
-import { getRoots } from "@blockprotocol/graph/temporal/stdlib";
 import { Skeleton } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
@@ -9,9 +8,12 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   AccountId,
+  EntityId,
   EntityRootType,
   extractEntityUuidFromEntityId,
+  Subgraph,
 } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Divider, Typography } from "@mui/material";
 import { subDays, subHours } from "date-fns";
@@ -32,6 +34,17 @@ import {
   LastEditedTimeRanges,
 } from "./draft-entities/draft-entities-filters";
 import { DraftEntity } from "./draft-entity";
+
+const doesSubgraphIncludeEntitiesInRoots = (params: {
+  subgraph: Subgraph<EntityRootType>;
+  entityIds: EntityId[];
+}) => {
+  const roots = getRoots(params.subgraph);
+
+  return params.entityIds.every((entityId) =>
+    roots.some((root) => root.metadata.recordId.entityId === entityId),
+  );
+};
 
 const isDateWithinLastEditedTimeRange = (params: {
   date: Date;
@@ -117,8 +130,12 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
       !draftEntities ||
       !draftEntityHistoriesSubgraph ||
       // We may have a stale subgraph that doesn't contain the revisions for all of the draft entities yet
-      getRoots(draftEntityHistoriesSubgraph as any).length !==
-        draftEntities.length
+      !doesSubgraphIncludeEntitiesInRoots({
+        subgraph: draftEntityHistoriesSubgraph,
+        entityIds: draftEntities.map(
+          (entity) => entity.metadata.recordId.entityId,
+        ),
+      })
     ) {
       return previouslyDerivedCreatorAccountIds.current ?? undefined;
     }

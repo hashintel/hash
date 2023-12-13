@@ -6,7 +6,8 @@ import {
   getIncomingLinksForEntity,
   getOutgoingLinksForEntity,
 } from "@local/hash-subgraph/stdlib";
-import { Box, buttonClasses } from "@mui/material";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import { Box, BoxProps, buttonClasses, Typography } from "@mui/material";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
 import {
@@ -21,7 +22,53 @@ import {
 } from "../../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../../shared/draft-entities-context";
 import { CheckRegularIcon } from "../../../shared/icons/check-regular-icon";
+import { FeatherRegularIcon } from "../../../shared/icons/feather-regular-icon";
 import { Button } from "../../../shared/ui";
+import { LinkLabelWithSourceAndDestination } from "../../shared/link-label-with-source-and-destination";
+
+const LeftOrRightEntityEndAdornment: FunctionComponent<{
+  isDraft: boolean;
+}> = ({ isDraft }) => (
+  <Typography
+    sx={{
+      position: "relative",
+      top: 1,
+      color: ({ palette }) => (isDraft ? palette.gray[50] : palette.blue[70]),
+      fontSize: 11,
+      fontWeight: isDraft ? 500 : 600,
+      svg: {
+        fontSize: 11,
+        marginRight: 0.5,
+        position: "relative",
+        top: 1,
+      },
+    }}
+  >
+    {isDraft ? (
+      <>
+        <FeatherRegularIcon />
+        Draft
+      </>
+    ) : (
+      <>
+        <CheckRegularIcon />
+        Live
+      </>
+    )}
+  </Typography>
+);
+
+const getRightOrLeftEntitySx = (params: {
+  isDraft: boolean;
+}): BoxProps["sx"] =>
+  params.isDraft
+    ? {
+        backgroundColor: ({ palette }) => palette.gray[15],
+      }
+    : {
+        borderColor: "#B7DAF7",
+        background: ({ palette }) => palette.blue[20],
+      };
 
 export const DraftEntityActionButtons: FunctionComponent<{
   label: string;
@@ -233,7 +280,7 @@ export const DraftEntityActionButtons: FunctionComponent<{
           close={() => setShowDraftEntityWithDraftLinksWarning(false)}
           header={
             <>
-              Ignore the <strong>{label}</strong> draft entity
+              Ignore draft entity: <strong>{label}</strong>
             </>
           }
           type="info"
@@ -244,16 +291,12 @@ export const DraftEntityActionButtons: FunctionComponent<{
           callback={handleAcceptDraftLinkEntityWithDraftLeftOrRightEntities}
           calloutMessage={
             <>
-              The <strong>{label}</strong> draft link has a{" "}
-              <strong>draft</strong>{" "}
-              {draftLeftEntity ? <strong>source</strong> : null}{" "}
-              {draftRightEntity ? (
-                <>
-                  {draftLeftEntity ? "and " : ""}
-                  <strong>draft target</strong>
-                </>
-              ) : null}{" "}
-              entity which will be accepted as well.
+              This <strong>{label}</strong> link establishes a relationship{" "}
+              {draftLeftEntity && draftRightEntity
+                ? "between two other entities which are in draft, which will be accepted as well."
+                : draftLeftEntity
+                  ? "between a draft entity, and a published entity. If you continue the former will be accepted as well."
+                  : "between a published entity, and a draft entity. If you continue the latter will be accepted as well."}
             </>
           }
           close={() =>
@@ -261,11 +304,30 @@ export const DraftEntityActionButtons: FunctionComponent<{
           }
           header={
             <>
-              Accept the <strong>{label}</strong> draft link
+              Accept draft link: <strong>{label}</strong>
             </>
           }
           type="info"
-        />
+        >
+          <LinkLabelWithSourceAndDestination
+            openInNew
+            linkEntity={entity as LinkEntity}
+            subgraph={subgraph}
+            leftEntityEndAdornment={
+              <LeftOrRightEntityEndAdornment isDraft={!!draftLeftEntity} />
+            }
+            rightEntityEndAdornment={
+              <LeftOrRightEntityEndAdornment isDraft={!!draftRightEntity} />
+            }
+            leftEntitySx={getRightOrLeftEntitySx({
+              isDraft: !!draftLeftEntity,
+            })}
+            rightEntitySx={getRightOrLeftEntitySx({
+              isDraft: !!draftRightEntity,
+            })}
+            displayLabels
+          />
+        </AlertModal>
       )}
       <Box display="flex" columnGap={1}>
         <Button

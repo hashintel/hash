@@ -12,8 +12,14 @@ import {
   getEntityTypeById,
 } from "@local/hash-subgraph/stdlib";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
-import { Box, styled, Typography, typographyClasses } from "@mui/material";
-import { FunctionComponent, useMemo } from "react";
+import {
+  Box,
+  BoxProps,
+  styled,
+  Typography,
+  typographyClasses,
+} from "@mui/material";
+import { FunctionComponent, ReactNode, useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
@@ -30,8 +36,12 @@ const ContentTypography = styled(Typography)(({ theme }) => ({
 const LeftOrRightEntity: FunctionComponent<{
   entity: Entity;
   subgraph: Subgraph<EntityRootType>;
-}> = ({ subgraph, entity }) => {
-  const label = useMemo(
+  openInNew?: boolean;
+  endAdornment?: ReactNode;
+  label?: ReactNode;
+  sx?: BoxProps["sx"];
+}> = ({ subgraph, entity, endAdornment, sx, label, openInNew }) => {
+  const entityLabel = useMemo(
     () => generateEntityLabel(subgraph, entity),
     [subgraph, entity],
   );
@@ -52,45 +62,99 @@ const LeftOrRightEntity: FunctionComponent<{
   }, [getOwnerForEntity, entity]);
 
   return (
-    <Link
-      href={href}
-      noLinkStyle
+    <Box
+      display="flex"
+      flexDirection="column"
       sx={{
-        "&:hover": {
-          [`.${typographyClasses.root}, svg`]: {
-            color: ({ palette }) => palette.blue[70],
-          },
+        "&:first-of-type > a > div": {
+          borderTopRightRadius: 0,
+          borderBottomRightRadius: 0,
+        },
+        "&:last-of-type > a > div": {
+          borderTopLeftRadius: 0,
+          borderBottomLeftRadius: 0,
         },
       }}
     >
-      <Box
-        display="flex"
-        alignItems="center"
-        columnGap={1}
-        paddingX={1.5}
-        paddingY={0.75}
+      {label ? (
+        <Typography
+          sx={{
+            color: ({ palette }) => palette.gray[80],
+            fontSize: 11,
+            textTransform: "uppercase",
+            fontWeight: 600,
+            marginBottom: 0.5,
+          }}
+        >
+          {label}
+        </Typography>
+      ) : null}
+      <Link
+        openInNew={openInNew}
+        href={href}
+        noLinkStyle
+        sx={{
+          "&:hover": {
+            [`.${typographyClasses.root}, svg`]: {
+              color: ({ palette }) => palette.blue[70],
+            },
+          },
+        }}
       >
-        <Box display="flex">
-          {entityType.metadata.icon ?? (
-            <AsteriskRegularIcon
-              sx={{
-                color: ({ palette }) => palette.gray[50],
-                fontSize: 16,
-                transition: ({ transitions }) => transitions.create("color"),
-              }}
-            />
-          )}
+        <Box
+          display="flex"
+          alignItems="center"
+          columnGap={1}
+          paddingX={1.5}
+          paddingY={0.75}
+          sx={[
+            {
+              borderRadius: "6px",
+              borderColor: ({ palette }) => palette.gray[30],
+              borderWidth: 1,
+              borderStyle: "solid",
+            },
+            ...(Array.isArray(sx) ? sx : [sx]),
+          ]}
+        >
+          <Box display="flex">
+            {entityType.metadata.icon ?? (
+              <AsteriskRegularIcon
+                sx={{
+                  color: ({ palette }) => palette.gray[50],
+                  fontSize: 16,
+                  transition: ({ transitions }) => transitions.create("color"),
+                }}
+              />
+            )}
+          </Box>
+          <ContentTypography>{entityLabel}</ContentTypography>
+          {endAdornment}
         </Box>
-        <ContentTypography>{label}</ContentTypography>
-      </Box>
-    </Link>
+      </Link>
+    </Box>
   );
 };
 
 export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   linkEntity: LinkEntity;
   subgraph: Subgraph<EntityRootType>;
-}> = ({ linkEntity, subgraph }) => {
+  leftEntityEndAdornment?: ReactNode;
+  rightEntityEndAdornment?: ReactNode;
+  leftEntitySx?: BoxProps["sx"];
+  rightEntitySx?: BoxProps["sx"];
+  displayLabels?: boolean;
+  openInNew?: boolean;
+}> = ({
+  linkEntity,
+  subgraph,
+  leftEntityEndAdornment,
+  rightEntityEndAdornment,
+  leftEntitySx,
+  rightEntitySx,
+  displayLabels = false,
+  openInNew = false,
+}) => {
   const { leftEntity, rightEntity, linkEntityType } = useMemo(() => {
     return {
       linkEntityType: getEntityTypeById(
@@ -114,66 +178,85 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   );
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        background: ({ palette }) => palette.common.white,
-        width: "fit-content",
-        borderRadius: "6px",
-        borderColor: ({ palette }) => palette.gray[20],
-        borderWidth: 1,
-        borderStyle: "solid",
-      }}
-    >
-      <LeftOrRightEntity entity={leftEntity} subgraph={subgraph} />
-      <Link
-        href={generateLinkParameters(linkEntityType.schema.$id).href}
-        noLinkStyle
+    <Box>
+      <Box
         sx={{
-          "&:hover": {
-            [`.${typographyClasses.root}, svg`]: {
-              color: ({ palette }) => palette.blue[70],
-            },
-          },
+          display: "flex",
+          width: "fit-content",
+          alignItems: "flex-end",
         }}
       >
-        <Box
+        <LeftOrRightEntity
+          entity={leftEntity}
+          subgraph={subgraph}
+          endAdornment={leftEntityEndAdornment}
+          openInNew={openInNew}
+          label={displayLabels ? "Source entity" : undefined}
+          sx={leftEntitySx}
+        />
+        <Link
+          openInNew={openInNew}
+          href={generateLinkParameters(linkEntityType.schema.$id).href}
+          noLinkStyle
           sx={{
-            background: ({ palette }) => palette.gray[5],
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            paddingX: 1.5,
-            paddingY: 0.75,
+            "&:hover": {
+              [`.${typographyClasses.root}, svg`]: {
+                color: ({ palette }) => palette.blue[70],
+              },
+            },
           }}
         >
-          <Box display="flex">
-            {linkEntityType.metadata.icon ?? (
-              <LinkRegularIcon
-                sx={{
-                  color: ({ palette }) => palette.common.black,
-                  fontSize: 16,
-                  transition: ({ transitions }) => transitions.create("color"),
-                }}
-              />
-            )}
-          </Box>
-          <ContentTypography>
-            {linkEntityType.schema.title}{" "}
-            <Box
-              component="span"
-              sx={{
-                color: ({ palette }) => palette.gray[50],
-                fontSize: 11,
-                fontWeight: 400,
-              }}
-            >
-              v{linkEntityTypeVersion}
+          <Box
+            sx={{
+              background: ({ palette }) => palette.gray[5],
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              paddingX: 1.5,
+              paddingY: 0.75,
+              borderColor: ({ palette }) => palette.gray[30],
+              borderWidth: 1,
+              borderStyle: "solid",
+              borderLeftWidth: 0,
+              borderRightWidth: 0,
+            }}
+          >
+            <Box display="flex">
+              {linkEntityType.metadata.icon ?? (
+                <LinkRegularIcon
+                  sx={{
+                    color: ({ palette }) => palette.common.black,
+                    fontSize: 16,
+                    transition: ({ transitions }) =>
+                      transitions.create("color"),
+                  }}
+                />
+              )}
             </Box>
-          </ContentTypography>
-        </Box>
-      </Link>
-      <LeftOrRightEntity entity={rightEntity} subgraph={subgraph} />
+            <ContentTypography>
+              {linkEntityType.schema.title}{" "}
+              <Box
+                component="span"
+                sx={{
+                  color: ({ palette }) => palette.gray[50],
+                  fontSize: 11,
+                  fontWeight: 400,
+                }}
+              >
+                v{linkEntityTypeVersion}
+              </Box>
+            </ContentTypography>
+          </Box>
+        </Link>
+        <LeftOrRightEntity
+          entity={rightEntity}
+          subgraph={subgraph}
+          endAdornment={rightEntityEndAdornment}
+          sx={rightEntitySx}
+          openInNew={openInNew}
+          label={displayLabels ? "Target entity" : undefined}
+        />
+      </Box>
     </Box>
   );
 };

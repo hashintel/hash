@@ -58,7 +58,15 @@ export const DraftEntityProvenance: FunctionComponent<{
 
   return (
     <Box display="flex" alignItems="center">
-      <DraftEntityTypography>By</DraftEntityTypography>
+      <DraftEntityTypography
+        sx={({ breakpoints }) => ({
+          [breakpoints.down(1300)]: {
+            display: "none",
+          },
+        })}
+      >
+        By
+      </DraftEntityTypography>
       <DraftEntityChip
         sx={{ marginRight: 1 }}
         icon={<UserIcon />}
@@ -72,7 +80,15 @@ export const DraftEntityProvenance: FunctionComponent<{
             : ""
         }
       />
-      <DraftEntityTypography>at</DraftEntityTypography>
+      <DraftEntityTypography
+        sx={({ breakpoints }) => ({
+          [breakpoints.down(1300)]: {
+            display: "none",
+          },
+        })}
+      >
+        at
+      </DraftEntityTypography>
       <DraftEntityChip icon={<ClockRegularIcon />} label={formattedCreatedAt} />
     </Box>
   );

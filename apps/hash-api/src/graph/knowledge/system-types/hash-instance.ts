@@ -21,6 +21,7 @@ import {
 
 import { createAccountGroup } from "../../account-permission-management";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import { modifyEntityTypeAuthorizationRelationships } from "../../ontology/primitive/entity-type";
 import { createEntity } from "../primitive/entity";
 import { getOrgByShortname } from "./org";
 import { User } from "./user";
@@ -161,6 +162,23 @@ export const createHashInstance: ImpureGraphFunction<
       },
     ],
   });
+
+  await modifyEntityTypeAuthorizationRelationships(ctx, authentication, [
+    {
+      operation: "touch",
+      relationship: {
+        relation: "instantiator",
+        subject: {
+          kind: "accountGroup",
+          subjectId: hashInstanceAdminsAccountGroupId,
+        },
+        resource: {
+          kind: "entityType",
+          resourceId: systemEntityTypes.hashInstance.entityTypeId,
+        },
+      },
+    },
+  ]);
 
   return getHashInstanceFromEntity({ entity });
 };

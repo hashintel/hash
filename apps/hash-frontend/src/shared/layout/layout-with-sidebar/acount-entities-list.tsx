@@ -38,7 +38,8 @@ export const AccountEntitiesList: FunctionComponent<
 
   const { activeWorkspace } = useActiveWorkspace();
 
-  const { latestEntityTypes, loading } = useLatestEntityTypesOptional();
+  const { latestEntityTypes, loading, isSpecialEntityTypeLookup } =
+    useLatestEntityTypesOptional();
 
   const pinnedEntityTypes = useMemo(() => {
     const { pinnedEntityTypeBaseUrls } = activeWorkspace ?? {};
@@ -55,12 +56,13 @@ export const AccountEntitiesList: FunctionComponent<
       return latestEntityTypes.filter(
         (root) =>
           isOwnedOntologyElementMetadata(root.metadata) &&
-          root.metadata.custom.ownedById === ownedById,
+          root.metadata.custom.ownedById === ownedById &&
+          !isSpecialEntityTypeLookup?.[root.schema.$id]?.isLink,
       );
     }
 
     return null;
-  }, [latestEntityTypes, ownedById]);
+  }, [latestEntityTypes, ownedById, isSpecialEntityTypeLookup]);
 
   const sidebarEntityTypes = useMemo(
     () => [...(pinnedEntityTypes ?? []), ...(accountEntityTypes ?? [])],
