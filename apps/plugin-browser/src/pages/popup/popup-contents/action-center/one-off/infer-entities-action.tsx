@@ -110,7 +110,7 @@ export const InferEntitiesAction = ({
       >
         <Box mb={1.5}>
           <EntityTypeSelector
-            inputHeight={50}
+            inputHeight="auto"
             multiple
             setTargetEntityTypeIds={(newTargetIds) =>
               setManualInferenceConfig({

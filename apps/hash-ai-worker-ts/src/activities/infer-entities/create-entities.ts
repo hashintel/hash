@@ -1,9 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import type { Entity, GraphApi } from "@local/hash-graph-client";
+import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   InferredEntityCreationFailure,
   InferredEntityCreationSuccess,
+  InferredEntityUpdateSuccess,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/temporal-types";
 import type {
@@ -21,7 +23,9 @@ import isMatch from "lodash.ismatch";
 
 import type { DereferencedEntityType } from "./dereference-entity-type";
 import type { ProposedEntityCreationsByType } from "./generate-tools";
-import { getEntityByFilter } from "./get-entity-by-filter";
+import { extractErrorMessage } from "./shared/extractValidationFailureDetails";
+import { getEntityByFilter } from "./shared/get-entity-by-filter";
+import { stringify } from "./stringify";
 
 type UpdateCandidate = {
   existingEntity: Entity;
@@ -33,6 +37,9 @@ type StatusByTemporaryId<T> = Record<number, T>;
 type EntityStatusMap = {
   creationSuccesses: StatusByTemporaryId<InferredEntityCreationSuccess>;
   creationFailures: StatusByTemporaryId<InferredEntityCreationFailure>;
+  previousSuccesses: StatusByTemporaryId<
+    InferredEntityCreationSuccess | InferredEntityUpdateSuccess
+  >;
   updateCandidates: StatusByTemporaryId<UpdateCandidate>;
   unchangedEntities: StatusByTemporaryId<UpdateCandidate>;
 };
@@ -50,6 +57,9 @@ export const createEntities = async ({
   createAsDraft: boolean;
   graphApiClient: GraphApi;
   log: (message: string) => void;
+  previousSuccesses: StatusByTemporaryId<
+    InferredEntityCreationSuccess | InferredEntityUpdateSuccess
+  >;
   proposedEntitiesByType: ProposedEntityCreationsByType;
   requestedEntityTypes: Record<
     VersionedUrl,
@@ -67,6 +77,7 @@ export const createEntities = async ({
   const entityStatusMap: EntityStatusMap = {
     creationSuccesses: {},
     creationFailures: {},
+    previousSuccesses: {},
     updateCandidates: {},
     unchangedEntities: {},
   };
@@ -81,7 +92,13 @@ export const createEntities = async ({
         (proposedEntities ?? []).map(async (proposedEntity) => {
           const { properties = {} } = proposedEntity;
 
-          const nameProperties = ["name", "display-name", "preferred-name"];
+          const nameProperties = [
+            "name",
+            "display-name",
+            "legal-name",
+            "preferred-name",
+            "profile-url",
+          ];
           const propertyKeysToMatchOn = typedKeys(properties).filter((key) =>
             nameProperties.includes(
               // capture the last part of the path, e.g. /@example/property-type/name/ -> name
@@ -111,6 +128,7 @@ export const createEntities = async ({
                       },
                     ],
                   },
+                  generateVersionedUrlMatchingFilter(entityTypeId),
                 ],
               },
             });
@@ -131,6 +149,9 @@ export const createEntities = async ({
                   proposedEntity,
                 };
               } else {
+                log(
+                  `Proposed entity ${proposedEntity.entityId} exactly matches existing entity – continuing`,
+                );
                 entityStatusMap.unchangedEntities[proposedEntity.entityId] = {
                   existingEntity,
                   proposedEntity,
@@ -191,13 +212,17 @@ export const createEntities = async ({
             log(
               `Creation of entity id ${
                 proposedEntity.entityId
-              } failed with err: ${JSON.stringify(err, undefined, 2)}`,
+              } failed with err: ${stringify(err)}`,
             );
+
+            const failureReason = `${extractErrorMessage(
+              err,
+            )}. The schema is ${JSON.stringify(nonLinkType.schema)}.`;
 
             entityStatusMap.creationFailures[proposedEntity.entityId] = {
               entityTypeId,
               proposedEntity,
-              failureReason: (err as Error).message,
+              failureReason,
               operation: "create",
               status: "failure",
             };
@@ -239,7 +264,8 @@ export const createEntities = async ({
           const sourceEntity =
             entityStatusMap.creationSuccesses[sourceEntityId]?.entity ??
             entityStatusMap.updateCandidates[sourceEntityId]?.existingEntity ??
-            entityStatusMap.unchangedEntities[sourceEntityId]?.existingEntity;
+            entityStatusMap.unchangedEntities[sourceEntityId]?.existingEntity ??
+            entityStatusMap.previousSuccesses[sourceEntityId]?.entity;
 
           if (!sourceEntity) {
             const sourceFailure =
@@ -278,7 +304,8 @@ export const createEntities = async ({
           const targetEntity =
             entityStatusMap.creationSuccesses[targetEntityId]?.entity ??
             entityStatusMap.updateCandidates[targetEntityId]?.existingEntity ??
-            entityStatusMap.unchangedEntities[targetEntityId]?.existingEntity;
+            entityStatusMap.unchangedEntities[targetEntityId]?.existingEntity ??
+            entityStatusMap.previousSuccesses[sourceEntityId]?.entity;
 
           if (!targetEntity) {
             const targetFailure =
@@ -441,15 +468,19 @@ export const createEntities = async ({
             log(
               `Creation of link entity id ${
                 proposedEntity.entityId
-              } failed with err: ${JSON.stringify(err, undefined, 2)}`,
+              } failed with err: ${stringify(err)}`,
             );
+
+            const failureReason = `${extractErrorMessage(
+              err,
+            )}. The schema is ${JSON.stringify(linkType.schema)}.`;
 
             entityStatusMap.creationFailures[proposedEntity.entityId] = {
               entityTypeId,
               operation: "create",
               proposedEntity,
               status: "failure",
-              failureReason: (err as Error).message,
+              failureReason,
             };
           }
         }),
