@@ -19,12 +19,6 @@ import { ImpureGraphContext } from "../graph/context-types";
 import { User } from "../graph/knowledge/system-types/user";
 import { genId } from "../util";
 
-declare module "http" {
-  interface IncomingMessage {
-    user?: User | undefined;
-  }
-}
-
 const inferEntitiesMessageHandler = async ({
   socket,
   temporalClient,

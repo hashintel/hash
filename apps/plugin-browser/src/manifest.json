@@ -6,7 +6,7 @@
   "background": {
     "service_worker": "background.bundle.js"
   },
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": ["*://*.hash.ai/*", "*://*.localhost/*"],
   "permissions": ["cookies", "storage", "tabs"],
   "action": {
     "default_icon": "icon-24-default.png",

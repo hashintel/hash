@@ -154,7 +154,7 @@ export const createAuthMiddleware = (params: {
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises -- https://github.com/DefinitelyTyped/DefinitelyTyped/issues/50871
   return async (req, _res, next) => {
-    const authHeader = req.headers.authorization;
+    const authHeader = req.header("authorization");
     const hasAuthHeader = authHeader?.startsWith("Bearer ") ?? false;
 
     const sessionToken =
@@ -164,14 +164,14 @@ export const createAuthMiddleware = (params: {
 
     const { session, user } = await getUserAndSession({
       context,
-      cookie: req.headers.cookie,
+      cookie: req.header("cookie"),
       logger,
       sessionToken,
     });
 
     const kratosSession = await kratosFrontendApi
       .toSession({
-        cookie: req.headers.cookie,
+        cookie: req.header("cookie"),
         xSessionToken: sessionToken,
       })
       .then(({ data }) => data)
