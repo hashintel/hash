@@ -358,37 +358,39 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
         const outgoingLinks = getOutgoingLinkAndTargetEntities(
           entitiesSubgraph,
           entity.metadata.recordId.entityId,
-        ).map<Extract<SubMenuItem, { kind: "outgoing-link" }>>(
-          ({
-            linkEntity: linkEntityRevisions,
-            rightEntity: rightEntityRevisions,
-          }) => {
-            const [linkEntity] = linkEntityRevisions;
-            const [rightEntity] = rightEntityRevisions;
+        )
+          .map<Extract<SubMenuItem, { kind: "outgoing-link" }>>(
+            ({
+              linkEntity: linkEntityRevisions,
+              rightEntity: rightEntityRevisions,
+            }) => {
+              const [linkEntity] = linkEntityRevisions;
+              const [rightEntity] = rightEntityRevisions;
 
-            if (!linkEntity) {
-              throw new Error("Link entity not found");
-            } else if (!rightEntity) {
-              throw new Error("Right entity not found");
-            }
+              if (!linkEntity) {
+                throw new Error("Link entity not found");
+              } else if (!rightEntity) {
+                throw new Error("Right entity not found");
+              }
 
-            const linkEntityType = getEntityTypeById(
-              entitiesSubgraph,
-              linkEntity.metadata.entityTypeId,
-            )!;
-
-            return {
-              kind: "outgoing-link",
-              linkEntity,
-              linkEntityType,
-              targetEntity: rightEntity,
-              targetEntityLabel: generateEntityLabel(
+              const linkEntityType = getEntityTypeById(
                 entitiesSubgraph,
-                rightEntity,
-              ),
-            };
-          },
-        );
+                linkEntity.metadata.entityTypeId,
+              )!;
+
+              return {
+                kind: "outgoing-link",
+                linkEntity,
+                linkEntityType,
+                targetEntity: rightEntity,
+                targetEntityLabel: generateEntityLabel(
+                  entitiesSubgraph,
+                  rightEntity,
+                ),
+              };
+            },
+          )
+          .filter(({ linkEntity }) => !linkEntity.metadata.archived);
 
         return {
           ...prev,
