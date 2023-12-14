@@ -119,7 +119,8 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     [draftEntitiesSubgraph],
   );
 
-  const { notifications, archiveNotification } = useNotifications();
+  const { notifications, archiveNotification, markNotificationAsRead } =
+    useNotifications();
 
   const archiveRelatedNotifications = useCallback(
     async (params: { draftEntity: Entity }) => {
@@ -170,8 +171,29 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     UpdateEntityMutationVariables
   >(updateEntityMutation);
 
+  const markRelatedGraphChangeNotificationsAsRead = useCallback(
+    async (params: { draftEntity: Entity }) => {
+      const relatedGraphChangeNotifications =
+        notifications?.filter(
+          ({ kind, occurredInEntity }) =>
+            kind === "graph-change" &&
+            occurredInEntity.metadata.recordId.entityId ===
+              params.draftEntity.metadata.recordId.entityId,
+        ) ?? [];
+
+      await Promise.all(
+        relatedGraphChangeNotifications.map((notification) =>
+          markNotificationAsRead({ notification }),
+        ),
+      );
+    },
+    [notifications, markNotificationAsRead],
+  );
+
   const acceptDraftEntity = useCallback(
     async (params: { draftEntity: Entity }) => {
+      await markRelatedGraphChangeNotificationsAsRead(params);
+
       const response = await updateEntity({
         variables: {
           entityId: params.draftEntity.metadata.recordId.entityId,
@@ -188,7 +210,7 @@ export const DraftEntitiesContextProvider: FunctionComponent<
 
       return response.data.updateEntity;
     },
-    [updateEntity, refetch],
+    [updateEntity, refetch, markRelatedGraphChangeNotificationsAsRead],
   );
 
   const value = useMemo<DraftEntitiesContextValue>(
