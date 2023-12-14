@@ -7,18 +7,17 @@ import {
   getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
 import { createGraphChangeNotification } from "@local/hash-backend-utils/notifications";
-import type { GraphApi } from "@local/hash-graph-client";
+import type {
+  Entity as GraphApiEntity,
+  GraphApi,
+} from "@local/hash-graph-client";
 import type {
   InferenceModelName,
   InferenceTokenUsage,
   InferEntitiesCallerParams,
   InferEntitiesReturn,
-  InferredEntityUpdateSuccess,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import {
-  InferredEntityChangeResult,
-  InferredEntityCreationSuccess,
-} from "@local/hash-isomorphic-utils/ai-inference-types";
+import { InferredEntityChangeResult } from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -108,6 +107,7 @@ const requestEntityInference = async (params: {
     OpenAI.ChatCompletionCreateParams,
     "stream" | "tools" | "model"
   > & { model: SpecificModel };
+  entitiesForLinks: Record<number, { entity: GraphApiEntity }>;
   entityTypes: DereferencedEntityTypesByTypeId;
   iterationCount: number;
   graphApiClient: GraphApi;
@@ -120,6 +120,7 @@ const requestEntityInference = async (params: {
     authentication,
     completionPayload,
     createAs,
+    entitiesForLinks,
     entityTypes,
     iterationCount,
     graphApiClient,
@@ -465,28 +466,21 @@ const requestEntityInference = async (params: {
           }
 
           try {
-            const { creationSuccesses, creationFailures, updateCandidates } =
-              await createEntities({
-                actorId: authentication.machineActorId,
-                createAsDraft: createAs === "draft",
-                graphApiClient,
-                log,
-                ownedById,
-                previousSuccesses: results.reduce<
-                  Record<
-                    number,
-                    InferredEntityCreationSuccess | InferredEntityUpdateSuccess
-                  >
-                >((acc, result) => {
-                  if (result.status === "success") {
-                    acc[result.proposedEntity.entityId] = result;
-                  }
-
-                  return acc;
-                }, {}),
-                proposedEntitiesByType,
-                requestedEntityTypes: entityTypes,
-              });
+            const {
+              creationSuccesses,
+              creationFailures,
+              updateCandidates,
+              unchangedEntities,
+            } = await createEntities({
+              actorId: authentication.machineActorId,
+              createAsDraft: createAs === "draft",
+              graphApiClient,
+              log,
+              ownedById,
+              previousSuccesses: entitiesForLinks,
+              proposedEntitiesByType,
+              requestedEntityTypes: entityTypes,
+            });
 
             log(`Creation successes: ${stringify(creationSuccesses)}`);
             log(`Creation failures: ${stringify(creationFailures)}`);
@@ -495,6 +489,16 @@ const requestEntityInference = async (params: {
             const successes = Object.values(creationSuccesses);
             const failures = Object.values(creationFailures);
             const updates = Object.values(updateCandidates);
+            const unchangeds = Object.values(unchangedEntities);
+
+            for (const unchanged of unchangeds) {
+              entitiesForLinks[unchanged.proposedEntity.entityId] = {
+                entity: unchanged.existingEntity,
+              };
+            }
+            for (const success of successes) {
+              entitiesForLinks[success.proposedEntity.entityId] = success;
+            }
 
             for (const success of successes) {
               void createInferredEntityNotification({
@@ -918,6 +922,7 @@ export const inferEntities = async ({
     },
     createAs,
     entityTypes,
+    entitiesForLinks: {},
     graphApiClient,
     iterationCount: 1,
     ownedById,
