@@ -36,7 +36,6 @@
     "graphql": "16.8.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "socket.io-client": "4.7.2",
     "uuid": "9.0.1",
     "webextension-polyfill": "0.10.0",
     "ws": "8.15.1"
@@ -86,4 +85,3 @@
     "zip-webpack-plugin": "4.0.1"
   }
 }
-

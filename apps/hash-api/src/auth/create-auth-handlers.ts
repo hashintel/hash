@@ -119,9 +119,8 @@ export const getUserAndSession = async ({
         /** @todo: figure out if this should be handled here, or in the next.js app (when implementing 2FA) */
       }
       logger.debug(
-        `Kratos response error: Could not fetch session, got: [${
-          err.response?.status
-        }] ${JSON.stringify(err.response?.data)}`,
+        `Kratos response error: Could not fetch session, got: [${err.response
+          ?.status}] ${JSON.stringify(err.response?.data)}`,
       );
       return undefined;
     });
@@ -182,9 +181,8 @@ export const createAuthMiddleware = (params: {
           /** @todo: figure out if this should be handled here, or in the next.js app (when implementing 2FA) */
         }
         logger.debug(
-          `Kratos response error: Could not fetch session, got: [${
-            err.response?.status
-          }] ${JSON.stringify(err.response?.data)}`,
+          `Kratos response error: Could not fetch session, got: [${err.response
+            ?.status}] ${JSON.stringify(err.response?.data)}`,
         );
         return undefined;
       });
