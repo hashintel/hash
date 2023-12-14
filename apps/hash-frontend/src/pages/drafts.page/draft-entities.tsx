@@ -36,7 +36,7 @@ import {
 } from "./draft-entities/draft-entities-filters";
 import { DraftEntity } from "./draft-entity";
 
-const incrementNumberOfEntitiesToDisplay = 50;
+const incrementNumberOfEntitiesToDisplay = 20;
 
 const doesSubgraphIncludeEntitiesInRoots = (params: {
   subgraph: Subgraph<EntityRootType>;
