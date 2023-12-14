@@ -1,5 +1,5 @@
 import { VersionedUrl } from "@blockprotocol/graph";
-import { InferenceModelName } from "@local/hash-isomorphic-utils/src/ai-inference-types";
+import { InferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { OwnedById } from "@local/hash-subgraph";
 
 export type InferEntitiesRequest = {

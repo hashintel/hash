@@ -22,6 +22,7 @@ import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib
 import isMatch from "lodash.ismatch";
 
 import type { DereferencedEntityType } from "./dereference-entity-type";
+import { ensureTrailingSlash } from "./ensure-trailing-slash";
 import type { ProposedEntityCreationsByType } from "./generate-tools";
 import { extractErrorMessage } from "./shared/extract-validation-failure-details";
 import { getEntityByFilter } from "./shared/get-entity-by-filter";
@@ -90,7 +91,9 @@ export const createEntities = async ({
 
       await Promise.all(
         (proposedEntities ?? []).map(async (proposedEntity) => {
-          const { properties = {} } = proposedEntity;
+          const properties = ensureTrailingSlash(
+            proposedEntity.properties ?? {},
+          );
 
           const nameProperties = [
             "name",
@@ -240,7 +243,9 @@ export const createEntities = async ({
 
       await Promise.all(
         (proposedEntities ?? []).map(async (proposedEntity) => {
-          const { properties = {} } = proposedEntity;
+          const properties = ensureTrailingSlash(
+            proposedEntity.properties ?? {},
+          );
 
           if (
             !(

@@ -31,9 +31,9 @@ import { StatsD } from "hot-shots";
 import { createHttpTerminator } from "http-terminator";
 import { customAlphabet } from "nanoid";
 
-import { inferEntitiesController } from "./ai/infer-entities";
+import { openInferEntitiesWebSocket } from "./ai/infer-entities-websocket";
 import {
-  addKratosHandlers,
+  addKratosAfterRegistrationHandler,
   createAuthMiddleware,
 } from "./auth/create-auth-handlers";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
@@ -45,6 +45,7 @@ import {
 } from "./email/transporters";
 import { ImpureGraphContext } from "./graph/context-types";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
+import { isSelfHostedInstance } from "./graph/ensure-system-graph-is-initialized/system-webs-and-entities";
 import { User } from "./graph/knowledge/system-types/user";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
@@ -209,7 +210,7 @@ const main = async () => {
   });
 
   // Set up authentication related middleware and routes
-  addKratosHandlers({ app, context });
+  addKratosAfterRegistrationHandler({ app, context });
   const authMiddleware = createAuthMiddleware({ logger, context });
   app.use(authMiddleware);
 
@@ -363,8 +364,6 @@ const main = async () => {
   app.get("/oauth/linear/callback", oAuthLinearCallback);
   app.post("/webhooks/linear", linearWebhook);
 
-  app.post("/entities/infer", inferEntitiesController);
-
   /**
    * This middleware MUST:
    * 1. Come AFTER all non-error controllers
@@ -388,6 +387,15 @@ const main = async () => {
   const httpServer = http.createServer(app);
   const httpTerminator = createHttpTerminator({ server: httpServer });
   shutdown.addCleanup("HTTP Server", async () => httpTerminator.terminate());
+
+  if (!isSelfHostedInstance && temporalClient) {
+    openInferEntitiesWebSocket({
+      context,
+      httpServer,
+      logger,
+      temporalClient,
+    });
+  }
 
   // Start the Apollo GraphQL server.
   // Note: the server must be started before the middleware can be applied

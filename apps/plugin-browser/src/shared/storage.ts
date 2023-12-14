@@ -1,9 +1,9 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
-import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   InferenceModelName,
   InferEntitiesReturn,
-} from "@local/hash-isomorphic-utils/src/ai-inference-types";
+} from "@local/hash-isomorphic-utils/ai-inference-types";
+import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   ImageProperties,
   OrganizationProperties,

@@ -1,14 +1,14 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type {
   InferenceModelName,
+  InferEntitiesResponseMessage,
   InferEntitiesReturn,
   InferEntitiesUserArguments,
-  InferEntitiesWebSocketResponseMessage,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { OwnedById } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
-import { io } from "socket.io-client";
 import { v4 as uuid } from "uuid";
+import browser from "webextension-polyfill";
 
 import { setErroredBadge } from "../../shared/badge";
 import type { InferEntitiesRequest } from "../../shared/messages";
@@ -17,83 +17,142 @@ import {
   getSetFromLocalStorageValue,
 } from "../../shared/storage";
 
-const socket = io(API_ORIGIN, { autoConnect: false, withCredentials: true });
-
-let socketDisconnectTimeout: NodeJS.Timer;
-
 const setInferenceRequestValue =
   getSetFromLocalStorageValue("inferenceRequests");
 
-socket.on("message", async (message: InferEntitiesWebSocketResponseMessage) => {
-  const inferredEntitiesReturn = message.contents;
+const waitForConnection = async (ws: WebSocket) => {
+  while (ws.readyState !== ws.OPEN) {
+    await new Promise((resolve) => {
+      setTimeout(resolve, 200);
+    });
+  }
+};
 
-  if (inferredEntitiesReturn.code !== "OK") {
-    const errorMessage = inferredEntitiesReturn.message;
-
-    await setInferenceRequestValue((currentValue) =>
-      (currentValue ?? []).map((request) =>
-        request.requestUuid === inferredEntitiesReturn.requestUuid
-          ? {
-              ...request,
-              errorMessage: errorMessage ?? "Unknown error – please contact us",
-              finishedAt: new Date().toISOString(),
-              status: "error",
-            }
-          : request,
-      ),
-    );
+let ws: WebSocket | null = null;
+const getWebSocket = async () => {
+  if (ws) {
+    await waitForConnection(ws);
+    return ws;
   }
 
-  await setInferenceRequestValue((currentValue) =>
-    (currentValue ?? []).map((request) =>
-      request.requestUuid === localRequestId
-        ? {
-            ...request,
-            data: inferredEntitiesReturn,
-            finishedAt: new Date().toISOString(),
-            status: "complete",
-          }
-        : request,
-    ),
+  const { host, protocol } = new URL(API_ORIGIN);
+  const websocketUrl = `${protocol === "https:" ? "wss" : "ws"}://${host}`;
+
+  ws = new WebSocket(websocketUrl);
+
+  const heartbeat = setInterval(() => {
+    ws?.send("ping");
+  }, 20_000);
+
+  ws.addEventListener("close", () => {
+    console.log("Connection closed");
+    ws = null;
+    clearInterval(heartbeat);
+  });
+
+  ws.addEventListener("open", () => {
+    console.log("Connection established");
+  });
+
+  ws.addEventListener(
+    "message",
+
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    async (event: MessageEvent<string>) => {
+      const message = JSON.parse(event.data) as InferEntitiesResponseMessage;
+
+      const { payload: inferredEntitiesReturn, requestUuid } = message;
+
+      if (inferredEntitiesReturn.code !== "OK") {
+        const errorMessage = inferredEntitiesReturn.message;
+
+        await setInferenceRequestValue((currentValue) =>
+          (currentValue ?? []).map((requestInState) =>
+            requestInState.requestUuid === requestUuid
+              ? {
+                  ...requestInState,
+                  errorMessage:
+                    errorMessage ?? "Unknown error – please contact us",
+                  finishedAt: new Date().toISOString(),
+                  status: "error",
+                }
+              : requestInState,
+          ),
+        );
+      }
+
+      await setInferenceRequestValue((currentValue) =>
+        (currentValue ?? []).map((requestInState) =>
+          requestInState.requestUuid === requestUuid
+            ? {
+                ...requestInState,
+                data: inferredEntitiesReturn,
+                finishedAt: new Date().toISOString(),
+                status: "complete",
+              }
+            : requestInState,
+        ),
+      );
+    },
   );
 
-  const inferenceRequests = await getFromLocalStorage("inferenceRequests");
-  const pendingRequests = inferenceRequests?.filter(
-    (request) => request.status === "pending",
-  );
-  if (!pendingRequests?.length) {
-    socketDisconnectTimeout = setTimeout(() => {
-      socket.disconnect();
-    }, 30_000);
-  }
-});
+  await waitForConnection(ws);
+
+  return ws;
+};
 
 const sendInferEntitiesMessage = async (params: {
-  createAs: "draft" | "live";
-  model: InferenceModelName;
-  textInput: string;
-  entityTypeIds: VersionedUrl[];
-  ownedById: OwnedById;
   requestUuid: string;
-  sourceTitle: string;
-  sourceUrl: string;
+  payload: {
+    createAs: "draft" | "live";
+    model: InferenceModelName;
+    textInput: string;
+    entityTypeIds: VersionedUrl[];
+    ownedById: OwnedById;
+    sourceTitle: string;
+    sourceUrl: string;
+  };
 }) => {
-  clearTimeout(socketDisconnectTimeout);
+  const { requestUuid, payload } = params;
 
-  const inferMessageContent: InferEntitiesUserArguments = {
-    ...params,
+  const cookies = await browser.cookies
+    .getAll({
+      url: API_ORIGIN,
+    })
+    .then((options) =>
+      options.filter(
+        (option) =>
+          option.name.startsWith("csrf_token_") ||
+          option.name === "ory_kratos_session",
+      ),
+    );
+
+  if (cookies.length < 2) {
+    console.error(
+      "No session cookies available to use in entity inference request",
+    );
+    return;
+  }
+
+  const socket = await getWebSocket();
+  console.log("Got socket");
+
+  const inferMessagePayload: InferEntitiesUserArguments = {
+    ...payload,
     maxTokens: null,
     temperature: 0,
   };
 
-  while (!socket.connected) {
-    socket.connect();
-    await new Promise((resolve) => {
-      setTimeout(resolve, 500);
-    });
-  }
-
-  socket.send(inferMessageContent);
+  socket.send(
+    JSON.stringify({
+      cookie: cookies
+        .map((cookie) => `${cookie.name}=${cookie.value}`)
+        .join(";"),
+      payload: inferMessagePayload,
+      requestUuid,
+      type: "inference-request",
+    }),
+  );
 };
 
 export const inferEntities = async (
@@ -117,9 +176,6 @@ export const inferEntities = async (
 
   const requestUuid = uuid();
 
-  const setInferenceRequestValue =
-    getSetFromLocalStorageValue("inferenceRequests");
-
   await setInferenceRequestValue((currentValue) => [
     {
       createdAt: new Date().toISOString(),
@@ -137,14 +193,16 @@ export const inferEntities = async (
 
   try {
     await sendInferEntitiesMessage({
-      createAs,
-      entityTypeIds,
-      model,
-      ownedById,
       requestUuid,
-      sourceTitle,
-      sourceUrl,
-      textInput,
+      payload: {
+        createAs,
+        entityTypeIds,
+        model,
+        ownedById,
+        sourceTitle,
+        sourceUrl,
+        textInput,
+      },
     });
   } catch (err) {
     setErroredBadge();

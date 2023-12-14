@@ -86,7 +86,6 @@ type InferredEntityResultBase = {
   entityTypeId: VersionedUrl;
   operation: "create" | "update";
   proposedEntity: ProposedEntity;
-  requestUuid: string;
   status: "success" | "failure";
 };
 
@@ -129,12 +128,15 @@ export type InferEntitiesReturn = Status<{
   usage: InferenceTokenUsage[];
 }>;
 
-export type InferEntitiesWebSocketRequestMessage = {
-  type: "infer-entities";
-  contents: InferEntitiesUserArguments;
+export type InferEntitiesRequestMessage = {
+  cookie: string;
+  type: "inference-request";
+  payload: InferEntitiesUserArguments;
+  requestUuid: string;
 };
 
-export type InferEntitiesWebSocketResponseMessage = {
-  type: "infer-entities";
-  contents: InferEntitiesReturn;
+export type InferEntitiesResponseMessage = {
+  payload: InferEntitiesReturn;
+  requestUuid: string;
+  type: "inference-response";
 };
