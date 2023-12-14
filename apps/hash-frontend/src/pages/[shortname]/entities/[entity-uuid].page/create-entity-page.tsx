@@ -79,7 +79,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       }
 
       await applyDraftLinkEntityChanges(
-        entity.metadata.recordId.entityId,
+        entity,
         draftLinksToCreate,
         draftLinksToArchive,
       );

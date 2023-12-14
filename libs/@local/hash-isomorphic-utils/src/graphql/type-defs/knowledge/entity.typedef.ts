@@ -173,6 +173,10 @@ export const entityTypedef = gql`
       The link metadata of the entity (required when creating a link entity).
       """
       linkData: LinkData
+      """
+      Whether the created entity should be a draft
+      """
+      draft: Boolean
     ): Entity!
 
     """

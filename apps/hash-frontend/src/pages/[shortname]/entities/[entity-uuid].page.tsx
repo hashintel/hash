@@ -178,9 +178,10 @@ const Page: NextPageWithLayout = () => {
     try {
       setSavingChanges(true);
 
+      const entity = getRoots(entitySubgraphFromDb)[0]!;
+
       await applyDraftLinkEntityChanges(
-        getRoots(entitySubgraphFromDb)[0]?.metadata.recordId
-          .entityId as EntityId,
+        entity,
         draftLinksToCreate,
         draftLinksToArchive,
       );
@@ -216,7 +217,7 @@ const Page: NextPageWithLayout = () => {
   }
 
   const entityLabel = generateEntityLabel(draftEntitySubgraph);
-  const showEditBar =
+  const isModifyingEntity =
     isDirty || !!draftLinksToCreate.length || !!draftLinksToArchive.length;
 
   const isQueryEntity =
@@ -228,7 +229,7 @@ const Page: NextPageWithLayout = () => {
       entity={entityFromDb}
       editBar={
         <EditBar
-          visible={showEditBar}
+          visible={isModifyingEntity}
           discardButtonProps={{
             onClick: discardChanges,
           }}
@@ -239,6 +240,7 @@ const Page: NextPageWithLayout = () => {
           }}
         />
       }
+      isModifyingEntity={isModifyingEntity}
       handleSaveChanges={handleSaveChanges}
       entityLabel={entityLabel}
       entityUuid={entityUuid}

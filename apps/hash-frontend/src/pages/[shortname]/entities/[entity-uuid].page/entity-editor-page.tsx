@@ -20,6 +20,7 @@ interface EntityEditorPageProps extends EntityEditorProps {
   entityUuid: string;
   isQueryEntity?: boolean;
   isDraft?: boolean;
+  isModifyingEntity?: boolean;
   handleSaveChanges: (
     overrideProperties?: EntityPropertiesObject,
   ) => Promise<void>;
@@ -34,10 +35,13 @@ export const EntityEditorPage = ({
   isDraft,
   isQueryEntity,
   handleSaveChanges,
+  isModifyingEntity,
   ...entityEditorProps
 }: EntityEditorPageProps) => {
   const [shouldShowQueryEditor, setShouldShowQueryEditor] = useState(true);
   const { triggerSnackbar } = useSnackbar();
+
+  const { entitySubgraph, replaceWithLatestDbVersion } = entityEditorProps;
 
   return (
     <>
@@ -73,6 +77,10 @@ export const EntityEditorPage = ({
           header={
             <EntityPageHeader
               entity={entity}
+              entitySubgraph={entitySubgraph}
+              isModifyingEntity={isModifyingEntity}
+              /** @todo: figure out how to replace the entity in the form state directly */
+              onEntityUpdated={() => replaceWithLatestDbVersion()}
               entityLabel={entityLabel}
               editBar={editBar}
               chip={

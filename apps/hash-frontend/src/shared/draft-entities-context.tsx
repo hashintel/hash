@@ -64,7 +64,7 @@ export type DraftEntitiesContextValue = {
   loading: boolean;
   refetch: () => Promise<void>;
   discardDraftEntity: (params: { draftEntity: Entity }) => Promise<void>;
-  acceptDraftEntity: (params: { draftEntity: Entity }) => Promise<void>;
+  acceptDraftEntity: (params: { draftEntity: Entity }) => Promise<Entity>;
 };
 
 export const DraftEntitiesContext =
@@ -119,7 +119,8 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     [draftEntitiesSubgraph],
   );
 
-  const { notifications, archiveNotification } = useNotifications();
+  const { notifications, archiveNotification, markNotificationAsRead } =
+    useNotifications();
 
   const archiveRelatedNotifications = useCallback(
     async (params: { draftEntity: Entity }) => {
@@ -170,9 +171,30 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     UpdateEntityMutationVariables
   >(updateEntityMutation);
 
+  const markRelatedGraphChangeNotificationsAsRead = useCallback(
+    async (params: { draftEntity: Entity }) => {
+      const relatedGraphChangeNotifications =
+        notifications?.filter(
+          ({ kind, occurredInEntity }) =>
+            kind === "graph-change" &&
+            occurredInEntity.metadata.recordId.entityId ===
+              params.draftEntity.metadata.recordId.entityId,
+        ) ?? [];
+
+      await Promise.all(
+        relatedGraphChangeNotifications.map((notification) =>
+          markNotificationAsRead({ notification }),
+        ),
+      );
+    },
+    [notifications, markNotificationAsRead],
+  );
+
   const acceptDraftEntity = useCallback(
     async (params: { draftEntity: Entity }) => {
-      await updateEntity({
+      await markRelatedGraphChangeNotificationsAsRead(params);
+
+      const response = await updateEntity({
         variables: {
           entityId: params.draftEntity.metadata.recordId.entityId,
           updatedProperties: params.draftEntity.properties,
@@ -181,8 +203,14 @@ export const DraftEntitiesContextProvider: FunctionComponent<
       });
 
       await refetch();
+
+      if (!response.data) {
+        throw new Error("An error occurred accepting the draft entity.");
+      }
+
+      return response.data.updateEntity;
     },
-    [updateEntity, refetch],
+    [updateEntity, refetch, markRelatedGraphChangeNotificationsAsRead],
   );
 
   const value = useMemo<DraftEntitiesContextValue>(

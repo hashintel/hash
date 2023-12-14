@@ -66,7 +66,7 @@ export const EditEntityModal = ({
       setSavingChanges(true);
 
       await applyDraftLinkEntityChanges(
-        draftEntity.metadata.recordId.entityId,
+        draftEntity,
         draftLinksToCreate,
         draftLinksToArchive,
       );

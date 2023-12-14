@@ -226,10 +226,11 @@ export const getOrCreateEntity: ImpureGraphFunction<
     ownedById: OwnedById;
     entityDefinition: Omit<EntityDefinition, "linkedEntities">;
     relationships: EntityRelationAndSubject[];
+    draft?: boolean;
   },
   Promise<Entity>
 > = async (context, authentication, params) => {
-  const { entityDefinition, ownedById, relationships } = params;
+  const { entityDefinition, ownedById, relationships, draft } = params;
   const { entityProperties, existingEntityId } = entityDefinition;
 
   let entity;
@@ -260,6 +261,7 @@ export const getOrCreateEntity: ImpureGraphFunction<
       entityTypeId,
       properties: entityProperties,
       relationships,
+      draft,
     });
   } else {
     throw new Error(
@@ -286,11 +288,18 @@ export const createEntityWithLinks: ImpureGraphFunction<
     properties: EntityPropertiesObject;
     linkedEntities?: LinkedEntityDefinition[];
     relationships: EntityRelationAndSubject[];
+    draft?: boolean;
   },
   Promise<Entity>
 > = async (context, authentication, params) => {
-  const { ownedById, entityTypeId, properties, linkedEntities, relationships } =
-    params;
+  const {
+    ownedById,
+    entityTypeId,
+    properties,
+    linkedEntities,
+    relationships,
+    draft,
+  } = params;
 
   const entitiesInTree = linkedTreeFlatten<
     EntityDefinition,
@@ -325,6 +334,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
         ownedById,
         entityDefinition: definition,
         relationships,
+        draft,
       }),
     })),
   );
@@ -356,6 +366,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
           leftToRightOrder: link.meta.index ?? undefined,
           ownedById,
           relationships,
+          draft,
         });
       }
     }),

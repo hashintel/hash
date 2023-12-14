@@ -77,7 +77,7 @@ export const createEntityResolver: ResolverFn<
   MutationCreateEntityArgs
 > = async (
   _,
-  { ownedById, properties, entityTypeId, linkedEntities, linkData },
+  { ownedById, properties, entityTypeId, linkedEntities, linkData, draft },
   { dataSources, authentication, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
@@ -98,9 +98,11 @@ export const createEntityResolver: ResolverFn<
     const [leftEntity, rightEntity] = await Promise.all([
       getLatestEntityById(context, authentication, {
         entityId: leftEntityId,
+        includeDrafts: draft ?? false,
       }),
       getLatestEntityById(context, authentication, {
         entityId: rightEntityId,
+        includeDrafts: draft ?? false,
       }),
     ]);
 
@@ -113,6 +115,7 @@ export const createEntityResolver: ResolverFn<
       linkEntityTypeId: entityTypeId,
       ownedById: ownedById ?? (user.accountId as OwnedById),
       relationships: createDefaultAuthorizationRelationships(authentication),
+      draft: draft ?? undefined,
     });
   } else {
     entity = await createEntityWithLinks(context, authentication, {
@@ -121,6 +124,7 @@ export const createEntityResolver: ResolverFn<
       properties,
       linkedEntities: linkedEntities ?? undefined,
       relationships: createDefaultAuthorizationRelationships(authentication),
+      draft: draft ?? undefined,
     });
   }
 

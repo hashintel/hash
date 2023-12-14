@@ -1,26 +1,33 @@
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { Entity } from "@local/hash-subgraph";
-import { Box, Stack, Typography } from "@mui/material";
+import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 import { useRouter } from "next/router";
 import { ReactNode, useContext } from "react";
 
 import { TopContextBar } from "../../../../shared/top-context-bar";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
+import { DraftEntityBanner } from "./draft-entity-banner";
 
 export const EntityPageHeader = ({
   entity,
+  entitySubgraph,
+  onEntityUpdated,
   entityLabel,
   lightTitle,
   chip,
   editBar,
+  isModifyingEntity,
 }: {
   entity?: Entity;
+  entitySubgraph?: Subgraph<EntityRootType>;
+  onEntityUpdated?: (entity: Entity) => void;
   entityLabel: string;
   lightTitle?: boolean;
   chip: ReactNode;
   editBar?: ReactNode;
+  isModifyingEntity?: boolean;
 }) => {
   const router = useRouter();
 
@@ -52,6 +59,17 @@ export const EntityPageHeader = ({
         ]}
         scrollToTop={() => {}}
       />
+
+      {entity && entitySubgraph ? (
+        <Collapse in={entity.metadata.draft}>
+          <DraftEntityBanner
+            draftEntity={entity}
+            draftEntitySubgraph={entitySubgraph}
+            isModifyingEntity={isModifyingEntity}
+            onAcceptedEntity={onEntityUpdated}
+          />
+        </Collapse>
+      ) : null}
 
       {editBar}
 

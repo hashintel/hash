@@ -1,11 +1,7 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import {
-  Entity,
-  EntityId,
-  EntityRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
+import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
+import { useMemo } from "react";
 
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";
@@ -29,6 +25,8 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
     linkEntityTypeId,
     maxItems,
   } = cell.data.linkRow;
+
+  const entity = useMemo(() => getRoots(entitySubgraph)[0]!, [entitySubgraph]);
 
   const onSelectForSingleLink = (
     selectedEntity: Entity,
@@ -54,8 +52,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
     // create new link
     const linkEntity = createDraftLinkEntity({
       linkEntityTypeId,
-      leftEntityId: getRoots(entitySubgraph)[0]?.metadata.recordId
-        .entityId as EntityId,
+      leftEntityId: entity.metadata.recordId.entityId,
       rightEntityId: selectedEntity.metadata.recordId.entityId,
     });
 
@@ -81,6 +78,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
 
     return (
       <EntitySelector
+        includeDrafts={entity.metadata.draft}
         onSelect={onSelectForSingleLink}
         onFinishedEditing={onCancel}
         expectedEntityTypes={expectedEntityTypes}
