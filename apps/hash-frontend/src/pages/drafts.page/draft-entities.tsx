@@ -26,6 +26,7 @@ import {
 import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { getFirstRevision } from "../../shared/entity-utils";
+import { Button } from "../../shared/ui";
 import { MinimalActor, useActors } from "../../shared/use-actors";
 import {
   DraftEntitiesFilters,
@@ -34,6 +35,8 @@ import {
   LastEditedTimeRanges,
 } from "./draft-entities/draft-entities-filters";
 import { DraftEntity } from "./draft-entity";
+
+const incrementNumberOfEntitiesToDisplay = 50;
 
 const doesSubgraphIncludeEntitiesInRoots = (params: {
   subgraph: Subgraph<EntityRootType>;
@@ -251,13 +254,19 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
     ],
   );
 
+  const [numberOfIncrements, setNumberOfIncrements] = useState(1);
+
+  const numberOfEntitiesToDisplay =
+    incrementNumberOfEntitiesToDisplay * numberOfIncrements;
+
   return (
     <Container
       sx={{
         display: "flex",
         columnGap: 3.5,
         alignItems: "flex-start",
-        marginTop: 3,
+        paddingTop: 3,
+        paddingBottom: 6,
       }}
     >
       <Box
@@ -273,54 +282,82 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
               : "No draft entities match the selected filters."}
           </Typography>
         ) : (
-          <Box
-            sx={{
-              background: ({ palette }) => palette.common.white,
-              borderRadius: "8px",
-              borderColor: ({ palette }) => palette.gray[30],
-              borderWidth: 1,
-              borderStyle: "solid",
-              flexGrow: 1,
-            }}
-          >
-            {filteredAndSortedDraftEntitiesWithCreatedAt &&
-            draftEntitiesSubgraph ? (
-              filteredAndSortedDraftEntitiesWithCreatedAt.map(
-                ({ entity, createdAt }, i, all) => (
-                  <Fragment key={entity.metadata.recordId.entityId}>
-                    <DraftEntity
-                      entity={entity}
-                      createdAt={createdAt}
-                      subgraph={draftEntitiesSubgraph}
-                    />
-                    {i < all.length - 1 ? (
-                      <Divider
-                        sx={{ borderColor: ({ palette }) => palette.gray[30] }}
-                      />
-                    ) : null}
-                  </Fragment>
-                ),
-              )
-            ) : (
-              <Box paddingY={4.5} paddingX={3.25}>
-                <Box
-                  display="flex"
-                  justifyContent="space-between"
-                  marginBottom={1.5}
-                >
-                  <Skeleton height={30} width={150} />
-                  <Box display="flex" columnGap={1}>
-                    <Skeleton height={40} width={100} />
-                    <Skeleton height={40} width={100} />
+          <>
+            <Box
+              sx={{
+                background: ({ palette }) => palette.common.white,
+                borderRadius: "8px",
+                borderColor: ({ palette }) => palette.gray[30],
+                borderWidth: 1,
+                borderStyle: "solid",
+                flexGrow: 1,
+              }}
+            >
+              {filteredAndSortedDraftEntitiesWithCreatedAt &&
+              draftEntitiesSubgraph ? (
+                <>
+                  {filteredAndSortedDraftEntitiesWithCreatedAt
+                    /**
+                     * @todo: use pagination instead
+                     */
+                    .slice(0, numberOfEntitiesToDisplay)
+                    .map(({ entity, createdAt }, i, all) => (
+                      <Fragment key={entity.metadata.recordId.entityId}>
+                        <DraftEntity
+                          entity={entity}
+                          createdAt={createdAt}
+                          subgraph={draftEntitiesSubgraph}
+                        />
+                        {i < all.length - 1 ? (
+                          <Divider
+                            sx={{
+                              borderColor: ({ palette }) => palette.gray[30],
+                            }}
+                          />
+                        ) : null}
+                      </Fragment>
+                    ))}
+                </>
+              ) : (
+                <Box paddingY={4.5} paddingX={3.25}>
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    marginBottom={1.5}
+                  >
+                    <Skeleton height={30} width={150} />
+                    <Box display="flex" columnGap={1}>
+                      <Skeleton height={40} width={100} />
+                      <Skeleton height={40} width={100} />
+                    </Box>
+                  </Box>
+                  <Box display="flex" justifyContent="space-between">
+                    <Skeleton height={26} width={350} />
+                    <Skeleton height={26} width={250} />
                   </Box>
                 </Box>
-                <Box display="flex" justifyContent="space-between">
-                  <Skeleton height={26} width={350} />
-                  <Skeleton height={26} width={250} />
-                </Box>
+              )}
+            </Box>
+            {filteredAndSortedDraftEntitiesWithCreatedAt &&
+            filteredAndSortedDraftEntitiesWithCreatedAt.length >
+              numberOfEntitiesToDisplay ? (
+              <Box display="flex" width="100%" justifyContent="center">
+                <Button
+                  size="medium"
+                  sx={{ marginTop: 3 }}
+                  onClick={() => setNumberOfIncrements((prev) => prev + 1)}
+                >
+                  Display{" "}
+                  {Math.min(
+                    filteredAndSortedDraftEntitiesWithCreatedAt.length -
+                      numberOfEntitiesToDisplay,
+                    incrementNumberOfEntitiesToDisplay,
+                  )}{" "}
+                  more drafts
+                </Button>
               </Box>
-            )}
-          </Box>
+            ) : null}
+          </>
         )}
       </Box>
       {draftEntitiesWithCreatedAtAndCreators &&
