@@ -141,26 +141,36 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       includePermissions: false,
       query: {
         filter: {
-          any: [
+          all: [
             {
-              equal: [
-                { path: ["ownedById"] },
-                { parameter: authenticatedUser.accountId },
+              any: [
+                {
+                  equal: [
+                    { path: ["ownedById"] },
+                    { parameter: authenticatedUser.accountId },
+                  ],
+                },
+                ...authenticatedUser.memberOf.map(
+                  ({ org: { accountGroupId } }) => ({
+                    equal: [
+                      { path: ["ownedById"] },
+                      { parameter: accountGroupId },
+                    ],
+                  }),
+                ),
+                generateVersionedUrlMatchingFilter(
+                  systemEntityTypes.user.entityTypeId,
+                  { ignoreParents: true },
+                ),
+                generateVersionedUrlMatchingFilter(
+                  systemEntityTypes.organization.entityTypeId,
+                  { ignoreParents: true },
+                ),
               ],
             },
-            ...authenticatedUser.memberOf.map(
-              ({ org: { accountGroupId } }) => ({
-                equal: [{ path: ["ownedById"] }, { parameter: accountGroupId }],
-              }),
-            ),
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.user.entityTypeId,
-              { ignoreParents: true },
-            ),
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.organization.entityTypeId,
-              { ignoreParents: true },
-            ),
+            {
+              equal: [{ path: ["archived"] }, { parameter: false }],
+            },
           ],
         },
         graphResolveDepths: {
@@ -358,39 +368,37 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
         const outgoingLinks = getOutgoingLinkAndTargetEntities(
           entitiesSubgraph,
           entity.metadata.recordId.entityId,
-        )
-          .map<Extract<SubMenuItem, { kind: "outgoing-link" }>>(
-            ({
-              linkEntity: linkEntityRevisions,
-              rightEntity: rightEntityRevisions,
-            }) => {
-              const [linkEntity] = linkEntityRevisions;
-              const [rightEntity] = rightEntityRevisions;
+        ).map<Extract<SubMenuItem, { kind: "outgoing-link" }>>(
+          ({
+            linkEntity: linkEntityRevisions,
+            rightEntity: rightEntityRevisions,
+          }) => {
+            const [linkEntity] = linkEntityRevisions;
+            const [rightEntity] = rightEntityRevisions;
 
-              if (!linkEntity) {
-                throw new Error("Link entity not found");
-              } else if (!rightEntity) {
-                throw new Error("Right entity not found");
-              }
+            if (!linkEntity) {
+              throw new Error("Link entity not found");
+            } else if (!rightEntity) {
+              throw new Error("Right entity not found");
+            }
 
-              const linkEntityType = getEntityTypeById(
+            const linkEntityType = getEntityTypeById(
+              entitiesSubgraph,
+              linkEntity.metadata.entityTypeId,
+            )!;
+
+            return {
+              kind: "outgoing-link",
+              linkEntity,
+              linkEntityType,
+              targetEntity: rightEntity,
+              targetEntityLabel: generateEntityLabel(
                 entitiesSubgraph,
-                linkEntity.metadata.entityTypeId,
-              )!;
-
-              return {
-                kind: "outgoing-link",
-                linkEntity,
-                linkEntityType,
-                targetEntity: rightEntity,
-                targetEntityLabel: generateEntityLabel(
-                  entitiesSubgraph,
-                  rightEntity,
-                ),
-              };
-            },
-          )
-          .filter(({ linkEntity }) => !linkEntity.metadata.archived);
+                rightEntity,
+              ),
+            };
+          },
+        );
 
         return {
           ...prev,
