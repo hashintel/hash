@@ -157,7 +157,7 @@ export const InferenceRequest = ({
                   <InferredEntity
                     allEntityStatuses={
                       request.status === "complete"
-                        ? request.data.contents[0]?.results
+                        ? request.data.contents[0]?.results ?? []
                         : []
                     }
                     entityType={entityType}
