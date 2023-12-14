@@ -59,9 +59,9 @@ export const InferenceRequest = ({
       (acc, type) => {
         acc[type.schema.$id] =
           status === "complete"
-            ? request.data.contents[0].results.filter(
+            ? request.data.contents[0]?.results.filter(
                 (result) => result.entityTypeId === type.schema.$id,
-              )
+              ) ?? []
             : [];
         return acc;
       },
@@ -92,7 +92,7 @@ export const InferenceRequest = ({
 
   const usage =
     "data" in request &&
-    request.data.contents[0].usage.reduce(
+    request.data.contents[0]?.usage.reduce(
       (acc, usageItem) => acc + usageItem.total_tokens,
       0,
     );
@@ -157,7 +157,7 @@ export const InferenceRequest = ({
                   <InferredEntity
                     allEntityStatuses={
                       request.status === "complete"
-                        ? request.data.contents[0].results
+                        ? request.data.contents[0]?.results
                         : []
                     }
                     entityType={entityType}
