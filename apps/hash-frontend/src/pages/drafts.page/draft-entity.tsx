@@ -133,7 +133,7 @@ export const DraftEntity: FunctionComponent<{
         </Box>
         <DraftEntityProvenance entity={entity} createdAt={createdAt} />
       </Box>
-      <Collapse in={displayProperties}>
+      <Collapse in={displayProperties} mountOnEnter>
         <DraftEntityProperties initialEntity={entity} subgraph={subgraph} />
       </Collapse>
     </Box>
