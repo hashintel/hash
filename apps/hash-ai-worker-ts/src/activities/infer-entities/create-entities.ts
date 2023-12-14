@@ -1,13 +1,13 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import type { Entity, GraphApi } from "@local/hash-graph-client";
-import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   InferredEntityCreationFailure,
   InferredEntityCreationSuccess,
   InferredEntityUpdateSuccess,
   ProposedEntity,
-} from "@local/hash-isomorphic-utils/temporal-types";
+} from "@local/hash-isomorphic-utils/ai-inference-types";
+import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   AccountId,
   EntityId,
@@ -22,6 +22,7 @@ import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib
 import isMatch from "lodash.ismatch";
 
 import type { DereferencedEntityType } from "./dereference-entity-type";
+import { ensureTrailingSlash } from "./ensure-trailing-slash";
 import type { ProposedEntityCreationsByType } from "./generate-tools";
 import { extractErrorMessage } from "./shared/extract-validation-failure-details";
 import { getEntityByFilter } from "./shared/get-entity-by-filter";
@@ -90,7 +91,9 @@ export const createEntities = async ({
 
       await Promise.all(
         (proposedEntities ?? []).map(async (proposedEntity) => {
-          const { properties = {} } = proposedEntity;
+          const properties = ensureTrailingSlash(
+            proposedEntity.properties ?? {},
+          );
 
           const nameProperties = [
             "name",
@@ -240,7 +243,9 @@ export const createEntities = async ({
 
       await Promise.all(
         (proposedEntities ?? []).map(async (proposedEntity) => {
-          const { properties = {} } = proposedEntity;
+          const properties = ensureTrailingSlash(
+            proposedEntity.properties ?? {},
+          );
 
           if (
             !(

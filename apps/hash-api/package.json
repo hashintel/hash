@@ -11,7 +11,7 @@
     "generate-ontology-type-ids": "tsx ./src/generate-ontology-type-ids.ts; yarn prettier --write ../../libs/@local/hash-isomorphic-utils/src/ontology-type-ids.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx --trace-gc ./src/index.ts",
+    "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts",
     "start-test": "cross-env NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts",
     "test:unit": "jest"
   },
@@ -48,6 +48,7 @@
     "@sentry/node": "7.81.0",
     "@snowplow/node-tracker": "3.3.1",
     "@temporalio/client": "1.8.1",
+    "@types/ws": "8.5.10",
     "agentkeepalive": "4.2.1",
     "apollo-datasource": "3.3.2",
     "apollo-server-core": "3.12.1",
@@ -83,7 +84,8 @@
     "oembed-providers": "1.0.20220105",
     "ts-node": "10.9.1",
     "tsx": "3.13.0",
-    "typescript": "5.1.6"
+    "typescript": "5.1.6",
+    "ws": "8.15.1"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "5.0.0",

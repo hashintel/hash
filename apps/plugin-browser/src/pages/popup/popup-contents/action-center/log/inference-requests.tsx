@@ -150,7 +150,7 @@ export const InferenceRequests = ({
   return (
     <Box mt={2}>
       {inferenceRequests.map((request) => {
-        const requestId = request.localRequestUuid;
+        const requestId = request.requestUuid;
 
         return (
           <InferenceRequestContainer

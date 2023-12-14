@@ -1,5 +1,6 @@
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { Session } from "@ory/client";
 import { AxiosError } from "axios";
 import { Express, Request, RequestHandler } from "express";
 
@@ -8,6 +9,7 @@ import { getHashInstance } from "../graph/knowledge/system-types/hash-instance";
 import {
   createUser,
   getUserByKratosIdentityId,
+  User,
 } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 import { kratosFrontendApi, KratosUserIdentity } from "./ory-kratos";
@@ -76,28 +78,96 @@ const kratosAfterRegistrationHookHandler =
     })();
   };
 
-const setupAuth = (params: {
+export const addKratosAfterRegistrationHandler = ({
+  app,
+  context,
+}: {
   app: Express;
-  logger: Logger;
   context: ImpureGraphContext;
 }) => {
-  const { app, logger, context } = params;
-  const authentication = { actorId: systemAccountId };
-
-  // Kratos hook handlers
   app.post(
     "/kratos-after-registration",
     kratosAfterRegistrationHookHandler(context),
   );
+};
+
+export const getUserAndSession = async ({
+  context,
+  cookie,
+  logger,
+  sessionToken,
+}: {
+  context: ImpureGraphContext;
+  cookie?: string;
+  logger: Logger;
+  sessionToken?: string;
+}): Promise<{
+  session?: Session;
+  user?: User;
+}> => {
+  const authentication = { actorId: systemAccountId };
+
+  const kratosSession = await kratosFrontendApi
+    .toSession({
+      cookie,
+      xSessionToken: sessionToken,
+    })
+    .then(({ data }) => data)
+    .catch((err: AxiosError) => {
+      // 403 on toSession means that we need to request 2FA
+      if (err.response && err.response.status === 403) {
+        /** @todo: figure out if this should be handled here, or in the next.js app (when implementing 2FA) */
+      }
+      logger.debug(
+        `Kratos response error: Could not fetch session, got: [${err.response
+          ?.status}] ${JSON.stringify(err.response?.data)}`,
+      );
+      return undefined;
+    });
+
+  if (kratosSession) {
+    const { identity } = kratosSession;
+
+    const { id: kratosIdentityId } = identity;
+
+    const user = await getUserByKratosIdentityId(context, authentication, {
+      kratosIdentityId,
+    });
+
+    if (!user) {
+      throw new Error(
+        `Could not find user with kratos identity id "${kratosIdentityId}"`,
+      );
+    }
+
+    return { session: kratosSession, user };
+  }
+
+  return {};
+};
+
+export const createAuthMiddleware = (params: {
+  logger: Logger;
+  context: ImpureGraphContext;
+}): RequestHandler => {
+  const { logger, context } = params;
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises -- https://github.com/DefinitelyTyped/DefinitelyTyped/issues/50871
-  app.use(async (req, _res, next) => {
+  return async (req, _res, next) => {
     const authHeader = req.header("authorization");
     const hasAuthHeader = authHeader?.startsWith("Bearer ") ?? false;
+
     const sessionToken =
       hasAuthHeader && typeof authHeader === "string"
         ? authHeader.slice(7, authHeader.length)
         : undefined;
+
+    const { session, user } = await getUserAndSession({
+      context,
+      cookie: req.header("cookie"),
+      logger,
+      sessionToken,
+    });
 
     const kratosSession = await kratosFrontendApi
       .toSession({
@@ -118,27 +188,11 @@ const setupAuth = (params: {
       });
 
     if (kratosSession) {
-      req.session = kratosSession;
-
-      const { identity } = kratosSession;
-
-      const { id: kratosIdentityId } = identity;
-
-      const user = await getUserByKratosIdentityId(context, authentication, {
-        kratosIdentityId,
-      });
-
-      if (!user) {
-        throw new Error(
-          `Could not find user with kratos identity id "${kratosIdentityId}"`,
-        );
-      }
+      req.session = session;
 
       req.user = user;
     }
 
     next();
-  });
+  };
 };
-
-export default setupAuth;

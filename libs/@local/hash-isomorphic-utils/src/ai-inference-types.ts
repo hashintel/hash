@@ -127,3 +127,16 @@ export type InferEntitiesReturn = Status<{
   /** The number of tokens used during the process, by model call, starting from the first */
   usage: InferenceTokenUsage[];
 }>;
+
+export type InferEntitiesRequestMessage = {
+  cookie: string;
+  type: "inference-request";
+  payload: InferEntitiesUserArguments;
+  requestUuid: string;
+};
+
+export type InferEntitiesResponseMessage = {
+  payload: InferEntitiesReturn;
+  requestUuid: string;
+  type: "inference-response";
+};

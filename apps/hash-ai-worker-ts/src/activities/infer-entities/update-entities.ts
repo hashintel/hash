@@ -3,7 +3,7 @@ import type { GraphApi } from "@local/hash-graph-client";
 import type {
   InferredEntityUpdateFailure,
   InferredEntityUpdateSuccess,
-} from "@local/hash-isomorphic-utils/temporal-types";
+} from "@local/hash-isomorphic-utils/ai-inference-types";
 import type {
   AccountId,
   Entity,
@@ -17,6 +17,7 @@ import {
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 
 import type { DereferencedEntityType } from "./dereference-entity-type";
+import { ensureTrailingSlash } from "./ensure-trailing-slash";
 import { ProposedEntityUpdatesByType } from "./generate-tools";
 import { extractErrorMessage } from "./shared/extract-validation-failure-details";
 import { getEntityByFilter } from "./shared/get-entity-by-filter";
@@ -63,7 +64,7 @@ export const updateEntities = async ({
 
           const proposedEntity = {
             entityId,
-            properties,
+            properties: ensureTrailingSlash(properties),
           };
 
           let existingEntity: Entity | undefined = undefined;
