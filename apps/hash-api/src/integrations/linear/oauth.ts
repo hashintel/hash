@@ -1,10 +1,7 @@
 import crypto from "node:crypto";
 
 import { LinearClient } from "@linear/sdk";
-import {
-  getMachineActorId,
-  getWebMachineActorId,
-} from "@local/hash-backend-utils/machine-actors";
+import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import {
   apiOrigin,
   frontendUrl,
@@ -177,7 +174,7 @@ export const oAuthLinearCallback: RequestHandler<
       return;
     }
 
-    const { actorEntityId, ownedById, ownerType } = stateData;
+    const { actorEntityId, ownerType } = stateData;
 
     stateMap.delete(state);
 
@@ -217,8 +214,14 @@ export const oAuthLinearCallback: RequestHandler<
 
     const linearOrgId = org.id;
 
+    const userAccountId = extractEntityUuidFromEntityId(
+      actorEntityId,
+    ) as Uuid as AccountId;
+
+    const authentication = { actorId: userAccountId };
+
     // @todo give the path components some more thought
-    const vaultPath = `${ownerType}/${ownedById}/linear/user/${actorEntityId}/workspace/${linearOrgId}`;
+    const vaultPath = `${ownerType}/${userAccountId}/linear/user/${actorEntityId}/workspace/${linearOrgId}`;
 
     await req.context.vaultClient.write({
       data: { value: access_token },
@@ -235,63 +238,6 @@ export const oAuthLinearCallback: RequestHandler<
       "https://hash.ai/@hash/types/property-type/vault-path/": vaultPath,
     };
 
-    const userAccountId = extractEntityUuidFromEntityId(
-      actorEntityId,
-    ) as Uuid as AccountId;
-    const authentication = { actorId: userAccountId };
-
-    /**
-     * Add the Linear machine user to the web the integration is being set up in,
-     * if it doesn't already have permission to read and edit entities in it.
-     */
-    const linearBotAccountId = await getMachineActorId(
-      req.context,
-      authentication,
-      { identifier: "linear" },
-    );
-
-    const linearBotHasPermission = await req.context.graphApi
-      .checkWebPermission(linearBotAccountId, ownedById, "create_entity")
-      .then((resp) => resp.data.has_permission);
-
-    if (!linearBotHasPermission) {
-      const webMachineActorId = await getWebMachineActorId(
-        req.context,
-        authentication,
-        {
-          ownedById: ownedById as Uuid as OwnedById,
-        },
-      );
-
-      await req.context.graphApi.modifyWebAuthorizationRelationships(
-        webMachineActorId,
-        [
-          {
-            operation: "create",
-            resource: ownedById,
-            relationAndSubject: {
-              subject: {
-                kind: "account",
-                subjectId: linearBotAccountId,
-              },
-              relation: "entityCreator",
-            },
-          },
-          {
-            operation: "create",
-            resource: ownedById,
-            relationAndSubject: {
-              subject: {
-                kind: "account",
-                subjectId: linearBotAccountId,
-              },
-              relation: "entityEditor",
-            },
-          },
-        ],
-      );
-    }
-
     /**
      * Create the linear integration entity if it doesn't exist, and link it to the user secret
      */
@@ -299,6 +245,16 @@ export const oAuthLinearCallback: RequestHandler<
       req.context,
       authentication,
       { linearOrgId, userAccountId },
+    );
+
+    /**
+     * Ensure the linear bot has access to the linear integration entity
+     * and user secret.
+     */
+    const linearBotAccountId = await getMachineActorId(
+      req.context,
+      authentication,
+      { identifier: "linear" },
     );
 
     const userAndBotAndWebAdminsOnly: EntityRelationAndSubject[] = [
@@ -332,7 +288,7 @@ export const oAuthLinearCallback: RequestHandler<
       // Create the user secret, which only the user, Linear bot, and web admins can access
       const userSecretEntity = await createEntity(req.context, authentication, {
         entityTypeId: systemEntityTypes.userSecret.entityTypeId,
-        ownedById: ownedById as Uuid as OwnedById,
+        ownedById: userAccountId as OwnedById,
         properties: secretMetadata,
         relationships: userAndBotAndWebAdminsOnly,
       });
@@ -347,7 +303,7 @@ export const oAuthLinearCallback: RequestHandler<
         authentication,
         {
           entityTypeId: systemEntityTypes.linearIntegration.entityTypeId,
-          ownedById: ownedById as Uuid as OwnedById,
+          ownedById: userAccountId as OwnedById,
           properties: linearIntegrationProperties,
           relationships:
             createDefaultAuthorizationRelationships(authentication),
@@ -356,7 +312,7 @@ export const oAuthLinearCallback: RequestHandler<
 
       // Create the link from the integration to the secret entity, which only the user, Linear bot, and web admins can access
       await createLinkEntity(req.context, authentication, {
-        ownedById: ownedById as Uuid as OwnedById,
+        ownedById: userAccountId as OwnedById,
         linkEntityTypeId: systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
         leftEntityId: linearIntegrationEntity.metadata.recordId.entityId,
         rightEntityId: userSecretEntity.metadata.recordId.entityId,
