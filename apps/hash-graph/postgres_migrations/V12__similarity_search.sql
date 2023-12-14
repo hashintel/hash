@@ -1,21 +1,15 @@
 CREATE EXTENSION "vector";
 
 CREATE TABLE "entity_embeddings" (
-    "web_id"      UUID,
-    "entity_uuid" UUID,
+    "web_id"      UUID NOT NULL,
+    "entity_uuid" UUID NOT NULL,
+    "property"    TEXT REFERENCES "base_urls",
     "embedding"   VECTOR(1536) NOT NULL,
-    PRIMARY KEY ("web_id", "entity_uuid"),
     FOREIGN KEY ("web_id", "entity_uuid") REFERENCES "entity_ids"
 );
 
-CREATE TABLE "entity_property_embeddings" (
-    "web_id"      UUID,
-    "entity_uuid" UUID,
-    "base_url"    TEXT REFERENCES base_urls,
-    "embedding"   VECTOR(1536) NOT NULL,
-    PRIMARY KEY ("web_id", "entity_uuid", "base_url"),
-    FOREIGN KEY ("web_id", "entity_uuid") REFERENCES "entity_ids"
-);
+CREATE UNIQUE INDEX "entity_embeddings_idx"
+    ON "entity_embeddings" ("web_id", "entity_uuid", "property") NULLS NOT DISTINCT;
 
 CREATE TABLE "entity_type_embeddings" (
     "ontology_id" UUID PRIMARY KEY REFERENCES entity_types,

@@ -16,6 +16,7 @@ use uuid::Uuid;
 use crate::{
     knowledge::link::LinkData,
     provenance::{OwnedById, ProvenanceMetadata},
+    Embedding,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -281,6 +282,17 @@ impl EntityEditionId {
 pub struct EntityRecordId {
     pub entity_id: EntityId,
     pub edition_id: EntityEditionId,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct EntityEmbedding<'e> {
+    pub entity_id: EntityId,
+    // TODO: Stop allocating everywhere in type-system package
+    //   see https://linear.app/hash/issue/BP-57
+    pub property: Option<BaseUrl>,
+    pub embedding: Embedding<'e>,
 }
 
 #[cfg(test)]

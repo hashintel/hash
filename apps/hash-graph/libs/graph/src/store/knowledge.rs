@@ -6,7 +6,7 @@ use error_stack::Result;
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{Entity, EntityId, EntityMetadata, EntityProperties, EntityUuid},
+        entity::{Entity, EntityEmbedding, EntityId, EntityMetadata, EntityProperties, EntityUuid},
         link::{EntityLinkOrder, LinkData},
     },
     provenance::OwnedById,
@@ -173,4 +173,11 @@ pub trait EntityStore: crud::Read<Entity> {
         properties: EntityProperties,
         link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError>;
+
+    async fn update_entity_embeddings<A: AuthorizationApi + Send + Sync>(
+        &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut A,
+        embeddings: impl IntoIterator<Item = EntityEmbedding<'_>> + Send,
+    ) -> Result<(), UpdateError>;
 }
