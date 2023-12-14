@@ -104,22 +104,6 @@ export const createEntity: ImpureGraphFunction<
     relationships: params.relationships,
   });
 
-  const promiseArray = [];
-  for (let i = 0; i < 200; i++) {
-    promiseArray.push(
-      graphApi.createEntity(actorId, {
-        ownedById,
-        entityTypeId,
-        properties,
-        entityUuid: overrideEntityUuid,
-        draft: true,
-        relationships: params.relationships,
-      }),
-    );
-  }
-
-  await Promise.all(promiseArray);
-
   const entity = { properties, metadata: metadata as EntityMetadata };
 
   for (const createOutgoingLinkParams of outgoingLinks ?? []) {
