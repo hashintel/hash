@@ -2,7 +2,7 @@ import type { GraphApi } from "@local/hash-graph-client";
 import type {
   InferEntitiesCallerParams,
   InferEntitiesReturn,
-} from "@local/hash-isomorphic-utils/temporal-types";
+} from "@local/hash-isomorphic-utils/ai-inference-types";
 import { ApplicationFailure } from "@temporalio/activity";
 
 import { inferEntities } from "./activities/infer-entities";

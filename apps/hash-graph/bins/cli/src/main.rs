@@ -18,6 +18,9 @@ use graph::load_env;
 
 use self::{args::Args, error::GraphError};
 
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 fn main() -> Result<(), GraphError> {
     load_env(None);
     validation::error::install_error_stack_hooks();

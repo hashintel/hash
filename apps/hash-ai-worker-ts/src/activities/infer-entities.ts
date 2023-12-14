@@ -11,17 +11,17 @@ import type {
   Entity as GraphApiEntity,
   GraphApi,
 } from "@local/hash-graph-client";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   InferenceModelName,
   InferenceTokenUsage,
   InferEntitiesCallerParams,
   InferEntitiesReturn,
-} from "@local/hash-isomorphic-utils/temporal-types";
-import { InferredEntityChangeResult } from "@local/hash-isomorphic-utils/temporal-types";
+} from "@local/hash-isomorphic-utils/ai-inference-types";
+import { InferredEntityChangeResult } from "@local/hash-isomorphic-utils/ai-inference-types";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   AccountId,
   Entity,
