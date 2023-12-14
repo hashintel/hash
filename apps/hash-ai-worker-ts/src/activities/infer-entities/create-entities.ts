@@ -5,7 +5,6 @@ import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils
 import type {
   InferredEntityCreationFailure,
   InferredEntityCreationSuccess,
-  InferredEntityUpdateSuccess,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/temporal-types";
 import type {
@@ -37,9 +36,7 @@ type StatusByTemporaryId<T> = Record<number, T>;
 type EntityStatusMap = {
   creationSuccesses: StatusByTemporaryId<InferredEntityCreationSuccess>;
   creationFailures: StatusByTemporaryId<InferredEntityCreationFailure>;
-  previousSuccesses: StatusByTemporaryId<
-    InferredEntityCreationSuccess | InferredEntityUpdateSuccess
-  >;
+  previousSuccesses: StatusByTemporaryId<{ entity: Entity }>;
   updateCandidates: StatusByTemporaryId<UpdateCandidate>;
   unchangedEntities: StatusByTemporaryId<UpdateCandidate>;
 };
@@ -57,9 +54,7 @@ export const createEntities = async ({
   createAsDraft: boolean;
   graphApiClient: GraphApi;
   log: (message: string) => void;
-  previousSuccesses: StatusByTemporaryId<
-    InferredEntityCreationSuccess | InferredEntityUpdateSuccess
-  >;
+  previousSuccesses: StatusByTemporaryId<{ entity: Entity }>;
   proposedEntitiesByType: ProposedEntityCreationsByType;
   requestedEntityTypes: Record<
     VersionedUrl,
