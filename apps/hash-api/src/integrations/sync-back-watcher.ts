@@ -81,8 +81,12 @@ export const createIntegrationSyncBackWatcher = async (
            * The linear bot may not have access to the entity, which means
            * it it's probably not an entity that should be processed.
            *
-           * @todo figure out what the permission model should be for the sync-back watcher
-           * so that it can be used for other integrations.
+           * @todo we probably want to avoid fetching the entity in the sync
+           * back watcher entirely, as we don't want to have a single actor
+           * that can read all entities in the graph. One way of avoiding this
+           * would be passing the `entityTypeId` of the modified entity so that
+           * the correct integration processor can be called based on the entity's
+           * type.
            *
            * @see https://linear.app/hash/issue/H-756
            */
