@@ -1,3 +1,4 @@
+import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { entityEditionRecordFromRealtimeMessage } from "@local/hash-backend-utils/pg-tables";
 import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/redis";
 import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
@@ -49,9 +50,15 @@ export const createIntegrationSyncBackWatcher = async (
 
         const entityEdition = entityEditionRecordFromRealtimeMessage(message);
 
+        const linearBotAccountId = await getMachineActorId(
+          { graphApi: graphApiClient },
+          { actorId: systemAccountId },
+          { identifier: "linear" },
+        );
+
         const entity = (
           await graphApiClient
-            .getEntitiesByQuery(systemAccountId, {
+            .getEntitiesByQuery(linearBotAccountId, {
               filter: {
                 equal: [
                   { path: ["editionId"] },
@@ -71,10 +78,11 @@ export const createIntegrationSyncBackWatcher = async (
 
         if (!entity) {
           /**
-           * The system account ID may not have access to the entity, so
-           * for now let's exit gracefully.
+           * The linear bot may not have access to the entity, which means
+           * it it's probably not an entity that should be processed.
            *
            * @todo figure out what the permission model should be for the sync-back watcher
+           * so that it can be used for other integrations.
            *
            * @see https://linear.app/hash/issue/H-756
            */
