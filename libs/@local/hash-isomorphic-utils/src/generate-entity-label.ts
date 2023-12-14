@@ -127,5 +127,28 @@ export const generateEntityLabel = (
     }
   }
 
+  const firstName =
+    simplifiedProperties.firstName &&
+    typeof simplifiedProperties.firstName === "string"
+      ? simplifiedProperties.firstName
+      : undefined;
+
+  const lastName =
+    simplifiedProperties.lastName &&
+    typeof simplifiedProperties.lastName === "string"
+      ? simplifiedProperties.lastName
+      : simplifiedProperties.familyName &&
+          typeof simplifiedProperties.familyName === "string"
+        ? simplifiedProperties.familyName
+        : undefined;
+
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  } else if (firstName) {
+    return firstName;
+  } else if (lastName) {
+    return lastName;
+  }
+
   return getFallbackLabel({ entityType, entity: entityToLabel });
 };
