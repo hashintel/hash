@@ -17,7 +17,17 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Divider, Typography } from "@mui/material";
 import { subDays, subHours } from "date-fns";
-import { Fragment, FunctionComponent, useMemo, useRef, useState } from "react";
+import {
+  Dispatch,
+  Fragment,
+  FunctionComponent,
+  SetStateAction,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
   StructuralQueryEntitiesQuery,
@@ -256,6 +266,17 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
 
   const [numberOfIncrements, setNumberOfIncrements] = useState(1);
 
+  useLayoutEffect(() => {
+    setNumberOfIncrements(1);
+  }, [sortOrder]);
+
+  const handleFilterStateChange = useCallback<
+    Dispatch<SetStateAction<DraftEntityFilterState | undefined>>
+  >((updatedFilterState) => {
+    setFilterState(updatedFilterState);
+    setNumberOfIncrements(1);
+  }, []);
+
   const numberOfEntitiesToDisplay =
     incrementNumberOfEntitiesToDisplay * numberOfIncrements;
 
@@ -368,7 +389,7 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
           }
           draftEntitiesSubgraph={draftEntitiesSubgraph}
           filterState={filterState}
-          setFilterState={setFilterState}
+          setFilterState={handleFilterStateChange}
         />
       )}
     </Container>
