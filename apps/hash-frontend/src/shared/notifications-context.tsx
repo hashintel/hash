@@ -263,7 +263,8 @@ export const NotificationsContextProvider: FunctionComponent<
     if (
       !outgoingLinksSubgraph ||
       !notificationEntities ||
-      !notificationRevisionsData
+      !notificationRevisionsData ||
+      loadingNotificationRevisions
     ) {
       return previouslyFetchedNotificationsRef.current ?? undefined;
     }
