@@ -1,5 +1,8 @@
 import { IconButton } from "@hashintel/design-system";
-import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
+import {
+  isOwnedOntologyElementMetadata,
+  OwnedById,
+} from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Collapse, Fade, Tooltip } from "@mui/material";
 import { orderBy } from "lodash";
@@ -13,6 +16,7 @@ import { ArrowDownAZRegularIcon } from "../../icons/arrow-down-a-z-regular-icon"
 import { ArrowUpZARegularIcon } from "../../icons/arrow-up-a-z-regular-icon";
 import { PlusRegularIcon } from "../../icons/plus-regular";
 import { Link } from "../../ui";
+import { useEntityTypeEntities } from "../../use-entity-type-entities";
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
 import {
   SortActionsDropdown,
@@ -23,7 +27,7 @@ import { LoadingSkeleton } from "./shared/loading-skeleton";
 import { ViewAllLink } from "./view-all-link";
 
 type AccountEntitiesListProps = {
-  ownedById: string;
+  ownedById: OwnedById;
 };
 
 export const AccountEntitiesList: FunctionComponent<
@@ -41,6 +45,8 @@ export const AccountEntitiesList: FunctionComponent<
   const { latestEntityTypes, loading, isSpecialEntityTypeLookup } =
     useLatestEntityTypesOptional();
 
+  const { entities: userEntities } = useEntityTypeEntities({ ownedById });
+
   const pinnedEntityTypes = useMemo(() => {
     const { pinnedEntityTypeBaseUrls } = activeWorkspace ?? {};
 
@@ -55,14 +61,17 @@ export const AccountEntitiesList: FunctionComponent<
     if (latestEntityTypes) {
       return latestEntityTypes.filter(
         (root) =>
-          isOwnedOntologyElementMetadata(root.metadata) &&
-          root.metadata.custom.ownedById === ownedById &&
+          ((isOwnedOntologyElementMetadata(root.metadata) &&
+            root.metadata.custom.ownedById === ownedById) ||
+            userEntities?.find(
+              (entity) => entity.metadata.entityTypeId === root.schema.$id,
+            )) &&
           !isSpecialEntityTypeLookup?.[root.schema.$id]?.isLink,
       );
     }
 
     return null;
-  }, [latestEntityTypes, ownedById, isSpecialEntityTypeLookup]);
+  }, [latestEntityTypes, ownedById, userEntities, isSpecialEntityTypeLookup]);
 
   const sidebarEntityTypes = useMemo(
     () => [...(pinnedEntityTypes ?? []), ...(accountEntityTypes ?? [])],

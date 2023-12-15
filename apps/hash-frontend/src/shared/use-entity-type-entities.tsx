@@ -8,6 +8,7 @@ import {
   BaseUrl,
   EntityRootType,
   GraphResolveDepths,
+  OwnedById,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
@@ -23,15 +24,26 @@ import { EntityTypeEntitiesContextValue } from "./entity-type-entities-context";
 export const useEntityTypeEntities = (params: {
   entityTypeBaseUrl?: BaseUrl;
   entityTypeId?: VersionedUrl;
+  ownedById?: OwnedById;
   graphResolveDepths?: Partial<GraphResolveDepths>;
 }): EntityTypeEntitiesContextValue => {
-  const { entityTypeBaseUrl, entityTypeId, graphResolveDepths } = params;
+  const { entityTypeBaseUrl, entityTypeId, ownedById, graphResolveDepths } =
+    params;
 
   const variables = useMemo<QueryEntitiesQueryVariables>(
     () => ({
       operation: {
         multiFilter: {
           filters: [
+            ...(ownedById
+              ? [
+                  {
+                    field: ["ownedById"],
+                    operator: "EQUALS" as const,
+                    value: ownedById,
+                  },
+                ]
+              : []),
             ...(entityTypeBaseUrl
               ? [
                   {
@@ -57,7 +69,7 @@ export const useEntityTypeEntities = (params: {
       ...graphResolveDepths,
       includePermissions: false,
     }),
-    [entityTypeBaseUrl, graphResolveDepths, entityTypeId],
+    [entityTypeBaseUrl, graphResolveDepths, entityTypeId, ownedById],
   );
 
   const { data, loading, refetch } = useQuery<
