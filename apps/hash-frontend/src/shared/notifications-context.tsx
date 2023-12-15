@@ -263,8 +263,7 @@ export const NotificationsContextProvider: FunctionComponent<
     if (
       !outgoingLinksSubgraph ||
       !notificationEntities ||
-      !notificationRevisionsData ||
-      loadingNotificationRevisions
+      !notificationRevisionsData
     ) {
       return previouslyFetchedNotificationsRef.current ?? undefined;
     }
@@ -273,6 +272,14 @@ export const NotificationsContextProvider: FunctionComponent<
       mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
         notificationRevisionsData.structuralQueryEntities.subgraph,
       );
+
+    /**
+     * For some reason the revisionsSubgraph query can return an empty subgraph occasionally
+     * @todo figure out why H-1706
+     */
+    if (notificationEntities.length && !revisionsSubgraph.roots.length) {
+      return previouslyFetchedNotificationsRef.current ?? undefined;
+    }
 
     const derivedNotifications = notificationEntities
       .map((entity) => {
