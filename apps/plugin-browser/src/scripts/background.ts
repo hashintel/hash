@@ -133,7 +133,7 @@ void getFromLocalStorage("automaticInferenceConfig").then((config) => {
   }
 });
 
-const tenMinutesInMs = 10 * 60 * 1000;
+const thirtyMinutesInMs = 30 * 60 * 1000;
 
 const setInferenceRequests = getSetFromLocalStorageValue("inferenceRequests");
 void setInferenceRequests((currentValue) =>
@@ -143,7 +143,7 @@ void setInferenceRequests((currentValue) =>
       const requestDate = new Date(request.createdAt);
       const msSinceRequest = now.getTime() - requestDate.getTime();
 
-      if (msSinceRequest > tenMinutesInMs) {
+      if (msSinceRequest > thirtyMinutesInMs) {
         return {
           ...request,
           errorMessage: "Request timed out",
