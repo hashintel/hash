@@ -486,6 +486,7 @@ export const NotificationsContextProvider: FunctionComponent<
           return {
             kind: "graph-change",
             createdAt: new Date(occurredInEntityEditionTimestamp),
+            readAt,
             entity: graphChangeEntity,
             occurredInEntityLabel: generateEntityLabel(
               outgoingLinksSubgraph,
@@ -519,7 +520,14 @@ export const NotificationsContextProvider: FunctionComponent<
           return -1;
         }
 
-        return b.createdAt.getTime() - a.createdAt.getTime();
+        const timeDifference = b.createdAt.getTime() - a.createdAt.getTime();
+        if (timeDifference !== 0) {
+          return timeDifference;
+        }
+        return a.entity.metadata.recordId.entityId >
+          b.entity.metadata.recordId.entityId
+          ? 1
+          : -1;
       });
 
     previouslyFetchedNotificationsRef.current = derivedNotifications;
