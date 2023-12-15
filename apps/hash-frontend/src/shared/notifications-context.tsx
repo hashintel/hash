@@ -274,6 +274,14 @@ export const NotificationsContextProvider: FunctionComponent<
         notificationRevisionsData.structuralQueryEntities.subgraph,
       );
 
+    /**
+     * For some reason the revisionsSubgraph query can return an empty subgraph occasionally
+     * @todo figure out why H-1706
+     */
+    if (notificationEntities.length && !revisionsSubgraph.roots.length) {
+      return previouslyFetchedNotificationsRef.current ?? undefined;
+    }
+
     const derivedNotifications = notificationEntities
       .map((entity) => {
         const {
@@ -486,6 +494,7 @@ export const NotificationsContextProvider: FunctionComponent<
           return {
             kind: "graph-change",
             createdAt: new Date(occurredInEntityEditionTimestamp),
+            readAt,
             entity: graphChangeEntity,
             occurredInEntityLabel: generateEntityLabel(
               outgoingLinksSubgraph,
@@ -519,7 +528,14 @@ export const NotificationsContextProvider: FunctionComponent<
           return -1;
         }
 
-        return b.createdAt.getTime() - a.createdAt.getTime();
+        const timeDifference = b.createdAt.getTime() - a.createdAt.getTime();
+        if (timeDifference !== 0) {
+          return timeDifference;
+        }
+        return a.entity.metadata.recordId.entityId >
+          b.entity.metadata.recordId.entityId
+          ? 1
+          : -1;
       });
 
     previouslyFetchedNotificationsRef.current = derivedNotifications;

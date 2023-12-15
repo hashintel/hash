@@ -310,8 +310,9 @@ const requestEntityInference = async (params: {
 
       return {
         code: StatusCode.Unknown,
-        contents: [],
-        message: errorMessage,
+        contents: [{ results: [], usage }],
+        message:
+          message.content ?? "No entities could be inferred from the page.",
       };
     }
 
@@ -324,7 +325,7 @@ const requestEntityInference = async (params: {
       if (!toolCallId) {
         return {
           code: StatusCode.ResourceExhausted,
-          contents: [],
+          contents: [{ results: [], usage }],
           message:
             "The maximum amount of tokens was reached before the model returned a completion, with no tool call to respond to.",
         };
@@ -354,7 +355,7 @@ const requestEntityInference = async (params: {
 
       return {
         code: StatusCode.InvalidArgument,
-        contents: [],
+        contents: [{ results: [], usage }],
         message: "The content filter was triggered",
       };
 
@@ -367,7 +368,7 @@ const requestEntityInference = async (params: {
 
         return {
           code: StatusCode.Internal,
-          contents: [],
+          contents: [{ results: [], usage }],
           message: errorMessage,
         };
       }
@@ -420,7 +421,7 @@ const requestEntityInference = async (params: {
 
           return {
             code: StatusCode.InvalidArgument,
-            contents: [],
+            contents: [{ results: [], usage }],
             message: parsedResponse.reason,
           };
         }
@@ -592,7 +593,7 @@ const requestEntityInference = async (params: {
 
             return {
               code: StatusCode.Internal,
-              contents: [],
+              contents: [{ results: [], usage }],
               message: errorMessage,
             };
           }
@@ -684,7 +685,7 @@ const requestEntityInference = async (params: {
           } catch (err) {
             return {
               code: StatusCode.Internal,
-              contents: [],
+              contents: [{ results: [], usage }],
               message: `Error update entities: ${(err as Error).message}`,
             };
           }
@@ -739,7 +740,7 @@ const requestEntityInference = async (params: {
 
   return {
     code: StatusCode.Internal,
-    contents: [],
+    contents: [{ results: [], usage }],
     message: errorMessage,
   };
 };

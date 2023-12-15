@@ -1,4 +1,4 @@
-import { Chip } from "@hashintel/design-system";
+import { Chip, WandMagicSparklesIcon } from "@hashintel/design-system";
 import { Entity } from "@local/hash-subgraph";
 import { Box, chipClasses, styled, Typography } from "@mui/material";
 import { format } from "date-fns";
@@ -69,7 +69,15 @@ export const DraftEntityProvenance: FunctionComponent<{
       </DraftEntityTypography>
       <DraftEntityChip
         sx={{ marginRight: 1 }}
-        icon={<UserIcon />}
+        icon={
+          createdBy &&
+          "displayName" in createdBy &&
+          createdBy.displayName === "HASH AI" ? (
+            <WandMagicSparklesIcon />
+          ) : (
+            <UserIcon />
+          )
+        }
         label={
           createdBy
             ? createdBy.accountId === authenticatedUser.accountId

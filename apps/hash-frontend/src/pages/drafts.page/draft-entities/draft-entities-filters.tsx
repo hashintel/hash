@@ -1,3 +1,4 @@
+import { WandMagicSparklesIcon } from "@hashintel/design-system";
 import {
   AccountId,
   BaseUrl,
@@ -320,7 +321,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
         </Fade>
       </Box>
       <Box>
-        <FilterSectionHeading>Impacted types</FilterSectionHeading>
+        <FilterSectionHeading>Types</FilterSectionHeading>
         <Box display="flex" flexDirection="column">
           {entityTypes?.map((entityType) => {
             const entityTypeBaseUrl = extractBaseUrl(entityType.schema.$id);
@@ -399,7 +400,12 @@ export const DraftEntitiesFilters: FunctionComponent<{
                 key={source.accountId}
                 label={
                   <>
-                    <UserIcon />
+                    {"displayName" in source &&
+                    source.displayName === "HASH AI" ? (
+                      <WandMagicSparklesIcon />
+                    ) : (
+                      <UserIcon />
+                    )}
                     {label}
                   </>
                 }
