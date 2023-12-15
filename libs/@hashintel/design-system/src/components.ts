@@ -36,6 +36,7 @@ export * from "./icon-list-regular";
 export * from "./icon-plus";
 export * from "./icon-rainbow-hash";
 export * from "./icon-rotate-regular";
+export * from "./icon-wand-magic-sparkles";
 export * from "./image-with-checked-background";
 export * from "./input-props";
 export * from "./loading-spinner";

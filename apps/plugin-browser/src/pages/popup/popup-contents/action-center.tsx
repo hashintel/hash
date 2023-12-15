@@ -1,4 +1,8 @@
-import { ListRegularIcon, PlusIcon } from "@hashintel/design-system";
+import {
+  ListRegularIcon,
+  PlusIcon,
+  WandMagicSparklesIcon,
+} from "@hashintel/design-system";
 import {
   Box,
   Stack,
@@ -21,7 +25,6 @@ import { Automated } from "./action-center/automated";
 import { defaultProductionRules } from "./action-center/default-production-rules";
 import { Log } from "./action-center/log";
 import { OneOff } from "./action-center/one-off";
-import { WandMagicSparklesIcon } from "./action-center/wand-magic-sparkles-icon";
 import { Avatar } from "./shared/avatar";
 import { popupWidth } from "./shared/sizing";
 
