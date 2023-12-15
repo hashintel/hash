@@ -10,6 +10,7 @@ import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useMemo, useState } from "react";
 import { TransitionGroup } from "react-transition-group";
 
+import { hiddenEntityTypeIds } from "../../../pages/shared/hidden-types";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { useLatestEntityTypesOptional } from "../../entity-types-context/hooks";
 import { ArrowDownAZRegularIcon } from "../../icons/arrow-down-a-z-regular-icon";
@@ -66,7 +67,8 @@ export const AccountEntitiesList: FunctionComponent<
             userEntities?.find(
               (entity) => entity.metadata.entityTypeId === root.schema.$id,
             )) &&
-          !isSpecialEntityTypeLookup?.[root.schema.$id]?.isLink,
+          !isSpecialEntityTypeLookup?.[root.schema.$id]?.isLink &&
+          !hiddenEntityTypeIds.includes(root.schema.$id),
       );
     }
 
