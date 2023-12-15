@@ -1,6 +1,7 @@
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import { Box, Skeleton, Stack, Typography } from "@mui/material";
+import { formatDuration, intervalToDuration } from "date-fns";
 import { useMemo, useState } from "react";
 
 import type {
@@ -8,6 +9,7 @@ import type {
   PageEntityInference,
 } from "../../../../../shared/storage";
 import {
+  borderColors,
   darkModeBorderColor,
   darkModeInputBackgroundColor,
 } from "../../../../shared/style-values";
@@ -17,26 +19,77 @@ import { InferredEntity } from "./inference-request/inferred-entity";
 const metadataFontSize = 12;
 
 const MetadataItem = ({ label, value }: { label: string; value: string }) => (
-  <Stack
-    component="span"
-    direction="row"
-    sx={{ "&:not(:last-child)": { mr: 1.5 } }}
-  >
+  <Stack component="span" direction="row">
     <Typography
       sx={{
         fontSize: metadataFontSize,
         fontWeight: 600,
         opacity: 0.5,
-        mr: 0.3,
       }}
     >
-      {label}:
+      {label}:{` `}
     </Typography>
     <Typography sx={{ fontSize: metadataFontSize, opacity: 0.6 }}>
       {value}
     </Typography>
   </Stack>
 );
+
+const InferenceMetadata = ({ request }: { request: PageEntityInference }) => {
+  const usage =
+    "data" in request &&
+    request.data.contents[0]?.usage.reduce(
+      (acc, usageItem) => acc + usageItem.total_tokens,
+      0,
+    );
+
+  const duration = request.finishedAt
+    ? formatDuration(
+        intervalToDuration({
+          start: new Date(request.createdAt),
+          end: new Date(request.finishedAt),
+        }),
+      )
+    : null;
+
+  return (
+    <Stack
+      alignItems="center"
+      direction="row"
+      justifyContent="space-between"
+      sx={() => ({
+        borderTopWidth: 1,
+        borderTopStyle: "solid",
+        ...borderColors,
+        pt: 0.5,
+      })}
+    >
+      <Box
+        component="a"
+        href={request.sourceUrl}
+        sx={({ palette, transitions }) => ({
+          color: palette.blue[70],
+          textDecoration: "none",
+          fontSize: metadataFontSize,
+          fontWeight: 600,
+          lineHeight: 1.5,
+          marginBottom: "1px",
+          opacity: 0.7,
+          transition: transitions.create("opacity"),
+          "&:hover": {
+            opacity: 1,
+          },
+        })}
+        target="blank"
+      >
+        View source page
+      </Box>
+      <MetadataItem label="Model" value={request.model} />
+      {usage && <MetadataItem label="Tokens used" value={usage.toString()} />}
+      {duration && <MetadataItem label="Time taken" value={duration} />}
+    </Stack>
+  );
+};
 
 export const InferenceRequest = ({
   request,
@@ -77,25 +130,21 @@ export const InferenceRequest = ({
 
   if (status === "error") {
     return (
-      <Typography
-        sx={{
-          color: ({ palette }) => palette.error.main,
-          fontSize: 12,
-          px: 1.5,
-          py: 1,
-        }}
-      >
-        {request.errorMessage}
-      </Typography>
+      <>
+        <Typography
+          sx={{
+            color: ({ palette }) => palette.error.main,
+            fontSize: 12,
+            px: 1.5,
+            py: 1,
+          }}
+        >
+          {request.errorMessage}
+        </Typography>
+        <InferenceMetadata request={request} />
+      </>
     );
   }
-
-  const usage =
-    "data" in request &&
-    request.data.contents[0]?.usage.reduce(
-      (acc, usageItem) => acc + usageItem.total_tokens,
-      0,
-    );
 
   return (
     <Box sx={{ px: 1.5, py: 1 }}>
@@ -179,31 +228,7 @@ export const InferenceRequest = ({
           );
         },
       )}
-      <Stack alignItems="center" direction="row" justifyContent="flex-end">
-        <Box
-          component="a"
-          href={request.sourceUrl}
-          sx={({ palette, transitions }) => ({
-            color: palette.blue[70],
-            textDecoration: "none",
-            fontSize: metadataFontSize,
-            fontWeight: 600,
-            lineHeight: 1.5,
-            marginBottom: "1px",
-            mr: 1.5,
-            opacity: 0.7,
-            transition: transitions.create("opacity"),
-            "&:hover": {
-              opacity: 1,
-            },
-          })}
-          target="blank"
-        >
-          Visit page
-        </Box>
-        <MetadataItem label="Model" value={request.model} />
-        {usage && <MetadataItem label="Tokens used" value={usage.toString()} />}
-      </Stack>
+      <InferenceMetadata request={request} />
     </Box>
   );
 };
