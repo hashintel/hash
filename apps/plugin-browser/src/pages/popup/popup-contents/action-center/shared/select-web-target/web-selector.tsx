@@ -10,7 +10,7 @@ import {
   darkModeInputColor,
 } from "../../../../../shared/style-values";
 import { Avatar } from "../../../shared/avatar";
-import { inputHeight, inputPropsSx, menuItemSx } from "../autocomplete-sx";
+import { inputPropsSx, menuItemSx } from "../autocomplete-sx";
 
 type WebOption = {
   avatarComponent: ReactElement;
@@ -48,6 +48,8 @@ const RenderOptionContent = ({
     </Stack>
   );
 };
+
+const inputHeight = 30;
 
 export const WebSelector = ({
   active,
@@ -108,7 +110,7 @@ export const WebSelector = ({
         endAdornment: <div />,
         startAdornment: selectedWeb?.avatarComponent,
         sx: {
-          ...inputPropsSx,
+          ...inputPropsSx({ inputHeight }),
           backgroundColor: ({ palette }) =>
             active ? "inherit" : palette.gray[10],
         },

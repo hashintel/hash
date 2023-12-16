@@ -72,6 +72,7 @@ export const ActionCenter = ({
   const [automaticInferenceConfig, setAutomaticInferenceConfig] =
     useLocalStorage("automaticInferenceConfig", {
       createAs: "draft",
+      displayGroupedBy: "type",
       enabled: false,
       model: "gpt-4-turbo",
       ownedById: user.webOwnedById,

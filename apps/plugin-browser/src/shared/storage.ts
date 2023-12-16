@@ -63,6 +63,7 @@ type UserAndLinkedData = Simplified<Entity<UserProperties>> & {
 export type LocalStorage = {
   automaticInferenceConfig: {
     createAs: "draft" | "live";
+    displayGroupedBy: "type" | "location";
     enabled: boolean;
     model: InferenceModelName;
     ownedById: OwnedById;
