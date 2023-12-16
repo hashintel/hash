@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+import "uuid.proto";
+import "auth.proto";
+
+message AccountId {
+  Uuid value = 1;
+}
+
+message AccountGroupId {
+  Uuid value = 1;
+}
+
+message CreateAccountRequest {
+  Authorization authorization = 1;
+}
+
+message CreateAccountResponse {
+  AccountId id = 1;
+}
+
+message CreateAccountGroupRequest {
+  Authorization authorization = 1;
+}
+
+message CreateAccountGroupResponse {
+  AccountGroupId id = 1;
+}
+
+enum AccountGroupPermission {
+  ACCOUNT_GROUP_ADD_MEMBER = 0;
+  ACCOUNT_GROUP_REMOVE_MEMBER = 1;
+}
+
+message CheckAccountGroupPermissionRequest {
+  Authorization authorization = 1;
+
+  AccountGroupId account_group_id = 2;
+  AccountGroupPermission permission = 3;
+}
+
+message CheckAccountGroupPermissionResponse {
+  bool has_permission = 1;
+}
+
+message AddAccountGroupMemberRequest {
+  Authorization authorization = 1;
+
+  AccountGroupId account_group_id = 2;
+  AccountId account_id = 3;
+}
+
+message AddAccountGroupMemberResponse {
+}
+
+message RemoveAccountGroupMemberRequest {
+  Authorization authorization = 1;
+
+  AccountGroupId account_group_id = 2;
+  AccountId account_id = 3;
+}
+
+message RemoveAccountGroupMemberResponse {
+}
+
+service AccountService {
+  rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
+  rpc CreateAccountGroup(CreateAccountGroupRequest) returns (CreateAccountGroupResponse);
+
+  rpc CheckAccountGroupPermission(CheckAccountGroupPermissionRequest) returns (CheckAccountGroupPermissionResponse);
+
+  rpc AddAccountGroupMember(AddAccountGroupMemberRequest) returns (AddAccountGroupMemberResponse);
+  rpc RemoveAccountGroupMember(RemoveAccountGroupMemberRequest) returns (RemoveAccountGroupMemberResponse);
+}

@@ -16,3 +16,4 @@ tonic = "0.10.2"
 tonic-rpc = { version = "0.2.1", features = ['json'] }
 bincode = "2.0.0-rc.3"
 bytes = "1.5.0"
+uuid = { version = "1.6.1", features = ["v4"] }

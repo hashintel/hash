@@ -1,0 +1,98 @@
+use std::future::Future;
+
+use bytes::Bytes;
+use uuid::Uuid;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ServiceId(u64);
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct MethodId(u64);
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ActorId(Uuid);
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RequestHeader {
+    service: ServiceId,
+    method: MethodId,
+}
+
+#[derive(Debug, Clone)]
+pub struct Request {
+    header: RequestHeader,
+    body: Bytes,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ResponseHeader;
+
+#[derive(Debug, Clone)]
+pub struct Response {
+    header: ResponseHeader,
+    body: Bytes,
+}
+
+pub trait Encode<T, S> {
+    fn encode(&self, value: T, state: &S) -> Bytes;
+}
+
+pub trait Decode<T, S> {
+    fn decode(&self, bytes: Bytes, state: &S) -> T;
+}
+
+pub trait Context<S> {
+    fn state(&self) -> &S;
+
+    fn finish<T>(&self, response: T) -> Response
+    where
+        Self: Encode<T, S>;
+}
+
+pub trait ProcedureCall<I, C, S> {
+    type Future<'a>: Future<Output = Response> + Send + 'a
+    where
+        Self: 'a,
+        C: 'a,
+        S: 'a;
+
+    fn call(self, request: Request, context: &C) -> Self::Future<'_>;
+}
+
+impl<F, I, C, S, O, Fut> ProcedureCall<I, C, S> for F
+where
+    F: FnOnce(I, &S) -> Fut + Clone + Send + 'static,
+    Fut: Future<Output = O> + Send,
+    I: Send,
+    C: Context<S> + Encode<O, S> + Decode<I, S> + Sync,
+    S: Sync,
+{
+    type Future<'a> = impl Future<Output = Response> + Send + 'a where
+        Self: 'a,
+        C: 'a,
+        S: 'a;
+
+    fn call(self, request: Request, context: &C) -> Self::Future<'_> {
+        let body = request.body;
+        let state = context.state();
+
+        async move {
+            let body = context.decode(body, state);
+            let input = body;
+
+            let output = self(input, state).await;
+
+            context.finish(output)
+        }
+    }
+}
+
+pub struct Procedure<T> {
+    id: MethodId,
+    call: T,
+}
+
+pub struct Service<T> {
+    id: ServiceId,
+    procedures: T,
+}

@@ -1175,6 +1175,7 @@ dependencies = [
  "tarpc",
  "tonic 0.10.2",
  "tonic-rpc",
+ "uuid",
 ]
 
 [[package]]
