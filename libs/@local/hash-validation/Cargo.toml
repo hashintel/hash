@@ -11,7 +11,7 @@ graph-types.workspace = true
 error-stack = { workspace = true, features = ["hooks"] }
 type-system.workspace = true
 
-thiserror = "1.0.50"
+thiserror = "1.0.51"
 serde_json = { version = "1.0.108" }
 
 [dev-dependencies]
