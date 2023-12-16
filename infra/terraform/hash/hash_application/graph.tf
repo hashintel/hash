@@ -51,7 +51,6 @@ locals {
     volumesFrom = []
     dependsOn   = [
       { condition = "HEALTHY", containerName = local.type_fetcher_service_container_def.name },
-      { condition = "HEALTHY", containerName = local.spicedb_service_container_def.name },
       { condition = "SUCCESS", containerName = local.graph_migration_container_def.name },
     ]
     command     = ["server"]
@@ -77,8 +76,13 @@ locals {
         "awslogs-region"        = var.region
       }
     }
-    Environment = [for env_var in var.graph_env_vars :
-    { name = env_var.name, value = env_var.value } if !env_var.secret]
+    Environment = concat([for env_var in var.graph_env_vars :
+    { name = env_var.name, value = env_var.value } if !env_var.secret],
+      [
+        { name = "HASH_SPICEDB_HOST", value = "http://${local.spicedb_container_http_port_dns}" },
+        { name = "HASH_SPICEDB_HTTP_PORT", value = tostring(local.spicedb_container_http_port) },
+      ]
+    )
 
     secrets = [for env_name, ssm_param in aws_ssm_parameter.graph_env_vars :
     { name = env_name, valueFrom = ssm_param.arn }]

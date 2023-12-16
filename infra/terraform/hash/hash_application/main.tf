@@ -2,7 +2,7 @@ locals {
   prefix         = "${var.prefix}-app"
   log_group_name = "${local.prefix}log"
   param_prefix   = "${var.param_prefix}/app"
-  task_defs = [
+  spicedb_task_defs = [
     {
       task_def = local.spicedb_migration_container_def
       env_vars = aws_ssm_parameter.spicedb_migration_env_vars
@@ -11,6 +11,8 @@ locals {
       task_def = local.spicedb_service_container_def
       env_vars = aws_ssm_parameter.spicedb_env_vars
     },
+  ]
+  task_defs = [
     {
       task_def = local.graph_migration_container_def
       env_vars = aws_ssm_parameter.graph_env_vars
@@ -57,6 +59,11 @@ locals {
       ecr_arn  = var.temporal_worker_integration_image.ecr_arn
     }
   ]
+}
+
+resource "aws_service_discovery_private_dns_namespace" "app" {
+  name = local.prefix
+  vpc  = var.vpc.id
 }
 
 data "aws_subnets" "snpub" {
@@ -284,6 +291,13 @@ resource "aws_iam_role" "execution_role" {
             flatten([for def in local.task_defs : [for _, env_var in def.env_vars : env_var.arn]])
           )
         }],
+        [{
+          Effect = "Allow"
+          Action = ["ssm:GetParameters"]
+          Resource = concat(
+            flatten([for def in local.spicedb_task_defs : [for _, env_var in def.env_vars : env_var.arn]])
+          )
+        }],
       ])
     })
   }
@@ -377,7 +391,7 @@ resource "aws_ecs_task_definition" "worker_task" {
 }
 
 resource "aws_ecs_service" "svc" {
-  depends_on             = [aws_iam_role.task_role]
+  depends_on             = [aws_iam_role.task_role, aws_ecs_service.spicedb]
   name                   = "${local.prefix}svc"
   cluster                = data.aws_ecs_cluster.ecs.arn
   task_definition        = aws_ecs_task_definition.task.arn
@@ -402,6 +416,11 @@ resource "aws_ecs_service" "svc" {
     target_group_arn = aws_lb_target_group.kratos_tg.arn
     container_name   = local.kratos_service_container_def.name
     container_port   = local.kratos_public_port
+  }
+
+  service_connect_configuration {
+    enabled = true
+    namespace = aws_service_discovery_private_dns_namespace.app.arn
   }
 
   tags = { Service = "${local.prefix}svc" }
@@ -488,6 +507,14 @@ resource "aws_security_group" "app_sg" {
     protocol    = "tcp"
     description = "Allow outbound GRPC connections to Temporal"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port       = local.spicedb_container_http_port
+    to_port         = local.spicedb_container_http_port
+    protocol        = "tcp"
+    description     = "Allow communication to SpiceDB"
+    cidr_blocks     = [var.vpc.cidr_block]
   }
 
   ingress {
