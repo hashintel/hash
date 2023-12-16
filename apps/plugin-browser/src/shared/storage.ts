@@ -80,6 +80,7 @@ export type LocalStorage = {
   draftQuickNote: string;
   entityTypes: EntityTypeWithMetadata[];
   inferenceRequests: PageEntityInference[];
+  popupTab: "one-off" | "automated" | "log";
   user: UserAndLinkedData | null;
 };
 

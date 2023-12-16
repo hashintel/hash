@@ -22,7 +22,7 @@ import {
  */
 export const useLocalStorage = <Key extends keyof LocalStorage>(
   key: Key,
-  initialValue: LocalStorage[Key],
+  initialValue: NonNullable<LocalStorage[Key]>,
 ) => {
   const [stateValue, setStateValue] = useState<LocalStorage[Key]>(initialValue);
   const [storageChecked, setStorageChecked] = useState(false);
