@@ -1,13 +1,26 @@
 use std::future::Future;
 
 use bytes::Bytes;
+use const_fnv1a_hash::fnv1a_hash_str_64;
 use uuid::Uuid;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ServiceId(u64);
 
+impl ServiceId {
+    pub const fn derive(value: &str) -> Self {
+        Self(fnv1a_hash_str_64(value))
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MethodId(u64);
+
+impl MethodId {
+    pub const fn derive(value: &str) -> Self {
+        Self(fnv1a_hash_str_64(value))
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ActorId(Uuid);
@@ -50,6 +63,8 @@ pub trait Context<S> {
 }
 
 pub trait ProcedureCall<I, C, S> {
+    type Response;
+
     type Future<'a>: Future<Output = Response> + Send + 'a
     where
         Self: 'a,
@@ -67,6 +82,8 @@ where
     C: Context<S> + Encode<O, S> + Decode<I, S> + Sync,
     S: Sync,
 {
+    type Response = O;
+
     type Future<'a> = impl Future<Output = Response> + Send + 'a where
         Self: 'a,
         C: 'a,
@@ -87,9 +104,28 @@ where
     }
 }
 
-pub struct Procedure<T> {
-    id: MethodId,
+pub trait ProcedureSpecification {
+    const ID: MethodId;
+
+    type Request;
+    type Response;
+
+    // TODO: client that implements those over transport!
+}
+
+pub struct Procedure<S, T>
+// where
+//     S: ProcedureSpecification,
+//     T: ProcedureCall<S::Request, C, Response=S::Response>,
+{
+    specification: S,
     call: T,
+}
+
+pub trait ServiceSpecification {
+    const ID: ServiceId;
+
+    type Procedures;
 }
 
 pub struct Service<T> {

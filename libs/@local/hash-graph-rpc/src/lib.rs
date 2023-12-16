@@ -2,4 +2,4 @@
 extern crate core;
 
 mod rpc;
-mod service;
+pub mod specification;

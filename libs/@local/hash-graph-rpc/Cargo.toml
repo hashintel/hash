@@ -9,6 +9,7 @@ publish = false
 
 [dependencies]
 graph-types = { workspace = true }
+authorization = { workspace = true }
 
 tarpc = "0.33.0"
 minicbor = "0.20.0"
@@ -17,3 +18,4 @@ tonic-rpc = { version = "0.2.1", features = ['json'] }
 bincode = "2.0.0-rc.3"
 bytes = "1.5.0"
 uuid = { version = "1.6.1", features = ["v4"] }
+const-fnv1a-hash = "1.1.0"

@@ -499,6 +499,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "const-fnv1a-hash"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32b13ea120a812beba79e34316b3942a857c86ec1593cb34f27bb28272ce2cca"
+
+[[package]]
 name = "core-foundation"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1168,8 +1174,10 @@ dependencies = [
 name = "hash-graph-rpc"
 version = "0.0.0"
 dependencies = [
+ "authorization",
  "bincode",
  "bytes",
+ "const-fnv1a-hash",
  "graph-types",
  "minicbor",
  "tarpc",
