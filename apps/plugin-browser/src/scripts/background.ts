@@ -50,6 +50,14 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
     getFromLocalStorage("automaticInferenceConfig")
       .then(async (automaticInferenceConfig) => {
         if (automaticInferenceConfig?.enabled) {
+          /**
+           * The page title is information we use in inference, but some client-side navigation results in the DOM content being ready
+           * before the page title is updated. This is a workaround to give the page title time to update.
+           */
+          await new Promise((resolve) => {
+            setTimeout(resolve, 2_000);
+          });
+
           const pageDetails = await (browser.tabs.sendMessage(tabId, {
             type: "get-site-content",
           } satisfies GetSiteContentRequest) as Promise<GetSiteContentReturn>);
