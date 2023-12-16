@@ -170,7 +170,6 @@ export const InferenceRequest = ({
                 borderRadius: 1,
                 "@media (prefers-color-scheme: dark)": {
                   borderColor: darkModeBorderColor,
-                  background: darkModeInputBackgroundColor,
                 },
               }}
             >
