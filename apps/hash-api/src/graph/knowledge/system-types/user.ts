@@ -277,6 +277,8 @@ export const createUser: ImpureGraphFunction<
     }
   }
 
+  const userShouldHavePermissionsOnWeb = shortname && preferredName;
+
   let userAccountId: AccountId;
   if (params.userAccountId) {
     userAccountId = params.userAccountId;
@@ -296,8 +298,9 @@ export const createUser: ImpureGraphFunction<
            * - the web is created with the system account as the owner and will be updated to the user account as the
            *   owner once the user has completed signup
            */
-          subjectId:
-            shortname && preferredName ? userAccountId : systemAccountId,
+          subjectId: userShouldHavePermissionsOnWeb
+            ? userAccountId
+            : systemAccountId,
         },
       },
     );
@@ -305,7 +308,9 @@ export const createUser: ImpureGraphFunction<
 
   const userWebMachineActorId = await createWebMachineActor(
     ctx,
-    { actorId: userAccountId },
+    {
+      actorId: userShouldHavePermissionsOnWeb ? userAccountId : systemAccountId,
+    },
     {
       ownedById: userAccountId as OwnedById,
     },
