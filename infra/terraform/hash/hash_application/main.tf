@@ -5,7 +5,7 @@ locals {
   task_defs = [
     {
       task_def = local.spicedb_migration_container_def
-      env_vars = aws_ssm_parameter.spicedb_env_vars
+      env_vars = aws_ssm_parameter.spicedb_migration_env_vars
     },
     {
       task_def = local.spicedb_service_container_def
