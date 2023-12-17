@@ -14,9 +14,9 @@ impl ServiceId {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct MethodId(u64);
+pub struct ProcedureId(u64);
 
-impl MethodId {
+impl ProcedureId {
     pub const fn derive(value: &str) -> Self {
         Self(fnv1a_hash_str_64(value))
     }
@@ -28,7 +28,7 @@ pub struct ActorId(Uuid);
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RequestHeader {
     service: ServiceId,
-    method: MethodId,
+    method: ProcedureId,
 }
 
 #[derive(Debug, Clone)]
@@ -104,10 +104,11 @@ where
     }
 }
 
+// The request is the type that implements this!
+// TODO: name is not the best to describe this!
 pub trait ProcedureSpecification {
-    const ID: MethodId;
+    const ID: ProcedureId;
 
-    type Request;
     type Response;
 
     // TODO: client that implements those over transport!
@@ -116,7 +117,7 @@ pub trait ProcedureSpecification {
 pub struct Procedure<S, T>
 // where
 //     S: ProcedureSpecification,
-//     T: ProcedureCall<S::Request, C, Response=S::Response>,
+//     T: ProcedureCall<S, C, Response=S::Response>,
 {
     specification: S,
     call: T,
