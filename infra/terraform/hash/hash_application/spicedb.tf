@@ -37,39 +37,11 @@ resource "aws_security_group" "spicedb" {
   vpc_id = var.vpc.id
 
   egress {
-    from_port       = 443
-    to_port         = 443
-    protocol        = "tcp"
-    description     = "Allow Fargate to pull images from the private registry"
-    prefix_list_ids = [data.aws_vpc_endpoint.s3.prefix_list_id]
-  }
-  egress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    description = "Allow endpoint connections"
-    cidr_blocks = [var.vpc.cidr_block]
-  }
-  egress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    description = "Allow outgoing requests to fetch types"
+    description = "Fargate tasks must have outbound access to allow outgoing traffic and access Amazon ECS endpoints."
     cidr_blocks = ["0.0.0.0/0"]
-  }
-  egress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    description = "Allow outgoing requests to fetch types"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  egress {
-    from_port   = 587
-    to_port     = 587
-    protocol    = "tcp"
-    description = "Allow connections AWS SES"
-    cidr_blocks = [var.vpc.cidr_block]
   }
 
   egress {
@@ -81,11 +53,11 @@ resource "aws_security_group" "spicedb" {
   }
 
   ingress {
-    from_port       = local.spicedb_container_http_port
-    to_port         = local.spicedb_container_http_port
-    protocol        = "tcp"
-    description     = "Allow communication via HTTP"
-    cidr_blocks     = [var.vpc.cidr_block]
+    from_port   = local.spicedb_container_http_port
+    to_port     = local.spicedb_container_http_port
+    protocol    = "tcp"
+    description = "Allow communication via HTTP"
+    cidr_blocks = [var.vpc.cidr_block]
   }
 }
 
@@ -113,13 +85,13 @@ resource "aws_ecs_service" "spicedb" {
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true
-    security_groups = [
+    security_groups  = [
       aws_security_group.spicedb.id,
     ]
   }
 
   service_connect_configuration {
-    enabled = true
+    enabled   = true
     namespace = aws_service_discovery_private_dns_namespace.app.arn
 
     service {
