@@ -4,7 +4,7 @@ macro_rules! service {
     (@collect
         $(rpc $name:ident($($args:tt)*) $(-> $output:ty)?;)*
     ) => {
-        ($($name ,)*)
+        $crate::types::stack![$($name ,)*]
     };
 
     (@procedure[$vis:vis]) => {};
@@ -12,7 +12,7 @@ macro_rules! service {
     (@procedure[$vis:vis] rpc $name:ident() $(-> $output:ty)?; $($rest:tt)*) => {
         $vis struct $name;
 
-        impl $crate::rpc::ProcedureSpecification for $name {
+        impl $crate::rpc::RemoteProcedure for $name {
             #[allow(unused_parens)]
             type Response = ($($output)?);
 
@@ -27,7 +27,7 @@ macro_rules! service {
             $($fields)+
         }
 
-        impl $crate::rpc::ProcedureSpecification for $name {
+        impl $crate::rpc::RemoteProcedure for $name {
             #[allow(unused_parens)]
             type Response = ($($output)?);
 

@@ -8,16 +8,16 @@ service!(pub service AccountService {
     rpc CreateAccountGroup() -> AccountGroupId;
 
     rpc CheckAccountGroupPermission(
-        account_group_id: AccountGroupId,
-        permission: AccountGroupPermission
+        pub account_group_id: AccountGroupId,
+        pub permission: AccountGroupPermission
     ) -> bool;
 
     rpc AddAccountGroupMember(
-        account_group_id: AccountGroupId,
-        account_id: AccountId
+        pub account_group_id: AccountGroupId,
+        pub account_id: AccountId
     );
     rpc RemoveAccountGroupMember(
-        account_group_id: AccountGroupId,
-        account_id: AccountId
+        pub account_group_id: AccountGroupId,
+        pub account_id: AccountId
     );
 });

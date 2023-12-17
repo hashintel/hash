@@ -62,8 +62,8 @@ pub trait Context<S> {
         Self: Encode<T, S>;
 }
 
-pub trait ProcedureCall<I, C, S> {
-    type Response;
+pub trait ProcedureCall<P, C, S> {
+    type Procedure: RemoteProcedure;
 
     type Future<'a>: Future<Output = Response> + Send + 'a
     where
@@ -74,15 +74,15 @@ pub trait ProcedureCall<I, C, S> {
     fn call(self, request: Request, context: &C) -> Self::Future<'_>;
 }
 
-impl<F, I, C, S, O, Fut> ProcedureCall<I, C, S> for F
+impl<F, P, C, S, Fut> ProcedureCall<P, C, S> for F
 where
-    F: FnOnce(I, &S) -> Fut + Clone + Send + 'static,
-    Fut: Future<Output = O> + Send,
-    I: Send,
-    C: Context<S> + Encode<O, S> + Decode<I, S> + Sync,
+    F: FnOnce(P, &S) -> Fut + Clone + Send + 'static,
+    Fut: Future<Output = P::Response> + Send,
+    P: RemoteProcedure + Send,
+    C: Context<S> + Encode<P::Response, S> + Decode<P, S> + Sync,
     S: Sync,
 {
-    type Response = O;
+    type Procedure = P;
 
     type Future<'a> = impl Future<Output = Response> + Send + 'a where
         Self: 'a,
@@ -106,7 +106,7 @@ where
 
 // The request is the type that implements this!
 // TODO: name is not the best to describe this!
-pub trait ProcedureSpecification {
+pub trait RemoteProcedure {
     const ID: ProcedureId;
 
     type Response;
