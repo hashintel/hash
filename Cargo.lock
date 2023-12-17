@@ -1618,6 +1618,7 @@ version = "0.0.0"
 dependencies = [
  "async-trait",
  "authorization",
+ "base64 0.21.5",
  "bincode",
  "bytes",
  "const-fnv1a-hash",

@@ -160,7 +160,10 @@ mod test {
     use bytes::Bytes;
     use uuid::Uuid;
 
-    use crate::rpc::{codec::encode::EncodeBinary, ProcedureId};
+    use crate::rpc::{
+        codec::encode::{Encode, EncodeBinary},
+        ProcedureId,
+    };
 
     const EXAMPLE_UUID: Uuid = Uuid::from_bytes([
         0x5B, 0xC2, 0xA5, 0x38, 0xFA, 0x94, 0x41, 0x00, 0x86, 0x00, 0x53, 0xAF, 0xCF, 0x8A, 0xA6,
@@ -183,6 +186,22 @@ mod test {
                 #[tokio::test]
                 async fn $name() {
                     assert_binary($value, &$expected).await;
+                }
+            )*
+        };
+    }
+
+    macro_rules! assert_text {
+        ($($name:ident: $value:expr => $expected:expr;)*) => {
+            $(
+                #[tokio::test]
+                async fn $name() {
+                    let mut buffer = Vec::new();
+                    $value.encode_text(&mut buffer).await.expect("encode");
+
+                    let actual = String::from_utf8(buffer).expect("utf8");
+
+                    assert_eq!(actual, $expected);
                 }
             )*
         };
@@ -270,4 +289,24 @@ mod test {
 
         assert!(result.is_err());
     }
+
+    assert_text![
+        encode_request_text: crate::rpc::Request {
+            header: crate::rpc::RequestHeader {
+                procedure: ProcedureId::new(0x12),
+                actor: crate::rpc::ActorId::from(EXAMPLE_UUID),
+                size: crate::rpc::PayloadSize::from(0x04),
+            },
+            body: Bytes::from(vec![0xDE, 0xAD, 0xBE, 0xEF]),
+        } => r#"{"header":{"procedure":18,"actor":"5bc2a538-fa94-4100-8600-53afcf8aa6ff","size":4},"body":"3q2+7w=="}"#;
+    ];
+
+    assert_text![
+        encode_response_text: crate::rpc::Response {
+            header: crate::rpc::ResponseHeader {
+                size: crate::rpc::PayloadSize::from(0x04),
+            },
+            body: Bytes::from(vec![0xDE, 0xAD, 0xBE, 0xEF]),
+        } => r#"{"header":{"size":4},"body":"3q2+7w=="}"#;
+    ];
 }

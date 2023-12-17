@@ -1,4 +1,5 @@
 mod codec;
+mod serde_compat;
 mod wire;
 
 use std::future::Future;
@@ -97,6 +98,7 @@ pub struct RequestHeader {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Request {
     pub(crate) header: RequestHeader,
+    #[serde(with = "serde_compat::bytes")]
     pub(crate) body: Bytes,
 }
 
@@ -110,6 +112,7 @@ pub struct ResponseHeader {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Response {
     header: ResponseHeader,
+    #[serde(with = "serde_compat::bytes")]
     body: Bytes,
 }
 
