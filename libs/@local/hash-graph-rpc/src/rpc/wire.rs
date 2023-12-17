@@ -1,15 +1,16 @@
 use std::future::Future;
 
-use error_stack::ResultExt;
+use error_stack::{Report, ResultExt};
 use libp2p::{
     futures::StreamExt,
     noise, request_response,
     request_response::{Behaviour, Event, Message, ProtocolSupport},
     swarm,
-    swarm::SwarmEvent,
-    tcp, yamux, Multiaddr, StreamProtocol, Swarm, SwarmBuilder,
+    swarm::{dial_opts::DialOpts, NetworkBehaviour, SwarmEvent},
+    tcp, yamux, Multiaddr, PeerId, StreamProtocol, Swarm, SwarmBuilder,
 };
 use thiserror::Error;
+use tokio::time::Instant;
 
 use crate::rpc::{codec::Codec, Request, Response};
 
@@ -25,7 +26,7 @@ pub struct TransportConfig {
 }
 
 struct TransportLayer {
-    transport: Swarm<Behaviour<Codec>>,
+    swarm: Swarm<Behaviour<Codec>>,
 }
 
 impl TransportLayer {
@@ -45,7 +46,7 @@ impl TransportLayer {
             .unwrap()
             .build();
 
-        Ok(Self { transport })
+        Ok(Self { swarm: transport })
     }
 }
 
@@ -84,7 +85,7 @@ where
     }
 
     pub async fn serve(self) -> error_stack::Result<(), TransportError> {
-        let mut swarm = self.transport.transport;
+        let mut swarm = self.transport.swarm;
         swarm
             .listen_on(self.listen_on)
             .change_context(TransportError)?;
@@ -143,5 +144,73 @@ where
                 _ => {}
             }
         }
+    }
+}
+
+pub struct ClientTransportConfig {
+    transport: TransportConfig,
+
+    remote: Multiaddr,
+}
+
+pub struct ClientTransportLayer {
+    transport: TransportLayer,
+    peer: PeerId,
+}
+
+impl ClientTransportLayer {
+    pub async fn new(config: ClientTransportConfig) -> error_stack::Result<Self, TransportError> {
+        let mut this = Self {
+            transport: TransportLayer::new(config.transport)?,
+            peer: PeerId::random(), // unused, but required for type, overwritten in method
+        };
+
+        let server_peer_id = this.connect(config.remote.clone()).await?;
+        this.transport
+            .swarm
+            .behaviour_mut()
+            .add_address(&server_peer_id, config.remote);
+        this.peer = server_peer_id;
+
+        Ok(this)
+    }
+
+    async fn connect(&mut self, server: Multiaddr) -> error_stack::Result<PeerId, TransportError> {
+        let start = Instant::now();
+        self.transport
+            .swarm
+            .dial(server)
+            .change_context(TransportError)?;
+
+        let server_peer_id = match self.transport.swarm.select_next_some().await {
+            SwarmEvent::ConnectionEstablished { peer_id, .. } => peer_id,
+            SwarmEvent::OutgoingConnectionError { peer_id, error, .. } => {
+                return Err(Report::new(TransportError).attach_printable(format!(
+                    "Outgoing connection error to {peer_id:?}: {error:?}",
+                )));
+            }
+            // should be impossible
+            other => panic!("{other:?}"),
+        };
+
+        let duration = start.elapsed();
+        let duration_seconds = duration.as_secs_f64();
+
+        tracing::info!(elapsed_time=%format!("{duration_seconds:.4} s"), "connected");
+
+        Ok(server_peer_id)
+    }
+
+    pub async fn call(
+        &mut self,
+        request: Request,
+    ) -> error_stack::Result<Response, TransportError> {
+        let mut swarm = &mut self.transport.swarm;
+
+        let request_id = swarm.behaviour_mut().send_request(&self.peer, request);
+
+        // TODO: oneshot registration and await (how to handle mutability?!)
+
+        todo!()
     }
 }

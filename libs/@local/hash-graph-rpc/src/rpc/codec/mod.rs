@@ -56,7 +56,7 @@ pub enum CodecKind {
 }
 
 #[derive(Debug, Copy, Clone, Default)]
-pub(crate) struct Codec {
+pub struct Codec {
     pub kind: CodecKind,
     pub limit: Limit,
 }
