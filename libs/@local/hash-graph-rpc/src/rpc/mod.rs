@@ -24,6 +24,10 @@ impl ServiceId {
 pub struct ProcedureId(u64);
 
 impl ProcedureId {
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
     pub const fn derive(value: &str) -> Self {
         Self(fnv1a_hash_str_64(value))
     }

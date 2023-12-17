@@ -79,7 +79,7 @@ impl DecodeBinary for PayloadSize {
 
 /// The binary message layout of Request Header is:
 ///
-/// | Procedure ID (u64) | Actor ID (u128) | Body Size (u64) |
+/// | Procedure ID (var int) | Actor ID (u128) | Body Size (var int) |
 impl DecodeBinary for RequestHeader {
     async fn decode_binary<T>(io: &mut T, limit: Limit) -> std::io::Result<Self>
     where
@@ -139,7 +139,7 @@ impl Decode for Request {
 
 /// The binary message layout of Response Header is:
 ///
-/// | Body Size (u64) |
+/// | Body Size (var int) |
 impl DecodeBinary for ResponseHeader {
     async fn decode_binary<T>(io: &mut T, limit: Limit) -> std::io::Result<Self>
     where

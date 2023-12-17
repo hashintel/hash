@@ -6,9 +6,10 @@
 //! | Header | Body |
 //!
 //! The (request) header is:
-//! | Procedure ID (u64) | Actor ID (u128) | Body Size (u64) |
+//! | Procedure ID (varint) | Actor ID (u128) | Body Size (varint) |
 //!
 //! The header is in network order, so big endian.
+//! Variable Integers are encoded in little endian using the integer-encoding crate.
 
 mod decode;
 mod encode;
@@ -17,7 +18,7 @@ use libp2p::{
     futures::{AsyncRead, AsyncWrite},
     StreamProtocol,
 };
-use tokio_util::compat::FuturesAsyncReadCompatExt;
+use tokio_util::compat::{FuturesAsyncReadCompatExt, FuturesAsyncWriteCompatExt};
 
 use crate::rpc::{
     codec::{
@@ -73,8 +74,8 @@ impl libp2p::request_response::Codec for Codec {
     {
         let mut io = io.compat();
         match self.kind {
-            CodecKind::Text => Request::decode_text(&mut io, self.limit),
-            CodecKind::Binary => Request::decode_binary(&mut io, self.limit),
+            CodecKind::Text => Request::decode_text(&mut io, self.limit).await,
+            CodecKind::Binary => Request::decode_binary(&mut io, self.limit).await,
         }
     }
 
@@ -88,8 +89,8 @@ impl libp2p::request_response::Codec for Codec {
     {
         let mut io = io.compat();
         match self.kind {
-            CodecKind::Text => Response::decode_text(&mut io, self.limit),
-            CodecKind::Binary => Response::decode_binary(&mut io, self.limit),
+            CodecKind::Text => Response::decode_text(&mut io, self.limit).await,
+            CodecKind::Binary => Response::decode_binary(&mut io, self.limit).await,
         }
     }
 
@@ -102,7 +103,7 @@ impl libp2p::request_response::Codec for Codec {
     where
         T: AsyncWrite + Unpin + Send,
     {
-        let mut io = io.compat();
+        let mut io = io.compat_write();
         match self.kind {
             CodecKind::Text => req.encode_text(&mut io).await,
             CodecKind::Binary => req.encode_binary(&mut io).await,
@@ -118,7 +119,7 @@ impl libp2p::request_response::Codec for Codec {
     where
         T: AsyncWrite + Unpin + Send,
     {
-        let mut io = io.compat();
+        let mut io = io.compat_write();
         match self.kind {
             CodecKind::Text => res.encode_text(&mut io).await,
             CodecKind::Binary => res.encode_binary(&mut io).await,

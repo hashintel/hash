@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use libp2p::request_response::Behaviour;
-use libp2p::Swarm;
+
+use libp2p::{request_response::Behaviour, Swarm};
 
 use crate::{
     rpc::{ProcedureId, Request, Response, ServiceId, ServiceSpecification},
@@ -58,30 +58,28 @@ impl BoxedProcedureCall {
     }
 }
 
-
-
 pub struct Service<S> {
     _service: core::marker::PhantomData<S>,
-    swarm: Swarm<Behaviour<libp2p::request_response::cbor::Codec>>
+    // swarm: Swarm<Behaviour<libp2p::request_response::cbor::Codec>>
     procedures: HashMap<ProcedureId, BoxedProcedureCall>,
 }
 
-impl<S> Service<S>
-where
-    S: ServiceSpecification,
-{
-    pub fn id(&self) -> ServiceId {
-        S::ID
-    }
-
-    async fn route(&self, request: Request) -> Option<Response> {
-        let header = request.header;
-
-        let procedure = self.procedures.get(&header.procedure)?;
-
-        let response = procedure.call(request).await;
-    }
-}
+// impl<S> Service<S>
+// where
+//     S: ServiceSpecification,
+// {
+//     pub fn id(&self) -> ServiceId {
+//         S::ID
+//     }
+//
+//     async fn route(&self, request: Request) -> Option<Response> {
+//         let header = request.header;
+//
+//         let procedure = self.procedures.get(&header.procedure)?;
+//
+//         let response = procedure.call(request).await;
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
