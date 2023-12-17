@@ -1,4 +1,4 @@
-use std::future::Future;
+use std::{collections::HashMap, future::Future};
 
 use error_stack::{Report, ResultExt};
 use libp2p::{
@@ -10,7 +10,12 @@ use libp2p::{
     tcp, yamux, Multiaddr, PeerId, StreamProtocol, Swarm, SwarmBuilder,
 };
 use thiserror::Error;
-use tokio::time::Instant;
+use tokio::{
+    select,
+    sync::{mpsc, oneshot},
+    task::JoinHandle,
+    time::Instant,
+};
 
 use crate::rpc::{codec::Codec, Request, Response};
 
@@ -48,10 +53,62 @@ impl TransportLayer {
 
         Ok(Self { swarm: transport })
     }
+
+    async fn connect(&mut self, server: Multiaddr) -> error_stack::Result<PeerId, TransportError> {
+        let start = Instant::now();
+        self.swarm.dial(server).change_context(TransportError)?;
+
+        let server_peer_id = match self.swarm.select_next_some().await {
+            SwarmEvent::ConnectionEstablished { peer_id, .. } => peer_id,
+            SwarmEvent::OutgoingConnectionError { peer_id, error, .. } => {
+                return Err(Report::new(TransportError).attach_printable(format!(
+                    "Outgoing connection error to {peer_id:?}: {error:?}",
+                )));
+            }
+            // should be impossible
+            other => panic!("{other:?}"),
+        };
+
+        let duration = start.elapsed();
+        let duration_seconds = duration.as_secs_f64();
+
+        tracing::info!(elapsed_time=%format!("{duration_seconds:.4} s"), "connected");
+
+        Ok(server_peer_id)
+    }
 }
 
 pub trait ServiceRouter {
     fn route(&self, request: Request) -> impl Future<Output = Response> + Send;
+}
+
+fn log_behaviour_event<TRequest, TResponse, TChannelResponse>(
+    event: &Event<TRequest, TResponse, TChannelResponse>,
+) {
+    tracing::trace!("behaviour event received");
+
+    match event {
+        Event::Message { peer, .. } => {
+            tracing::trace!(?peer, "message received");
+        }
+        Event::OutboundFailure {
+            peer,
+            request_id,
+            error,
+        } => {
+            tracing::error!(?peer, ?request_id, ?error, "outbound failure");
+        }
+        Event::InboundFailure {
+            peer,
+            request_id,
+            error,
+        } => {
+            tracing::error!(?peer, ?request_id, ?error, "inbound failure");
+        }
+        Event::ResponseSent { peer, request_id } => {
+            tracing::trace!(?peer, ?request_id, "response sent");
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -96,52 +153,70 @@ where
                     tracing::info!("listening on {}", address);
                 }
                 SwarmEvent::Behaviour(event) => {
-                    tracing::trace!(?event, "behaviour event received");
+                    log_behaviour_event(&event);
 
-                    match event {
-                        Event::Message { peer, message } => {
-                            tracing::trace!(?peer, ?message, "message received");
+                    if let Event::Message { peer, message } = event {
+                        tracing::trace!(?peer, ?message, "message received");
 
-                            match message {
-                                Message::Request {
-                                    request, channel, ..
-                                } => {
-                                    let response = self.router.route(request).await;
+                        match message {
+                            Message::Request {
+                                request, channel, ..
+                            } => {
+                                let response = self.router.route(request).await;
 
-                                    if let Err(error) =
-                                        swarm.behaviour_mut().send_response(channel, response)
-                                    {
-                                        tracing::error!(?error, "failed to send response");
-                                    }
-                                }
-                                Message::Response {
-                                    request_id,
-                                    response,
-                                } => {
-                                    tracing::trace!(?request_id, ?response, "response received");
+                                if let Err(error) =
+                                    swarm.behaviour_mut().send_response(channel, response)
+                                {
+                                    tracing::error!(?error, "failed to send response");
                                 }
                             }
-                        }
-                        Event::OutboundFailure {
-                            peer,
-                            request_id,
-                            error,
-                        } => {
-                            tracing::error!(?peer, ?request_id, ?error, "outbound failure");
-                        }
-                        Event::InboundFailure {
-                            peer,
-                            request_id,
-                            error,
-                        } => {
-                            tracing::error!(?peer, ?request_id, ?error, "inbound failure");
-                        }
-                        Event::ResponseSent { peer, request_id } => {
-                            tracing::trace!(?peer, ?request_id, "response sent");
+                            Message::Response {
+                                request_id,
+                                response,
+                            } => {
+                                tracing::trace!(?request_id, ?response, "response received");
+                            }
                         }
                     }
                 }
                 _ => {}
+            }
+        }
+    }
+}
+
+async fn client_loop(
+    mut transport: TransportLayer,
+    server: PeerId,
+    mut rx: mpsc::Receiver<(Request, oneshot::Sender<Response>)>,
+) -> ! {
+    let mut pending = HashMap::new();
+
+    loop {
+        select! {
+            Some((request, tx)) = rx.recv() => {
+                let request_id = transport.swarm.behaviour_mut().send_request(&server, request);
+                pending.insert(request_id, tx);
+            },
+            event = transport.swarm.select_next_some() => {
+                if let SwarmEvent::Behaviour(event) = event {
+                    log_behaviour_event(&event);
+
+                    if let Event::Message { peer, message } = event {
+                        match message {
+                            Message::Request { request, .. } => {
+                                tracing::trace!(?peer, ?request, "request received");
+                            }
+                            Message::Response { request_id, response } => {
+                                if let Some(tx) = pending.remove(&request_id) {
+                                    if let Err(error) = tx.send(response) {
+                                        tracing::error!(?error, "failed to send response");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -154,63 +229,36 @@ pub struct ClientTransportConfig {
 }
 
 pub struct ClientTransportLayer {
-    transport: TransportLayer,
-    peer: PeerId,
+    tx: mpsc::Sender<(Request, oneshot::Sender<Response>)>,
+    task: JoinHandle<!>,
 }
 
 impl ClientTransportLayer {
     pub async fn new(config: ClientTransportConfig) -> error_stack::Result<Self, TransportError> {
-        let mut this = Self {
-            transport: TransportLayer::new(config.transport)?,
-            peer: PeerId::random(), // unused, but required for type, overwritten in method
-        };
+        let mut transport = TransportLayer::new(config.transport)?;
+        let server_peer_id = transport.connect(config.remote).await?;
 
-        let server_peer_id = this.connect(config.remote.clone()).await?;
-        this.transport
-            .swarm
-            .behaviour_mut()
-            .add_address(&server_peer_id, config.remote);
-        this.peer = server_peer_id;
+        let (tx, rx) = mpsc::channel(32);
 
-        Ok(this)
+        let task = tokio::spawn(client_loop(transport, server_peer_id, rx));
+
+        Ok(Self { tx, task })
     }
 
-    async fn connect(&mut self, server: Multiaddr) -> error_stack::Result<PeerId, TransportError> {
-        let start = Instant::now();
-        self.transport
-            .swarm
-            .dial(server)
+    pub async fn call(&self, request: Request) -> error_stack::Result<Response, TransportError> {
+        let (tx, rx) = oneshot::channel();
+
+        self.tx
+            .send((request, tx))
+            .await
             .change_context(TransportError)?;
 
-        let server_peer_id = match self.transport.swarm.select_next_some().await {
-            SwarmEvent::ConnectionEstablished { peer_id, .. } => peer_id,
-            SwarmEvent::OutgoingConnectionError { peer_id, error, .. } => {
-                return Err(Report::new(TransportError).attach_printable(format!(
-                    "Outgoing connection error to {peer_id:?}: {error:?}",
-                )));
-            }
-            // should be impossible
-            other => panic!("{other:?}"),
-        };
-
-        let duration = start.elapsed();
-        let duration_seconds = duration.as_secs_f64();
-
-        tracing::info!(elapsed_time=%format!("{duration_seconds:.4} s"), "connected");
-
-        Ok(server_peer_id)
+        rx.await.change_context(TransportError)
     }
+}
 
-    pub async fn call(
-        &mut self,
-        request: Request,
-    ) -> error_stack::Result<Response, TransportError> {
-        let mut swarm = &mut self.transport.swarm;
-
-        let request_id = swarm.behaviour_mut().send_request(&self.peer, request);
-
-        // TODO: oneshot registration and await (how to handle mutability?!)
-
-        todo!()
+impl Drop for ClientTransportLayer {
+    fn drop(&mut self) {
+        self.task.abort();
     }
 }
