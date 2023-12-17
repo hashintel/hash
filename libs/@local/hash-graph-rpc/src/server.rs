@@ -1,5 +1,9 @@
+use std::collections::HashMap;
+use libp2p::request_response::Behaviour;
+use libp2p::Swarm;
+
 use crate::{
-    rpc::ServiceSpecification,
+    rpc::{ProcedureId, Request, Response, ServiceId, ServiceSpecification},
     types::{stack, Empty, Includes, Stack, SupersetOf},
 };
 
@@ -40,12 +44,43 @@ where
     {
         Service {
             _service: core::marker::PhantomData,
+            procedures: HashMap::new(),
         }
     }
 }
 
+// TODO
+pub struct BoxedProcedureCall(());
+
+impl BoxedProcedureCall {
+    async fn call(&self, request: Request) -> Response {
+        unimplemented!()
+    }
+}
+
+
+
 pub struct Service<S> {
     _service: core::marker::PhantomData<S>,
+    swarm: Swarm<Behaviour<libp2p::request_response::cbor::Codec>>
+    procedures: HashMap<ProcedureId, BoxedProcedureCall>,
+}
+
+impl<S> Service<S>
+where
+    S: ServiceSpecification,
+{
+    pub fn id(&self) -> ServiceId {
+        S::ID
+    }
+
+    async fn route(&self, request: Request) -> Option<Response> {
+        let header = request.header;
+
+        let procedure = self.procedures.get(&header.procedure)?;
+
+        let response = procedure.call(request).await;
+    }
 }
 
 #[cfg(test)]

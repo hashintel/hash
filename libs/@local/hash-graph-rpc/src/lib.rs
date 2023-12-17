@@ -4,6 +4,6 @@ extern crate core;
 
 mod client;
 mod rpc;
+pub mod server;
 pub mod specification;
 mod types;
-mod server;

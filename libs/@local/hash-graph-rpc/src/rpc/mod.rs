@@ -1,10 +1,15 @@
+mod codec;
+mod wire;
+
 use std::future::Future;
 
 use bytes::Bytes;
 use const_fnv1a_hash::fnv1a_hash_str_64;
 use uuid::Uuid;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
 pub struct ServiceId(u64);
 
 impl ServiceId {
@@ -13,7 +18,9 @@ impl ServiceId {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
 pub struct ProcedureId(u64);
 
 impl ProcedureId {
@@ -22,25 +29,75 @@ impl ProcedureId {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+impl From<u64> for ProcedureId {
+    fn from(value: u64) -> Self {
+        Self(value)
+    }
+}
+
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
 pub struct ActorId(Uuid);
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+impl From<Uuid> for ActorId {
+    fn from(value: Uuid) -> Self {
+        Self(value)
+    }
+}
+
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
+pub struct PayloadSize(u64);
+
+impl PayloadSize {
+    pub(crate) fn exceeds(self, limit: u64) -> bool {
+        self.0 > limit
+    }
+}
+
+impl From<u64> for PayloadSize {
+    fn from(value: u64) -> Self {
+        Self(value)
+    }
+}
+
+impl From<PayloadSize> for u64 {
+    fn from(value: PayloadSize) -> Self {
+        value.0
+    }
+}
+
+impl From<PayloadSize> for usize {
+    fn from(value: PayloadSize) -> Self {
+        value.0 as usize
+    }
+}
+
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
 pub struct RequestHeader {
-    service: ServiceId,
-    method: ProcedureId,
+    pub(crate) procedure: ProcedureId,
+    pub(crate) actor: ActorId,
+    pub(crate) size: PayloadSize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Request {
-    header: RequestHeader,
-    body: Bytes,
+    pub(crate) header: RequestHeader,
+    pub(crate) body: Bytes,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ResponseHeader;
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
+pub struct ResponseHeader {
+    pub(crate) size: PayloadSize,
+}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Response {
     header: ResponseHeader,
     body: Bytes,
