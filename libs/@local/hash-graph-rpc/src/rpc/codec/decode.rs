@@ -117,6 +117,13 @@ impl DecodeBinary for Request {
 
         let body = Bytes::from(buffer);
 
+        if body.len() != header.size.as_usize() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "request body size does not match header",
+            ));
+        }
+
         Ok(Self { header, body })
     }
 }
@@ -162,6 +169,13 @@ impl DecodeBinary for Response {
         io.take(header.size.into()).read_to_end(&mut buffer).await?;
 
         let body = Bytes::from(buffer);
+
+        if body.len() != header.size.as_usize() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "request body size does not match header",
+            ));
+        }
 
         Ok(Self { header, body })
     }

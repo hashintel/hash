@@ -52,6 +52,12 @@ impl From<Uuid> for ActorId {
 pub struct PayloadSize(u64);
 
 impl PayloadSize {
+    pub const fn as_usize(self) -> usize {
+        self.0 as usize
+    }
+}
+
+impl PayloadSize {
     pub(crate) fn exceeds(self, limit: u64) -> bool {
         self.0 > limit
     }
