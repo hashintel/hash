@@ -2,17 +2,17 @@ use std::{future::Future, marker::PhantomData, mem::size_of};
 
 use bytes::Bytes;
 use integer_encoding::VarInt;
-use tokio::io::AsyncReadExt;
+use tokio::io::{AsyncRead, AsyncReadExt};
 use uuid::Uuid;
 
 use crate::rpc::{
     codec::Limit, ActorId, PayloadSize, ProcedureId, Request, RequestHeader, Response,
-    ResponseHeader,
+    ResponseHeader, ServiceId,
 };
 
 async fn default_decode_text<T, U>(io: &mut T, limit: Limit) -> std::io::Result<U>
 where
-    T: tokio::io::AsyncRead + Unpin + Send,
+    T: AsyncRead + Unpin + Send,
     U: serde::de::DeserializeOwned,
 {
     let mut buf = Vec::new();
@@ -76,7 +76,7 @@ where
 
 async fn read_varint<T, U>(io: &mut T) -> std::io::Result<U>
 where
-    T: tokio::io::AsyncRead + Unpin + Send,
+    T: AsyncRead + Unpin + Send,
     U: VarInt,
 {
     let mut processor = VarIntProcessor::new();
@@ -103,7 +103,7 @@ pub(super) trait DecodeBinary: Sized {
         limit: Limit,
     ) -> impl Future<Output = std::io::Result<Self>> + Send
     where
-        T: tokio::io::AsyncRead + Unpin + Send;
+        T: AsyncRead + Unpin + Send;
 }
 
 pub(super) trait Decode: DecodeBinary {
@@ -112,13 +112,25 @@ pub(super) trait Decode: DecodeBinary {
         limit: Limit,
     ) -> impl Future<Output = std::io::Result<Self>> + Send
     where
-        T: tokio::io::AsyncRead + Unpin + Send;
+        T: AsyncRead + Unpin + Send;
+}
+
+impl DecodeBinary for ServiceId {
+    async fn decode_binary<T>(io: &mut T, _: Limit) -> std::io::Result<Self>
+    where
+        T: AsyncRead + Unpin + Send,
+    {
+        let service_id = read_varint(io).await?;
+        let service_id = Self::new(service_id);
+
+        Ok(service_id)
+    }
 }
 
 impl DecodeBinary for ProcedureId {
     async fn decode_binary<T>(io: &mut T, _: Limit) -> std::io::Result<Self>
     where
-        T: tokio::io::AsyncRead + Unpin + Send,
+        T: AsyncRead + Unpin + Send,
     {
         let procedure_id = read_varint(io).await?;
         let procedure_id = Self::new(procedure_id);
@@ -130,7 +142,7 @@ impl DecodeBinary for ProcedureId {
 impl DecodeBinary for ActorId {
     async fn decode_binary<T>(io: &mut T, _: Limit) -> std::io::Result<Self>
     where
-        T: tokio::io::AsyncRead + Unpin + Send,
+        T: AsyncRead + Unpin + Send,
     {
         let actor_id = io.read_u128().await?;
         let actor_id = Self::from(Uuid::from_u128(actor_id));
@@ -142,7 +154,7 @@ impl DecodeBinary for ActorId {
 impl DecodeBinary for PayloadSize {
     async fn decode_binary<T>(io: &mut T, _: Limit) -> std::io::Result<Self>
     where
-        T: tokio::io::AsyncRead + Unpin + Send,
+        T: AsyncRead + Unpin + Send,
     {
         let body_size = read_varint(io).await?;
         let body_size = Self::new(body_size);
@@ -151,14 +163,12 @@ impl DecodeBinary for PayloadSize {
     }
 }
 
-/// The binary message layout of Request Header is:
-///
-/// | Procedure ID (var int) | Actor ID (u128) | Body Size (var int) |
 impl DecodeBinary for RequestHeader {
     async fn decode_binary<T>(io: &mut T, limit: Limit) -> std::io::Result<Self>
     where
-        T: tokio::io::AsyncRead + Unpin + Send,
+        T: AsyncRead + Unpin + Send,
     {
+        let service_id = ServiceId::decode_binary(io, limit).await?;
         let procedure_id = ProcedureId::decode_binary(io, limit).await?;
         let actor_id = ActorId::decode_binary(io, limit).await?;
         let payload_size = PayloadSize::decode_binary(io, limit).await?;
@@ -171,6 +181,7 @@ impl DecodeBinary for RequestHeader {
         }
 
         Ok(Self {
+            service: service_id,
             procedure: procedure_id,
             actor: actor_id,
             size: payload_size,
@@ -181,7 +192,7 @@ impl DecodeBinary for RequestHeader {
 impl DecodeBinary for Request {
     async fn decode_binary<T>(io: &mut T, limit: Limit) -> std::io::Result<Self>
     where
-        T: tokio::io::AsyncRead + Unpin + Send,
+        T: AsyncRead + Unpin + Send,
     {
         let header = RequestHeader::decode_binary(io, limit).await?;
 
@@ -205,7 +216,7 @@ impl DecodeBinary for Request {
 impl Decode for Request {
     async fn decode_text<T>(io: &mut T, limit: Limit) -> std::io::Result<Self>
     where
-        T: tokio::io::AsyncRead + Unpin + Send,
+        T: AsyncRead + Unpin + Send,
     {
         default_decode_text(io, limit).await
     }
@@ -217,7 +228,7 @@ impl Decode for Request {
 impl DecodeBinary for ResponseHeader {
     async fn decode_binary<T>(io: &mut T, limit: Limit) -> std::io::Result<Self>
     where
-        T: tokio::io::AsyncRead + Unpin + Send,
+        T: AsyncRead + Unpin + Send,
     {
         let payload_size = PayloadSize::decode_binary(io, limit).await?;
         if payload_size.exceeds(limit.response_size) {
@@ -234,7 +245,7 @@ impl DecodeBinary for ResponseHeader {
 impl DecodeBinary for Response {
     async fn decode_binary<T>(io: &mut T, limit: Limit) -> std::io::Result<Self>
     where
-        T: tokio::io::AsyncRead + Unpin + Send,
+        T: AsyncRead + Unpin + Send,
     {
         let header = ResponseHeader::decode_binary(io, limit).await?;
 
@@ -258,7 +269,7 @@ impl DecodeBinary for Response {
 impl Decode for Response {
     async fn decode_text<T>(io: &mut T, limit: Limit) -> std::io::Result<Self>
     where
-        T: tokio::io::AsyncRead + Unpin + Send,
+        T: AsyncRead + Unpin + Send,
     {
         default_decode_text(io, limit).await
     }
@@ -334,6 +345,7 @@ mod test {
         decode_payload_size_zero: [0x00] => crate::rpc::PayloadSize::new(0);
 
         decode_request_header: [
+            0x02, // service id
             0x12, // procedure id
             0x5B, 0xC2, 0xA5, 0x38, 0xFA, 0x94, 0x41, 0x00, 0x86, 0x00, 0x53, 0xAF, 0xCF, 0x8A, 0xA6, 0xFF, // actor id
             0x80, 0x01, // body size

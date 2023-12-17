@@ -1,10 +1,8 @@
 use std::collections::HashMap;
 
-use libp2p::{request_response::Behaviour, Swarm};
-
 use crate::{
-    rpc::{ProcedureId, Request, Response, ServiceId, ServiceSpecification},
-    types::{stack, Empty, Includes, Stack, SupersetOf},
+    rpc::{ProcedureId, Request, Response, ServiceSpecification},
+    types::{Empty, Includes, Stack, SupersetOf},
 };
 
 pub struct ServiceBuilder<S, P> {

@@ -4,7 +4,7 @@ use integer_encoding::VarInt;
 use tokio::io::AsyncWriteExt;
 
 use crate::rpc::{
-    ActorId, PayloadSize, ProcedureId, Request, RequestHeader, Response, ResponseHeader,
+    ActorId, PayloadSize, ProcedureId, Request, RequestHeader, Response, ResponseHeader, ServiceId,
 };
 
 async fn default_encode_text<T, U>(value: &U, io: &mut T) -> std::io::Result<()>
@@ -44,6 +44,15 @@ pub(super) trait Encode: EncodeBinary {
         T: tokio::io::AsyncWrite + Unpin + Send;
 }
 
+impl EncodeBinary for ServiceId {
+    async fn encode_binary<T>(&self, io: &mut T) -> std::io::Result<()>
+    where
+        T: tokio::io::AsyncWrite + Unpin + Send,
+    {
+        write_varint(self.0, io).await
+    }
+}
+
 impl EncodeBinary for ProcedureId {
     async fn encode_binary<T>(&self, io: &mut T) -> std::io::Result<()>
     where
@@ -80,9 +89,17 @@ impl EncodeBinary for RequestHeader {
     where
         T: tokio::io::AsyncWrite + Unpin + Send,
     {
-        self.procedure.encode_binary(io).await?;
-        self.actor.encode_binary(io).await?;
-        self.size.encode_binary(io).await?;
+        let Self {
+            service,
+            procedure,
+            actor,
+            size,
+        } = self;
+
+        service.encode_binary(io).await?;
+        procedure.encode_binary(io).await?;
+        actor.encode_binary(io).await?;
+        size.encode_binary(io).await?;
 
         Ok(())
     }

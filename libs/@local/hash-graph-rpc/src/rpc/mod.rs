@@ -14,6 +14,10 @@ use uuid::Uuid;
 pub struct ServiceId(u64);
 
 impl ServiceId {
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
     pub const fn derive(value: &str) -> Self {
         Self(fnv1a_hash_str_64(value))
     }
@@ -90,10 +94,16 @@ impl From<PayloadSize> for usize {
     }
 }
 
+/// The binary message layout of Request Header is:
+///
+/// ```text
+/// | Service ID (var int) | Procedure ID (var int) | Actor ID (u128) | Body Size (var int) |
+/// ```
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
 )]
 pub struct RequestHeader {
+    pub(crate) service: ServiceId,
     pub(crate) procedure: ProcedureId,
     pub(crate) actor: ActorId,
     pub(crate) size: PayloadSize,

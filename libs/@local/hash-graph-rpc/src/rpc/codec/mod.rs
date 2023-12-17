@@ -34,7 +34,7 @@ const REQUEST_SIZE_MAXIMUM: u64 = 1024 * 1024;
 const RESPONSE_SIZE_MAXIMUM: u64 = 10 * 1024 * 1024;
 
 #[derive(Debug, Copy, Clone)]
-struct Limit {
+pub struct Limit {
     request_size: u64,
     response_size: u64,
 }
@@ -48,14 +48,17 @@ impl Default for Limit {
     }
 }
 
-enum CodecKind {
+#[derive(Debug, Copy, Clone, Default)]
+pub enum CodecKind {
     Text,
+    #[default]
     Binary,
 }
 
-struct Codec {
-    kind: CodecKind,
-    limit: Limit,
+#[derive(Debug, Copy, Clone, Default)]
+pub(crate) struct Codec {
+    pub kind: CodecKind,
+    pub limit: Limit,
 }
 
 #[async_trait::async_trait]
