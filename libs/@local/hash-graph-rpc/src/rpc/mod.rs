@@ -57,13 +57,17 @@ impl From<Uuid> for ActorId {
 pub struct PayloadSize(u64);
 
 impl PayloadSize {
-    pub const fn as_usize(self) -> usize {
+    pub(crate) const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    pub const fn into_usize(self) -> usize {
         self.0 as usize
     }
 }
 
 impl PayloadSize {
-    pub(crate) fn exceeds(self, limit: u64) -> bool {
+    pub(crate) const fn exceeds(self, limit: u64) -> bool {
         self.0 > limit
     }
 }
@@ -95,7 +99,7 @@ pub struct RequestHeader {
     pub(crate) size: PayloadSize,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Request {
     pub(crate) header: RequestHeader,
     #[serde(with = "serde_compat::bytes")]
@@ -109,7 +113,7 @@ pub struct ResponseHeader {
     pub(crate) size: PayloadSize,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Response {
     header: ResponseHeader,
     #[serde(with = "serde_compat::bytes")]

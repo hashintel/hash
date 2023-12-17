@@ -93,7 +93,7 @@ impl EncodeBinary for Request {
     where
         T: tokio::io::AsyncWrite + Unpin + Send,
     {
-        if self.header.size.as_usize() != self.body.len() {
+        if self.header.size.into_usize() != self.body.len() {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 "body size does not match header size",
@@ -132,7 +132,7 @@ impl EncodeBinary for Response {
     where
         T: tokio::io::AsyncWrite + Unpin + Send,
     {
-        if self.header.size.as_usize() != self.body.len() {
+        if self.header.size.into_usize() != self.body.len() {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 "body size does not match header size",
