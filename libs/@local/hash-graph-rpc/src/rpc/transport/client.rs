@@ -21,9 +21,9 @@ use crate::rpc::{
 };
 
 pub(crate) struct ClientTransportConfig {
-    transport: TransportConfig,
+    pub(crate) transport: TransportConfig,
 
-    remote: Multiaddr,
+    pub(crate) remote: Multiaddr,
 }
 
 pub(crate) struct ClientTransportLayer {

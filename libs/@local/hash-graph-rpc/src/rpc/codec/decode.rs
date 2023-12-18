@@ -279,11 +279,12 @@ impl Decode for Response {
 mod test {
     use std::fmt::Debug;
 
+    use bytes::Bytes;
     use uuid::Uuid;
 
     use crate::rpc::{
         codec::{
-            decode::{read_varint, DecodeBinary},
+            decode::{read_varint, Decode, DecodeBinary},
             Limit,
         },
         ActorId, PayloadSize, ProcedureId, Request, RequestHeader, Response, ResponseHeader,
@@ -312,6 +313,21 @@ mod test {
                 #[tokio::test]
                 async fn $name() {
                     assert_binary(&$value, $expected).await;
+                }
+            )*
+        };
+    }
+
+    macro_rules! assert_text {
+        ($($name:ident: <$T:ty> $value:expr => $expected:expr;)*) => {
+            $(
+                #[tokio::test]
+                async fn $name() {
+                    let actual = <$T>::decode_text(&mut $value.as_bytes(), Limit::default())
+                        .await
+                        .expect("decode failed");
+
+                    assert_eq!(actual, $expected);
                 }
             )*
         };
@@ -449,4 +465,25 @@ mod test {
         // we have 4 bytes remaining in the pipeline, but the header says the body is 5 bytes long
         result.expect_err("should fail to encode response");
     }
+
+    assert_text![
+        decode_request_text: <Request> r#"{"header":{"service":2,"procedure":18,"actor":"5bc2a538-fa94-4100-8600-53afcf8aa6ff","size":4},"body":"3q2+7w=="}"# => Request {
+            header: RequestHeader {
+                service: ServiceId::new(0x02),
+                procedure: ProcedureId::new(0x12),
+                actor: ActorId::from(EXAMPLE_UUID),
+                size: PayloadSize::from(0x04),
+            },
+            body: Bytes::from(vec![0xDE, 0xAD, 0xBE, 0xEF]),
+        };
+    ];
+
+    assert_text![
+        encode_response_text: <Response> r#"{"header":{"size":4},"body":"3q2+7w=="}"# => Response {
+            header: ResponseHeader {
+                size: PayloadSize::from(0x04),
+            },
+            body: Bytes::from(vec![0xDE, 0xAD, 0xBE, 0xEF]),
+        };
+    ];
 }

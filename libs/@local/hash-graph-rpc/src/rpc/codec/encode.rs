@@ -322,7 +322,7 @@ mod test {
                 size: PayloadSize::from(0x04),
             },
             body: Bytes::from(vec![0xDE, 0xAD, 0xBE, 0xEF]),
-        } => r#"{"header":{"procedure":18,"actor":"5bc2a538-fa94-4100-8600-53afcf8aa6ff","size":4},"body":"3q2+7w=="}"#;
+        } => r#"{"header":{"service":2,"procedure":18,"actor":"5bc2a538-fa94-4100-8600-53afcf8aa6ff","size":4},"body":"3q2+7w=="}"#;
     ];
 
     assert_text![

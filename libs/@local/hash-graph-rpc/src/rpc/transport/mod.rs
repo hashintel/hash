@@ -48,7 +48,6 @@ struct TransportLayer {
 
 impl TransportLayer {
     fn new(config: TransportConfig) -> error_stack::Result<Self, TransportError> {
-        // TODO: swarm configuration
         let transport = SwarmBuilder::with_new_identity()
             .with_tokio()
             .with_tcp(config.tcp, noise::Config::new, yamux::Config::default)
@@ -60,7 +59,7 @@ impl TransportLayer {
                     config.behaviour,
                 ),
                 identify: identify::Behaviour::new(identify::Config::new(
-                    "1".to_owned(),
+                    "/hash/rpc/1".to_owned(),
                     keys.public(),
                 )),
             })
@@ -131,9 +130,11 @@ mod test {
     use uuid::Uuid;
 
     use crate::rpc::{
+        codec::{Codec, CodecKind},
         transport::{
-            ClientTransportConfig, ClientTransportLayer, ServerTransportConfig,
-            ServerTransportLayer, ServiceRouter, TransportConfig,
+            client::{ClientTransportConfig, ClientTransportLayer},
+            server::{ServerTransportConfig, ServerTransportLayer},
+            ServiceRouter, TransportConfig,
         },
         ActorId, PayloadSize, ProcedureId, Request, RequestHeader, Response, ResponseHeader,
         ServiceId,
@@ -152,11 +153,19 @@ mod test {
         }
     }
 
-    async fn echo() -> (ClientTransportLayer, impl Drop) {
+    async fn echo(codec: CodecKind) -> (ClientTransportLayer, impl Drop) {
         let router = EchoRouter;
 
+        let transport_config = TransportConfig {
+            codec: Codec {
+                kind: codec,
+                ..Codec::default()
+            },
+            ..TransportConfig::default()
+        };
+
         let server_config = ServerTransportConfig {
-            transport: TransportConfig::default(),
+            transport: transport_config.clone(),
             listen_on: "/ip4/0.0.0.0/tcp/0".parse().unwrap(),
         };
 
@@ -174,7 +183,7 @@ mod test {
         tracing::info!("server listening on {}", remote);
 
         let client_config = ClientTransportConfig {
-            transport: TransportConfig::default(),
+            transport: transport_config,
             remote,
         };
 
@@ -184,8 +193,29 @@ mod test {
     }
 
     #[test_log::test(tokio::test)]
+    async fn echo_binary() {
+        let (client, _guard) = echo(CodecKind::Binary).await;
+
+        let payload = *b"hello world";
+
+        let request = Request {
+            header: RequestHeader {
+                service: ServiceId::new(0x00),
+                procedure: ProcedureId::new(0x00),
+                actor: ActorId(Uuid::new_v4()),
+                size: PayloadSize::len(&payload),
+            },
+            body: payload.to_vec().into(),
+        };
+
+        let response = client.call(request).await.unwrap();
+
+        assert_eq!(&*response.body, payload);
+    }
+
+    #[test_log::test(tokio::test)]
     async fn echo_test() {
-        let (client, _guard) = echo().await;
+        let (client, _guard) = echo(CodecKind::Text).await;
 
         let payload = *b"hello world";
 

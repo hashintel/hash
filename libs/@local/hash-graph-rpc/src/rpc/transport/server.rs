@@ -58,9 +58,9 @@ impl ServerTransportMetrics {
 
 #[derive(Debug, Clone)]
 pub(crate) struct ServerTransportConfig {
-    transport: TransportConfig,
+    pub(crate) transport: TransportConfig,
 
-    listen_on: Multiaddr,
+    pub(crate) listen_on: Multiaddr,
 }
 
 pub(crate) struct ServerTransportLayer<T> {
