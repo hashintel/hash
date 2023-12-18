@@ -1,6 +1,6 @@
 mod codec;
 mod serde_compat;
-mod wire;
+mod transport;
 
 use std::future::Future;
 
