@@ -7,6 +7,8 @@ import {
   setInLocalStorage,
 } from "../../shared/storage";
 
+type NonUndefined<T> = T extends undefined ? never : T;
+
 /**
  * A hook to keep React state synced with local storage shared across the extension.
  *
@@ -22,7 +24,7 @@ import {
  */
 export const useLocalStorage = <Key extends keyof LocalStorage>(
   key: Key,
-  initialValue: NonNullable<LocalStorage[Key]>,
+  initialValue: NonUndefined<LocalStorage[Key]>,
 ) => {
   const [stateValue, setStateValue] = useState<LocalStorage[Key]>(initialValue);
   const [storageChecked, setStorageChecked] = useState(false);
