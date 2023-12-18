@@ -1,7 +1,6 @@
 import { Switch, switchClasses, SwitchProps } from "@mui/material";
 
-export const SwitchWithDarkMode = (props: SwitchProps) => {
-  const { sx } = props;
+export const SwitchWithDarkMode = ({ sx, ...props }: SwitchProps) => {
   return (
     <Switch
       {...props}
