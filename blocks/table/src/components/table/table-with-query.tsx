@@ -80,8 +80,7 @@ export const TableWithQuery = ({
         throw new Error(res.errors?.[0]?.message ?? "Unknown error");
       }
 
-      /** @todo: fix the return type */
-      const fetchedSubgraph = res.data as unknown as Subgraph<EntityRootType>;
+      const fetchedSubgraph = res.data.results;
 
       setSubgraph(fetchedSubgraph);
       setEntities(getRoots(fetchedSubgraph));
