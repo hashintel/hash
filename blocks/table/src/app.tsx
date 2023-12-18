@@ -17,7 +17,7 @@ import { Table } from "./components/table/table";
 import { TableWithQuery } from "./components/table/table-with-query";
 import {
   BlockEntity,
-  TableBlockOutgoingLinkAndTarget,
+  TableOutgoingLinkAndTarget,
 } from "./types/generated/block-entity";
 
 const titleKey: RootKey =
@@ -31,7 +31,7 @@ export const App: BlockComponent<BlockEntity> = ({
 
   const { rootEntity: blockEntity, linkedEntities } = useEntitySubgraph<
     BlockEntity,
-    TableBlockOutgoingLinkAndTarget[]
+    TableOutgoingLinkAndTarget[]
   >(blockEntitySubgraph);
 
   const linkedQueryEntity = linkedEntities[0]?.rightEntity;
