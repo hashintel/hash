@@ -37,17 +37,20 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          UNIT_TEST_PACKAGES=$(turbo run test:unit --dry-run=json --filter '...[HEAD^]' \
+          UNIT_TEST_FILTER=$(turbo run test:unit --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
+          UNIT_TEST_PACKAGES=$(sh -c "turbo run test:unit --dry-run=json $UNIT_TEST_FILTER" \
             | jq '.tasks[]' \
             | jq 'select(.task == "test:unit" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
-          INTEGRATION_TEST_TASKS=$(turbo run test:integration --dry-run=json --filter '...[HEAD^]' | jq -c '.tasks[]')
+          INTEGRATION_TEST_FILTER=$(turbo run test:integration --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
+          INTEGRATION_TEST_TASKS=$(sh -c "turbo run test:integration --dry-run=json $INTEGRATION_TEST_FILTER" | jq -c '.tasks[]')
           INTEGRATION_TEST_PACKAGES=$(echo "$INTEGRATION_TEST_TASKS" \
             | jq 'select(.task == "test:integration" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
-          SYSTEM_TEST_PACKAGES=$(turbo run test:system --dry-run=json --filter '...[HEAD^]' \
+          SYSTEM_TEST_FILTER=$(turbo run test:system --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
+          SYSTEM_TEST_PACKAGES=$(sh -c "turbo run test:system --dry-run=json $SYSTEM_TEST_FILTER" \
             | jq '.tasks[]' \
             | jq 'select(.task == "test:system" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
