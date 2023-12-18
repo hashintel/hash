@@ -322,7 +322,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build-ts-worker
-      - build-graph
       - build-api
       - build-kratos
     permissions:
