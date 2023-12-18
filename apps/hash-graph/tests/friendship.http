@@ -141,22 +141,15 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "schema": [
-    {
-      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-      "kind": "dataType",
-      "$id": "http://localhost:3000/@alice/types/data-type/text/v/1",
-      "title": "Text",
-      "type": "string"
-    },
-    {
-      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-      "kind": "dataType",
-      "$id": "http://localhost:3000/@alice/types/data-type/number/v/1",
-      "title": "Number",
-      "type": "number"
-    }
-  ],
+  "schema":
+  {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+    "kind": "dataType",
+    "$id": "http://localhost:3000/@alice/types/data-type/meter/v/1",
+    "title": "Meter",
+    "type": "number",
+    "minimum": 0
+  },
   "relationships": [{
     "relation": "viewer",
     "subject": {
@@ -167,8 +160,9 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 > {%
     client.test("status", function() {
-        client.assert(response.status === 403, "Response status is not 200");
+        client.assert(response.status === 200, "Response status is not 200");
     });
+    client.global.set("meter_data_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
 ### Insert external data types
@@ -272,20 +266,21 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     });
 %}
 
-### Update Text data type
+### Update Meter data type
 PUT http://127.0.0.1:4000/data-types
 Content-Type: application/json
 Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "typeToUpdate": "http://localhost:3000/@alice/types/data-type/text/v/1",
+  "typeToUpdate": "{{meter_data_type_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
     "kind": "dataType",
-    "title": "Text",
-    "description": "An ordered sequence of characters",
-    "type": "string"
+    "title": "Meter",
+    "type": "number",
+    "description": "A unit of length equal to 100 centimeters",
+    "minimum": 0
   },
   "relationships": [{
     "relation": "viewer",
@@ -297,8 +292,9 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 > {%
     client.test("status", function() {
-        client.assert(response.status === 403, "Response status is not 200");
+        client.assert(response.status === 200, "Response status is not 200");
     });
+    client.global.set("meter_data_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
 ### Insert Name property type
@@ -334,6 +330,41 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         client.assert(response.status === 200, "Response status is not 200");
     });
     client.global.set("person_property_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
+%}
+
+### Insert height property type
+POST http://127.0.0.1:4000/property-types
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+    "kind": "propertyType",
+    "$id": "http://localhost:3000/@alice/types/property-type/height/v/1",
+    "title": "Height",
+    "oneOf": [
+      {
+        "$ref": "{{meter_data_type_id}}"
+      }
+    ]
+  },
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "updateFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("height_property_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
 ### Get Name property type
@@ -501,7 +532,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.roots.length === 1, "Unexpected number of property types");
+        client.assert(response.body.roots.length === 2, "Unexpected number of property types");
     });
 %}
 
@@ -799,6 +830,9 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "properties": {
       "http://localhost:3000/@alice/types/property-type/name/": {
         "$ref": "http://localhost:3000/@alice/types/property-type/name/v/2"
+      },
+      "http://localhost:3000/@alice/types/property-type/height/": {
+        "$ref": "http://localhost:3000/@alice/types/property-type/height/v/1"
       }
     },
     "links": {
@@ -1553,7 +1587,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 {
   "ownedById": "{{account_id}}",
   "properties": {
-    "http://localhost:3000/@alice/types/property-type/name/": "Bob"
+    "http://localhost:3000/@alice/types/property-type/name/": "Bob",
+    "http://localhost:3000/@alice/types/property-type/height/": 1.8
   },
   "administrator": "{{account_id}}",
   "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
