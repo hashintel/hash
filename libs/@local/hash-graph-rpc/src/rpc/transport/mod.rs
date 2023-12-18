@@ -317,8 +317,6 @@ mod test {
             .await
             .unwrap();
 
-        // TODO: look at event loop state?
-
         assert_eq!(
             response,
             Response {
@@ -328,6 +326,12 @@ mod test {
                 body: ResponsePayload::Error(crate::rpc::Error::DeadlineExceeded),
             }
         );
+
+        let metrics = client.metrics().await.unwrap();
+        assert_eq!(metrics.pending, 0);
+        assert_eq!(metrics.lookup, 0);
+        assert_eq!(metrics.waiting, 0);
+        assert!(!metrics.dialing);
     }
 
     #[test_log::test(tokio::test)]
@@ -349,5 +353,11 @@ mod test {
         // TODO: look at event loop state?
 
         assert_eq!(response.body, ResponsePayload::Success(payload));
+
+        let metrics = client.metrics().await.unwrap();
+        assert_eq!(metrics.pending, 0);
+        assert_eq!(metrics.lookup, 0);
+        assert_eq!(metrics.waiting, 0);
+        assert!(!metrics.dialing);
     }
 }

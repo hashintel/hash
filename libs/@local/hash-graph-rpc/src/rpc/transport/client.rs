@@ -28,6 +28,17 @@ use crate::rpc::{
     Error, Request, Response,
 };
 
+#[derive(Debug, Clone)]
+pub(crate) struct ClientTransportMetrics {
+    pub(crate) server_address: Multiaddr,
+    pub(crate) server_peer_id: Option<PeerId>,
+
+    pub(crate) dialing: bool,
+    pub(crate) pending: usize,
+    pub(crate) lookup: usize,
+    pub(crate) waiting: usize,
+}
+
 #[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
 struct Ticket(u64);
 
@@ -51,6 +62,7 @@ impl TicketKiosk {
 enum EventLoopRequest {
     Send(Ticket, Request, oneshot::Sender<Response>),
     Cancel(Ticket),
+    Metrics(oneshot::Sender<ClientTransportMetrics>),
 }
 
 struct EventLoopContext {
@@ -103,17 +115,16 @@ impl EventLoopContext {
             return;
         };
 
-        self.pending
-            .extend(self.waiting.drain(..).map(|(ticket, request, tx)| {
-                (
-                    transport
-                        .swarm
-                        .behaviour_mut()
-                        .protocol
-                        .send_request(&peer_id, request),
-                    (ticket, tx),
-                )
-            }));
+        for (ticket, request, tx) in self.waiting.drain(..) {
+            let request_id = transport
+                .swarm
+                .behaviour_mut()
+                .protocol
+                .send_request(&peer_id, request);
+
+            self.lookup.insert(ticket, request_id);
+            self.pending.insert(request_id, (ticket, tx));
+        }
     }
 
     fn cancel_pending(&mut self) {
@@ -175,8 +186,8 @@ impl ClientTransportLayer {
                     .protocol
                     .send_request(&server, request);
 
-                context.pending.insert(request_id, (ticket, tx));
                 context.lookup.insert(ticket, request_id);
+                context.pending.insert(request_id, (ticket, tx));
             }
             EventLoopRequest::Cancel(ticket) => {
                 let Some(request_id) = context.lookup.remove(&ticket) else {
@@ -184,6 +195,21 @@ impl ClientTransportLayer {
                 };
 
                 context.pending.remove(&request_id);
+            }
+            EventLoopRequest::Metrics(tx) => {
+                let metrics = ClientTransportMetrics {
+                    server_address: context.server_address.clone(),
+                    server_peer_id: context.server_peer_id,
+
+                    dialing: context.dialing,
+                    pending: context.pending.len(),
+                    lookup: context.lookup.len(),
+                    waiting: context.waiting.len(),
+                };
+
+                if let Err(error) = tx.send(metrics) {
+                    tracing::error!(?error, "failed to send metrics");
+                }
             }
         }
     }
@@ -318,5 +344,18 @@ impl ClientTransportLayer {
     ) -> error_stack::Result<Response, TransportError> {
         self.call_with_timeout(request, deadline - Instant::now())
             .await
+    }
+
+    pub(crate) async fn metrics(
+        &self,
+    ) -> error_stack::Result<ClientTransportMetrics, TransportError> {
+        let (tx, rx) = oneshot::channel();
+
+        self.tx
+            .send(EventLoopRequest::Metrics(tx))
+            .await
+            .change_context(TransportError)?;
+
+        rx.await.change_context(TransportError)
     }
 }
