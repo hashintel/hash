@@ -18,6 +18,7 @@ use libp2p::{
     futures::{AsyncRead, AsyncWrite},
     StreamProtocol,
 };
+use tokio::io::{BufReader, BufWriter};
 use tokio_util::compat::{FuturesAsyncReadCompatExt, FuturesAsyncWriteCompatExt};
 
 use crate::rpc::{
