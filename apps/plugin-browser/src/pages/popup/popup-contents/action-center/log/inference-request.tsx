@@ -11,7 +11,6 @@ import type {
 import {
   borderColors,
   darkModeBorderColor,
-  darkModeInputBackgroundColor,
 } from "../../../../shared/style-values";
 import { useEntityTypes } from "../../../../shared/use-entity-types";
 import { InferredEntity } from "./inference-request/inferred-entity";

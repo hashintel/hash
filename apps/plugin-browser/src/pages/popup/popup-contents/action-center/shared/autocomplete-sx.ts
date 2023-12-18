@@ -1,6 +1,5 @@
 import {
   autocompleteClasses,
-  inputClasses,
   menuItemClasses,
   outlinedInputClasses,
   SxProps,

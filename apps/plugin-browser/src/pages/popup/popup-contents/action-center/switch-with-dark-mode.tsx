@@ -1,6 +1,7 @@
 import { Switch, switchClasses, SwitchProps } from "@mui/material";
 
-export const SwitchWithDarkMode = ({ sx, ...props }: SwitchProps) => {
+export const SwitchWithDarkMode = (props: SwitchProps) => {
+  const { sx } = props;
   return (
     <Switch
       {...props}
@@ -15,6 +16,7 @@ export const SwitchWithDarkMode = ({ sx, ...props }: SwitchProps) => {
             },
           },
         }),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- @todo why is this any
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     />

@@ -11,7 +11,7 @@ import { SelectScope } from "./automated/select-scope";
 import { ModelSelector } from "./shared/model-selector";
 import { Section } from "./shared/section";
 import { SelectWebTarget } from "./shared/select-web-target";
-import { SwitchWithDarkMode } from "./switch-with.dark-mode";
+import { SwitchWithDarkMode } from "./switch-with-dark-mode";
 
 export const Automated = ({
   automaticInferenceConfig,
