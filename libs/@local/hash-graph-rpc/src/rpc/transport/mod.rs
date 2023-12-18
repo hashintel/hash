@@ -42,7 +42,7 @@ pub struct TransportConfig {
     pub tcp: tcp::Config,
     pub codec: Codec,
     pub behaviour: request_response::Config,
-    pub deadline: Option<Duration>,
+    pub idle_connection_timeout: Option<Duration>,
 }
 
 impl TransportConfig {
@@ -81,7 +81,9 @@ impl TransportLayer {
             .unwrap()
             .with_swarm_config(|swarm_config| {
                 swarm_config.with_idle_connection_timeout(
-                    config.deadline.unwrap_or_else(|| Duration::from_secs(10)),
+                    config
+                        .idle_connection_timeout
+                        .unwrap_or_else(|| Duration::from_secs(10)),
                 )
             })
             .build();
@@ -168,9 +170,30 @@ mod test {
         }
     }
 
-    async fn echo(transport_config: TransportConfig) -> (ClientTransportLayer, impl Drop) {
-        let router = EchoRouter;
+    struct DelayEchoRouter {
+        delay: std::time::Duration,
+    }
 
+    impl ServiceRouter for DelayEchoRouter {
+        async fn route(&self, request: Request) -> Response {
+            tokio::time::sleep(self.delay).await;
+
+            Response {
+                header: ResponseHeader {
+                    size: request.header.size,
+                },
+                body: ResponsePayload::Success(request.body),
+            }
+        }
+    }
+
+    async fn setup_router<T>(
+        router: T,
+        transport_config: TransportConfig,
+    ) -> (ClientTransportLayer, impl Drop)
+    where
+        T: ServiceRouter + Send + Sync + 'static,
+    {
         let server_config = ServerTransportConfig {
             transport: transport_config.clone(),
             listen_on: "/ip4/0.0.0.0/tcp/0".parse().unwrap(),
@@ -197,6 +220,19 @@ mod test {
         let client = ClientTransportLayer::new(client_config).unwrap();
 
         (client, guard)
+    }
+
+    async fn echo(transport_config: TransportConfig) -> (ClientTransportLayer, impl Drop) {
+        let router = EchoRouter;
+        setup_router(router, transport_config).await
+    }
+
+    async fn delay_echo(
+        transport_config: TransportConfig,
+        delay: std::time::Duration,
+    ) -> (ClientTransportLayer, impl Drop) {
+        let router = DelayEchoRouter { delay };
+        setup_router(router, transport_config).await
     }
 
     fn request() -> Request {
@@ -247,7 +283,7 @@ mod test {
     async fn connect_after_timeout() {
         let (client, _guard) = echo(
             TransportConfig {
-                deadline: Some(std::time::Duration::from_millis(100)),
+                idle_connection_timeout: Some(std::time::Duration::from_millis(100)),
                 ..TransportConfig::default()
             }
             .with_codec(CodecKind::Binary),
@@ -271,5 +307,54 @@ mod test {
             panic!("expected success response");
         };
         assert_eq!(&*body, payload);
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn deadline_exceeded() {
+        let (client, _guard) = delay_echo(
+            TransportConfig::default(),
+            std::time::Duration::from_millis(250),
+        )
+        .await;
+
+        let request = request();
+
+        let response = client
+            .call_with_timeout(request, std::time::Duration::from_millis(100))
+            .await
+            .unwrap();
+
+        // TODO: look at event loop state?
+
+        assert_eq!(
+            response,
+            Response {
+                header: ResponseHeader {
+                    size: PayloadSize::new(0)
+                },
+                body: ResponsePayload::Error(crate::rpc::Error::DeadlineExceeded),
+            }
+        );
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn deadline_not_exceeded() {
+        let (client, _guard) = delay_echo(
+            TransportConfig::default(),
+            std::time::Duration::from_millis(100),
+        )
+        .await;
+
+        let request = request();
+        let payload = request.body.clone();
+
+        let response = client
+            .call_with_timeout(request, std::time::Duration::from_millis(250))
+            .await
+            .unwrap();
+
+        // TODO: look at event loop state?
+
+        assert_eq!(response.body, ResponsePayload::Success(payload));
     }
 }
