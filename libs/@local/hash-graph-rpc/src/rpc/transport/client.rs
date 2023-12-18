@@ -25,7 +25,6 @@ struct EventLoopContext {
     server_peer_id: Option<PeerId>,
 
     dialing: bool,
-    connected: bool,
 
     waiting: Vec<(Request, oneshot::Sender<Response>)>,
     pending: HashMap<OutboundRequestId, oneshot::Sender<Response>>,
@@ -38,7 +37,6 @@ impl EventLoopContext {
             server_peer_id: None,
 
             dialing: false,
-            connected: false,
 
             waiting: vec![],
             pending: HashMap::new(),
@@ -52,7 +50,7 @@ impl EventLoopContext {
 
         let result = match self.server_peer_id {
             Some(server_peer_id) => transport.swarm.dial(server_peer_id),
-            None => transport.swarm.dial_addr(self.server_address.clone()),
+            None => transport.swarm.dial(self.server_address.clone()),
         };
 
         if let Err(error) = result {
@@ -63,11 +61,12 @@ impl EventLoopContext {
     }
 
     fn flush_waiting(&mut self, transport: &mut TransportLayer) {
-        if !self.connected {
+        let Some(peer_id) = self.server_peer_id else {
+            // do not flush waiting now, only once we've dialed the server and know the
+            // server_peer_id
+            self.dial(transport);
             return;
-        }
-
-        self.dial(transport);
+        };
 
         self.pending
             .extend(self.waiting.drain(..).map(|(request, tx)| {
@@ -76,7 +75,7 @@ impl EventLoopContext {
                         .swarm
                         .behaviour_mut()
                         .protocol
-                        .send_request(&self.server_peer_id.unwrap(), request),
+                        .send_request(&peer_id, request),
                     tx,
                 )
             }));
@@ -98,6 +97,7 @@ pub(crate) struct ClientTransportConfig {
     pub(crate) remote: Multiaddr,
 }
 
+// TODO: tx commands like Send, Cancel, etc. instead of what we have right now.
 pub(crate) struct ClientTransportLayer {
     tx: mpsc::Sender<(Request, oneshot::Sender<Response>)>,
     _guard: SpawnGuard,
@@ -122,16 +122,10 @@ impl ClientTransportLayer {
         context: &mut EventLoopContext,
     ) {
         let Some(server) = context.server_peer_id else {
-            context.dial(transport);
             context.waiting.push((request, tx));
+            context.dial(transport);
             return;
         };
-
-        if !context.connected {
-            context.dial(transport);
-            context.waiting.push((request, tx));
-            return;
-        }
 
         let request_id = transport
             .swarm
@@ -183,7 +177,6 @@ impl ClientTransportLayer {
                 }
 
                 context.server_peer_id = Some(peer_id);
-                context.connected = true;
                 context.dialing = false;
 
                 context.flush_waiting(transport);
@@ -197,9 +190,6 @@ impl ClientTransportLayer {
                     return;
                 }
 
-                context.connected = false;
-
-                context.flush_waiting(transport);
                 context.cancel_pending(transport);
             }
 

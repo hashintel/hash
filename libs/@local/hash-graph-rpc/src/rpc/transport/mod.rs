@@ -20,7 +20,10 @@ use tokio::{
     time::Instant,
 };
 
-use crate::rpc::{codec::Codec, Request, Response};
+use crate::rpc::{
+    codec::{Codec, CodecKind},
+    Request, Response,
+};
 
 #[derive(NetworkBehaviour)]
 struct BehaviourCollection {
@@ -40,6 +43,18 @@ pub struct TransportConfig {
     pub codec: Codec,
     pub behaviour: request_response::Config,
     pub deadline: Option<Duration>,
+}
+
+impl TransportConfig {
+    pub const fn with_codec(self, codec: CodecKind) -> Self {
+        Self {
+            codec: Codec {
+                kind: codec,
+                ..self.codec
+            },
+            ..self
+        }
+    }
 }
 
 struct TransportLayer {
@@ -153,16 +168,8 @@ mod test {
         }
     }
 
-    async fn echo(codec: CodecKind) -> (ClientTransportLayer, impl Drop) {
+    async fn echo(transport_config: TransportConfig) -> (ClientTransportLayer, impl Drop) {
         let router = EchoRouter;
-
-        let transport_config = TransportConfig {
-            codec: Codec {
-                kind: codec,
-                ..Codec::default()
-            },
-            ..TransportConfig::default()
-        };
 
         let server_config = ServerTransportConfig {
             transport: transport_config.clone(),
@@ -192,13 +199,10 @@ mod test {
         (client, guard)
     }
 
-    #[test_log::test(tokio::test)]
-    async fn echo_binary() {
-        let (client, _guard) = echo(CodecKind::Binary).await;
-
+    fn request() -> Request {
         let payload = *b"hello world";
 
-        let request = Request {
+        Request {
             header: RequestHeader {
                 service: ServiceId::new(0x00),
                 procedure: ProcedureId::new(0x00),
@@ -206,7 +210,15 @@ mod test {
                 size: PayloadSize::len(&payload),
             },
             body: payload.to_vec().into(),
-        };
+        }
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn echo_binary() {
+        let (client, _guard) = echo(TransportConfig::default().with_codec(CodecKind::Binary)).await;
+
+        let request = request();
+        let payload = request.body.clone();
 
         let response = client.call(request).await.unwrap();
 
@@ -214,23 +226,38 @@ mod test {
     }
 
     #[test_log::test(tokio::test)]
-    async fn echo_test() {
-        let (client, _guard) = echo(CodecKind::Text).await;
+    async fn echo_text() {
+        let (client, _guard) = echo(TransportConfig::default().with_codec(CodecKind::Text)).await;
 
-        let payload = *b"hello world";
-
-        let request = Request {
-            header: RequestHeader {
-                service: ServiceId::new(0x00),
-                procedure: ProcedureId::new(0x00),
-                actor: ActorId(Uuid::new_v4()),
-                size: PayloadSize::len(&payload),
-            },
-            body: payload.to_vec().into(),
-        };
+        let request = request();
+        let payload = request.body.clone();
 
         let response = client.call(request).await.unwrap();
 
+        assert_eq!(&*response.body, payload);
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn connect_after_timeout() {
+        let (client, _guard) = echo(
+            TransportConfig {
+                deadline: Some(std::time::Duration::from_millis(100)),
+                ..TransportConfig::default()
+            }
+            .with_codec(CodecKind::Binary),
+        )
+        .await;
+
+        let request = request();
+        let payload = request.body.clone();
+
+        let response = client.call(request.clone()).await.unwrap();
+        assert_eq!(&*response.body, payload);
+
+        // wait for the connection to timeout
+        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+
+        let response = client.call(request).await.unwrap();
         assert_eq!(&*response.body, payload);
     }
 }
