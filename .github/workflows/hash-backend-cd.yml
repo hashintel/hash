@@ -12,9 +12,7 @@ on:
       - "apps/hash-api/**"
       - "apps/hash-external-services/temporal/**"
       - "apps/hash-external-services/kratos/**"
-      - "libs/@local/hash-backend-utils-utils/**"
-      - "libs/@local/hash-isomorphic-utils/**"
-      - "libs/@local/status/**"
+      - "libs/@local/**"
       - "infra/docker/api/prod/**"
 
 env:
