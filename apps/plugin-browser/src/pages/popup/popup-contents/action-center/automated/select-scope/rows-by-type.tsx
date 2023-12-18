@@ -6,9 +6,16 @@ import { useCallback } from "react";
 import { LocalStorage } from "../../../../../../shared/storage";
 import { EntityTypeSelector } from "../../shared/entity-type-selector";
 import { SelectDomains } from "./select-domains";
-import { RowProps } from "./shared/row-props";
+import { CommonRowsProps } from "./shared/common-rows-props";
 
-export const RowByType = (props: RowProps) => {
+type RuleByType = {
+  entityTypeId?: VersionedUrl;
+  restrictToDomains: string[];
+};
+
+const RowByType = (
+  props: Omit<CommonRowsProps, "draftRule"> & { rule: RuleByType },
+) => {
   const {
     domainOptions,
     setDraftRule,
@@ -23,12 +30,10 @@ export const RowByType = (props: RowProps) => {
 
   const updateOrAddRule = useCallback(
     ({
-      targetEntityTypeId,
-      previousEntityTypeId,
+      newEntityTypeId,
       restrictToDomains = [],
     }: {
-      targetEntityTypeId?: VersionedUrl;
-      previousEntityTypeId?: VersionedUrl;
+      newEntityTypeId?: VersionedUrl;
       restrictToDomains: string[];
     }) => {
       const rulesByType = rules.reduce<
@@ -44,7 +49,7 @@ export const RowByType = (props: RowProps) => {
         {},
       );
 
-      if (!previousEntityTypeId && !targetEntityTypeId) {
+      if (!entityTypeId && !newEntityTypeId) {
         // This is a draft rule – we don't have a type set yet so can't take it out of draft, just update the domains
         setDraftRule({
           restrictToDomains,
@@ -52,15 +57,11 @@ export const RowByType = (props: RowProps) => {
         return;
       }
 
-      if (
-        targetEntityTypeId &&
-        previousEntityTypeId &&
-        targetEntityTypeId !== previousEntityTypeId
-      ) {
-        delete rulesByType[previousEntityTypeId];
+      if (newEntityTypeId && entityTypeId && newEntityTypeId !== entityTypeId) {
+        delete rulesByType[entityTypeId];
       }
 
-      if (!targetEntityTypeId) {
+      if (!newEntityTypeId) {
         throw new Error("Cannot update a rule without a target entity type");
       }
 
@@ -68,12 +69,12 @@ export const RowByType = (props: RowProps) => {
        * If we're switching the type for the rule, check for an existing rule for that type and merge them
        */
       const duplicateRuleForType =
-        targetEntityTypeId !== previousEntityTypeId
-          ? rulesByType[targetEntityTypeId]
+        newEntityTypeId !== entityTypeId
+          ? rulesByType[newEntityTypeId]
           : undefined;
 
-      rulesByType[targetEntityTypeId] = {
-        entityTypeId: targetEntityTypeId,
+      rulesByType[newEntityTypeId] = {
+        entityTypeId: newEntityTypeId,
         restrictToDomains: Array.from(
           new Set([
             ...restrictToDomains,
@@ -87,18 +88,14 @@ export const RowByType = (props: RowProps) => {
         rules: Object.values(rulesByType),
       });
     },
-    [inferenceConfig, setInferenceConfig, setDraftRule, rules],
+    [entityTypeId, inferenceConfig, setInferenceConfig, setDraftRule, rules],
   );
 
-  const removeRule = ({
-    targetEntityTypeId,
-  }: {
-    targetEntityTypeId: VersionedUrl;
-  }) => {
+  const removeRule = () => {
     const rulesByType = rules.reduce<
       Record<VersionedUrl, LocalStorage["automaticInferenceConfig"]["rules"][0]>
     >((acc, existingRule) => {
-      if (existingRule.entityTypeId !== targetEntityTypeId) {
+      if (existingRule.entityTypeId !== entityTypeId) {
         acc[existingRule.entityTypeId] = existingRule;
       }
       return acc;
@@ -111,16 +108,15 @@ export const RowByType = (props: RowProps) => {
   };
 
   return (
-    <TableRow key={entityTypeId ?? "draft-rule"}>
+    <TableRow>
       <TableCell>
         <EntityTypeSelector
           inputHeight={44}
           multiple={false}
           setTargetEntityTypeIds={(newTargetIds) => {
-            const targetEntityTypeId = newTargetIds[0];
+            const newEntityTypeId = newTargetIds[0];
             updateOrAddRule({
-              targetEntityTypeId,
-              previousEntityTypeId: entityTypeId,
+              newEntityTypeId,
               restrictToDomains: ruleDomains,
             });
 
@@ -134,12 +130,12 @@ export const RowByType = (props: RowProps) => {
       </TableCell>
       <TableCell>
         <SelectDomains
+          multiple
           options={domainOptions}
           selectedDomains={ruleDomains}
           setSelectedDomains={(newDomains) => {
             updateOrAddRule({
-              previousEntityTypeId: entityTypeId,
-              targetEntityTypeId: entityTypeId,
+              newEntityTypeId: entityTypeId,
               restrictToDomains: newDomains,
             });
           }}
@@ -147,14 +143,50 @@ export const RowByType = (props: RowProps) => {
       </TableCell>
       <TableCell sx={{ width: 20, p: `4px !important` }}>
         {entityTypeId && (
-          <IconButton
-            onClick={() => removeRule({ targetEntityTypeId: entityTypeId })}
-            size="small"
-          >
+          <IconButton onClick={() => removeRule()} size="small">
             <CloseIcon />
           </IconButton>
         )}
       </TableCell>
     </TableRow>
+  );
+};
+
+export const RowsByType = (props: CommonRowsProps) => {
+  const {
+    domainOptions,
+    draftRule,
+    setDraftRule,
+    inferenceConfig,
+    setInferenceConfig,
+  } = props;
+
+  const { rules } = inferenceConfig;
+
+  return (
+    <>
+      {[...rules, ...(draftRule ? [draftRule] : [])]
+        .sort((a, b) => {
+          // Keep the draft at the bottom
+          if (!a.entityTypeId) {
+            return 1;
+          }
+          if (!b.entityTypeId) {
+            return -1;
+          }
+
+          return a.entityTypeId > b.entityTypeId ? 1 : -1;
+        })
+        .map((rule) => (
+          <RowByType
+            domainOptions={domainOptions}
+            key={rule.entityTypeId ?? "draft-rule"}
+            inferenceConfig={inferenceConfig}
+            setInferenceConfig={setInferenceConfig}
+            rule={rule}
+            setDraftRule={setDraftRule}
+          />
+        ))}
+    </>
   );
 };

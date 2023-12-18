@@ -1,5 +1,6 @@
 import {
   autocompleteClasses,
+  inputClasses,
   menuItemClasses,
   outlinedInputClasses,
   SxProps,
@@ -19,8 +20,8 @@ export const inputPropsSx: (props: {
   height: inputHeight,
 
   [`&.${outlinedInputClasses.root}`]: {
-    padding: 0,
-    pl: 1.2,
+    padding: "0 !important",
+    pl: "10px !important",
   },
 
   [`.${autocompleteClasses.input}`]: {

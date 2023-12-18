@@ -7,13 +7,12 @@ type DraftRule = {
   restrictToDomains: string[];
 };
 
-export type RowProps = {
+export type CommonRowsProps = {
   domainOptions: string[];
   inferenceConfig: LocalStorage["automaticInferenceConfig"];
   setInferenceConfig: (
     config: LocalStorage["automaticInferenceConfig"],
   ) => void;
-  // The rule for the row – may be a draft or non-draft rule
-  rule: DraftRule;
+  draftRule?: DraftRule | null;
   setDraftRule: (rule: DraftRule | null) => void;
 };

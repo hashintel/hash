@@ -12,10 +12,12 @@ import { menuItemSx } from "../../shared/autocomplete-sx";
 const filter = createFilterOptions<string>();
 
 export const SelectDomains = ({
+  multiple,
   options,
   selectedDomains,
   setSelectedDomains,
 }: {
+  multiple: boolean;
   options: string[];
   selectedDomains: string[];
   setSelectedDomains: (domains: string[]) => void;
@@ -89,10 +91,10 @@ export const SelectDomains = ({
           enabled: false,
         },
       ]}
-      multiple
+      multiple={multiple}
       onChange={(_event, value) => {
         setSelectedDomains(
-          Array.isArray(value) ? value : [...selectedDomains, value],
+          !value ? [] : Array.isArray(value) ? value : [value],
         );
       }}
       options={options}
@@ -111,7 +113,7 @@ export const SelectDomains = ({
           />
         ))
       }
-      value={selectedDomains}
+      value={multiple ? selectedDomains : selectedDomains[0]}
     />
   );
 };

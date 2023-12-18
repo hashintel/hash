@@ -67,7 +67,7 @@ const RenderOptionContent = ({
   );
 };
 
-const inputHeight = 35;
+const inputHeight = 30;
 
 export const SelectGrouping = ({
   selectedGrouping,

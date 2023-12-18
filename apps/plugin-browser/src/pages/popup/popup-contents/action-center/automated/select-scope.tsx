@@ -22,8 +22,10 @@ import {
   lightModeBorderColor,
 } from "../../../../shared/style-values";
 import { CircleExclamationIcon } from "./select-scope/circle-exclamation-icon";
-import { RowByType } from "./select-scope/row-by-type";
+import { RowsByLocation } from "./select-scope/rows-by-location";
+import { RowsByType } from "./select-scope/rows-by-type";
 import { SelectGrouping } from "./select-scope/select-grouping";
+import { CommonRowsProps } from "./select-scope/shared/common-rows-props";
 
 const AddTypeButton = ({
   disabled,
@@ -136,6 +138,14 @@ export const SelectScope = ({
     );
   }
 
+  const rowsComponentProps: CommonRowsProps = {
+    domainOptions: uniqueDomainsUsed,
+    draftRule,
+    setDraftRule,
+    inferenceConfig,
+    setInferenceConfig,
+  };
+
   return (
     <Box>
       {!anyTypesSelected && <NoTypesSelectedMessage />}
@@ -193,12 +203,12 @@ export const SelectScope = ({
                 </Typography>
                 <SelectGrouping
                   selectedGrouping={displayGroupedBy}
-                  setSelectedGrouping={(newGrouping) =>
+                  setSelectedGrouping={(newGrouping) => {
                     setInferenceConfig({
                       ...inferenceConfig,
                       displayGroupedBy: newGrouping,
-                    })
-                  }
+                    });
+                  }}
                 />
               </Stack>
             </TableCell>
@@ -217,16 +227,11 @@ export const SelectScope = ({
           </TableRow>
         </TableHead>
         <TableBody>
-          {[...rules, ...(draftRule ? [draftRule] : [])].map((rule) => (
-            <RowByType
-              domainOptions={uniqueDomainsUsed}
-              key={rule.entityTypeId ?? "draft-rule"}
-              inferenceConfig={inferenceConfig}
-              setInferenceConfig={setInferenceConfig}
-              rule={rule}
-              setDraftRule={setDraftRule}
-            />
-          ))}
+          {displayGroupedBy === "type" ? (
+            <RowsByType {...rowsComponentProps} />
+          ) : (
+            <RowsByLocation {...rowsComponentProps} />
+          )}
         </TableBody>
         <TableFooter>
           <TableRow>
