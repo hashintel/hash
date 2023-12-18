@@ -127,11 +127,88 @@ pub struct ResponseHeader {
     pub(crate) size: PayloadSize,
 }
 
+macro_rules! primitive_enum {
+    ($($variant:ident <=> $value:literal),*) => {
+        const fn try_from_u8(value: u8) -> Option<Self> {
+            match value {
+                $( $value => Some(Self::$variant), )*
+                _ => None,
+            }
+        }
+
+        const fn into_u8(self) -> u8 {
+            match self {
+                $( Self::$variant => $value, )*
+            }
+        }
+    };
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum Error {
+    DeadlineExceeded,
+    UnknownService,
+    UnknownProcedure,
+    InvalidPayloadSize,
+    InvalidPayload,
+}
+
+impl Error {
+    primitive_enum! {
+        DeadlineExceeded <=> 0x00,
+        UnknownService <=> 0x01,
+        UnknownProcedure <=> 0x02,
+        InvalidPayloadSize <=> 0x03,
+        InvalidPayload <=> 0x04
+    }
+
+    pub(crate) const fn into_tag(self) -> u8 {
+        self.into_u8() + 1
+    }
+
+    pub(crate) fn try_from_tag(tag: u8) -> Option<Self> {
+        if tag == 0 {
+            return None;
+        }
+
+        Self::try_from_u8(tag - 1)
+    }
+}
+
+/// The binary message layout of Response Payload is:
+///
+/// ```text
+/// | Tag (u8) | Payload (buffer) |
+/// ```
+///
+/// if the tag is `0x00`  then the payload corresponds to [`ResponsePayload::Success`], otherwise
+/// the tag itself corresponds to [`Error`] and the payload is empty. The tag is encoded as `u8 + 1`
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "tag", content = "payload")]
+pub enum ResponsePayload {
+    Success(#[serde(with = "serde_compat::bytes")] Bytes),
+    Error(Error),
+}
+
+impl<T> From<T> for ResponsePayload
+where
+    T: Into<Bytes>,
+{
+    fn from(value: T) -> Self {
+        Self::Success(value.into())
+    }
+}
+
+impl From<Error> for ResponsePayload {
+    fn from(value: Error) -> Self {
+        Self::Error(value)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Response {
     header: ResponseHeader,
-    #[serde(with = "serde_compat::bytes")]
-    body: Bytes,
+    body: ResponsePayload,
 }
 
 pub trait Encode<T, S> {

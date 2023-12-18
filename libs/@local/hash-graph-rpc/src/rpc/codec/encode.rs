@@ -4,7 +4,8 @@ use integer_encoding::VarInt;
 use tokio::io::AsyncWriteExt;
 
 use crate::rpc::{
-    ActorId, PayloadSize, ProcedureId, Request, RequestHeader, Response, ResponseHeader, ServiceId,
+    ActorId, PayloadSize, ProcedureId, Request, RequestHeader, Response, ResponseHeader,
+    ResponsePayload, ServiceId,
 };
 
 async fn default_encode_text<T, U>(value: &U, io: &mut T) -> std::io::Result<()>
@@ -149,15 +150,28 @@ impl EncodeBinary for Response {
     where
         T: tokio::io::AsyncWrite + Unpin + Send,
     {
-        if self.header.size.into_usize() != self.body.len() {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "body size does not match header size",
-            ));
+        match &self.body {
+            ResponsePayload::Success(ref body) if self.header.size.into_usize() != body.len() => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "body size does not match header size",
+                ));
+            }
+            ResponsePayload::Success(body) => {
+                io.write_u8(0x00).await?;
+                self.header.encode_binary(io).await?;
+                io.write_all(body).await?;
+            }
+            ResponsePayload::Error(_) if self.header.size.into_usize() != 0 => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "body size must be zero for error responses",
+                ));
+            }
+            ResponsePayload::Error(error) => {
+                io.write_u8(error.into_tag()).await?;
+            }
         }
-
-        self.header.encode_binary(io).await?;
-        io.write_all(&self.body).await?;
 
         Ok(())
     }
@@ -179,8 +193,8 @@ mod test {
 
     use crate::rpc::{
         codec::encode::{Encode, EncodeBinary},
-        ActorId, PayloadSize, ProcedureId, Request, RequestHeader, Response, ResponseHeader,
-        ServiceId,
+        ActorId, Error, PayloadSize, ProcedureId, Request, RequestHeader, Response, ResponseHeader,
+        ResponsePayload, ServiceId,
     };
 
     const EXAMPLE_UUID: Uuid = Uuid::from_bytes([
@@ -273,10 +287,20 @@ mod test {
             header: ResponseHeader {
                 size: PayloadSize::from(0x04),
             },
-            body: Bytes::from(vec![0xDE, 0xAD, 0xBE, 0xEF]),
+            body: ResponsePayload::Success(Bytes::from(vec![0xDE, 0xAD, 0xBE, 0xEF])),
         } => [
+            0x00,
             0x04,
             0xDE, 0xAD, 0xBE, 0xEF,
+        ];
+
+        encode_erroneous_response: Response {
+            header: ResponseHeader {
+                size: PayloadSize::from(0x00),
+            },
+            body: ResponsePayload::Error(Error::UnknownService),
+        } => [
+            (Error::UnknownService as u8) + 1,
         ];
     ];
 
@@ -304,7 +328,22 @@ mod test {
             header: ResponseHeader {
                 size: PayloadSize::from(0x06),
             },
-            body: Bytes::from(vec![0xDE, 0xAD, 0xBE, 0xEF]),
+            body: ResponsePayload::Success(Bytes::from(vec![0xDE, 0xAD, 0xBE, 0xEF])),
+        };
+
+        let mut buffer = Vec::new();
+        let result = response.encode_binary(&mut buffer).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn response_body_non_zero_size_on_error() {
+        let response = Response {
+            header: ResponseHeader {
+                size: PayloadSize::from(0x01),
+            },
+            body: ResponsePayload::Error(Error::UnknownService),
         };
 
         let mut buffer = Vec::new();
@@ -330,7 +369,14 @@ mod test {
             header: ResponseHeader {
                 size: PayloadSize::from(0x04),
             },
-            body: Bytes::from(vec![0xDE, 0xAD, 0xBE, 0xEF]),
-        } => r#"{"header":{"size":4},"body":"3q2+7w=="}"#;
+            body: ResponsePayload::Success(Bytes::from(vec![0xDE, 0xAD, 0xBE, 0xEF])),
+        } => r#"{"header":{"size":4},"body":{"tag":"Success","payload":"3q2+7w=="}}"#;
+
+        encode_erroneous_response_text: Response {
+            header: ResponseHeader {
+                size: PayloadSize::from(0x00),
+            },
+            body: ResponsePayload::Error(Error::UnknownService),
+        } => r#"{"header":{"size":0},"body":{"tag":"Error","payload":"UnknownService"}}"#;
     ];
 }

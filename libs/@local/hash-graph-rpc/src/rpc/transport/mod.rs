@@ -152,7 +152,7 @@ mod test {
             ServiceRouter, TransportConfig,
         },
         ActorId, PayloadSize, ProcedureId, Request, RequestHeader, Response, ResponseHeader,
-        ServiceId,
+        ResponsePayload, ServiceId,
     };
 
     struct EchoRouter;
@@ -163,7 +163,7 @@ mod test {
                 header: ResponseHeader {
                     size: request.header.size,
                 },
-                body: request.body,
+                body: ResponsePayload::Success(request.body),
             }
         }
     }
@@ -221,8 +221,11 @@ mod test {
         let payload = request.body.clone();
 
         let response = client.call(request).await.unwrap();
+        let ResponsePayload::Success(body) = response.body else {
+            panic!("expected success response");
+        };
 
-        assert_eq!(&*response.body, payload);
+        assert_eq!(&*body, payload);
     }
 
     #[test_log::test(tokio::test)]
@@ -233,8 +236,11 @@ mod test {
         let payload = request.body.clone();
 
         let response = client.call(request).await.unwrap();
+        let ResponsePayload::Success(body) = response.body else {
+            panic!("expected success response");
+        };
 
-        assert_eq!(&*response.body, payload);
+        assert_eq!(&*body, payload);
     }
 
     #[test_log::test(tokio::test)]
@@ -252,12 +258,18 @@ mod test {
         let payload = request.body.clone();
 
         let response = client.call(request.clone()).await.unwrap();
-        assert_eq!(&*response.body, payload);
+        let ResponsePayload::Success(body) = response.body else {
+            panic!("expected success response");
+        };
+        assert_eq!(&*body, payload);
 
         // wait for the connection to timeout
         tokio::time::sleep(std::time::Duration::from_millis(250)).await;
 
         let response = client.call(request).await.unwrap();
-        assert_eq!(&*response.body, payload);
+        let ResponsePayload::Success(body) = response.body else {
+            panic!("expected success response");
+        };
+        assert_eq!(&*body, payload);
     }
 }
