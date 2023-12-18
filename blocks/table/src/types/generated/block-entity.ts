@@ -4,9 +4,9 @@
 
 import { Entity, LinkData } from "@blockprotocol/graph";
 
-export type BlockEntity = Table;
+export type BlockEntity = TableBlock;
 
-export type BlockEntityOutgoingLinkAndTarget = TableOutgoingLinkAndTarget;
+export type BlockEntityOutgoingLinkAndTarget = TableBlockOutgoingLinkAndTarget;
 
 /**
  * A True or False value
@@ -40,9 +40,53 @@ export type LinkProperties = {};
  */
 export type Object = {};
 
-export type Table = Entity<TableProperties>;
+export type Query = Entity<QueryProperties>;
 
-export type TableHasQueryLink = { linkEntity: HasQuery; rightEntity: Entity };
+export type QueryOutgoingLinkAndTarget = never;
+
+export type QueryOutgoingLinksByLinkEntityTypeId = {};
+
+export type QueryProperties = {
+  "https://blockprotocol.org/@hash/types/property-type/query/": QueryPropertyValue;
+};
+
+/**
+ * The query for something.
+ */
+export type QueryPropertyValue = Object;
+
+export type TableBlock = Entity<TableBlockProperties>;
+
+export type TableBlockHasQueryLink = {
+  linkEntity: HasQuery;
+  rightEntity: Query;
+};
+
+export type TableBlockOutgoingLinkAndTarget = TableBlockHasQueryLink;
+
+export type TableBlockOutgoingLinksByLinkEntityTypeId = {
+  "https://blockprotocol.org/@hash/types/entity-type/has-query/v/1": TableBlockHasQueryLink;
+};
+
+/**
+ * The block entity of the "Table" block.
+ *
+ * See: https://blockprotocol.org/@hash/blocks/table
+ */
+export type TableBlockProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
+  "https://blockprotocol.org/@hash/types/property-type/table-rows-are-striped/"?: TableRowsAreStripedPropertyValue;
+  "https://blockprotocol.org/@hash/types/property-type/table-row-numbers-are-hidden/"?: TableRowNumbersAreHiddenPropertyValue;
+  "https://blockprotocol.org/@hash/types/property-type/table-header-row-is-hidden/"?: TableHeaderRowIsHiddenPropertyValue;
+  /**
+   * @minItems 0
+   */
+  "https://blockprotocol.org/@hash/types/property-type/table-local-column/"?: TableLocalColumnPropertyValue[];
+  /**
+   * @minItems 0
+   */
+  "https://blockprotocol.org/@hash/types/property-type/table-local-row/"?: TableLocalRowPropertyValue[];
+};
 
 /**
  * Whether the table header row is hidden.
@@ -68,27 +112,6 @@ export type TableLocalColumnPropertyValue = {
  * See: https://blockprotocol.org/@hash/types/property-type/table-local-column/
  */
 export type TableLocalRowPropertyValue = Object;
-
-export type TableOutgoingLinkAndTarget = TableHasQueryLink;
-
-export type TableOutgoingLinksByLinkEntityTypeId = {
-  "https://blockprotocol.org/@hash/types/entity-type/has-query/v/1": TableHasQueryLink;
-};
-
-export type TableProperties = {
-  "https://blockprotocol.org/@hash/types/property-type/table-header-row-is-hidden/"?: TableHeaderRowIsHiddenPropertyValue;
-  /**
-   * @minItems 0
-   */
-  "https://blockprotocol.org/@hash/types/property-type/table-local-column/"?: TableLocalColumnPropertyValue[];
-  /**
-   * @minItems 0
-   */
-  "https://blockprotocol.org/@hash/types/property-type/table-local-row/"?: TableLocalRowPropertyValue[];
-  "https://blockprotocol.org/@hash/types/property-type/table-row-numbers-are-hidden/"?: TableRowNumbersAreHiddenPropertyValue;
-  "https://blockprotocol.org/@hash/types/property-type/table-rows-are-striped/"?: TableRowsAreStripedPropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
-};
 
 /**
  * Whether the table row numbers are hidden.
