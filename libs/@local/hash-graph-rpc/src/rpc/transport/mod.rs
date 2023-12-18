@@ -1,24 +1,17 @@
 mod client;
 mod server;
 
-use std::{collections::HashMap, future::Future, mem, time::Duration};
+use std::{future::Future, time::Duration};
 
-use error_stack::{Report, ResultExt};
+use error_stack::ResultExt;
 use libp2p::{
-    core::transport::ListenerId,
-    futures::{Stream, StreamExt},
     identify, noise, request_response,
-    request_response::{Event, Message, OutboundRequestId, ProtocolSupport},
-    swarm::{dial_opts::DialOpts, NetworkBehaviour, SwarmEvent},
-    tcp, yamux, Multiaddr, PeerId, StreamProtocol, Swarm, SwarmBuilder,
+    request_response::{Event, ProtocolSupport},
+    swarm::NetworkBehaviour,
+    tcp, yamux, StreamProtocol, Swarm, SwarmBuilder,
 };
 use thiserror::Error;
-use tokio::{
-    select,
-    sync::{mpsc, oneshot},
-    task::JoinHandle,
-    time::Instant,
-};
+use tokio::task::JoinHandle;
 
 use crate::rpc::{
     codec::{Codec, CodecKind},
