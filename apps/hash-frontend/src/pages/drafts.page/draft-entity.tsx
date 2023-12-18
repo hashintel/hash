@@ -7,7 +7,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { Box, buttonClasses, Collapse, Typography } from "@mui/material";
-import { FunctionComponent, useMemo, useState } from "react";
+import { FunctionComponent, useMemo, useRef, useState } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { useDraftEntities } from "../../shared/draft-entities-context";
@@ -19,6 +19,20 @@ import { DraftEntityProperties } from "./draft-entity/draft-entity-properties";
 import { DraftEntityProvenance } from "./draft-entity/draft-entity-provenance";
 import { DraftEntityType } from "./draft-entity/draft-entity-type";
 import { DraftEntityViewers } from "./draft-entity/draft-entity-viewers";
+
+const generateEntityRootedSubgraph = (
+  entity: Entity,
+  subgraph: Subgraph<EntityRootType>,
+) => {
+  const entityRoot = subgraph.roots.find(
+    ({ baseId }) => baseId === entity.metadata.recordId.entityId,
+  )!;
+
+  return {
+    ...subgraph,
+    roots: [entityRoot],
+  };
+};
 
 export const DraftEntity: FunctionComponent<{
   subgraph: Subgraph<EntityRootType>;
@@ -46,16 +60,34 @@ export const DraftEntity: FunctionComponent<{
     [subgraph, entity],
   );
 
-  const entityRootedSubgraph = useMemo<Subgraph<EntityRootType>>(() => {
-    const entityRoot = subgraph.roots.find(
-      ({ baseId }) => baseId === entity.metadata.recordId.entityId,
-    )!;
+  const [entityRootedSubgraph, setEntityRootedSubgraph] = useState<
+    Subgraph<EntityRootType>
+  >(generateEntityRootedSubgraph(entity, subgraph));
 
-    return {
-      ...subgraph,
-      roots: [entityRoot],
-    };
-  }, [subgraph, entity]);
+  const previouslyEvaluatedEntity = useRef<Entity>(entity);
+
+  /**
+   * Only re-evaluate the entity rooted subgraph if the entity edition
+   * has changed, as otherwise the entity editor entity selector will re-mount
+   * itself clearing any text input from the user. Ideally this would not be
+   * the case, and the latest version of the subgraph would become available
+   * to the entity editor, so that we can do something like this:
+   *
+   * const entityRootedSubgraph = useMemo<Subgraph<EntityRootType>>(
+   *   () => generateEntityRootedSubgraph(entity, subgraph),
+   *   [subgraph, entity],
+   * );
+   *
+   * @todo: figure out what the underlying issue is causing the `EntitySelector`
+   * component to re-mount when the subgraph changes.
+   */
+  if (
+    previouslyEvaluatedEntity.current.metadata.recordId.editionId !==
+    entity.metadata.recordId.editionId
+  ) {
+    previouslyEvaluatedEntity.current = entity;
+    setEntityRootedSubgraph(generateEntityRootedSubgraph(entity, subgraph));
+  }
 
   return (
     <Box paddingY={4.5} paddingX={3.25}>
