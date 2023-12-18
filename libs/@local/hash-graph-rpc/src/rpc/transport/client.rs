@@ -20,6 +20,78 @@ use crate::rpc::{
     Request, Response,
 };
 
+struct EventLoopContext {
+    server_address: Multiaddr,
+    server_peer_id: Option<PeerId>,
+
+    dialing: bool,
+    connected: bool,
+
+    waiting: Vec<(Request, oneshot::Sender<Response>)>,
+    pending: HashMap<OutboundRequestId, oneshot::Sender<Response>>,
+}
+
+impl EventLoopContext {
+    fn new(server_address: Multiaddr) -> Self {
+        Self {
+            server_address,
+            server_peer_id: None,
+
+            dialing: false,
+            connected: false,
+
+            waiting: vec![],
+            pending: HashMap::new(),
+        }
+    }
+
+    fn dial(&mut self, transport: &mut TransportLayer) {
+        if self.dialing {
+            return;
+        }
+
+        let result = match self.server_peer_id {
+            Some(server_peer_id) => transport.swarm.dial(server_peer_id),
+            None => transport.swarm.dial_addr(self.server_address.clone()),
+        };
+
+        if let Err(error) = result {
+            tracing::error!(?error, "failed to dial server");
+        } else {
+            self.dialing = true;
+        }
+    }
+
+    fn flush_waiting(&mut self, transport: &mut TransportLayer) {
+        if !self.connected {
+            return;
+        }
+
+        self.dial(transport);
+
+        self.pending
+            .extend(self.waiting.drain(..).map(|(request, tx)| {
+                (
+                    transport
+                        .swarm
+                        .behaviour_mut()
+                        .protocol
+                        .send_request(&self.server_peer_id.unwrap(), request),
+                    tx,
+                )
+            }));
+    }
+
+    fn cancel_pending(&mut self, transport: &mut TransportLayer) {
+        for (_, tx) in self.pending.drain() {
+            // if let Err(error) = tx.send(Response::Error("connection closed".into())) {
+            //     tracing::error!(?error, "failed to send response");
+            // }
+            todo!()
+        }
+    }
+}
+
 pub(crate) struct ClientTransportConfig {
     pub(crate) transport: TransportConfig,
 
@@ -32,7 +104,7 @@ pub(crate) struct ClientTransportLayer {
 }
 
 impl ClientTransportLayer {
-    pub fn new(config: ClientTransportConfig) -> error_stack::Result<Self, TransportError> {
+    pub(crate) fn new(config: ClientTransportConfig) -> error_stack::Result<Self, TransportError> {
         let transport = TransportLayer::new(config.transport)?;
 
         let (tx, rx) = mpsc::channel(32);
@@ -47,31 +119,17 @@ impl ClientTransportLayer {
         request: Request,
         tx: oneshot::Sender<Response>,
 
-        remote: &Multiaddr,
-        dialed: &mut bool,
-        connected: &mut bool,
-        waiting: &mut Vec<(Request, oneshot::Sender<Response>)>,
-        pending: &mut HashMap<OutboundRequestId, oneshot::Sender<Response>>,
-        server: &Option<PeerId>,
+        context: &mut EventLoopContext,
     ) {
-        let Some(server) = server else {
-            if !*dialed {
-                if let Err(error) = transport.swarm.dial(remote.clone()) {
-                    tracing::error!(?error, "failed to dial server");
-                } else {
-                    *dialed = true;
-                }
-            }
-
-            waiting.push((request, tx));
+        let Some(server) = context.server_peer_id else {
+            context.dial(transport);
+            context.waiting.push((request, tx));
             return;
         };
 
-        if !*connected {
-            if let Err(error) = transport.swarm.dial(*server) {
-                tracing::error!(?error, "failed to dial server");
-            }
-            waiting.push((request, tx));
+        if !context.connected {
+            context.dial(transport);
+            context.waiting.push((request, tx));
             return;
         }
 
@@ -80,7 +138,8 @@ impl ClientTransportLayer {
             .behaviour_mut()
             .protocol
             .send_request(&server, request);
-        pending.insert(request_id, tx);
+
+        context.pending.insert(request_id, tx);
     }
 
     fn handle_swarm_event(
@@ -88,13 +147,7 @@ impl ClientTransportLayer {
 
         event: SwarmEvent<BehaviourCollectionEvent>,
 
-        remote: &Multiaddr,
-
-        dialed: &mut bool,
-        connected: &mut bool,
-        waiting: &mut Vec<(Request, oneshot::Sender<Response>)>,
-        pending: &mut HashMap<OutboundRequestId, oneshot::Sender<Response>>,
-        server: &mut Option<PeerId>,
+        context: &mut EventLoopContext,
     ) {
         match event {
             SwarmEvent::Behaviour(BehaviourCollectionEvent::Protocol(event)) => {
@@ -111,7 +164,7 @@ impl ClientTransportLayer {
                         } => {
                             tracing::trace!(?request_id, ?response, "response received");
 
-                            if let Some(tx) = pending.remove(&request_id) {
+                            if let Some(tx) = context.pending.remove(&request_id) {
                                 if let Err(error) = tx.send(response) {
                                     tracing::error!(?error, "failed to send response");
                                 }
@@ -123,45 +176,33 @@ impl ClientTransportLayer {
             SwarmEvent::ConnectionEstablished {
                 peer_id, endpoint, ..
             } => {
-                if endpoint.get_remote_address() == remote {
-                    *server = Some(peer_id);
-                    *connected = true;
-                    *dialed = false;
+                tracing::trace!(?peer_id, ?endpoint, "connection established");
 
-                    pending.extend(waiting.drain(..).map(|(request, tx)| {
-                        (
-                            transport
-                                .swarm
-                                .behaviour_mut()
-                                .protocol
-                                .send_request(&peer_id, request),
-                            tx,
-                        )
-                    }));
+                if *endpoint.get_remote_address() != context.server_address {
+                    return;
                 }
+
+                context.server_peer_id = Some(peer_id);
+                context.connected = true;
+                context.dialing = false;
+
+                context.flush_waiting(transport);
             }
             SwarmEvent::ConnectionClosed {
                 peer_id, endpoint, ..
             } => {
                 tracing::trace!(?peer_id, ?endpoint, "connection closed");
 
-                if endpoint.get_remote_address() == remote {
-                    *connected = false;
-
-                    // TODO: notify all pending requests to be cancelled.
-
-                    pending.extend(waiting.drain(..).map(|(request, tx)| {
-                        (
-                            transport
-                                .swarm
-                                .behaviour_mut()
-                                .protocol
-                                .send_request(&peer_id, request),
-                            tx,
-                        )
-                    }));
+                if *endpoint.get_remote_address() != context.server_address {
+                    return;
                 }
+
+                context.connected = false;
+
+                context.flush_waiting(transport);
+                context.cancel_pending(transport);
             }
+
             _ => {}
         }
     }
@@ -171,20 +212,15 @@ impl ClientTransportLayer {
         remote: Multiaddr,
         mut rx: mpsc::Receiver<(Request, oneshot::Sender<Response>)>,
     ) -> ! {
-        let mut pending = HashMap::new();
-        let mut waiting = vec![];
-        let mut server = None;
-
-        let mut dialed = false;
-        let mut connected = false;
+        let mut context = EventLoopContext::new(remote);
 
         loop {
             select! {
                 Some((request, tx)) = rx.recv() => {
-                    Self::handle_channel_event(&mut transport, request, tx, &remote, &mut dialed, &mut connected ,&mut waiting, &mut pending, &server);
+                    Self::handle_channel_event(&mut transport, request, tx, &mut context);
                 },
                 event = transport.swarm.select_next_some() => {
-                    Self::handle_swarm_event(&mut transport, event, &remote, &mut dialed, &mut connected, &mut waiting, &mut pending, &mut server);
+                    Self::handle_swarm_event(&mut transport, event, &mut context);
                 }
             }
         }
