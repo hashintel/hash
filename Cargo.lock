@@ -655,6 +655,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a26ae43d7bcc3b814de94796a5e736d4029efb0ee900c12e2d54c993ad1a1e07"
 
 [[package]]
+name = "email_address"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2153bd83ebc09db15bcbdc3e2194d901804952e3dc96967e1cd3b0c5c32d112"
+
+[[package]]
 name = "encoding_rs"
 version = "0.8.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3376,6 +3382,7 @@ dependencies = [
 name = "validation"
 version = "0.0.0"
 dependencies = [
+ "email_address",
  "error-stack",
  "graph-test-data",
  "graph-types",
@@ -3383,6 +3390,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "type-system",
+ "url",
 ]
 
 [[package]]

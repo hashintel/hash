@@ -315,7 +315,7 @@ mod tests {
 
     pub(crate) async fn validate_data(
         data: JsonValue,
-        data_type: &'static str,
+        data_type: &str,
         profile: ValidationProfile,
     ) -> Result<(), Report<DataValidationError>> {
         install_error_stack_hooks();
