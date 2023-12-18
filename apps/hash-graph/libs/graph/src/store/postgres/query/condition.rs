@@ -16,9 +16,7 @@ pub enum Condition {
     LessOrEqual(Expression, Expression),
     Greater(Expression, Expression),
     GreaterOrEqual(Expression, Expression),
-    L2Distance(Expression, Expression, Expression),
     CosineDistance(Expression, Expression, Expression),
-    InnerProduct(Expression, Expression, Expression),
     In(Expression, Expression),
     TimeIntervalContainsTimestamp(Expression, Expression),
     Overlap(Expression, Expression),
@@ -90,28 +88,10 @@ impl Transpile for Condition {
                 fmt.write_str(" != ")?;
                 rhs.transpile(fmt)
             }
-            Self::L2Distance(lhs, rhs, max) => {
-                fmt.write_char('(')?;
-                lhs.transpile(fmt)?;
-                fmt.write_str(" <-> ")?;
-                rhs.transpile(fmt)?;
-                fmt.write_str(" <= ")?;
-                max.transpile(fmt)?;
-                fmt.write_char(')')
-            }
             Self::CosineDistance(lhs, rhs, max) => {
                 fmt.write_char('(')?;
                 lhs.transpile(fmt)?;
                 fmt.write_str(" <=> ")?;
-                rhs.transpile(fmt)?;
-                fmt.write_str(" <= ")?;
-                max.transpile(fmt)?;
-                fmt.write_char(')')
-            }
-            Self::InnerProduct(lhs, rhs, max) => {
-                fmt.write_char('(')?;
-                lhs.transpile(fmt)?;
-                fmt.write_str(" <#> ")?;
                 rhs.transpile(fmt)?;
                 fmt.write_str(" <= ")?;
                 max.transpile(fmt)?;

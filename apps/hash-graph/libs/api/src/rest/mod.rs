@@ -655,18 +655,6 @@ impl Modify for FilterSchemaAddon {
                         )
                         .item(
                             ObjectBuilder::new()
-                                .title(Some("L2DistanceFilter"))
-                                .property(
-                                    "l2Distance",
-                                    ArrayBuilder::new()
-                                        .items(Ref::from_schema_name("FilterExpression"))
-                                        .min_items(Some(3))
-                                        .max_items(Some(3)),
-                                )
-                                .required("l2Distance"),
-                        )
-                        .item(
-                            ObjectBuilder::new()
                                 .title(Some("CosineDistanceFilter"))
                                 .property(
                                     "cosineDistance",
@@ -676,18 +664,6 @@ impl Modify for FilterSchemaAddon {
                                         .max_items(Some(3)),
                                 )
                                 .required("cosineDistance"),
-                        )
-                        .item(
-                            ObjectBuilder::new()
-                                .title(Some("InnerProductFilter"))
-                                .property(
-                                    "innerProduct",
-                                    ArrayBuilder::new()
-                                        .items(Ref::from_schema_name("FilterExpression"))
-                                        .min_items(Some(3))
-                                        .max_items(Some(3)),
-                                )
-                                .required("innerProduct"),
                         )
                         .item(
                             ObjectBuilder::new()

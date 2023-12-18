@@ -366,17 +366,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                 rhs.as_ref()
                     .map(|expression| self.compile_filter_expression(expression).0),
             ),
-            Filter::L2Distance(lhs, rhs, max) => Condition::L2Distance(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
-                self.compile_filter_expression(max).0,
-            ),
             Filter::CosineDistance(lhs, rhs, max) => Condition::CosineDistance(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
-                self.compile_filter_expression(max).0,
-            ),
-            Filter::InnerProduct(lhs, rhs, max) => Condition::InnerProduct(
                 self.compile_filter_expression(lhs).0,
                 self.compile_filter_expression(rhs).0,
                 self.compile_filter_expression(max).0,

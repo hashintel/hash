@@ -3910,40 +3910,6 @@
           },
           {
             "type": "object",
-            "title": "InnerProductFilter",
-            "required": [
-              "innerProduct"
-            ],
-            "properties": {
-              "innerProduct": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/FilterExpression"
-                },
-                "maxItems": 3,
-                "minItems": 3
-              }
-            }
-          },
-          {
-            "type": "object",
-            "title": "StartsWithFilter",
-            "required": [
-              "startsWith"
-            ],
-            "properties": {
-              "startsWith": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/FilterExpression"
-                },
-                "maxItems": 2,
-                "minItems": 2
-              }
-            }
-          },
-          {
-            "type": "object",
             "title": "EndsWithFilter",
             "required": [
               "endsWith"

@@ -44,17 +44,7 @@ pub enum Filter<'p, R: Record + ?Sized> {
         Option<FilterExpression<'p, R>>,
         Option<FilterExpression<'p, R>>,
     ),
-    L2Distance(
-        FilterExpression<'p, R>,
-        FilterExpression<'p, R>,
-        FilterExpression<'p, R>,
-    ),
     CosineDistance(
-        FilterExpression<'p, R>,
-        FilterExpression<'p, R>,
-        FilterExpression<'p, R>,
-    ),
-    InnerProduct(
         FilterExpression<'p, R>,
         FilterExpression<'p, R>,
         FilterExpression<'p, R>,
@@ -139,9 +129,7 @@ where
                 ) => parameter.convert_to_parameter_type(path.expected_type())?,
                 (..) => {}
             },
-            Self::L2Distance(lhs, rhs, max)
-            | Self::CosineDistance(lhs, rhs, max)
-            | Self::InnerProduct(lhs, rhs, max) => {
+            Self::CosineDistance(lhs, rhs, max) => {
                 if let FilterExpression::Parameter(parameter) = max {
                     parameter.convert_to_parameter_type(ParameterType::F64)?;
                 }
