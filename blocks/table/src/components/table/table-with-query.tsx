@@ -1,12 +1,16 @@
 import {
+  BaseUrl,
   Entity,
   EntityRootType,
+  extractBaseUrl,
+  extractVersion,
   GraphBlockHandler,
   JsonValue,
   MultiFilter,
+  PropertyType,
   Subgraph,
 } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
+import { getPropertyTypes, getRoots } from "@blockprotocol/graph/stdlib";
 import {
   DataEditorProps,
   DataEditorRef,
@@ -50,6 +54,8 @@ export const TableWithQuery = ({
   } = blockEntity;
 
   const [loading, setLoading] = useState(true);
+
+  const [subgraph, setSubgraph] = useState<Subgraph<EntityRootType>>();
   const [entities, setEntities] = useState<Entity[]>([]);
 
   useEffect(() => {
@@ -58,12 +64,12 @@ export const TableWithQuery = ({
         data: {
           operation: { multiFilter: query },
           graphResolveDepths: {
-            inheritsFrom: { outgoing: 0 },
+            inheritsFrom: { outgoing: 255 },
             constrainsValuesOn: { outgoing: 0 },
-            constrainsPropertiesOn: { outgoing: 0 },
+            constrainsPropertiesOn: { outgoing: 255 },
             constrainsLinksOn: { outgoing: 0 },
             constrainsLinkDestinationsOn: { outgoing: 0 },
-            isOfType: { outgoing: 0 },
+            isOfType: { outgoing: 1 },
             hasLeftEntity: { incoming: 0, outgoing: 0 },
             hasRightEntity: { incoming: 0, outgoing: 0 },
           },
@@ -74,32 +80,75 @@ export const TableWithQuery = ({
         throw new Error(res.errors?.[0]?.message ?? "Unknown error");
       }
 
-      const subgraph = res.data as unknown as Subgraph<EntityRootType>;
+      /** @todo: fix the return type */
+      const fetchedSubgraph = res.data as unknown as Subgraph<EntityRootType>;
 
-      const roots = getRoots(subgraph);
+      setSubgraph(fetchedSubgraph);
+      setEntities(getRoots(fetchedSubgraph));
+
       setLoading(false);
-
-      setEntities(roots);
     };
 
     void init();
   }, [graphModule, query]);
 
-  const columns = useMemo<GridColumn[]>(() => {
-    const uniquePropertyTypeBaseUrls = new Set<string>(
-      entities.flatMap(({ properties }) => Object.keys(properties)),
+  const uniquePropertyTypeBaseUrls = useMemo<BaseUrl[]>(
+    () =>
+      Array.from(
+        new Set<string>(
+          entities.flatMap(({ properties }) => Object.keys(properties)),
+        ),
+      ),
+    [entities],
+  );
+
+  const propertyTypes = useMemo<PropertyType[]>(() => {
+    if (!subgraph) {
+      return [];
+    }
+
+    const allPropertyTypes = getPropertyTypes(subgraph).map(
+      ({ schema }) => schema,
     );
 
-    return Array.from(uniquePropertyTypeBaseUrls).map(
-      (propertyTypeBaseUrl) => ({
-        id: propertyTypeBaseUrl,
-        /** @todo: fetch property type in query */
-        title:
-          propertyTypeBaseUrl.split("/").slice(-2)[0] ?? propertyTypeBaseUrl,
-        width: 200,
-      }),
-    );
-  }, [entities]);
+    return allPropertyTypes.reduce<PropertyType[]>((prev, propertyType) => {
+      const previouslyAddedPropertyType = prev.find(
+        (schema) =>
+          extractBaseUrl(schema.$id) === extractBaseUrl(propertyType.$id),
+      );
+
+      if (!previouslyAddedPropertyType) {
+        return [...prev, propertyType];
+      } else if (
+        extractVersion(previouslyAddedPropertyType.$id) <
+        extractVersion(propertyType.$id)
+      ) {
+        return [
+          ...prev.filter(
+            (schema) => schema.$id !== previouslyAddedPropertyType.$id,
+          ),
+          propertyType,
+        ];
+      } else {
+        return prev;
+      }
+    }, []);
+  }, [subgraph]);
+
+  const columns = useMemo<GridColumn[]>(() => {
+    return uniquePropertyTypeBaseUrls.map((propertyTypeBaseUrl) => ({
+      id: propertyTypeBaseUrl,
+      /** @todo: fetch property type in query */
+      title:
+        propertyTypes.find(
+          (propertyType) =>
+            extractBaseUrl(propertyType.$id) === propertyTypeBaseUrl,
+        )?.title ??
+        propertyTypeBaseUrl.split("/").slice(-2)[0] ??
+        propertyTypeBaseUrl,
+      width: 200,
+    }));
+  }, [uniquePropertyTypeBaseUrls, propertyTypes]);
 
   const handleCellEdited: DataEditorProps["onCellEdited"] = (
     [colIndex, rowIndex],
