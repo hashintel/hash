@@ -187,6 +187,7 @@ macro_rules! primitive_enum {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Error {
     DeadlineExceeded,
+    ConnectionClosed,
     UnknownService,
     UnknownProcedure,
     InvalidPayloadSize,
@@ -196,10 +197,11 @@ pub enum Error {
 impl Error {
     primitive_enum! {
         DeadlineExceeded <=> 0x00,
-        UnknownService <=> 0x01,
-        UnknownProcedure <=> 0x02,
-        InvalidPayloadSize <=> 0x03,
-        InvalidPayload <=> 0x04
+        ConnectionClosed <=> 0x01,
+        UnknownService <=> 0x02,
+        UnknownProcedure <=> 0x03,
+        InvalidPayloadSize <=> 0x04,
+        InvalidPayload <=> 0x05
     }
 
     pub(crate) const fn into_tag(self) -> u8 {
@@ -282,6 +284,17 @@ impl From<Error> for ResponsePayload {
 pub struct Response {
     header: ResponseHeader,
     body: ResponsePayload,
+}
+
+impl Response {
+    fn error(error: Error) -> Self {
+        Self {
+            header: ResponseHeader {
+                size: PayloadSize::new(0),
+            },
+            body: error.into(),
+        }
+    }
 }
 
 pub trait Encode<T, S> {
