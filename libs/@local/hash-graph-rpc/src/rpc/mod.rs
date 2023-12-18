@@ -98,11 +98,6 @@ impl From<PayloadSize> for usize {
     }
 }
 
-/// The binary message layout of Request Header is:
-///
-/// ```text
-/// | Service ID (var int) | Procedure ID (var int) | Actor ID (u128) | Body Size (var int) |
-/// ```
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
 )]
@@ -113,6 +108,51 @@ pub struct RequestHeader {
     pub(crate) size: PayloadSize,
 }
 
+/// # Request
+///
+/// ## Binary Packet Layout
+///
+/// (The binary packet layout assumes worst case scenario for the header).
+///
+/// ```text
+///  0                   1                   2                   3
+///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |                            Header                             |
+/// +                           +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |                           |                                   |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+                                   +
+/// |                             Body                              |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///
+/// * Header (46 bytes)
+/// * Body (50 bytes)
+/// total 96 bytes
+/// ```
+///
+/// The length of the packet is encoded in the header as the last field.
+///
+/// ### Header
+///
+/// ```text
+///  0                   1                   2                   3
+///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |     ServiceID     |    ProcedureID    |        ActorID        |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |       |       Size        |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///
+/// * ServiceID (10 bytes)
+/// * ProcedureID (10 bytes)
+/// * ActorID (16 bytes)
+/// * Size (10 bytes)
+/// total 46 bytes
+/// ```
+///
+/// `ServiceID`, `ProcedureID`, `Size` utilize variable integer encoding, with a maximum size of 10
+/// bytes.
+/// The mimum header size is 19 bytes.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Request {
     pub(crate) header: RequestHeader,
@@ -175,14 +215,6 @@ impl Error {
     }
 }
 
-/// The binary message layout of Response Payload is:
-///
-/// ```text
-/// | Tag (u8) | Payload (buffer) |
-/// ```
-///
-/// if the tag is `0x00`  then the payload corresponds to [`ResponsePayload::Success`], otherwise
-/// the tag itself corresponds to [`Error`] and the payload is empty. The tag is encoded as `u8 + 1`
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "tag", content = "payload")]
 pub enum ResponsePayload {
@@ -205,6 +237,47 @@ impl From<Error> for ResponsePayload {
     }
 }
 
+/// # Response
+///
+/// ## Binary Packet Layout
+///
+/// (The binary packet layout assumes worst case scenario for the header).
+///
+/// ```text
+///  0                   1                   2                   3
+///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |       Header        |                  Body                   |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///
+/// * Header (11 bytes)
+/// * Body (21 bytes)
+/// total 32 bytes
+/// ```
+///
+/// The length of the packet is encoded in the header as the last field.
+///
+/// ### Header
+///
+/// ```text
+///  0                   1                   2                   3
+///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |S|       Size        |
+/// +-+-+-+-+-+-+-+-+-+-+-+
+///
+/// * Status (1 byte)
+/// * Size (10 bytes)
+/// total 11 bytes
+/// ```
+///
+/// If the status is `0x00` then the response is [`ResponsePayload::Success`], otherwise the status
+/// is [`Error`], **and no length or body are present**.
+///
+/// `Length` utilizes variable integer encoding, with a maximum size of 10 bytes.
+///
+/// The minimum size of the header on errorneous response is 1 byte, and on successful response is 2
+/// bytes.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Response {
     header: ResponseHeader,
