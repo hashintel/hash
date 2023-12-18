@@ -1,8 +1,8 @@
 locals {
-  prefix         = "${var.prefix}-app"
-  log_group_name = "${local.prefix}log"
-  param_prefix   = "${var.param_prefix}/app"
-  task_defs = [
+  prefix            = "${var.prefix}-app"
+  log_group_name    = "${local.prefix}log"
+  param_prefix      = "${var.param_prefix}/app"
+  spicedb_task_defs = [
     {
       task_def = local.spicedb_migration_container_def
       env_vars = aws_ssm_parameter.spicedb_migration_env_vars
@@ -11,6 +11,8 @@ locals {
       task_def = local.spicedb_service_container_def
       env_vars = aws_ssm_parameter.spicedb_env_vars
     },
+  ]
+  graph_task_defs = [
     {
       task_def = local.graph_migration_container_def
       env_vars = aws_ssm_parameter.graph_env_vars
@@ -23,9 +25,11 @@ locals {
     },
     {
       task_def = local.type_fetcher_service_container_def
-      env_vars = aws_ssm_parameter.type_fetcher_env_vars
+      env_vars = []
       ecr_arn  = var.type_fetcher_image.ecr_arn
     },
+  ]
+  task_defs = [
     {
       task_def = local.kratos_migration_container_def
       env_vars = aws_ssm_parameter.kratos_env_vars
@@ -53,10 +57,15 @@ locals {
   worker_task_defs = [
     {
       task_def = local.temporal_worker_integration_service_container_def
-      env_vars = aws_ssm_parameter.temporal_worker_integration_env_vars
+      env_vars = []
       ecr_arn  = var.temporal_worker_integration_image.ecr_arn
     }
   ]
+}
+
+resource "aws_service_discovery_private_dns_namespace" "app" {
+  name = local.prefix
+  vpc  = var.vpc.id
 }
 
 data "aws_subnets" "snpub" {
@@ -111,6 +120,22 @@ resource "aws_security_group" "alb_sg" {
     cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
   }
+
+  ingress {
+    from_port   = 4444
+    to_port     = 4444
+    protocol    = "tcp"
+    description = "Allow connections with the type fetcher"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
+  egress {
+    from_port   = local.graph_container_port
+    to_port     = local.graph_container_port
+    protocol    = "tcp"
+    description = "Allow communication with the graph"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
 }
 
 resource "aws_lb" "app_alb" {
@@ -121,7 +146,7 @@ resource "aws_lb" "app_alb" {
 
   security_groups = [aws_security_group.alb_sg.id]
   # Timeout is set to allow collab to use long polling and not closing after default 60 seconds.
-  idle_timeout = 4000
+  idle_timeout    = 4000
 }
 
 resource "aws_lb_target_group" "app_tg" {
@@ -139,7 +164,7 @@ resource "aws_lb_target_group" "app_tg" {
     timeout             = 10
     unhealthy_threshold = 3
   }
-  slow_start = 30
+  slow_start           = 30
   # Time between demoting state from 'draining' to 'unused'.
   # The default, 300s, makes it so we have multiple services running for 5 whole minutes.
   deregistration_delay = 30
@@ -170,7 +195,7 @@ resource "aws_lb" "kratos_alb" {
 
   security_groups = [aws_security_group.alb_sg.id]
   # Timeout is set to allow collab to use long polling and not closing after default 60 seconds.
-  idle_timeout = 4000
+  idle_timeout    = 4000
 }
 
 resource "aws_lb_target_group" "kratos_tg" {
@@ -188,7 +213,7 @@ resource "aws_lb_target_group" "kratos_tg" {
     timeout             = 10
     unhealthy_threshold = 3
   }
-  slow_start = 30
+  slow_start           = 30
   # Time between demoting state from 'draining' to 'unused'.
   # The default, 300s, makes it so we have multiple services running for 5 whole minutes.
   deregistration_delay = 30
@@ -251,13 +276,13 @@ resource "aws_lb_listener" "kratos_https" {
 
 # IAM role which allows ECS to pull the API Docker image from ECR
 resource "aws_iam_role" "execution_role" {
-  name = "${local.prefix}exerole"
+  name               = "${local.prefix}exerole"
   assume_role_policy = jsonencode({
-    Version = "2012-10-17"
+    Version   = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
+        Action    = "sts:AssumeRole"
+        Effect    = "Allow"
         Principal = {
           Service = "ecs-tasks.amazonaws.com"
         }
@@ -265,10 +290,10 @@ resource "aws_iam_role" "execution_role" {
     ]
   })
   inline_policy {
-    name = "policy"
+    name   = "policy"
     # Allow fetching images from ECR, publishing logs and getting secrets
     policy = jsonencode({
-      Version = "2012-10-17"
+      Version   = "2012-10-17"
       Statement = flatten([
         [
           {
@@ -277,13 +302,33 @@ resource "aws_iam_role" "execution_role" {
             Resource = ["*"]
           }
         ],
-        [{
-          Effect = "Allow"
-          Action = ["ssm:GetParameters"]
-          Resource = concat(
-            flatten([for def in local.task_defs : [for _, env_var in def.env_vars : env_var.arn]])
-          )
-        }],
+        [
+          {
+            Effect   = "Allow"
+            Action   = ["ssm:GetParameters"]
+            Resource = concat(
+              flatten([for def in local.task_defs : [for _, env_var in def.env_vars : env_var.arn]])
+            )
+          }
+        ],
+        [
+          {
+            Effect   = "Allow"
+            Action   = ["ssm:GetParameters"]
+            Resource = concat(
+              flatten([for def in local.spicedb_task_defs : [for _, env_var in def.env_vars : env_var.arn]])
+            )
+          }
+        ],
+        [
+          {
+            Effect   = "Allow"
+            Action   = ["ssm:GetParameters"]
+            Resource = concat(
+              flatten([for def in local.graph_task_defs : [for _, env_var in def.env_vars : env_var.arn]])
+            )
+          }
+        ],
       ])
     })
   }
@@ -306,13 +351,13 @@ resource "aws_iam_role_policy_attachment" "execution_role_exe" {
 
 # IAM role for the running task
 resource "aws_iam_role" "task_role" {
-  name = "${local.prefix}taskrole"
+  name               = "${local.prefix}taskrole"
   assume_role_policy = jsonencode({
-    Version = "2012-10-17"
+    Version   = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
+        Action    = "sts:AssumeRole"
+        Effect    = "Allow"
         Principal = {
           Service = "ecs-tasks.amazonaws.com"
         }
@@ -320,9 +365,9 @@ resource "aws_iam_role" "task_role" {
     ]
   })
   inline_policy {
-    name = "policy"
+    name   = "policy"
     policy = jsonencode({
-      Version = "2012-10-17"
+      Version   = "2012-10-17"
       Statement = [
         {
           # @todo: we can restrict the FROM address and more
@@ -377,7 +422,7 @@ resource "aws_ecs_task_definition" "worker_task" {
 }
 
 resource "aws_ecs_service" "svc" {
-  depends_on             = [aws_iam_role.task_role]
+  depends_on             = [aws_iam_role.task_role, aws_ecs_service.spicedb]
   name                   = "${local.prefix}svc"
   cluster                = data.aws_ecs_cluster.ecs.arn
   task_definition        = aws_ecs_task_definition.task.arn
@@ -387,7 +432,7 @@ resource "aws_ecs_service" "svc" {
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true
-    security_groups = [
+    security_groups  = [
       aws_security_group.app_sg.id,
     ]
   }
@@ -402,6 +447,11 @@ resource "aws_ecs_service" "svc" {
     target_group_arn = aws_lb_target_group.kratos_tg.arn
     container_name   = local.kratos_service_container_def.name
     container_port   = local.kratos_public_port
+  }
+
+  service_connect_configuration {
+    enabled   = true
+    namespace = aws_service_discovery_private_dns_namespace.app.arn
   }
 
   tags = { Service = "${local.prefix}svc" }
@@ -419,9 +469,14 @@ resource "aws_ecs_service" "worker" {
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true
-    security_groups = [
+    security_groups  = [
       aws_security_group.app_sg.id,
     ]
+  }
+
+  service_connect_configuration {
+    enabled   = true
+    namespace = aws_service_discovery_private_dns_namespace.app.arn
   }
 
   tags = { Service = "${local.prefix}worker-svc" }
@@ -488,6 +543,14 @@ resource "aws_security_group" "app_sg" {
     protocol    = "tcp"
     description = "Allow outbound GRPC connections to Temporal"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = local.graph_container_port
+    to_port     = local.graph_container_port
+    protocol    = "tcp"
+    description = "Allow connections to the graph"
+    cidr_blocks = [var.vpc.cidr_block]
   }
 
   ingress {
