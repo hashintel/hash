@@ -23,9 +23,10 @@ export const EditEntityModal = ({
   onSubmit,
   entitySubgraph,
 }: EditEntityModalProps) => {
-  const [draftEntitySubgraph, setDraftEntitySubgraph] = useState<
+  const [localEntitySubgraph, setLocalEntitySubgraph] = useState<
     Subgraph<EntityRootType> | undefined
   >(entitySubgraph);
+
   const [savingChanges, setSavingChanges] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
@@ -38,7 +39,7 @@ export const EditEntityModal = ({
     if (open) {
       setSavingChanges(false);
       setIsDirty(false);
-      setDraftEntitySubgraph(entitySubgraph);
+      setLocalEntitySubgraph(entitySubgraph);
     }
   }
 
@@ -51,12 +52,12 @@ export const EditEntityModal = ({
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
   const { updateEntity } = useBlockProtocolUpdateEntity();
 
-  if (!draftEntitySubgraph) {
+  if (!localEntitySubgraph) {
     return null;
   }
 
   const handleSaveChanges = async () => {
-    const draftEntity = getRoots(draftEntitySubgraph)[0];
+    const draftEntity = getRoots(localEntitySubgraph)[0];
 
     if (!draftEntity) {
       return;
@@ -117,10 +118,10 @@ export const EditEntityModal = ({
       <EntityEditor
         readonly={false}
         replaceWithLatestDbVersion={async () => {}}
-        entitySubgraph={draftEntitySubgraph}
+        entitySubgraph={localEntitySubgraph}
         setEntity={(entity) => {
           setIsDirty(true);
-          updateEntitySubgraphStateByEntity(entity, setDraftEntitySubgraph);
+          updateEntitySubgraphStateByEntity(entity, setLocalEntitySubgraph);
         }}
         isDirty={isDirty}
         draftLinksToCreate={draftLinksToCreate}
