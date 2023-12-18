@@ -94,6 +94,9 @@ export const EditEntityModal = ({
         throw new Error("Updating entity failed");
       }
 
+      setDraftLinksToCreate([]);
+      setDraftLinksToArchive([]);
+      setIsDirty(false);
       onSubmit();
     } catch (err) {
       setSavingChanges(false);
