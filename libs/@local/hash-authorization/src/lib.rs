@@ -184,6 +184,22 @@ impl AuthorizationApi for NoAuthorization {
         })
     }
 
+    async fn check_entity_types_permission(
+        &self,
+        _actor: AccountId,
+        _permission: EntityTypePermission,
+        entity_types: impl IntoIterator<Item = EntityTypeId, IntoIter: Send> + Send,
+        _consistency: Consistency<'_>,
+    ) -> Result<(HashMap<EntityTypeId, bool>, Zookie<'static>), CheckError> {
+        Ok((
+            entity_types
+                .into_iter()
+                .map(|entity_type| (entity_type, true))
+                .collect(),
+            Zookie::empty(),
+        ))
+    }
+
     async fn get_entity_type_relations(
         &self,
         _entity_type: EntityTypeId,
@@ -219,6 +235,22 @@ impl AuthorizationApi for NoAuthorization {
         })
     }
 
+    async fn check_property_types_permission(
+        &self,
+        _actor: AccountId,
+        _permission: PropertyTypePermission,
+        property_types: impl IntoIterator<Item = PropertyTypeId, IntoIter: Send> + Send,
+        _consistency: Consistency<'_>,
+    ) -> Result<(HashMap<PropertyTypeId, bool>, Zookie<'static>), CheckError> {
+        Ok((
+            property_types
+                .into_iter()
+                .map(|property_type| (property_type, true))
+                .collect(),
+            Zookie::empty(),
+        ))
+    }
+
     async fn get_property_type_relations(
         &self,
         _property_type: PropertyTypeId,
@@ -252,6 +284,22 @@ impl AuthorizationApi for NoAuthorization {
             has_permission: true,
             checked_at: Zookie::empty(),
         })
+    }
+
+    async fn check_data_types_permission(
+        &self,
+        _actor: AccountId,
+        _permission: DataTypePermission,
+        data_types: impl IntoIterator<Item = DataTypeId, IntoIter: Send> + Send,
+        _consistency: Consistency<'_>,
+    ) -> Result<(HashMap<DataTypeId, bool>, Zookie<'static>), CheckError> {
+        Ok((
+            data_types
+                .into_iter()
+                .map(|data_type| (data_type, true))
+                .collect(),
+            Zookie::empty(),
+        ))
     }
 
     async fn get_data_type_relations(

@@ -301,6 +301,47 @@ where
             .await
     }
 
+    async fn check_entity_types_permission(
+        &self,
+        actor: AccountId,
+        permission: EntityTypePermission,
+        entity_types: impl IntoIterator<Item = EntityTypeId, IntoIter: Send> + Send,
+        consistency: Consistency<'_>,
+    ) -> Result<(HashMap<EntityTypeId, bool>, Zookie<'static>), CheckError> {
+        let response = self
+            .backend
+            .check_permissions(
+                entity_types
+                    .into_iter()
+                    .map(move |entity_type| (entity_type, permission, actor)),
+                consistency,
+            )
+            .await?;
+        let mut status = Ok::<(), Report<RpcError>>(());
+        let permissions = response
+            .permissions
+            .into_iter()
+            .filter_map(|item| {
+                let permission = match item.has_permission {
+                    Ok(permissionship) => permissionship,
+                    Err(error) => {
+                        if let Err(report) = &mut status {
+                            report.extend_one(Report::new(error));
+                        } else {
+                            status = Err(Report::new(error));
+                        }
+                        return None;
+                    }
+                };
+                Some((item.resource, permission))
+            })
+            .collect();
+
+        status
+            .change_context(CheckError)
+            .map(|()| (permissions, response.checked_at))
+    }
+
     async fn get_entity_type_relations(
         &self,
         entity_type: EntityTypeId,
@@ -356,6 +397,47 @@ where
             .await
     }
 
+    async fn check_property_types_permission(
+        &self,
+        actor: AccountId,
+        permission: PropertyTypePermission,
+        property_types: impl IntoIterator<Item = PropertyTypeId, IntoIter: Send> + Send,
+        consistency: Consistency<'_>,
+    ) -> Result<(HashMap<PropertyTypeId, bool>, Zookie<'static>), CheckError> {
+        let response = self
+            .backend
+            .check_permissions(
+                property_types
+                    .into_iter()
+                    .map(move |property_type| (property_type, permission, actor)),
+                consistency,
+            )
+            .await?;
+        let mut status = Ok::<(), Report<RpcError>>(());
+        let permissions = response
+            .permissions
+            .into_iter()
+            .filter_map(|item| {
+                let permission = match item.has_permission {
+                    Ok(permissionship) => permissionship,
+                    Err(error) => {
+                        if let Err(report) = &mut status {
+                            report.extend_one(Report::new(error));
+                        } else {
+                            status = Err(Report::new(error));
+                        }
+                        return None;
+                    }
+                };
+                Some((item.resource, permission))
+            })
+            .collect();
+
+        status
+            .change_context(CheckError)
+            .map(|()| (permissions, response.checked_at))
+    }
+
     async fn get_property_type_relations(
         &self,
         property_type: PropertyTypeId,
@@ -407,6 +489,47 @@ where
         self.backend
             .check_permission(&data_type, &permission, &actor, consistency)
             .await
+    }
+
+    async fn check_data_types_permission(
+        &self,
+        actor: AccountId,
+        permission: DataTypePermission,
+        data_types: impl IntoIterator<Item = DataTypeId, IntoIter: Send> + Send,
+        consistency: Consistency<'_>,
+    ) -> Result<(HashMap<DataTypeId, bool>, Zookie<'static>), CheckError> {
+        let response = self
+            .backend
+            .check_permissions(
+                data_types
+                    .into_iter()
+                    .map(move |data_type| (data_type, permission, actor)),
+                consistency,
+            )
+            .await?;
+        let mut status = Ok::<(), Report<RpcError>>(());
+        let permissions = response
+            .permissions
+            .into_iter()
+            .filter_map(|item| {
+                let permission = match item.has_permission {
+                    Ok(permissionship) => permissionship,
+                    Err(error) => {
+                        if let Err(report) = &mut status {
+                            report.extend_one(Report::new(error));
+                        } else {
+                            status = Err(Report::new(error));
+                        }
+                        return None;
+                    }
+                };
+                Some((item.resource, permission))
+            })
+            .collect();
+
+        status
+            .change_context(CheckError)
+            .map(|()| (permissions, response.checked_at))
     }
 
     async fn get_data_type_relations(
