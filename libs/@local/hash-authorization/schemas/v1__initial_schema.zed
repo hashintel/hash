@@ -53,8 +53,8 @@ definition graph/web {
 	// Data types
 	relation level_00_data_type_viewer: graph/account:*
 
-	permission create_data_type = administrator - administrator
-	permission update_data_type = administrator - administrator
+	permission create_data_type = administrator
+	permission update_data_type = administrator
 	permission view_data_type = update_data_type + level_00_data_type_viewer
 }
 
