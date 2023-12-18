@@ -2,7 +2,7 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Drawer, Stack, Typography } from "@mui/material";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { Button } from "../../../../shared/ui";
@@ -24,9 +24,8 @@ export const EditEntityModal = ({
   onSubmit,
   entitySubgraph,
 }: EditEntityModalProps) => {
-  const [localEntitySubgraph, setLocalEntitySubgraph] = useState<
-    Subgraph<EntityRootType> | undefined
-  >(entitySubgraph);
+  const [localEntitySubgraph, setLocalEntitySubgraph] =
+    useState<Subgraph<EntityRootType>>(entitySubgraph);
 
   const [savingChanges, setSavingChanges] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -54,18 +53,22 @@ export const EditEntityModal = ({
   const { updateEntity } = useBlockProtocolUpdateEntity();
 
   const entityLabel = useMemo(
-    () =>
-      localEntitySubgraph
-        ? generateEntityLabel(localEntitySubgraph)
-        : localEntitySubgraph,
+    () => generateEntityLabel(localEntitySubgraph),
     [localEntitySubgraph],
   );
 
-  if (!localEntitySubgraph) {
-    return null;
-  }
+  const resetEntityEditor = useCallback(() => {
+    setDraftLinksToCreate([]);
+    setDraftLinksToArchive([]);
+    setIsDirty(false);
+  }, [setDraftLinksToCreate, setDraftLinksToArchive, setIsDirty]);
 
-  const handleSaveChanges = async () => {
+  const handleCancel = useCallback(() => {
+    resetEntityEditor();
+    onClose();
+  }, [onClose, resetEntityEditor]);
+
+  const handleSaveChanges = useCallback(async () => {
     const draftEntity = getRoots(localEntitySubgraph)[0];
 
     if (!draftEntity) {
@@ -94,14 +97,20 @@ export const EditEntityModal = ({
         throw new Error("Updating entity failed");
       }
 
-      setDraftLinksToCreate([]);
-      setDraftLinksToArchive([]);
-      setIsDirty(false);
+      resetEntityEditor();
       onSubmit();
     } catch (err) {
       setSavingChanges(false);
     }
-  };
+  }, [
+    applyDraftLinkEntityChanges,
+    draftLinksToArchive,
+    draftLinksToCreate,
+    localEntitySubgraph,
+    onSubmit,
+    resetEntityEditor,
+    updateEntity,
+  ]);
 
   const submitDisabled =
     !isDirty && !draftLinksToCreate.length && !draftLinksToArchive.length;
@@ -133,7 +142,19 @@ export const EditEntityModal = ({
         entitySubgraph={localEntitySubgraph}
         setEntity={(entity) => {
           setIsDirty(true);
-          updateEntitySubgraphStateByEntity(entity, setLocalEntitySubgraph);
+          updateEntitySubgraphStateByEntity(
+            entity,
+            (updatedEntitySubgraphOrFunction) => {
+              setLocalEntitySubgraph((prev) => {
+                const updatedEntitySubgraph =
+                  typeof updatedEntitySubgraphOrFunction === "function"
+                    ? updatedEntitySubgraphOrFunction(prev)
+                    : updatedEntitySubgraphOrFunction;
+
+                return updatedEntitySubgraph ?? prev;
+              });
+            },
+          );
         }}
         isDirty={isDirty}
         draftLinksToCreate={draftLinksToCreate}
@@ -150,7 +171,7 @@ export const EditEntityModal = ({
         >
           Save Changes
         </Button>
-        <Button onClick={onClose} variant="tertiary">
+        <Button onClick={handleCancel} variant="tertiary">
           Cancel
         </Button>
       </Stack>
