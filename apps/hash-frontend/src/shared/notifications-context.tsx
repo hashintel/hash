@@ -186,7 +186,7 @@ export const NotificationsContextProvider: FunctionComponent<
       },
     },
     skip: !authenticatedUser,
-    fetchPolicy: "cache-and-network",
+    fetchPolicy: "network-only",
   });
 
   const outgoingLinksSubgraph = useMemo(
@@ -254,7 +254,7 @@ export const NotificationsContextProvider: FunctionComponent<
       !authenticatedUser ||
       !notificationEntities ||
       notificationEntities.length === 0,
-    fetchPolicy: "cache-and-network",
+    fetchPolicy: "network-only",
   });
 
   const previouslyFetchedNotificationsRef = useRef<Notification[] | null>(null);
