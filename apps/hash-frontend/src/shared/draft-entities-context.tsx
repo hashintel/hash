@@ -101,6 +101,7 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     variables: getDraftEntitiesQueryVariables,
     onCompleted: (data) => setPreviouslyFetchedDraftEntitiesData(data),
     pollInterval: draftEntitiesPollingInterval,
+    fetchPolicy: "network-only",
   });
 
   const draftEntitiesSubgraph = useMemo(

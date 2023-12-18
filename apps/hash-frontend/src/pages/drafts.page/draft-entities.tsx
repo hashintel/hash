@@ -122,6 +122,7 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
     },
     skip: !draftEntities,
     onCompleted: (data) => setPreviouslyFetchedDraftEntityHistoriesData(data),
+    fetchPolicy: "network-only",
   });
 
   const draftEntityHistoriesSubgraph = useMemo(
