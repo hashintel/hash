@@ -242,6 +242,14 @@ mod test {
         }
     }
 
+    async fn assert_empty(client: &ClientTransportLayer) {
+        let metrics = client.metrics().await.unwrap();
+        assert_eq!(metrics.pending, 0);
+        assert_eq!(metrics.lookup, 0);
+        assert_eq!(metrics.waiting, 0);
+        assert!(!metrics.dialing);
+    }
+
     #[test_log::test(tokio::test)]
     async fn echo_binary() {
         let (client, _guard) = echo(TransportConfig::default().with_codec(CodecKind::Binary)).await;
@@ -255,6 +263,7 @@ mod test {
         };
 
         assert_eq!(&*body, payload);
+        assert_empty(&client).await;
     }
 
     #[test_log::test(tokio::test)]
@@ -270,6 +279,7 @@ mod test {
         };
 
         assert_eq!(&*body, payload);
+        assert_empty(&client).await;
     }
 
     #[test_log::test(tokio::test)]
@@ -291,6 +301,7 @@ mod test {
             panic!("expected success response");
         };
         assert_eq!(&*body, payload);
+        assert_empty(&client).await;
 
         // wait for the connection to timeout
         tokio::time::sleep(std::time::Duration::from_millis(250)).await;
@@ -300,6 +311,7 @@ mod test {
             panic!("expected success response");
         };
         assert_eq!(&*body, payload);
+        assert_empty(&client).await;
     }
 
     #[test_log::test(tokio::test)]
@@ -326,12 +338,7 @@ mod test {
                 body: ResponsePayload::Error(crate::rpc::Error::DeadlineExceeded),
             }
         );
-
-        let metrics = client.metrics().await.unwrap();
-        assert_eq!(metrics.pending, 0);
-        assert_eq!(metrics.lookup, 0);
-        assert_eq!(metrics.waiting, 0);
-        assert!(!metrics.dialing);
+        assert_empty(&client).await;
     }
 
     #[test_log::test(tokio::test)]
@@ -350,14 +357,7 @@ mod test {
             .await
             .unwrap();
 
-        // TODO: look at event loop state?
-
         assert_eq!(response.body, ResponsePayload::Success(payload));
-
-        let metrics = client.metrics().await.unwrap();
-        assert_eq!(metrics.pending, 0);
-        assert_eq!(metrics.lookup, 0);
-        assert_eq!(metrics.waiting, 0);
-        assert!(!metrics.dialing);
+        assert_empty(&client).await;
     }
 }
