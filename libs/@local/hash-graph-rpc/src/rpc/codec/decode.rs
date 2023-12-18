@@ -286,7 +286,8 @@ mod test {
             decode::{read_varint, DecodeBinary},
             Limit,
         },
-        ProcedureId, Request, Response,
+        ActorId, PayloadSize, ProcedureId, Request, RequestHeader, Response, ResponseHeader,
+        ServiceId,
     };
 
     const EXAMPLE_UUID: Uuid = Uuid::from_bytes([
@@ -341,46 +342,49 @@ mod test {
         decode_actor_id: EXAMPLE_UUID.into_bytes() => crate::rpc::ActorId::from(EXAMPLE_UUID);
         decode_actor_id_zero: [0_u8; 16] => crate::rpc::ActorId::from(Uuid::nil());
 
-        decode_payload_size: [0x80, 0x01] => crate::rpc::PayloadSize::new(0x80);
-        decode_payload_size_zero: [0x00] => crate::rpc::PayloadSize::new(0);
+        decode_payload_size: [0x80, 0x01] => PayloadSize::new(0x80);
+        decode_payload_size_zero: [0x00] => PayloadSize::new(0);
 
         decode_request_header: [
             0x02, // service id
             0x12, // procedure id
             0x5B, 0xC2, 0xA5, 0x38, 0xFA, 0x94, 0x41, 0x00, 0x86, 0x00, 0x53, 0xAF, 0xCF, 0x8A, 0xA6, 0xFF, // actor id
             0x80, 0x01, // body size
-        ] => crate::rpc::RequestHeader {
+        ] => RequestHeader {
+            service: ServiceId::new(0x02),
             procedure: ProcedureId::new(0x12),
-            actor: crate::rpc::ActorId::from(EXAMPLE_UUID),
-            size: crate::rpc::PayloadSize::new(0x80),
+            actor: ActorId::from(EXAMPLE_UUID),
+            size: PayloadSize::new(0x80),
         };
 
         decode_request: [
+            0x02, // service id
             0x12, // procedure id
             0x5B, 0xC2, 0xA5, 0x38, 0xFA, 0x94, 0x41, 0x00, 0x86, 0x00, 0x53, 0xAF, 0xCF, 0x8A, 0xA6, 0xFF, // actor id
             0x04, // body size
             0xDE, 0xAD, 0xBE, 0xEF, // body
         ] => Request {
-            header: crate::rpc::RequestHeader {
+            header: RequestHeader {
+                service: ServiceId::new(0x02),
                 procedure: ProcedureId::new(0x12),
-                actor: crate::rpc::ActorId::from(EXAMPLE_UUID),
-                size: crate::rpc::PayloadSize::new(0x04),
+                actor: ActorId::from(EXAMPLE_UUID),
+                size: PayloadSize::new(0x04),
             },
             body: vec![0xDE, 0xAD, 0xBE, 0xEF].into(),
         };
 
         decode_response_header: [
             0x80, 0x01, // body size
-        ] => crate::rpc::ResponseHeader {
-            size: crate::rpc::PayloadSize::new(0x80),
+        ] => ResponseHeader {
+            size: PayloadSize::new(0x80),
         };
 
         decode_response: [
             0x04, // body size
             0xDE, 0xAD, 0xBE, 0xEF, // body
         ] => Response {
-            header: crate::rpc::ResponseHeader {
-                size: crate::rpc::PayloadSize::new(0x04),
+            header: ResponseHeader {
+                size: PayloadSize::new(0x04),
             },
             body: vec![0xDE, 0xAD, 0xBE, 0xEF].into(),
         };
@@ -388,7 +392,7 @@ mod test {
 
     #[tokio::test]
     async fn incorrect_request_body_size_exceeds_limit() {
-        let mut request = vec![0x12_u8];
+        let mut request = vec![0x02, 0x12];
         request.extend_from_slice(&EXAMPLE_UUID.into_bytes());
         request.extend_from_slice(&[0x04]);
         request.extend_from_slice(&[0x00; 4]);
@@ -407,7 +411,7 @@ mod test {
 
     #[tokio::test]
     async fn incorrect_request_body_size_does_not_match_header() {
-        let mut request = vec![0x12_u8];
+        let mut request = vec![0x02, 0x12];
         request.extend_from_slice(&EXAMPLE_UUID.into_bytes());
         request.extend_from_slice(&[0x05]);
         request.extend_from_slice(&[0x00; 4]);

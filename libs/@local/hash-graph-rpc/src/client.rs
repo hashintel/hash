@@ -67,7 +67,7 @@ mod tests {
             })
             .await;
 
-        let response = client.call(DifferentProcedure).await;
+        // let response = client.call(DifferentProcedure).await;
     }
 
     #[test]

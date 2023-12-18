@@ -65,6 +65,10 @@ impl PayloadSize {
         Self(value)
     }
 
+    pub fn len(value: &[u8]) -> Self {
+        Self(value.len() as u64)
+    }
+
     pub const fn into_usize(self) -> usize {
         self.0 as usize
     }
