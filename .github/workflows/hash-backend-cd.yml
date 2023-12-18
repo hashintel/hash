@@ -392,7 +392,7 @@ jobs:
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
           AWS_REGION: ${{ env.AWS_REGION }}
 
-      - name: Redeploy HASH backend service
+      - name: Redeploy HASH graph service
         run: |
           aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_GRAPH_SERVICE_NAME }} --force-new-deployment 1> /dev/null
 
