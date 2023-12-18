@@ -86,15 +86,19 @@ export const TableWithQuery = ({
   }, [graphModule, query]);
 
   const columns = useMemo<GridColumn[]>(() => {
-    const uniqueEntityTypeIds = new Set<string>(
+    const uniquePropertyTypeBaseUrls = new Set<string>(
       entities.flatMap(({ properties }) => Object.keys(properties)),
     );
 
-    return Array.from(uniqueEntityTypeIds).map((entityTypeId) => ({
-      id: entityTypeId,
-      title: entityTypeId.split("/").slice(-2)[0] ?? entityTypeId,
-      width: 200,
-    }));
+    return Array.from(uniquePropertyTypeBaseUrls).map(
+      (propertyTypeBaseUrl) => ({
+        id: propertyTypeBaseUrl,
+        /** @todo: fetch property type in query */
+        title:
+          propertyTypeBaseUrl.split("/").slice(-2)[0] ?? propertyTypeBaseUrl,
+        width: 200,
+      }),
+    );
   }, [entities]);
 
   const handleCellEdited: DataEditorProps["onCellEdited"] = (
@@ -106,15 +110,17 @@ export const TableWithQuery = ({
         if (index !== rowIndex) return entity;
 
         const column = columns[colIndex];
-        const propertyTypeId = column?.id;
+        const propertyTypeBaseUrl = column?.id;
 
-        if (!column || !propertyTypeId) throw new Error("Column not found");
+        if (!column || !propertyTypeBaseUrl) {
+          throw new Error("Column not found");
+        }
 
         const newPropertyValue = newValue.data as string;
 
         const newProperties = {
           ...entity.properties,
-          [propertyTypeId]: newPropertyValue,
+          [propertyTypeBaseUrl]: newPropertyValue,
         };
 
         void graphModule.updateEntity({
