@@ -1,7 +1,8 @@
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Drawer, Stack, Typography } from "@mui/material";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { Button } from "../../../../shared/ui";
@@ -51,6 +52,14 @@ export const EditEntityModal = ({
   ] = useDraftLinkState();
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
   const { updateEntity } = useBlockProtocolUpdateEntity();
+
+  const entityLabel = useMemo(
+    () =>
+      localEntitySubgraph
+        ? generateEntityLabel(localEntitySubgraph)
+        : localEntitySubgraph,
+    [localEntitySubgraph],
+  );
 
   if (!localEntitySubgraph) {
     return null;
@@ -112,7 +121,7 @@ export const EditEntityModal = ({
       }}
     >
       <Typography variant="h2" color="gray.90" fontWeight="bold">
-        Edit Entity
+        {entityLabel}
       </Typography>
 
       <EntityEditor
