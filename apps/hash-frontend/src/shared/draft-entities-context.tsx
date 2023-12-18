@@ -2,7 +2,6 @@ import { useMutation, useQuery } from "@apollo/client";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph/.";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -45,11 +44,12 @@ const getDraftEntitiesQueryVariables: StructuralQueryEntitiesQueryVariables = {
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
       isOfType: { outgoing: 1 },
       inheritsFrom: { outgoing: 255 },
       constrainsPropertiesOn: { outgoing: 255 },
       constrainsValuesOn: { outgoing: 255 },
+      constrainsLinksOn: { outgoing: 255 },
+      constrainsLinkDestinationsOn: { outgoing: 255 },
       hasLeftEntity: { outgoing: 1, incoming: 1 },
       hasRightEntity: { outgoing: 1, incoming: 1 },
     },

@@ -10,8 +10,10 @@ import { Box, buttonClasses, Collapse, Typography } from "@mui/material";
 import { FunctionComponent, useMemo, useState } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
+import { useDraftEntities } from "../../shared/draft-entities-context";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
 import { Button, Link } from "../../shared/ui";
+import { EditEntityModal } from "../[shortname]/entities/[entity-uuid].page/edit-entity-modal";
 import { DraftEntityActionButtons } from "./draft-entity/draft-entity-action-buttons";
 import { DraftEntityProperties } from "./draft-entity/draft-entity-properties";
 import { DraftEntityProvenance } from "./draft-entity/draft-entity-provenance";
@@ -23,7 +25,11 @@ export const DraftEntity: FunctionComponent<{
   entity: Entity;
   createdAt: Date;
 }> = ({ entity, subgraph, createdAt }) => {
+  const { refetch } = useDraftEntities();
+
   const getOwnerForEntity = useGetOwnerForEntity();
+
+  const [displayEntityModal, setDisplayEntityModal] = useState<boolean>(false);
 
   const [displayProperties, setDisplayProperties] = useState<boolean>(false);
 
@@ -40,6 +46,17 @@ export const DraftEntity: FunctionComponent<{
     [subgraph, entity],
   );
 
+  const entityRootedSubgraph = useMemo<Subgraph<EntityRootType>>(() => {
+    const entityRoot = subgraph.roots.find(
+      ({ baseId }) => baseId === entity.metadata.recordId.entityId,
+    )!;
+
+    return {
+      ...subgraph,
+      roots: [entityRoot],
+    };
+  }, [subgraph, entity]);
+
   return (
     <Box paddingY={4.5} paddingX={3.25}>
       <Box
@@ -47,6 +64,15 @@ export const DraftEntity: FunctionComponent<{
         justifyContent="space-between"
         alignItems="flex-start"
       >
+        <EditEntityModal
+          open={displayEntityModal}
+          entitySubgraph={entityRootedSubgraph}
+          onClose={() => setDisplayEntityModal(false)}
+          onSubmit={() => {
+            void refetch();
+            setDisplayEntityModal(false);
+          }}
+        />
         {/* @todo: open in a slide-over instead of redirecting */}
         <Link
           noLinkStyle
@@ -55,6 +81,13 @@ export const DraftEntity: FunctionComponent<{
             "&:hover > div": {
               background: ({ palette }) => palette.blue[15],
             },
+          }}
+          onClick={(event) => {
+            if (event.metaKey) {
+              return;
+            }
+            setDisplayEntityModal(true);
+            event.preventDefault();
           }}
         >
           <Box
