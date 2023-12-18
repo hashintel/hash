@@ -1,8 +1,10 @@
 import {
   Entity,
+  EntityRootType,
   GraphBlockHandler,
   JsonValue,
   MultiFilter,
+  Subgraph,
 } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
@@ -18,11 +20,11 @@ import { BlockEntity } from "../../types/generated/block-entity";
 import { Grid, ROW_HEIGHT } from "../grid/grid";
 
 const isStripedKey: RootKey =
-  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-rows-are-striped/";
+  "https://blockprotocol.org/@hash/types/property-type/table-rows-are-striped/";
 const hideHeaderRowKey: RootKey =
-  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-header-row-is-hidden/";
+  "https://blockprotocol.org/@hash/types/property-type/table-header-row-is-hidden/";
 const hideRowNumbersKey: RootKey =
-  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-row-numbers-are-hidden/";
+  "https://blockprotocol.org/@hash/types/property-type/table-row-numbers-are-hidden/";
 
 interface TableProps {
   blockEntity: BlockEntity;
@@ -72,7 +74,9 @@ export const TableWithQuery = ({
         throw new Error(res.errors?.[0]?.message ?? "Unknown error");
       }
 
-      const roots = getRoots(res.data.results);
+      const subgraph = res.data as unknown as Subgraph<EntityRootType>;
+
+      const roots = getRoots(subgraph);
       setLoading(false);
 
       setEntities(roots);
