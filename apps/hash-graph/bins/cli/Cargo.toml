@@ -27,7 +27,7 @@ futures = { version = "0.3.29" }
 regex = "1.10.2"
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"] }
 semver = { version = "1.0.20", default-features = false }
-sentry = { version = "0.32.0", features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls"], default-features = false }
+sentry = { version = "0.32.1", features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls"], default-features = false }
 serde_json = "1.0.108"
 tarpc = { version = "0.33", features = ["serde1", "tokio1", "serde-transport", "tcp"] }
 time = "0.3.30"
