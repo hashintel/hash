@@ -48,10 +48,8 @@ const Page: NextPageWithLayout = () => {
       </Typography>
       <Typography mb={3}>
         <strong>You are currently signed up and on the waitlist.</strong> You'll
-        receive an email from us when it's your turn to access HASH.
-      </Typography>
-      <Typography mb={3}>
-        If you'd like to jump ahead,{" "}
+        receive an email from us when it's your turn to access HASH. If you'd
+        like to jump ahead,{" "}
         <Link href="https://hash.ai/contact">tell us about your use case</Link>{" "}
         and we'll move you up the list.
       </Typography>
