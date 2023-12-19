@@ -5,7 +5,6 @@ import {
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
 } from "@blockprotocol/graph/temporal";
 import {
-  DataType,
   EntityType,
   PropertyType,
   validateBaseUrl,
@@ -13,6 +12,7 @@ import {
 } from "@blockprotocol/type-system/slim";
 import { Brand } from "@local/advanced-types/brand";
 import { Subtype } from "@local/advanced-types/subtype";
+import { CustomDataType } from "@local/hash-isomorphic-utils/data-types";
 
 import {
   BaseUrl,
@@ -104,7 +104,7 @@ export type EntityTypeMetadata = OntologyElementMetadata &
 export type DataTypeWithMetadata = Subtype<
   DataTypeWithMetadataBp,
   {
-    schema: DataType;
+    schema: CustomDataType;
     metadata: OntologyElementMetadata;
   }
 >;

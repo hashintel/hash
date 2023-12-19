@@ -18,7 +18,7 @@ export const scalars = {
 
   DataTypeWithMetadata: "@local/hash-subgraph#DataTypeWithMetadata",
   ConstructDataTypeParams:
-    "@local/hash-isomorphic-utils/types#ConstructDataTypeParams",
+    "@local/hash-isomorphic-utils/data-types#ConstructDataTypeParams",
 
   EntityTypeWithMetadata: "@local/hash-subgraph#EntityTypeWithMetadata",
   ConstructEntityTypeParams:
