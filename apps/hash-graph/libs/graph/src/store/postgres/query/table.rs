@@ -678,6 +678,7 @@ pub enum EntityEmbeddings {
     WebId,
     EntityUuid,
     Embedding,
+    Distance,
 }
 
 impl EntityEmbeddings {
@@ -686,6 +687,7 @@ impl EntityEmbeddings {
             Self::WebId => "web_id",
             Self::EntityUuid => "entity_uuid",
             Self::Embedding => "embedding",
+            Self::Distance => "distance",
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
@@ -695,6 +697,7 @@ impl EntityEmbeddings {
         match self {
             Self::WebId | Self::EntityUuid => ParameterType::Uuid,
             Self::Embedding => ParameterType::Vector,
+            Self::Distance => ParameterType::F64,
         }
     }
 }

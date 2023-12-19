@@ -2,7 +2,7 @@ use std::{fmt, fmt::Write};
 
 use crate::store::postgres::query::{
     table::{Column, ForeignKeyReference},
-    Alias, AliasedTable, Transpile,
+    Alias, AliasedTable, SelectStatement, Transpile,
 };
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -51,6 +51,7 @@ pub struct JoinOn {
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct JoinExpression {
     pub join: JoinType,
+    pub statement: Option<SelectStatement>,
     pub table: AliasedTable,
     pub on_alias: Alias,
     pub on: Vec<JoinOn>,
@@ -66,6 +67,7 @@ impl JoinExpression {
             ForeignKeyReference::Single { join, on } => Self {
                 join: JoinType::from_nullability(join.nullable(), on.nullable()),
                 table: join.table().aliased(join_alias),
+                statement: None,
                 on_alias,
                 on: vec![JoinOn { join, on }],
             },
@@ -78,6 +80,7 @@ impl JoinExpression {
                     on1.nullable() || on2.nullable(),
                 ),
                 table: join1.table().aliased(join_alias),
+                statement: None,
                 on_alias,
                 on: vec![
                     JoinOn {
@@ -98,7 +101,13 @@ impl Transpile for JoinExpression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         self.join.transpile(fmt)?;
         fmt.write_char(' ')?;
-        self.table.table.transpile(fmt)?;
+        if let Some(select) = &self.statement {
+            fmt.write_char('(')?;
+            select.transpile(fmt)?;
+            fmt.write_char(')')?;
+        } else {
+            self.table.table.transpile(fmt)?;
+        }
         fmt.write_str(" AS ")?;
         self.table.transpile(fmt)?;
         fmt.write_str(" ON ")?;

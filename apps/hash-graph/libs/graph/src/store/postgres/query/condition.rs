@@ -16,7 +16,6 @@ pub enum Condition {
     LessOrEqual(Expression, Expression),
     Greater(Expression, Expression),
     GreaterOrEqual(Expression, Expression),
-    CosineDistance(Expression, Expression, Expression),
     In(Expression, Expression),
     TimeIntervalContainsTimestamp(Expression, Expression),
     Overlap(Expression, Expression),
@@ -87,15 +86,6 @@ impl Transpile for Condition {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" != ")?;
                 rhs.transpile(fmt)
-            }
-            Self::CosineDistance(lhs, rhs, max) => {
-                fmt.write_char('(')?;
-                lhs.transpile(fmt)?;
-                fmt.write_str(" <=> ")?;
-                rhs.transpile(fmt)?;
-                fmt.write_str(" <= ")?;
-                max.transpile(fmt)?;
-                fmt.write_char(')')
             }
             Self::Less(lhs, rhs) => {
                 lhs.transpile(fmt)?;
