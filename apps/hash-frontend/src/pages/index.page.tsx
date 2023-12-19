@@ -1,11 +1,27 @@
+import { useQuery } from "@apollo/client";
 import { Box, Typography } from "@mui/material";
+import { useMemo } from "react";
 
+import { HasAccessToHashQuery } from "../graphql/api-types.gen";
+import { hasAccessToHashQuery } from "../graphql/queries/user.queries";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { Link } from "../shared/ui";
 import { useAuthInfo } from "./shared/auth-info-context";
 
 const Page: NextPageWithLayout = () => {
-  const { hasAccessToHash } = useAuthInfo();
+  const { authenticatedUser } = useAuthInfo();
+  const { data: hasAccessToHashResponse } = useQuery<HasAccessToHashQuery>(
+    hasAccessToHashQuery,
+    { skip: !authenticatedUser || authenticatedUser.accountSignupComplete },
+  );
+
+  const hasAccessToHash = useMemo(() => {
+    if (authenticatedUser?.accountSignupComplete) {
+      return true;
+    } else {
+      return hasAccessToHashResponse?.hasAccessToHash;
+    }
+  }, [authenticatedUser, hasAccessToHashResponse]);
 
   return hasAccessToHash ? (
     <Box sx={{ pt: 7 }}>

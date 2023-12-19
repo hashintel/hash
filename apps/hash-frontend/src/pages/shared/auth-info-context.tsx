@@ -1,4 +1,4 @@
-import { useLazyQuery, useQuery } from "@apollo/client";
+import { useLazyQuery,  } from "@apollo/client";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -27,11 +27,8 @@ import {
 } from "react";
 
 import { useOrgsWithLinks } from "../../components/hooks/use-orgs-with-links";
-import { HasAccessToHashQuery, MeQuery } from "../../graphql/api-types.gen";
-import {
-  hasAccessToHashQuery,
-  meQuery,
-} from "../../graphql/queries/user.queries";
+import { MeQuery } from "../../graphql/api-types.gen";
+import { meQuery } from "../../graphql/queries/user.queries";
 import {
   constructUser,
   isEntityUserEntity,
@@ -44,7 +41,6 @@ type RefetchAuthInfoFunction = () => Promise<{
 
 type AuthInfoContextValue = {
   authenticatedUser?: User;
-  hasAccessToHash?: boolean;
   refetch: RefetchAuthInfoFunction;
 };
 
@@ -154,30 +150,16 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
     [authenticatedUserSubgraph, constructUserValue],
   );
 
-  const { data: hasAccessToHashResponse } = useQuery<HasAccessToHashQuery>(
-    hasAccessToHashQuery,
-    { skip: !authenticatedUser || authenticatedUser.accountSignupComplete },
-  );
-
-  const hasAccessToHash = useMemo(() => {
-    if (authenticatedUser?.accountSignupComplete) {
-      return true;
-    } else {
-      return hasAccessToHashResponse?.hasAccessToHash;
-    }
-  }, [authenticatedUser, hasAccessToHashResponse]);
-
   const value = useMemo(
     () => ({
       authenticatedUser,
-      hasAccessToHash,
       refetch: async () => {
         // Refetch the detail on orgs in case this refetch is following them being modified
         await refetchOrgs();
         return fetchAuthenticatedUser();
       },
     }),
-    [authenticatedUser, hasAccessToHash, fetchAuthenticatedUser, refetchOrgs],
+    [authenticatedUser, fetchAuthenticatedUser, refetchOrgs],
   );
 
   return (
