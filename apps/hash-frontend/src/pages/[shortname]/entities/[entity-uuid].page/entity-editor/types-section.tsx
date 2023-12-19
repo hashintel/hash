@@ -118,7 +118,7 @@ export const TypesSection = () => {
           title={entityTypeTitle}
           version={currentVersion}
           newVersionConfig={
-            newVersion
+            !readonly && newVersion
               ? {
                   newVersion,
                   onUpdateVersion: openModal,

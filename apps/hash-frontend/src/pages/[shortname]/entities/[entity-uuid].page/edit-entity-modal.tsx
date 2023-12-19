@@ -1,7 +1,8 @@
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Drawer, Stack, Typography } from "@mui/material";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { Button } from "../../../../shared/ui";
@@ -23,9 +24,9 @@ export const EditEntityModal = ({
   onSubmit,
   entitySubgraph,
 }: EditEntityModalProps) => {
-  const [draftEntitySubgraph, setDraftEntitySubgraph] = useState<
-    Subgraph<EntityRootType> | undefined
-  >(entitySubgraph);
+  const [localEntitySubgraph, setLocalEntitySubgraph] =
+    useState<Subgraph<EntityRootType>>(entitySubgraph);
+
   const [savingChanges, setSavingChanges] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
@@ -38,7 +39,7 @@ export const EditEntityModal = ({
     if (open) {
       setSavingChanges(false);
       setIsDirty(false);
-      setDraftEntitySubgraph(entitySubgraph);
+      setLocalEntitySubgraph(entitySubgraph);
     }
   }
 
@@ -51,12 +52,24 @@ export const EditEntityModal = ({
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
   const { updateEntity } = useBlockProtocolUpdateEntity();
 
-  if (!draftEntitySubgraph) {
-    return null;
-  }
+  const entityLabel = useMemo(
+    () => generateEntityLabel(localEntitySubgraph),
+    [localEntitySubgraph],
+  );
 
-  const handleSaveChanges = async () => {
-    const draftEntity = getRoots(draftEntitySubgraph)[0];
+  const resetEntityEditor = useCallback(() => {
+    setDraftLinksToCreate([]);
+    setDraftLinksToArchive([]);
+    setIsDirty(false);
+  }, [setDraftLinksToCreate, setDraftLinksToArchive, setIsDirty]);
+
+  const handleCancel = useCallback(() => {
+    resetEntityEditor();
+    onClose();
+  }, [onClose, resetEntityEditor]);
+
+  const handleSaveChanges = useCallback(async () => {
+    const draftEntity = getRoots(localEntitySubgraph)[0];
 
     if (!draftEntity) {
       return;
@@ -84,11 +97,20 @@ export const EditEntityModal = ({
         throw new Error("Updating entity failed");
       }
 
+      resetEntityEditor();
       onSubmit();
     } catch (err) {
       setSavingChanges(false);
     }
-  };
+  }, [
+    applyDraftLinkEntityChanges,
+    draftLinksToArchive,
+    draftLinksToCreate,
+    localEntitySubgraph,
+    onSubmit,
+    resetEntityEditor,
+    updateEntity,
+  ]);
 
   const submitDisabled =
     !isDirty && !draftLinksToCreate.length && !draftLinksToArchive.length;
@@ -111,16 +133,28 @@ export const EditEntityModal = ({
       }}
     >
       <Typography variant="h2" color="gray.90" fontWeight="bold">
-        Edit Entity
+        {entityLabel}
       </Typography>
 
       <EntityEditor
         readonly={false}
         replaceWithLatestDbVersion={async () => {}}
-        entitySubgraph={draftEntitySubgraph}
+        entitySubgraph={localEntitySubgraph}
         setEntity={(entity) => {
           setIsDirty(true);
-          updateEntitySubgraphStateByEntity(entity, setDraftEntitySubgraph);
+          updateEntitySubgraphStateByEntity(
+            entity,
+            (updatedEntitySubgraphOrFunction) => {
+              setLocalEntitySubgraph((prev) => {
+                const updatedEntitySubgraph =
+                  typeof updatedEntitySubgraphOrFunction === "function"
+                    ? updatedEntitySubgraphOrFunction(prev)
+                    : updatedEntitySubgraphOrFunction;
+
+                return updatedEntitySubgraph ?? prev;
+              });
+            },
+          );
         }}
         isDirty={isDirty}
         draftLinksToCreate={draftLinksToCreate}
@@ -137,7 +171,7 @@ export const EditEntityModal = ({
         >
           Save Changes
         </Button>
-        <Button onClick={onClose} variant="tertiary">
+        <Button onClick={handleCancel} variant="tertiary">
           Cancel
         </Button>
       </Stack>

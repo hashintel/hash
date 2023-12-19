@@ -1,3 +1,4 @@
+import { extractVersion, VersionedUrl } from "@blockprotocol/type-system";
 import { WandMagicSparklesIcon } from "@hashintel/design-system";
 import {
   AccountId,
@@ -131,6 +132,27 @@ const getDraftEntityTypes = (params: {
   params.draftEntities
     .map((draftEntity) => draftEntity.metadata.entityTypeId)
     .filter((entityTypeId, index, all) => all.indexOf(entityTypeId) === index)
+    .reduce<VersionedUrl[]>((prev, entityTypeId) => {
+      const previousEntityTypeId = prev.find(
+        (prevEntityTypeId) =>
+          extractBaseUrl(prevEntityTypeId) === extractBaseUrl(entityTypeId),
+      );
+
+      if (!previousEntityTypeId) {
+        return [...prev, entityTypeId];
+      } else if (
+        extractVersion(previousEntityTypeId) < extractVersion(entityTypeId)
+      ) {
+        return [
+          ...prev.filter(
+            (prevEntityTypeId) =>
+              extractBaseUrl(prevEntityTypeId) !== extractBaseUrl(entityTypeId),
+          ),
+          entityTypeId,
+        ];
+      }
+      return prev;
+    }, [])
     .map((entityTypeId) => {
       const entityType = getEntityTypeById(
         params.draftEntitiesSubgraph,

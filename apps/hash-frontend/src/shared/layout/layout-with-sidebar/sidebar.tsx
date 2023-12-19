@@ -6,7 +6,7 @@ import {
 } from "@hashintel/design-system";
 import { Box, Drawer, Tooltip } from "@mui/material";
 import { useRouter } from "next/router";
-import { FunctionComponent, useMemo } from "react";
+import { FunctionComponent } from "react";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
@@ -14,7 +14,7 @@ import { useDraftEntities } from "../../draft-entities-context";
 import { SidebarToggleIcon } from "../../icons";
 import { InboxIcon } from "../../icons/inbox-icon";
 import { QuickNoteIcon } from "../../icons/quick-note-icon";
-import { useNotifications } from "../../notifications-context";
+import { useNotificationEntities } from "../../notification-entities-context";
 import { useRoutePageInfo } from "../../routing";
 import { HEADER_HEIGHT } from "../layout-with-header/page-header";
 import { AccountEntitiesList } from "./account-entities-list";
@@ -35,12 +35,7 @@ export const PageSidebar: FunctionComponent = () => {
 
   const { hashInstance } = useHashInstance();
 
-  const { notifications } = useNotifications();
-
-  const numberOfUnreadNotifications = useMemo(
-    () => notifications?.filter(({ readAt }) => !readAt).length,
-    [notifications],
-  );
+  const { numberOfUnreadNotifications } = useNotificationEntities();
 
   const { draftEntities } = useDraftEntities();
 

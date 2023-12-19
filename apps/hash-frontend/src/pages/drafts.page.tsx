@@ -15,6 +15,7 @@ import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { MenuItem } from "../shared/ui";
 import { DraftEntities, SortOrder } from "./drafts.page/draft-entities";
 import { InlineSelect } from "./shared/inline-select";
+import { NotificationsWithLinksContextProvider } from "./shared/notifications-with-links-context";
 import { TopContextBar } from "./shared/top-context-bar";
 
 const sortOrderHumanReadable: Record<SortOrder, string> = {
@@ -23,10 +24,10 @@ const sortOrderHumanReadable: Record<SortOrder, string> = {
 };
 
 const DraftsPage: NextPageWithLayout = () => {
-  const [sortOrder, setSortOrder] = useState<SortOrder>("created-at-asc");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("created-at-desc");
 
   return (
-    <>
+    <NotificationsWithLinksContextProvider>
       <NextSeo title="Drafts" />
       <TopContextBar
         defaultCrumbIcon={null}
@@ -90,7 +91,7 @@ const DraftsPage: NextPageWithLayout = () => {
         }
       />
       <DraftEntities sortOrder={sortOrder} />
-    </>
+    </NotificationsWithLinksContextProvider>
   );
 };
 

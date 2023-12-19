@@ -28,13 +28,14 @@ import { FunctionComponent, useCallback, useMemo } from "react";
 import { useUserOrOrgShortnameByOwnedById } from "../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { constructPageRelativeUrl } from "../lib/routes";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
+import { useNotificationEntities } from "../shared/notification-entities-context";
+import { Button, Link } from "../shared/ui";
 import {
   GraphChangeNotification,
   Notification,
   PageRelatedNotification,
-  useNotifications,
-} from "../shared/notifications-context";
-import { Button, Link } from "../shared/ui";
+  useNotificationsWithLinksContextValue,
+} from "./shared/notifications-with-links-context";
 
 const Table = styled(MuiTable)(({ theme }) => ({
   borderCollapse: "separate",
@@ -159,12 +160,18 @@ const PageRelatedNotificationContent = ({
 };
 
 const NotificationRow: FunctionComponent<Notification> = (notification) => {
-  const { markNotificationAsRead } = useNotifications();
-  const { kind, occurredInEntity, readAt, createdAt } = notification;
+  const { markNotificationAsRead } = useNotificationEntities();
+  const {
+    kind,
+    occurredInEntity,
+    readAt,
+    createdAt,
+    entity: notificationEntity,
+  } = notification;
 
   const handleNotificationClick = useCallback(async () => {
-    await markNotificationAsRead({ notification });
-  }, [markNotificationAsRead, notification]);
+    await markNotificationAsRead({ notificationEntity });
+  }, [markNotificationAsRead, notificationEntity]);
 
   const ownedById = useMemo(
     () =>
@@ -283,7 +290,7 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
           <Button
             variant="tertiary"
             size="xs"
-            onClick={() => markNotificationAsRead({ notification })}
+            onClick={() => markNotificationAsRead({ notificationEntity })}
           >
             Mark as read
           </Button>
@@ -294,7 +301,7 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
 };
 
 const InboxPage: NextPageWithLayout = () => {
-  const { notifications } = useNotifications();
+  const { notifications } = useNotificationsWithLinksContextValue();
 
   return (
     <Container sx={{ paddingY: 6 }}>

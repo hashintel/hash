@@ -42,7 +42,7 @@ import {
   NextPageWithLayout,
 } from "../shared/layout";
 import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
-import { NotificationsContextProvider } from "../shared/notifications-context";
+import { NotificationEntitiesContextProvider } from "../shared/notification-entities-context";
 import { PropertyTypesContextProvider } from "../shared/property-types-context";
 import { RoutePageInfoProvider } from "../shared/routing";
 import { ErrorFallback } from "./_app.page/error-fallback";
@@ -144,7 +144,7 @@ const App: FunctionComponent<AppProps> = ({
               <WorkspaceContextProvider>
                 <KeyboardShortcutsContextProvider>
                   <SnackbarProvider maxSnack={3}>
-                    <NotificationsContextProvider>
+                    <NotificationEntitiesContextProvider>
                       <DraftEntitiesContextProvider>
                         <EntityTypesContextProvider>
                           <PropertyTypesContextProvider includeArchived>
@@ -167,7 +167,7 @@ const App: FunctionComponent<AppProps> = ({
                           </PropertyTypesContextProvider>
                         </EntityTypesContextProvider>
                       </DraftEntitiesContextProvider>
-                    </NotificationsContextProvider>
+                    </NotificationEntitiesContextProvider>
                   </SnackbarProvider>
                 </KeyboardShortcutsContextProvider>
               </WorkspaceContextProvider>

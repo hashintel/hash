@@ -6,6 +6,7 @@ import { Container } from "@mui/system";
 import { useRouter } from "next/router";
 import { ReactNode, useContext } from "react";
 
+import { NotificationsWithLinksContextProvider } from "../../../../shared/notifications-with-links-context";
 import { TopContextBar } from "../../../../shared/top-context-bar";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
 import { DraftEntityBanner } from "./draft-entity-banner";
@@ -61,14 +62,16 @@ export const EntityPageHeader = ({
       />
 
       {entity && entitySubgraph ? (
-        <Collapse in={entity.metadata.draft}>
-          <DraftEntityBanner
-            draftEntity={entity}
-            draftEntitySubgraph={entitySubgraph}
-            isModifyingEntity={isModifyingEntity}
-            onAcceptedEntity={onEntityUpdated}
-          />
-        </Collapse>
+        <NotificationsWithLinksContextProvider>
+          <Collapse in={entity.metadata.draft}>
+            <DraftEntityBanner
+              draftEntity={entity}
+              draftEntitySubgraph={entitySubgraph}
+              isModifyingEntity={isModifyingEntity}
+              onAcceptedEntity={onEntityUpdated}
+            />
+          </Collapse>
+        </NotificationsWithLinksContextProvider>
       ) : null}
 
       {editBar}
