@@ -2,12 +2,6 @@
 //!
 //! To enable debugging this can either be text or binary.
 //!
-//! The binary format is described as followed:
-//! | Header | Body |
-//!
-//! The (request) header is:
-//! | Procedure ID (varint) | Actor ID (u128) | Body Size (varint) |
-//!
 //! The header is in network order, so big endian.
 //! Variable Integers are encoded in little endian using the integer-encoding crate.
 
@@ -18,15 +12,14 @@ use libp2p::{
     futures::{AsyncRead, AsyncWrite},
     StreamProtocol,
 };
-use tokio::io::{BufReader, BufWriter};
 use tokio_util::compat::{FuturesAsyncReadCompatExt, FuturesAsyncWriteCompatExt};
 
-use crate::harpc::{
+use crate::harpc::transport::{
     codec::{
         decode::{Decode, DecodeBinary},
         encode::{Encode, EncodeBinary},
     },
-    Request, Response,
+    message::{request::Request, response::Response},
 };
 
 /// Max request size in bytes

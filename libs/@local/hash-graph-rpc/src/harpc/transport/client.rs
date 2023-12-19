@@ -24,10 +24,13 @@ use tokio::{
 use crate::harpc::{
     codec::Codec,
     transport::{
-        log_behaviour_event, BehaviourCollectionEvent, SpawnGuard, TransportConfig, TransportError,
-        TransportLayer,
+        log_behaviour_event,
+        message::{
+            request::Request,
+            response::{Error, Response},
+        },
+        BehaviourCollectionEvent, SpawnGuard, TransportConfig, TransportError, TransportLayer,
     },
-    Error, Request, Response,
 };
 
 #[derive(Debug, Clone)]

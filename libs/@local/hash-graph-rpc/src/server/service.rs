@@ -4,8 +4,10 @@ use libp2p::futures::future::BoxFuture;
 
 use crate::{
     harpc::{
-        Context, Handler, ProcedureCall, ProcedureId, RemoteProcedure, Request, Response,
-        ServiceSpecification,
+        procedure::{Handler, ProcedureCall, ProcedureId, RemoteProcedure},
+        service::ServiceSpecification,
+        transport::message::{request::Request, response::Response},
+        Context,
     },
     types::{Empty, HStack, Includes, Stack, SupersetOf},
 };

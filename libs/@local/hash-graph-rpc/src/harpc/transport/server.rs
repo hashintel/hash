@@ -17,12 +17,9 @@ use tokio::{
 };
 use tonic::codegen::tokio_stream::Stream;
 
-use crate::harpc::{
-    transport::{
-        log_behaviour_event, BehaviourCollectionEvent, RequestRouter, SpawnGuard, TransportConfig,
-        TransportError, TransportLayer, TransportSwarm,
-    },
-    Response,
+use crate::harpc::transport::{
+    log_behaviour_event, message::response::Response, BehaviourCollectionEvent, RequestRouter,
+    SpawnGuard, TransportConfig, TransportError, TransportLayer, TransportSwarm,
 };
 
 #[derive(Debug)]

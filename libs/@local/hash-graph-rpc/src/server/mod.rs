@@ -11,11 +11,16 @@ use libp2p::{futures::future::Either, multiaddr::Protocol, Multiaddr};
 pub use self::service::{Service, ServiceBuilder};
 use crate::{
     harpc::{
+        service::{ServiceId, ServiceSpecification},
         transport::{
+            message::{
+                request::Request,
+                response::{Error, Response},
+            },
             server::{ServerTransportConfig, ServerTransportLayer},
             RequestRouter, TransportConfig,
         },
-        Context, Error, Request, Response, ServiceId, ServiceSpecification,
+        Context,
     },
     server::service::ErasedService,
     types::{Empty, HStack, Stack},

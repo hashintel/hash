@@ -13,7 +13,7 @@ macro_rules! service {
         #[derive(serde::Serialize, serde::Deserialize)]
         $vis struct $name;
 
-        impl $crate::harpc::RemoteProcedure for $name {
+        impl $crate::harpc::procedure::RemoteProcedure for $name {
             #[allow(unused_parens)]
             type Response = ($($output)?);
 
@@ -29,7 +29,7 @@ macro_rules! service {
             $($fields)+
         }
 
-        impl $crate::harpc::RemoteProcedure for $name {
+        impl $crate::harpc::procedure::RemoteProcedure for $name {
             #[allow(unused_parens)]
             type Response = ($($output)?);
 
@@ -46,7 +46,7 @@ macro_rules! service {
     }) => {
         $vis struct $name;
 
-        impl $crate::harpc::ServiceSpecification for $name {
+        impl $crate::harpc::service::ServiceSpecification for $name {
             type Procedures = service!(@collect $($procedures)*);
 
             const ID: $crate::harpc::ServiceId = $crate::harpc::ServiceId::derive(stringify!($name));

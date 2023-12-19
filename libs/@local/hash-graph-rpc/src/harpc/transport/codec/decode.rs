@@ -6,8 +6,17 @@ use tokio::io::{AsyncRead, AsyncReadExt};
 use uuid::Uuid;
 
 use crate::harpc::{
-    codec::Limit, ActorId, Error, PayloadSize, ProcedureId, Request, RequestHeader, Response,
-    ResponseHeader, ResponsePayload, ServiceId,
+    procedure::ProcedureId,
+    service::ServiceId,
+    transport::{
+        codec::Limit,
+        message::{
+            actor::ActorId,
+            request::{Request, RequestHeader},
+            response::{Error, Response, ResponseHeader, ResponsePayload},
+            size::PayloadSize,
+        },
+    },
 };
 
 async fn default_decode_text<T, U>(io: &mut T, limit: Limit) -> std::io::Result<U>
@@ -302,12 +311,20 @@ mod test {
     use uuid::Uuid;
 
     use crate::harpc::{
-        codec::{
-            decode::{read_varint, Decode, DecodeBinary},
-            Limit,
+        procedure::ProcedureId,
+        service::ServiceId,
+        transport::{
+            codec::{
+                decode::{read_varint, Decode, DecodeBinary},
+                Limit,
+            },
+            message::{
+                actor::ActorId,
+                request::{Request, RequestHeader},
+                response::{Error, Response, ResponseHeader, ResponsePayload},
+                size::PayloadSize,
+            },
         },
-        ActorId, Error, PayloadSize, ProcedureId, Request, RequestHeader, Response, ResponseHeader,
-        ResponsePayload, ServiceId,
     };
 
     const EXAMPLE_UUID: Uuid = Uuid::from_bytes([

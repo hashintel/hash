@@ -1,5 +1,6 @@
 pub(crate) mod client;
 mod codec;
+mod message;
 pub(crate) mod server;
 
 use std::{future::Future, time::Duration};
@@ -11,13 +12,11 @@ use libp2p::{
     swarm::NetworkBehaviour,
     tcp, yamux, StreamProtocol, Swarm, SwarmBuilder,
 };
+use message::{request::Request, response::Response};
 use thiserror::Error;
 use tokio::task::JoinHandle;
 
-use crate::harpc::{
-    codec::{Codec, CodecKind},
-    Request, Response,
-};
+use crate::harpc::codec::{Codec, CodecKind};
 
 #[derive(NetworkBehaviour)]
 struct BehaviourCollection {
@@ -144,13 +143,19 @@ mod test {
 
     use crate::harpc::{
         codec::CodecKind,
+        procedure::ProcedureId,
+        service::ServiceId,
         transport::{
             client::{ClientTransportConfig, ClientTransportLayer},
+            message::{
+                actor::ActorId,
+                request::{Request, RequestHeader},
+                response::{Response, ResponseHeader, ResponsePayload},
+                size::PayloadSize,
+            },
             server::{ServerTransportConfig, ServerTransportLayer},
             RequestRouter, TransportConfig,
         },
-        ActorId, PayloadSize, ProcedureId, Request, RequestHeader, Response, ResponseHeader,
-        ResponsePayload, ServiceId,
     };
 
     #[derive(Debug, Copy, Clone)]
@@ -344,7 +349,9 @@ mod test {
                 header: ResponseHeader {
                     size: PayloadSize::new(0)
                 },
-                body: ResponsePayload::Error(crate::harpc::Error::DeadlineExceeded),
+                body: ResponsePayload::Error(
+                    crate::harpc::transport::message::response::Error::DeadlineExceeded
+                ),
             }
         );
         assert_empty(&client).await;

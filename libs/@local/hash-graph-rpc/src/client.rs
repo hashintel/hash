@@ -5,12 +5,19 @@ use uuid::Uuid;
 
 use crate::{
     harpc::{
+        procedure::RemoteProcedure,
+        service::ServiceSpecification,
         transport::{
             client::{ClientTransportConfig, ClientTransportLayer},
+            message::{
+                actor::ActorId,
+                request::{Request, RequestHeader},
+                response::ResponsePayload,
+                size::PayloadSize,
+            },
             TransportConfig,
         },
-        ActorId, Decode, Encode, PayloadSize, RemoteProcedure, Request, RequestHeader,
-        ResponsePayload, ServiceSpecification,
+        Decode, Encode,
     },
     types::Includes,
 };
@@ -77,11 +84,11 @@ mod tests {
     };
 
     struct DifferentProcedure;
-    impl crate::harpc::RemoteProcedure for DifferentProcedure {
+    impl crate::harpc::procedure::RemoteProcedure for DifferentProcedure {
         type Response = ();
 
-        const ID: crate::harpc::ProcedureId =
-            crate::harpc::ProcedureId::derive("DifferentProcedure");
+        const ID: crate::harpc::procedure::ProcedureId =
+            crate::harpc::procedure::ProcedureId::derive("DifferentProcedure");
     }
 
     async fn _never_called() {

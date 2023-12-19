@@ -4,8 +4,14 @@ use integer_encoding::VarInt;
 use tokio::io::AsyncWriteExt;
 
 use crate::harpc::{
-    ActorId, PayloadSize, ProcedureId, Request, RequestHeader, Response, ResponseHeader,
-    ResponsePayload, ServiceId,
+    procedure::ProcedureId,
+    service::ServiceId,
+    transport::message::{
+        actor::ActorId,
+        request::{Request, RequestHeader},
+        response::{Response, ResponseHeader, ResponsePayload},
+        size::PayloadSize,
+    },
 };
 
 async fn default_encode_text<T, U>(value: &U, io: &mut T) -> std::io::Result<()>
@@ -192,9 +198,17 @@ mod test {
     use uuid::Uuid;
 
     use crate::harpc::{
-        codec::encode::{Encode, EncodeBinary},
-        ActorId, Error, PayloadSize, ProcedureId, Request, RequestHeader, Response, ResponseHeader,
-        ResponsePayload, ServiceId,
+        procedure::ProcedureId,
+        service::ServiceId,
+        transport::{
+            codec::encode::{Encode, EncodeBinary},
+            message::{
+                actor::ActorId,
+                request::{Request, RequestHeader},
+                response::{Error, Response, ResponseHeader, ResponsePayload},
+                size::PayloadSize,
+            },
+        },
     };
 
     const EXAMPLE_UUID: Uuid = Uuid::from_bytes([
