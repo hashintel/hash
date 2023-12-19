@@ -24,7 +24,7 @@ const sortOrderHumanReadable: Record<SortOrder, string> = {
 };
 
 const DraftsPage: NextPageWithLayout = () => {
-  const [sortOrder, setSortOrder] = useState<SortOrder>("created-at-asc");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("created-at-desc");
 
   return (
     <NotificationsWithLinksContextProvider>
