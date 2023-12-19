@@ -102,7 +102,7 @@
     "image": "public/block-preview.png",
     "name": "@hash/table",
     "protocol": "0.3",
-    "blockEntityType": "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/entity-type/table-block/v/4",
+    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/table-block/v/4",
     "codegen": {
       "outputFolder": "src/types/generated",
       "targets": {

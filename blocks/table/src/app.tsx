@@ -21,7 +21,7 @@ import {
 } from "./types/generated/block-entity";
 
 const titleKey: RootKey =
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
 
 export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
@@ -34,9 +34,10 @@ export const App: BlockComponent<BlockEntity> = ({
     TableBlockOutgoingLinkAndTarget[]
   >(blockEntitySubgraph);
 
-  /** @todo use the real query object here, instead of the staging one */
-  const query = linkedEntities[0]?.rightEntity?.properties[
-    "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/query-object/"
+  const linkedQueryEntity = linkedEntities[0]?.rightEntity;
+
+  const query = linkedQueryEntity?.properties[
+    "https://blockprotocol.org/@hash/types/property-type/query/"
   ] as MultiFilter | undefined;
 
   const {

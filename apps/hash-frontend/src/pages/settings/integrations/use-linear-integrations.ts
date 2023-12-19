@@ -28,7 +28,7 @@ export const useLinearIntegrations = () => {
 
   useEffect(() => {
     void (async () => {
-      const { data: subgraph } = await queryEntities({
+      const { data } = await queryEntities({
         data: {
           operation: {
             multiFilter: {
@@ -54,7 +54,9 @@ export const useLinearIntegrations = () => {
         },
       });
 
-      if (subgraph) {
+      if (data) {
+        const subgraph = data.results;
+
         const linearIntegrationEntities = getRoots(subgraph);
 
         setLinearIntegrations(

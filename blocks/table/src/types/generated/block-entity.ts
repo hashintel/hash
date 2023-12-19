@@ -13,10 +13,19 @@ export type BlockEntityOutgoingLinkAndTarget = TableBlockOutgoingLinkAndTarget;
  */
 export type Boolean = boolean;
 
+export type HasQuery = Entity<HasQueryProperties> & { linkData: LinkData };
+
+export type HasQueryOutgoingLinkAndTarget = never;
+
+export type HasQueryOutgoingLinksByLinkEntityTypeId = {};
+
 /**
- * An arbitrary ID
+ * The query that something has.
  */
-export type IDPropertyValue = Text;
+export type HasQueryProperties = HasQueryProperties1 & HasQueryProperties2;
+export type HasQueryProperties1 = LinkProperties;
+
+export type HasQueryProperties2 = {};
 
 export type Link = Entity<LinkProperties>;
 
@@ -26,23 +35,6 @@ export type LinkOutgoingLinksByLinkEntityTypeId = {};
 
 export type LinkProperties = {};
 
-export type LinkedQuery = Entity<LinkedQueryProperties> & {
-  linkData: LinkData;
-};
-
-export type LinkedQueryOutgoingLinkAndTarget = never;
-
-export type LinkedQueryOutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * 123
- */
-export type LinkedQueryProperties = LinkedQueryProperties1 &
-  LinkedQueryProperties2;
-export type LinkedQueryProperties1 = LinkProperties;
-
-export type LinkedQueryProperties2 = {};
-
 /**
  * An opaque, untyped JSON object
  */
@@ -50,72 +42,84 @@ export type Object = {};
 
 export type Query = Entity<QueryProperties>;
 
-/**
- * 12312
- */
-export type QueryObjectPropertyValue = Object;
-
 export type QueryOutgoingLinkAndTarget = never;
 
 export type QueryOutgoingLinksByLinkEntityTypeId = {};
 
 export type QueryProperties = {
-  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/query-object/"?: QueryObjectPropertyValue;
-};
-
-export type TableBlock = Entity<TableBlockProperties>;
-
-export type TableBlockLinkedQueryLink = {
-  linkEntity: LinkedQuery;
-  rightEntity: Query;
-};
-
-export type TableBlockOutgoingLinkAndTarget = TableBlockLinkedQueryLink;
-
-export type TableBlockOutgoingLinksByLinkEntityTypeId = {
-  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/entity-type/linked-query/v/1": TableBlockLinkedQueryLink;
-};
-
-export type TableBlockProperties = {
-  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-header-row-is-hidden/"?: TableHeaderRowIsHiddenPropertyValue;
-  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-row-numbers-are-hidden/"?: TableRowNumbersAreHiddenPropertyValue;
-  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-rows-are-striped/"?: TableRowsAreStripedPropertyValue;
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: TitlePropertyValue;
-  /**
-   * @minItems 0
-   */
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/table-local-column/"?: TableLocalColumnPropertyValue[];
-  /**
-   * @minItems 0
-   */
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/table-local-row/"?: TableLocalRowPropertyValue[];
+  "https://blockprotocol.org/@hash/types/property-type/query/": QueryPropertyValue;
 };
 
 /**
- * 123
+ * The query for something.
+ */
+export type QueryPropertyValue = Object;
+
+export type TableBlock = Entity<TableBlockProperties>;
+
+export type TableBlockHasQueryLink = {
+  linkEntity: HasQuery;
+  rightEntity: Query;
+};
+
+export type TableBlockOutgoingLinkAndTarget = TableBlockHasQueryLink;
+
+export type TableBlockOutgoingLinksByLinkEntityTypeId = {
+  "https://blockprotocol.org/@hash/types/entity-type/has-query/v/1": TableBlockHasQueryLink;
+};
+
+/**
+ * The block entity of the "Table" block.
+ *
+ * See: https://blockprotocol.org/@hash/blocks/table
+ */
+export type TableBlockProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
+  "https://blockprotocol.org/@hash/types/property-type/table-rows-are-striped/"?: TableRowsAreStripedPropertyValue;
+  "https://blockprotocol.org/@hash/types/property-type/table-row-numbers-are-hidden/"?: TableRowNumbersAreHiddenPropertyValue;
+  "https://blockprotocol.org/@hash/types/property-type/table-header-row-is-hidden/"?: TableHeaderRowIsHiddenPropertyValue;
+  /**
+   * @minItems 0
+   */
+  "https://blockprotocol.org/@hash/types/property-type/table-local-column/"?: TableLocalColumnPropertyValue[];
+  /**
+   * @minItems 0
+   */
+  "https://blockprotocol.org/@hash/types/property-type/table-local-row/"?: TableLocalRowPropertyValue[];
+};
+
+/**
+ * Whether the table header row is hidden.
  */
 export type TableHeaderRowIsHiddenPropertyValue = Boolean;
 
 /**
- * Local column stored on "Table" block
+ * A unique identifier for a local column stored on the "Table" block.
+ */
+export type TableLocalColumnIDPropertyValue = Text;
+
+/**
+ * Local column stored on "Table" block.
  */
 export type TableLocalColumnPropertyValue = {
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/"?: TitlePropertyValue;
-  "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/": IDPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
+  "https://blockprotocol.org/@hash/types/property-type/table-local-column-id/": TableLocalColumnIDPropertyValue;
 };
 
 /**
- * Local row stored on "Table" block
+ * An object representing a local row stored on the "Table" block. The keys of this object must be one of the local column IDs.
+ *
+ * See: https://blockprotocol.org/@hash/types/property-type/table-local-column/
  */
 export type TableLocalRowPropertyValue = Object;
 
 /**
- * 123
+ * Whether the table row numbers are hidden.
  */
 export type TableRowNumbersAreHiddenPropertyValue = Boolean;
 
 /**
- * 123
+ * Whether the alternating table rows are zebra striped.
  */
 export type TableRowsAreStripedPropertyValue = Boolean;
 
@@ -125,6 +129,6 @@ export type TableRowsAreStripedPropertyValue = Boolean;
 export type Text = string;
 
 /**
- * The title of something
+ * The name given to something to identify it, generally associated with objects or inanimate things such as books, websites, songs, etc.
  */
 export type TitlePropertyValue = Text;

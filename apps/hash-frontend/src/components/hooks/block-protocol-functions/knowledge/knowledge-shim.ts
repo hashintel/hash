@@ -89,7 +89,10 @@ export type QueryEntitiesRequest = {
 export type QueryEntitiesMessageCallback = MessageCallback<
   QueryEntitiesRequest,
   null,
-  MessageReturn<Subgraph<EntityRootType>>,
+  MessageReturn<{
+    results: Subgraph<EntityRootType>;
+    operation: QueryOperationInput;
+  }>,
   ReadOrModifyResourceError
 >;
 
