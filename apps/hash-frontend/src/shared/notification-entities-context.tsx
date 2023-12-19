@@ -28,7 +28,7 @@ import {
 import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 
-export type NotificationsContextValues = {
+export type NotificationEntitiesContextValues = {
   notificationEntities?: Entity<NotificationProperties>[];
   numberOfUnreadNotifications?: number;
   loading: boolean;
@@ -41,22 +41,22 @@ export type NotificationsContextValues = {
   }) => Promise<void>;
 };
 
-export const NotificationsContext =
-  createContext<null | NotificationsContextValues>(null);
+export const NotificationEntitiesContext =
+  createContext<null | NotificationEntitiesContextValues>(null);
 
-export const useNotifications = () => {
-  const notificationsContext = useContext(NotificationsContext);
+export const useNotificationEntities = () => {
+  const notificationsEntitiesContext = useContext(NotificationEntitiesContext);
 
-  if (!notificationsContext) {
+  if (!notificationsEntitiesContext) {
     throw new Error("Context missing");
   }
 
-  return notificationsContext;
+  return notificationsEntitiesContext;
 };
 
 const fetchNotificationPollInterval = 5_000;
 
-export const NotificationsContextProvider: FunctionComponent<
+export const NotificationEntitiesContextProvider: FunctionComponent<
   PropsWithChildren
 > = ({ children }) => {
   const { authenticatedUser } = useAuthInfo();
@@ -176,7 +176,7 @@ export const NotificationsContextProvider: FunctionComponent<
     [notificationEntities],
   );
 
-  const value = useMemo<NotificationsContextValues>(
+  const value = useMemo<NotificationEntitiesContextValues>(
     () => ({
       notificationEntities,
       numberOfUnreadNotifications,
@@ -196,8 +196,8 @@ export const NotificationsContextProvider: FunctionComponent<
   );
 
   return (
-    <NotificationsContext.Provider value={value}>
+    <NotificationEntitiesContext.Provider value={value}>
       {children}
-    </NotificationsContext.Provider>
+    </NotificationEntitiesContext.Provider>
   );
 };

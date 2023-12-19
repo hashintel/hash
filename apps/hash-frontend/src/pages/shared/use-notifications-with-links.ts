@@ -45,7 +45,7 @@ import {
 } from "../../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { constructMinimalUser, MinimalUser } from "../../lib/user-and-org";
-import { useNotifications } from "../../shared/notifications-context";
+import { useNotificationEntities } from "../../shared/notification-entities-context";
 
 export type PageMentionNotification = {
   kind: "page-mention";
@@ -103,7 +103,7 @@ const isLinkAndRightEntityWithLinkType =
 export const useNotificationsWithLinks = (): {
   notifications?: Notification[];
 } => {
-  const { notificationEntities } = useNotifications();
+  const { notificationEntities } = useNotificationEntities();
 
   const getNotificationEntitiesFilter = useMemo<Filter>(
     () => ({

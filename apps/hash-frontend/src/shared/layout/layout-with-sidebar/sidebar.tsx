@@ -14,7 +14,7 @@ import { useDraftEntities } from "../../draft-entities-context";
 import { SidebarToggleIcon } from "../../icons";
 import { InboxIcon } from "../../icons/inbox-icon";
 import { QuickNoteIcon } from "../../icons/quick-note-icon";
-import { useNotifications } from "../../notifications-context";
+import { useNotificationEntities } from "../../notification-entities-context";
 import { useRoutePageInfo } from "../../routing";
 import { HEADER_HEIGHT } from "../layout-with-header/page-header";
 import { AccountEntitiesList } from "./account-entities-list";
@@ -35,7 +35,7 @@ export const PageSidebar: FunctionComponent = () => {
 
   const { hashInstance } = useHashInstance();
 
-  const { numberOfUnreadNotifications } = useNotifications();
+  const { numberOfUnreadNotifications } = useNotificationEntities();
 
   const { draftEntities } = useDraftEntities();
 
