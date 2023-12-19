@@ -34,8 +34,8 @@ import {
   GraphChangeNotification,
   Notification,
   PageRelatedNotification,
-  useNotificationsWithLinks,
-} from "./shared/use-notifications-with-links";
+  useNotificationsWithLinksContextValue,
+} from "./shared/notifications-with-links-context";
 
 const Table = styled(MuiTable)(({ theme }) => ({
   borderCollapse: "separate",
@@ -301,7 +301,7 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
 };
 
 const InboxPage: NextPageWithLayout = () => {
-  const { notifications } = useNotificationsWithLinks();
+  const { notifications } = useNotificationsWithLinksContextValue();
 
   return (
     <Container sx={{ paddingY: 6 }}>

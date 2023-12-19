@@ -17,7 +17,7 @@ import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
 import { useNotificationEntities } from "../../shared/notification-entities-context";
 import { Button, ButtonProps } from "../../shared/ui";
 import { LinkLabelWithSourceAndDestination } from "./link-label-with-source-and-destination";
-import { useNotificationsWithLinks } from "./use-notifications-with-links";
+import { useNotificationsWithLinks } from "./notifications-with-links-context";
 
 const LeftOrRightEntityEndAdornment: FunctionComponent<{
   isDraft: boolean;

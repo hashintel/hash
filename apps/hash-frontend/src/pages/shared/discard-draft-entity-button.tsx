@@ -16,7 +16,7 @@ import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.qu
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { useNotificationEntities } from "../../shared/notification-entities-context";
 import { Button, ButtonProps } from "../../shared/ui";
-import { useNotificationsWithLinks } from "./use-notifications-with-links";
+import { useNotificationsWithLinks } from "./notifications-with-links-context";
 
 export const DiscardDraftEntityButton: FunctionComponent<
   {
