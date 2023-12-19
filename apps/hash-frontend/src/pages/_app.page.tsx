@@ -28,8 +28,8 @@ import {
   useState,
 } from "react";
 
-import { MeQuery } from "../graphql/api-types.gen";
-import { meQuery } from "../graphql/queries/user.queries";
+import { HasAccessToHashQuery, MeQuery } from "../graphql/api-types.gen";
+import { hasAccessToHashQuery, meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
 import { constructMinimalUser } from "../lib/user-and-org";
 import { DraftEntitiesContextProvider } from "../shared/draft-entities-context";
@@ -229,16 +229,27 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
    *   on subsequent loads it will be cached so long as the cookie value remains the same.
    * We leave it up to the client to re-fetch the user as necessary in response to user-initiated actions.
    */
-  const initialAuthenticatedUserSubgraph = await apolloClient
-    .query<MeQuery>({
-      query: meQuery,
-      context: { headers: { cookie } },
-    })
-    .then(({ data }) =>
-      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(data.me.subgraph),
-    )
-    .catch(() => undefined);
-
+  const [initialAuthenticatedUserSubgraph, hasAccessToHash] = await Promise.all(
+    [
+      apolloClient
+        .query<MeQuery>({
+          query: meQuery,
+          context: { headers: { cookie } },
+        })
+        .then(({ data }) =>
+          mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+            data.me.subgraph,
+          ),
+        )
+        .catch(() => undefined),
+      apolloClient
+        .query<HasAccessToHashQuery>({
+          query: hasAccessToHashQuery,
+          context: { headers: { cookie } },
+        })
+        .then(({ data }) => data.hasAccessToHash),
+    ],
+  );
   const userEntity = initialAuthenticatedUserSubgraph
     ? (getRoots<EntityRootType>(initialAuthenticatedUserSubgraph)[0] as
         | Entity<UserProperties>
@@ -260,8 +271,11 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   // await TypeSystemInitializer.initialize();
 
   // If the user is logged in but hasn't completed signup and isn't on the signup page...
+  const user = constructMinimalUser({ userEntity });
+
   if (
-    !constructMinimalUser({ userEntity }).accountSignupComplete &&
+    hasAccessToHash &&
+    !user.accountSignupComplete &&
     !pathname.startsWith("/signup")
   ) {
     // ...then redirect them to the signup page.
