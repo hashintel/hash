@@ -229,27 +229,16 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
    *   on subsequent loads it will be cached so long as the cookie value remains the same.
    * We leave it up to the client to re-fetch the user as necessary in response to user-initiated actions.
    */
-  const [initialAuthenticatedUserSubgraph, hasAccessToHash] = await Promise.all(
-    [
-      apolloClient
-        .query<MeQuery>({
-          query: meQuery,
-          context: { headers: { cookie } },
-        })
-        .then(({ data }) =>
-          mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-            data.me.subgraph,
-          ),
-        )
-        .catch(() => undefined),
-      apolloClient
-        .query<HasAccessToHashQuery>({
-          query: hasAccessToHashQuery,
-          context: { headers: { cookie } },
-        })
-        .then(({ data }) => data.hasAccessToHash),
-    ],
-  );
+  const initialAuthenticatedUserSubgraph = await apolloClient
+    .query<MeQuery>({
+      query: meQuery,
+      context: { headers: { cookie } },
+    })
+    .then(({ data }) =>
+      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(data.me.subgraph),
+    )
+    .catch(() => undefined);
+
   const userEntity = initialAuthenticatedUserSubgraph
     ? (getRoots<EntityRootType>(initialAuthenticatedUserSubgraph)[0] as
         | Entity<UserProperties>
@@ -270,16 +259,26 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   // The type system package needs to be initialized before calling `constructAuthenticatedUser`
   // await TypeSystemInitializer.initialize();
 
-  // If the user is logged in but hasn't completed signup and isn't on the signup page...
   const user = constructMinimalUser({ userEntity });
 
-  if (
-    hasAccessToHash &&
-    !user.accountSignupComplete &&
-    !pathname.startsWith("/signup")
-  ) {
-    // ...then redirect them to the signup page.
-    redirectInGetInitialProps({ appContext, location: "/signup" });
+  // If the user is logged in but hasn't completed signup...
+  if (!user.accountSignupComplete) {
+    const hasAccessToHash = await apolloClient
+      .query<HasAccessToHashQuery>({
+        query: hasAccessToHashQuery,
+        context: { headers: { cookie } },
+      })
+      .then(({ data }) => data.hasAccessToHash);
+
+    // ...if they have access to HASH but aren't on the signup page...
+    if (hasAccessToHash && !pathname.startsWith("/signup")) {
+      // ...then redirect them to the signup page.
+      redirectInGetInitialProps({ appContext, location: "/signup" });
+      // ...if they don't have access to HASH but aren't on the home page...
+    } else if (!hasAccessToHash && pathname !== "/") {
+      // ...then redirect them to the home page.
+      redirectInGetInitialProps({ appContext, location: "/" });
+    }
   }
 
   return { initialAuthenticatedUserSubgraph };
