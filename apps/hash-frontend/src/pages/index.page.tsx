@@ -2,9 +2,12 @@ import { Box, Typography } from "@mui/material";
 
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { Link } from "../shared/ui";
+import { useAuthInfo } from "./shared/auth-info-context";
 
 const Page: NextPageWithLayout = () => {
-  return (
+  const { hasAccessToHash } = useAuthInfo();
+
+  return hasAccessToHash ? (
     <Box sx={{ pt: 7 }}>
       <Typography mb={3} variant="h2">
         Welcome to HASH
@@ -37,6 +40,26 @@ const Page: NextPageWithLayout = () => {
           directly at any time.
         </Typography>
       </Box>
+    </Box>
+  ) : (
+    <Box>
+      <Typography mb={3} variant="h2">
+        Welcome to HASH
+      </Typography>
+      <Typography mb={3}>
+        <strong>You are currently signed up and on the waitlist.</strong> You'll
+        receive an email from us when it's your turn to access HASH.
+      </Typography>
+      <Typography mb={3}>
+        If you'd like to jump ahead,{" "}
+        <Link href="https://hash.ai/contact">tell us about your use case</Link>{" "}
+        and we'll move you up the list.
+      </Typography>
+      <Typography mb={3}>
+        In the meantime,{" "}
+        <Link href="https://x.com/hashintel">follow us on X</Link> for preview
+        videos and updates.
+      </Typography>
     </Box>
   );
 };
