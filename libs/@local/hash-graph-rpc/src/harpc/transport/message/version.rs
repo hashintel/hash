@@ -33,6 +33,12 @@ pub(crate) struct Version {
 )]
 pub(crate) struct TransportVersion(u8);
 
+impl TransportVersion {
+    pub(crate) const fn new(value: u8) -> Self {
+        Self(value)
+    }
+}
+
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
 )]

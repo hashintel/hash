@@ -1,6 +1,6 @@
-mod actor;
-mod request;
-mod response;
+pub(crate) mod actor;
+pub(crate) mod request;
+pub(crate) mod response;
 mod serde_compat;
-mod size;
-mod version;
+pub(crate) mod size;
+pub(crate) mod version;

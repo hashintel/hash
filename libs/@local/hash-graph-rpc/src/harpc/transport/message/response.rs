@@ -24,8 +24,10 @@ macro_rules! convert_enum {
 pub enum ResponseError {
     DeadlineExceeded,
     ConnectionClosed,
+    UnknownProtocolVersion,
     UnknownService,
     UnknownProcedure,
+    InvalidTransportVersion,
     InvalidPayloadSize,
     InvalidPayload,
 }
@@ -34,10 +36,12 @@ impl ResponseError {
     convert_enum! {
         DeadlineExceeded <=> 0x00,
         ConnectionClosed <=> 0x01,
-        UnknownService <=> 0x02,
-        UnknownProcedure <=> 0x03,
-        InvalidPayloadSize <=> 0x04,
-        InvalidPayload <=> 0x05
+        UnknownProtocolVersion <=> 0x02,
+        UnknownService <=> 0x03,
+        UnknownProcedure <=> 0x04,
+        InvalidTransportVersion <=> 0x05,
+        InvalidPayloadSize <=> 0x06,
+        InvalidPayload <=> 0x07,
     }
 
     pub(crate) const fn into_tag(self) -> u8 {
@@ -157,7 +161,7 @@ impl From<ResponseError> for ResponsePayload {
 /// Flags for this are already reserved, but not implemented.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Response {
-    header: ResponseHeader,
+    pub(crate) header: ResponseHeader,
     pub(crate) body: ResponsePayload,
 }
 

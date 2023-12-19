@@ -1,12 +1,9 @@
-use std::{
-    future::{ready, Future},
-    sync::Arc,
-};
+use std::future::{ready, Future};
 
 use error_stack::ResultExt;
 use libp2p::{
     core::transport::ListenerId,
-    futures::{future::Either, FutureExt, StreamExt},
+    futures::{FutureExt, StreamExt},
     request_response::{Event, Message, ResponseChannel},
     swarm::SwarmEvent,
     Multiaddr,
@@ -78,8 +75,6 @@ pub(crate) struct ServerTransportLayer<T> {
 
     router: T,
 }
-
-// type OpaqueFuture<'a> = impl Future<Output = ()> + Send + 'a;
 
 impl<T> ServerTransportLayer<T>
 where

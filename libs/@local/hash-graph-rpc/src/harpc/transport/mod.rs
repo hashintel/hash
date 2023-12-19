@@ -12,15 +12,21 @@ use libp2p::{
     swarm::NetworkBehaviour,
     tcp, yamux, StreamProtocol, Swarm, SwarmBuilder,
 };
-use message::{request::Request, response::Response};
 use thiserror::Error;
 use tokio::task::JoinHandle;
 
-use crate::harpc::codec::{Codec, CodecKind};
+use crate::harpc::transport::{
+    codec::{Codec, CodecKind},
+    message::version::TransportVersion,
+};
+
+const TRANSPORT_VERSION: TransportVersion = TransportVersion::new(0x00);
+
+type TransportBehaviour = request_response::Behaviour<Codec>;
 
 #[derive(NetworkBehaviour)]
 struct BehaviourCollection {
-    protocol: request_response::Behaviour<Codec>,
+    protocol: TransportBehaviour,
     identify: identify::Behaviour,
 }
 
@@ -56,7 +62,6 @@ struct TransportLayer {
 
 impl TransportLayer {
     fn new(config: TransportConfig) -> error_stack::Result<Self, TransportError> {
-        // TODO: RPC versions
         let transport = SwarmBuilder::with_new_identity()
             .with_tokio()
             .with_tcp(config.tcp, noise::Config::new, yamux::Config::default)
@@ -142,11 +147,11 @@ mod test {
     use uuid::Uuid;
 
     use crate::harpc::{
-        codec::CodecKind,
         procedure::ProcedureId,
         service::ServiceId,
         transport::{
             client::{ClientTransportConfig, ClientTransportLayer},
+            codec::CodecKind,
             message::{
                 actor::ActorId,
                 request::{Request, RequestHeader},
