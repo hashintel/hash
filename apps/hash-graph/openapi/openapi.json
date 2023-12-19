@@ -3876,23 +3876,6 @@
           },
           {
             "type": "object",
-            "title": "L2DistanceFilter",
-            "required": [
-              "l2Distance"
-            ],
-            "properties": {
-              "l2Distance": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/FilterExpression"
-                },
-                "maxItems": 3,
-                "minItems": 3
-              }
-            }
-          },
-          {
-            "type": "object",
             "title": "CosineDistanceFilter",
             "required": [
               "cosineDistance"
@@ -3905,6 +3888,23 @@
                 },
                 "maxItems": 3,
                 "minItems": 3
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "StartsWithFilter",
+            "required": [
+              "startsWith"
+            ],
+            "properties": {
+              "startsWith": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FilterExpression"
+                },
+                "maxItems": 2,
+                "minItems": 2
               }
             }
           },
