@@ -257,6 +257,10 @@ module "application" {
   ])
   api_image    = module.api_ecr
   api_env_vars = concat(var.hash_api_env_vars, [
+    {
+      name  = "USER_EMAIL_ALLOW_LIST", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["user_email_allow_list"])
+    },
     { name = "AWS_REGION", secret = false, value = local.region },
     {
       name  = "AWS_S3_UPLOADS_ACCESS_KEY_ID", secret = true,
