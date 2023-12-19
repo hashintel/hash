@@ -384,7 +384,7 @@ impl QueryPath for EntityQueryPath<'_> {
             }
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
             Self::Properties(_) => ParameterType::Any,
-            Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::Number,
+            Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::I32,
             Self::Archived | Self::Draft => ParameterType::Boolean,
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),

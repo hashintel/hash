@@ -16,6 +16,7 @@ pub enum Condition {
     LessOrEqual(Expression, Expression),
     Greater(Expression, Expression),
     GreaterOrEqual(Expression, Expression),
+    CosineDistance(Expression, Expression, Expression),
     In(Expression, Expression),
     TimeIntervalContainsTimestamp(Expression, Expression),
     Overlap(Expression, Expression),
@@ -86,6 +87,15 @@ impl Transpile for Condition {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" != ")?;
                 rhs.transpile(fmt)
+            }
+            Self::CosineDistance(lhs, rhs, max) => {
+                fmt.write_char('(')?;
+                lhs.transpile(fmt)?;
+                fmt.write_str(" <=> ")?;
+                rhs.transpile(fmt)?;
+                fmt.write_str(" <= ")?;
+                max.transpile(fmt)?;
+                fmt.write_char(')')
             }
             Self::Less(lhs, rhs) => {
                 lhs.transpile(fmt)?;
@@ -256,7 +266,7 @@ mod tests {
                 ),
                 Filter::Equal(
                     Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                    Some(FilterExpression::Parameter(Parameter::Number(1))),
+                    Some(FilterExpression::Parameter(Parameter::I32(1))),
                 ),
             ]),
             r#"("ontology_ids_0_1_0"."base_url" = $1) AND ("ontology_ids_0_1_0"."version" = $2)"#,
@@ -290,7 +300,7 @@ mod tests {
                 ),
                 Filter::Equal(
                     Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                    Some(FilterExpression::Parameter(Parameter::Number(1))),
+                    Some(FilterExpression::Parameter(Parameter::I32(1))),
                 ),
             ]),
             r#"(("ontology_ids_0_1_0"."base_url" = $1) OR ("ontology_ids_0_1_0"."version" = $2))"#,
