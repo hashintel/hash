@@ -1,7 +1,7 @@
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
 )]
-pub struct PayloadSize(u64);
+pub(crate) struct PayloadSize(u64);
 
 impl PayloadSize {
     pub(crate) const fn new(value: u64) -> Self {

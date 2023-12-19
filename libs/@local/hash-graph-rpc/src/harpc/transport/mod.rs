@@ -350,7 +350,7 @@ mod test {
                     size: PayloadSize::new(0)
                 },
                 body: ResponsePayload::Error(
-                    crate::harpc::transport::message::response::Error::DeadlineExceeded
+                    crate::harpc::transport::message::response::ResponseError::DeadlineExceeded
                 ),
             }
         );

@@ -13,7 +13,7 @@ use crate::harpc::{
         message::{
             actor::ActorId,
             request::{Request, RequestHeader},
-            response::{Error, Response, ResponseHeader, ResponsePayload},
+            response::{Response, ResponseError, ResponseHeader, ResponsePayload},
             size::PayloadSize,
         },
     },
@@ -265,7 +265,7 @@ impl DecodeBinary for Response {
                 header: ResponseHeader {
                     size: PayloadSize::new(0),
                 },
-                body: Error::try_from_tag(status)
+                body: ResponseError::try_from_tag(status)
                     .map(ResponsePayload::Error)
                     .ok_or_else(|| {
                         std::io::Error::new(std::io::ErrorKind::InvalidData, "invalid error tag")
@@ -321,7 +321,7 @@ mod test {
             message::{
                 actor::ActorId,
                 request::{Request, RequestHeader},
-                response::{Error, Response, ResponseHeader, ResponsePayload},
+                response::{Response, ResponseError, ResponseHeader, ResponsePayload},
                 size::PayloadSize,
             },
         },
@@ -526,7 +526,7 @@ mod test {
             header: ResponseHeader {
                 size: PayloadSize::from(0x00),
             },
-            body: ResponsePayload::Error(Error::UnknownService),
+            body: ResponsePayload::Error(ResponseError::UnknownService),
         };
     ];
 }

@@ -205,7 +205,7 @@ mod test {
             message::{
                 actor::ActorId,
                 request::{Request, RequestHeader},
-                response::{Error, Response, ResponseHeader, ResponsePayload},
+                response::{Response, ResponseError, ResponseHeader, ResponsePayload},
                 size::PayloadSize,
             },
         },
@@ -312,9 +312,9 @@ mod test {
             header: ResponseHeader {
                 size: PayloadSize::from(0x00),
             },
-            body: ResponsePayload::Error(Error::UnknownService),
+            body: ResponsePayload::Error(ResponseError::UnknownService),
         } => [
-            (Error::UnknownService as u8) + 1,
+            (ResponseError::UnknownService as u8) + 1,
         ];
     ];
 
@@ -357,7 +357,7 @@ mod test {
             header: ResponseHeader {
                 size: PayloadSize::from(0x01),
             },
-            body: ResponsePayload::Error(Error::UnknownService),
+            body: ResponsePayload::Error(ResponseError::UnknownService),
         };
 
         let mut buffer = Vec::new();
@@ -390,7 +390,7 @@ mod test {
             header: ResponseHeader {
                 size: PayloadSize::from(0x00),
             },
-            body: ResponsePayload::Error(Error::UnknownService),
+            body: ResponsePayload::Error(ResponseError::UnknownService),
         } => r#"{"header":{"size":0},"body":{"tag":"Error","payload":"UnknownService"}}"#;
     ];
 }

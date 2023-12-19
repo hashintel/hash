@@ -27,7 +27,7 @@ use crate::harpc::{
         log_behaviour_event,
         message::{
             request::Request,
-            response::{Error, Response},
+            response::{Response, ResponseError},
         },
         BehaviourCollectionEvent, SpawnGuard, TransportConfig, TransportError, TransportLayer,
     },
@@ -134,7 +134,7 @@ impl EventLoopContext {
 
     fn cancel_pending(&mut self) {
         for (_, (ticket, tx)) in self.pending.drain() {
-            let response = Response::error(Error::ConnectionClosed);
+            let response = Response::error(ResponseError::ConnectionClosed);
 
             self.lookup.remove(&ticket);
             if let Err(error) = tx.send(response) {
@@ -346,7 +346,7 @@ impl ClientTransportLayer {
                 .await
                 .change_context(TransportError)?;
 
-            Ok(Response::error(Error::DeadlineExceeded))
+            Ok(Response::error(ResponseError::DeadlineExceeded))
         }
     }
 

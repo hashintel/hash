@@ -1,15 +1,65 @@
 use bytes::Bytes;
 
+use super::serde_compat;
 use crate::harpc::{
     procedure::ProcedureId,
     service::ServiceId,
-    transport::message::{actor::ActorId, size::PayloadSize},
+    transport::message::{actor::ActorId, size::PayloadSize, version::Version},
 };
 
+/// # Request Flags
+///
+/// ## Binary Packet Layout
+///
+/// ```text
+///  0 1 2 3 4 5 6 7 8 9 A B C D E F
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |            Unused             |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///
+/// * Unused (16 bits)
+/// total 16 bits
+/// ```
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct RequestFlags([u8; 2]);
+
+impl RequestFlags {
+    pub(crate) fn new() -> Self {
+        Self([0x00; 2])
+    }
+}
+
+/// # Request Header
+///
+/// ## Binary Packet Layout
+///
+/// ```text
+///  0                   1                   2                   3
+///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |T|F. |P|     ServiceId     |    ProcedureId    |    ActorId    |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |               |       Size        |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///
+/// * TransportVersion (1 byte)
+/// * Flags (2 bytes)
+/// * ProtocolVersion (1 byte)
+/// * ServiceId (10 bytes)
+/// * ProcedureId (10 bytes)
+/// * ActorId (16 bytes)
+/// * Size (10 bytes)
+/// total 50 bytes
+/// ```
+///
+/// [`ServiceId`], [`ProcedureId`], [`Size`] utilize variable integer encoding, the
+/// maximum size of the packet is 50 bytes, the minimum size is 23 bytes.
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
 )]
 pub(crate) struct RequestHeader {
+    pub(crate) flags: RequestFlags,
+    pub(crate) version: Version,
     pub(crate) service: ServiceId,
     pub(crate) procedure: ProcedureId,
     pub(crate) actor: ActorId,
@@ -27,49 +77,16 @@ pub(crate) struct RequestHeader {
 ///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 /// |                            Header                             |
-/// +                           +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |                           |                                   |
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+                                   +
+/// +                                   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |                                   |                           |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                           +
 /// |                             Body                              |
 /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ///
-/// * Header (46 bytes)
-/// * Body (50 bytes)
+/// * Header (50 bytes)
+/// * Body (46 bytes)
 /// total 96 bytes
 /// ```
-///
-/// The length of the packet is encoded in the header as the last field.
-///
-/// ### Header
-///
-/// ```text
-///  0                   1                   2                   3
-///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |     ServiceID     |    ProcedureID    |        ActorID        |
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |       |       Size        |
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-///
-/// * ServiceID (10 bytes)
-/// * ProcedureID (10 bytes)
-/// * ActorID (16 bytes)
-/// * Size (10 bytes)
-/// total 46 bytes
-/// ```
-///
-/// `ServiceID`, `ProcedureID`, `Size` utilize variable integer encoding, with a maximum size of 10
-/// bytes.
-/// The minimum header size is 19 bytes.
-///
-/// ### Extensions
-///
-/// In the future to support more features, the header may be extended with additional fields.
-/// Planned are:
-/// * `Version (Transport)`
-/// * `Version (Protocol)`
-/// * `Flags`
-// (TODO: already add them)
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Request {
     pub(crate) header: RequestHeader,

@@ -15,7 +15,7 @@ use crate::{
         transport::{
             message::{
                 request::Request,
-                response::{Error, Response},
+                response::{Response, ResponseError},
             },
             server::{ServerTransportConfig, ServerTransportLayer},
             RequestRouter, TransportConfig,
@@ -110,11 +110,11 @@ where
 {
     fn route(&self, request: Request) -> impl Future<Output = Response> + Send + 'static {
         let Some(service) = self.services.get(&request.header.service) else {
-            return Either::Right(ready(Response::error(Error::UnknownService)));
+            return Either::Right(ready(Response::error(ResponseError::UnknownService)));
         };
 
         let Some(procedure) = service.procedures.get(&request.header.procedure).cloned() else {
-            return Either::Right(ready(Response::error(Error::UnknownProcedure)));
+            return Either::Right(ready(Response::error(ResponseError::UnknownProcedure)));
         };
 
         let context = self.context.clone();
