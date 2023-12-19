@@ -56,6 +56,8 @@ pub async fn main() {
         Default::default(),
     );
 
+    let now = std::time::Instant::now();
     let response = client.call(CreateAccount).await;
+    println!("elapsed: {:?}", now.elapsed());
     println!("response: {:?}", response);
 }

@@ -56,6 +56,7 @@ struct TransportLayer {
 
 impl TransportLayer {
     fn new(config: TransportConfig) -> error_stack::Result<Self, TransportError> {
+        // TODO: RPC versions
         let transport = SwarmBuilder::with_new_identity()
             .with_tokio()
             .with_tcp(config.tcp, noise::Config::new, yamux::Config::default)
@@ -136,11 +137,12 @@ impl Drop for SpawnGuard {
 
 #[cfg(test)]
 mod test {
-    use libp2p::tcp;
+    use std::future::{ready, Future};
+
     use uuid::Uuid;
 
     use crate::rpc::{
-        codec::{Codec, CodecKind},
+        codec::CodecKind,
         transport::{
             client::{ClientTransportConfig, ClientTransportLayer},
             server::{ServerTransportConfig, ServerTransportLayer},
@@ -154,13 +156,13 @@ mod test {
     struct EchoRouter;
 
     impl RequestRouter for EchoRouter {
-        async fn route(&self, request: Request) -> Response {
-            Response {
+        fn route(&self, request: Request) -> impl Future<Output = Response> + Send + 'static {
+            ready(Response {
                 header: ResponseHeader {
                     size: request.header.size,
                 },
                 body: ResponsePayload::Success(request.body),
-            }
+            })
         }
     }
 
@@ -170,14 +172,18 @@ mod test {
     }
 
     impl RequestRouter for DelayEchoRouter {
-        async fn route(&self, request: Request) -> Response {
-            tokio::time::sleep(self.delay).await;
+        fn route(&self, request: Request) -> impl Future<Output = Response> + Send + 'static {
+            let delay = self.delay;
 
-            Response {
-                header: ResponseHeader {
-                    size: request.header.size,
-                },
-                body: ResponsePayload::Success(request.body),
+            async move {
+                tokio::time::sleep(delay).await;
+
+                Response {
+                    header: ResponseHeader {
+                        size: request.header.size,
+                    },
+                    body: ResponsePayload::Success(request.body),
+                }
             }
         }
     }

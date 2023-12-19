@@ -160,7 +160,8 @@ pub struct RequestHeader {
 ///
 /// In the future to support more features, the header may be extended with additional fields.
 /// Planned are:
-/// * `Version`
+/// * `Version (Transport)`
+/// * `Version (Protocol)`
 /// * `Flags`
 // (TODO: already add them)
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -178,7 +179,7 @@ pub struct ResponseHeader {
 }
 
 macro_rules! primitive_enum {
-    ($($variant:ident <=> $value:literal),*) => {
+    ($($variant:ident <=> $value:tt),*) => {
         const fn try_from_u8(value: u8) -> Option<Self> {
             match value {
                 $( $value => Some(Self::$variant), )*
@@ -218,7 +219,7 @@ impl Error {
         self.into_u8() + 1
     }
 
-    pub(crate) fn try_from_tag(tag: u8) -> Option<Self> {
+    pub(crate) const fn try_from_tag(tag: u8) -> Option<Self> {
         if tag == 0 {
             return None;
         }
@@ -385,7 +386,7 @@ where
 }
 
 impl<F, P, C> Handler<F, P, C> {
-    pub(crate) fn new(handler: F) -> Self {
+    pub(crate) const fn new(handler: F) -> Self {
         Self {
             handler,
             _context: core::marker::PhantomData,

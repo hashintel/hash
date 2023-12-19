@@ -10,8 +10,9 @@ use std::{
 use error_stack::ResultExt;
 use libp2p::{
     futures::StreamExt,
+    request_response,
     request_response::{Event, Message, OutboundRequestId},
-    swarm::SwarmEvent,
+    swarm::{NetworkBehaviour, SwarmEvent},
     Multiaddr, PeerId,
 };
 use tokio::{
@@ -21,6 +22,7 @@ use tokio::{
 };
 
 use crate::rpc::{
+    codec::Codec,
     transport::{
         log_behaviour_event, BehaviourCollectionEvent, SpawnGuard, TransportConfig, TransportError,
         TransportLayer,
@@ -214,6 +216,34 @@ impl ClientTransportLayer {
         }
     }
 
+    fn handle_behaviour_event(
+        event: <request_response::Behaviour<Codec> as NetworkBehaviour>::ToSwarm,
+        context: &mut EventLoopContext,
+    ) {
+        let Event::Message { peer, message } = event else {
+            return;
+        };
+
+        match message {
+            Message::Request { request, .. } => {
+                tracing::trace!(?peer, ?request, "request received");
+            }
+            Message::Response {
+                request_id,
+                response,
+            } => {
+                tracing::trace!(?request_id, ?response, "response received");
+
+                if let Some((ticket, tx)) = context.pending.remove(&request_id) {
+                    context.lookup.remove(&ticket);
+                    if let Err(error) = tx.send(response) {
+                        tracing::error!(?error, "failed to send response");
+                    }
+                }
+            }
+        }
+    }
+
     fn handle_swarm_event(
         transport: &mut TransportLayer,
 
@@ -224,27 +254,7 @@ impl ClientTransportLayer {
         match event {
             SwarmEvent::Behaviour(BehaviourCollectionEvent::Protocol(event)) => {
                 log_behaviour_event(&event);
-
-                if let Event::Message { peer, message } = event {
-                    match message {
-                        Message::Request { request, .. } => {
-                            tracing::trace!(?peer, ?request, "request received");
-                        }
-                        Message::Response {
-                            request_id,
-                            response,
-                        } => {
-                            tracing::trace!(?request_id, ?response, "response received");
-
-                            if let Some((ticket, tx)) = context.pending.remove(&request_id) {
-                                context.lookup.remove(&ticket);
-                                if let Err(error) = tx.send(response) {
-                                    tracing::error!(?error, "failed to send response");
-                                }
-                            }
-                        }
-                    }
-                }
+                Self::handle_behaviour_event(event, context);
             }
             SwarmEvent::ConnectionEstablished {
                 peer_id, endpoint, ..
