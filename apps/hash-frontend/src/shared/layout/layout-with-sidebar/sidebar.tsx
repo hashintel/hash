@@ -6,7 +6,7 @@ import {
 } from "@hashintel/design-system";
 import { Box, Drawer, Tooltip } from "@mui/material";
 import { useRouter } from "next/router";
-import { FunctionComponent, useMemo } from "react";
+import { FunctionComponent } from "react";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
@@ -35,12 +35,7 @@ export const PageSidebar: FunctionComponent = () => {
 
   const { hashInstance } = useHashInstance();
 
-  const { notifications } = useNotifications();
-
-  const numberOfUnreadNotifications = useMemo(
-    () => notifications?.filter(({ readAt }) => !readAt).length,
-    [notifications],
-  );
+  const { numberOfUnreadNotifications } = useNotifications();
 
   const { draftEntities } = useDraftEntities();
 

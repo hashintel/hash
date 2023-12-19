@@ -1,3 +1,4 @@
+import { useMutation } from "@apollo/client";
 import { AlertModal, FeatherRegularIcon } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph/.";
@@ -6,10 +7,17 @@ import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { BoxProps, Typography } from "@mui/material";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
+import {
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
+} from "../../graphql/api-types.gen";
+import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
+import { useNotifications } from "../../shared/notifications-context";
 import { Button, ButtonProps } from "../../shared/ui";
 import { LinkLabelWithSourceAndDestination } from "./link-label-with-source-and-destination";
+import { useNotificationsWithLinks } from "./use-notifications-with-links";
 
 const LeftOrRightEntityEndAdornment: FunctionComponent<{
   isDraft: boolean;
@@ -67,8 +75,6 @@ export const AcceptDraftEntityButton: FunctionComponent<
   onAcceptedEntity,
   ...buttonProps
 }) => {
-  const { acceptDraftEntity } = useDraftEntities();
-
   const [
     showDraftLinkEntityWithDraftLeftOrRightEntityWarning,
     setShowDraftLinkEntityWithDraftLeftOrRightEntityWarning,
@@ -104,6 +110,62 @@ export const AcceptDraftEntityButton: FunctionComponent<
   }, [draftEntity, draftEntitySubgraph]);
 
   const hasLeftOrRightDraftEntity = !!draftLeftEntity || !!draftRightEntity;
+
+  const [updateEntity] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation);
+
+  const { refetch: refetchDraftEntities } = useDraftEntities();
+
+  const { markNotificationAsRead } = useNotifications();
+  const { notifications } = useNotificationsWithLinks();
+
+  const markRelatedGraphChangeNotificationsAsRead = useCallback(
+    async (params: { draftEntity: Entity }) => {
+      const relatedGraphChangeNotifications =
+        notifications?.filter(
+          ({ kind, occurredInEntity }) =>
+            kind === "graph-change" &&
+            occurredInEntity.metadata.recordId.entityId ===
+              params.draftEntity.metadata.recordId.entityId,
+        ) ?? [];
+
+      await Promise.all(
+        relatedGraphChangeNotifications.map((notification) =>
+          markNotificationAsRead({ notificationEntity: notification.entity }),
+        ),
+      );
+    },
+    [notifications, markNotificationAsRead],
+  );
+
+  const acceptDraftEntity = useCallback(
+    async (params: { draftEntity: Entity }) => {
+      await markRelatedGraphChangeNotificationsAsRead(params);
+
+      const response = await updateEntity({
+        variables: {
+          entityId: params.draftEntity.metadata.recordId.entityId,
+          updatedProperties: params.draftEntity.properties,
+          draft: false,
+        },
+      });
+
+      await refetchDraftEntities();
+
+      if (!response.data) {
+        throw new Error("An error occurred accepting the draft entity.");
+      }
+
+      return response.data.updateEntity;
+    },
+    [
+      updateEntity,
+      refetchDraftEntities,
+      markRelatedGraphChangeNotificationsAsRead,
+    ],
+  );
 
   const handleAccept = useCallback(async () => {
     if (hasLeftOrRightDraftEntity) {

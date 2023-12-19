@@ -1,3 +1,4 @@
+import { useMutation } from "@apollo/client";
 import { AlertModal } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -7,8 +8,15 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
+import {
+  ArchiveEntityMutation,
+  ArchiveEntityMutationVariables,
+} from "../../graphql/api-types.gen";
+import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../shared/draft-entities-context";
+import { useNotifications } from "../../shared/notifications-context";
 import { Button, ButtonProps } from "../../shared/ui";
+import { useNotificationsWithLinks } from "./use-notifications-with-links";
 
 export const DiscardDraftEntityButton: FunctionComponent<
   {
@@ -22,7 +30,54 @@ export const DiscardDraftEntityButton: FunctionComponent<
   onDiscardedEntity,
   ...buttonProps
 }) => {
-  const { discardDraftEntity } = useDraftEntities();
+  const { refetch: refetchDraftEntities } = useDraftEntities();
+
+  const { archiveNotification } = useNotifications();
+
+  const { notifications } = useNotificationsWithLinks();
+
+  const archiveRelatedNotifications = useCallback(
+    async (params: { draftEntity: Entity }) => {
+      const relatedNotifications = notifications?.filter(
+        (notification) =>
+          notification.occurredInEntity.metadata.recordId.entityId ===
+          params.draftEntity.metadata.recordId.entityId,
+      );
+
+      if (!relatedNotifications) {
+        return;
+      }
+
+      await Promise.all(
+        relatedNotifications.map((notification) => {
+          return archiveNotification({
+            notificationEntity: notification.entity,
+          });
+        }),
+      );
+    },
+    [notifications, archiveNotification],
+  );
+
+  const [archiveEntity] = useMutation<
+    ArchiveEntityMutation,
+    ArchiveEntityMutationVariables
+  >(archiveEntityMutation);
+
+  const discardDraftEntity = useCallback(
+    async (params: { draftEntity: Entity }) => {
+      await archiveRelatedNotifications(params);
+
+      await archiveEntity({
+        variables: {
+          entityId: params.draftEntity.metadata.recordId.entityId,
+        },
+      });
+
+      await refetchDraftEntities();
+    },
+    [archiveEntity, archiveRelatedNotifications, refetchDraftEntities],
+  );
 
   const [
     showDraftEntityWithDraftLinksWarning,

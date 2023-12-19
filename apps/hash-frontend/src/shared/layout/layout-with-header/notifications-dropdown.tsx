@@ -7,7 +7,7 @@ import {
   typographyClasses,
   useTheme,
 } from "@mui/material";
-import { FunctionComponent, useMemo } from "react";
+import { FunctionComponent } from "react";
 
 import { useNotifications } from "../../notifications-context";
 import { Link } from "../../ui";
@@ -16,12 +16,7 @@ import { HeaderIconButton } from "./shared/header-icon-button";
 export const NotificationsDropdown: FunctionComponent = () => {
   const theme = useTheme();
 
-  const { notifications } = useNotifications();
-
-  const numberOfUnreadNotifications = useMemo(
-    () => notifications?.filter(({ readAt }) => !readAt).length,
-    [notifications],
-  );
+  const { numberOfUnreadNotifications } = useNotifications();
 
   const hasNotifications = !!numberOfUnreadNotifications;
 
