@@ -69,11 +69,6 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
     fetchPolicy: "cache-and-network",
   });
 
-  const { data: hasAccessToHashResponse, refetch: refetchHasAccessToHash } =
-    useQuery<HasAccessToHashQuery>(hasAccessToHashQuery);
-
-  const { hasAccessToHash } = hasAccessToHashResponse ?? {};
-
   const userMemberOfLinks = useMemo(() => {
     if (!authenticatedUserSubgraph) {
       return undefined;
@@ -154,25 +149,35 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
       return { authenticatedUser: constructUserValue(subgraph) };
     }, [constructUserValue, getMe]);
 
+  const authenticatedUser = useMemo(
+    () => constructUserValue(authenticatedUserSubgraph),
+    [authenticatedUserSubgraph, constructUserValue],
+  );
+
+  const { data: hasAccessToHashResponse } = useQuery<HasAccessToHashQuery>(
+    hasAccessToHashQuery,
+    { skip: !authenticatedUser || authenticatedUser.accountSignupComplete },
+  );
+
+  const hasAccessToHash = useMemo(() => {
+    if (authenticatedUser?.accountSignupComplete) {
+      return true;
+    } else {
+      return hasAccessToHashResponse?.hasAccessToHash;
+    }
+  }, [authenticatedUser, hasAccessToHashResponse]);
+
   const value = useMemo(
     () => ({
-      authenticatedUser: constructUserValue(authenticatedUserSubgraph),
+      authenticatedUser,
       hasAccessToHash,
       refetch: async () => {
         // Refetch the detail on orgs in case this refetch is following them being modified
         await refetchOrgs();
-        void refetchHasAccessToHash();
         return fetchAuthenticatedUser();
       },
     }),
-    [
-      authenticatedUserSubgraph,
-      hasAccessToHash,
-      constructUserValue,
-      refetchHasAccessToHash,
-      fetchAuthenticatedUser,
-      refetchOrgs,
-    ],
+    [authenticatedUser, hasAccessToHash, fetchAuthenticatedUser, refetchOrgs],
   );
 
   return (
