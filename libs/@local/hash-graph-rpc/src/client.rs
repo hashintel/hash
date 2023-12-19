@@ -84,7 +84,7 @@ mod tests {
     }
 
     async fn _never_called() {
-        let client = Client::<AccountService>::new();
+        let client = Client::<AccountService, _>::new();
 
         let response = client.call(CreateAccount).await;
 

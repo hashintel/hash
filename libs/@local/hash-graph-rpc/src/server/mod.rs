@@ -4,8 +4,6 @@ use std::{
     collections::HashMap,
     future::{ready, Future},
     net::SocketAddrV4,
-    rc::Rc,
-    sync::Arc,
 };
 
 use libp2p::{futures::future::Either, multiaddr::Protocol, Multiaddr};
@@ -17,11 +15,10 @@ use crate::{
             server::{ServerTransportConfig, ServerTransportLayer},
             RequestRouter, TransportConfig,
         },
-        Context, Error, ProcedureCall, ProcedureId, Request, Response, ServiceId,
-        ServiceSpecification,
+        Context, Error, Request, Response, ServiceId, ServiceSpecification,
     },
     server::service::ErasedService,
-    types::{Empty, HStack, Includes, Stack, SupersetOf},
+    types::{Empty, HStack, Stack},
 };
 
 pub struct ServerBuilder<C, S> {
@@ -33,7 +30,8 @@ impl<C> ServerBuilder<C, Empty>
 where
     C: Context,
 {
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self {
             _context: core::marker::PhantomData,
             services: Empty,
@@ -70,7 +68,7 @@ where
     }
 }
 
-trait CollectServices<C> {
+pub trait CollectServices<C> {
     fn collect(self, map: &mut HashMap<ServiceId, ErasedService<C>>);
 }
 
@@ -134,19 +132,3 @@ where
         service.serve().unwrap().await
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use crate::{server::ServiceBuilder, specification::account::AccountService};
-//
-//     #[test]
-//     fn all_procedures() {
-//         let server = ServiceBuilder::<AccountService, _>::new()
-//             .add_procedure::<crate::specification::account::CreateAccount>()
-//             .add_procedure::<crate::specification::account::CreateAccountGroup>()
-//             .add_procedure::<crate::specification::account::CheckAccountGroupPermission>()
-//             .add_procedure::<crate::specification::account::AddAccountGroupMember>()
-//             .add_procedure::<crate::specification::account::RemoveAccountGroupMember>()
-//             .build();
-//     }
-// }

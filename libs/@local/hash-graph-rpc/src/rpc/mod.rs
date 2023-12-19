@@ -4,7 +4,7 @@ mod serde_compat;
 
 pub(crate) mod transport;
 
-use std::{future::Future, sync::Arc};
+use std::future::Future;
 
 use bytes::Bytes;
 use const_fnv1a_hash::fnv1a_hash_str_64;
@@ -16,10 +16,12 @@ use uuid::Uuid;
 pub struct ServiceId(u64);
 
 impl ServiceId {
+    #[must_use]
     pub const fn new(value: u64) -> Self {
         Self(value)
     }
 
+    #[must_use]
     pub const fn derive(value: &str) -> Self {
         Self(fnv1a_hash_str_64(value))
     }
@@ -31,10 +33,12 @@ impl ServiceId {
 pub struct ProcedureId(u64);
 
 impl ProcedureId {
+    #[must_use]
     pub const fn new(value: u64) -> Self {
         Self(value)
     }
 
+    #[must_use]
     pub const fn derive(value: &str) -> Self {
         Self(fnv1a_hash_str_64(value))
     }
@@ -67,10 +71,13 @@ impl PayloadSize {
         Self(value)
     }
 
-    pub fn len(value: &[u8]) -> Self {
+    #[must_use]
+    pub const fn len(value: &[u8]) -> Self {
         Self(value.len() as u64)
     }
 
+    #[must_use]
+    #[allow(clippy::cast_possible_truncation)]
     pub const fn into_usize(self) -> usize {
         self.0 as usize
     }
@@ -327,6 +334,7 @@ impl Response {
         }
     }
 
+    #[must_use]
     pub fn error(error: Error) -> Self {
         Self {
             header: ResponseHeader {
@@ -361,9 +369,9 @@ pub trait ProcedureCall<C>
 where
     C: Context,
 {
-    type Procedure: RemoteProcedure;
-
     type Future: Future<Output = Response> + Send + 'static;
+
+    type Procedure: RemoteProcedure;
 
     fn call(self, request: Request, context: C) -> Self::Future;
 }
@@ -421,13 +429,13 @@ where
 }
 
 pub trait RemoteProcedure: Send + Sync {
-    const ID: ProcedureId;
-
     type Response;
+
+    const ID: ProcedureId;
 }
 
 pub trait ServiceSpecification: Send + Sync {
-    const ID: ServiceId;
-
     type Procedures;
+
+    const ID: ServiceId;
 }

@@ -22,7 +22,8 @@ where
     S: ServiceSpecification,
     C: Context,
 {
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self {
             _service: core::marker::PhantomData,
             _context: core::marker::PhantomData,
@@ -75,7 +76,7 @@ where
     }
 }
 
-trait CollectProcedureCalls<C> {
+pub trait CollectProcedureCalls<C> {
     type Procedures;
 
     fn collect(self, map: &mut HashMap<ProcedureId, BoxedProcedureCall<C>>);
@@ -176,7 +177,7 @@ where
     C: Context,
 {
     fn clone(&self) -> Self {
-        BoxedProcedureCall(self.0.clone_box())
+        Self(self.0.clone_box())
     }
 }
 
