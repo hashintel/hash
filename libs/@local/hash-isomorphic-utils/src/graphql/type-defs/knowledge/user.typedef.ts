@@ -10,5 +10,9 @@ export const userTypedef = gql`
     Determines whether a provided shortname is already taken
     """
     isShortnameTaken(shortname: String!): Boolean!
+    """
+    Determines whether the authenticated user has access to the instance of HASH
+    """
+    hasAccessToHash: Boolean!
   }
 `;
