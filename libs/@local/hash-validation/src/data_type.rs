@@ -58,6 +58,11 @@ pub enum DataTypeConstraint {
         actual: JsonValue,
         expected: JsonValue,
     },
+    #[error("the provided value is not one of the expected values")]
+    Enum {
+        actual: JsonValue,
+        expected: JsonValue,
+    },
     #[error("the provided value is not greater than or equal to the minimum value")]
     Minimum {
         actual: JsonValue,
@@ -329,6 +334,18 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
                     })
                     .change_context(DataValidationError::ConstraintUnfulfilled)
                 ),
+                "enum" => {
+                    ensure!(
+                        additional_property
+                            .as_array()
+                            .is_some_and(|array| array.contains(value)),
+                        Report::new(DataTypeConstraint::Enum {
+                            actual: value.clone(),
+                            expected: additional_property.clone(),
+                        })
+                        .change_context(DataValidationError::ConstraintUnfulfilled)
+                    );
+                }
                 "minimum" | "maximum" | "exclusiveMinimum" | "exclusiveMaximum" | "multipleOf"
                     if self.json_type() == "integer" || self.json_type() == "number" => {}
                 "format" if self.json_type() == "string" => {}
@@ -485,6 +502,31 @@ mod tests {
         )
         .await
         .expect("validation failed");
+    }
+
+    #[tokio::test]
+    async fn temperature_unit() {
+        let meter_type = serde_json::to_string(&json!({
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            "kind": "dataType",
+            "$id": "https://localhost:4000/@alice/types/data-type/temperature-unit/v/1",
+            "title": "Temperature Unit",
+            "type": "string",
+            "enum": ["Celsius", "Fahrenheit", "Kelvin"]
+        }))
+        .expect("failed to serialize temperature unit type");
+
+        validate_data(json!("Celsius"), &meter_type, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        validate_data(json!("Fahrenheit"), &meter_type, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        _ = validate_data(json!("foo"), &meter_type, ValidationProfile::Full)
+            .await
+            .expect_err("validation succeeded");
     }
 
     #[tokio::test]
