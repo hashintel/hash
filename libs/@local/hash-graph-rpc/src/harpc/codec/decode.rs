@@ -5,7 +5,7 @@ use integer_encoding::VarInt;
 use tokio::io::{AsyncRead, AsyncReadExt};
 use uuid::Uuid;
 
-use crate::rpc::{
+use crate::harpc::{
     codec::Limit, ActorId, Error, PayloadSize, ProcedureId, Request, RequestHeader, Response,
     ResponseHeader, ResponsePayload, ServiceId,
 };
@@ -301,7 +301,7 @@ mod test {
     use bytes::Bytes;
     use uuid::Uuid;
 
-    use crate::rpc::{
+    use crate::harpc::{
         codec::{
             decode::{read_varint, Decode, DecodeBinary},
             Limit,
@@ -374,8 +374,8 @@ mod test {
         decode_procedure_id: [0xEF, 0x9B, 0xAF, 0x85, 0x89, 0xCF, 0x95, 0x9A, 0x12] => ProcedureId::new(0x1234_5678_90AB_CDEF);
         decode_procedure_id_zero: [0x00] => ProcedureId::new(0);
 
-        decode_actor_id: EXAMPLE_UUID.into_bytes() => crate::rpc::ActorId::from(EXAMPLE_UUID);
-        decode_actor_id_zero: [0_u8; 16] => crate::rpc::ActorId::from(Uuid::nil());
+        decode_actor_id: EXAMPLE_UUID.into_bytes() => crate::harpc::ActorId::from(EXAMPLE_UUID);
+        decode_actor_id_zero: [0_u8; 16] => crate::harpc::ActorId::from(Uuid::nil());
 
         decode_payload_size: [0x80, 0x01] => PayloadSize::new(0x80);
         decode_payload_size_zero: [0x00] => PayloadSize::new(0);

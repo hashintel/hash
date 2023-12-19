@@ -13,7 +13,7 @@ use libp2p::{
 use thiserror::Error;
 use tokio::task::JoinHandle;
 
-use crate::rpc::{
+use crate::harpc::{
     codec::{Codec, CodecKind},
     Request, Response,
 };
@@ -141,7 +141,7 @@ mod test {
 
     use uuid::Uuid;
 
-    use crate::rpc::{
+    use crate::harpc::{
         codec::CodecKind,
         transport::{
             client::{ClientTransportConfig, ClientTransportLayer},
@@ -343,7 +343,7 @@ mod test {
                 header: ResponseHeader {
                     size: PayloadSize::new(0)
                 },
-                body: ResponsePayload::Error(crate::rpc::Error::DeadlineExceeded),
+                body: ResponsePayload::Error(crate::harpc::Error::DeadlineExceeded),
             }
         );
         assert_empty(&client).await;

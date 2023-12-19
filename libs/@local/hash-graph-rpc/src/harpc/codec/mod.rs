@@ -21,7 +21,7 @@ use libp2p::{
 use tokio::io::{BufReader, BufWriter};
 use tokio_util::compat::{FuturesAsyncReadCompatExt, FuturesAsyncWriteCompatExt};
 
-use crate::rpc::{
+use crate::harpc::{
     codec::{
         decode::{Decode, DecodeBinary},
         encode::{Encode, EncodeBinary},

@@ -6,7 +6,7 @@
 extern crate core;
 
 pub mod client;
-pub mod rpc;
+pub mod harpc;
 pub mod server;
 pub mod specification;
 mod types;

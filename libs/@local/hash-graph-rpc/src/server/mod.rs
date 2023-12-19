@@ -10,7 +10,7 @@ use libp2p::{futures::future::Either, multiaddr::Protocol, Multiaddr};
 
 pub use self::service::{Service, ServiceBuilder};
 use crate::{
-    rpc::{
+    harpc::{
         transport::{
             server::{ServerTransportConfig, ServerTransportLayer},
             RequestRouter, TransportConfig,

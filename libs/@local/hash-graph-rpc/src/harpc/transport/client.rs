@@ -21,7 +21,7 @@ use tokio::{
     time,
 };
 
-use crate::rpc::{
+use crate::harpc::{
     codec::Codec,
     transport::{
         log_behaviour_event, BehaviourCollectionEvent, SpawnGuard, TransportConfig, TransportError,

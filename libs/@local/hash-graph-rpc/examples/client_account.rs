@@ -3,14 +3,14 @@ use std::net::{Ipv4Addr, SocketAddrV4};
 use bytes::Bytes;
 use hash_graph_rpc::{
     client::Client,
-    rpc::Encode,
+    harpc::Encode,
     specification::account::{AccountService, CreateAccount},
 };
 
 #[derive(Debug, Copy, Clone)]
 struct Context;
 
-impl hash_graph_rpc::rpc::Stateful for Context {
+impl hash_graph_rpc::harpc::Stateful for Context {
     type State = ();
 
     fn state(&self) -> &Self::State {
@@ -27,7 +27,7 @@ where
     }
 }
 
-impl<T> hash_graph_rpc::rpc::Decode<T> for Context
+impl<T> hash_graph_rpc::harpc::Decode<T> for Context
 where
     T: serde::de::DeserializeOwned,
 {
@@ -36,13 +36,13 @@ where
     }
 }
 
-impl hash_graph_rpc::rpc::Context for Context {
-    fn finish<T>(&self, response: T) -> hash_graph_rpc::rpc::Response
+impl hash_graph_rpc::harpc::Context for Context {
+    fn finish<T>(&self, response: T) -> hash_graph_rpc::harpc::Response
     where
         Self: Encode<T>,
     {
         let body = self.encode(response);
-        hash_graph_rpc::rpc::Response::new(body)
+        hash_graph_rpc::harpc::Response::new(body)
     }
 }
 

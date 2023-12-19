@@ -4,7 +4,7 @@ use libp2p::{multiaddr::Protocol, Multiaddr};
 use uuid::Uuid;
 
 use crate::{
-    rpc::{
+    harpc::{
         transport::{
             client::{ClientTransportConfig, ClientTransportLayer},
             TransportConfig,
@@ -77,10 +77,11 @@ mod tests {
     };
 
     struct DifferentProcedure;
-    impl crate::rpc::RemoteProcedure for DifferentProcedure {
+    impl crate::harpc::RemoteProcedure for DifferentProcedure {
         type Response = ();
 
-        const ID: crate::rpc::ProcedureId = crate::rpc::ProcedureId::derive("DifferentProcedure");
+        const ID: crate::harpc::ProcedureId =
+            crate::harpc::ProcedureId::derive("DifferentProcedure");
     }
 
     async fn _never_called() {

@@ -3,7 +3,7 @@ use std::future::Future;
 use integer_encoding::VarInt;
 use tokio::io::AsyncWriteExt;
 
-use crate::rpc::{
+use crate::harpc::{
     ActorId, PayloadSize, ProcedureId, Request, RequestHeader, Response, ResponseHeader,
     ResponsePayload, ServiceId,
 };
@@ -191,7 +191,7 @@ mod test {
     use bytes::Bytes;
     use uuid::Uuid;
 
-    use crate::rpc::{
+    use crate::harpc::{
         codec::encode::{Encode, EncodeBinary},
         ActorId, Error, PayloadSize, ProcedureId, Request, RequestHeader, Response, ResponseHeader,
         ResponsePayload, ServiceId,

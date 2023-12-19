@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use libp2p::futures::future::BoxFuture;
 
 use crate::{
-    rpc::{
+    harpc::{
         Context, Handler, ProcedureCall, ProcedureId, RemoteProcedure, Request, Response,
         ServiceSpecification,
     },
