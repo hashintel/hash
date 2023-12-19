@@ -12,10 +12,12 @@ use crate::harpc::{
         codec::Limit,
         message::{
             actor::ActorId,
-            request::{Request, RequestHeader},
-            response::{Response, ResponseError, ResponseHeader, ResponsePayload},
+            request::{Request, RequestFlags, RequestHeader},
+            response::{Response, ResponseError, ResponseFlags, ResponseHeader, ResponsePayload},
             size::PayloadSize,
+            version::{ProtocolVersion, TransportVersion, Version},
         },
+        TRANSPORT_VERSION,
     },
 };
 
@@ -172,11 +174,65 @@ impl DecodeBinary for PayloadSize {
     }
 }
 
+impl DecodeBinary for TransportVersion {
+    async fn decode_binary<T>(io: &mut T, _: Limit) -> std::io::Result<Self>
+    where
+        T: AsyncRead + Unpin + Send,
+    {
+        let transport_version = io.read_u8().await?;
+        let transport_version = Self::new(transport_version);
+
+        Ok(transport_version)
+    }
+}
+
+impl DecodeBinary for ProtocolVersion {
+    async fn decode_binary<T>(io: &mut T, _: Limit) -> std::io::Result<Self>
+    where
+        T: AsyncRead + Unpin + Send,
+    {
+        let protocol_version = io.read_u8().await?;
+        let protocol_version = Self::new(protocol_version);
+
+        Ok(protocol_version)
+    }
+}
+
+impl DecodeBinary for RequestFlags {
+    async fn decode_binary<T>(io: &mut T, _: Limit) -> std::io::Result<Self>
+    where
+        T: AsyncRead + Unpin + Send,
+    {
+        let mut buffer = [0_u8; 2];
+
+        io.read_exact(&mut buffer).await?;
+
+        Ok(Self(buffer))
+    }
+}
+
 impl DecodeBinary for RequestHeader {
     async fn decode_binary<T>(io: &mut T, limit: Limit) -> std::io::Result<Self>
     where
         T: AsyncRead + Unpin + Send,
     {
+        let transport_version = TransportVersion::decode_binary(io, limit).await?;
+
+        // TODO: report those errors back instead of timeout!
+        if transport_version != TRANSPORT_VERSION {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "unsupported transport version",
+            ));
+        }
+
+        let flags = RequestFlags::decode_binary(io, limit).await?;
+        let protocol_version = ProtocolVersion::decode_binary(io, limit).await?;
+        let version = Version {
+            transport: transport_version,
+            protocol: protocol_version,
+        };
+
         let service_id = ServiceId::decode_binary(io, limit).await?;
         let procedure_id = ProcedureId::decode_binary(io, limit).await?;
         let actor_id = ActorId::decode_binary(io, limit).await?;
@@ -190,6 +246,8 @@ impl DecodeBinary for RequestHeader {
         }
 
         Ok(Self {
+            flags,
+            version,
             service: service_id,
             procedure: procedure_id,
             actor: actor_id,
@@ -231,25 +289,76 @@ impl Decode for Request {
     }
 }
 
-/// The binary message layout of Response Header is:
-///
-/// | Status (u8) | Body Size (var int) |
-///
-/// If the status is 0, then body size is omitted.
-impl DecodeBinary for ResponseHeader {
+impl DecodeBinary for ResponseFlags {
+    async fn decode_binary<T>(io: &mut T, _: Limit) -> std::io::Result<Self>
+    where
+        T: AsyncRead + Unpin + Send,
+    {
+        let mut buffer = [0_u8; 2];
+
+        io.read_exact(&mut buffer).await?;
+
+        Ok(Self(buffer))
+    }
+}
+
+enum DecodeResponseHeader {
+    Success {
+        version: TransportVersion,
+        flags: ResponseFlags,
+        size: PayloadSize,
+    },
+    Error {
+        version: TransportVersion,
+        flags: ResponseFlags,
+        error: ResponseError,
+    },
+}
+
+impl DecodeBinary for DecodeResponseHeader {
     async fn decode_binary<T>(io: &mut T, limit: Limit) -> std::io::Result<Self>
     where
         T: AsyncRead + Unpin + Send,
     {
-        let payload_size = PayloadSize::decode_binary(io, limit).await?;
-        if payload_size.exceeds(limit.response_size) {
+        let transport_version = TransportVersion::decode_binary(io, limit).await?;
+
+        if transport_version != TRANSPORT_VERSION {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
-                "request body size exceeds maximum",
+                "unsupported transport version",
             ));
         }
 
-        Ok(Self { size: payload_size })
+        let flags = ResponseFlags::decode_binary(io, limit).await?;
+
+        let status = io.read_u8().await?;
+        let error = ResponseError::try_from_tag(status);
+        if let Some(error) = error {
+            Ok(Self::Error {
+                version: transport_version,
+                flags,
+                error,
+            })
+        } else if status == 0 {
+            let size = PayloadSize::decode_binary(io, limit).await?;
+            if size.exceeds(limit.response_size) {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "request body size exceeds maximum",
+                ));
+            }
+
+            Ok(Self::Success {
+                version: transport_version,
+                flags,
+                size,
+            })
+        } else {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "invalid error tag",
+            ))
+        }
     }
 }
 
@@ -258,39 +367,47 @@ impl DecodeBinary for Response {
     where
         T: AsyncRead + Unpin + Send,
     {
-        let status = io.read_u8().await?;
+        match DecodeResponseHeader::decode_binary(io, limit).await? {
+            DecodeResponseHeader::Success {
+                version,
+                flags,
+                size,
+            } => {
+                let mut buffer = Vec::with_capacity(size.into());
+                io.take(size.into()).read_to_end(&mut buffer).await?;
+                let body = Bytes::from(buffer);
 
-        if status != 0 {
-            return Ok(Self {
+                if body.len() != size.into_usize() {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "request body size does not match header",
+                    ));
+                }
+
+                let body = ResponsePayload::Success(body);
+
+                Ok(Self {
+                    header: ResponseHeader {
+                        version,
+                        flags,
+                        size,
+                    },
+                    body,
+                })
+            }
+            DecodeResponseHeader::Error {
+                version,
+                flags,
+                error,
+            } => Ok(Self {
                 header: ResponseHeader {
+                    version,
+                    flags,
                     size: PayloadSize::new(0),
                 },
-                body: ResponseError::try_from_tag(status)
-                    .map(ResponsePayload::Error)
-                    .ok_or_else(|| {
-                        std::io::Error::new(std::io::ErrorKind::InvalidData, "invalid error tag")
-                    })?,
-            });
+                body: ResponsePayload::Error(error),
+            }),
         }
-
-        let header = ResponseHeader::decode_binary(io, limit).await?;
-
-        let mut buffer = Vec::with_capacity(header.size.into());
-
-        io.take(header.size.into()).read_to_end(&mut buffer).await?;
-
-        let body = Bytes::from(buffer);
-
-        if body.len() != header.size.into_usize() {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "request body size does not match header",
-            ));
-        }
-
-        let body = ResponsePayload::Success(body);
-
-        Ok(Self { header, body })
     }
 }
 
@@ -391,8 +508,8 @@ mod test {
         decode_procedure_id: [0xEF, 0x9B, 0xAF, 0x85, 0x89, 0xCF, 0x95, 0x9A, 0x12] => ProcedureId::new(0x1234_5678_90AB_CDEF);
         decode_procedure_id_zero: [0x00] => ProcedureId::new(0);
 
-        decode_actor_id: EXAMPLE_UUID.into_bytes() => crate::harpc::ActorId::from(EXAMPLE_UUID);
-        decode_actor_id_zero: [0_u8; 16] => crate::harpc::ActorId::from(Uuid::nil());
+        decode_actor_id: EXAMPLE_UUID.into_bytes() => ActorId::from(EXAMPLE_UUID);
+        decode_actor_id_zero: [0_u8; 16] => ActorId::from(Uuid::nil());
 
         decode_payload_size: [0x80, 0x01] => PayloadSize::new(0x80);
         decode_payload_size_zero: [0x00] => PayloadSize::new(0);

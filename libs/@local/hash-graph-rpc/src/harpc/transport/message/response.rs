@@ -1,7 +1,10 @@
 use bytes::Bytes;
 
 use super::serde_compat;
-use crate::harpc::transport::message::size::PayloadSize;
+use crate::harpc::transport::{
+    message::{size::PayloadSize, version::TransportVersion},
+    TRANSPORT_VERSION,
+};
 
 macro_rules! convert_enum {
     ($($variant:ident <=> $value:literal),* $(,)?) => {
@@ -81,6 +84,12 @@ impl ResponseError {
 /// `Stream` and `End Of Stream` are reserved for future use, but currently not implemented.
 pub struct ResponseFlags([u8; 2]);
 
+impl ResponseFlags {
+    pub(crate) const fn new() -> Self {
+        Self([0x00; 2])
+    }
+}
+
 /// # Response Header
 ///
 /// ## Binary Packet Layout
@@ -89,10 +98,10 @@ pub struct ResponseFlags([u8; 2]);
 ///  0                   1                   2                   3
 ///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |P|F. |S|Size (conditional) |
+/// |T|F. |S|Size (conditional) |
 /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ///
-/// * ProtocolVersion (1 byte)
+/// * TransportVersion (1 byte)
 /// * Flags (2 bytes)
 /// * Status (1 byte)
 /// * Size (conditional) (10 bytes)
@@ -109,6 +118,8 @@ pub struct ResponseFlags([u8; 2]);
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
 )]
 pub struct ResponseHeader {
+    pub(crate) version: TransportVersion,
+    pub(crate) flags: ResponseFlags,
     pub(crate) size: PayloadSize,
 }
 
@@ -175,7 +186,11 @@ impl Response {
         };
 
         Self {
-            header: ResponseHeader { size },
+            header: ResponseHeader {
+                version: TRANSPORT_VERSION,
+                flags: ResponseFlags::new(),
+                size,
+            },
             body: payload,
         }
     }
@@ -184,6 +199,8 @@ impl Response {
     pub fn error(error: ResponseError) -> Self {
         Self {
             header: ResponseHeader {
+                version: TRANSPORT_VERSION,
+                flags: ResponseFlags::new(),
                 size: PayloadSize::new(0),
             },
             body: error.into(),

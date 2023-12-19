@@ -8,9 +8,10 @@ use crate::harpc::{
     service::ServiceId,
     transport::message::{
         actor::ActorId,
-        request::{Request, RequestHeader},
-        response::{Response, ResponseHeader, ResponsePayload},
+        request::{Request, RequestFlags, RequestHeader},
+        response::{Response, ResponseFlags, ResponseHeader, ResponsePayload},
         size::PayloadSize,
+        version::{ProtocolVersion, TransportVersion},
     },
 };
 
@@ -91,17 +92,56 @@ impl EncodeBinary for PayloadSize {
     }
 }
 
+impl EncodeBinary for TransportVersion {
+    async fn encode_binary<T>(&self, io: &mut T) -> std::io::Result<()>
+    where
+        T: tokio::io::AsyncWrite + Unpin,
+    {
+        io.write_u8(self.0).await?;
+
+        Ok(())
+    }
+}
+
+impl EncodeBinary for ProtocolVersion {
+    async fn encode_binary<T>(&self, io: &mut T) -> std::io::Result<()>
+    where
+        T: tokio::io::AsyncWrite + Unpin,
+    {
+        io.write_u8(self.0).await?;
+
+        Ok(())
+    }
+}
+
+impl EncodeBinary for RequestFlags {
+    async fn encode_binary<T>(&self, io: &mut T) -> std::io::Result<()>
+    where
+        T: tokio::io::AsyncWrite + Unpin,
+    {
+        io.write_all(&self.0).await?;
+
+        Ok(())
+    }
+}
+
 impl EncodeBinary for RequestHeader {
     async fn encode_binary<T>(&self, io: &mut T) -> std::io::Result<()>
     where
         T: tokio::io::AsyncWrite + Unpin + Send,
     {
         let Self {
+            flags,
+            version,
             service,
             procedure,
             actor,
             size,
         } = self;
+
+        version.transport.encode_binary(io).await?;
+        flags.encode_binary(io).await?;
+        version.protocol.encode_binary(io).await?;
 
         service.encode_binary(io).await?;
         procedure.encode_binary(io).await?;
@@ -140,12 +180,31 @@ impl Encode for Request {
     }
 }
 
+impl EncodeBinary for ResponseFlags {
+    async fn encode_binary<T>(&self, io: &mut T) -> std::io::Result<()>
+    where
+        T: tokio::io::AsyncWrite + Unpin,
+    {
+        io.write_all(&self.0).await?;
+
+        Ok(())
+    }
+}
+
 impl EncodeBinary for ResponseHeader {
     async fn encode_binary<T>(&self, io: &mut T) -> std::io::Result<()>
     where
         T: tokio::io::AsyncWrite + Unpin + Send,
     {
-        self.size.encode_binary(io).await?;
+        let Self {
+            version,
+            flags,
+            size,
+        } = self;
+
+        version.encode_binary(io).await?;
+        flags.encode_binary(io).await?;
+        size.encode_binary(io).await?;
 
         Ok(())
     }
@@ -156,6 +215,7 @@ impl EncodeBinary for Response {
     where
         T: tokio::io::AsyncWrite + Unpin + Send,
     {
+        // TODO: adjust via enum
         match &self.body {
             ResponsePayload::Success(ref body) if self.header.size.into_usize() != body.len() => {
                 return Err(std::io::Error::new(
