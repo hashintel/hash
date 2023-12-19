@@ -66,6 +66,7 @@ import {
   ResolverFn,
 } from "../../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
+import { userHasAccessToHash } from "../../shared/user-has-access-to-hash";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL } from "../graphql-mapping";
 import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
@@ -332,6 +333,17 @@ export const updateEntityResolver: ResolverFn<
   );
 
   if (isIncompleteUser && shortname && preferredName) {
+    /**
+     * If the user doesn't have access to the HASH instance,
+     * we need to forbid them from completing account signup
+     * and prevent them from receiving ownership of the web.
+     */
+    if (!userHasAccessToHash({ user })) {
+      throw new ForbiddenError(
+        "The user does not have access to the HASH instance, and therefore cannot complete account signup.",
+      );
+    }
+
     // Now that the user has completed signup, we can transfer the ownership of the web
     // allowing them to create entities and types.
     await modifyWebAuthorizationRelationships(
