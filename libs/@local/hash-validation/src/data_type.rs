@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 use email_address::EmailAddress;
 use error_stack::{bail, ensure, Report, ResultExt};
+use regex::Regex;
 use serde_json::Value as JsonValue;
 use thiserror::Error;
 use type_system::{url::VersionedUrl, DataType, DataTypeReference};
@@ -113,11 +114,10 @@ pub enum DataTypeConstraint {
          `{expected}`"
     )]
     MaxLength { actual: String, expected: usize },
-    #[error(
-        "the provided value does not match the expected pattern, got `{actual}`, expected \
-         `{expected}`"
-    )]
-    Pattern { actual: String, expected: Regex },
+    #[error("the provided pattern could not be compiled, got `{pattern}`")]
+    InvalidPattern { pattern: String },
+    #[error("the provided value does not match the expected pattern `{pattern}`, got `{actual}`")]
+    Pattern { actual: String, pattern: Regex },
     #[error("the provided value does not match the expected format `{format}`")]
     Format { actual: JsonValue, format: String },
     #[error("unknown constraint: `{key}`")]
@@ -303,6 +303,27 @@ fn check_string_additional_property<'a>(
                     .change_context(DataValidationError::ConstraintUnfulfilled)
                 );
             }
+            ("pattern", JsonValue::String(pattern)) => {
+                let regex = Regex::new(pattern)
+                    .change_context_lazy(|| DataTypeConstraint::InvalidPattern {
+                        pattern: pattern.clone(),
+                    })
+                    .change_context(DataValidationError::ConstraintUnfulfilled)?;
+                ensure!(
+                    regex.is_match(string),
+                    Report::new(DataTypeConstraint::Pattern {
+                        actual: string.to_owned(),
+                        pattern: regex,
+                    })
+                    .change_context(DataValidationError::ConstraintUnfulfilled)
+                );
+            }
+            ("format" | "pattern", _) => {
+                bail!(Report::new(DataValidationError::InvalidType {
+                    actual: JsonSchemaValueType::from(value),
+                    expected: JsonSchemaValueType::String,
+                }));
+            }
             _ => {}
         }
     }
@@ -406,7 +427,8 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
                 }
                 "minimum" | "maximum" | "exclusiveMinimum" | "exclusiveMaximum" | "multipleOf"
                     if self.json_type() == "integer" || self.json_type() == "number" => {}
-                "format" | "minLength" | "maxLength" if self.json_type() == "string" => {}
+                "format" | "minLength" | "maxLength" | "pattern"
+                    if self.json_type() == "string" => {}
                 "label" => {
                     // Label does not have to be validated
                 }
@@ -613,7 +635,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn url() {
+    async fn uri() {
         let url_type = serde_json::to_string(&json!({
             "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
             "kind": "dataType",
@@ -652,6 +674,39 @@ mod tests {
             "format": "email",
         }))
         .expect("failed to serialize meter type");
+
+        validate_data(
+            json!("bob@example.com"),
+            &mail_type,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect("validation failed");
+
+        validate_data(
+            json!("user.name+tag+sorting@example.com"),
+            &mail_type,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect("validation failed");
+
+        _ = validate_data(json!("job!done"), &mail_type, ValidationProfile::Full)
+            .await
+            .expect_err("validation succeeded");
+    }
+
+    #[tokio::test]
+    async fn simple_mail() {
+        let mail_type = serde_json::to_string(&json!({
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            "kind": "dataType",
+            "$id": "https://localhost:4000/@alice/types/data-type/simple-email/v/1",
+            "title": "E-Mail",
+            "type": "string",
+            "pattern": "^[^@]+@[^@]+$",
+        }))
+        .expect("failed to serialize simple mail type");
 
         validate_data(
             json!("bob@example.com"),

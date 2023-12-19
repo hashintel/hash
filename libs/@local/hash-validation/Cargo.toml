@@ -13,6 +13,7 @@ type-system.workspace = true
 
 thiserror = "1.0.51"
 serde_json = { version = "1.0.108" }
+regex = "1.10.2"
 url = { workspace = true }
 email_address = { workspace = true }
 
