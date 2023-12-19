@@ -1,4 +1,5 @@
 pub(crate) mod client;
+mod codec;
 pub(crate) mod server;
 
 use std::{future::Future, time::Duration};

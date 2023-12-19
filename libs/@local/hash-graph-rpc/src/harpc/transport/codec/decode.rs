@@ -97,7 +97,7 @@ where
     })
 }
 
-pub(super) trait DecodeBinary: Sized {
+pub(in crate::harpc) trait DecodeBinary: Sized {
     fn decode_binary<T>(
         io: &mut T,
         limit: Limit,
@@ -106,7 +106,7 @@ pub(super) trait DecodeBinary: Sized {
         T: AsyncRead + Unpin + Send;
 }
 
-pub(super) trait Decode: DecodeBinary {
+pub(in crate::harpc) trait Decode: DecodeBinary {
     fn decode_text<T>(
         io: &mut T,
         limit: Limit,

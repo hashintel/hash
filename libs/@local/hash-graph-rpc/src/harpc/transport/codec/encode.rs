@@ -33,13 +33,13 @@ where
     Ok(())
 }
 
-pub(super) trait EncodeBinary: Sized {
+pub(in crate::harpc) trait EncodeBinary: Sized {
     fn encode_binary<T>(&self, io: &mut T) -> impl Future<Output = std::io::Result<()>> + Send
     where
         T: tokio::io::AsyncWrite + Unpin + Send;
 }
 
-pub(super) trait Encode: EncodeBinary {
+pub(in crate::harpc) trait Encode: EncodeBinary {
     fn encode_text<T>(&self, io: &mut T) -> impl Future<Output = std::io::Result<()>> + Send
     where
         T: tokio::io::AsyncWrite + Unpin + Send;

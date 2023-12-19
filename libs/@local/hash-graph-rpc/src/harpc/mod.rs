@@ -1,5 +1,3 @@
-mod codec;
-
 mod serde_compat;
 
 pub(crate) mod transport;
