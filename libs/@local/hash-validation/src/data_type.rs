@@ -332,6 +332,9 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
                 "minimum" | "maximum" | "exclusiveMinimum" | "exclusiveMaximum" | "multipleOf"
                     if self.json_type() == "integer" || self.json_type() == "number" => {}
                 "format" if self.json_type() == "string" => {}
+                "label" => {
+                    // Label does not have to be validated
+                }
                 _ => bail!(
                     Report::new(DataTypeConstraint::UnknownConstraint {
                         key: additional_key.to_owned(),
