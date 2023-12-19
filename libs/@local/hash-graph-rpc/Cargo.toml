@@ -34,3 +34,5 @@ tracing = "0.1.40"
 
 [dev-dependencies]
 test-log = { version = "0.2.14", default-features = false, features = ["trace"] }
+tokio = { version = "1.35.0", features = ['rt-multi-thread'] }
+tracing-subscriber = "0.3.18"

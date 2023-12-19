@@ -1,8 +1,10 @@
 mod codec;
-mod serde_compat;
-mod transport;
 
-use std::future::Future;
+mod serde_compat;
+
+pub(crate) mod transport;
+
+use std::{future::Future, sync::Arc};
 
 use bytes::Bytes;
 use const_fnv1a_hash::fnv1a_hash_str_64;
@@ -152,7 +154,15 @@ pub struct RequestHeader {
 ///
 /// `ServiceID`, `ProcedureID`, `Size` utilize variable integer encoding, with a maximum size of 10
 /// bytes.
-/// The mimum header size is 19 bytes.
+/// The minimum header size is 19 bytes.
+///
+/// ### Extensions
+///
+/// In the future to support more features, the header may be extended with additional fields.
+/// Planned are:
+/// * `Version`
+/// * `Flags`
+// (TODO: already add them)
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Request {
     pub(crate) header: RequestHeader,
@@ -280,14 +290,43 @@ impl From<Error> for ResponsePayload {
 ///
 /// The minimum size of the header on errorneous response is 1 byte, and on successful response is 2
 /// bytes.
+///
+/// ### Extensions
+///
+/// In the future to support more features, the header may be extended with additional fields.
+///
+/// These include:
+/// * `Version`
+/// * `Flags`
+///
+/// Another extension that is planned (through flags) is to allow for an alternative streaming
+/// implementation, where the items of the response are streamed as they are produced, instead of
+/// being buffered and sent all at once.
+///
+/// The header of a streaming response would include the current item index as well as a size hint,
+/// if an item (that is successful) has a payload length of 0x00 it indicates the end of the stream.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Response {
     header: ResponseHeader,
-    body: ResponsePayload,
+    pub(crate) body: ResponsePayload,
 }
 
 impl Response {
-    fn error(error: Error) -> Self {
+    pub fn new(body: impl Into<ResponsePayload>) -> Self {
+        let payload = body.into();
+
+        let size = match &payload {
+            ResponsePayload::Success(bytes) => PayloadSize::len(bytes),
+            ResponsePayload::Error(_) => PayloadSize::new(0),
+        };
+
+        Self {
+            header: ResponseHeader { size },
+            body: payload,
+        }
+    }
+
+    pub fn error(error: Error) -> Self {
         Self {
             header: ResponseHeader {
                 size: PayloadSize::new(0),
@@ -297,90 +336,97 @@ impl Response {
     }
 }
 
-pub trait Encode<T, S> {
-    fn encode(&self, value: T, state: &S) -> Bytes;
+pub trait Stateful: Send + Sync {
+    type State: Send + Sync;
+
+    fn state(&self) -> &Self::State;
 }
 
-pub trait Decode<T, S> {
-    fn decode(&self, bytes: Bytes, state: &S) -> T;
+pub trait Encode<T>: Stateful {
+    fn encode(&self, value: T) -> Bytes;
 }
 
-pub trait Context<S> {
-    fn state(&self) -> &S;
+pub trait Decode<T>: Stateful {
+    fn decode(&self, bytes: Bytes) -> T;
+}
 
+pub trait Context: Clone + Stateful + 'static {
     fn finish<T>(&self, response: T) -> Response
     where
-        Self: Encode<T, S>;
+        Self: Encode<T>;
 }
 
-pub trait ProcedureCall<P, C, S> {
+pub trait ProcedureCall<C>
+where
+    C: Context,
+{
     type Procedure: RemoteProcedure;
 
-    type Future<'a>: Future<Output = Response> + Send + 'a
-    where
-        Self: 'a,
-        C: 'a,
-        S: 'a;
+    type Future: Future<Output = Response> + Send + 'static;
 
-    fn call(self, request: Request, context: &C) -> Self::Future<'_>;
+    fn call(self, request: Request, context: C) -> Self::Future;
 }
 
-impl<F, P, C, S, Fut> ProcedureCall<P, C, S> for F
+pub struct Handler<F, P, C> {
+    handler: F,
+    _context: core::marker::PhantomData<(P, C)>,
+}
+
+impl<F, P, C> Clone for Handler<F, P, C>
 where
-    F: FnOnce(P, &S) -> Fut + Clone + Send + 'static,
+    F: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            handler: self.handler.clone(),
+            _context: core::marker::PhantomData,
+        }
+    }
+}
+
+impl<F, P, C> Handler<F, P, C> {
+    pub(crate) fn new(handler: F) -> Self {
+        Self {
+            handler,
+            _context: core::marker::PhantomData,
+        }
+    }
+}
+
+impl<F, P, C, Fut> ProcedureCall<C> for Handler<F, P, C>
+where
+    F: FnOnce(P, &C::State) -> Fut + Clone + Send + 'static,
     Fut: Future<Output = P::Response> + Send,
-    P: RemoteProcedure + Send,
-    C: Context<S> + Encode<P::Response, S> + Decode<P, S> + Sync,
-    S: Sync,
+    P: RemoteProcedure,
+    C: Context + Encode<P::Response> + Decode<P>,
 {
     type Procedure = P;
 
-    type Future<'a> = impl Future<Output = Response> + Send + 'a where
-        Self: 'a,
-        C: 'a,
-        S: 'a;
+    type Future = impl Future<Output = Response> + Send + 'static;
 
-    fn call(self, request: Request, context: &C) -> Self::Future<'_> {
-        let body = request.body;
-        let state = context.state();
-
+    fn call(self, request: Request, context: C) -> Self::Future {
         async move {
-            let body = context.decode(body, state);
+            let body = request.body;
+            let state = context.state();
+
+            let body = context.decode(body);
             let input = body;
 
-            let output = self(input, state).await;
+            let output = (self.handler)(input, state).await;
 
             context.finish(output)
         }
     }
 }
 
-// The request is the type that implements this!
-// TODO: name is not the best to describe this!
-pub trait RemoteProcedure {
+pub trait RemoteProcedure: Send + Sync {
     const ID: ProcedureId;
 
     type Response;
-
-    // TODO: client that implements those over transport!
 }
 
-pub struct Procedure<S, T>
-// where
-//     S: ProcedureSpecification,
-//     T: ProcedureCall<S, C, Response=S::Response>,
-{
-    specification: S,
-    call: T,
-}
-
-pub trait ServiceSpecification {
+pub trait ServiceSpecification: Send + Sync {
     const ID: ServiceId;
 
     type Procedures;
-}
-
-pub struct Service<T> {
-    id: ServiceId,
-    procedures: T,
 }

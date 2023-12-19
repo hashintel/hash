@@ -1,5 +1,5 @@
-mod client;
-mod server;
+pub(crate) mod client;
+pub(crate) mod server;
 
 use std::{future::Future, time::Duration};
 
@@ -85,8 +85,8 @@ impl TransportLayer {
     }
 }
 
-pub(crate) trait ServiceRouter {
-    fn route(&self, request: Request) -> impl Future<Output = Response> + Send;
+pub trait RequestRouter {
+    fn route(&self, request: Request) -> impl Future<Output = Response> + Send + 'static;
 }
 
 fn log_behaviour_event<TRequest, TResponse, TChannelResponse>(
@@ -144,15 +144,16 @@ mod test {
         transport::{
             client::{ClientTransportConfig, ClientTransportLayer},
             server::{ServerTransportConfig, ServerTransportLayer},
-            ServiceRouter, TransportConfig,
+            RequestRouter, TransportConfig,
         },
         ActorId, PayloadSize, ProcedureId, Request, RequestHeader, Response, ResponseHeader,
         ResponsePayload, ServiceId,
     };
 
+    #[derive(Debug, Copy, Clone)]
     struct EchoRouter;
 
-    impl ServiceRouter for EchoRouter {
+    impl RequestRouter for EchoRouter {
         async fn route(&self, request: Request) -> Response {
             Response {
                 header: ResponseHeader {
@@ -163,11 +164,12 @@ mod test {
         }
     }
 
+    #[derive(Debug, Copy, Clone)]
     struct DelayEchoRouter {
         delay: std::time::Duration,
     }
 
-    impl ServiceRouter for DelayEchoRouter {
+    impl RequestRouter for DelayEchoRouter {
         async fn route(&self, request: Request) -> Response {
             tokio::time::sleep(self.delay).await;
 
@@ -185,7 +187,7 @@ mod test {
         transport_config: TransportConfig,
     ) -> (ClientTransportLayer, impl Drop)
     where
-        T: ServiceRouter + Send + Sync + 'static,
+        T: RequestRouter + Send + Sync + 'static,
     {
         let server_config = ServerTransportConfig {
             transport: transport_config.clone(),

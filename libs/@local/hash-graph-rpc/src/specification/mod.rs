@@ -10,6 +10,7 @@ macro_rules! service {
     (@procedure[$vis:vis]) => {};
 
     (@procedure[$vis:vis] rpc $name:ident() $(-> $output:ty)?; $($rest:tt)*) => {
+        #[derive(serde::Serialize, serde::Deserialize)]
         $vis struct $name;
 
         impl $crate::rpc::RemoteProcedure for $name {
@@ -23,6 +24,7 @@ macro_rules! service {
     };
 
     (@procedure[$vis:vis] rpc $name:ident($($fields:tt)+) $(-> $output:ty)?; $($rest:tt)*) => {
+        #[derive(serde::Serialize, serde::Deserialize)]
         $vis struct $name {
             $($fields)+
         }

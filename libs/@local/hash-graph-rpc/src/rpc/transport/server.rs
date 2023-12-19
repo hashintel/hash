@@ -1,8 +1,13 @@
+use std::{
+    future::{ready, Future},
+    sync::Arc,
+};
+
 use error_stack::ResultExt;
 use libp2p::{
     core::transport::ListenerId,
-    futures::StreamExt,
-    request_response::{Event, Message},
+    futures::{future::Either, FutureExt, StreamExt},
+    request_response::{Event, Message, ResponseChannel},
     swarm::SwarmEvent,
     Multiaddr,
 };
@@ -12,9 +17,12 @@ use tokio::{
 };
 use tonic::codegen::tokio_stream::Stream;
 
-use crate::rpc::transport::{
-    log_behaviour_event, BehaviourCollectionEvent, ServiceRouter, SpawnGuard, TransportConfig,
-    TransportError, TransportLayer, TransportSwarm,
+use crate::rpc::{
+    transport::{
+        log_behaviour_event, BehaviourCollectionEvent, RequestRouter, SpawnGuard, TransportConfig,
+        TransportError, TransportLayer, TransportSwarm,
+    },
+    Response,
 };
 
 #[derive(Debug)]
@@ -74,9 +82,11 @@ pub(crate) struct ServerTransportLayer<T> {
     router: T,
 }
 
+// type OpaqueFuture<'a> = impl Future<Output = ()> + Send + 'a;
+
 impl<T> ServerTransportLayer<T>
 where
-    T: ServiceRouter + Send + Sync,
+    T: RequestRouter + Send + 'static,
 {
     pub(crate) fn new(
         router: T,
@@ -107,11 +117,10 @@ where
             .change_context(TransportError)
     }
 
-    async fn handle_swarm_event(
-        swarm: &mut TransportSwarm,
+    fn handle_swarm_event(
         router: &T,
         event: <TransportSwarm as Stream>::Item,
-    ) {
+    ) -> Option<impl Future<Output = (ResponseChannel<Response>, Response)> + Send + '_> {
         match event {
             SwarmEvent::NewListenAddr { address, .. } => {
                 tracing::info!("listening on {}", address);
@@ -126,15 +135,11 @@ where
                         Message::Request {
                             request, channel, ..
                         } => {
-                            let response = router.route(request).await;
+                            let route = router
+                                .route(request)
+                                .then(move |response| ready((channel, response)));
 
-                            if let Err(error) = swarm
-                                .behaviour_mut()
-                                .protocol
-                                .send_response(channel, response)
-                            {
-                                tracing::error!(?error, "failed to send response");
-                            }
+                            return Some(route);
                         }
                         Message::Response {
                             request_id,
@@ -147,6 +152,8 @@ where
             }
             _ => {}
         }
+
+        None
     }
 
     fn handle_metrics_event(swarm: &TransportSwarm, event: ServerTransportCommand) {
@@ -174,7 +181,15 @@ where
         loop {
             select! {
                 event = swarm.select_next_some() => {
-                    Self::handle_swarm_event(&mut swarm, &self.router, event).await;
+                    let Some(future) = Self::handle_swarm_event(&self.router, event) else {
+                        continue;
+                    };
+
+                    let (channel, response) = future.await;
+
+                    if let Err(error) = swarm.behaviour_mut().protocol.send_response(channel, response) {
+                        tracing::error!(?error, "failed to send response");
+                    }
                 },
                 Some(event) = self.metrics_rx.recv() => {
                     Self::handle_metrics_event(&swarm, event);
@@ -183,10 +198,12 @@ where
         }
     }
 
-    pub(crate) async fn serve(mut self) -> error_stack::Result<(), TransportError> {
+    pub(crate) fn serve(
+        mut self,
+    ) -> error_stack::Result<impl Future<Output = !> + Send, TransportError> {
         self.listen()?;
 
-        self.event_loop().await
+        Ok(self.event_loop())
     }
 
     pub(crate) fn spawn(mut self) -> error_stack::Result<SpawnGuard, TransportError>

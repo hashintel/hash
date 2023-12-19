@@ -1,11 +1,25 @@
-use std::marker::PhantomData;
+pub trait HStack: Sized {
+    fn push<T>(self, next: T) -> Stack<T, Self>;
+}
 
 pub struct Stack<Next, Tail> {
-    next: PhantomData<Next>,
-    tail: PhantomData<Tail>,
+    pub(crate) next: Next,
+    pub(crate) tail: Tail,
+}
+
+impl<Next, Tail> HStack for Stack<Next, Tail> {
+    fn push<T>(self, next: T) -> Stack<T, Self> {
+        Stack { next, tail: self }
+    }
 }
 
 pub struct Empty;
+
+impl HStack for Empty {
+    fn push<T>(self, next: T) -> Stack<T, Self> {
+        Stack { next, tail: Empty }
+    }
+}
 
 #[marker]
 pub trait Includes<T> {}

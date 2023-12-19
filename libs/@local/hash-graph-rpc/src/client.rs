@@ -1,30 +1,65 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, net::SocketAddrV4};
+
+use libp2p::{multiaddr::Protocol, Multiaddr};
+use uuid::Uuid;
 
 use crate::{
-    rpc::{RemoteProcedure, ServiceSpecification},
+    rpc::{
+        transport::{
+            client::{ClientTransportConfig, ClientTransportLayer},
+            TransportConfig,
+        },
+        ActorId, Decode, Encode, PayloadSize, RemoteProcedure, Request, RequestHeader,
+        ResponsePayload, ServiceSpecification,
+    },
     types::Includes,
 };
 
-pub struct Client<T> {
-    _service: PhantomData<T>,
+pub struct Client<S, C> {
+    _service: PhantomData<S>,
+    context: C,
+    transport: ClientTransportLayer,
 }
 
-impl<T> Client<T>
+impl<S, C> Client<S, C>
 where
-    T: ServiceSpecification,
+    S: ServiceSpecification,
 {
-    pub fn new() -> Self {
+    pub fn new(context: C, remote: SocketAddrV4, config: TransportConfig) -> Self {
         Self {
             _service: PhantomData,
+            context,
+            transport: ClientTransportLayer::new(ClientTransportConfig {
+                remote: Multiaddr::from(*remote.ip()).with(Protocol::Tcp(remote.port())),
+                transport: config,
+            })
+            .unwrap(),
         }
     }
 
     pub async fn call<P>(&self, request: P) -> P::Response
     where
         P: RemoteProcedure,
-        T::Procedures: Includes<P>,
+        S::Procedures: Includes<P>,
+        C: Encode<P> + Decode<P::Response>,
     {
-        todo!()
+        let request = self.context.encode(request);
+        let request = Request {
+            header: RequestHeader {
+                service: S::ID,
+                procedure: P::ID,
+                actor: ActorId::from(Uuid::nil()),
+                size: PayloadSize::len(&request),
+            },
+            body: request,
+        };
+
+        let response = self.transport.call(request).await.unwrap();
+
+        match response.body {
+            ResponsePayload::Success(body) => self.context.decode(body),
+            ResponsePayload::Error(error) => panic!("error: {:?}", error),
+        }
     }
 }
 
