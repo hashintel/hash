@@ -12,9 +12,7 @@ on:
       - "apps/hash-api/**"
       - "apps/hash-external-services/temporal/**"
       - "apps/hash-external-services/kratos/**"
-      - "libs/@local/hash-backend-utils-utils/**"
-      - "libs/@local/hash-isomorphic-utils/**"
-      - "libs/@local/status/**"
+      - "libs/@local/**"
       - "infra/docker/api/prod/**"
 
 env:
@@ -36,6 +34,7 @@ env:
 
   HASH_ECS_CLUSTER_NAME: h-hash-prod-usea1-ecs
   HASH_APP_SERVICE_NAME: h-hash-prod-usea1-appsvc
+  HASH_GRAPH_SERVICE_NAME: h-hash-prod-usea1-graph
   HASH_WORKER_SERVICE_NAME: h-hash-prod-usea1-appworker-svc
 
   HASH_TEMPORAL_ECS_CLUSTER_NAME: h-temporal-prod-usea1-ecs
@@ -322,7 +321,7 @@ jobs:
     name: Deploy HASH app images
     runs-on: ubuntu-latest
     needs:
-      - build-graph
+      - build-ts-worker
       - build-api
       - build-kratos
     permissions:
@@ -357,11 +356,47 @@ jobs:
         run: |
           aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_APP_SERVICE_NAME }} --force-new-deployment 1> /dev/null
 
+  deploy-graph:
+    name: Deploy HASH graph images
+    runs-on: ubuntu-latest
+    needs:
+      - build-graph
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Authenticate Vault
+        id: secrets
+        uses: hashicorp/vault-action@affa6f04da5c2d55e6e115b7d1b044a6b1af8c74 # v2.7.4
+        with:
+          exportToken: true
+          url: ${{ env.VAULT_ADDR }}
+          method: jwt
+          role: prod
+          # Even though it could look like separate calls to fetch the secrets
+          # the responses here are cached, so we're only issuing a single set of credentials
+          secrets: |
+            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
+            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
+            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
+
+      - uses: ./.github/actions/docker-ecr-login
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+
+      - name: Redeploy HASH graph service
+        run: |
+          aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_GRAPH_SERVICE_NAME }} --force-new-deployment 1> /dev/null
+
   deploy-workers:
     name: Deploy HASH worker images
     runs-on: ubuntu-latest
     needs:
-      - build-ts-worker
       - build-integration-worker
     permissions:
       id-token: write
@@ -437,6 +472,8 @@ jobs:
     name: Notify Slack on failure
     needs:
       - deploy-app
+      - deploy-graph
+      - deploy-workers
       - deploy-temporal
     runs-on: ubuntu-latest
     if: ${{ failure() }}

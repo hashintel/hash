@@ -64,7 +64,7 @@
       "entryPoint": "react"
     },
     "protocol": "0.3",
-    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/chart/v/1",
+    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/chart-block/v/1",
     "codegen": {
       "outputFolder": "src/types/generated",
       "targets": {

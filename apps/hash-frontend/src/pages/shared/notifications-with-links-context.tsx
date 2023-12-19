@@ -221,7 +221,9 @@ export const useNotificationsWithLinksContextValue =
     );
 
     const notifications = useMemo<Notification[] | undefined>(() => {
-      if (
+      if (notificationEntities && notificationEntities.length === 0) {
+        return [];
+      } else if (
         !outgoingLinksSubgraph ||
         !notificationEntities ||
         !notificationRevisionsData ||

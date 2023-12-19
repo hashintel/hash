@@ -72,7 +72,7 @@ export const useBlockProtocolQueryEntities = (): {
         response.queryEntities.subgraph,
       );
 
-      return { data: subgraph };
+      return { data: { results: subgraph, operation } };
     },
     [queryFn],
   );

@@ -13,6 +13,8 @@ type-system.workspace = true
 
 thiserror = "1.0.51"
 serde_json = { version = "1.0.108" }
+url = { workspace = true }
+email_address = { workspace = true }
 
 [dev-dependencies]
 graph-test-data.workspace = true

@@ -33,7 +33,8 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          PACKAGES=$(turbo run lint --dry-run=json --filter '...[HEAD^]' \
+          FILTER=$(turbo run lint --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
+          PACKAGES=$(sh -c "turbo run lint --dry-run=json $FILTER" \
             | jq '.tasks[]' \
             | jq 'select(.task == "lint")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')

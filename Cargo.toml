@@ -47,6 +47,7 @@ type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "b
 
 # Shared third-party dependencies
 bytes = "1.5.0"
+email_address = { version = "0.2.4", default-features = false }
 futures = { version = "0.3.29", default-features = false }
 postgres-types = { version = "0.2.6", default-features = false }
 serde = { version = "1.0.193", default-features = false }
@@ -56,6 +57,7 @@ tokio = { version = "1.35.0", default-features = false }
 tokio-util = { version = "0.7.10", default-features = false }
 tracing = "0.1.40"
 utoipa = "4.1.0"
+url = { version = "2.5.0", default-features = false }
 uuid = { version = "1.6.1", default-features = false }
 
 [profile.production]

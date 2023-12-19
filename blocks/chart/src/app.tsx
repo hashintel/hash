@@ -125,13 +125,10 @@ export const App: BlockComponent<BlockEntity> = ({
         throw new Error("Could not fetch query entity results");
       }
 
-      /** @todo: figure out why `data` is typed wrong */
-      const subgraph = data as unknown as Subgraph<EntityRootType>;
-
       setFetchedQueryForLinkedQueryEditionId(
         queryEntity.metadata.recordId.editionId,
       );
-      setQueryResult(subgraph);
+      setQueryResult(data.results);
     },
     [graphModule],
   );
