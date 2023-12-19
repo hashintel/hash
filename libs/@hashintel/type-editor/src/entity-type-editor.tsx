@@ -1,7 +1,7 @@
 /* eslint-disable import/first */
 require("setimmediate");
 
-import { EntityType, PropertyType } from "@blockprotocol/graph";
+import { DataType, EntityType, PropertyType } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { fluidFontClassName, theme } from "@hashintel/design-system/theme";
 import { Box, Stack, ThemeProvider, Typography } from "@mui/material";
@@ -38,6 +38,7 @@ export type CustomizationOptions = {
 
 export type EntityTypeEditorProps = {
   customization?: CustomizationOptions;
+  dataTypeOptions: Record<VersionedUrl, DataType>;
   // the entity type being edited
   entityType: EntityType;
   // The entity types available for (a) extending or (b) constraining the destination of a link, INCLUDING those used on this entity
@@ -52,6 +53,7 @@ export type EntityTypeEditorProps = {
 
 export const EntityTypeEditor = ({
   customization = {},
+  dataTypeOptions,
   entityType,
   entityTypeOptions,
   propertyTypeOptions,
