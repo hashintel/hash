@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@apollo/client";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
+  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph/.";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -29,34 +30,6 @@ import {
   updateEntityMutation,
 } from "../graphql/queries/knowledge/entity.queries";
 import { useNotifications } from "./notifications-context";
-
-const getDraftEntitiesQueryVariables: StructuralQueryEntitiesQueryVariables = {
-  query: {
-    filter: {
-      all: [
-        {
-          equal: [{ path: ["draft"] }, { parameter: true }],
-        },
-        {
-          equal: [{ path: ["archived"] }, { parameter: false }],
-        },
-      ],
-    },
-    temporalAxes: currentTimeInstantTemporalAxes,
-    graphResolveDepths: {
-      isOfType: { outgoing: 1 },
-      inheritsFrom: { outgoing: 255 },
-      constrainsPropertiesOn: { outgoing: 255 },
-      constrainsValuesOn: { outgoing: 255 },
-      constrainsLinksOn: { outgoing: 255 },
-      constrainsLinkDestinationsOn: { outgoing: 255 },
-      hasLeftEntity: { outgoing: 1, incoming: 1 },
-      hasRightEntity: { outgoing: 1, incoming: 1 },
-    },
-    includeDrafts: true,
-  },
-  includePermissions: false,
-};
 
 export type DraftEntitiesContextValue = {
   draftEntities?: Entity[];
@@ -98,7 +71,24 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
-    variables: getDraftEntitiesQueryVariables,
+    variables: {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["draft"] }, { parameter: true }],
+            },
+            {
+              equal: [{ path: ["archived"] }, { parameter: false }],
+            },
+          ],
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        graphResolveDepths: zeroedGraphResolveDepths,
+        includeDrafts: true,
+      },
+      includePermissions: false,
+    },
     onCompleted: (data) => setPreviouslyFetchedDraftEntitiesData(data),
     pollInterval: draftEntitiesPollingInterval,
     fetchPolicy: "network-only",

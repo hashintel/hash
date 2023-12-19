@@ -1,7 +1,9 @@
 import { useQuery } from "@apollo/client";
 import { Skeleton } from "@hashintel/design-system";
+import { Filter } from "@local/hash-graph-client";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
+  currentTimeInstantTemporalAxes,
   fullDecisionTimeAxis,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
@@ -88,32 +90,86 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
 }) => {
   const [filterState, setFilterState] = useState<DraftEntityFilterState>();
 
-  const { draftEntities, draftEntitiesSubgraph } = useDraftEntities();
+  const { draftEntities } = useDraftEntities();
+
+  const getDraftEntitiesFilter = useMemo<Filter>(
+    () => ({
+      any:
+        draftEntities?.map((draftEntity) => ({
+          equal: [
+            { path: ["uuid"] },
+            {
+              parameter: extractEntityUuidFromEntityId(
+                draftEntity.metadata.recordId.entityId,
+              ),
+            },
+          ],
+        })) ?? [],
+    }),
+    [draftEntities],
+  );
+
+  const [
+    previouslyFetchedDraftEntitiesWithLinkedDataResponse,
+    setPreviouslyFetchedDraftEntitiesWithLinkedDataResponse,
+  ] = useState<StructuralQueryEntitiesQuery>();
+
+  const { data: draftEntitiesWithLinkedDataResponse } = useQuery<
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
+    variables: {
+      query: {
+        filter: getDraftEntitiesFilter,
+        includeDrafts: true,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        graphResolveDepths: {
+          isOfType: { outgoing: 1 },
+          inheritsFrom: { outgoing: 255 },
+          constrainsPropertiesOn: { outgoing: 255 },
+          constrainsValuesOn: { outgoing: 255 },
+          constrainsLinksOn: { outgoing: 255 },
+          constrainsLinkDestinationsOn: { outgoing: 255 },
+          hasLeftEntity: { outgoing: 1, incoming: 1 },
+          hasRightEntity: { outgoing: 1, incoming: 1 },
+        },
+      },
+      includePermissions: false,
+    },
+    skip: !draftEntities,
+    onCompleted: (data) =>
+      setPreviouslyFetchedDraftEntitiesWithLinkedDataResponse(data),
+    fetchPolicy: "network-only",
+  });
+
+  const draftEntitiesWithLinkedDataSubgraph = useMemo(
+    () =>
+      draftEntitiesWithLinkedDataResponse ||
+      previouslyFetchedDraftEntitiesWithLinkedDataResponse
+        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+            (draftEntitiesWithLinkedDataResponse ??
+              previouslyFetchedDraftEntitiesWithLinkedDataResponse)!
+              .structuralQueryEntities.subgraph,
+          )
+        : undefined,
+    [
+      draftEntitiesWithLinkedDataResponse,
+      previouslyFetchedDraftEntitiesWithLinkedDataResponse,
+    ],
+  );
 
   const [
     previouslyFetchedDraftEntityHistoriesData,
     setPreviouslyFetchedDraftEntityHistoriesData,
   ] = useState<StructuralQueryEntitiesQuery>();
 
-  const { data: draftEntityHistoriesData } = useQuery<
+  const { data: draftEntityHistoriesResponse } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
     variables: {
       query: {
-        filter: {
-          any:
-            draftEntities?.map((draftEntity) => ({
-              equal: [
-                { path: ["uuid"] },
-                {
-                  parameter: extractEntityUuidFromEntityId(
-                    draftEntity.metadata.recordId.entityId,
-                  ),
-                },
-              ],
-            })) ?? [],
-        },
+        filter: getDraftEntitiesFilter,
         includeDrafts: true,
         temporalAxes: fullDecisionTimeAxis,
         graphResolveDepths: zeroedGraphResolveDepths,
@@ -127,14 +183,14 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
 
   const draftEntityHistoriesSubgraph = useMemo(
     () =>
-      draftEntityHistoriesData || previouslyFetchedDraftEntityHistoriesData
+      draftEntityHistoriesResponse || previouslyFetchedDraftEntityHistoriesData
         ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-            (draftEntityHistoriesData ??
+            (draftEntityHistoriesResponse ??
               previouslyFetchedDraftEntityHistoriesData)!
               .structuralQueryEntities.subgraph,
           )
         : undefined,
-    [draftEntityHistoriesData, previouslyFetchedDraftEntityHistoriesData],
+    [draftEntityHistoriesResponse, previouslyFetchedDraftEntityHistoriesData],
   );
 
   const creatorAccountIds = useMemo(() => {
@@ -215,12 +271,12 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
   if (
     !filterState &&
     draftEntitiesWithCreatedAtAndCreators &&
-    draftEntitiesSubgraph
+    draftEntitiesWithLinkedDataSubgraph
   ) {
     setFilterState(
       generateDefaultFilterState({
         draftEntitiesWithCreatedAtAndCreators,
-        draftEntitiesSubgraph,
+        draftEntitiesSubgraph: draftEntitiesWithLinkedDataSubgraph,
       }),
     );
   }
@@ -229,7 +285,7 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
     () =>
       filterState &&
       draftEntitiesWithCreatedAtAndCreators &&
-      draftEntitiesSubgraph
+      draftEntitiesWithLinkedDataSubgraph
         ? draftEntitiesWithCreatedAtAndCreators
             .filter(
               ({ entity, creator }) =>
@@ -247,10 +303,13 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
             .sort((a, b) =>
               a.createdAt.getTime() === b.createdAt.getTime()
                 ? generateEntityLabel(
-                    draftEntitiesSubgraph,
+                    draftEntitiesWithLinkedDataSubgraph,
                     a.entity,
                   ).localeCompare(
-                    generateEntityLabel(draftEntitiesSubgraph, b.entity),
+                    generateEntityLabel(
+                      draftEntitiesWithLinkedDataSubgraph,
+                      b.entity,
+                    ),
                   )
                 : sortOrder === "created-at-asc"
                   ? a.createdAt.getTime() - b.createdAt.getTime()
@@ -261,7 +320,7 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
       draftEntitiesWithCreatedAtAndCreators,
       sortOrder,
       filterState,
-      draftEntitiesSubgraph,
+      draftEntitiesWithLinkedDataSubgraph,
     ],
   );
 
@@ -316,7 +375,7 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
               }}
             >
               {filteredAndSortedDraftEntitiesWithCreatedAt &&
-              draftEntitiesSubgraph ? (
+              draftEntitiesWithLinkedDataSubgraph ? (
                 <>
                   {filteredAndSortedDraftEntitiesWithCreatedAt
                     /**
@@ -328,7 +387,7 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
                         <DraftEntity
                           entity={entity}
                           createdAt={createdAt}
-                          subgraph={draftEntitiesSubgraph}
+                          subgraph={draftEntitiesWithLinkedDataSubgraph}
                         />
                         {i < all.length - 1 ? (
                           <Divider
@@ -388,7 +447,7 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
           draftEntitiesWithCreatedAtAndCreators={
             draftEntitiesWithCreatedAtAndCreators
           }
-          draftEntitiesSubgraph={draftEntitiesSubgraph}
+          draftEntitiesSubgraph={draftEntitiesWithLinkedDataSubgraph}
           filterState={filterState}
           setFilterState={handleFilterStateChange}
         />
