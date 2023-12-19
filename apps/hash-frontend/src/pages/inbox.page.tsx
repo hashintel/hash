@@ -220,14 +220,14 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
     const numberOfDaysAgo = differenceInDays(now, createdAt);
 
     if (numberOfDaysAgo < 7) {
-      return format(createdAt, "iiii"); // "Monday"
+      return format(createdAt, "h:mma iiii"); // "12:00AM Monday"
     }
 
     if (isThisYear(createdAt)) {
-      return format(createdAt, "MMMM do"); // "October 27th"
+      return format(createdAt, "h:mma MMMM do"); // "12:00AM October 27th"
     }
 
-    return format(createdAt, "MMMM do, yyyy"); // "December 24th, 2022"
+    return format(createdAt, "h:mma MMMM do, yyyy"); // "12:00AM December 24th, 2022"
   }, [createdAt]);
 
   return (

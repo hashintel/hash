@@ -260,7 +260,9 @@ export const NotificationsContextProvider: FunctionComponent<
   const previouslyFetchedNotificationsRef = useRef<Notification[] | null>(null);
 
   const notifications = useMemo<Notification[] | undefined>(() => {
-    if (
+    if (notificationEntities && notificationEntities.length === 0) {
+      return [];
+    } else if (
       !outgoingLinksSubgraph ||
       !notificationEntities ||
       !notificationRevisionsData ||
