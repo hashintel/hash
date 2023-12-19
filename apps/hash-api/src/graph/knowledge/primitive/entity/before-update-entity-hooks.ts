@@ -1,10 +1,13 @@
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { AccountId } from "@local/hash-subgraph";
+import { AccountId, OwnedById } from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
+import { userHasAccessToHash } from "../../../../shared/user-has-access-to-hash";
 import { ImpureGraphContext } from "../../../context-types";
+import { modifyWebAuthorizationRelationships } from "../../../ontology/primitive/util";
+import { systemAccountId } from "../../../system-account";
 import {
   shortnameContainsInvalidCharacter,
   shortnameIsRestricted,
@@ -87,6 +90,58 @@ const userEntityHookCallback: UpdateEntityHookCallback = async ({
     if (!updatedPreferredName) {
       throw new ApolloError("Cannot unset preferred name");
     }
+  }
+
+  const isIncompleteUser = !user.isAccountSignupComplete;
+
+  if (isIncompleteUser && updatedShortname && updatedPreferredName) {
+    /**
+     * If the user doesn't have access to the HASH instance,
+     * we need to forbid them from completing account signup
+     * and prevent them from receiving ownership of the web.
+     */
+    if (!userHasAccessToHash({ user })) {
+      throw new Error(
+        "The user does not have access to the HASH instance, and therefore cannot complete account signup.",
+      );
+    }
+
+    // Now that the user has completed signup, we can transfer the ownership of the web
+    // allowing them to create entities and types.
+    await modifyWebAuthorizationRelationships(
+      context,
+      { actorId: systemAccountId },
+      [
+        {
+          operation: "delete",
+          relationship: {
+            subject: {
+              kind: "account",
+              subjectId: systemAccountId,
+            },
+            resource: {
+              kind: "web",
+              resourceId: user.accountId as OwnedById,
+            },
+            relation: "owner",
+          },
+        },
+        {
+          operation: "create",
+          relationship: {
+            subject: {
+              kind: "account",
+              subjectId: user.accountId,
+            },
+            resource: {
+              kind: "web",
+              resourceId: user.accountId as OwnedById,
+            },
+            relation: "owner",
+          },
+        },
+      ],
+    );
   }
 
   const currentEmails = user.emails;
