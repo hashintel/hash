@@ -697,36 +697,26 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn simple_mail() {
+    async fn zip_code_us() {
         let mail_type = serde_json::to_string(&json!({
             "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
             "kind": "dataType",
-            "$id": "https://localhost:4000/@alice/types/data-type/simple-email/v/1",
-            "title": "E-Mail",
+            "$id": "https://localhost:4000/@alice/types/data-type/zip-code-us/v/1",
+            "title": "Zip code (US)",
             "type": "string",
-            "pattern": "^[^@]+@[^@]+$",
+            "pattern": "^[0-9]{5}(?:-[0-9]{4})?$",
         }))
-        .expect("failed to serialize simple mail type");
+        .expect("failed to serialize zip code type");
 
-        validate_data(
-            json!("bob@example.com"),
-            &mail_type,
-            ValidationProfile::Full,
-        )
-        .await
-        .expect("validation failed");
-
-        validate_data(
-            json!("user.name+tag+sorting@example.com"),
-            &mail_type,
-            ValidationProfile::Full,
-        )
-        .await
-        .expect("validation failed");
-
-        _ = validate_data(json!("job!done"), &mail_type, ValidationProfile::Full)
+        validate_data(json!("12345"), &mail_type, ValidationProfile::Full)
             .await
-            .expect_err("validation succeeded");
+            .expect("validation failed");
+
+        validate_data(json!("12345-6789"), &mail_type, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        _ = validate_data(json!("1234"), &mail_type, ValidationProfile::Full)
     }
 
     #[tokio::test]
