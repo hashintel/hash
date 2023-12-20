@@ -34,7 +34,7 @@ type TransportSwarm = Swarm<BehaviourCollection>;
 
 #[derive(Debug, Copy, Clone, Error)]
 #[error("transport error")]
-pub struct TransportError;
+pub(crate) struct TransportError;
 
 #[derive(Debug, Clone, Default)]
 pub struct TransportConfig {
@@ -91,7 +91,7 @@ impl TransportLayer {
     }
 }
 
-pub trait RequestRouter {
+pub(crate) trait RequestRouter {
     fn route(&self, request: Request) -> impl Future<Output = Response> + Send + 'static;
 }
 
@@ -158,7 +158,7 @@ mod test {
                 request::{Request, RequestFlags, RequestHeader},
                 response::{Response, ResponseFlags, ResponseHeader, ResponsePayload},
                 size::PayloadSize,
-                version::{TransportVersion, Version},
+                version::{Version},
             },
             server::{ServerTransportConfig, ServerTransportLayer},
             RequestRouter, TransportConfig, TRANSPORT_VERSION,

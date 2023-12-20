@@ -100,7 +100,7 @@ impl ResponseError {
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
 )]
-pub struct ResponseFlags([u8; 2]);
+pub(crate) struct ResponseFlags([u8; 2]);
 
 impl ResponseFlags {
     pub(crate) const fn new() -> Self {
@@ -364,7 +364,7 @@ impl From<PackedResponse> for Response {
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
 )]
-pub struct ResponseHeader {
+pub(crate) struct ResponseHeader {
     pub(crate) version: TransportVersion,
     pub(crate) flags: ResponseFlags,
     pub(crate) size: PayloadSize,

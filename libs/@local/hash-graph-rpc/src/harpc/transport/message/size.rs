@@ -11,17 +11,17 @@ impl PayloadSize {
     }
 
     #[must_use]
-    pub const fn len(value: &[u8]) -> Self {
+    pub(crate) const fn len(value: &[u8]) -> Self {
         Self(value.len() as u64)
     }
 
-    pub const fn into_u64(self) -> u64 {
+    pub(crate) const fn into_u64(self) -> u64 {
         self.0
     }
 
     #[must_use]
     #[allow(clippy::cast_possible_truncation)]
-    pub const fn into_usize(self) -> usize {
+    pub(crate) const fn into_usize(self) -> usize {
         self.0 as usize
     }
 }

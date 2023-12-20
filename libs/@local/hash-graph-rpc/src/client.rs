@@ -203,7 +203,7 @@ mod tests {
 
         fn encode(
             &self,
-            value: T,
+            _value: T,
         ) -> impl Future<Output = error_stack::Result<Bytes, Self::Error>> + Send + 'static
         {
             async move { Ok(Bytes::new()) }
@@ -215,7 +215,7 @@ mod tests {
 
         fn decode(
             &self,
-            bytes: Bytes,
+            _bytes: Bytes,
         ) -> impl Future<Output = error_stack::Result<T, Self::Error>> + Send + 'static {
             async move { panic!("decode") }
         }
@@ -231,16 +231,16 @@ mod tests {
             TransportConfig::default(),
         );
 
-        let response = client.call(CreateAccount).await;
+        let _response = client.call(CreateAccount).await;
 
-        let response = client
+        let _response = client
             .call(AddAccountGroupMember {
                 account_group_id: AccountGroupId::new(Uuid::new_v4()),
                 account_id: AccountId::new(Uuid::new_v4()),
             })
             .await;
 
-        let response = client
+        let _response = client
             .call(CheckAccountGroupPermission {
                 account_group_id: AccountGroupId::new(Uuid::new_v4()),
                 permission: AccountGroupPermission::AddMember,
