@@ -231,6 +231,13 @@ impl DecodeBinary for PackedResponseBody {
         io.take(size.into_u64()).read_to_end(&mut buffer).await?;
         let bytes = Bytes::from(buffer);
 
+        if size != PayloadSize::len(&bytes) {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "payload size does not match received buffer",
+            ));
+        }
+
         let value = Self::Success { size, bytes };
         Ok(value)
     }
@@ -498,7 +505,7 @@ mod test {
         codec::{
             decode::DecodeBinary,
             encode::EncodeBinary,
-            test::{assert_binary, assert_text},
+            test::{assert_binary, assert_text, encode_binary},
             Limit,
         },
         message::{
@@ -577,7 +584,7 @@ mod test {
                 },
                 body: ResponsePayload::Success(vec![0xDE, 0xAD, 0xBE, 0xEF].into())
             },
-            &[0x00, 0x00, 0x00, 0x04, 0xDE, 0xAD, 0xBE, 0xEF]
+            &[0x00, 0x00, 0x00, 0x00, 0x04, 0xDE, 0xAD, 0xBE, 0xEF]
         ),
         binary_response_error_deadline_exceeded(
             Response {
@@ -602,7 +609,7 @@ mod test {
                 },
                 body: ResponsePayload::Success(vec![].into())
             },
-            "0 0 0 0 0"
+            r#"{"header":{"version":0,"flags":[0,0],"size":0},"body":{"tag":"Success","payload":""}}"#
         ),
         text_response_success_content(
             Response {
@@ -613,7 +620,7 @@ mod test {
                 },
                 body: ResponsePayload::Success(vec![0xDE, 0xAD, 0xBE, 0xEF].into())
             },
-            "0 0 0 4 222 173 190 239"
+            r#"{"header":{"version":0,"flags":[0,0],"size":4},"body":{"tag":"Success","payload":"3q2+7w=="}}"#
         ),
         text_response_error_deadline_exceeded(
             Response {
@@ -624,7 +631,7 @@ mod test {
                 },
                 body: ResponsePayload::Error(ResponseError::DeadlineExceeded)
             },
-            "0 0 0 1 0"
+            r#"{"header":{"version":0,"flags":[0,0],"size":0},"body":{"tag":"Error","payload":"DeadlineExceeded"}}"#
         ),
         text_response_error_connection_closed(
             Response {
@@ -635,14 +642,17 @@ mod test {
                 },
                 body: ResponsePayload::Error(ResponseError::ConnectionClosed)
             },
-            "0 0 0 1 1"
+            r#"{"header":{"version":0,"flags":[0,0],"size":0},"body":{"tag":"Error","payload":"ConnectionClosed"}}"#
         ),
     ];
 
     #[tokio::test]
     async fn decode_header_exceeds_limit() {
-        let error = PackedResponseHeader::decode_binary(
-            &mut &[0x00, 0x01, 0x00][..],
+        let response = Response::success(vec![0xDE, 0xAD, 0xBE, 0xEF]);
+        let response = encode_binary(response).await.unwrap();
+
+        let error = Response::decode_binary(
+            &mut &*response,
             Limit {
                 response_size: 0x02,
                 request_size: 0x03,
@@ -682,13 +692,10 @@ mod test {
 
     #[tokio::test]
     async fn encode_body_size_mismatch() {
-        let error = PackedResponseBody::Success {
-            size: PayloadSize::new(0x05),
-            bytes: vec![0xDE, 0xAD, 0xBE, 0xEF].into(),
-        }
-        .encode_binary(&mut Vec::new())
-        .await
-        .unwrap_err();
+        let mut response = Response::success(vec![0xDE, 0xAD, 0xBE, 0xEF]);
+        response.header.size = PayloadSize::new(0x05);
+
+        let error = response.encode_binary(&mut Vec::new()).await.unwrap_err();
 
         assert_eq!(error.kind(), io::ErrorKind::InvalidData);
         assert_eq!(error.to_string(), "body size does not match header size");
@@ -704,7 +711,10 @@ mod test {
         .unwrap_err();
 
         assert_eq!(error.kind(), io::ErrorKind::InvalidData);
-        assert_eq!(error.to_string(), "body size does not match header size");
+        assert_eq!(
+            error.to_string(),
+            "payload size does not match received buffer"
+        );
     }
 
     #[tokio::test]

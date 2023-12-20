@@ -41,7 +41,7 @@ use crate::harpc::{
 pub(crate) struct RequestFlags([u8; 2]);
 
 impl RequestFlags {
-    pub(crate) fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self([0x00; 2])
     }
 }
@@ -118,6 +118,13 @@ impl EncodeBinary for RequestHeader {
             actor,
             size,
         } = self;
+
+        if version.transport != TRANSPORT_VERSION {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "unsupported version mismatch",
+            ));
+        }
 
         version.transport.encode_binary(io).await?;
         flags.encode_binary(io).await?;
@@ -328,7 +335,7 @@ mod test {
         binary_request_header_random(
             RequestHeader {
                 version: Version {
-                    transport: TransportVersion::new(0x12),
+                    transport: TransportVersion::new(0x0),
                     service: ServiceVersion::new(0x87),
                 },
                 flags: RequestFlags([0x01, 0x02]),
@@ -338,7 +345,7 @@ mod test {
                 size: PayloadSize::new(0x78),
             },
             &[
-                0x12, // TransportVersion
+                0x00, // TransportVersion
                 0x01, 0x02, // Flags
                 0x87, // ServiceVersion
                 0x34, // ServiceId,
@@ -421,7 +428,7 @@ mod test {
             },
             body: vec![0xDE, 0xAD, 0xBE, 0xEF].into(),
         },
-        r#"{"header":{"size":4},"body":{"tag":"Success","payload":"3q2+7w=="}}"#
+        r#"{"header":{"flags":[0,0],"version":{"transport":0,"service":0},"service":0,"procedure":0,"actor":"00000000-0000-0000-0000-000000000000","size":4},"body":"3q2+7w=="}"#
     )];
 
     #[tokio::test]
@@ -543,7 +550,7 @@ mod test {
     async fn decode_transport_version_mismatch() {
         let header = RequestHeader {
             version: Version {
-                transport: TransportVersion::new(0x01),
+                transport: TransportVersion::new(0x00),
                 service: ServiceVersion::new(0x00),
             },
             flags: RequestFlags::new(),
@@ -559,7 +566,8 @@ mod test {
             .await
             .expect("encode binary");
 
-        assert_eq!(buffer[0], 0x01);
+        assert_eq!(buffer[0], 0x00);
+        buffer[0] = 0x01;
 
         let error = decode_binary::<RequestHeader>(&buffer, Limit::default())
             .await
