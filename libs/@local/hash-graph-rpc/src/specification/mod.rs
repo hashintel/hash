@@ -46,7 +46,7 @@ macro_rules! service {
     }) => {
         $vis struct $name;
 
-        impl $crate::harpc::service::ServiceSpecification for $name {
+        impl $crate::harpc::service::Service for $name {
             type Procedures = service!(@collect $($procedures)*);
 
             const ID: $crate::harpc::ServiceId = $crate::harpc::ServiceId::derive(stringify!($name));

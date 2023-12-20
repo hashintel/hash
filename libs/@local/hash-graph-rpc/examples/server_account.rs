@@ -50,7 +50,7 @@ impl hash_graph_rpc::harpc::Context for Context {
         Self: Encode<T>,
     {
         let body = self.encode(response);
-        hash_graph_rpc::harpc::transport::message::response::Response::new(body)
+        hash_graph_rpc::harpc::transport::message::response::Response::success(body)
     }
 }
 

@@ -11,7 +11,7 @@ use libp2p::{futures::future::Either, multiaddr::Protocol, Multiaddr};
 pub use self::service::{Service, ServiceBuilder};
 use crate::{
     harpc::{
-        service::{ServiceId, ServiceSpecification},
+        service::{Service, ServiceId},
         transport::{
             message::{
                 request::Request,
@@ -79,7 +79,7 @@ pub trait CollectServices<C> {
 
 impl<Next, Tail, C> CollectServices<C> for Stack<Service<Next, C>, Tail>
 where
-    Next: ServiceSpecification,
+    Next: Service,
     Tail: CollectServices<C>,
 {
     fn collect(self, map: &mut HashMap<ServiceId, ErasedService<C>>) {

@@ -5,8 +5,8 @@
 //! The header is in network order, so big endian.
 //! Variable Integers are encoded in little endian using the integer-encoding crate.
 
-mod decode;
-mod encode;
+pub(crate) mod decode;
+pub(crate) mod encode;
 
 use libp2p::{
     futures::{AsyncRead, AsyncWrite},
@@ -16,8 +16,8 @@ use tokio_util::compat::{FuturesAsyncReadCompatExt, FuturesAsyncWriteCompatExt};
 
 use crate::harpc::transport::{
     codec::{
-        decode::{Decode, DecodeBinary},
-        encode::{Encode, EncodeBinary},
+        decode::{DecodeBinary, DecodeText},
+        encode::{EncodeBinary, EncodeText},
     },
     message::{request::Request, response::Response},
 };
@@ -29,8 +29,8 @@ const RESPONSE_SIZE_MAXIMUM: u64 = 10 * 1024 * 1024;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Limit {
-    request_size: u64,
-    response_size: u64,
+    pub request_size: u64,
+    pub response_size: u64,
 }
 
 impl Default for Limit {
@@ -122,4 +122,116 @@ impl libp2p::request_response::Codec for Codec {
             CodecKind::Binary => res.encode_binary(&mut io).await,
         }
     }
+}
+
+#[cfg(test)]
+pub(crate) mod test {
+    use std::{fmt::Debug, io};
+
+    use uuid::Uuid;
+
+    use crate::harpc::transport::codec::{
+        decode::DecodeBinary,
+        encode::{EncodeBinary, EncodeText},
+        Limit,
+    };
+
+    pub(crate) const EXAMPLE_UUID: Uuid = Uuid::from_bytes([
+        0x5B, 0xC2, 0xA5, 0x38, 0xFA, 0x94, 0x41, 0x00, 0x86, 0x00, 0x53, 0xAF, 0xCF, 0x8A, 0xA6,
+        0xFF,
+    ]);
+
+    pub(crate) async fn encode_binary<T>(value: T) -> io::Result<Vec<u8>> {
+        let mut buffer = Vec::new();
+        value.encode_binary(&mut buffer).await?;
+
+        Ok(buffer)
+    }
+
+    pub(crate) async fn assert_encode_binary<T>(value: T, expected: &[u8])
+    where
+        T: EncodeBinary + Send,
+    {
+        let buffer = encode_binary(value).await.expect("encode");
+
+        assert_eq!(buffer, expected);
+    }
+
+    pub(crate) async fn decode_binary<T>(value: &[u8], limit: Limit) -> io::Result<T>
+    where
+        T: DecodeBinary + Send,
+    {
+        T::decode_binary(&mut &*value, limit).await
+    }
+
+    pub(crate) async fn assert_decode_binary<T>(value: &[u8], expected: T)
+    where
+        T: PartialEq + Debug + DecodeBinary + Send,
+    {
+        let result: T = decode_binary(value, Limit::default())
+            .await
+            .expect("decode");
+
+        assert_eq!(result, expected);
+    }
+
+    pub(crate) async fn assert_encode_text<T>(value: T, expected: &str)
+    where
+        T: EncodeText + Send,
+    {
+        let mut buffer = Vec::new();
+        value.encode_text(&mut buffer).await.expect("encode");
+
+        let result = String::from_utf8(buffer).expect("utf8");
+
+        assert_eq!(result, expected);
+    }
+
+    pub(crate) async fn assert_decode_text<T>(value: &str, expected: T)
+    where
+        T: PartialEq + Debug + DecodeBinary + Send,
+    {
+        let result = T::decode_binary(&mut &*value.as_bytes(), Limit::default())
+            .await
+            .expect("decode failed");
+
+        assert_eq!(result, expected);
+    }
+
+    macro_rules! assert_binary {
+        (
+            $(
+                $name:ident($value:expr, $expected:expr)
+            ),*
+            $(,)?
+        ) => {
+            $(
+                #[tokio::test]
+                async fn $name() {
+                    $crate::harpc::transport::codec::test::assert_encode_binary($value, $expected).await;
+                    $crate::harpc::transport::codec::test::assert_decode_binary($expected, $value).await;
+                }
+            )*
+        };
+    }
+
+    macro_rules! assert_text {
+        (
+            $(
+                $name:ident($value:expr, $expected:expr)
+            ),*
+            $(,)?
+        ) => {
+            $(
+                #[tokio::test]
+                async fn $name() {
+                    $crate::harpc::transport::codec::test::assert_encode_text($value, $expected).await;
+                    $crate::harpc::transport::codec::test::assert_decode_text($expected, $value).await;
+                }
+            )*
+        };
+    }
+
+    pub(crate) use assert_binary;
+    pub(crate) use assert_text;
 }

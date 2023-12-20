@@ -1,6 +1,6 @@
 pub(crate) mod client;
-mod codec;
-mod message;
+pub(crate) mod codec;
+pub(crate) mod message;
 pub(crate) mod server;
 
 use std::{future::Future, time::Duration};
@@ -17,7 +17,7 @@ use tokio::task::JoinHandle;
 
 use crate::harpc::transport::{
     codec::{Codec, CodecKind},
-    message::version::TransportVersion,
+    message::{request::Request, response::Response, version::TransportVersion},
 };
 
 const TRANSPORT_VERSION: TransportVersion = TransportVersion::new(0x00);

@@ -15,13 +15,16 @@ use crate::harpc::{
             request::{Request, RequestFlags, RequestHeader},
             response::{Response, ResponseError, ResponseFlags, ResponseHeader, ResponsePayload},
             size::PayloadSize,
-            version::{ProtocolVersion, TransportVersion, Version},
+            version::{ServiceVersion, TransportVersion, Version},
         },
         TRANSPORT_VERSION,
     },
 };
 
-async fn default_decode_text<T, U>(io: &mut T, limit: Limit) -> std::io::Result<U>
+pub(in crate::harpc) async fn default_decode_text<T, U>(
+    io: &mut T,
+    limit: Limit,
+) -> std::io::Result<U>
 where
     T: AsyncRead + Unpin + Send,
     U: serde::de::DeserializeOwned,
@@ -85,7 +88,7 @@ where
     }
 }
 
-async fn read_varint<T, U>(io: &mut T) -> std::io::Result<U>
+pub(in crate::harpc) async fn read_varint<T, U>(io: &mut T) -> std::io::Result<U>
 where
     T: AsyncRead + Unpin + Send,
     U: VarInt,
@@ -117,307 +120,13 @@ pub(in crate::harpc) trait DecodeBinary: Sized {
         T: AsyncRead + Unpin + Send;
 }
 
-pub(in crate::harpc) trait Decode: DecodeBinary {
+pub(in crate::harpc) trait DecodeText: DecodeBinary {
     fn decode_text<T>(
         io: &mut T,
         limit: Limit,
     ) -> impl Future<Output = std::io::Result<Self>> + Send
     where
         T: AsyncRead + Unpin + Send;
-}
-
-impl DecodeBinary for ServiceId {
-    async fn decode_binary<T>(io: &mut T, _: Limit) -> std::io::Result<Self>
-    where
-        T: AsyncRead + Unpin + Send,
-    {
-        let service_id = read_varint(io).await?;
-        let service_id = Self::new(service_id);
-
-        Ok(service_id)
-    }
-}
-
-impl DecodeBinary for ProcedureId {
-    async fn decode_binary<T>(io: &mut T, _: Limit) -> std::io::Result<Self>
-    where
-        T: AsyncRead + Unpin + Send,
-    {
-        let procedure_id = read_varint(io).await?;
-        let procedure_id = Self::new(procedure_id);
-
-        Ok(procedure_id)
-    }
-}
-
-impl DecodeBinary for ActorId {
-    async fn decode_binary<T>(io: &mut T, _: Limit) -> std::io::Result<Self>
-    where
-        T: AsyncRead + Unpin + Send,
-    {
-        let actor_id = io.read_u128().await?;
-        let actor_id = Self::from(Uuid::from_u128(actor_id));
-
-        Ok(actor_id)
-    }
-}
-
-impl DecodeBinary for PayloadSize {
-    async fn decode_binary<T>(io: &mut T, _: Limit) -> std::io::Result<Self>
-    where
-        T: AsyncRead + Unpin + Send,
-    {
-        let body_size = read_varint(io).await?;
-        let body_size = Self::new(body_size);
-
-        Ok(body_size)
-    }
-}
-
-impl DecodeBinary for TransportVersion {
-    async fn decode_binary<T>(io: &mut T, _: Limit) -> std::io::Result<Self>
-    where
-        T: AsyncRead + Unpin + Send,
-    {
-        let transport_version = io.read_u8().await?;
-        let transport_version = Self::new(transport_version);
-
-        Ok(transport_version)
-    }
-}
-
-impl DecodeBinary for ProtocolVersion {
-    async fn decode_binary<T>(io: &mut T, _: Limit) -> std::io::Result<Self>
-    where
-        T: AsyncRead + Unpin + Send,
-    {
-        let protocol_version = io.read_u8().await?;
-        let protocol_version = Self::new(protocol_version);
-
-        Ok(protocol_version)
-    }
-}
-
-impl DecodeBinary for RequestFlags {
-    async fn decode_binary<T>(io: &mut T, _: Limit) -> std::io::Result<Self>
-    where
-        T: AsyncRead + Unpin + Send,
-    {
-        let mut buffer = [0_u8; 2];
-
-        io.read_exact(&mut buffer).await?;
-
-        Ok(Self(buffer))
-    }
-}
-
-impl DecodeBinary for RequestHeader {
-    async fn decode_binary<T>(io: &mut T, limit: Limit) -> std::io::Result<Self>
-    where
-        T: AsyncRead + Unpin + Send,
-    {
-        let transport_version = TransportVersion::decode_binary(io, limit).await?;
-
-        // TODO: report those errors back instead of timeout!
-        if transport_version != TRANSPORT_VERSION {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "unsupported transport version",
-            ));
-        }
-
-        let flags = RequestFlags::decode_binary(io, limit).await?;
-        let protocol_version = ProtocolVersion::decode_binary(io, limit).await?;
-        let version = Version {
-            transport: transport_version,
-            protocol: protocol_version,
-        };
-
-        let service_id = ServiceId::decode_binary(io, limit).await?;
-        let procedure_id = ProcedureId::decode_binary(io, limit).await?;
-        let actor_id = ActorId::decode_binary(io, limit).await?;
-        let payload_size = PayloadSize::decode_binary(io, limit).await?;
-
-        if payload_size.exceeds(limit.request_size) {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "request body size exceeds maximum",
-            ));
-        }
-
-        Ok(Self {
-            flags,
-            version,
-            service: service_id,
-            procedure: procedure_id,
-            actor: actor_id,
-            size: payload_size,
-        })
-    }
-}
-
-impl DecodeBinary for Request {
-    async fn decode_binary<T>(io: &mut T, limit: Limit) -> std::io::Result<Self>
-    where
-        T: AsyncRead + Unpin + Send,
-    {
-        let header = RequestHeader::decode_binary(io, limit).await?;
-
-        let mut buffer = Vec::with_capacity(header.size.into());
-
-        io.take(header.size.into()).read_to_end(&mut buffer).await?;
-
-        let body = Bytes::from(buffer);
-
-        if body.len() != header.size.into_usize() {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "request body size does not match header",
-            ));
-        }
-
-        Ok(Self { header, body })
-    }
-}
-
-impl Decode for Request {
-    async fn decode_text<T>(io: &mut T, limit: Limit) -> std::io::Result<Self>
-    where
-        T: AsyncRead + Unpin + Send,
-    {
-        default_decode_text(io, limit).await
-    }
-}
-
-impl DecodeBinary for ResponseFlags {
-    async fn decode_binary<T>(io: &mut T, _: Limit) -> std::io::Result<Self>
-    where
-        T: AsyncRead + Unpin + Send,
-    {
-        let mut buffer = [0_u8; 2];
-
-        io.read_exact(&mut buffer).await?;
-
-        Ok(Self(buffer))
-    }
-}
-
-enum DecodeResponseHeader {
-    Success {
-        version: TransportVersion,
-        flags: ResponseFlags,
-        size: PayloadSize,
-    },
-    Error {
-        version: TransportVersion,
-        flags: ResponseFlags,
-        error: ResponseError,
-    },
-}
-
-impl DecodeBinary for DecodeResponseHeader {
-    async fn decode_binary<T>(io: &mut T, limit: Limit) -> std::io::Result<Self>
-    where
-        T: AsyncRead + Unpin + Send,
-    {
-        let transport_version = TransportVersion::decode_binary(io, limit).await?;
-
-        if transport_version != TRANSPORT_VERSION {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "unsupported transport version",
-            ));
-        }
-
-        let flags = ResponseFlags::decode_binary(io, limit).await?;
-
-        let status = io.read_u8().await?;
-        let error = ResponseError::try_from_tag(status);
-        if let Some(error) = error {
-            Ok(Self::Error {
-                version: transport_version,
-                flags,
-                error,
-            })
-        } else if status == 0 {
-            let size = PayloadSize::decode_binary(io, limit).await?;
-            if size.exceeds(limit.response_size) {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::InvalidData,
-                    "request body size exceeds maximum",
-                ));
-            }
-
-            Ok(Self::Success {
-                version: transport_version,
-                flags,
-                size,
-            })
-        } else {
-            Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "invalid error tag",
-            ))
-        }
-    }
-}
-
-impl DecodeBinary for Response {
-    async fn decode_binary<T>(io: &mut T, limit: Limit) -> std::io::Result<Self>
-    where
-        T: AsyncRead + Unpin + Send,
-    {
-        match DecodeResponseHeader::decode_binary(io, limit).await? {
-            DecodeResponseHeader::Success {
-                version,
-                flags,
-                size,
-            } => {
-                let mut buffer = Vec::with_capacity(size.into());
-                io.take(size.into()).read_to_end(&mut buffer).await?;
-                let body = Bytes::from(buffer);
-
-                if body.len() != size.into_usize() {
-                    return Err(std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        "request body size does not match header",
-                    ));
-                }
-
-                let body = ResponsePayload::Success(body);
-
-                Ok(Self {
-                    header: ResponseHeader {
-                        version,
-                        flags,
-                        size,
-                    },
-                    body,
-                })
-            }
-            DecodeResponseHeader::Error {
-                version,
-                flags,
-                error,
-            } => Ok(Self {
-                header: ResponseHeader {
-                    version,
-                    flags,
-                    size: PayloadSize::new(0),
-                },
-                body: ResponsePayload::Error(error),
-            }),
-        }
-    }
-}
-
-impl Decode for Response {
-    async fn decode_text<T>(io: &mut T, limit: Limit) -> std::io::Result<Self>
-    where
-        T: AsyncRead + Unpin + Send,
-    {
-        default_decode_text(io, limit).await
-    }
 }
 
 #[cfg(test)]
@@ -432,7 +141,7 @@ mod test {
         service::ServiceId,
         transport::{
             codec::{
-                decode::{read_varint, Decode, DecodeBinary},
+                decode::{read_varint, DecodeBinary, DecodeText},
                 Limit,
             },
             message::{
@@ -443,48 +152,6 @@ mod test {
             },
         },
     };
-
-    const EXAMPLE_UUID: Uuid = Uuid::from_bytes([
-        0x5B, 0xC2, 0xA5, 0x38, 0xFA, 0x94, 0x41, 0x00, 0x86, 0x00, 0x53, 0xAF, 0xCF, 0x8A, 0xA6,
-        0xFF,
-    ]);
-
-    async fn assert_binary<T>(value: &[u8], expected: T)
-    where
-        T: PartialEq + Debug + DecodeBinary + Send,
-    {
-        let result = T::decode_binary(&mut &*value, Limit::default())
-            .await
-            .expect("decode failed");
-
-        assert_eq!(result, expected);
-    }
-
-    macro_rules! assert_binary {
-        ($($name:ident: $value:expr => $expected:expr;)*) => {
-            $(
-                #[tokio::test]
-                async fn $name() {
-                    assert_binary(&$value, $expected).await;
-                }
-            )*
-        };
-    }
-
-    macro_rules! assert_text {
-        ($($name:ident: <$T:ty> $value:expr => $expected:expr;)*) => {
-            $(
-                #[tokio::test]
-                async fn $name() {
-                    let actual = <$T>::decode_text(&mut $value.as_slice(), Limit::default())
-                        .await
-                        .expect("decode failed");
-
-                    assert_eq!(actual, $expected);
-                }
-            )*
-        };
-    }
 
     #[tokio::test]
     async fn unterminated_varint_too_long() {
@@ -503,147 +170,4 @@ mod test {
 
         result.expect_err("should fail to read varint");
     }
-
-    assert_binary![
-        decode_procedure_id: [0xEF, 0x9B, 0xAF, 0x85, 0x89, 0xCF, 0x95, 0x9A, 0x12] => ProcedureId::new(0x1234_5678_90AB_CDEF);
-        decode_procedure_id_zero: [0x00] => ProcedureId::new(0);
-
-        decode_actor_id: EXAMPLE_UUID.into_bytes() => ActorId::from(EXAMPLE_UUID);
-        decode_actor_id_zero: [0_u8; 16] => ActorId::from(Uuid::nil());
-
-        decode_payload_size: [0x80, 0x01] => PayloadSize::new(0x80);
-        decode_payload_size_zero: [0x00] => PayloadSize::new(0);
-
-        decode_request_header: [
-            0x02, // service id
-            0x12, // procedure id
-            0x5B, 0xC2, 0xA5, 0x38, 0xFA, 0x94, 0x41, 0x00, 0x86, 0x00, 0x53, 0xAF, 0xCF, 0x8A, 0xA6, 0xFF, // actor id
-            0x80, 0x01, // body size
-        ] => RequestHeader {
-            service: ServiceId::new(0x02),
-            procedure: ProcedureId::new(0x12),
-            actor: ActorId::from(EXAMPLE_UUID),
-            size: PayloadSize::new(0x80),
-        };
-
-        decode_request: [
-            0x02, // service id
-            0x12, // procedure id
-            0x5B, 0xC2, 0xA5, 0x38, 0xFA, 0x94, 0x41, 0x00, 0x86, 0x00, 0x53, 0xAF, 0xCF, 0x8A, 0xA6, 0xFF, // actor id
-            0x04, // body size
-            0xDE, 0xAD, 0xBE, 0xEF, // body
-        ] => Request {
-            header: RequestHeader {
-                service: ServiceId::new(0x02),
-                procedure: ProcedureId::new(0x12),
-                actor: ActorId::from(EXAMPLE_UUID),
-                size: PayloadSize::new(0x04),
-            },
-            body: vec![0xDE, 0xAD, 0xBE, 0xEF].into(),
-        };
-
-        decode_response_header: [
-            0x80, 0x01, // body size
-        ] => ResponseHeader {
-            size: PayloadSize::new(0x80),
-        };
-
-        decode_response: [
-            0x00, // status
-            0x04, // body size
-            0xDE, 0xAD, 0xBE, 0xEF, // body
-        ] => Response {
-            header: ResponseHeader {
-                size: PayloadSize::new(0x04),
-            },
-            body: vec![0xDE, 0xAD, 0xBE, 0xEF].into(),
-        };
-    ];
-
-    #[tokio::test]
-    async fn incorrect_request_body_size_exceeds_limit() {
-        let mut request = vec![0x02, 0x12];
-        request.extend_from_slice(&EXAMPLE_UUID.into_bytes());
-        request.extend_from_slice(&[0x04]);
-        request.extend_from_slice(&[0x00; 4]);
-
-        let result = Request::decode_binary(
-            &mut &*request,
-            Limit {
-                request_size: 0x03,
-                ..Default::default()
-            },
-        )
-        .await;
-
-        result.expect_err("should fail to encode request");
-    }
-
-    #[tokio::test]
-    async fn incorrect_request_body_size_does_not_match_header() {
-        let mut request = vec![0x02, 0x12];
-        request.extend_from_slice(&EXAMPLE_UUID.into_bytes());
-        request.extend_from_slice(&[0x05]);
-        request.extend_from_slice(&[0x00; 4]);
-
-        let result = Request::decode_binary(&mut &*request, Limit::default()).await;
-
-        // we have 4 bytes remaining in the pipeline, but the header says the body is 5 bytes long
-        result.expect_err("should fail to encode request");
-    }
-
-    #[tokio::test]
-    async fn incorrect_response_body_size_exceeds_limit() {
-        let mut response = vec![0x00, 0x04];
-        response.extend_from_slice(&[0x00; 4]);
-
-        let result = Response::decode_binary(
-            &mut &*response,
-            Limit {
-                response_size: 0x03,
-                ..Default::default()
-            },
-        )
-        .await;
-
-        result.expect_err("should fail to encode response");
-    }
-
-    #[tokio::test]
-    async fn incorrect_response_body_size_does_not_match_header() {
-        let mut response = vec![0x00, 0x05];
-        response.extend_from_slice(&[0x00; 4]);
-
-        let result = Response::decode_binary(&mut &*response, Limit::default()).await;
-
-        // we have 4 bytes remaining in the pipeline, but the header says the body is 5 bytes long
-        result.expect_err("should fail to encode response");
-    }
-
-    assert_text![
-        decode_request_text: <Request> br#"{"header":{"service":2,"procedure":18,"actor":"5bc2a538-fa94-4100-8600-53afcf8aa6ff","size":4},"body":"3q2+7w=="}"# => Request {
-            header: RequestHeader {
-                service: ServiceId::new(0x02),
-                procedure: ProcedureId::new(0x12),
-                actor: ActorId::from(EXAMPLE_UUID),
-                size: PayloadSize::from(0x04),
-            },
-            body: Bytes::from(vec![0xDE, 0xAD, 0xBE, 0xEF]),
-        };
-    ];
-
-    assert_text![
-        encode_response_text: <Response> br#"{"header":{"size":4},"body":{"tag":"Success","payload":"3q2+7w=="}}"# => Response {
-            header: ResponseHeader {
-                size: PayloadSize::from(0x04),
-            },
-            body: ResponsePayload::Success(Bytes::from(vec![0xDE, 0xAD, 0xBE, 0xEF])),
-        };
-        encode_erroneous_response_text: <Response> br#"{"header":{"size":0},"body":{"tag":"Error","payload":"UnknownService"}}"# => Response {
-            header: ResponseHeader {
-                size: PayloadSize::from(0x00),
-            },
-            body: ResponsePayload::Error(ResponseError::UnknownService),
-        };
-    ];
 }

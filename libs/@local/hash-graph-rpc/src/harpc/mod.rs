@@ -18,8 +18,4 @@ pub trait Decode<T>: Stateful {
     fn decode(&self, bytes: Bytes) -> T;
 }
 
-pub trait Context: Clone + Stateful + 'static {
-    fn finish<T>(&self, response: T) -> Response
-    where
-        Self: Encode<T>;
-}
+pub trait Context: Clone + Stateful + 'static {}

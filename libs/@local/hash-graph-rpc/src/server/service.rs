@@ -5,7 +5,7 @@ use libp2p::futures::future::BoxFuture;
 use crate::{
     harpc::{
         procedure::{Handler, ProcedureCall, ProcedureId, RemoteProcedure},
-        service::ServiceSpecification,
+        service::Service,
         transport::message::{request::Request, response::Response},
         Context,
     },
@@ -21,7 +21,7 @@ pub struct ServiceBuilder<S, C, P> {
 
 impl<S, C> ServiceBuilder<S, C, Empty>
 where
-    S: ServiceSpecification,
+    S: Service,
     C: Context,
 {
     #[must_use]
@@ -37,7 +37,7 @@ where
 
 impl<S, C, P> ServiceBuilder<S, C, P>
 where
-    S: ServiceSpecification,
+    S: Service,
     C: Context,
     P: HStack,
 {
@@ -60,7 +60,7 @@ where
 
 impl<S, C, P> ServiceBuilder<S, C, P>
 where
-    S: ServiceSpecification,
+    S: Service,
     C: Context,
     P: CollectProcedureCalls<C>,
 {

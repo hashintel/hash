@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::{
     harpc::{
         procedure::RemoteProcedure,
-        service::ServiceSpecification,
+        service::Service,
         transport::{
             client::{ClientTransportConfig, ClientTransportLayer},
             message::{
@@ -30,7 +30,7 @@ pub struct Client<S, C> {
 
 impl<S, C> Client<S, C>
 where
-    S: ServiceSpecification,
+    S: Service,
 {
     pub fn new(context: C, remote: SocketAddrV4, config: TransportConfig) -> Self {
         Self {

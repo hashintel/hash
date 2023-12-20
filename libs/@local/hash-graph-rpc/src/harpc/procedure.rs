@@ -3,7 +3,10 @@ use std::future::Future;
 use const_fnv1a_hash::fnv1a_hash_str_64;
 
 use crate::harpc::{
-    transport::message::{request::Request, response::Response},
+    transport::{
+        codec::{decode::DecodeBinary, encode::EncodeBinary},
+        message::{request::Request, response::Response},
+    },
     Context, Decode, Encode, Stateful,
 };
 
@@ -27,6 +30,30 @@ impl ProcedureId {
 impl From<u64> for ProcedureId {
     fn from(value: u64) -> Self {
         Self(value)
+    }
+}
+
+impl EncodeBinary for ProcedureId {
+    async fn encode_binary<T>(&self, io: &mut T) -> std::io::Result<()>
+    where
+        T: tokio::io::AsyncWrite + Unpin + Send,
+    {
+        crate::harpc::transport::codec::encode::write_varint(self.0, io).await
+    }
+}
+
+impl DecodeBinary for ProcedureId {
+    async fn decode_binary<T>(
+        io: &mut T,
+        _: crate::harpc::transport::codec::Limit,
+    ) -> std::io::Result<Self>
+    where
+        T: tokio::io::AsyncRead + Unpin + Send,
+    {
+        let value = crate::harpc::transport::codec::decode::read_varint(io).await?;
+        let value = Self::new(value);
+
+        Ok(value)
     }
 }
 
@@ -88,7 +115,9 @@ where
 
             let output = (self.handler)(input, state).await;
 
-            context.finish(output)
+            // TODO: async + errors
+            let buffer = context.encode(output);
+            Response::success(buffer)
         }
     }
 }
@@ -97,4 +126,14 @@ pub trait RemoteProcedure: Send + Sync {
     type Response;
 
     const ID: ProcedureId;
+}
+
+#[cfg(test)]
+mod test {
+    use crate::harpc::{procedure::ProcedureId, transport::codec::test::assert_binary};
+
+    assert_binary![
+        binary_procedure_id_zero(ProcedureId::new(0x00), &[0x00]),
+        binary_procedure_id_varint(ProcedureId::new(0x80), &[0x80, 0x01]),
+    ];
 }
