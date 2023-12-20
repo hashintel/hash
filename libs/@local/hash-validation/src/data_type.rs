@@ -105,13 +105,13 @@ pub enum DataTypeConstraint {
         expected: JsonValue,
     },
     #[error(
-        "the provided value is shorter than the minimum length, got `{actual}`, expected \
-         a string of at least length `{expected}`"
+        "the provided value is shorter than the minimum length, got `{actual}`, expected a string \
+         of at least length `{expected}`"
     )]
     MinLength { actual: String, expected: usize },
     #[error(
-        "the provided value is longer than the maximum length, got `{actual}`, expected \
-         a string of at most length `{expected}`"
+        "the provided value is longer than the maximum length, got `{actual}`, expected a string \
+         of at most length `{expected}`"
     )]
     MaxLength { actual: String, expected: usize },
     #[error("the provided pattern could not be compiled, got `{pattern}`")]

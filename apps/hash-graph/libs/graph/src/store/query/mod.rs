@@ -52,9 +52,11 @@ pub fn parse_query_token<'de, T: Deserialize<'de>, E: de::Error>(
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ParameterType {
     Boolean,
-    Number,
+    I32,
+    F64,
     OntologyTypeVersion,
     Text,
+    Vector,
     Uuid,
     BaseUrl,
     VersionedUrl,
@@ -68,9 +70,11 @@ impl fmt::Display for ParameterType {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Boolean => fmt.write_str("boolean"),
-            Self::Number => fmt.write_str("number"),
+            Self::I32 => fmt.write_str("signed 32 bit integral number"),
+            Self::F64 => fmt.write_str("64 bit floating point number"),
             Self::OntologyTypeVersion => fmt.write_str("ontology type version"),
             Self::Text => fmt.write_str("text"),
+            Self::Vector => fmt.write_str("vector"),
             Self::Uuid => fmt.write_str("UUID"),
             Self::BaseUrl => fmt.write_str("base URL"),
             Self::VersionedUrl => fmt.write_str("versioned URL"),

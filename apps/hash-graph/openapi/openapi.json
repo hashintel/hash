@@ -3876,6 +3876,23 @@
           },
           {
             "type": "object",
+            "title": "CosineDistanceFilter",
+            "required": [
+              "cosineDistance"
+            ],
+            "properties": {
+              "cosineDistance": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FilterExpression"
+                },
+                "maxItems": 3,
+                "minItems": 3
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "StartsWithFilter",
             "required": [
               "startsWith"
