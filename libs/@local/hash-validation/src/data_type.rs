@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 use email_address::EmailAddress;
 use error_stack::{bail, ensure, Report, ResultExt};
+use regex::Regex;
 use serde_json::Value as JsonValue;
 use thiserror::Error;
 use type_system::{url::VersionedUrl, DataType, DataTypeReference};
@@ -58,31 +59,65 @@ pub enum DataTypeConstraint {
         actual: JsonValue,
         expected: JsonValue,
     },
-    #[error("the provided value is not greater than or equal to the minimum value")]
+    #[error("the provided value is not one of the expected values")]
+    Enum {
+        actual: JsonValue,
+        expected: JsonValue,
+    },
+    #[error(
+        "the provided value is not greater than or equal to the minimum value, got `{actual}`, \
+         expected `{expected}`"
+    )]
     Minimum {
         actual: JsonValue,
         expected: JsonValue,
     },
-    #[error("the provided value is not less than or equal to the maximum value")]
+    #[error(
+        "the provided value is not less than or equal to the maximum value, got `{actual}`, \
+         expected `{expected}`"
+    )]
     Maximum {
         actual: JsonValue,
         expected: JsonValue,
     },
-    #[error("the provided value is not greater than the minimum value")]
+    #[error(
+        "the provided value is not greater than the minimum value, got `{actual}`, expected \
+         `{expected}`"
+    )]
     ExclusiveMinimum {
         actual: JsonValue,
         expected: JsonValue,
     },
-    #[error("the provided value is not less than the maximum value")]
+    #[error(
+        "the provided value is not less than the maximum value, got `{actual}`, expected \
+         `{expected}`"
+    )]
     ExclusiveMaximum {
         actual: JsonValue,
         expected: JsonValue,
     },
-    #[error("the provided value is not a multiple of the expected value")]
+    #[error(
+        "the provided value is not a multiple of the expected value, got `{actual}`, expected \
+         `{expected}`"
+    )]
     MultipleOf {
         actual: JsonValue,
         expected: JsonValue,
     },
+    #[error(
+        "the provided value is shorter than the minimum length, got `{actual}`, expected a string \
+         of at least length `{expected}`"
+    )]
+    MinLength { actual: String, expected: usize },
+    #[error(
+        "the provided value is longer than the maximum length, got `{actual}`, expected a string \
+         of at most length `{expected}`"
+    )]
+    MaxLength { actual: String, expected: usize },
+    #[error("the provided pattern could not be compiled, got `{pattern}`")]
+    InvalidPattern { pattern: String },
+    #[error("the provided value does not match the expected pattern `{pattern}`, got `{actual}`")]
+    Pattern { actual: String, pattern: Regex },
     #[error("the provided value does not match the expected format `{format}`")]
     Format { actual: JsonValue, format: String },
     #[error("unknown constraint: `{key}`")]
@@ -106,6 +141,16 @@ pub enum DataValidationError {
     ConstraintUnfulfilled,
     #[error("the schema contains an unknown data type: `{schema}`")]
     UnknownType { schema: String },
+}
+
+fn as_usize(number: &JsonValue) -> Result<usize, Report<DataValidationError>> {
+    usize::try_from(number.as_u64().ok_or_else(|| {
+        Report::new(DataValidationError::InvalidType {
+            actual: JsonSchemaValueType::from(number),
+            expected: JsonSchemaValueType::Integer,
+        })
+    })?)
+    .change_context(DataValidationError::ConstraintUnfulfilled)
 }
 
 fn check_numeric_additional_property<'a, T>(
@@ -207,34 +252,73 @@ fn check_string_additional_property<'a>(
         })
     })?;
     for (additional_key, additional_property) in additional_properties {
-        match (additional_key.as_ref(), additional_property.as_str()) {
-            ("format", Some(additional_property)) => match additional_property {
-                "uri" => {
-                    Url::parse(string)
-                        .change_context_lazy(|| DataTypeConstraint::Format {
-                            actual: value.clone(),
-                            format: additional_property.to_owned(),
-                        })
-                        .change_context(DataValidationError::ConstraintUnfulfilled)?;
+        match (additional_key.as_ref(), additional_property) {
+            ("format", JsonValue::String(additional_property)) => {
+                match additional_property.as_str() {
+                    "uri" => {
+                        Url::parse(string)
+                            .change_context_lazy(|| DataTypeConstraint::Format {
+                                actual: value.clone(),
+                                format: additional_property.to_owned(),
+                            })
+                            .change_context(DataValidationError::ConstraintUnfulfilled)?;
+                    }
+                    "email" => {
+                        EmailAddress::from_str(string)
+                            .change_context_lazy(|| DataTypeConstraint::Format {
+                                actual: value.clone(),
+                                format: additional_property.to_owned(),
+                            })
+                            .change_context(DataValidationError::ConstraintUnfulfilled)?;
+                    }
+                    _ => {
+                        bail!(
+                            Report::new(DataTypeConstraint::UnknownFormat {
+                                key: additional_key.as_ref().to_owned(),
+                            })
+                            .change_context(DataValidationError::ConstraintUnfulfilled)
+                        );
+                    }
                 }
-                "email" => {
-                    EmailAddress::from_str(string)
-                        .change_context_lazy(|| DataTypeConstraint::Format {
-                            actual: value.clone(),
-                            format: additional_property.to_owned(),
-                        })
-                        .change_context(DataValidationError::ConstraintUnfulfilled)?;
-                }
-                _ => {
-                    bail!(
-                        Report::new(DataTypeConstraint::UnknownFormat {
-                            key: additional_key.as_ref().to_owned(),
-                        })
-                        .change_context(DataValidationError::ConstraintUnfulfilled)
-                    );
-                }
-            },
-            ("format", None) => {
+            }
+            ("minLength", minimum) => {
+                let minimum = as_usize(minimum)?;
+                ensure!(
+                    string.len() >= minimum,
+                    Report::new(DataTypeConstraint::MinLength {
+                        actual: string.to_owned(),
+                        expected: minimum,
+                    })
+                    .change_context(DataValidationError::ConstraintUnfulfilled)
+                );
+            }
+            ("maxLength", maximum) => {
+                let maximum = as_usize(maximum)?;
+                ensure!(
+                    string.len() <= maximum,
+                    Report::new(DataTypeConstraint::MaxLength {
+                        actual: string.to_owned(),
+                        expected: maximum,
+                    })
+                    .change_context(DataValidationError::ConstraintUnfulfilled)
+                );
+            }
+            ("pattern", JsonValue::String(pattern)) => {
+                let regex = Regex::new(pattern)
+                    .change_context_lazy(|| DataTypeConstraint::InvalidPattern {
+                        pattern: pattern.clone(),
+                    })
+                    .change_context(DataValidationError::ConstraintUnfulfilled)?;
+                ensure!(
+                    regex.is_match(string),
+                    Report::new(DataTypeConstraint::Pattern {
+                        actual: string.to_owned(),
+                        pattern: regex,
+                    })
+                    .change_context(DataValidationError::ConstraintUnfulfilled)
+                );
+            }
+            ("format" | "pattern", _) => {
                 bail!(Report::new(DataValidationError::InvalidType {
                     actual: JsonSchemaValueType::from(value),
                     expected: JsonSchemaValueType::String,
@@ -249,6 +333,7 @@ fn check_string_additional_property<'a>(
 impl<P: Sync> Schema<JsonValue, P> for DataType {
     type Error = DataValidationError;
 
+    #[expect(clippy::too_many_lines)]
     async fn validate_value<'a>(
         &'a self,
         value: &'a JsonValue,
@@ -270,7 +355,6 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
                     expected: JsonSchemaValueType::Boolean,
                 }
             ),
-
             "number" => {
                 #[expect(clippy::float_arithmetic)]
                 check_numeric_additional_property(
@@ -329,9 +413,22 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
                     })
                     .change_context(DataValidationError::ConstraintUnfulfilled)
                 ),
+                "enum" => {
+                    ensure!(
+                        additional_property
+                            .as_array()
+                            .is_some_and(|array| array.contains(value)),
+                        Report::new(DataTypeConstraint::Enum {
+                            actual: value.clone(),
+                            expected: additional_property.clone(),
+                        })
+                        .change_context(DataValidationError::ConstraintUnfulfilled)
+                    );
+                }
                 "minimum" | "maximum" | "exclusiveMinimum" | "exclusiveMaximum" | "multipleOf"
                     if self.json_type() == "integer" || self.json_type() == "number" => {}
-                "format" if self.json_type() == "string" => {}
+                "format" | "minLength" | "maxLength" | "pattern"
+                    if self.json_type() == "string" => {}
                 "label" => {
                     // Label does not have to be validated
                 }
@@ -488,6 +585,31 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn temperature_unit() {
+        let meter_type = serde_json::to_string(&json!({
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            "kind": "dataType",
+            "$id": "https://localhost:4000/@alice/types/data-type/temperature-unit/v/1",
+            "title": "Temperature Unit",
+            "type": "string",
+            "enum": ["Celsius", "Fahrenheit", "Kelvin"]
+        }))
+        .expect("failed to serialize temperature unit type");
+
+        validate_data(json!("Celsius"), &meter_type, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        validate_data(json!("Fahrenheit"), &meter_type, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        _ = validate_data(json!("foo"), &meter_type, ValidationProfile::Full)
+            .await
+            .expect_err("validation succeeded");
+    }
+
+    #[tokio::test]
     async fn meter() {
         let meter_type = serde_json::to_string(&json!({
             "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -513,7 +635,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn url() {
+    async fn uri() {
         let url_type = serde_json::to_string(&json!({
             "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
             "kind": "dataType",
@@ -570,6 +692,57 @@ mod tests {
         .expect("validation failed");
 
         _ = validate_data(json!("job!done"), &mail_type, ValidationProfile::Full)
+            .await
+            .expect_err("validation succeeded");
+    }
+
+    #[tokio::test]
+    async fn zip_code_us() {
+        let zip_code = serde_json::to_string(&json!({
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            "kind": "dataType",
+            "$id": "https://localhost:4000/@alice/types/data-type/zip-code-us/v/1",
+            "title": "Zip code (US)",
+            "type": "string",
+            "pattern": "^[0-9]{5}(?:-[0-9]{4})?$",
+        }))
+        .expect("failed to serialize zip code type");
+
+        validate_data(json!("12345"), &zip_code, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        validate_data(json!("12345-6789"), &zip_code, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        _ = validate_data(json!("1234"), &zip_code, ValidationProfile::Full)
+            .await
+            .expect_err("validation succeeded");
+    }
+
+    #[tokio::test]
+    async fn short_string() {
+        let url_type = serde_json::to_string(&json!({
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            "kind": "dataType",
+            "$id": "https://localhost:4000/@alice/types/data-type/short-string/v/1",
+            "title": "Short string",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10,
+        }))
+        .expect("failed to serialize short string type");
+
+        validate_data(json!("foo"), &url_type, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        _ = validate_data(json!(""), &url_type, ValidationProfile::Full)
+            .await
+            .expect_err("validation succeeded");
+
+        _ = validate_data(json!("foo bar baz"), &url_type, ValidationProfile::Full)
             .await
             .expect_err("validation succeeded");
     }
