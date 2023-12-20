@@ -21,16 +21,14 @@ use tokio::{
     time,
 };
 
-use crate::harpc::{
+use crate::harpc::transport::{
     codec::Codec,
-    transport::{
-        log_behaviour_event,
-        message::{
-            request::Request,
-            response::{Response, ResponseError},
-        },
-        BehaviourCollectionEvent, SpawnGuard, TransportConfig, TransportError, TransportLayer,
+    log_behaviour_event,
+    message::{
+        request::Request,
+        response::{Response, ResponseError},
     },
+    BehaviourCollectionEvent, SpawnGuard, TransportConfig, TransportError, TransportLayer,
 };
 
 #[derive(Debug, Clone)]

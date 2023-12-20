@@ -1,11 +1,12 @@
-mod procedure;
-mod service;
+pub(crate) mod procedure;
+pub(crate) mod service;
 pub(crate) mod transport;
 
 use std::future::Future;
 
 use bytes::Bytes;
 
+pub use self::{procedure::ProcedureId, service::ServiceId};
 use crate::harpc::transport::message::actor::ActorId;
 
 pub trait Stateful: Send + Sync {

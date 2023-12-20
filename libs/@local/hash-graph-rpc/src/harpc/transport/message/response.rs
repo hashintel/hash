@@ -96,6 +96,7 @@ impl ResponseError {
 /// `Unused` is reserved for future use.
 ///
 /// `Stream` and `End Of Stream` are reserved for future use, but currently not implemented.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ResponseFlags([u8; 2]);
 
 impl ResponseFlags {
@@ -186,7 +187,8 @@ impl EncodeBinary for PackedResponseBody {
                 io.write_all(bytes).await?;
             }
             Self::Error { error } => {
-                error.into_tag().encode_binary(io).await?;
+                let tag = error.into_tag();
+                io.write_u8(tag).await?;
             }
         }
 

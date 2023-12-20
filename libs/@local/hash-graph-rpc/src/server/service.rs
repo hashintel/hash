@@ -1,14 +1,11 @@
-use std::{collections::HashMap, sync::Arc};
-
-use libp2p::futures::future::BoxFuture;
+use std::collections::HashMap;
 
 use crate::{
     harpc::{
         procedure::{Handler, ProcedureCall, ProcedureId, RemoteProcedure},
-        service::Service,
-        transport::message::{request::Request, response::Response},
-        Context,
+        service, Context,
     },
+    server::erase::BoxedProcedureCall,
     types::{Empty, HStack, Includes, Stack, SupersetOf},
 };
 
@@ -21,7 +18,7 @@ pub struct ServiceBuilder<S, C, P> {
 
 impl<S, C> ServiceBuilder<S, C, Empty>
 where
-    S: Service,
+    S: service::Service,
     C: Context,
 {
     #[must_use]
@@ -37,7 +34,7 @@ where
 
 impl<S, C, P> ServiceBuilder<S, C, P>
 where
-    S: Service,
+    S: service::Service,
     C: Context,
     P: HStack,
 {
@@ -60,7 +57,7 @@ where
 
 impl<S, C, P> ServiceBuilder<S, C, P>
 where
-    S: Service,
+    S: service::Service,
     C: Context,
     P: CollectProcedureCalls<C>,
 {
@@ -104,104 +101,6 @@ impl<C> CollectProcedureCalls<C> for Empty {
     type Procedures = Self;
 
     fn collect(self, _map: &mut HashMap<ProcedureId, BoxedProcedureCall<C>>) {}
-}
-
-#[derive(Clone)]
-struct ErasedProcedureCall<P>(P);
-
-impl<P, C> ProcedureCall<C> for ErasedProcedureCall<P>
-where
-    P: ProcedureCall<C>,
-    C: Context,
-{
-    type Future = BoxFuture<'static, Response>;
-    type Procedure = ErasedRemoteProcedure;
-
-    fn call(self, request: Request, context: C) -> Self::Future {
-        let future = self.0.call(request, context);
-
-        Box::pin(future)
-    }
-}
-
-struct ErasedRemoteProcedure;
-impl RemoteProcedure for ErasedRemoteProcedure {
-    type Response = Response;
-
-    const ID: ProcedureId = ProcedureId::new(0);
-}
-
-type BoxedProcedure<C> = Box<
-    dyn CloneProcedureCall<
-            C,
-            Future = BoxFuture<'static, Response>,
-            Procedure = ErasedRemoteProcedure,
-        > + Send,
->;
-
-pub struct BoxedProcedureCall<C>(BoxedProcedure<C>);
-
-impl<C> BoxedProcedureCall<C>
-where
-    C: Context,
-{
-    fn new<P>(procedure: P) -> Self
-    where
-        P: ProcedureCall<C> + Clone + Send + 'static,
-    {
-        Self(Box::new(ErasedProcedureCall(procedure)))
-    }
-
-    pub(crate) fn call(&self, request: Request, context: C) -> BoxFuture<'static, Response> {
-        self.0.call_ref(request, context)
-    }
-}
-
-trait ProcedureCallRef<C>: ProcedureCall<C>
-where
-    C: Context,
-{
-    fn call_ref(&self, request: Request, context: C) -> Self::Future;
-}
-
-impl<T, C> ProcedureCallRef<C> for T
-where
-    T: ProcedureCall<C> + Clone,
-    C: Context,
-{
-    fn call_ref(&self, request: Request, context: C) -> Self::Future {
-        self.clone().call(request, context)
-    }
-}
-
-impl<C> Clone for BoxedProcedureCall<C>
-where
-    C: Context,
-{
-    fn clone(&self) -> Self {
-        Self(self.0.clone_box())
-    }
-}
-
-trait CloneProcedureCall<C>: ProcedureCallRef<C>
-where
-    C: Context,
-{
-    fn clone_box(
-        &self,
-    ) -> Box<dyn CloneProcedureCall<C, Future = Self::Future, Procedure = Self::Procedure> + Send>;
-}
-
-impl<P, C> CloneProcedureCall<C> for P
-where
-    P: ProcedureCallRef<C> + Clone + Send + 'static,
-    C: Context,
-{
-    fn clone_box(
-        &self,
-    ) -> Box<dyn CloneProcedureCall<C, Future = P::Future, Procedure = P::Procedure> + Send> {
-        Box::new(self.clone())
-    }
 }
 
 pub struct Service<S, C> {

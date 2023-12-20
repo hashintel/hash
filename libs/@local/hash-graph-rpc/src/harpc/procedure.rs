@@ -13,6 +13,9 @@ use crate::harpc::{
     Context, Decode, Encode, RequestMeta, Stateful,
 };
 
+/// Unique identifier for a procedure.
+///
+/// The value `u64::MAX` is reserved for internal use.
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
 )]
@@ -22,6 +25,11 @@ impl ProcedureId {
     #[must_use]
     pub const fn new(value: u64) -> Self {
         Self(value)
+    }
+
+    #[must_use]
+    pub(crate) const fn erased() -> Self {
+        Self(u64::MAX)
     }
 
     #[must_use]
@@ -64,9 +72,9 @@ pub trait ProcedureCall<C>
 where
     C: Context,
 {
-    type Procedure: RemoteProcedure;
-
     type Future: Future<Output = Response> + Send + 'static;
+
+    type Procedure: RemoteProcedure;
 
     fn call(self, request: Request, context: C) -> Self::Future;
 }

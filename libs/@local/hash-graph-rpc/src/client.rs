@@ -11,9 +11,10 @@ use crate::{
             client::{ClientTransportConfig, ClientTransportLayer},
             message::{
                 actor::ActorId,
-                request::{Request, RequestHeader},
+                request::{Request, RequestFlags, RequestHeader},
                 response::ResponsePayload,
                 size::PayloadSize,
+                version::{TransportVersion, Version},
             },
             TransportConfig,
         },
@@ -53,6 +54,11 @@ where
         let request = self.context.encode(request);
         let request = Request {
             header: RequestHeader {
+                flags: RequestFlags::new(),
+                version: Version {
+                    transport: TransportVersion::new(0x00),
+                    service: S::VERSION,
+                },
                 service: S::ID,
                 procedure: P::ID,
                 actor: ActorId::from(Uuid::nil()),
