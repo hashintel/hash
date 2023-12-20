@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, net::SocketAddrV4};
 
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 use libp2p::{multiaddr::Protocol, Multiaddr};
 use thiserror::Error;
 use uuid::Uuid;
@@ -53,6 +53,12 @@ pub enum ClientError {
     Transport(TransportError),
     #[error("routing error: {0}")]
     Routing(RoutingError),
+    #[error("timeout while waiting for response")]
+    Timeout,
+    #[error("internal error")]
+    Internal,
+    #[error("unknown error")]
+    Unknown,
     // TODO: add these errors correctly
     #[error("unable to encode request")]
     EncodeRequest,
@@ -62,12 +68,6 @@ pub enum ClientError {
     DecodeRequest,
     #[error("unable to decode response")]
     DecodeResponse,
-    #[error("timeout while waiting for response")]
-    Timeout,
-    #[error("internal error")]
-    Internal,
-    #[error("unknown error")]
-    Unknown,
 }
 
 impl From<ResponseError> for ClientError {
@@ -103,16 +103,22 @@ impl<S, C> Client<S, C>
 where
     S: Service,
 {
-    pub fn new(context: C, remote: SocketAddrV4, config: TransportConfig) -> Self {
-        Self {
+    pub fn new(
+        context: C,
+        remote: SocketAddrV4,
+        config: TransportConfig,
+    ) -> Result<Self, ClientError> {
+        let transport = ClientTransportLayer::new(ClientTransportConfig {
+            remote: Multiaddr::from(*remote.ip()).with(Protocol::Tcp(remote.port())),
+            transport: config,
+        })
+        .change_context(ClientError::Internal)?;
+
+        Ok(Self {
             _service: PhantomData,
             context,
-            transport: ClientTransportLayer::new(ClientTransportConfig {
-                remote: Multiaddr::from(*remote.ip()).with(Protocol::Tcp(remote.port())),
-                transport: config,
-            })
-            .unwrap(),
-        }
+            transport,
+        })
     }
 
     pub async fn call<P>(&self, request: P) -> Result<P::Response, ClientError>
@@ -154,7 +160,7 @@ where
                 .decode(body)
                 .await
                 .change_context(ClientError::DecodeResponse),
-            ResponsePayload::Error(error) => panic!("error: {:?}", error),
+            ResponsePayload::Error(error) => Err(Report::new(error.into())),
         }
     }
 }

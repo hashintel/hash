@@ -1,4 +1,6 @@
+pub mod client;
 pub(crate) mod procedure;
+pub mod server;
 pub(crate) mod service;
 pub(crate) mod transport;
 

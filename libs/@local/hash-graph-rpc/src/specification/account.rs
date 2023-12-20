@@ -4,22 +4,22 @@ use graph_types::account::{AccountGroupId, AccountId};
 use crate::specification::service;
 
 service!(pub service AccountService {
-    option id = 1;
-    option version = 2;
+    option id = 0x00;
+    option version = 0x00;
 
-    rpc[id=1] CreateAccount() -> AccountId;
-    rpc CreateAccountGroup() -> AccountGroupId;
+    rpc[id=0x00] CreateAccount() -> AccountId;
+    rpc[id=0x01] CreateAccountGroup() -> AccountGroupId;
 
-    rpc CheckAccountGroupPermission(
+    rpc[id=0x02] CheckAccountGroupPermission(
         pub account_group_id: AccountGroupId,
         pub permission: AccountGroupPermission
     ) -> bool;
 
-    rpc AddAccountGroupMember(
+    rpc[id=0x03] AddAccountGroupMember(
         pub account_group_id: AccountGroupId,
         pub account_id: AccountId
     );
-    rpc RemoveAccountGroupMember(
+    rpc[id=0x04] RemoveAccountGroupMember(
         pub account_group_id: AccountGroupId,
         pub account_id: AccountId
     );

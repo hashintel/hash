@@ -105,28 +105,5 @@ impl<C> CollectProcedureCalls<C> for Empty {
 
 pub struct Service<S, C> {
     _service: core::marker::PhantomData<S>,
-    procedures: HashMap<ProcedureId, BoxedProcedureCall<C>>,
-}
-
-impl<S, C> Service<S, C> {
-    pub(crate) fn erase(self) -> ErasedService<C> {
-        ErasedService {
-            procedures: self.procedures,
-        }
-    }
-}
-
-pub struct ErasedService<C> {
     pub(crate) procedures: HashMap<ProcedureId, BoxedProcedureCall<C>>,
-}
-
-impl<C> Clone for ErasedService<C>
-where
-    C: Context,
-{
-    fn clone(&self) -> Self {
-        Self {
-            procedures: self.procedures.clone(),
-        }
-    }
 }

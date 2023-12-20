@@ -21,9 +21,9 @@ use crate::{
             server::{ServerTransportConfig, ServerTransportLayer},
             RequestRouter, TransportConfig,
         },
-        Context,
+        Context, ProcedureId, ServiceVersion,
     },
-    server::service::ErasedService,
+    server::erase::BoxedProcedureCall,
     types::{Empty, HStack, Stack},
 };
 
@@ -68,14 +68,24 @@ where
 {
     pub fn build(self, context: C) -> Server<C> {
         let mut services = HashMap::new();
-        self.services.collect(&mut services);
+        let mut loaded = HashMap::new();
 
-        Server { context, services }
+        self.services.collect(&mut services, &mut loaded);
+
+        Server {
+            context,
+            services,
+            loaded,
+        }
     }
 }
 
 pub trait CollectServices<C> {
-    fn collect(self, map: &mut HashMap<ServiceId, ErasedService<C>>);
+    fn collect(
+        self,
+        services: &mut HashMap<(ServiceId, ServiceVersion, ProcedureId), BoxedProcedureCall<C>>,
+        loaded: &mut HashMap<ServiceId, Vec<ServiceVersion>>,
+    );
 }
 
 impl<Next, Tail, C> CollectServices<C> for Stack<Service<Next, C>, Tail>
@@ -83,18 +93,33 @@ where
     Next: crate::harpc::service::Service,
     Tail: CollectServices<C>,
 {
-    fn collect(self, map: &mut HashMap<ServiceId, ErasedService<C>>) {
+    fn collect(
+        self,
+        services: &mut HashMap<(ServiceId, ServiceVersion, ProcedureId), BoxedProcedureCall<C>>,
+        loaded: &mut HashMap<ServiceId, Vec<ServiceVersion>>,
+    ) {
         let Self { next, tail } = self;
 
-        let erased = next.erase();
-        map.insert(Next::ID, erased);
+        let loaded_versions = loaded.entry(Next::ID).or_default();
+        loaded_versions.push(Next::VERSION);
 
-        tail.collect(map);
+        services.extend(
+            next.procedures
+                .into_iter()
+                .map(|(id, procedure)| ((Next::ID, Next::VERSION, id), procedure)),
+        );
+
+        tail.collect(services, loaded);
     }
 }
 
 impl<C> CollectServices<C> for Empty {
-    fn collect(self, _map: &mut HashMap<ServiceId, ErasedService<C>>) {}
+    fn collect(
+        self,
+        _: &mut HashMap<(ServiceId, ServiceVersion, ProcedureId), BoxedProcedureCall<C>>,
+        _: &mut HashMap<ServiceId, Vec<ServiceVersion>>,
+    ) {
+    }
 }
 
 pub struct Server<C>
@@ -102,7 +127,10 @@ where
     C: Context,
 {
     context: C,
-    services: HashMap<ServiceId, ErasedService<C>>,
+    services: HashMap<(ServiceId, ServiceVersion, ProcedureId), BoxedProcedureCall<C>>,
+
+    // used during error recovery to tell users what's wrong
+    loaded: HashMap<ServiceId, Vec<ServiceVersion>>,
 }
 
 impl<C> RequestRouter for Server<C>
@@ -110,12 +138,24 @@ where
     C: Context,
 {
     fn route(&self, request: Request) -> impl Future<Output = Response> + Send + 'static {
-        let Some(service) = self.services.get(&request.header.service) else {
-            return Either::Right(ready(Response::error(ResponseError::UnknownService)));
-        };
+        let Some(procedure) = self
+            .services
+            .get(&(
+                request.header.service,
+                request.header.version.service,
+                request.header.procedure,
+            ))
+            .cloned()
+        else {
+            let Some(versions) = self.loaded.get(&request.header.service) else {
+                return Either::Right(ready(Response::error(ResponseError::UnknownService)));
+            };
 
-        let Some(procedure) = service.procedures.get(&request.header.procedure).cloned() else {
-            return Either::Right(ready(Response::error(ResponseError::UnknownProcedure)));
+            if versions.contains(&request.header.version.service) {
+                return Either::Right(ready(Response::error(ResponseError::UnknownProcedure)));
+            }
+
+            return Either::Right(ready(Response::error(ResponseError::UnknownServiceVersion)));
         };
 
         let context = self.context.clone();

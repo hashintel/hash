@@ -5,8 +5,12 @@
 #![feature(type_alias_impl_trait)]
 extern crate core;
 
-pub mod client;
 pub mod harpc;
-pub mod server;
 pub mod specification;
 mod types;
+
+pub use harpc::{
+    client::{Client, ClientError},
+    server::{Server, ServerBuilder, Service, ServiceBuilder},
+    transport::TransportConfig,
+};

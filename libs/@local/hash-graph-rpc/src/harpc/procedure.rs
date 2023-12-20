@@ -178,7 +178,7 @@ where
     }
 }
 
-pub(crate) struct ProcedureHandler<H, T, C> {
+pub struct ProcedureHandler<H, T, C> {
     handler: H,
     _marker: PhantomData<fn() -> *const (T, C)>,
 }

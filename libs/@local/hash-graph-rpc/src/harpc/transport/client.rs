@@ -44,14 +44,14 @@ pub(crate) struct EventLoopOfflineError;
 pub(crate) struct BrokenChannelError;
 
 #[derive(Debug, Clone)]
-pub(crate) struct ClientTransportMetrics {
-    pub(crate) server_address: Multiaddr,
-    pub(crate) server_peer_id: Option<PeerId>,
+pub struct ClientTransportMetrics {
+    pub server_address: Multiaddr,
+    pub server_peer_id: Option<PeerId>,
 
-    pub(crate) dialing: bool,
-    pub(crate) pending: usize,
-    pub(crate) lookup: usize,
-    pub(crate) waiting: usize,
+    pub dialing: bool,
+    pub pending: usize,
+    pub lookup: usize,
+    pub waiting: usize,
 }
 
 #[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
