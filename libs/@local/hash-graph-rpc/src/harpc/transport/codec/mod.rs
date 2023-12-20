@@ -131,7 +131,7 @@ pub(crate) mod test {
     use uuid::Uuid;
 
     use crate::harpc::transport::codec::{
-        decode::DecodeBinary,
+        decode::{DecodeBinary, DecodeText},
         encode::{EncodeBinary, EncodeText},
         Limit,
     };
@@ -141,7 +141,7 @@ pub(crate) mod test {
         0xFF,
     ]);
 
-    pub(crate) async fn encode_binary<T>(value: T) -> io::Result<Vec<u8>>
+    pub(in crate::harpc) async fn encode_binary<T>(value: T) -> io::Result<Vec<u8>>
     where
         T: EncodeBinary + Send,
     {
@@ -151,7 +151,7 @@ pub(crate) mod test {
         Ok(buffer)
     }
 
-    pub(crate) async fn assert_encode_binary<T>(value: T, expected: &[u8])
+    pub(in crate::harpc) async fn assert_encode_binary<T>(value: T, expected: &[u8])
     where
         T: EncodeBinary + Send,
     {
@@ -160,14 +160,14 @@ pub(crate) mod test {
         assert_eq!(buffer, expected);
     }
 
-    pub(crate) async fn decode_binary<T>(value: &[u8], limit: Limit) -> io::Result<T>
+    pub(in crate::harpc) async fn decode_binary<T>(value: &[u8], limit: Limit) -> io::Result<T>
     where
         T: DecodeBinary + Send,
     {
         T::decode_binary(&mut &*value, limit).await
     }
 
-    pub(crate) async fn assert_decode_binary<T>(value: &[u8], expected: T)
+    pub(in crate::harpc) async fn assert_decode_binary<T>(value: &[u8], expected: T)
     where
         T: PartialEq + Debug + DecodeBinary + Send,
     {
@@ -178,7 +178,7 @@ pub(crate) mod test {
         assert_eq!(result, expected);
     }
 
-    pub(crate) async fn assert_encode_text<T>(value: T, expected: &str)
+    pub(in crate::harpc) async fn assert_encode_text<T>(value: T, expected: &str)
     where
         T: EncodeText + Send,
     {
@@ -190,11 +190,11 @@ pub(crate) mod test {
         assert_eq!(result, expected);
     }
 
-    pub(crate) async fn assert_decode_text<T>(value: &str, expected: T)
+    pub(in crate::harpc) async fn assert_decode_text<T>(value: &str, expected: T)
     where
-        T: PartialEq + Debug + DecodeBinary + Send,
+        T: PartialEq + Debug + DecodeText + Send,
     {
-        let result = T::decode_binary(&mut &*value.as_bytes(), Limit::default())
+        let result = T::decode_text(&mut value.as_bytes(), Limit::default())
             .await
             .expect("decode failed");
 
