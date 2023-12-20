@@ -35,7 +35,9 @@ use crate::harpc::{
 /// * Unused (16 bits)
 /// total 16 bits
 /// ```
-#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
 pub(crate) struct RequestFlags([u8; 2]);
 
 impl RequestFlags {
@@ -499,7 +501,7 @@ mod test {
         assert_eq!(buffer[22], 0x04);
         buffer[22] = 0x05;
 
-        let error = decode_binary(&buffer, Limit::default())
+        let error = decode_binary::<Request>(&buffer, Limit::default())
             .await
             .expect_err("request size mismatch");
 
@@ -523,7 +525,7 @@ mod test {
 
         let buffer = encode_binary(header).await.expect("encode binary");
 
-        let error = decode_binary(
+        let error = decode_binary::<RequestHeader>(
             &buffer,
             Limit {
                 request_size: 0x11,
@@ -559,7 +561,7 @@ mod test {
 
         assert_eq!(buffer[0], 0x01);
 
-        let error = decode_binary(&buffer, Limit::default())
+        let error = decode_binary::<RequestHeader>(&buffer, Limit::default())
             .await
             .expect_err("unsupported version mismatch");
 

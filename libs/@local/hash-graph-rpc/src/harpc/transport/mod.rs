@@ -156,9 +156,9 @@ mod test {
             message::{
                 actor::ActorId,
                 request::{Request, RequestFlags, RequestHeader},
-                response::{Response, ResponseHeader, ResponsePayload},
+                response::{Response, ResponseFlags, ResponseHeader, ResponsePayload},
                 size::PayloadSize,
-                version::{ServiceVersion, Version},
+                version::{ServiceVersion, TransportVersion, Version},
             },
             server::{ServerTransportConfig, ServerTransportLayer},
             RequestRouter, TransportConfig, TRANSPORT_VERSION,
@@ -349,6 +349,8 @@ mod test {
             response,
             Response {
                 header: ResponseHeader {
+                    version: TRANSPORT_VERSION,
+                    flags: ResponseFlags::new(),
                     size: PayloadSize::new(0)
                 },
                 body: ResponsePayload::Error(

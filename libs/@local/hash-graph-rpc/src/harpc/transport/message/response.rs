@@ -97,7 +97,9 @@ impl ResponseError {
 /// `Unused` is reserved for future use.
 ///
 /// `Stream` and `End Of Stream` are reserved for future use, but currently not implemented.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
 pub struct ResponseFlags([u8; 2]);
 
 impl ResponseFlags {
@@ -128,6 +130,7 @@ impl DecodeBinary for ResponseFlags {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 struct PackedResponseHeader {
     version: TransportVersion,
     flags: ResponseFlags,
@@ -171,6 +174,7 @@ impl DecodeBinary for PackedResponseHeader {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 enum PackedResponseBody {
     Success { size: PayloadSize, bytes: Bytes },
     Error { error: ResponseError },
@@ -232,6 +236,7 @@ impl DecodeBinary for PackedResponseBody {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct PackedResponse {
     header: PackedResponseHeader,
     body: PackedResponseBody,

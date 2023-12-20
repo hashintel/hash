@@ -141,7 +141,10 @@ pub(crate) mod test {
         0xFF,
     ]);
 
-    pub(crate) async fn encode_binary<T>(value: T) -> io::Result<Vec<u8>> {
+    pub(crate) async fn encode_binary<T>(value: T) -> io::Result<Vec<u8>>
+    where
+        T: EncodeBinary + Send,
+    {
         let mut buffer = Vec::new();
         value.encode_binary(&mut buffer).await?;
 
