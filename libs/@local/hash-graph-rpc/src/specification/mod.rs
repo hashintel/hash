@@ -43,6 +43,8 @@ pub mod account;
 ///
 /// You can optionally specify the specific ID of a procedure by placing `[id=<value>]` after the
 /// `rpc` keyword.
+// I am personally not a huge fan of TT munchers, but I wasn't able to figure out a more clever way
+// that allows one to define options (even if only at the beginning).
 macro_rules! service {
     (@type[$vis:vis] procedure $name:ident()) => {
         #[derive(serde::Serialize, serde::Deserialize)]
