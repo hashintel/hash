@@ -275,9 +275,11 @@ dependencies = [
  "serde_plain",
  "tokio",
  "tokio-util",
+ "tsify",
  "type-system",
  "utoipa",
  "uuid",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -1542,9 +1544,11 @@ dependencies = [
  "serde_json",
  "temporal-versioning",
  "time",
+ "tsify",
  "type-system",
  "utoipa",
  "uuid",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -1636,7 +1640,9 @@ dependencies = [
  "graph-types",
  "integer-encoding",
  "libp2p",
+ "paste",
  "serde",
+ "serde-wasm-bindgen",
  "serde_json",
  "test-log",
  "thiserror",
@@ -1644,7 +1650,10 @@ dependencies = [
  "tokio-util",
  "tracing",
  "tracing-subscriber",
+ "tsify",
  "uuid",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
@@ -4009,6 +4018,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde-wasm-bindgen"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3b143e2833c57ab9ad3ea280d21fd34e285a42837aeb0ee301f4f41890fa00e"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "serde_derive"
 version = "1.0.193"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4869,6 +4889,7 @@ checksum = "d6b26cf145f2f3b9ff84e182c448eaf05468e247f148cf3d2a7d67d78ff023a0"
 dependencies = [
  "gloo-utils",
  "serde",
+ "serde-wasm-bindgen",
  "serde_json",
  "tsify-macros",
  "wasm-bindgen",

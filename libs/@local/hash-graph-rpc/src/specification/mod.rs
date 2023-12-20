@@ -1,4 +1,5 @@
 pub mod account;
+pub(crate) mod generic;
 
 /// Convenience macro for defining a service.
 ///
@@ -48,11 +49,15 @@ pub mod account;
 macro_rules! service {
     (@type[$vis:vis] procedure $name:ident()) => {
         #[derive(serde::Serialize, serde::Deserialize)]
+        #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+        #[cfg_attr(target_arch = "wasm32", tsify(into_wasm_abi, from_wasm_abi))]
         $vis struct $name;
     };
 
     (@type[$vis:vis] procedure $name:ident($($fields:tt)+)) => {
         #[derive(serde::Serialize, serde::Deserialize)]
+        #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+        #[cfg_attr(target_arch = "wasm32", tsify(into_wasm_abi, from_wasm_abi))]
         $vis struct $name {
             $($fields)+
         }
@@ -75,6 +80,48 @@ macro_rules! service {
 
     (@procedure[$vis:vis] $_:tt $($rest:tt)*) => {
         service!(@procedure[$vis] $($rest)*);
+    };
+
+    (@client[$vis:vis $service:ident]) => {};
+
+    (@client[$vis:vis $service:ident] rpc$([$($options:tt)*])? $name:ident($($_:vis $fname:ident : $ftype:ty),* $(,)?) $(-> $output:ty)?; $($rest:tt)*) => {
+        paste::paste! {
+            #[cfg(target_arch = "wasm32")]
+            #[wasm_bindgen::prelude::wasm_bindgen]
+            impl [< $service Client >] {
+                #[doc = "Call the " $name " procedure of the " $service " service."]
+                ///
+                /// # Errors
+                ///
+                /// Returns an error if the request cannot be encoded, the response cannot be decoded, or if the
+                /// remote encountered a transport error.
+                // TODO: JS name
+                // TODO: JS types
+                #[allow(unused_parens)]
+                #[wasm_bindgen::prelude::wasm_bindgen]
+                $vis async fn [< $name:snake:lower >](&self, $($fname :$ftype ,)*)
+                    -> Result<($($output)?), wasm_bindgen::JsValue>
+                {
+                    self.client
+                        .call($name {
+                            $($fname,)*
+                        })
+                        .await
+                        .map_err(|error| {
+                            match serde_wasm_bindgen::to_value(&error) {
+                                Ok(value) => value,
+                                Err(error) => error.into(),
+                            }
+                        })
+                }
+            }
+        }
+
+        service!(@client[$vis $service] $($rest)*);
+    };
+
+    (@client[$vis:vis $service:ident] $_:tt $($rest:tt)*) => {
+        service!(@client[$vis $service] $($rest)*);
     };
 
     (@extract version;) => {
@@ -126,6 +173,45 @@ macro_rules! service {
         }
 
         service!(@procedure[$vis] $($tt)*);
+
+        paste::paste! {
+            #[cfg(target_arch = "wasm32")]
+            #[wasm_bindgen::prelude::wasm_bindgen]
+            $vis struct [< $name Client >] {
+                client: $crate::harpc::client::Client<$name, $crate::specification::generic::DefaultEncoder>,
+            }
+
+            #[cfg(target_arch = "wasm32")]
+            #[wasm_bindgen::prelude::wasm_bindgen]
+            impl [< $name Client >] {
+                #[doc = "Create a new " $name " client."]
+                ///
+                /// # Errors
+                ///
+                /// This function can fail if the underlying transport fails to connect.
+                #[wasm_bindgen::prelude::wasm_bindgen(constructor)]
+                pub fn new(
+                    remote: wasm_bindgen::JsValue,
+                ) -> Result<[< $name Client >], wasm_bindgen::JsValue> {
+                    let remote = serde_wasm_bindgen::from_value(remote)?;
+
+                    let client = $crate::harpc::client::Client::new(
+                            $crate::specification::generic::DefaultEncoder,
+                            remote,
+                            $crate::harpc::transport::TransportConfig::default()
+                        ).map_err(|error| {
+                            match serde_wasm_bindgen::to_value(&error) {
+                                Ok(value) => value,
+                                Err(error) => error.into(),
+                            }
+                        })?;
+
+                    Ok(Self { client })
+                }
+            }
+        }
+
+        service!(@client[$vis $name] $($tt)*);
     };
 }
 
