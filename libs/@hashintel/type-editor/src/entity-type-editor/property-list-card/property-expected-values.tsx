@@ -78,8 +78,6 @@ export const PropertyExpectedValues = ({
           );
         }
 
-        console.log({ expectedValueOption });
-
         return (
           <Chip
             // eslint-disable-next-line react/no-array-index-key

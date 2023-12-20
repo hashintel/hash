@@ -135,10 +135,13 @@ export type FormattedValuePart = {
   text: string;
 };
 
-const createFormattedParts = (
-  inner: string | FormattedValuePart[],
-  { label }: Pick<ValueConstraint, "label">,
-): FormattedValuePart[] => {
+const createFormattedParts = ({
+  inner,
+  schema: { label },
+}: {
+  inner: string | FormattedValuePart[];
+  schema: Pick<ValueConstraint, "label">;
+}): FormattedValuePart[] => {
   const { left = "", right = "" } = label ?? {};
 
   const parts: FormattedValuePart[] = [];
@@ -167,11 +170,11 @@ export const formatDataValue = (
   const { type } = schema;
 
   if (type === "null") {
-    return createFormattedParts("Null", schema);
+    return createFormattedParts({ inner: "Null", schema });
   }
 
   if (type === "boolean") {
-    return createFormattedParts(value ? "True" : "False", schema);
+    return createFormattedParts({ inner: value ? "True" : "False", schema });
   }
 
   if (type === "array") {
@@ -213,8 +216,8 @@ export const formatDataValue = (
   }
 
   if (typeof value === "object" && value) {
-    return formatDataValue(JSON.stringify(value), schema);
+    return createFormattedParts({ inner: JSON.stringify(value), schema });
   }
 
-  return createFormattedParts(String(value), schema);
+  return createFormattedParts({ inner: String(value), schema });
 };
