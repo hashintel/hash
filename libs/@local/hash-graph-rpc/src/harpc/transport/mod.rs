@@ -6,6 +6,8 @@ pub(crate) mod server;
 use std::{future::Future, time::Duration};
 
 use error_stack::ResultExt;
+#[cfg(target_arch = "wasm32")]
+use libp2p::websocket_websys;
 use libp2p::{
     identify, noise, request_response,
     request_response::{Event, ProtocolSupport},
@@ -95,7 +97,7 @@ macro_rules! configure {
 
 impl TransportLayer {
     #[cfg(target_arch = "wasm32")]
-    fn new_server(config: TransportConfig) -> error_stack::Result<Self, TransportError> {
+    fn new_server(_: TransportConfig) -> error_stack::Result<Self, TransportError> {
         panic!("You are unable to create a server transport layer on wasm32")
     }
 
@@ -139,7 +141,23 @@ impl TransportLayer {
 
     #[cfg(target_arch = "wasm32")]
     fn new_client(config: TransportConfig) -> error_stack::Result<Self, TransportError> {
-        todo!()
+        let builder = SwarmBuilder::with_new_identity()
+            .with_wasm_bindgen()
+            .with_other_transport(|keypair| {
+                let upgrade = noise::Config::new(keypair)?;
+
+                let transport = websocket_websys::Transport::default()
+                    .upgrade(libp2p::core::upgrade::Version::V1Lazy)
+                    .authenticate(upgrade)
+                    .multiplex(yamux::Config::default());
+
+                Ok(transport)
+            })
+            .change_context(TransportError)?;
+
+        let swarm = configure!(builder with config);
+
+        Ok(Self { swarm })
     }
 }
 

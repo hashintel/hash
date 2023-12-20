@@ -31,7 +31,7 @@ uuid = "1.6.1"
 libp2p = { version = "0.53.2", features = ['tokio', 'tcp', 'dns', 'websocket'] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-libp2p = { version = "0.53.2", features = ['websocket-websys'] }
+libp2p = { version = "0.53.2", features = ['wasm-bindgen', 'websocket-websys'] }
 
 [dev-dependencies]
 test-log = { version = "0.2.14", default-features = false, features = ["trace"] }
