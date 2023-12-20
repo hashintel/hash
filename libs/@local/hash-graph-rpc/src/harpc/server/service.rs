@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use crate::{
     harpc::{
         procedure::{Handler, ProcedureCall, ProcedureHandler, ProcedureId, RemoteProcedure},
+        server::erase::BoxedProcedureCall,
         service, Context,
     },
-    server::erase::BoxedProcedureCall,
     types::{Empty, HStack, Includes, Stack, SupersetOf},
 };
 

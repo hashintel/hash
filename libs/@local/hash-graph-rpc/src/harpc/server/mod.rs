@@ -7,11 +7,14 @@ use std::{
     net::SocketAddrV4,
 };
 
+use error_stack::ResultExt;
 use libp2p::{futures::future::Either, multiaddr::Protocol, Multiaddr};
+use thiserror::Error;
 
 pub use self::service::{Service, ServiceBuilder};
 use crate::{
     harpc::{
+        server::erase::BoxedProcedureCall,
         service::ServiceId,
         transport::{
             message::{
@@ -23,9 +26,14 @@ use crate::{
         },
         Context, ProcedureId, ServiceVersion,
     },
-    server::erase::BoxedProcedureCall,
     types::{Empty, HStack, Stack},
 };
+
+#[derive(Debug, Copy, Clone, Error)]
+pub enum ServerError {
+    #[error("internal transport error")]
+    Internal,
+}
 
 pub struct ServerBuilder<C, S> {
     _context: core::marker::PhantomData<C>,
@@ -168,13 +176,26 @@ impl<C> Server<C>
 where
     C: Context,
 {
-    pub async fn serve(self, listen_on: SocketAddrV4, config: TransportConfig) -> ! {
+    /// Serve the server on the given address.
+    ///
+    /// This returns a future that will never resolve.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the transport layer cannot be started.
+    pub fn serve(
+        self,
+        listen_on: SocketAddrV4,
+        config: TransportConfig,
+    ) -> error_stack::Result<impl Future<Output = !> + Send, ServerError> {
         let config = ServerTransportConfig {
             transport: config,
             listen_on: Multiaddr::from(*listen_on.ip()).with(Protocol::Tcp(listen_on.port())),
         };
 
-        let service = ServerTransportLayer::new(self, config).unwrap();
-        service.serve().unwrap().await
+        let service =
+            ServerTransportLayer::new(self, config).change_context(ServerError::Internal)?;
+
+        service.serve().change_context(ServerError::Internal)
     }
 }

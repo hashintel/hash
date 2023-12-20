@@ -79,7 +79,7 @@ where
     fn call(self, request: Request, context: C) -> Self::Future;
 }
 
-pub(crate) trait Handler<T, C> {
+pub trait Handler<T, C> {
     type Procedure: RemoteProcedure;
 
     fn call(self, request: Request, context: C) -> impl Future<Output = Response> + Send + 'static;

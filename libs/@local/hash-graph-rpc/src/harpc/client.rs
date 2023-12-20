@@ -10,7 +10,7 @@ use crate::{
         procedure::RemoteProcedure,
         service::Service,
         transport::{
-            client::{ClientTransportConfig, ClientTransportLayer},
+            client::{ClientTransportConfig, ClientTransportLayer, ClientTransportMetrics},
             message::{
                 actor::ActorId,
                 request::{Request, RequestFlags, RequestHeader},
@@ -103,6 +103,13 @@ impl<S, C> Client<S, C>
 where
     S: Service,
 {
+    /// Create a new client.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the transport layer cannot be created.
+    /// This may happen whenever we're unable to start the background swarm task or are unable to
+    /// properly configure the swarm.
     pub fn new(
         context: C,
         remote: SocketAddrV4,
@@ -121,6 +128,12 @@ where
         })
     }
 
+    /// Call a remote procedure.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the request cannot be encoded, the response cannot be decoded, or if the
+    /// remote encountered a transport error.
     pub async fn call<P>(&self, request: P) -> Result<P::Response, ClientError>
     where
         P: RemoteProcedure,
@@ -163,6 +176,21 @@ where
             ResponsePayload::Error(error) => Err(Report::new(error.into())),
         }
     }
+
+    /// Get the metrics of the transport layer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the transport layer cannot be reached.
+    pub async fn metrics(&self) -> Result<ClientTransportMetrics, ClientError>
+    where
+        C: Send + Sync,
+    {
+        self.transport
+            .metrics()
+            .await
+            .change_context(ClientError::Internal)
+    }
 }
 
 #[cfg(test)]
@@ -179,8 +207,7 @@ mod tests {
     use uuid::Uuid;
 
     use crate::{
-        client::Client,
-        harpc::transport::TransportConfig,
+        harpc::{client::Client, transport::TransportConfig},
         specification::account::{
             AccountService, AddAccountGroupMember, CheckAccountGroupPermission, CreateAccount,
         },
@@ -235,7 +262,8 @@ mod tests {
             NullContext,
             SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0),
             TransportConfig::default(),
-        );
+        )
+        .expect("client");
 
         let _response = client.call(CreateAccount).await;
 
