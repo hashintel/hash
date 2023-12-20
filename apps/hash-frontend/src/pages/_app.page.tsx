@@ -28,8 +28,8 @@ import {
   useState,
 } from "react";
 
-import { MeQuery } from "../graphql/api-types.gen";
-import { meQuery } from "../graphql/queries/user.queries";
+import { HasAccessToHashQuery, MeQuery } from "../graphql/api-types.gen";
+import { hasAccessToHashQuery, meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
 import { constructMinimalUser } from "../lib/user-and-org";
 import { DraftEntitiesContextProvider } from "../shared/draft-entities-context";
@@ -259,13 +259,26 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   // The type system package needs to be initialized before calling `constructAuthenticatedUser`
   // await TypeSystemInitializer.initialize();
 
-  // If the user is logged in but hasn't completed signup and isn't on the signup page...
-  if (
-    !constructMinimalUser({ userEntity }).accountSignupComplete &&
-    !pathname.startsWith("/signup")
-  ) {
-    // ...then redirect them to the signup page.
-    redirectInGetInitialProps({ appContext, location: "/signup" });
+  const user = constructMinimalUser({ userEntity });
+
+  // If the user is logged in but hasn't completed signup...
+  if (!user.accountSignupComplete) {
+    const hasAccessToHash = await apolloClient
+      .query<HasAccessToHashQuery>({
+        query: hasAccessToHashQuery,
+        context: { headers: { cookie } },
+      })
+      .then(({ data }) => data.hasAccessToHash);
+
+    // ...if they have access to HASH but aren't on the signup page...
+    if (hasAccessToHash && !pathname.startsWith("/signup")) {
+      // ...then redirect them to the signup page.
+      redirectInGetInitialProps({ appContext, location: "/signup" });
+      // ...if they don't have access to HASH but aren't on the home page...
+    } else if (!hasAccessToHash && pathname !== "/") {
+      // ...then redirect them to the home page.
+      redirectInGetInitialProps({ appContext, location: "/" });
+    }
   }
 
   return { initialAuthenticatedUserSubgraph };

@@ -4,8 +4,6 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountGroupId,
   AccountId,
@@ -41,8 +39,6 @@ import {
   isEntityLinkEntity,
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
-import { modifyWebAuthorizationRelationships } from "../../../../graph/ontology/primitive/util";
-import { systemAccountId } from "../../../../graph/system-account";
 import {
   AccountGroupAuthorizationSubjectRelation,
   AuthorizationSubjectKind,
@@ -326,49 +322,6 @@ export const updateEntityResolver: ResolverFn<
   });
 
   let updatedEntity: Entity;
-
-  const { shortname, preferredName } = simplifyProperties(
-    updatedProperties as UserProperties,
-  );
-
-  if (isIncompleteUser && shortname && preferredName) {
-    // Now that the user has completed signup, we can transfer the ownership of the web
-    // allowing them to create entities and types.
-    await modifyWebAuthorizationRelationships(
-      context,
-      { actorId: systemAccountId },
-      [
-        {
-          operation: "delete",
-          relationship: {
-            subject: {
-              kind: "account",
-              subjectId: systemAccountId,
-            },
-            resource: {
-              kind: "web",
-              resourceId: user.accountId as OwnedById,
-            },
-            relation: "owner",
-          },
-        },
-        {
-          operation: "create",
-          relationship: {
-            subject: {
-              kind: "account",
-              subjectId: user.accountId,
-            },
-            resource: {
-              kind: "web",
-              resourceId: user.accountId as OwnedById,
-            },
-            relation: "owner",
-          },
-        },
-      ],
-    );
-  }
 
   if (isEntityLinkEntity(entity)) {
     updatedEntity = await updateLinkEntity(context, authentication, {
