@@ -4,14 +4,18 @@ import {
   LinkIcon,
   PlusIcon,
 } from "@hashintel/design-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   BaseUrl,
   Entity,
   EntityPropertyValue,
+  EntityTypeRootType,
   EntityTypeWithMetadata,
+  Subgraph,
 } from "@local/hash-subgraph";
+import { getPropertyTypesByBaseUrl } from "@local/hash-subgraph/stdlib";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 
 import { getOwnedByIdFromEntityId } from "../../../../../../shared/get-user";
@@ -68,6 +72,7 @@ type InferredEntityProps = {
   expanded: boolean;
   entityType: EntityTypeWithMetadata;
   entityTypes: EntityTypeWithMetadata[];
+  entityTypesSubgraph: Subgraph<EntityTypeRootType>;
   indexInType: number;
   result: InferEntitiesReturn["contents"][number]["results"][number];
   toggleExpanded: () => void;
@@ -79,6 +84,7 @@ export const InferredEntity = ({
   expanded,
   entityType,
   entityTypes,
+  entityTypesSubgraph,
   indexInType,
   result,
   toggleExpanded,
@@ -295,44 +301,48 @@ export const InferredEntity = ({
       </Stack>
       <Collapse in={expanded}>
         <Stack mt={0.5}>
-          {Object.entries(proposedEntity.properties ?? {})
+          {typedEntries(proposedEntity.properties ?? {})
             .sort((a, b) => a[0].localeCompare(b[0]))
-            .map(([key, value]) => (
-              <Stack
-                direction="row"
-                key={key}
-                sx={{ "&:not(:last-child)": { mb: 0.5 } }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    mr: 0.5,
-                    width: 120,
-                    whiteSpace: "nowrap",
-                    textOverflow: "ellipsis",
-                    overflow: "hidden",
-                  }}
+            .map(([key, value]) => {
+              const propertyTypeId = entityType.properties[key];
+
+              return (
+                <Stack
+                  direction="row"
+                  key={key}
+                  sx={{ "&:not(:last-child)": { mb: 0.5 } }}
                 >
-                  {baseUrlToPropertyTitle(key as BaseUrl)}:
-                </Typography>
-                <Typography
-                  sx={{
-                    display: "-webkit-box",
-                    "-webkit-line-clamp": "3",
-                    "-webkit-box-orient": "vertical",
-                    fontSize: 13,
-                    opacity: 0.8,
-                    overflow: "hidden",
-                    width: "calc(100% - 100px)",
-                  }}
-                >
-                  {typeof value === "string"
-                    ? value
-                    : value?.toString() ?? "[cannot display]"}
-                </Typography>
-              </Stack>
-            ))}
+                  <Typography
+                    sx={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      mr: 0.5,
+                      width: 120,
+                      whiteSpace: "nowrap",
+                      textOverflow: "ellipsis",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {baseUrlToPropertyTitle(key as BaseUrl)}:
+                  </Typography>
+                  <Typography
+                    sx={{
+                      display: "-webkit-box",
+                      "-webkit-line-clamp": "3",
+                      "-webkit-box-orient": "vertical",
+                      fontSize: 13,
+                      opacity: 0.8,
+                      overflow: "hidden",
+                      width: "calc(100% - 100px)",
+                    }}
+                  >
+                    {typeof value === "string"
+                      ? value
+                      : value?.toString() ?? "[cannot display]"}
+                  </Typography>
+                </Stack>
+              );
+            })}
         </Stack>
         {!wasSuccess && (
           <Typography
