@@ -124,6 +124,7 @@ fn log_behaviour_event<TRequest, TResponse, TChannelResponse>(
     }
 }
 
+#[derive(Debug, Clone)]
 pub(crate) struct SpawnGuard(Option<JoinHandle<!>>);
 
 impl From<JoinHandle<!>> for SpawnGuard {

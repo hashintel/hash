@@ -148,10 +148,11 @@ pub(crate) struct ClientTransportConfig {
     pub(crate) remote: Multiaddr,
 }
 
+#[derive(Debug, Clone)]
 pub(crate) struct ClientTransportLayer {
     tx: mpsc::Sender<EventLoopRequest>,
     kiosk: TicketKiosk,
-    _guard: SpawnGuard,
+    _guard: Arc<SpawnGuard>,
 }
 
 impl ClientTransportLayer {
@@ -164,7 +165,7 @@ impl ClientTransportLayer {
         Ok(Self {
             tx,
             kiosk: TicketKiosk::new(),
-            _guard: guard,
+            _guard: Arc::new(guard),
         })
     }
 
