@@ -10,10 +10,11 @@ use tokio_util::{codec::FramedRead, io::StreamReader};
 use crate::{
     backend::{
         spicedb::model::{self, Permissionship, RpcError},
-        BulkCheckItem, BulkCheckResponse, CheckError, CheckResponse, DeleteRelationshipError,
-        DeleteRelationshipResponse, ExportSchemaError, ExportSchemaResponse, ImportSchemaError,
-        ImportSchemaResponse, ModifyRelationshipError, ModifyRelationshipOperation,
-        ModifyRelationshipResponse, ReadError, SpiceDbOpenApi, ZanzibarBackend,
+        BulkCheckItem, BulkCheckResponse, BulkPermissionCheckError, CheckError, CheckResponse,
+        DeleteRelationshipError, DeleteRelationshipResponse, ExportSchemaError,
+        ExportSchemaResponse, ImportSchemaError, ImportSchemaResponse, ModifyRelationshipError,
+        ModifyRelationshipOperation, ModifyRelationshipResponse, ReadError, SpiceDbOpenApi,
+        ZanzibarBackend,
     },
     zanzibar::{
         types::{Relationship, RelationshipFilter, Resource, Subject},
@@ -496,7 +497,7 @@ impl ZanzibarBackend for SpiceDbOpenApi {
                 resource: pair.request.resource,
                 has_permission: match pair.response {
                     Response::Item(item) => Ok(item.permissionship.into()),
-                    Response::Error(error) => Err(error),
+                    Response::Error(_error) => Err(BulkPermissionCheckError),
                 },
             }),
         })

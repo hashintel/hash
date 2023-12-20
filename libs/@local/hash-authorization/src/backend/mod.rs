@@ -1,3 +1,4 @@
+#[cfg(feature = "spicedb")]
 mod spicedb;
 
 use core::{fmt, iter::repeat};
@@ -6,7 +7,8 @@ use std::{error::Error, future::Future};
 use error_stack::Report;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-pub use self::spicedb::{RpcError, SpiceDbOpenApi};
+#[cfg(feature = "spicedb")]
+pub use self::spicedb::SpiceDbOpenApi;
 use crate::{
     zanzibar::{
         types::{Relationship, RelationshipFilter, Resource, Subject},
@@ -437,6 +439,17 @@ impl CheckResponse {
     }
 }
 
+#[derive(Debug)]
+pub struct BulkPermissionCheckError;
+
+impl fmt::Display for BulkPermissionCheckError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("failed to check permissions")
+    }
+}
+
+impl Error for BulkPermissionCheckError {}
+
 /// Return value for [`ZanzibarBackend::check_permissions`].
 #[derive(Debug)]
 #[must_use]
@@ -455,7 +468,7 @@ pub struct BulkCheckItem<R, P, S> {
     pub permission: P,
     pub subject: S,
     /// A token to determine the time at which the check was performed.
-    pub has_permission: Result<bool, RpcError>,
+    pub has_permission: Result<bool, BulkPermissionCheckError>,
 }
 
 /// Error returned from [`ZanzibarBackend::check_permission`] and

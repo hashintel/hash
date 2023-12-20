@@ -9,8 +9,8 @@ use graph_types::{
 
 use crate::{
     backend::{
-        CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
-        RpcError, ZanzibarBackend,
+        BulkPermissionCheckError, CheckError, CheckResponse, ModifyRelationError,
+        ModifyRelationshipOperation, ReadError, ZanzibarBackend,
     },
     schema::{
         AccountGroupPermission, AccountGroupRelationAndSubject, DataTypeId, DataTypePermission,
@@ -223,7 +223,7 @@ where
                 consistency,
             )
             .await?;
-        let mut status = Ok::<(), Report<RpcError>>(());
+        let mut status = Ok::<(), Report<BulkPermissionCheckError>>(());
         let permissions = response
             .permissions
             .into_iter()
