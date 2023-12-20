@@ -6,6 +6,6 @@ mod table;
 pub use self::{
     batch::EntityRowBatch,
     channel::{channel, EntityReceiver, EntitySender},
-    record::{CustomEntityMetadata, EntityMetadata, EntitySnapshotRecord},
+    record::EntitySnapshotRecord,
     table::{EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityTemporalMetadataRow},
 };

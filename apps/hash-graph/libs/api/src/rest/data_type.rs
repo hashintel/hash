@@ -37,11 +37,11 @@ use graph::{
 };
 use graph_types::{
     ontology::{
-        DataTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
-        OntologyTypeRecordId, OntologyTypeReference, PartialCustomOntologyMetadata,
-        PartialOntologyElementMetadata,
+        DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeRecordId,
+        OntologyTypeReference, PartialDataTypeMetadata,
     },
-    provenance::OwnedById,
+    owned_by_id::OwnedById,
 };
 use hash_status::Status;
 use serde::{Deserialize, Serialize};
@@ -171,7 +171,7 @@ async fn create_data_type<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreateDataTypeRequest>,
-) -> Result<Json<ListOrValue<OntologyElementMetadata>>, StatusCode>
+) -> Result<Json<ListOrValue<DataTypeMetadata>>, StatusCode>
 where
     S: StorePool + Send + Sync,
     for<'pool> S::Store<'pool>: RestApiStore,
@@ -205,9 +205,9 @@ where
             StatusCode::UNPROCESSABLE_ENTITY
         })?;
 
-        partial_metadata.push(PartialOntologyElementMetadata {
+        partial_metadata.push(PartialDataTypeMetadata {
             record_id: data_type.id().clone().into(),
-            custom: PartialCustomOntologyMetadata::Owned { owned_by_id },
+            classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
         });
 
         data_types.push(data_type);
@@ -270,7 +270,7 @@ enum LoadExternalDataTypeRequest {
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the loaded data type", body = OntologyElementMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the loaded data type", body = DataTypeMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to load data type in the store as the base data type ID already exists"),
@@ -287,7 +287,7 @@ async fn load_external_data_type<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     domain_validator: Extension<DomainValidator>,
     Json(request): Json<LoadExternalDataTypeRequest>,
-) -> Result<Json<OntologyElementMetadata>, Response>
+) -> Result<Json<DataTypeMetadata>, Response>
 where
     S: StorePool + Send + Sync,
     for<'pool> S::Store<'pool>: RestApiStore,
@@ -300,16 +300,21 @@ where
         .map_err(report_to_response)?;
 
     match request {
-        LoadExternalDataTypeRequest::Fetch { data_type_id } => Ok(Json(
-            store
+        LoadExternalDataTypeRequest::Fetch { data_type_id } => {
+            let OntologyTypeMetadata::DataType(metadata) = store
                 .load_external_type(
                     actor_id,
                     &mut authorization_api,
                     &domain_validator,
                     OntologyTypeReference::DataTypeReference((&data_type_id).into()),
                 )
-                .await?,
-        )),
+                .await?
+            else {
+                // TODO: Make the type fetcher typed
+                panic!("`load_external_type` should have returned a `DataTypeMetadata`");
+            };
+            Ok(Json(metadata))
+        }
         LoadExternalDataTypeRequest::Create {
             schema,
             relationships,
@@ -332,9 +337,9 @@ where
                         actor_id,
                         &mut authorization_api,
                         schema,
-                        PartialOntologyElementMetadata {
+                        PartialDataTypeMetadata {
                             record_id,
-                            custom: PartialCustomOntologyMetadata::External {
+                            classification: OntologyTypeClassificationMetadata::External {
                                 fetched_at: OffsetDateTime::now_utc(),
                             },
                         },
@@ -434,7 +439,7 @@ struct UpdateDataTypeRequest {
         ("limit" = Option<usize>, Query, description = "The maximum number of data types to read"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the updated data type", body = OntologyElementMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the updated data type", body = DataTypeMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base data type ID was not found"),
@@ -448,7 +453,7 @@ async fn update_data_type<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     body: Json<UpdateDataTypeRequest>,
-) -> Result<Json<OntologyElementMetadata>, StatusCode>
+) -> Result<Json<DataTypeMetadata>, StatusCode>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,

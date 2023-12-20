@@ -413,7 +413,7 @@ mod tests {
     use graph_types::{
         knowledge::entity::{EntityId, EntityUuid},
         ontology::DataTypeWithMetadata,
-        provenance::OwnedById,
+        owned_by_id::OwnedById,
     };
     use serde_json::json;
     use type_system::url::BaseUrl;

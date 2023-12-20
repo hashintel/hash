@@ -16,12 +16,12 @@ use authorization::{
 use error_stack::{ensure, Report, Result, ResultExt};
 use futures::TryStreamExt;
 use graph_types::{
-    account::AccountId,
+    account::{AccountId, ArchivedById, CreatedById},
     ontology::{
-        EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,
-        PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
+        EntityTypeMetadata, EntityTypeWithMetadata, OntologyProvenanceMetadata,
+        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
+        PartialEntityTypeMetadata,
     },
-    provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{
@@ -430,9 +430,9 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             .await
             .change_context(InsertionError)?;
 
-        let provenance = ProvenanceMetadata {
-            record_created_by_id: RecordCreatedById::new(actor_id),
-            record_archived_by_id: None,
+        let provenance = OntologyProvenanceMetadata {
+            created_by_id: CreatedById::new(actor_id),
+            archived_by_id: None,
         };
 
         let mut relationships = Vec::new();
@@ -449,7 +449,9 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
             let entity_type_id = EntityTypeId::from_url(schema.id());
 
-            if let PartialCustomOntologyMetadata::Owned { owned_by_id } = &metadata.custom {
+            if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
+                &metadata.classification
+            {
                 authorization_api
                     .check_web_permission(
                         actor_id,
@@ -471,11 +473,11 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 ));
             }
 
-            if let Some((ontology_id, transaction_time)) = transaction
+            if let Some((ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
-                    provenance.record_created_by_id,
+                    provenance.created_by_id,
                     &metadata.record_id,
-                    &metadata.custom,
+                    &metadata.classification,
                     on_conflict,
                 )
                 .await?
@@ -491,11 +493,14 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                     .await?;
 
                 inserted_entity_types.push((ontology_id, schema));
-                inserted_entity_type_metadata.push(EntityTypeMetadata::from_partial(
-                    metadata,
+                inserted_entity_type_metadata.push(EntityTypeMetadata {
+                    record_id: metadata.record_id,
+                    classification: metadata.classification,
+                    temporal_versioning,
                     provenance,
-                    transaction_time,
-                ));
+                    label_property: metadata.label_property,
+                    icon: metadata.icon,
+                });
             }
 
             relationships.extend(
@@ -691,13 +696,13 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let url = entity_type.id();
         let record_id = OntologyTypeRecordId::from(url.clone());
 
-        let provenance = ProvenanceMetadata {
-            record_created_by_id: RecordCreatedById::new(actor_id),
-            record_archived_by_id: None,
+        let provenance = OntologyProvenanceMetadata {
+            created_by_id: CreatedById::new(actor_id),
+            archived_by_id: None,
         };
 
-        let (ontology_id, owned_by_id, transaction_time) = transaction
-            .update_owned_ontology_id(url, provenance.record_created_by_id)
+        let (ontology_id, owned_by_id, temporal_versioning) = transaction
+            .update_owned_ontology_id(url, provenance.created_by_id)
             .await?;
 
         let mut insertions = transaction
@@ -726,7 +731,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             record_id,
             label_property,
             icon,
-            custom: PartialCustomOntologyMetadata::Owned { owned_by_id },
+            classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
         };
 
         transaction
@@ -784,11 +789,14 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
             Err(error)
         } else {
-            Ok(EntityTypeMetadata::from_partial(
-                metadata,
+            Ok(EntityTypeMetadata {
+                record_id: metadata.record_id,
+                classification: metadata.classification,
+                temporal_versioning,
                 provenance,
-                transaction_time,
-            ))
+                label_property: metadata.label_property,
+                icon: metadata.icon,
+            })
         }
     }
 
@@ -799,7 +807,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.archive_ontology_type(id, RecordArchivedById::new(actor_id))
+        self.archive_ontology_type(id, ArchivedById::new(actor_id))
             .await
     }
 
@@ -810,7 +818,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(id, RecordCreatedById::new(actor_id))
+        self.unarchive_ontology_type(id, CreatedById::new(actor_id))
             .await
     }
 }

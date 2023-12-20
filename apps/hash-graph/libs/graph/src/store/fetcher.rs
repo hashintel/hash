@@ -18,12 +18,13 @@ use graph_types::{
         link::{EntityLinkOrder, LinkData},
     },
     ontology::{
-        DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
-        OntologyTemporalMetadata, OntologyType, OntologyTypeReference, OntologyTypeVersion,
-        PartialCustomOntologyMetadata, PartialEntityTypeMetadata, PartialOntologyElementMetadata,
+        DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
+        OntologyTemporalMetadata, OntologyType, OntologyTypeClassificationMetadata,
+        OntologyTypeMetadata, OntologyTypeReference, OntologyTypeVersion, PartialDataTypeMetadata,
+        PartialEntityTypeMetadata, PartialPropertyTypeMetadata, PropertyTypeMetadata,
         PropertyTypeWithMetadata,
     },
-    provenance::OwnedById,
+    owned_by_id::OwnedById,
 };
 use tarpc::context;
 use temporal_versioning::{DecisionTime, Timestamp};
@@ -67,7 +68,7 @@ pub trait TypeFetcher {
         actor_id: AccountId,
         authorization_api: &mut A,
         reference: OntologyTypeReference<'_>,
-    ) -> Result<OntologyElementMetadata, InsertionError>;
+    ) -> Result<OntologyTypeMetadata, InsertionError>;
 }
 
 #[derive(Clone)]
@@ -191,8 +192,8 @@ where
     reason = "Removing the postfix will be more confusing"
 )]
 struct FetchedOntologyTypes {
-    data_types: Vec<(DataType, PartialOntologyElementMetadata)>,
-    property_types: Vec<(PropertyType, PartialOntologyElementMetadata)>,
+    data_types: Vec<(DataType, PartialDataTypeMetadata)>,
+    property_types: Vec<(PropertyType, PartialPropertyTypeMetadata)>,
     entity_types: Vec<(EntityType, PartialEntityTypeMetadata)>,
 }
 
@@ -349,9 +350,11 @@ where
             for (ontology_type, fetched_at) in ontology_types {
                 match ontology_type {
                     FetchedOntologyType::DataType(data_type) => {
-                        let metadata = PartialOntologyElementMetadata {
+                        let metadata = PartialDataTypeMetadata {
                             record_id: data_type.id().clone().into(),
-                            custom: PartialCustomOntologyMetadata::External { fetched_at },
+                            classification: OntologyTypeClassificationMetadata::External {
+                                fetched_at,
+                            },
                         };
 
                         for referenced_ontology_type in self
@@ -375,9 +378,11 @@ where
                             .push((data_type, metadata));
                     }
                     FetchedOntologyType::PropertyType(property_type) => {
-                        let metadata = PartialOntologyElementMetadata {
+                        let metadata = PartialPropertyTypeMetadata {
                             record_id: property_type.id().clone().into(),
-                            custom: PartialCustomOntologyMetadata::External { fetched_at },
+                            classification: OntologyTypeClassificationMetadata::External {
+                                fetched_at,
+                            },
                         };
 
                         for referenced_ontology_type in self
@@ -401,9 +406,13 @@ where
                             .push((property_type, metadata));
                     }
                     FetchedOntologyType::EntityType(entity_type) => {
-                        let metadata = PartialOntologyElementMetadata {
+                        let metadata = PartialEntityTypeMetadata {
                             record_id: entity_type.id().clone().into(),
-                            custom: PartialCustomOntologyMetadata::External { fetched_at },
+                            classification: OntologyTypeClassificationMetadata::External {
+                                fetched_at,
+                            },
+                            icon: None,
+                            label_property: None,
                         };
 
                         for referenced_ontology_type in self
@@ -422,15 +431,9 @@ where
                             }
                         }
 
-                        fetched_ontology_types.entity_types.push((
-                            entity_type,
-                            PartialEntityTypeMetadata {
-                                record_id: metadata.record_id,
-                                label_property: None,
-                                icon: None,
-                                custom: metadata.custom,
-                            },
-                        ));
+                        fetched_ontology_types
+                            .entity_types
+                            .push((entity_type, metadata));
                     }
                 }
             }
@@ -533,7 +536,7 @@ where
         on_conflict: ConflictBehavior,
         fetch_behavior: FetchBehavior,
         bypassed_types: &HashSet<&VersionedUrl>,
-    ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
+    ) -> Result<Vec<OntologyTypeMetadata>, InsertionError> {
         if on_conflict == ConflictBehavior::Fail
             || !self
                 .contains_ontology_type(actor_id, authorization_api, reference)
@@ -595,11 +598,16 @@ where
 
             Ok(created_data_types
                 .into_iter()
-                .chain(created_property_types)
+                .map(OntologyTypeMetadata::DataType)
+                .chain(
+                    created_property_types
+                        .into_iter()
+                        .map(OntologyTypeMetadata::PropertyType),
+                )
                 .chain(
                     created_entity_types
                         .into_iter()
-                        .map(OntologyElementMetadata::from),
+                        .map(OntologyTypeMetadata::EntityType),
                 )
                 .collect())
         } else {
@@ -619,7 +627,7 @@ where
         actor_id: AccountId,
         authorization_api: &mut Au,
         reference: OntologyTypeReference<'_>,
-    ) -> Result<OntologyElementMetadata, InsertionError> {
+    ) -> Result<OntologyTypeMetadata, InsertionError> {
         self.insert_external_types_by_reference(
             actor_id,
             authorization_api,
@@ -631,8 +639,10 @@ where
         .await?
         .into_iter()
         .find(|metadata| {
-            metadata.record_id.base_url == reference.url().base_url
-                && metadata.record_id.version.inner() == reference.url().version
+            let record_id = metadata.record_id();
+            let reference = reference.url();
+            record_id.base_url == reference.base_url
+                && record_id.version.inner() == reference.version
         })
         .ok_or_else(|| {
             Report::new(InsertionError).attach_printable(format!(
@@ -728,11 +738,10 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
-        data_types: impl IntoIterator<Item = (DataType, PartialOntologyElementMetadata), IntoIter: Send>
-        + Send,
+        data_types: impl IntoIterator<Item = (DataType, PartialDataTypeMetadata), IntoIter: Send> + Send,
         on_conflict: ConflictBehavior,
         relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
-    ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
+    ) -> Result<Vec<DataTypeMetadata>, InsertionError> {
         let data_types = data_types.into_iter().collect::<Vec<_>>();
         let requested_types = data_types
             .iter()
@@ -784,7 +793,7 @@ where
         authorization_api: &mut Au,
         data_type: DataType,
         relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
-    ) -> Result<OntologyElementMetadata, UpdateError> {
+    ) -> Result<DataTypeMetadata, UpdateError> {
         self.insert_external_types(
             actor_id,
             authorization_api,
@@ -834,12 +843,12 @@ where
         actor_id: AccountId,
         authorization_api: &mut Au,
         property_types: impl IntoIterator<
-            Item = (PropertyType, PartialOntologyElementMetadata),
+            Item = (PropertyType, PartialPropertyTypeMetadata),
             IntoIter: Send,
         > + Send,
         on_conflict: ConflictBehavior,
         relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
-    ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
+    ) -> Result<Vec<PropertyTypeMetadata>, InsertionError> {
         let property_types = property_types.into_iter().collect::<Vec<_>>();
         let requested_types = property_types
             .iter()
@@ -893,7 +902,7 @@ where
         authorization_api: &mut Au,
         property_type: PropertyType,
         relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
-    ) -> Result<OntologyElementMetadata, UpdateError> {
+    ) -> Result<PropertyTypeMetadata, UpdateError> {
         self.insert_external_types(
             actor_id,
             authorization_api,

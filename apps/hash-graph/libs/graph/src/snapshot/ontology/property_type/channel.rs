@@ -72,7 +72,13 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
         let ontology_id = Uuid::new_v5(&Uuid::NAMESPACE_URL, record_id.as_bytes());
 
         self.metadata
-            .start_send_unpin((ontology_id, property_type.metadata))
+            .start_send_unpin((
+                ontology_id,
+                property_type.metadata.record_id,
+                property_type.metadata.classification,
+                property_type.metadata.temporal_versioning,
+                property_type.metadata.provenance,
+            ))
             .attach_printable("could not send metadata")?;
 
         let values: Vec<_> = property_type

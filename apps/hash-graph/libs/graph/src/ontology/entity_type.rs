@@ -93,7 +93,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// [`EntityType`]: type_system::EntityType
     /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
     TransactionTime,
-    /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`EntityType`].
+    /// The [`OwnedById`] of the [`EntityTypeMetadata`] belonging to the [`EntityType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -105,39 +105,39 @@ pub enum EntityTypeQueryPath<'p> {
     /// ```
     ///
     /// [`EntityType`]: type_system::EntityType
-    /// [`OwnedById`]: graph_types::provenance::OwnedById
-    /// [`OntologyElementMetadata`]: graph_types::ontology::OntologyElementMetadata
+    /// [`OwnedById`]: graph_types::owned_by_id::OwnedById
+    /// [`EntityTypeMetadata`]: graph_types::ontology::EntityTypeMetadata
     OwnedById,
-    /// The [`RecordCreatedById`] of the [`ProvenanceMetadata`] belonging to the [`EntityType`].
+    /// The [`CreatedById`] of the [`OntologyProvenanceMetadata`] belonging to the [`EntityType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["recordCreatedById"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::RecordCreatedById);
+    /// let path = EntityTypeQueryPath::deserialize(json!(["createdById"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::CreatedById);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`EntityType`]: type_system::EntityType
-    /// [`RecordCreatedById`]: graph_types::provenance::RecordCreatedById
-    /// [`ProvenanceMetadata`]: graph_types::provenance::ProvenanceMetadata
-    RecordCreatedById,
-    /// The [`RecordArchivedById`] of the [`ProvenanceMetadata`] belonging to the [`EntityType`].
+    /// [`CreatedById`]: graph_types::account::CreatedById
+    /// [`OntologyProvenanceMetadata`]: graph_types::ontology::OntologyProvenanceMetadata
+    CreatedById,
+    /// The [`ArchivedById`] of the [`OntologyProvenanceMetadata`] belonging to the [`EntityType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["recordArchivedById"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::RecordArchivedById);
+    /// let path = EntityTypeQueryPath::deserialize(json!(["archivedById"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::ArchivedById);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`EntityType`]: type_system::EntityType
-    /// [`RecordArchivedById`]: graph_types::provenance::RecordArchivedById
-    /// [`ProvenanceMetadata`]: graph_types::provenance::ProvenanceMetadata
-    RecordArchivedById,
+    /// [`ArchivedById`]: graph_types::account::ArchivedById
+    /// [`OntologyProvenanceMetadata`]: graph_types::ontology::OntologyProvenanceMetadata
+    ArchivedById,
     /// Corresponds to [`EntityType::title()`].
     ///
     /// ```rust
@@ -479,50 +479,21 @@ pub enum EntityTypeQueryPath<'p> {
 }
 
 impl OntologyQueryPath for EntityTypeQueryPath<'_> {
-    fn ontology_id() -> Self {
-        Self::OntologyId
-    }
-
     fn base_url() -> Self {
         Self::BaseUrl
     }
 
-    fn versioned_url() -> Self {
-        Self::VersionedUrl
-    }
-
     fn version() -> Self {
         Self::Version
-    }
-
-    fn transaction_time() -> Self {
-        Self::TransactionTime
-    }
-
-    fn record_created_by_id() -> Self {
-        Self::RecordCreatedById
-    }
-
-    fn record_archived_by_id() -> Self {
-        Self::RecordArchivedById
-    }
-
-    fn schema() -> Self {
-        Self::Schema(None)
-    }
-
-    fn additional_metadata() -> Self {
-        Self::AdditionalMetadata
     }
 }
 
 impl QueryPath for EntityTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::OntologyId
-            | Self::OwnedById
-            | Self::RecordCreatedById
-            | Self::RecordArchivedById => ParameterType::Uuid,
+            Self::OntologyId | Self::OwnedById | Self::CreatedById | Self::ArchivedById => {
+                ParameterType::Uuid
+            }
             Self::Schema(_) | Self::ClosedSchema(_) | Self::AdditionalMetadata => {
                 ParameterType::Object
             }
@@ -548,8 +519,8 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
             Self::VersionedUrl => fmt.write_str("versionedUrl"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::OwnedById => fmt.write_str("ownedById"),
-            Self::RecordCreatedById => fmt.write_str("recordCreatedById"),
-            Self::RecordArchivedById => fmt.write_str("recordArchivedById"),
+            Self::CreatedById => fmt.write_str("createdById"),
+            Self::ArchivedById => fmt.write_str("archivedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::ClosedSchema(Some(path)) => write!(fmt, "closedSchema.{path}"),
@@ -644,8 +615,8 @@ pub enum EntityTypeQueryToken {
     Version,
     VersionedUrl,
     OwnedById,
-    RecordCreatedById,
-    RecordArchivedById,
+    CreatedById,
+    ArchivedById,
     Title,
     Description,
     Examples,
@@ -670,9 +641,9 @@ pub struct EntityTypeQueryPathVisitor {
 
 impl EntityTypeQueryPathVisitor {
     pub const EXPECTING: &'static str =
-        "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `recordCreatedById`, \
-         `recordArchivedById`, `title`, `description`, `examples`, `properties`, `required`, \
-         `labelProperty`, `icon`, `links`, `inheritsFrom`, `children`";
+        "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `createdById`, `archivedById`, \
+         `title`, `description`, `examples`, `properties`, `required`, `labelProperty`, `icon`, \
+         `links`, `inheritsFrom`, `children`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -700,8 +671,8 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
 
         let query_path = match token {
             EntityTypeQueryToken::OwnedById => EntityTypeQueryPath::OwnedById,
-            EntityTypeQueryToken::RecordCreatedById => EntityTypeQueryPath::RecordCreatedById,
-            EntityTypeQueryToken::RecordArchivedById => EntityTypeQueryPath::RecordArchivedById,
+            EntityTypeQueryToken::CreatedById => EntityTypeQueryPath::CreatedById,
+            EntityTypeQueryToken::ArchivedById => EntityTypeQueryPath::ArchivedById,
             EntityTypeQueryToken::BaseUrl => EntityTypeQueryPath::BaseUrl,
             EntityTypeQueryToken::VersionedUrl => EntityTypeQueryPath::VersionedUrl,
             EntityTypeQueryToken::Version => EntityTypeQueryPath::Version,

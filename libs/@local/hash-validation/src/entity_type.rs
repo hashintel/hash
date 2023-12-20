@@ -215,14 +215,14 @@ where
 
         let right_entity_type_id = right_entity
             .as_ref()
-            .map(|entity| entity.borrow().metadata.entity_type_id());
+            .map(|entity| &entity.borrow().metadata.entity_type_id);
 
         if let Some(left_entity) = left_entity {
             let left_entity_type = provider
-                .provide_type(left_entity.borrow().metadata.entity_type_id())
+                .provide_type(&left_entity.borrow().metadata.entity_type_id)
                 .await
                 .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
-                    id: left_entity.borrow().metadata.entity_type_id().clone(),
+                    id: left_entity.borrow().metadata.entity_type_id.clone(),
                 })
                 .map_err(|error| extend_report!(status, error))
                 .ok();

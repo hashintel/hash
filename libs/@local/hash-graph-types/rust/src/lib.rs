@@ -3,7 +3,7 @@
 pub mod knowledge;
 pub mod ontology;
 
-pub mod provenance;
+pub mod owned_by_id;
 
 pub mod account;
 

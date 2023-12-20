@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use authorization::{backend::ZanzibarBackend, schema::WebRelationAndSubject};
 use error_stack::{Result, ResultExt};
-use graph_types::provenance::OwnedById;
+use graph_types::owned_by_id::OwnedById;
 use tokio_postgres::GenericClient;
 
 use crate::{

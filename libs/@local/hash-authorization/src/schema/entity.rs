@@ -3,7 +3,7 @@ use std::error::Error;
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::EntityUuid,
-    provenance::OwnedById,
+    owned_by_id::OwnedById,
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

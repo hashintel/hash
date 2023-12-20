@@ -360,8 +360,8 @@ pub enum OntologyAdditionalMetadata {
 pub enum OntologyTemporalMetadata {
     OntologyId,
     TransactionTime,
-    RecordCreatedById,
-    RecordArchivedById,
+    CreatedById,
+    ArchivedById,
 }
 
 fn transpile_json_field(
@@ -467,8 +467,8 @@ impl OntologyTemporalMetadata {
         let column = match self {
             Self::OntologyId => "ontology_id",
             Self::TransactionTime => "transaction_time",
-            Self::RecordCreatedById => "record_created_by_id",
-            Self::RecordArchivedById => "record_archived_by_id",
+            Self::CreatedById => "record_created_by_id",
+            Self::ArchivedById => "record_archived_by_id",
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
@@ -476,9 +476,7 @@ impl OntologyTemporalMetadata {
 
     pub const fn parameter_type(self) -> ParameterType {
         match self {
-            Self::OntologyId | Self::RecordCreatedById | Self::RecordArchivedById => {
-                ParameterType::Uuid
-            }
+            Self::OntologyId | Self::CreatedById | Self::ArchivedById => ParameterType::Uuid,
             Self::TransactionTime => ParameterType::TimeInterval,
         }
     }
@@ -708,7 +706,7 @@ pub enum EntityEditions<'p> {
     Properties(Option<JsonField<'p>>),
     LeftToRightOrder,
     RightToLeftOrder,
-    RecordCreatedById,
+    EditionCreatedById,
     Archived,
     Draft,
 }
@@ -716,7 +714,7 @@ pub enum EntityEditions<'p> {
 impl<'p> EntityEditions<'p> {
     pub const fn nullable(self) -> bool {
         match self {
-            Self::EditionId | Self::Archived | Self::Draft | Self::RecordCreatedById => false,
+            Self::EditionId | Self::Archived | Self::Draft | Self::EditionCreatedById => false,
             Self::Properties(_) | Self::LeftToRightOrder | Self::RightToLeftOrder => true,
         }
     }
@@ -729,7 +727,7 @@ impl<'p> EntityEditions<'p> {
             Self::EditionId => (EntityEditions::EditionId, None),
             Self::LeftToRightOrder => (EntityEditions::LeftToRightOrder, None),
             Self::RightToLeftOrder => (EntityEditions::RightToLeftOrder, None),
-            Self::RecordCreatedById => (EntityEditions::RecordCreatedById, None),
+            Self::EditionCreatedById => (EntityEditions::EditionCreatedById, None),
             Self::Archived => (EntityEditions::Archived, None),
             Self::Draft => (EntityEditions::Draft, None),
             Self::Properties(None) => (EntityEditions::Properties(None), None),
@@ -751,7 +749,7 @@ impl EntityEditions<'static> {
             }
             Self::LeftToRightOrder => "left_to_right_order",
             Self::RightToLeftOrder => "right_to_left_order",
-            Self::RecordCreatedById => "record_created_by_id",
+            Self::EditionCreatedById => "record_created_by_id",
             Self::Archived => "archived",
             Self::Draft => "draft",
         };
@@ -761,7 +759,7 @@ impl EntityEditions<'static> {
 
     pub const fn parameter_type(self) -> ParameterType {
         match self {
-            Self::EditionId | Self::RecordCreatedById => ParameterType::Uuid,
+            Self::EditionId | Self::EditionCreatedById => ParameterType::Uuid,
             Self::Properties(_) => ParameterType::Any,
             Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::I32,
             Self::Archived | Self::Draft => ParameterType::Boolean,

@@ -17,15 +17,16 @@ use authorization::{
 use error_stack::{ensure, Report, Result, ResultExt};
 use futures::TryStreamExt;
 use graph_types::{
-    account::AccountId,
+    account::{AccountId, EditionCreatedById},
     knowledge::{
         entity::{
-            Entity, EntityEditionId, EntityEmbedding, EntityId, EntityMetadata, EntityProperties,
-            EntityRecordId, EntityTemporalMetadata, EntityUuid,
+            Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding, EntityId,
+            EntityMetadata, EntityProperties, EntityProvenanceMetadata, EntityRecordId,
+            EntityTemporalMetadata, EntityUuid,
         },
         link::{EntityLinkOrder, LinkData},
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    owned_by_id::OwnedById,
     Embedding,
 };
 use hash_status::StatusCode;
@@ -418,9 +419,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             }
         };
 
+        let edition_created_by_id = EditionCreatedById::new(actor_id);
         let (edition_id, closed_schema) = transaction
             .insert_entity_edition(
-                RecordCreatedById::new(actor_id),
+                edition_created_by_id,
                 archived,
                 draft,
                 &entity_type_url,
@@ -532,23 +534,24 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
             Err(error)
         } else {
-            Ok(EntityMetadata::new(
-                EntityRecordId {
+            Ok(EntityMetadata {
+                record_id: EntityRecordId {
                     entity_id,
                     edition_id,
                 },
-                EntityTemporalMetadata {
+                temporal_versioning: EntityTemporalMetadata {
                     decision_time: row.get(0),
                     transaction_time: row.get(1),
                 },
-                entity_type_url,
-                ProvenanceMetadata {
-                    record_created_by_id: RecordCreatedById::new(actor_id),
-                    record_archived_by_id: None,
+                entity_type_id: entity_type_url,
+                provenance: EntityProvenanceMetadata {
+                    edition: EntityEditionProvenanceMetadata {
+                        created_by_id: edition_created_by_id,
+                    },
                 },
                 archived,
                 draft,
-            ))
+            })
         }
     }
 
@@ -763,7 +766,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         let entity_edition_ids = transaction
-            .insert_entity_records(entity_editions, RecordCreatedById::new(actor_id))
+            .insert_entity_records(entity_editions, EditionCreatedById::new(actor_id))
             .await?;
 
         let entity_versions = transaction
@@ -789,22 +792,23 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .into_iter()
             .zip(entity_versions)
             .zip(entity_edition_ids)
-            .map(|(((entity_id, ..), entity_version), edition_id)| {
-                EntityMetadata::new(
-                    EntityRecordId {
+            .map(
+                |(((entity_id, ..), temporal_versioning), edition_id)| EntityMetadata {
+                    record_id: EntityRecordId {
                         entity_id,
                         edition_id,
                     },
-                    entity_version,
-                    entity_type_url.clone(),
-                    ProvenanceMetadata {
-                        record_created_by_id: RecordCreatedById::new(actor_id),
-                        record_archived_by_id: None,
+                    temporal_versioning,
+                    entity_type_id: entity_type_url.clone(),
+                    provenance: EntityProvenanceMetadata {
+                        edition: EntityEditionProvenanceMetadata {
+                            created_by_id: EditionCreatedById::new(actor_id),
+                        },
                     },
-                    false,
-                    false,
-                )
-            })
+                    archived: false,
+                    draft: false,
+                },
+            )
             .collect())
     }
 
@@ -970,7 +974,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         .change_context(EntityDoesNotExist)
         .attach(entity_id)
         .change_context(UpdateError)?;
-        let was_draft_before = previous_entity.metadata.draft();
+        let was_draft_before = previous_entity.metadata.draft;
 
         if draft && !was_draft_before {
             return Err(PermissionAssertion)
@@ -980,7 +984,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let (edition_id, closed_schema) = transaction
             .insert_entity_edition(
-                RecordCreatedById::new(actor_id),
+                EditionCreatedById::new(actor_id),
                 archived,
                 draft,
                 &entity_type_url,
@@ -1070,23 +1074,24 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         transaction.commit().await.change_context(UpdateError)?;
 
-        Ok(EntityMetadata::new(
-            EntityRecordId {
+        Ok(EntityMetadata {
+            record_id: EntityRecordId {
                 entity_id,
                 edition_id,
             },
-            EntityTemporalMetadata {
+            temporal_versioning: EntityTemporalMetadata {
                 decision_time: row.get(0),
                 transaction_time: row.get(1),
             },
-            entity_type_url,
-            ProvenanceMetadata {
-                record_created_by_id: RecordCreatedById::new(actor_id),
-                record_archived_by_id: None,
+            entity_type_id: entity_type_url,
+            provenance: EntityProvenanceMetadata {
+                edition: EntityEditionProvenanceMetadata {
+                    created_by_id: EditionCreatedById::new(actor_id),
+                },
             },
             archived,
             draft,
-        ))
+        })
     }
 
     async fn update_entity_embeddings<A: AuthorizationApi + Send + Sync>(
@@ -1157,7 +1162,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn insert_entity_edition(
         &self,
-        record_created_by_id: RecordCreatedById,
+        edition_created_by_id: EditionCreatedById,
         archived: bool,
         draft: bool,
         entity_type_id: &VersionedUrl,
@@ -1180,7 +1185,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     RETURNING entity_edition_id;
                 ",
                 &[
-                    &record_created_by_id,
+                    &edition_created_by_id,
                     &archived,
                     &draft,
                     &properties,

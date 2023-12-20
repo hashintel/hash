@@ -5,13 +5,13 @@ use authorization::schema::EntityTypeId;
 use error_stack::{Result, ResultExt};
 use futures::{Stream, StreamExt, TryStreamExt};
 use graph_types::{
-    account::AccountId,
+    account::CreatedById,
     ontology::{
-        CustomOntologyMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
-        OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,
-        OntologyTypeVersion, OntologyTypeWithMetadata, PropertyTypeWithMetadata,
+        DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
+        OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
+        OntologyTypeRecordId, OntologyTypeVersion, PropertyTypeMetadata, PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+    owned_by_id::OwnedById,
 };
 use postgres_types::Json;
 use serde::Deserialize;
@@ -25,10 +25,6 @@ use type_system::{
 
 use crate::{
     ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
-    snapshot::{
-        DataTypeSnapshotRecord, EntityTypeSnapshotRecord, OntologyTypeSnapshotRecord,
-        PropertyTypeSnapshotRecord,
-    },
     store::{
         crud::Read,
         postgres::{
@@ -47,9 +43,14 @@ use crate::{
     },
 };
 
+struct CursorParameters<'p> {
+    base_url: Parameter<'p>,
+    version: Parameter<'p>,
+}
+
 #[derive(Deserialize)]
 #[serde(untagged)]
-enum AdditionalOntologyMetadata {
+enum PostgresOntologyTypeClassificationMetadata {
     Owned {
         web_id: OwnedById,
     },
@@ -59,16 +60,24 @@ enum AdditionalOntologyMetadata {
     },
 }
 
-struct CursorParameters<'p> {
-    base_url: Parameter<'p>,
-    version: Parameter<'p>,
+impl From<PostgresOntologyTypeClassificationMetadata> for OntologyTypeClassificationMetadata {
+    fn from(value: PostgresOntologyTypeClassificationMetadata) -> Self {
+        match value {
+            PostgresOntologyTypeClassificationMetadata::Owned { web_id } => Self::Owned {
+                owned_by_id: web_id,
+            },
+            PostgresOntologyTypeClassificationMetadata::External { fetched_at } => {
+                Self::External { fetched_at }
+            }
+        }
+    }
 }
 
 #[async_trait]
-impl<C: AsClient> Read<DataTypeSnapshotRecord> for PostgresStore<C> {
+impl<C: AsClient> Read<DataTypeWithMetadata> for PostgresStore<C> {
     type Record = DataTypeWithMetadata;
 
-    type ReadStream = impl Stream<Item = Result<DataTypeSnapshotRecord, QueryError>> + Send + Sync;
+    type ReadStream = impl Stream<Item = Result<DataTypeWithMetadata, QueryError>> + Send + Sync;
 
     #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
@@ -131,10 +140,9 @@ impl<C: AsClient> Read<DataTypeSnapshotRecord> for PostgresStore<C> {
             Some(Ordering::Descending),
         );
         let schema_index = compiler.add_selection_path(&DataTypeQueryPath::Schema(None));
-        let record_created_by_id_path_index =
-            compiler.add_selection_path(&DataTypeQueryPath::RecordCreatedById);
+        let created_by_id_path_index = compiler.add_selection_path(&DataTypeQueryPath::CreatedById);
         let record_archived_by_id_path_index =
-            compiler.add_selection_path(&DataTypeQueryPath::RecordArchivedById);
+            compiler.add_selection_path(&DataTypeQueryPath::ArchivedById);
         let additional_metadata_index =
             compiler.add_selection_path(&DataTypeQueryPath::AdditionalMetadata);
 
@@ -148,51 +156,28 @@ impl<C: AsClient> Read<DataTypeSnapshotRecord> for PostgresStore<C> {
             .change_context(QueryError)?
             .map(|row| row.change_context(QueryError))
             .and_then(move |row| async move {
-                let Json(additional_metadata): Json<AdditionalOntologyMetadata> =
-                    row.get(additional_metadata_index);
-
-                let provenance = ProvenanceMetadata {
-                    record_created_by_id: RecordCreatedById::new(
-                        row.get(record_created_by_id_path_index),
-                    ),
-                    record_archived_by_id: row
-                        .get::<_, Option<AccountId>>(record_archived_by_id_path_index)
-                        .map(RecordArchivedById::new),
-                };
-
-                let temporal_versioning = OntologyTemporalMetadata {
-                    transaction_time: row.get(transaction_time_index),
-                };
-
-                let custom_metadata = match additional_metadata {
-                    AdditionalOntologyMetadata::Owned {
-                        web_id: owned_by_id,
-                    } => CustomOntologyMetadata::Owned {
-                        provenance,
-                        temporal_versioning,
-                        owned_by_id,
-                    },
-                    AdditionalOntologyMetadata::External { fetched_at } => {
-                        CustomOntologyMetadata::External {
-                            provenance,
-                            temporal_versioning,
-                            fetched_at,
-                        }
-                    }
-                };
-
-                Ok(OntologyTypeSnapshotRecord {
-                    schema: serde_json::from_value(row.get(schema_index))
-                        .change_context(QueryError)?,
-                    metadata: OntologyElementMetadata {
+                Ok(DataTypeWithMetadata {
+                    schema: row.get::<_, Json<_>>(schema_index).0,
+                    metadata: DataTypeMetadata {
                         record_id: OntologyTypeRecordId {
                             base_url: BaseUrl::new(row.get(base_url_index))
                                 .change_context(QueryError)?,
                             version: row.get(version_index),
                         },
-                        custom: custom_metadata,
+                        classification: row
+                            .get::<_, Json<PostgresOntologyTypeClassificationMetadata>>(
+                                additional_metadata_index,
+                            )
+                            .0
+                            .into(),
+                        temporal_versioning: OntologyTemporalMetadata {
+                            transaction_time: row.get(transaction_time_index),
+                        },
+                        provenance: OntologyProvenanceMetadata {
+                            created_by_id: CreatedById::new(row.get(created_by_id_path_index)),
+                            archived_by_id: row.get(record_archived_by_id_path_index),
+                        },
                     },
-                    relations: Vec::new(),
                 })
             });
         Ok(stream)
@@ -200,11 +185,11 @@ impl<C: AsClient> Read<DataTypeSnapshotRecord> for PostgresStore<C> {
 }
 
 #[async_trait]
-impl<C: AsClient> Read<PropertyTypeSnapshotRecord> for PostgresStore<C> {
+impl<C: AsClient> Read<PropertyTypeWithMetadata> for PostgresStore<C> {
     type Record = PropertyTypeWithMetadata;
 
     type ReadStream =
-        impl Stream<Item = Result<PropertyTypeSnapshotRecord, QueryError>> + Send + Sync;
+        impl Stream<Item = Result<PropertyTypeWithMetadata, QueryError>> + Send + Sync;
 
     #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
@@ -267,10 +252,10 @@ impl<C: AsClient> Read<PropertyTypeSnapshotRecord> for PostgresStore<C> {
             Some(Ordering::Descending),
         );
         let schema_index = compiler.add_selection_path(&PropertyTypeQueryPath::Schema(None));
-        let record_created_by_id_path_index =
-            compiler.add_selection_path(&PropertyTypeQueryPath::RecordCreatedById);
+        let created_by_id_path_index =
+            compiler.add_selection_path(&PropertyTypeQueryPath::CreatedById);
         let record_archived_by_id_path_index =
-            compiler.add_selection_path(&PropertyTypeQueryPath::RecordArchivedById);
+            compiler.add_selection_path(&PropertyTypeQueryPath::ArchivedById);
         let additional_metadata_index =
             compiler.add_selection_path(&PropertyTypeQueryPath::AdditionalMetadata);
 
@@ -284,51 +269,28 @@ impl<C: AsClient> Read<PropertyTypeSnapshotRecord> for PostgresStore<C> {
             .change_context(QueryError)?
             .map(|row| row.change_context(QueryError))
             .and_then(move |row| async move {
-                let Json(additional_metadata): Json<AdditionalOntologyMetadata> =
-                    row.get(additional_metadata_index);
-
-                let provenance = ProvenanceMetadata {
-                    record_created_by_id: RecordCreatedById::new(
-                        row.get(record_created_by_id_path_index),
-                    ),
-                    record_archived_by_id: row
-                        .get::<_, Option<AccountId>>(record_archived_by_id_path_index)
-                        .map(RecordArchivedById::new),
-                };
-
-                let temporal_versioning = OntologyTemporalMetadata {
-                    transaction_time: row.get(transaction_time_index),
-                };
-
-                let custom_metadata = match additional_metadata {
-                    AdditionalOntologyMetadata::Owned {
-                        web_id: owned_by_id,
-                    } => CustomOntologyMetadata::Owned {
-                        provenance,
-                        temporal_versioning,
-                        owned_by_id,
-                    },
-                    AdditionalOntologyMetadata::External { fetched_at } => {
-                        CustomOntologyMetadata::External {
-                            provenance,
-                            temporal_versioning,
-                            fetched_at,
-                        }
-                    }
-                };
-
-                Ok(OntologyTypeSnapshotRecord {
-                    schema: serde_json::from_value(row.get(schema_index))
-                        .change_context(QueryError)?,
-                    metadata: OntologyElementMetadata {
+                Ok(PropertyTypeWithMetadata {
+                    schema: row.get::<_, Json<_>>(schema_index).0,
+                    metadata: PropertyTypeMetadata {
                         record_id: OntologyTypeRecordId {
                             base_url: BaseUrl::new(row.get(base_url_index))
                                 .change_context(QueryError)?,
                             version: row.get(version_index),
                         },
-                        custom: custom_metadata,
+                        classification: row
+                            .get::<_, Json<PostgresOntologyTypeClassificationMetadata>>(
+                                additional_metadata_index,
+                            )
+                            .0
+                            .into(),
+                        temporal_versioning: OntologyTemporalMetadata {
+                            transaction_time: row.get(transaction_time_index),
+                        },
+                        provenance: OntologyProvenanceMetadata {
+                            created_by_id: CreatedById::new(row.get(created_by_id_path_index)),
+                            archived_by_id: row.get(record_archived_by_id_path_index),
+                        },
                     },
-                    relations: Vec::new(),
                 })
             });
         Ok(stream)
@@ -336,11 +298,10 @@ impl<C: AsClient> Read<PropertyTypeSnapshotRecord> for PostgresStore<C> {
 }
 
 #[async_trait]
-impl<C: AsClient> Read<EntityTypeSnapshotRecord> for PostgresStore<C> {
-    type Record = OntologyTypeWithMetadata<EntityType>;
+impl<C: AsClient> Read<EntityTypeWithMetadata> for PostgresStore<C> {
+    type Record = EntityTypeWithMetadata;
 
-    type ReadStream =
-        impl Stream<Item = Result<EntityTypeSnapshotRecord, QueryError>> + Send + Sync;
+    type ReadStream = impl Stream<Item = Result<EntityTypeWithMetadata, QueryError>> + Send + Sync;
 
     #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
@@ -403,10 +364,10 @@ impl<C: AsClient> Read<EntityTypeSnapshotRecord> for PostgresStore<C> {
             Some(Ordering::Descending),
         );
         let schema_index = compiler.add_selection_path(&EntityTypeQueryPath::Schema(None));
-        let record_created_by_id_path_index =
-            compiler.add_selection_path(&EntityTypeQueryPath::RecordCreatedById);
+        let created_by_id_path_index =
+            compiler.add_selection_path(&EntityTypeQueryPath::CreatedById);
         let record_archived_by_id_path_index =
-            compiler.add_selection_path(&EntityTypeQueryPath::RecordArchivedById);
+            compiler.add_selection_path(&EntityTypeQueryPath::ArchivedById);
         let additional_metadata_index =
             compiler.add_selection_path(&EntityTypeQueryPath::AdditionalMetadata);
         let label_property_index = compiler.add_selection_path(&EntityTypeQueryPath::LabelProperty);
@@ -422,160 +383,38 @@ impl<C: AsClient> Read<EntityTypeSnapshotRecord> for PostgresStore<C> {
             .change_context(QueryError)?
             .map(|row| row.change_context(QueryError))
             .and_then(move |row| async move {
-                let Json(additional_metadata): Json<AdditionalOntologyMetadata> =
-                    row.get(additional_metadata_index);
-
-                let provenance = ProvenanceMetadata {
-                    record_created_by_id: RecordCreatedById::new(
-                        row.get(record_created_by_id_path_index),
-                    ),
-                    record_archived_by_id: row
-                        .get::<_, Option<AccountId>>(record_archived_by_id_path_index)
-                        .map(RecordArchivedById::new),
-                };
-
-                let temporal_versioning = OntologyTemporalMetadata {
-                    transaction_time: row.get(transaction_time_index),
-                };
-
-                let custom_metadata = match additional_metadata {
-                    AdditionalOntologyMetadata::Owned {
-                        web_id: owned_by_id,
-                    } => CustomOntologyMetadata::Owned {
-                        provenance,
-                        temporal_versioning,
-                        owned_by_id,
-                    },
-                    AdditionalOntologyMetadata::External { fetched_at } => {
-                        CustomOntologyMetadata::External {
-                            provenance,
-                            temporal_versioning,
-                            fetched_at,
-                        }
-                    }
-                };
-
                 let label_property = row
                     .get::<_, Option<String>>(label_property_index)
                     .map(BaseUrl::new)
                     .transpose()
                     .change_context(QueryError)?;
 
-                Ok(OntologyTypeSnapshotRecord {
-                    schema: serde_json::from_value(row.get(schema_index))
-                        .change_context(QueryError)?,
+                Ok(EntityTypeWithMetadata {
+                    schema: row.get::<_, Json<_>>(schema_index).0,
                     metadata: EntityTypeMetadata {
                         record_id: OntologyTypeRecordId {
                             base_url: BaseUrl::new(row.get(base_url_index))
                                 .change_context(QueryError)?,
                             version: row.get(version_index),
                         },
+                        classification: row
+                            .get::<_, Json<PostgresOntologyTypeClassificationMetadata>>(
+                                additional_metadata_index,
+                            )
+                            .0
+                            .into(),
+                        temporal_versioning: OntologyTemporalMetadata {
+                            transaction_time: row.get(transaction_time_index),
+                        },
+                        provenance: OntologyProvenanceMetadata {
+                            created_by_id: CreatedById::new(row.get(created_by_id_path_index)),
+                            archived_by_id: row.get(record_archived_by_id_path_index),
+                        },
                         label_property,
                         icon: row.get(icon_index),
-                        custom: custom_metadata,
                     },
-                    relations: Vec::new(),
                 })
             });
-        Ok(stream)
-    }
-}
-
-#[async_trait]
-impl<C: AsClient> Read<DataTypeWithMetadata> for PostgresStore<C> {
-    type Record = DataTypeWithMetadata;
-
-    type ReadStream =
-        impl futures::Stream<Item = Result<DataTypeWithMetadata, QueryError>> + Send + Sync;
-
-    #[tracing::instrument(level = "info", skip(self, filter))]
-    async fn read(
-        &self,
-        filter: &Filter<DataTypeWithMetadata>,
-        temporal_axes: Option<&QueryTemporalAxes>,
-        after: Option<&<Self::Record as Record>::VertexId>,
-        limit: Option<usize>,
-        include_drafts: bool,
-    ) -> Result<Self::ReadStream, QueryError> {
-        let stream = Read::<DataTypeSnapshotRecord>::read(
-            self,
-            filter,
-            temporal_axes,
-            after,
-            limit,
-            include_drafts,
-        )
-        .await?
-        .map_ok(|record| DataTypeWithMetadata {
-            schema: record.schema,
-            metadata: record.metadata,
-        });
-        Ok(stream)
-    }
-}
-
-#[async_trait]
-impl<C: AsClient> Read<PropertyTypeWithMetadata> for PostgresStore<C> {
-    type Record = PropertyTypeWithMetadata;
-
-    type ReadStream =
-        impl futures::Stream<Item = Result<PropertyTypeWithMetadata, QueryError>> + Send + Sync;
-
-    #[tracing::instrument(level = "info", skip(self, filter))]
-    async fn read(
-        &self,
-        filter: &Filter<PropertyTypeWithMetadata>,
-        temporal_axes: Option<&QueryTemporalAxes>,
-        after: Option<&<Self::Record as Record>::VertexId>,
-        limit: Option<usize>,
-        include_drafts: bool,
-    ) -> Result<Self::ReadStream, QueryError> {
-        let stream = Read::<PropertyTypeSnapshotRecord>::read(
-            self,
-            filter,
-            temporal_axes,
-            after,
-            limit,
-            include_drafts,
-        )
-        .await?
-        .map_ok(|record| PropertyTypeWithMetadata {
-            schema: record.schema,
-            metadata: record.metadata,
-        });
-        Ok(stream)
-    }
-}
-
-#[async_trait]
-impl<C: AsClient> Read<EntityTypeWithMetadata> for PostgresStore<C> {
-    type Record = EntityTypeWithMetadata;
-
-    type ReadStream =
-        impl futures::Stream<Item = Result<EntityTypeWithMetadata, QueryError>> + Send + Sync;
-
-    #[tracing::instrument(level = "info", skip(self, filter))]
-    async fn read(
-        &self,
-        filter: &Filter<EntityTypeWithMetadata>,
-        temporal_axes: Option<&QueryTemporalAxes>,
-        after: Option<&<Self::Record as Record>::VertexId>,
-        limit: Option<usize>,
-        include_drafts: bool,
-    ) -> Result<Self::ReadStream, QueryError> {
-        let stream = Read::<EntityTypeSnapshotRecord>::read(
-            self,
-            filter,
-            temporal_axes,
-            after,
-            limit,
-            include_drafts,
-        )
-        .await?
-        .map_ok(|record| EntityTypeWithMetadata {
-            schema: record.schema,
-            metadata: record.metadata,
-        });
         Ok(stream)
     }
 }

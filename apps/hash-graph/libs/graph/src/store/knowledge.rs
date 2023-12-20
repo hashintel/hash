@@ -9,7 +9,7 @@ use graph_types::{
         entity::{Entity, EntityEmbedding, EntityId, EntityMetadata, EntityProperties, EntityUuid},
         link::{EntityLinkOrder, LinkData},
     },
-    provenance::OwnedById,
+    owned_by_id::OwnedById,
 };
 use temporal_versioning::{DecisionTime, Timestamp};
 use type_system::{url::VersionedUrl, EntityType};

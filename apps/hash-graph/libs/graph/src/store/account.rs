@@ -3,7 +3,7 @@ use authorization::{schema::WebOwnerSubject, AuthorizationApi};
 use error_stack::Result;
 use graph_types::{
     account::{AccountGroupId, AccountId},
-    provenance::OwnedById,
+    owned_by_id::OwnedById,
 };
 
 use crate::store::{InsertionError, QueryError};

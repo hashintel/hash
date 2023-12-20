@@ -38,11 +38,11 @@ use graph::{
 };
 use graph_types::{
     ontology::{
-        EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
-        OntologyTemporalMetadata, OntologyTypeRecordId, OntologyTypeReference,
-        PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
+        EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeRecordId,
+        OntologyTypeReference, PartialEntityTypeMetadata,
     },
-    provenance::OwnedById,
+    owned_by_id::OwnedById,
 };
 use hash_map::HashMap;
 use serde::{Deserialize, Serialize};
@@ -419,7 +419,7 @@ where
             record_id: entity_type.id().clone().into(),
             label_property: label_property.clone(),
             icon: icon.clone(),
-            custom: PartialCustomOntologyMetadata::Owned { owned_by_id },
+            classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
         });
 
         entity_types.push(entity_type);
@@ -545,7 +545,7 @@ enum LoadExternalEntityTypeRequest {
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the created entity type", body = OntologyElementMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the created entity type", body = EntityTypeMetadata),
         (status = 400, content_type = "application/json", description = "Provided request body is invalid", body = VAR_STATUS),
 
         (status = 409, content_type = "application/json", description = "Unable to load entity type in the datastore as the entity type ID already exists", body = VAR_STATUS),
@@ -564,7 +564,7 @@ async fn load_external_entity_type<S, A>(
     Json(request): Json<LoadExternalEntityTypeRequest>,
     // TODO: We want to be able to return `Status` here we should try and create a general way to
     //  call `status_to_response` for our routes that return Status
-) -> Result<Json<OntologyElementMetadata>, Response>
+) -> Result<Json<EntityTypeMetadata>, Response>
 where
     S: StorePool + Send + Sync,
     for<'pool> S::Store<'pool>: RestApiStore,
@@ -607,16 +607,21 @@ where
     })?;
 
     match request {
-        LoadExternalEntityTypeRequest::Fetch { entity_type_id } => Ok(Json(
-            store
+        LoadExternalEntityTypeRequest::Fetch { entity_type_id } => {
+            let OntologyTypeMetadata::EntityType(metadata) = store
                 .load_external_type(
                     actor_id,
                     &mut authorization_api,
                     &domain_validator,
                     OntologyTypeReference::EntityTypeReference((&entity_type_id).into()),
                 )
-                .await?,
-        )),
+                .await?
+            else {
+                // TODO: Make the type fetcher typed
+                panic!("`load_external_type` should have returned a `EntityTypeMetadata`");
+            };
+            Ok(Json(metadata))
+        }
         LoadExternalEntityTypeRequest::Create {
             schema,
             label_property,
@@ -645,15 +650,14 @@ where
                             record_id,
                             label_property,
                             icon,
-                            custom: PartialCustomOntologyMetadata::External {
+                            classification: OntologyTypeClassificationMetadata::External {
                                 fetched_at: OffsetDateTime::now_utc(),
                             },
                         },
                         relationships,
                     )
                     .await
-                    .map_err(report_to_response)?
-                    .into(),
+                    .map_err(report_to_response)?,
             ))
         }
     }
@@ -751,7 +755,7 @@ struct UpdateEntityTypeRequest {
         ("limit" = Option<usize>, Query, description = "The maximum number of entity types to read"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the updated entity type", body = OntologyElementMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the updated entity type", body = EntityTypeMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base entity type ID was not found"),

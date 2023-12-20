@@ -10,7 +10,7 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_types::ontology::{OntologyElementMetadata, OntologyTypeVersion};
+use graph_types::ontology::OntologyTypeVersion;
 use postgres_types::Json;
 use uuid::Uuid;
 
@@ -83,10 +83,10 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         self.metadata
             .start_send_unpin((
                 ontology_id,
-                OntologyElementMetadata {
-                    record_id: entity_type.metadata.record_id,
-                    custom: entity_type.metadata.custom,
-                },
+                entity_type.metadata.record_id,
+                entity_type.metadata.classification,
+                entity_type.metadata.temporal_versioning,
+                entity_type.metadata.provenance,
             ))
             .attach_printable("could not send metadata")?;
 

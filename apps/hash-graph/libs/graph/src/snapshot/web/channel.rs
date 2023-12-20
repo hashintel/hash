@@ -11,7 +11,7 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_types::provenance::OwnedById;
+use graph_types::owned_by_id::OwnedById;
 
 use crate::snapshot::{
     web::{WebBatch, WebRow},

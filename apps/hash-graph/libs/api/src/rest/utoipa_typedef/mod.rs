@@ -1,6 +1,6 @@
 pub(crate) mod subgraph;
 
-use graph_types::ontology::{EntityTypeMetadata, OntologyElementMetadata};
+use graph_types::ontology::EntityTypeMetadata;
 use serde::{Deserialize, Serialize};
 use type_system::{DataType, EntityType, PropertyType};
 use utoipa::{
@@ -34,16 +34,6 @@ impl<T> ListOrValue<T> {
             .item(Ref::from_schema_name(&schema_name))
             .item(Ref::from_schema_name(schema_name).to_array_builder())
             .into()
-    }
-}
-
-pub(crate) type MaybeListOfOntologyElementMetadata = ListOrValue<OntologyElementMetadata>;
-impl ToSchema<'_> for MaybeListOfOntologyElementMetadata {
-    fn schema() -> (&'static str, RefOr<Schema>) {
-        (
-            "MaybeListOfOntologyElementMetadata",
-            Self::generate_schema(OntologyElementMetadata::schema().0, Action::Reference),
-        )
     }
 }
 

@@ -15,12 +15,12 @@ use authorization::{
 };
 use error_stack::{Result, ResultExt};
 use graph_types::{
-    account::AccountId,
+    account::{AccountId, ArchivedById, CreatedById},
     ontology::{
-        DataTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
-        PartialCustomOntologyMetadata, PartialOntologyElementMetadata,
+        DataTypeMetadata, DataTypeWithMetadata, OntologyProvenanceMetadata,
+        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
+        PartialDataTypeMetadata,
     },
-    provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{url::VersionedUrl, DataType};
@@ -143,17 +143,16 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
-        data_types: impl IntoIterator<Item = (DataType, PartialOntologyElementMetadata), IntoIter: Send>
-        + Send,
+        data_types: impl IntoIterator<Item = (DataType, PartialDataTypeMetadata), IntoIter: Send> + Send,
         on_conflict: ConflictBehavior,
         relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
-    ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
+    ) -> Result<Vec<DataTypeMetadata>, InsertionError> {
         let requested_relationships = relationships.into_iter().collect::<Vec<_>>();
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        let provenance = ProvenanceMetadata {
-            record_created_by_id: RecordCreatedById::new(actor_id),
-            record_archived_by_id: None,
+        let provenance = OntologyProvenanceMetadata {
+            created_by_id: CreatedById::new(actor_id),
+            archived_by_id: None,
         };
 
         let mut relationships = Vec::new();
@@ -161,7 +160,9 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let mut inserted_data_type_metadata = Vec::new();
         for (schema, metadata) in data_types {
             let data_type_id = DataTypeId::from_url(schema.id());
-            if let PartialCustomOntologyMetadata::Owned { owned_by_id } = &metadata.custom {
+            if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
+                &metadata.classification
+            {
                 authorization_api
                     .check_web_permission(
                         actor_id,
@@ -189,21 +190,22 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     .map(|relation_and_subject| (data_type_id, *relation_and_subject)),
             );
 
-            if let Some((ontology_id, transaction_time)) = transaction
+            if let Some((ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
-                    provenance.record_created_by_id,
+                    provenance.created_by_id,
                     &metadata.record_id,
-                    &metadata.custom,
+                    &metadata.classification,
                     on_conflict,
                 )
                 .await?
             {
                 transaction.insert_with_id(ontology_id, &schema).await?;
-                inserted_data_type_metadata.push(OntologyElementMetadata::from_partial(
-                    metadata,
+                inserted_data_type_metadata.push(DataTypeMetadata {
+                    record_id: metadata.record_id,
+                    classification: metadata.classification,
+                    temporal_versioning,
                     provenance,
-                    transaction_time,
-                ));
+                });
             }
         }
 
@@ -359,7 +361,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         authorization_api: &mut A,
         data_type: DataType,
         relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
-    ) -> Result<OntologyElementMetadata, UpdateError> {
+    ) -> Result<DataTypeMetadata, UpdateError> {
         let old_ontology_id = DataTypeId::from_url(&VersionedUrl {
             base_url: data_type.id().base_url.clone(),
             version: data_type.id().version - 1,
@@ -378,8 +380,8 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
-        let (ontology_id, owned_by_id, metadata) = transaction
-            .update::<DataType>(&data_type, RecordCreatedById::new(actor_id))
+        let (ontology_id, owned_by_id, temporal_versioning) = transaction
+            .update::<DataType>(&data_type, CreatedById::new(actor_id))
             .await?;
         let data_type_id = DataTypeId::from(ontology_id);
 
@@ -423,7 +425,15 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
             Err(error)
         } else {
-            Ok(metadata)
+            Ok(DataTypeMetadata {
+                record_id: OntologyTypeRecordId::from(data_type.id().clone()),
+                classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
+                temporal_versioning,
+                provenance: OntologyProvenanceMetadata {
+                    created_by_id: CreatedById::new(actor_id),
+                    archived_by_id: None,
+                },
+            })
         }
     }
 
@@ -434,7 +444,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.archive_ontology_type(id, RecordArchivedById::new(actor_id))
+        self.archive_ontology_type(id, ArchivedById::new(actor_id))
             .await
     }
 
@@ -445,7 +455,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(id, RecordCreatedById::new(actor_id))
+        self.unarchive_ontology_type(id, CreatedById::new(actor_id))
             .await
     }
 }

@@ -37,7 +37,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             Self::BaseUrl | Self::Version => vec![Relation::OntologyIds],
             Self::OwnedById => vec![Relation::OntologyOwnedMetadata],
             Self::AdditionalMetadata => vec![Relation::OntologyAdditionalMetadata],
-            Self::TransactionTime | Self::RecordCreatedById | Self::RecordArchivedById => vec![],
+            Self::TransactionTime | Self::CreatedById | Self::ArchivedById => vec![],
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                 path,
@@ -128,11 +128,11 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
                 Column::OntologyTemporalMetadata(OntologyTemporalMetadata::TransactionTime)
             }
             Self::OwnedById => Column::OntologyOwnedMetadata(OntologyOwnedMetadata::WebId),
-            Self::RecordCreatedById => {
-                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::RecordCreatedById)
+            Self::CreatedById => {
+                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::CreatedById)
             }
-            Self::RecordArchivedById => {
-                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::RecordArchivedById)
+            Self::ArchivedById => {
+                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::ArchivedById)
             }
             Self::OntologyId => Column::EntityTypes(EntityTypes::OntologyId),
             Self::Schema(path) => path

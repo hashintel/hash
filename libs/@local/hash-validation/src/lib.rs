@@ -145,7 +145,7 @@ mod tests {
             Self {
                 entities: entities
                     .into_iter()
-                    .map(|entity| (entity.metadata.record_id().entity_id, entity))
+                    .map(|entity| (entity.metadata.record_id.entity_id, entity))
                     .collect(),
                 entity_types: entity_types
                     .into_iter()

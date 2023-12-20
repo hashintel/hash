@@ -38,11 +38,11 @@ use graph::{
 };
 use graph_types::{
     ontology::{
-        OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,
-        OntologyTypeReference, PartialCustomOntologyMetadata, PartialOntologyElementMetadata,
-        PropertyTypeWithMetadata,
+        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
+        OntologyTypeRecordId, OntologyTypeReference, PartialPropertyTypeMetadata,
+        PropertyTypeMetadata, PropertyTypeWithMetadata,
     },
-    provenance::OwnedById,
+    owned_by_id::OwnedById,
 };
 use hash_status::Status;
 use serde::{Deserialize, Serialize};
@@ -175,7 +175,7 @@ async fn create_property_type<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreatePropertyTypeRequest>,
-) -> Result<Json<ListOrValue<OntologyElementMetadata>>, StatusCode>
+) -> Result<Json<ListOrValue<PropertyTypeMetadata>>, StatusCode>
 where
     S: StorePool + Send + Sync,
     for<'pool> S::Store<'pool>: RestApiStore,
@@ -206,9 +206,9 @@ where
                 StatusCode::UNPROCESSABLE_ENTITY
             })?;
 
-        partial_metadata.push(PartialOntologyElementMetadata {
+        partial_metadata.push(PartialPropertyTypeMetadata {
             record_id: property_type.id().clone().into(),
-            custom: PartialCustomOntologyMetadata::Owned { owned_by_id },
+            classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
         });
 
         property_types.push(property_type);
@@ -275,7 +275,7 @@ enum LoadExternalPropertyTypeRequest {
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the loaded property type", body = OntologyElementMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the loaded property type", body = PropertyTypeMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to load property type in the store as the base property type ID already exists"),
@@ -292,7 +292,7 @@ async fn load_external_property_type<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     domain_validator: Extension<DomainValidator>,
     Json(request): Json<LoadExternalPropertyTypeRequest>,
-) -> Result<Json<OntologyElementMetadata>, Response>
+) -> Result<Json<PropertyTypeMetadata>, Response>
 where
     S: StorePool + Send + Sync,
     for<'pool> S::Store<'pool>: RestApiStore,
@@ -305,16 +305,21 @@ where
         .map_err(report_to_response)?;
 
     match request {
-        LoadExternalPropertyTypeRequest::Fetch { property_type_id } => Ok(Json(
-            store
+        LoadExternalPropertyTypeRequest::Fetch { property_type_id } => {
+            let OntologyTypeMetadata::PropertyType(metadata) = store
                 .load_external_type(
                     actor_id,
                     &mut authorization_api,
                     &domain_validator,
                     OntologyTypeReference::PropertyTypeReference((&property_type_id).into()),
                 )
-                .await?,
-        )),
+                .await?
+            else {
+                // TODO: Make the type fetcher typed
+                panic!("`load_external_type` should have returned a `PropertyTypeMetadata`");
+            };
+            Ok(Json(metadata))
+        }
         LoadExternalPropertyTypeRequest::Create {
             schema,
             relationships,
@@ -337,9 +342,9 @@ where
                         actor_id,
                         &mut authorization_api,
                         schema,
-                        PartialOntologyElementMetadata {
+                        PartialPropertyTypeMetadata {
                             record_id,
-                            custom: PartialCustomOntologyMetadata::External {
+                            classification: OntologyTypeClassificationMetadata::External {
                                 fetched_at: OffsetDateTime::now_utc(),
                             },
                         },
@@ -440,7 +445,7 @@ struct UpdatePropertyTypeRequest {
         ("limit" = Option<usize>, Query, description = "The maximum number of property types to read"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the updated property type", body = OntologyElementMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the updated property type", body = PropertyTypeMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base property type ID was not found"),
@@ -454,7 +459,7 @@ async fn update_property_type<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     body: Json<UpdatePropertyTypeRequest>,
-) -> Result<Json<OntologyElementMetadata>, StatusCode>
+) -> Result<Json<PropertyTypeMetadata>, StatusCode>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,

@@ -1,6 +1,7 @@
 use graph_types::{
+    account::{ArchivedById, CreatedById},
     ontology::OntologyTypeVersion,
-    provenance::{OwnedById, RecordArchivedById, RecordCreatedById},
+    owned_by_id::OwnedById,
 };
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
@@ -35,8 +36,8 @@ pub struct OntologyExternalMetadataRow {
 pub struct OntologyTemporalMetadataRow {
     pub ontology_id: Uuid,
     pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
-    pub record_created_by_id: RecordCreatedById,
-    pub record_archived_by_id: Option<RecordArchivedById>,
+    pub record_created_by_id: CreatedById,
+    pub record_archived_by_id: Option<ArchivedById>,
 }
 
 #[derive(Debug, ToSql)]
