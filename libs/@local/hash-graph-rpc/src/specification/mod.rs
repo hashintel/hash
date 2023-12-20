@@ -103,7 +103,7 @@ macro_rules! service {
         $crate::types::Empty
     };
 
-    (@extract names; rpc $name:ident $($rest:tt)*) => {
+    (@extract names; rpc$([$($options:tt)*])? $name:ident $($rest:tt)*) => {
         $crate::types::Stack<$name, service!(@extract names; $($rest)*)>
     };
 

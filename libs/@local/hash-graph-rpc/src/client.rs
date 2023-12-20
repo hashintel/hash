@@ -48,7 +48,7 @@ pub enum RoutingError {
 }
 
 #[derive(Debug, Copy, Clone, Error)]
-pub enum Error {
+pub enum ClientError {
     #[error("transport error: {0}")]
     Transport(TransportError),
     #[error("routing error: {0}")]
@@ -70,7 +70,7 @@ pub enum Error {
     Unknown,
 }
 
-impl From<ResponseError> for Error {
+impl From<ResponseError> for ClientError {
     fn from(value: ResponseError) -> Self {
         match value {
             ResponseError::DeadlineExceeded => Self::Timeout,
@@ -115,7 +115,7 @@ where
         }
     }
 
-    pub async fn call<P>(&self, request: P) -> Result<P::Response, Error>
+    pub async fn call<P>(&self, request: P) -> Result<P::Response, ClientError>
     where
         P: RemoteProcedure,
         S::Procedures: Includes<P>,
@@ -125,7 +125,7 @@ where
             .context
             .encode(request)
             .await
-            .change_context(Error::EncodeRequest)?;
+            .change_context(ClientError::EncodeRequest)?;
 
         let request = Request {
             header: RequestHeader {
@@ -146,14 +146,14 @@ where
             .transport
             .call(request)
             .await
-            .change_context(Error::Internal)?;
+            .change_context(ClientError::Internal)?;
 
         match response.body {
             ResponsePayload::Success(body) => self
                 .context
                 .decode(body)
                 .await
-                .change_context(Error::DecodeResponse),
+                .change_context(ClientError::DecodeResponse),
             ResponsePayload::Error(error) => panic!("error: {:?}", error),
         }
     }
@@ -161,12 +161,20 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        convert::Infallible,
+        future::Future,
+        net::{Ipv4Addr, SocketAddrV4},
+    };
+
     use authorization::schema::AccountGroupPermission;
+    use bytes::Bytes;
     use graph_types::account::{AccountGroupId, AccountId};
     use uuid::Uuid;
 
     use crate::{
         client::Client,
+        harpc::transport::TransportConfig,
         specification::account::{
             AccountService, AddAccountGroupMember, CheckAccountGroupPermission, CreateAccount,
         },
@@ -180,8 +188,48 @@ mod tests {
             crate::harpc::procedure::ProcedureId::derive("DifferentProcedure");
     }
 
+    #[derive(Debug, Copy, Clone)]
+    struct NullContext;
+    impl crate::harpc::Stateful for NullContext {
+        type State = ();
+
+        fn state(&self) -> &Self::State {
+            &()
+        }
+    }
+
+    impl<T> crate::harpc::Encode<T> for NullContext {
+        type Error = Infallible;
+
+        fn encode(
+            &self,
+            value: T,
+        ) -> impl Future<Output = error_stack::Result<Bytes, Self::Error>> + Send + 'static
+        {
+            async move { Ok(Bytes::new()) }
+        }
+    }
+
+    impl<T> crate::harpc::Decode<T> for NullContext {
+        type Error = Infallible;
+
+        fn decode(
+            &self,
+            bytes: Bytes,
+        ) -> impl Future<Output = error_stack::Result<T, Self::Error>> + Send + 'static {
+            async move { panic!("decode") }
+        }
+    }
+
+    impl crate::harpc::Context for NullContext {}
+
+    // Compile test
     async fn _never_called() {
-        let client = Client::<AccountService, _>::new();
+        let client = Client::<AccountService, _>::new(
+            NullContext,
+            SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0),
+            TransportConfig::default(),
+        );
 
         let response = client.call(CreateAccount).await;
 
@@ -201,7 +249,4 @@ mod tests {
 
         // let response = client.call(DifferentProcedure).await;
     }
-
-    #[test]
-    fn compile() {}
 }
