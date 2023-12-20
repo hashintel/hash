@@ -333,6 +333,7 @@ fn check_string_additional_property<'a>(
 impl<P: Sync> Schema<JsonValue, P> for DataType {
     type Error = DataValidationError;
 
+    #[expect(clippy::too_many_lines)]
     async fn validate_value<'a>(
         &'a self,
         value: &'a JsonValue,
@@ -354,7 +355,6 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
                     expected: JsonSchemaValueType::Boolean,
                 }
             ),
-
             "number" => {
                 #[expect(clippy::float_arithmetic)]
                 check_numeric_additional_property(
@@ -698,7 +698,7 @@ mod tests {
 
     #[tokio::test]
     async fn zip_code_us() {
-        let mail_type = serde_json::to_string(&json!({
+        let zip_code = serde_json::to_string(&json!({
             "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
             "kind": "dataType",
             "$id": "https://localhost:4000/@alice/types/data-type/zip-code-us/v/1",
@@ -708,15 +708,17 @@ mod tests {
         }))
         .expect("failed to serialize zip code type");
 
-        validate_data(json!("12345"), &mail_type, ValidationProfile::Full)
+        validate_data(json!("12345"), &zip_code, ValidationProfile::Full)
             .await
             .expect("validation failed");
 
-        validate_data(json!("12345-6789"), &mail_type, ValidationProfile::Full)
+        validate_data(json!("12345-6789"), &zip_code, ValidationProfile::Full)
             .await
             .expect("validation failed");
 
-        _ = validate_data(json!("1234"), &mail_type, ValidationProfile::Full)
+        _ = validate_data(json!("1234"), &zip_code, ValidationProfile::Full)
+            .await
+            .expect_err("validation succeeded");
     }
 
     #[tokio::test]
