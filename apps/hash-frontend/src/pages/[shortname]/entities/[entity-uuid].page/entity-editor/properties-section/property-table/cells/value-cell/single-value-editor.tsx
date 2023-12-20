@@ -1,6 +1,7 @@
 import { Chip } from "@hashintel/design-system";
+import { Box } from "@mui/material";
 import produce from "immer";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { isValueEmpty } from "../../../is-value-empty";
@@ -18,6 +19,8 @@ import {
 export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   const { value: cell, onChange, onFinishedEditing } = props;
   const { expectedTypes, value } = cell.data.propertyRow;
+
+  const textInputFormRef = useRef<HTMLFormElement>(null);
 
   const [editorType, setEditorType] = useState<EditorType | null>(() => {
     // if there are multiple expected types
@@ -48,6 +51,23 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     // if the value is not empty, guess the editor type using value
     return guessEditorTypeFromValue(value, expectedTypes);
   });
+
+  useEffect(() => {
+    const validateOnBlur = (event: MouseEvent) => {
+      if (!textInputFormRef.current) {
+        return;
+      }
+      if (!textInputFormRef.current.checkValidity()) {
+        event.stopImmediatePropagation();
+        event.preventDefault();
+        textInputFormRef.current.requestSubmit();
+      }
+    };
+
+    document.addEventListener("mousedown", validateOnBlur);
+
+    return () => document.removeEventListener("mousedown", validateOnBlur);
+  }, []);
 
   if (!editorType) {
     return (
@@ -112,7 +132,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
   if (editorType === "null" || editorType === "emptyList") {
     const spec = editorSpecs[editorType];
-    const title = spec.valueToString(value);
+    const title = editorType === "null" ? "Null" : "Empty List";
 
     const shouldClearOnClick = value !== undefined;
 
@@ -135,19 +155,38 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     );
   }
 
+  const expectedType = expectedTypes.find((type) => type.type === editorType);
+  if (!expectedType) {
+    throw new Error(
+      `Could not find guessed editor type ${editorType} among expected types ${expectedTypes
+        .map((opt) => opt.$id)
+        .join(", ")}`,
+    );
+  }
+
   return (
     <GridEditorWrapper sx={{ px: 2 }}>
-      <NumberOrTextInput
-        isNumber={editorType === "number"}
-        value={(value as number | string | undefined) ?? ""}
-        onChange={(newValue) => {
-          const newCell = produce(cell, (draftCell) => {
-            draftCell.data.propertyRow.value = newValue;
-          });
-
-          onChange(newCell);
+      <Box
+        component="form"
+        ref={textInputFormRef}
+        onSubmit={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
         }}
-      />
+      >
+        <NumberOrTextInput
+          expectedType={expectedType}
+          isNumber={editorType === "number"}
+          value={(value as number | string | undefined) ?? ""}
+          onChange={(newValue) => {
+            const newCell = produce(cell, (draftCell) => {
+              draftCell.data.propertyRow.value = newValue;
+            });
+
+            onChange(newCell);
+          }}
+        />
+      </Box>
     </GridEditorWrapper>
   );
 };

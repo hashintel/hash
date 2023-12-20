@@ -125,6 +125,15 @@ export const useCreateGetCellContent = (
             }
 
             if (shouldShowChangeTypeCell) {
+              const currentType = row.expectedTypes.find(
+                (opt) => opt.type === guessedType,
+              );
+              if (!currentType) {
+                throw new Error(
+                  `dataType for guessed type ${guessedType} not found`,
+                );
+              }
+
               return {
                 kind: GridCellKind.Custom,
                 allowOverlay: false,
@@ -133,7 +142,7 @@ export const useCreateGetCellContent = (
                 cursor: "pointer",
                 data: {
                   kind: "change-type-cell",
-                  currentType: editorSpecs[guessedType].title,
+                  currentType,
                   propertyRow: row,
                   valueCellOfThisRow: valueCell,
                 },
@@ -152,7 +161,7 @@ export const useCreateGetCellContent = (
                     editorSpecs[guessEditorTypeFromExpectedType(type)];
 
                   return {
-                    text: type,
+                    text: type.title,
                     icon: editorSpec.gridIcon,
                     faIconDefinition: { icon: editorSpec.icon },
                   };

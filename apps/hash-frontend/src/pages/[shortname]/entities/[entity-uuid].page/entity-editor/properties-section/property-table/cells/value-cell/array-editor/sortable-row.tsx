@@ -1,3 +1,4 @@
+import { JsonValue } from "@blockprotocol/core";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -6,9 +7,11 @@ import {
   faPencil,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
+import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
+import { DataTypeWithMetadata } from "@local/hash-subgraph";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Box, Divider, Typography } from "@mui/material";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { editorSpecs } from "../editor-specs";
 import { BooleanInput } from "../inputs/boolean-input";
@@ -26,7 +29,7 @@ interface SortableRowProps {
   onSelect?: (id: string) => void;
   onEditClicked?: (id: string) => void;
   editing: boolean;
-  expectedTypes: string[];
+  expectedTypes: DataTypeWithMetadata["schema"][];
   onSaveChanges: (index: number, value: unknown) => void;
   onDiscardChanges: () => void;
 }
@@ -75,6 +78,19 @@ export const SortableRow = ({
     setDraftValue(value);
   }
 
+  const textInputFormRef = useRef<HTMLFormElement>(null);
+
+  const saveChanges = () => {
+    if (!["object", "boolean"].includes(editorType)) {
+      /**
+       * We want form validation triggered when the user tries to add a text or number value
+       */
+      textInputFormRef.current?.requestSubmit();
+    } else {
+      onSaveChanges(index, draftValue);
+    }
+  };
+
   const renderEditor = () => {
     if (editorType === "boolean") {
       return (
@@ -101,13 +117,23 @@ export const SortableRow = ({
       );
     }
 
+    const expectedType = expectedTypes.find((type) => type.type === editorType);
+    if (!expectedType) {
+      throw new Error(
+        `Could not find guessed editor type ${editorType} among expected types ${expectedTypes
+          .map((opt) => opt.$id)
+          .join(", ")}`,
+      );
+    }
+
     return (
       <NumberOrTextInput
+        expectedType={expectedType}
         isNumber={editorType === "number"}
+        onEnterPressed={saveChanges}
         /** @todo is this casting ok? */
         value={draftValue as number | string}
         onChange={setDraftValue}
-        onEnterPressed={() => onSaveChanges(index, draftValue)}
       />
     );
   };
@@ -123,12 +149,23 @@ export const SortableRow = ({
       );
     }
 
+    const expectedType = expectedTypes.find((type) => type.type === editorType);
+    if (!expectedType) {
+      throw new Error(
+        `Could not find guessed editor type ${editorType} among expected types ${expectedTypes
+          .map((opt) => opt.$id)
+          .join(", ")}`,
+      );
+    }
+
     return (
       <ValueChip
-        title={editorSpec.valueToString(value)}
+        title={formatDataValue(value as JsonValue, expectedType)
+          .map((part) => part.text)
+          .join("")}
         selected={!!selected}
         icon={{ icon: editorSpec.icon }}
-        tooltip={editorSpec.title}
+        tooltip={expectedType.title}
       />
     );
   };
@@ -174,7 +211,21 @@ export const SortableRow = ({
         {index + 1}
       </Typography>
 
-      {editing ? renderEditor() : renderValue()}
+      {editing ? (
+        <Box
+          component="form"
+          ref={textInputFormRef}
+          onSubmit={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onSaveChanges(index, draftValue);
+          }}
+        >
+          {renderEditor()}
+        </Box>
+      ) : (
+        renderValue()
+      )}
 
       {shouldShowActions && (
         <Box
@@ -199,7 +250,7 @@ export const SortableRow = ({
                   <RowAction
                     tooltip="Save Changes"
                     icon={faCheck}
-                    onClick={() => onSaveChanges(index, draftValue)}
+                    onClick={saveChanges}
                   />
                   <Divider orientation="vertical" />
                   <RowAction

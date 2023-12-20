@@ -6,6 +6,7 @@ import {
   Item,
 } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
+import { DataTypeWithMetadata } from "@local/hash-subgraph";
 import produce from "immer";
 import { RefObject } from "react";
 
@@ -21,7 +22,7 @@ import { guessEditorTypeFromExpectedType } from "./value-cell/utils";
 
 export interface ChangeTypeCellProps {
   readonly kind: "change-type-cell";
-  currentType: string;
+  currentType: DataTypeWithMetadata["schema"];
   propertyRow: PropertyRow;
   valueCellOfThisRow: ValueCell;
 }
@@ -58,7 +59,7 @@ export const createRenderChangeTypeCell = (
       const drawTheLeftChip = () =>
         drawChipWithIcon({
           args,
-          text: currentType,
+          text: currentType.title,
           left: chipLeft,
           color: "blue",
           icon: editorSpec.gridIcon,

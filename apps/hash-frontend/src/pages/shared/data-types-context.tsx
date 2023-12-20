@@ -3,6 +3,10 @@ import { JsonValue } from "@blockprotocol/core";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
 import {
+  formatDataValue,
+  FormattedValuePart,
+} from "@local/hash-isomorphic-utils/data-types";
+import {
   DataTypeWithMetadata,
   OntologyTypeRevisionId,
 } from "@local/hash-subgraph";
@@ -26,7 +30,7 @@ export type DataTypesContextValue = {
   formatDataTypeValue: (args: {
     dataTypeId: VersionedUrl;
     value: JsonValue;
-  }) => string | null;
+  }) => FormattedValuePart[] | null;
 };
 
 export const DataTypesContext = createContext<null | DataTypesContextValue>(
@@ -62,12 +66,9 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
 
   const formatDataTypeValue = useCallback(
     ({ dataTypeId, value }: { dataTypeId: VersionedUrl; value: JsonValue }) => {
-      if (!data) {
-        return value?.toString() ?? null;
-      }
       const { baseUrl, version } = componentsFromVersionedUrl(dataTypeId);
 
-      const dataType = data.queryDataTypes.vertices[baseUrl]?.[
+      const dataType = data?.queryDataTypes.vertices[baseUrl][
         version as unknown as OntologyTypeRevisionId
       ]?.inner.schema as DataTypeWithMetadata["schema"] | undefined;
 
@@ -75,9 +76,7 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
         return value?.toString() ?? null;
       }
 
-      const { left = "", right = "" } = dataType.label ?? {};
-
-      return `${left}${value}${right}`;
+      return formatDataValue(value, dataType);
     },
     [data],
   );

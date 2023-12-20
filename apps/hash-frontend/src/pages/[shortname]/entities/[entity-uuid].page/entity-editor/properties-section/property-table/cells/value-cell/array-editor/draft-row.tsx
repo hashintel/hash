@@ -1,3 +1,4 @@
+import { DataTypeWithMetadata } from "@local/hash-subgraph";
 import { useState } from "react";
 
 import { DRAFT_ROW_KEY } from "../array-editor";
@@ -11,7 +12,7 @@ import {
 import { SortableRow } from "./sortable-row";
 
 interface DraftRowProps {
-  expectedTypes: string[];
+  expectedTypes: DataTypeWithMetadata["schema"][];
   existingItemCount: number;
   onDraftSaved: (value: unknown) => void;
   onDraftDiscarded: () => void;

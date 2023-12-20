@@ -9,8 +9,7 @@ const migrate: MigrationFunction = async ({
   await createSystemDataTypeIfNotExists(context, authentication, {
     dataTypeDefinition: {
       title: "URI",
-      description:
-        "A unique identifier for a resource. A URL is a type of URI, as is a URN.",
+      description: "A unique identifier for a resource (e.g. a URL, or URN).",
       format: "uri",
       type: "string",
     },
@@ -81,6 +80,29 @@ const migrate: MigrationFunction = async ({
         right: "mi",
       },
       type: "number",
+    },
+    webShortname: "hash",
+    migrationState,
+  });
+
+  await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      title: "Date",
+      description:
+        "A reference to a particular day represented within a calendar system, in the format YYYY-MM-DD.",
+      type: "string",
+      format: "date",
+    },
+    webShortname: "hash",
+    migrationState,
+  });
+
+  await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      title: "DateTime",
+      description: "A reference to a particular date and time.",
+      type: "string",
+      format: "date-time",
     },
     webShortname: "hash",
     migrationState,

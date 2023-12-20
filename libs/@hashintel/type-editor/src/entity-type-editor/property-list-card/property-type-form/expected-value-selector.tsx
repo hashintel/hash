@@ -18,10 +18,7 @@ import {
   useWatch,
 } from "react-hook-form";
 
-import {
-  CustomExpectedValueTypeId,
-  useDataTypesOptions,
-} from "../../../shared/data-types-options-context";
+import { useDataTypesOptions } from "../../../shared/data-types-options-context";
 import { useStateCallback } from "../../shared/use-state-callback";
 import { getExpectedValueDescriptor } from "../shared/get-expected-value-descriptor";
 import { PropertyTypeFormValues } from "../shared/property-type-form-values";
@@ -250,12 +247,14 @@ export const ExpectedValueSelector = ({
           {...expectedValuesField}
           filterOptions={(options, { inputValue }) => {
             return options.filter((option) => {
-              if (option === "object" || option === "array") {
-                return option.includes(inputValue);
+              const lowercaseInput = inputValue.toLowerCase();
+
+              if (typeof option === "object") {
+                return option.typeId.toLowerCase().includes(lowercaseInput);
               }
               const dataType = dataTypes.find((dt) => dt.$id === option);
               if (!dataType) {
-                return option.includes(inputValue);
+                return option.toLowerCase().includes(lowercaseInput);
               }
               const { description, title } = dataType;
 
@@ -269,10 +268,10 @@ export const ExpectedValueSelector = ({
                   : "";
 
               return (
-                description.includes(inputValue) ||
-                title.includes(inputValue) ||
-                leftLabel.includes(inputValue) ||
-                rightLabel.includes(inputValue)
+                description.toLowerCase().includes(lowercaseInput) ||
+                title.toLowerCase().includes(lowercaseInput) ||
+                leftLabel.toLowerCase().includes(lowercaseInput) ||
+                rightLabel.toLowerCase().includes(lowercaseInput)
               );
             });
           }}
