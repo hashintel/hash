@@ -1,7 +1,5 @@
-use std::future::Future;
-
 use const_fnv1a_hash::fnv1a_hash_str_64;
-use tokio::io::AsyncRead;
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
 
 use crate::harpc::transport::codec::{
     decode, decode::DecodeBinary, encode, encode::EncodeBinary, Limit,
@@ -45,18 +43,56 @@ impl DecodeBinary for ServiceId {
     }
 }
 
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
+pub struct ServiceVersion(u8);
+
+impl ServiceVersion {
+    pub(crate) const fn new(value: u8) -> Self {
+        Self(value)
+    }
+}
+
+impl EncodeBinary for ServiceVersion {
+    async fn encode_binary<T>(&self, io: &mut T) -> std::io::Result<()>
+    where
+        T: tokio::io::AsyncWrite + Unpin + Send,
+    {
+        io.write_u8(self.0).await
+    }
+}
+
+impl DecodeBinary for ServiceVersion {
+    async fn decode_binary<T>(io: &mut T, _: Limit) -> std::io::Result<Self>
+    where
+        T: AsyncRead + Unpin + Send,
+    {
+        let value = io.read_u8().await?;
+        let value = Self::new(value);
+
+        Ok(value)
+    }
+}
+
 pub trait Service: Send + Sync {
     type Procedures;
 
     const ID: ServiceId;
+    const VERSION: ServiceVersion;
 }
 
 #[cfg(test)]
 mod test {
-    use crate::harpc::{service::ServiceId, transport::codec::test::assert_binary};
+    use crate::harpc::{
+        service::{ServiceId, ServiceVersion},
+        transport::codec::test::assert_binary,
+    };
 
     assert_binary![
         binary_service_id_zero(ServiceId::new(0x00), &[0x00]),
         binary_service_id_varint(ServiceId::new(0x80), &[0x80, 0x01]),
     ];
+
+    assert_binary![binary_service_version(ServiceVersion::new(0xFF), &[0xFF]),];
 }

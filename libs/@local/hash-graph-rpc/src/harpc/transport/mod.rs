@@ -149,7 +149,7 @@ mod test {
 
     use crate::harpc::{
         procedure::ProcedureId,
-        service::ServiceId,
+        service::{ServiceId, ServiceVersion},
         transport::{
             client::{ClientTransportConfig, ClientTransportLayer},
             codec::CodecKind,
@@ -158,7 +158,7 @@ mod test {
                 request::{Request, RequestFlags, RequestHeader},
                 response::{Response, ResponseFlags, ResponseHeader, ResponsePayload},
                 size::PayloadSize,
-                version::{ServiceVersion, TransportVersion, Version},
+                version::{TransportVersion, Version},
             },
             server::{ServerTransportConfig, ServerTransportLayer},
             RequestRouter, TransportConfig, TRANSPORT_VERSION,

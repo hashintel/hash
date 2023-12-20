@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::harpc::{
     procedure::ProcedureId,
-    service::ServiceId,
+    service::{ServiceId, ServiceVersion},
     transport::{
         codec::Limit,
         message::{
@@ -15,7 +15,7 @@ use crate::harpc::{
             request::{Request, RequestFlags, RequestHeader},
             response::{Response, ResponseError, ResponseFlags, ResponseHeader, ResponsePayload},
             size::PayloadSize,
-            version::{ServiceVersion, TransportVersion, Version},
+            version::{TransportVersion, Version},
         },
         TRANSPORT_VERSION,
     },

@@ -6,7 +6,7 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use super::serde_compat;
 use crate::harpc::{
     procedure::ProcedureId,
-    service::ServiceId,
+    service::{ServiceId, ServiceVersion},
     transport::{
         codec::{
             decode::{default_decode_text, DecodeBinary, DecodeText},
@@ -16,7 +16,7 @@ use crate::harpc::{
         message::{
             actor::ActorId,
             size::PayloadSize,
-            version::{ServiceVersion, TransportVersion, Version},
+            version::{TransportVersion, Version},
         },
         TRANSPORT_VERSION,
     },
@@ -280,7 +280,7 @@ mod test {
 
     use crate::harpc::{
         procedure::ProcedureId,
-        service::ServiceId,
+        service::{ServiceId, ServiceVersion},
         transport::{
             codec::{
                 encode::EncodeBinary,
@@ -291,7 +291,7 @@ mod test {
                 actor::ActorId,
                 request::{Request, RequestFlags, RequestHeader},
                 size::PayloadSize,
-                version::{ServiceVersion, TransportVersion, Version},
+                version::{TransportVersion, Version},
             },
         },
     };

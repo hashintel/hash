@@ -4,7 +4,10 @@ use graph_types::account::{AccountGroupId, AccountId};
 use crate::specification::service;
 
 service!(pub service AccountService {
-    rpc CreateAccount() -> AccountId;
+    option id = 1;
+    option version = 2;
+
+    rpc[id=1] CreateAccount() -> AccountId;
     rpc CreateAccountGroup() -> AccountGroupId;
 
     rpc CheckAccountGroupPermission(

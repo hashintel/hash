@@ -6,7 +6,10 @@ use std::future::Future;
 
 use bytes::Bytes;
 
-pub use self::{procedure::ProcedureId, service::ServiceId};
+pub use self::{
+    procedure::ProcedureId,
+    service::{ServiceId, ServiceVersion},
+};
 use crate::harpc::transport::message::actor::ActorId;
 
 pub trait Stateful: Send + Sync {
