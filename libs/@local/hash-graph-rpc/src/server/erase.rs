@@ -45,7 +45,7 @@ impl<C> BoxedProcedureCall<C>
 where
     C: Context,
 {
-    fn new<P>(procedure: P) -> Self
+    pub(crate) fn new<P>(procedure: P) -> Self
     where
         P: ProcedureCall<C> + Clone + Send + 'static,
     {

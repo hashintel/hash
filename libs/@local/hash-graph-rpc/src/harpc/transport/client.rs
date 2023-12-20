@@ -15,6 +15,7 @@ use libp2p::{
     swarm::{NetworkBehaviour, SwarmEvent},
     Multiaddr, PeerId,
 };
+use thiserror::Error;
 use tokio::{
     select,
     sync::{mpsc, oneshot},
@@ -30,6 +31,17 @@ use crate::harpc::transport::{
     },
     BehaviourCollectionEvent, SpawnGuard, TransportConfig, TransportError, TransportLayer,
 };
+
+#[derive(Debug, Copy, Clone, Error)]
+#[error(
+    "unrecoverable error: transport event loop has crashed and is offline. This shouldn't ever \
+     happen."
+)]
+pub(crate) struct EventLoopOfflineError;
+
+#[derive(Debug, Copy, Clone, Error)]
+#[error("channel to event loop has been dropped. This shouldn't ever happen.")]
+pub(crate) struct BrokenChannelError;
 
 #[derive(Debug, Clone)]
 pub(crate) struct ClientTransportMetrics {
@@ -317,9 +329,12 @@ impl ClientTransportLayer {
         self.tx
             .send(EventLoopRequest::Send(ticket, request, tx))
             .await
+            .change_context(EventLoopOfflineError)
             .change_context(TransportError)?;
 
-        rx.await.change_context(TransportError)
+        rx.await
+            .change_context(BrokenChannelError)
+            .change_context(TransportError)
     }
 
     pub(crate) async fn call_with_timeout(
@@ -333,16 +348,20 @@ impl ClientTransportLayer {
         self.tx
             .send(EventLoopRequest::Send(ticket, request, tx))
             .await
+            .change_context(EventLoopOfflineError)
             .change_context(TransportError)?;
 
         let result = time::timeout(timeout, rx).await;
 
         if let Ok(result) = result {
-            result.change_context(TransportError)
+            result
+                .change_context(BrokenChannelError)
+                .change_context(TransportError)
         } else {
             self.tx
                 .send(EventLoopRequest::Cancel(ticket))
                 .await
+                .change_context(EventLoopOfflineError)
                 .change_context(TransportError)?;
 
             Ok(Response::error(ResponseError::DeadlineExceeded))
@@ -366,8 +385,11 @@ impl ClientTransportLayer {
         self.tx
             .send(EventLoopRequest::Metrics(tx))
             .await
+            .change_context(EventLoopOfflineError)
             .change_context(TransportError)?;
 
-        rx.await.change_context(TransportError)
+        rx.await
+            .change_context(BrokenChannelError)
+            .change_context(TransportError)
     }
 }

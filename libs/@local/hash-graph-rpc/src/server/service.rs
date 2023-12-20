@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     harpc::{
-        procedure::{Handler, ProcedureCall, ProcedureId, RemoteProcedure},
+        procedure::{Handler, ProcedureCall, ProcedureHandler, ProcedureId, RemoteProcedure},
         service, Context,
     },
     server::erase::BoxedProcedureCall,
@@ -38,19 +38,19 @@ where
     C: Context,
     P: HStack,
 {
-    pub fn add_procedure<P2, H>(
+    pub fn add_procedure<H, T>(
         self,
         handler: H,
-    ) -> ServiceBuilder<S, C, Stack<Handler<H, P2, C>, P>>
+    ) -> ServiceBuilder<S, C, Stack<ProcedureHandler<H, T, C>, P>>
     where
-        Handler<H, P2, C>: ProcedureCall<C>,
-        S::Procedures: Includes<P2>,
+        H: Handler<T, S>,
+        S::Procedures: Includes<H::Procedure>,
     {
         ServiceBuilder {
             _service: core::marker::PhantomData,
             _context: core::marker::PhantomData,
 
-            procedures: self.procedures.push(Handler::new(handler)),
+            procedures: self.procedures.push(ProcedureHandler::new(handler)),
         }
     }
 }

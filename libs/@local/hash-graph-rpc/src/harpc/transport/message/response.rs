@@ -31,11 +31,12 @@ macro_rules! convert_enum {
     };
 }
 
+// TODO: support for user errors (via error-stack)
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ResponseError {
     DeadlineExceeded,
     ConnectionClosed,
-    UnknownProtocolVersion,
+    UnknownServiceVersion,
     UnknownService,
     UnknownProcedure,
     InvalidTransportVersion,
@@ -51,7 +52,7 @@ impl ResponseError {
     convert_enum! {
         DeadlineExceeded <=> 0x00,
         ConnectionClosed <=> 0x01,
-        UnknownProtocolVersion <=> 0x02,
+        UnknownServiceVersion <=> 0x02,
         UnknownService <=> 0x03,
         UnknownProcedure <=> 0x04,
         InvalidTransportVersion <=> 0x05,
