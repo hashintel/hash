@@ -10,8 +10,10 @@ use libp2p::{
     identify, noise, request_response,
     request_response::{Event, ProtocolSupport},
     swarm::NetworkBehaviour,
-    tcp, yamux, StreamProtocol, Swarm, SwarmBuilder, Transport,
+    yamux, StreamProtocol, Swarm, SwarmBuilder, Transport,
 };
+#[cfg(not(target_arch = "wasm32"))]
+use libp2p::{tcp, websocket};
 use thiserror::Error;
 use tokio::task::JoinHandle;
 
@@ -38,6 +40,7 @@ pub(crate) struct TransportError;
 
 #[derive(Debug, Clone, Default)]
 pub struct TransportConfig {
+    #[cfg(not(target_arch = "wasm32"))]
     pub tcp: tcp::Config,
     pub codec: Codec,
     pub behaviour: request_response::Config,
@@ -92,7 +95,7 @@ macro_rules! configure {
 
 impl TransportLayer {
     #[cfg(target_arch = "wasm32")]
-    fn new_sever(config: TransportConfig) -> error_stack::Result<Self, TransportError> {
+    fn new_server(config: TransportConfig) -> error_stack::Result<Self, TransportError> {
         panic!("You are unable to create a server transport layer on wasm32")
     }
 
@@ -105,7 +108,7 @@ impl TransportLayer {
 
                 let tcp = tcp::tokio::Transport::new(config.tcp.clone());
 
-                let ws = libp2p::websocket::WsConfig::new(tcp::tokio::Transport::new(config.tcp));
+                let ws = websocket::WsConfig::new(tcp::tokio::Transport::new(config.tcp));
 
                 let transport = tcp
                     .or_transport(ws)
