@@ -158,7 +158,7 @@ mod test {
                 request::{Request, RequestFlags, RequestHeader},
                 response::{Response, ResponseFlags, ResponseHeader, ResponsePayload},
                 size::PayloadSize,
-                version::{Version},
+                version::Version,
             },
             server::{ServerTransportConfig, ServerTransportLayer},
             RequestRouter, TransportConfig, TRANSPORT_VERSION,

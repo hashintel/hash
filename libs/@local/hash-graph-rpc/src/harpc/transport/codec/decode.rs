@@ -1,15 +1,9 @@
 use std::{future::Future, marker::PhantomData, mem::size_of};
 
-
 use integer_encoding::VarInt;
 use tokio::io::{AsyncRead, AsyncReadExt};
 
-
-use crate::harpc::{
-    transport::{
-        codec::Limit,
-    },
-};
+use crate::harpc::transport::codec::Limit;
 
 pub(in crate::harpc) async fn default_decode_text<T, U>(
     io: &mut T,
@@ -121,18 +115,8 @@ pub(in crate::harpc) trait DecodeText: DecodeBinary {
 
 #[cfg(test)]
 mod test {
-    
 
-    
-    
-
-    use crate::harpc::{
-        transport::{
-            codec::{
-                decode::{read_varint},
-            },
-        },
-    };
+    use crate::harpc::transport::codec::decode::read_varint;
 
     #[tokio::test]
     async fn unterminated_varint_too_long() {
