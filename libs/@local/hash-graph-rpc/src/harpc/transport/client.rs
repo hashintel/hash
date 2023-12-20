@@ -169,7 +169,7 @@ pub(crate) struct ClientTransportLayer {
 
 impl ClientTransportLayer {
     pub(crate) fn new(config: ClientTransportConfig) -> error_stack::Result<Self, TransportError> {
-        let transport = TransportLayer::new(config.transport)?;
+        let transport = TransportLayer::new_client(config.transport)?;
 
         let (tx, rx) = mpsc::channel(32);
         let guard = tokio::spawn(Self::event_loop(transport, config.remote, rx)).into();

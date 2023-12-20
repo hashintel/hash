@@ -10,7 +10,7 @@ use libp2p::{
     identify, noise, request_response,
     request_response::{Event, ProtocolSupport},
     swarm::NetworkBehaviour,
-    tcp, yamux, StreamProtocol, Swarm, SwarmBuilder,
+    tcp, yamux, StreamProtocol, Swarm, SwarmBuilder, Transport,
 };
 use thiserror::Error;
 use tokio::task::JoinHandle;
@@ -45,6 +45,7 @@ pub struct TransportConfig {
 }
 
 impl TransportConfig {
+    #[must_use]
     pub const fn with_codec(self, codec: CodecKind) -> Self {
         Self {
             codec: Codec {
@@ -60,34 +61,82 @@ struct TransportLayer {
     swarm: TransportSwarm,
 }
 
-impl TransportLayer {
-    fn new(config: TransportConfig) -> error_stack::Result<Self, TransportError> {
-        let transport = SwarmBuilder::with_new_identity()
-            .with_tokio()
-            .with_tcp(config.tcp, noise::Config::new, yamux::Config::default)
-            .change_context(TransportError)?
+// due to the typed nature we cannot really utilize typings when configuring the behaviour :/
+macro_rules! configure {
+    ($builder:ident with $config:ident) => {{
+        let idle_connection_timeout = $config.idle_connection_timeout;
+        let codec = $config.codec.clone();
+        let behaviour = $config.behaviour.clone();
+
+        $builder
             .with_behaviour(|keys| BehaviourCollection {
                 protocol: request_response::Behaviour::with_codec(
-                    config.codec,
+                    codec,
                     [(StreamProtocol::new("/hash/rpc/1"), ProtocolSupport::Full)],
-                    config.behaviour,
+                    behaviour,
                 ),
                 identify: identify::Behaviour::new(identify::Config::new(
                     "/hash/rpc/1".to_owned(),
                     keys.public(),
                 )),
             })
-            .unwrap()
+            .change_context(TransportError)?
             .with_swarm_config(|swarm_config| {
                 swarm_config.with_idle_connection_timeout(
-                    config
-                        .idle_connection_timeout
-                        .unwrap_or_else(|| Duration::from_secs(10)),
+                    idle_connection_timeout.unwrap_or_else(|| Duration::from_secs(10)),
                 )
             })
-            .build();
+            .build()
+    }};
+}
 
-        Ok(Self { swarm: transport })
+impl TransportLayer {
+    #[cfg(target_arch = "wasm32")]
+    fn new_sever(config: TransportConfig) -> error_stack::Result<Self, TransportError> {
+        panic!("You are unable to create a server transport layer on wasm32")
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn new_server(config: TransportConfig) -> error_stack::Result<Self, TransportError> {
+        let builder = SwarmBuilder::with_new_identity()
+            .with_tokio()
+            .with_other_transport(|keypair| {
+                let upgrade = noise::Config::new(keypair)?;
+
+                let tcp = tcp::tokio::Transport::new(config.tcp.clone());
+
+                let ws = libp2p::websocket::WsConfig::new(tcp::tokio::Transport::new(config.tcp));
+
+                let transport = tcp
+                    .or_transport(ws)
+                    .upgrade(libp2p::core::upgrade::Version::V1Lazy)
+                    .authenticate(upgrade)
+                    .multiplex(yamux::Config::default());
+
+                Ok(transport)
+            })
+            .change_context(TransportError)?;
+
+        let swarm = configure!(builder with config);
+
+        Ok(Self { swarm })
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn new_client(config: TransportConfig) -> error_stack::Result<Self, TransportError> {
+        let builder = SwarmBuilder::with_new_identity()
+            .with_tokio()
+            .with_tcp(config.tcp, noise::Config::new, yamux::Config::default)
+            .change_context(TransportError)?;
+
+        let swarm = configure!(builder with config);
+
+        Ok(Self { swarm })
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn new_client(config: TransportConfig) -> error_stack::Result<Self, TransportError> {
+        todo!()
     }
 }
 
@@ -125,7 +174,13 @@ fn log_behaviour_event<TRequest, TResponse, TChannelResponse>(
 }
 
 #[derive(Debug)]
-pub(crate) struct SpawnGuard(Option<JoinHandle<!>>);
+pub struct SpawnGuard(Option<JoinHandle<!>>);
+
+impl SpawnGuard {
+    pub fn disarm(&mut self) {
+        self.0.take();
+    }
+}
 
 impl From<JoinHandle<!>> for SpawnGuard {
     fn from(handle: JoinHandle<!>) -> Self {

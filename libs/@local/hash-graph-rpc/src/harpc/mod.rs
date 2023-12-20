@@ -26,7 +26,7 @@ pub trait Encode<T>: Stateful {
     fn encode(
         &self,
         value: T,
-    ) -> impl Future<Output = error_stack::Result<Bytes, Self::Error>> + Send + 'static;
+    ) -> impl Future<Output = error_stack::Result<Bytes, Self::Error>> + Send;
 }
 
 pub trait Decode<T>: Stateful {
@@ -35,7 +35,7 @@ pub trait Decode<T>: Stateful {
     fn decode(
         &self,
         bytes: Bytes,
-    ) -> impl Future<Output = error_stack::Result<T, Self::Error>> + Send + 'static;
+    ) -> impl Future<Output = error_stack::Result<T, Self::Error>> + Send;
 }
 
 pub trait Context: Clone + Stateful + 'static {}

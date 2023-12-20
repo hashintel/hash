@@ -3,7 +3,7 @@ use std::future::{ready, Future};
 use error_stack::ResultExt;
 use libp2p::{
     core::transport::ListenerId,
-    futures::{FutureExt, StreamExt},
+    futures::{FutureExt, Stream, StreamExt},
     request_response::{Event, Message, ResponseChannel},
     swarm::SwarmEvent,
     Multiaddr,
@@ -12,7 +12,6 @@ use tokio::{
     select,
     sync::{mpsc, oneshot},
 };
-use tonic::codegen::tokio_stream::Stream;
 
 use crate::harpc::transport::{
     log_behaviour_event, message::response::Response, BehaviourCollectionEvent, RequestRouter,
@@ -26,7 +25,7 @@ pub(crate) enum ServerTransportCommand {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct ServerTransportMetrics {
+pub struct ServerTransportMetrics {
     channel: mpsc::Sender<ServerTransportCommand>,
 }
 
@@ -43,14 +42,14 @@ impl ServerTransportMetrics {
         rx.await.expect("metrics channel closed")
     }
 
-    pub(crate) async fn running(&self) -> bool {
+    pub async fn running(&self) -> bool {
         let (tx, rx) = oneshot::channel();
 
         self.communicate(ServerTransportCommand::Running(tx), rx)
             .await
     }
 
-    pub(crate) async fn external_address(&self) -> Option<Multiaddr> {
+    pub async fn external_address(&self) -> Option<Multiaddr> {
         let (tx, rx) = oneshot::channel();
 
         self.communicate(ServerTransportCommand::ExternalAddress(tx), rx)
@@ -90,7 +89,7 @@ where
         };
 
         Ok(Self {
-            transport: TransportLayer::new(config.transport)?,
+            transport: TransportLayer::new_server(config.transport)?,
             listen_on: config.listen_on,
             metrics_rx,
             metrics,

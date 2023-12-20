@@ -193,6 +193,18 @@ impl<H, T, C> ProcedureHandler<H, T, C> {
     }
 }
 
+impl<H, T, C> Clone for ProcedureHandler<H, T, C>
+where
+    H: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            handler: self.handler.clone(),
+            _marker: PhantomData,
+        }
+    }
+}
+
 impl<H, T, C> ProcedureCall<C> for ProcedureHandler<H, T, C>
 where
     H: Handler<T, C>,

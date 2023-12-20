@@ -21,8 +21,8 @@ use crate::{
                 request::Request,
                 response::{Response, ResponseError},
             },
-            server::{ServerTransportConfig, ServerTransportLayer},
-            RequestRouter, TransportConfig,
+            server::{ServerTransportConfig, ServerTransportLayer, ServerTransportMetrics},
+            RequestRouter, SpawnGuard, TransportConfig,
         },
         Context, ProcedureId, ServiceVersion,
     },
@@ -197,5 +197,34 @@ where
             ServerTransportLayer::new(self, config).change_context(ServerError::Internal)?;
 
         service.serve().change_context(ServerError::Internal)
+    }
+
+    /// Spawn the server on the given address.
+    ///
+    /// Returns a guard that will stop the server when dropped, and an object that can be used to
+    /// query metrics.
+    /// You can disarm the guard to prevent the server from stopping when it is dropped.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the transport layer cannot be started.
+    pub fn spawn(
+        self,
+        listen_on: SocketAddrV4,
+        config: TransportConfig,
+    ) -> error_stack::Result<(SpawnGuard, ServerTransportMetrics), ServerError> {
+        let config = ServerTransportConfig {
+            transport: config,
+            listen_on: Multiaddr::from(*listen_on.ip()).with(Protocol::Tcp(listen_on.port())),
+        };
+
+        let service =
+            ServerTransportLayer::new(self, config).change_context(ServerError::Internal)?;
+
+        let metrics = service.metrics();
+
+        let guard = service.spawn().change_context(ServerError::Internal)?;
+
+        Ok((guard, metrics))
     }
 }

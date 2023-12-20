@@ -43,7 +43,7 @@ where
         handler: H,
     ) -> ServiceBuilder<S, C, Stack<ProcedureHandler<H, T, C>, P>>
     where
-        H: Handler<T, S>,
+        H: Handler<T, C>,
         S::Procedures: Includes<H::Procedure>,
     {
         ServiceBuilder {
