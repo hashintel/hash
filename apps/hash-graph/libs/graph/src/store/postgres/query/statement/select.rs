@@ -230,7 +230,7 @@ mod tests {
             ),
             Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                Some(FilterExpression::Parameter(Parameter::Number(1))),
+                Some(FilterExpression::Parameter(Parameter::I32(1))),
             ),
         ]);
         compiler.add_filter(&filter);
@@ -367,7 +367,7 @@ mod tests {
                         path: DataTypeQueryPath::Version,
                     },
                 )),
-                Some(FilterExpression::Parameter(Parameter::Number(1))),
+                Some(FilterExpression::Parameter(Parameter::I32(1))),
             ),
         ]);
         compiler.add_filter(&filter);
@@ -752,7 +752,7 @@ mod tests {
                 }),
                 direction: EdgeDirection::Incoming,
             })),
-            Some(FilterExpression::Parameter(Parameter::Number(10))),
+            Some(FilterExpression::Parameter(Parameter::I32(10))),
         );
         compiler.add_filter(&filter);
 
@@ -801,7 +801,7 @@ mod tests {
                 }),
                 direction: EdgeDirection::Incoming,
             })),
-            Some(FilterExpression::Parameter(Parameter::Number(10))),
+            Some(FilterExpression::Parameter(Parameter::I32(10))),
         );
         compiler.add_filter(&filter);
 

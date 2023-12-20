@@ -655,6 +655,18 @@ impl Modify for FilterSchemaAddon {
                         )
                         .item(
                             ObjectBuilder::new()
+                                .title(Some("CosineDistanceFilter"))
+                                .property(
+                                    "cosineDistance",
+                                    ArrayBuilder::new()
+                                        .items(Ref::from_schema_name("FilterExpression"))
+                                        .min_items(Some(3))
+                                        .max_items(Some(3)),
+                                )
+                                .required("cosineDistance"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
                                 .title(Some("StartsWithFilter"))
                                 .property(
                                     "startsWith",
