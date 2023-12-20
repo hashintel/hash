@@ -24,7 +24,7 @@ pub struct EntityEditionRow {
     pub properties: EntityProperties,
     pub left_to_right_order: Option<LinkOrder>,
     pub right_to_left_order: Option<LinkOrder>,
-    pub record_created_by_id: EditionCreatedById,
+    pub edition_created_by_id: EditionCreatedById,
     pub archived: bool,
     pub draft: bool,
     pub entity_type_base_url: String,

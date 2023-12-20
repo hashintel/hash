@@ -217,7 +217,7 @@ where
               INSERT INTO ontology_temporal_metadata (
                 ontology_id,
                 transaction_time,
-                record_created_by_id
+                edition_created_by_id
               ) VALUES ($1, tstzrange(now(), NULL, '[)'), $2)
               RETURNING transaction_time;
             ";
@@ -238,7 +238,7 @@ where
           UPDATE ontology_temporal_metadata
           SET
             transaction_time = tstzrange(lower(transaction_time), now(), '[)'),
-            record_archived_by_id = $3
+            edition_archived_by_id = $3
           WHERE ontology_id = (
             SELECT ontology_id
             FROM ontology_ids
@@ -301,7 +301,7 @@ where
           INSERT INTO ontology_temporal_metadata (
             ontology_id,
             transaction_time,
-            record_created_by_id
+            edition_created_by_id
           ) VALUES (
             (SELECT ontology_id FROM ontology_ids WHERE base_url = $1 AND version = $2),
             tstzrange(now(), NULL, '[)'),
@@ -1012,7 +1012,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     properties JSONB NOT NULL,
                     left_to_right_order INT,
                     right_to_left_order INT,
-                    record_created_by_id UUID NOT NULL,
+                    edition_created_by_id UUID NOT NULL,
                     archived BOOLEAN NOT NULL,
                     draft BOOLEAN NOT NULL
                 );",
@@ -1027,7 +1027,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     properties,
                     left_to_right_order,
                     right_to_left_order,
-                    record_created_by_id,
+                    edition_created_by_id,
                     archived,
                     draft
                 ) FROM STDIN BINARY",
@@ -1073,7 +1073,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     properties,
                     left_to_right_order,
                     right_to_left_order,
-                    record_created_by_id,
+                    edition_created_by_id,
                     archived,
                     draft
                 )
@@ -1082,7 +1082,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     properties,
                     left_to_right_order,
                     right_to_left_order,
-                    record_created_by_id,
+                    edition_created_by_id,
                     archived,
                     draft
                 FROM entity_editions_temp

@@ -467,8 +467,8 @@ impl OntologyTemporalMetadata {
         let column = match self {
             Self::OntologyId => "ontology_id",
             Self::TransactionTime => "transaction_time",
-            Self::CreatedById => "record_created_by_id",
-            Self::ArchivedById => "record_archived_by_id",
+            Self::CreatedById => "edition_created_by_id",
+            Self::ArchivedById => "edition_archived_by_id",
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
@@ -749,7 +749,7 @@ impl EntityEditions<'static> {
             }
             Self::LeftToRightOrder => "left_to_right_order",
             Self::RightToLeftOrder => "right_to_left_order",
-            Self::EditionCreatedById => "record_created_by_id",
+            Self::EditionCreatedById => "edition_created_by_id",
             Self::Archived => "archived",
             Self::Draft => "draft",
         };

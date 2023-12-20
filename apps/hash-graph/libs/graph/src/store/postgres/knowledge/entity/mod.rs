@@ -1175,7 +1175,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 "
                     INSERT INTO entity_editions (
                         entity_edition_id,
-                        record_created_by_id,
+                        edition_created_by_id,
                         archived,
                         draft,
                         properties,

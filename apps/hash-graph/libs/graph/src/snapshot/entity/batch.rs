@@ -48,7 +48,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         properties JSONB NOT NULL,
                         left_to_right_order INTEGER,
                         right_to_left_order INTEGER,
-                        record_created_by_id UUID NOT NULL,
+                        edition_created_by_id UUID NOT NULL,
                         archived BOOLEAN NOT NULL,
                         draft BOOLEAN NOT NULL,
                         entity_type_base_url TEXT NOT NULL,
@@ -189,7 +189,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             properties JSONB,
                             left_to_right_order INT4,
                             right_to_left_order INT4,
-                            record_created_by_id UUID,
+                            edition_created_by_id UUID,
                             archived BOOLEAN,
                             draft BOOLEAN
                         FROM entity_editions_tmp;
