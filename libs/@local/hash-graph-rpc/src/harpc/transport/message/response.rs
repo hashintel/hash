@@ -41,6 +41,10 @@ pub enum ResponseError {
     InvalidTransportVersion,
     InvalidPayloadSize,
     InvalidPayload,
+    // TODO: transfer error information as payload
+    // TODO: how to convert error-stack information back and forth?
+    EncodingError,
+    DecodingError,
 }
 
 impl ResponseError {
@@ -53,6 +57,8 @@ impl ResponseError {
         InvalidTransportVersion <=> 0x05,
         InvalidPayloadSize <=> 0x06,
         InvalidPayload <=> 0x07,
+        EncodingError <=> 0x08,
+        DecodingError <=> 0x09,
     }
 
     pub(crate) const fn into_tag(self) -> u8 {

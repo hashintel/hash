@@ -5,9 +5,12 @@ use const_fnv1a_hash::fnv1a_hash_str_64;
 use crate::harpc::{
     transport::{
         codec::{decode::DecodeBinary, encode::EncodeBinary},
-        message::{request::Request, response::Response},
+        message::{
+            request::Request,
+            response::{Response, ResponseError},
+        },
     },
-    Context, Decode, Encode, Stateful,
+    Context, Decode, Encode, RequestMeta, Stateful,
 };
 
 #[derive(
@@ -61,9 +64,9 @@ pub trait ProcedureCall<C>
 where
     C: Context,
 {
-    type Future: Future<Output = Response> + Send + 'static;
-
     type Procedure: RemoteProcedure;
+
+    type Future: Future<Output = Response> + Send + 'static;
 
     fn call(self, request: Request, context: C) -> Self::Future;
 }
@@ -94,6 +97,52 @@ impl<F, P, C> Handler<F, P, C> {
     }
 }
 
+macro_rules! process {
+    (decode: $context:ident, $body:ident) => {
+        match $context.decode($body).await {
+            Err(error) => {
+                tracing::error!(?error, "Failed to decode request");
+                return Response::error(ResponseError::DecodingError);
+            }
+            Ok(body) => body,
+        }
+    };
+
+    (encode: $context:ident, $output:ident) => {
+        match $context.encode($output).await {
+            Err(error) => {
+                tracing::error!(?error, "Failed to encode response");
+                return Response::error(ResponseError::EncodingError);
+            }
+            Ok(buffer) => Response::success(buffer),
+        }
+    };
+}
+
+impl<F, P, C, Fut> ProcedureCall<C> for Handler<F, P, C>
+where
+    F: FnOnce(P) -> Fut + Clone + Send + 'static,
+    Fut: Future<Output = P::Response> + Send,
+    P: RemoteProcedure,
+    C: Context + Encode<P::Response> + Decode<P>,
+{
+    type Procedure = P;
+
+    type Future = impl Future<Output = Response> + Send + 'static;
+
+    fn call(self, request: Request, context: C) -> Self::Future {
+        async move {
+            let body = request.body;
+
+            let input = process!(decode: context, body);
+
+            let output = (self.handler)(input).await;
+
+            process!(encode: context, output)
+        }
+    }
+}
+
 impl<F, P, C, Fut> ProcedureCall<C> for Handler<F, P, C>
 where
     F: FnOnce(P, &C::State) -> Fut + Clone + Send + 'static,
@@ -110,14 +159,39 @@ where
             let body = request.body;
             let state = context.state();
 
-            let body = context.decode(body);
-            let input = body;
+            let input = process!(decode: context, body);
 
             let output = (self.handler)(input, state).await;
 
-            // TODO: async + errors
-            let buffer = context.encode(output);
-            Response::success(buffer)
+            process!(encode: context, output)
+        }
+    }
+}
+
+impl<F, P, C, Fut> ProcedureCall<C> for Handler<F, P, C>
+where
+    F: FnOnce(P, RequestMeta, &C::State) -> Fut + Clone + Send + 'static,
+    Fut: Future<Output = P::Response> + Send,
+    P: RemoteProcedure,
+    C: Context + Encode<P::Response> + Decode<P>,
+{
+    type Procedure = P;
+
+    type Future = impl Future<Output = Response> + Send + 'static;
+
+    fn call(self, request: Request, context: C) -> Self::Future {
+        async move {
+            let body = request.body;
+            let state = context.state();
+
+            let input = process!(decode: context, body);
+            let meta = RequestMeta {
+                actor: request.header.actor,
+            };
+
+            let output = (self.handler)(input, meta, state).await;
+
+            process!(encode: context, output)
         }
     }
 }

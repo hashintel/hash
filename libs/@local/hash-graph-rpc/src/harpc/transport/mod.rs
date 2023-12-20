@@ -154,12 +154,13 @@ mod test {
             codec::CodecKind,
             message::{
                 actor::ActorId,
-                request::{Request, RequestHeader},
+                request::{Request, RequestFlags, RequestHeader},
                 response::{Response, ResponseHeader, ResponsePayload},
                 size::PayloadSize,
+                version::{ServiceVersion, Version},
             },
             server::{ServerTransportConfig, ServerTransportLayer},
-            RequestRouter, TransportConfig,
+            RequestRouter, TransportConfig, TRANSPORT_VERSION,
         },
     };
 
@@ -168,12 +169,7 @@ mod test {
 
     impl RequestRouter for EchoRouter {
         fn route(&self, request: Request) -> impl Future<Output = Response> + Send + 'static {
-            ready(Response {
-                header: ResponseHeader {
-                    size: request.header.size,
-                },
-                body: ResponsePayload::Success(request.body),
-            })
+            ready(Response::success(request.body))
         }
     }
 
@@ -189,12 +185,7 @@ mod test {
             async move {
                 tokio::time::sleep(delay).await;
 
-                Response {
-                    header: ResponseHeader {
-                        size: request.header.size,
-                    },
-                    body: ResponsePayload::Success(request.body),
-                }
+                Response::success(request.body)
             }
         }
     }
@@ -252,9 +243,14 @@ mod test {
 
         Request {
             header: RequestHeader {
+                flags: RequestFlags::new(),
+                version: Version {
+                    transport: TRANSPORT_VERSION,
+                    service: ServiceVersion::new(0),
+                },
                 service: ServiceId::new(0x00),
                 procedure: ProcedureId::new(0x00),
-                actor: ActorId(Uuid::new_v4()),
+                actor: ActorId::new(Uuid::new_v4()),
                 size: PayloadSize::len(&payload),
             },
             body: payload.to_vec().into(),

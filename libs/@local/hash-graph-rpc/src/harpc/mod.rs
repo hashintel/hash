@@ -2,7 +2,11 @@ mod procedure;
 mod service;
 pub(crate) mod transport;
 
+use std::future::Future;
+
 use bytes::Bytes;
+
+use crate::harpc::transport::message::actor::ActorId;
 
 pub trait Stateful: Send + Sync {
     type State: Send + Sync;
@@ -11,11 +15,26 @@ pub trait Stateful: Send + Sync {
 }
 
 pub trait Encode<T>: Stateful {
-    fn encode(&self, value: T) -> Bytes;
+    type Error: error_stack::Context;
+
+    fn encode(
+        &self,
+        value: T,
+    ) -> impl Future<Output = error_stack::Result<Bytes, Self::Error>> + Send + 'static;
 }
 
 pub trait Decode<T>: Stateful {
-    fn decode(&self, bytes: Bytes) -> T;
+    type Error: error_stack::Context;
+
+    fn decode(
+        &self,
+        bytes: Bytes,
+    ) -> impl Future<Output = error_stack::Result<T, Self::Error>> + Send + 'static;
 }
 
 pub trait Context: Clone + Stateful + 'static {}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RequestMeta {
+    pub actor: ActorId,
+}
