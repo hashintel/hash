@@ -265,7 +265,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MaybeListOfOntologyElementMetadata"
+                  "$ref": "#/components/schemas/MaybeListOfDataTypeMetadata"
                 }
               }
             }
@@ -335,7 +335,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OntologyElementMetadata"
+                  "$ref": "#/components/schemas/DataTypeMetadata"
                 }
               }
             }
@@ -440,7 +440,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OntologyElementMetadata"
+                  "$ref": "#/components/schemas/DataTypeMetadata"
                 }
               }
             }
@@ -1419,7 +1419,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OntologyElementMetadata"
+                  "$ref": "#/components/schemas/EntityTypeMetadata"
                 }
               }
             }
@@ -1524,7 +1524,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OntologyElementMetadata"
+                  "$ref": "#/components/schemas/EntityTypeMetadata"
                 }
               }
             }
@@ -1847,7 +1847,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MaybeListOfOntologyElementMetadata"
+                  "$ref": "#/components/schemas/MaybeListOfPropertyTypeMetadata"
                 }
               }
             }
@@ -1917,7 +1917,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OntologyElementMetadata"
+                  "$ref": "#/components/schemas/PropertyTypeMetadata"
                 }
               }
             }
@@ -2022,7 +2022,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OntologyElementMetadata"
+                  "$ref": "#/components/schemas/PropertyTypeMetadata"
                 }
               }
             }
@@ -2520,6 +2520,10 @@
           }
         }
       },
+      "ArchivedById": {
+        "type": "string",
+        "format": "uuid"
+      },
       "ClosedTemporalBound": {
         "oneOf": [
           {
@@ -2708,22 +2712,30 @@
           }
         }
       },
-      "CustomOntologyMetadata": {
+      "CreatedById": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "DataTypeMetadata": {
         "oneOf": [
           {
             "type": "object",
-            "title": "CustomOwnedOntologyElementMetadata",
+            "title": "OwnedDataTypeMetadata",
             "required": [
-              "provenance",
+              "recordId",
+              "ownedById",
               "temporalVersioning",
-              "ownedById"
+              "provenance"
             ],
             "properties": {
               "ownedById": {
                 "$ref": "#/components/schemas/OwnedById"
               },
               "provenance": {
-                "$ref": "#/components/schemas/ProvenanceMetadata"
+                "$ref": "#/components/schemas/OntologyProvenanceMetadata"
+              },
+              "recordId": {
+                "$ref": "#/components/schemas/OntologyTypeRecordId"
               },
               "temporalVersioning": {
                 "$ref": "#/components/schemas/OntologyTemporalMetadata"
@@ -2732,18 +2744,22 @@
           },
           {
             "type": "object",
-            "title": "CustomExternalOntologyElementMetadata",
+            "title": "ExternalDataTypeMetadata",
             "required": [
-              "provenance",
+              "recordId",
+              "fetchedAt",
               "temporalVersioning",
-              "fetchedAt"
+              "provenance"
             ],
             "properties": {
               "fetchedAt": {
-                "type": "string"
+                "$ref": "#/components/schemas/Timestamp"
               },
               "provenance": {
-                "$ref": "#/components/schemas/ProvenanceMetadata"
+                "$ref": "#/components/schemas/OntologyProvenanceMetadata"
+              },
+              "recordId": {
+                "$ref": "#/components/schemas/OntologyTypeRecordId"
               },
               "temporalVersioning": {
                 "$ref": "#/components/schemas/OntologyTemporalMetadata"
@@ -2792,8 +2808,8 @@
           "version",
           "versionedUrl",
           "ownedById",
-          "recordCreatedById",
-          "recordArchivedById",
+          "createdById",
+          "archivedById",
           "title",
           "description",
           "type"
@@ -2906,7 +2922,7 @@
         ],
         "properties": {
           "metadata": {
-            "$ref": "#/components/schemas/OntologyElementMetadata"
+            "$ref": "#/components/schemas/DataTypeMetadata"
           },
           "schema": {
             "$ref": "./models/data_type.json"
@@ -2957,6 +2973,10 @@
             }
           }
         }
+      },
+      "EditionCreatedById": {
+        "type": "string",
+        "format": "uuid"
       },
       "Embedding": {
         "type": "array",
@@ -3034,6 +3054,17 @@
       "EntityEditionId": {
         "type": "string",
         "format": "uuid"
+      },
+      "EntityEditionProvenanceMetadata": {
+        "type": "object",
+        "required": [
+          "createdById"
+        ],
+        "properties": {
+          "createdById": {
+            "$ref": "#/components/schemas/EditionCreatedById"
+          }
+        }
       },
       "EntityEditorSubject": {
         "oneOf": [
@@ -3174,7 +3205,7 @@
             "type": "string"
           },
           "provenance": {
-            "$ref": "#/components/schemas/ProvenanceMetadata"
+            "$ref": "#/components/schemas/EntityProvenanceMetadata"
           },
           "recordId": {
             "$ref": "#/components/schemas/EntityRecordId"
@@ -3221,6 +3252,17 @@
         "type": "object",
         "description": "The properties of an entity.\n\nWhen expressed as JSON, this should validate against its respective entity type(s)."
       },
+      "EntityProvenanceMetadata": {
+        "type": "object",
+        "required": [
+          "edition"
+        ],
+        "properties": {
+          "edition": {
+            "$ref": "#/components/schemas/EntityEditionProvenanceMetadata"
+          }
+        }
+      },
       "EntityQueryToken": {
         "type": "string",
         "description": "A single token in an [`EntityQueryPath`].",
@@ -3230,7 +3272,7 @@
           "archived",
           "draft",
           "ownedById",
-          "recordCreatedById",
+          "editionCreatedById",
           "type",
           "properties",
           "embedding",
@@ -3526,31 +3568,68 @@
         }
       },
       "EntityTypeMetadata": {
-        "type": "object",
-        "required": [
-          "recordId",
-          "custom"
-        ],
-        "properties": {
-          "custom": {
-            "$ref": "#/components/schemas/CustomOntologyMetadata"
-          },
-          "icon": {
-            "type": "string",
-            "nullable": true
-          },
-          "labelProperty": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BaseUrl"
-              }
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "OwnedEntityTypeMetadata",
+            "required": [
+              "recordId",
+              "ownedById",
+              "temporalVersioning",
+              "provenance"
             ],
-            "nullable": true
+            "properties": {
+              "icon": {
+                "type": "string"
+              },
+              "labelProperty": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "ownedById": {
+                "$ref": "#/components/schemas/OwnedById"
+              },
+              "provenance": {
+                "$ref": "#/components/schemas/OntologyProvenanceMetadata"
+              },
+              "recordId": {
+                "$ref": "#/components/schemas/OntologyTypeRecordId"
+              },
+              "temporalVersioning": {
+                "$ref": "#/components/schemas/OntologyTemporalMetadata"
+              }
+            }
           },
-          "recordId": {
-            "$ref": "#/components/schemas/OntologyTypeRecordId"
+          {
+            "type": "object",
+            "title": "ExternalEntityTypeMetadata",
+            "required": [
+              "recordId",
+              "fetchedAt",
+              "temporalVersioning",
+              "provenance"
+            ],
+            "properties": {
+              "fetchedAt": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "icon": {
+                "type": "string"
+              },
+              "labelProperty": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "provenance": {
+                "$ref": "#/components/schemas/OntologyProvenanceMetadata"
+              },
+              "recordId": {
+                "$ref": "#/components/schemas/OntologyTypeRecordId"
+              },
+              "temporalVersioning": {
+                "$ref": "#/components/schemas/OntologyTemporalMetadata"
+              }
+            }
           }
-        }
+        ]
       },
       "EntityTypeOwnerSubject": {
         "oneOf": [
@@ -3593,8 +3672,8 @@
           "version",
           "versionedUrl",
           "ownedById",
-          "recordCreatedById",
-          "recordArchivedById",
+          "createdById",
+          "archivedById",
           "title",
           "description",
           "examples",
@@ -4416,6 +4495,19 @@
           }
         ]
       },
+      "MaybeListOfDataTypeMetadata": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DataTypeMetadata"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataTypeMetadata"
+            }
+          }
+        ]
+      },
       "MaybeListOfEntityTypeMetadata": {
         "oneOf": [
           {
@@ -4429,15 +4521,15 @@
           }
         ]
       },
-      "MaybeListOfOntologyElementMetadata": {
+      "MaybeListOfPropertyTypeMetadata": {
         "oneOf": [
           {
-            "$ref": "#/components/schemas/OntologyElementMetadata"
+            "$ref": "#/components/schemas/PropertyTypeMetadata"
           },
           {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/OntologyElementMetadata"
+              "$ref": "#/components/schemas/PropertyTypeMetadata"
             }
           }
         ]
@@ -4561,21 +4653,6 @@
           "CONSTRAINS_LINK_DESTINATIONS_ON"
         ]
       },
-      "OntologyElementMetadata": {
-        "type": "object",
-        "required": [
-          "recordId",
-          "custom"
-        ],
-        "properties": {
-          "custom": {
-            "$ref": "#/components/schemas/CustomOntologyMetadata"
-          },
-          "recordId": {
-            "$ref": "#/components/schemas/OntologyTypeRecordId"
-          }
-        }
-      },
       "OntologyOutwardEdge": {
         "oneOf": [
           {
@@ -4619,6 +4696,25 @@
             }
           }
         ]
+      },
+      "OntologyProvenanceMetadata": {
+        "type": "object",
+        "required": [
+          "createdById"
+        ],
+        "properties": {
+          "archivedById": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ArchivedById"
+              }
+            ],
+            "nullable": true
+          },
+          "createdById": {
+            "$ref": "#/components/schemas/CreatedById"
+          }
+        }
       },
       "OntologyTemporalMetadata": {
         "type": "object",
@@ -4851,6 +4947,58 @@
           "propertyName": "kind"
         }
       },
+      "PropertyTypeMetadata": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "OwnedPropertyTypeMetadata",
+            "required": [
+              "recordId",
+              "ownedById",
+              "temporalVersioning",
+              "provenance"
+            ],
+            "properties": {
+              "ownedById": {
+                "$ref": "#/components/schemas/OwnedById"
+              },
+              "provenance": {
+                "$ref": "#/components/schemas/OntologyProvenanceMetadata"
+              },
+              "recordId": {
+                "$ref": "#/components/schemas/OntologyTypeRecordId"
+              },
+              "temporalVersioning": {
+                "$ref": "#/components/schemas/OntologyTemporalMetadata"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ExternalPropertyTypeMetadata",
+            "required": [
+              "recordId",
+              "fetchedAt",
+              "temporalVersioning",
+              "provenance"
+            ],
+            "properties": {
+              "fetchedAt": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "provenance": {
+                "$ref": "#/components/schemas/OntologyProvenanceMetadata"
+              },
+              "recordId": {
+                "$ref": "#/components/schemas/OntologyTypeRecordId"
+              },
+              "temporalVersioning": {
+                "$ref": "#/components/schemas/OntologyTemporalMetadata"
+              }
+            }
+          }
+        ]
+      },
       "PropertyTypeOwnerSubject": {
         "oneOf": [
           {
@@ -4891,8 +5039,8 @@
           "version",
           "versionedUrl",
           "ownedById",
-          "recordCreatedById",
-          "recordArchivedById",
+          "createdById",
+          "archivedById",
           "title",
           "description",
           "dataTypes",
@@ -5073,29 +5221,10 @@
         ],
         "properties": {
           "metadata": {
-            "$ref": "#/components/schemas/OntologyElementMetadata"
+            "$ref": "#/components/schemas/PropertyTypeMetadata"
           },
           "schema": {
             "$ref": "./models/property_type.json"
-          }
-        }
-      },
-      "ProvenanceMetadata": {
-        "type": "object",
-        "required": [
-          "recordCreatedById"
-        ],
-        "properties": {
-          "recordArchivedById": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RecordArchivedById"
-              }
-            ],
-            "nullable": true
-          },
-          "recordCreatedById": {
-            "$ref": "#/components/schemas/RecordCreatedById"
           }
         }
       },
@@ -5278,14 +5407,6 @@
           }
         ],
         "description": "Defines the two possible combinations of pinned/variable temporal axes that are used in queries\nthat return [`Subgraph`]s.\n\nThe [`VariableTemporalAxisUnresolved`] is optionally bounded, in the absence of provided\nbounds an inclusive bound at the timestamp at point of resolving is assumed.\n\n[`Subgraph`]: crate::subgraph::Subgraph"
-      },
-      "RecordArchivedById": {
-        "type": "string",
-        "format": "uuid"
-      },
-      "RecordCreatedById": {
-        "type": "string",
-        "format": "uuid"
       },
       "RightBoundedTemporalInterval": {
         "type": "object",

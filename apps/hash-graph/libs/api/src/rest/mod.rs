@@ -86,7 +86,8 @@ use self::{
             OntologyOutwardEdge, OntologyTypeVertexId, OntologyVertex, OntologyVertices, Subgraph,
             Vertex, Vertices,
         },
-        MaybeListOfEntityTypeMetadata,
+        MaybeListOfDataTypeMetadata, MaybeListOfEntityTypeMetadata,
+        MaybeListOfPropertyTypeMetadata,
     },
 };
 
@@ -346,7 +347,9 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             OntologyTypeRecordId,
             OntologyTemporalMetadata,
             DataTypeMetadata,
+            MaybeListOfDataTypeMetadata,
             PropertyTypeMetadata,
+            MaybeListOfPropertyTypeMetadata,
             EntityTypeMetadata,
             MaybeListOfEntityTypeMetadata,
             EntityVertexId,
