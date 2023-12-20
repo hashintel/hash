@@ -10,6 +10,7 @@ import { InheritanceRow } from "./entity-type-editor/inheritance-row";
 import { LinkListCard } from "./entity-type-editor/link-list-card";
 import { PropertyListCard } from "./entity-type-editor/property-list-card";
 import { CustomizationContext } from "./shared/customization-context";
+import { DataTypesOptionsContextProvider } from "./shared/data-types-options-context";
 import { EntityTypesOptionsContextProvider } from "./shared/entity-types-options-context";
 import {
   EditorOntologyFunctions,
@@ -38,6 +39,7 @@ export type CustomizationOptions = {
 
 export type EntityTypeEditorProps = {
   customization?: CustomizationOptions;
+  // The data types available for assigning to a property type, INCLUDING those used on this entity
   dataTypeOptions: Record<VersionedUrl, DataType>;
   // the entity type being edited
   entityType: EntityType;
@@ -71,37 +73,41 @@ export const EntityTypeEditor = ({
               <PropertyTypesOptionsContextProvider
                 propertyTypeOptions={propertyTypeOptions}
               >
-                <Stack spacing={6.5} className={fluidFontClassName}>
-                  <Box>
-                    <Typography variant="h5" mb={2}>
-                      Extends
-                    </Typography>
-                    <InheritanceRow
-                      entityTypeId={entityType.$id}
-                      typeTitle={entityType.title}
-                    />
-                  </Box>
+                <DataTypesOptionsContextProvider
+                  dataTypeOptions={dataTypeOptions}
+                >
+                  <Stack spacing={6.5} className={fluidFontClassName}>
+                    <Box>
+                      <Typography variant="h5" mb={2}>
+                        Extends
+                      </Typography>
+                      <InheritanceRow
+                        entityTypeId={entityType.$id}
+                        typeTitle={entityType.title}
+                      />
+                    </Box>
 
-                  <Box>
-                    <Typography variant="h5" mb={2}>
-                      Properties of{" "}
-                      <Box component="span" sx={{ fontWeight: "bold" }}>
-                        {entityType.title}
-                      </Box>
-                    </Typography>
-                    <PropertyListCard />
-                  </Box>
+                    <Box>
+                      <Typography variant="h5" mb={2}>
+                        Properties of{" "}
+                        <Box component="span" sx={{ fontWeight: "bold" }}>
+                          {entityType.title}
+                        </Box>
+                      </Typography>
+                      <PropertyListCard />
+                    </Box>
 
-                  <Box>
-                    <Typography variant="h5" mb={2}>
-                      Links defined on{" "}
-                      <Box component="span" sx={{ fontWeight: "bold" }}>
-                        {entityType.title}
-                      </Box>
-                    </Typography>
-                    <LinkListCard />
-                  </Box>
-                </Stack>
+                    <Box>
+                      <Typography variant="h5" mb={2}>
+                        Links defined on{" "}
+                        <Box component="span" sx={{ fontWeight: "bold" }}>
+                          {entityType.title}
+                        </Box>
+                      </Typography>
+                      <LinkListCard />
+                    </Box>
+                  </Stack>
+                </DataTypesOptionsContextProvider>
               </PropertyTypesOptionsContextProvider>
             </EntityTypesOptionsContextProvider>
           </OntologyFunctionsContext.Provider>

@@ -6,6 +6,7 @@ import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { usePropertyTypes } from "../../../shared/property-types-context";
+import { useDataTypesContext } from "../data-types-context";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
 import { getTypesWithoutMetadata } from "./shared/get-types-without-metadata";
 
@@ -73,13 +74,24 @@ export const DefinitionTab = ({
     typesWithMetadata,
   );
 
-  if (!entityTypeOptions) {
+  const { dataTypes } = useDataTypesContext();
+  const dataTypeOptions = useMemo(() => {
+    if (!dataTypes) {
+      return null;
+    }
+    return Object.fromEntries(
+      Object.entries(dataTypes).map(([key, value]) => [key, value.schema]),
+    );
+  }, [dataTypes]);
+
+  if (!entityTypeOptions || !dataTypeOptions) {
     return null;
   }
 
   return (
     <EntityTypeEditor
       customization={{ onNavigateToType }}
+      dataTypeOptions={dataTypeOptions}
       entityType={entityTypeAndPropertyTypes.entityType}
       entityTypeOptions={entityTypeOptions}
       key={entityTypeAndPropertyTypes.entityType.$id} // Reset state when switching entity types, helps avoid state mismatch issues

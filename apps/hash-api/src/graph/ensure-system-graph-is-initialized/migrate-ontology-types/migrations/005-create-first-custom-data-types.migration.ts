@@ -8,9 +8,9 @@ const migrate: MigrationFunction = async ({
 }) => {
   await createSystemDataTypeIfNotExists(context, authentication, {
     dataTypeDefinition: {
-      title: "URL",
+      title: "URI",
       description:
-        "A unique identifier used to locate a resource on the Internet.",
+        "A unique identifier for a resource. A URL is a type of URI, as is a URN.",
       format: "uri",
       type: "string",
     },

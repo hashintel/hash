@@ -1,7 +1,5 @@
-import {
-  CustomExpectedValueData,
-  CustomExpectedValueTypeId,
-} from "./expected-value-types";
+import { CustomExpectedValueTypeId } from "../../../shared/data-types-options-context";
+import { CustomExpectedValueData } from "./expected-value-types";
 
 export const arrayExpectedValueDataDefaults = {
   minItems: 0,

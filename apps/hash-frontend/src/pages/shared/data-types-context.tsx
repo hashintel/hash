@@ -6,7 +6,7 @@ import {
   DataTypeWithMetadata,
   OntologyTypeRevisionId,
 } from "@local/hash-subgraph";
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/src/shared/type-system-patch";
+import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   createContext,
   PropsWithChildren,
@@ -22,7 +22,7 @@ import {
 import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
 
 export type DataTypesContextValue = {
-  dataTypes: Record<VersionedUrl, DataTypeWithMetadata>;
+  dataTypes: Record<VersionedUrl, DataTypeWithMetadata> | null;
   formatDataTypeValue: (args: {
     dataTypeId: VersionedUrl;
     value: JsonValue;
@@ -38,12 +38,15 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
     queryDataTypesQuery,
     {
       fetchPolicy: "cache-first",
+      variables: {
+        constrainsValuesOn: { outgoing: 255 },
+      },
     },
   );
 
   const dataTypes = useMemo(() => {
     if (!data) {
-      return {};
+      return null;
     }
     const allDataTypes: Record<VersionedUrl, DataTypeWithMetadata> = {};
 
@@ -86,9 +89,11 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
     };
   }, [dataTypes, formatDataTypeValue]);
 
-  <DataTypesContext.Provider value={value}>
-    {children}
-  </DataTypesContext.Provider>;
+  return (
+    <DataTypesContext.Provider value={value}>
+      {children}
+    </DataTypesContext.Provider>
+  );
 };
 
 export const useDataTypesContext = () => {

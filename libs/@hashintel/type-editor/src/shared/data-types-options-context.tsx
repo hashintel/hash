@@ -1,5 +1,4 @@
 import { DataType } from "@blockprotocol/graph";
-import { validateVersionedUrl } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   faList,
@@ -18,8 +17,14 @@ import {
   faSquareCheck,
   faText,
 } from "@hashintel/design-system";
-import { theme } from "@hashintel/design-system/src/theme";
-import { createContext, PropsWithChildren, useContext } from "react";
+import { theme } from "@hashintel/design-system/theme";
+import {
+  createContext,
+  PropsWithChildren,
+  useCallback,
+  useContext,
+  useMemo,
+} from "react";
 
 const chipColors = {
   blue: {
@@ -39,121 +44,209 @@ const chipColors = {
   },
 };
 
-type ExpectedValueOptionMap = {
-  [key: string]: {
-    title: string;
-    icon: typeof faText;
-    colors: typeof chipColors.blue;
-    allowMultiple?: boolean;
-  };
+type ExpectedValueDisplay = {
+  icon: typeof faText;
+  colors: typeof chipColors.blue;
+  title: string;
 };
 
-export const textDataTypeId =
-  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
-export const numberDataTypeId =
-  "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1";
-export const booleanDataTypeId =
-  "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1";
-export const objectDataTypeId =
-  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1";
-export const emptyListDataTypeId =
-  "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1";
-export const nullDataTypeId =
-  "https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1";
-
-export const expectedValuesOptions: ExpectedValueOptionMap = {
-  [textDataTypeId]: {
-    title: "Text",
+const expectedValuesDisplayMap = {
+  string: {
     icon: faText,
     colors: chipColors.blue,
   },
-  [numberDataTypeId]: {
-    title: "Number",
+  number: {
     icon: fa100,
     colors: chipColors.blue,
   },
-  [booleanDataTypeId]: {
-    title: "Boolean",
+  boolean: {
     icon: faSquareCheck,
     colors: chipColors.blue,
   },
-  [objectDataTypeId]: {
-    title: "Object",
+  object: {
     icon: faBracketsCurly,
     colors: chipColors.blue,
   },
-  [emptyListDataTypeId]: {
-    title: "Empty List",
+  emptyList: {
     icon: faBracketsSquare,
     colors: chipColors.blue,
   },
-  [nullDataTypeId]: {
-    title: "Null",
+  null: {
     icon: faEmptySet,
     colors: chipColors.blue,
   },
-  object: {
-    title: "Property Object",
+  propertyObject: {
     icon: faCube,
     colors: chipColors.purple,
-    allowMultiple: true,
   },
   array: {
-    title: "Array",
     icon: faList.icon,
     colors: chipColors.blue,
-    allowMultiple: true,
   },
-  textArray: {
-    title: "Text Array",
+  stringArray: {
     icon: faListUl.icon,
     colors: chipColors.blue,
   },
   booleanArray: {
-    title: "Boolean Array",
     icon: faListCheck.icon,
     colors: chipColors.blue,
   },
   numberArray: {
-    title: "Number Array",
     icon: faListOl.icon,
     colors: chipColors.blue,
   },
+  objectArray: {
+    icon: faCubes,
+    colors: chipColors.blue,
+  },
   propertyObjectArray: {
-    title: "Property Object Array",
     icon: faCubes,
     colors: chipColors.purple,
   },
   mixedArray: {
-    title: "Mixed Array",
     icon: faList.icon,
     colors: chipColors.aqua,
   },
   arrayArray: {
-    title: "Array of Arrays",
     icon: faListTree,
     colors: chipColors.aqua,
   },
-};
+} as const satisfies Record<string, Omit<ExpectedValueDisplay, "title">>;
 
-export const dataTypeOptions = Object.keys(expectedValuesOptions).filter(
-  (key) => validateVersionedUrl(key).type === "Ok",
-) as VersionedUrl[];
+export type CustomExpectedValueTypeId = VersionedUrl | "array" | "object";
 
 export type DataTypesByVersionedUrl = Record<VersionedUrl, DataType>;
 export type DataTypesContextValue = {
-  dataTypes: DataTypesByVersionedUrl;
+  dataTypes: DataType[];
+  getExpectedValueDisplay: (
+    expectedValue: CustomExpectedValueTypeId | CustomExpectedValueTypeId[],
+  ) => ExpectedValueDisplay;
 };
 
 export const DataTypesOptionsContext =
   createContext<DataTypesContextValue | null>(null);
 
+const getArrayDataTypeDisplay = (
+  dataType: Pick<DataType, "$id"> & {
+    items?: DataType[];
+    prefixItems?: DataType[];
+  },
+): Omit<ExpectedValueDisplay, "title"> => {
+  const items = dataType.prefixItems ?? dataType.items;
+
+  if (!items) {
+    return expectedValuesDisplayMap.array;
+  }
+
+  const itemTypes = items.map((item) => item.type);
+
+  if (new Set(itemTypes).size === 1) {
+    const itemDataType = items[0];
+    if (!itemDataType) {
+      throw new Error(
+        `Could not find itemDataType for array data type ${dataType.$id}`,
+      );
+    }
+    return expectedValuesDisplayMap[
+      `${itemDataType.type}Array` as keyof typeof expectedValuesDisplayMap
+    ];
+  }
+
+  return expectedValuesDisplayMap.mixedArray;
+};
+
 export const DataTypesOptionsContextProvider = ({
   children,
   dataTypeOptions,
 }: PropsWithChildren<{ dataTypeOptions: DataTypesByVersionedUrl }>) => {
+  const getExpectedValueDisplay = useCallback(
+    (
+      expectedValue: CustomExpectedValueTypeId | CustomExpectedValueTypeId[],
+    ) => {
+      if (expectedValue === "object") {
+        return {
+          title: "Property Object",
+          ...expectedValuesDisplayMap.propertyObject,
+        };
+      }
+
+      if (expectedValue === "array") {
+        return {
+          title: "Array",
+          ...expectedValuesDisplayMap.array,
+        };
+      }
+
+      if (typeof expectedValue === "string") {
+        const dataType = dataTypeOptions[expectedValue];
+        if (!dataType) {
+          throw new Error(`Could not find dataType for ${expectedValue}`);
+        }
+
+        if (dataType.type === "array") {
+          return {
+            title: dataType.title,
+            ...getArrayDataTypeDisplay(dataType),
+          };
+        }
+
+        return {
+          title: dataType.title,
+          ...expectedValuesDisplayMap[
+            dataType.type as keyof typeof expectedValuesDisplayMap
+          ],
+        };
+      }
+
+      if (Array.isArray(expectedValue)) {
+        if (new Set(expectedValue).size === 1) {
+          const type = expectedValue[0]!;
+          if (type === "object") {
+            return {
+              title: "Property Object Array",
+              ...expectedValuesDisplayMap.propertyObjectArray,
+            };
+          }
+          if (type === "array") {
+            return {
+              title: "Array of Arrays",
+              ...expectedValuesDisplayMap.arrayArray,
+            };
+          }
+          const dataType = dataTypeOptions[type];
+          if (dataType) {
+            return {
+              title: `${dataType.title} Array`,
+              ...getArrayDataTypeDisplay({
+                items: [dataType],
+                $id: dataType.$id,
+              }),
+            };
+          }
+        }
+
+        return {
+          title: "Mixed Array",
+          ...expectedValuesDisplayMap.mixedArray,
+        };
+      }
+
+      throw new Error("Could not find expectedValueDisplay");
+    },
+    [dataTypeOptions],
+  );
+
+  const value = useMemo(() => {
+    return {
+      dataTypes: Object.values(dataTypeOptions).sort((a, b) =>
+        a.title.localeCompare(b.title),
+      ),
+      getExpectedValueDisplay,
+    };
+  }, [dataTypeOptions, getExpectedValueDisplay]);
+
   return (
-    <DataTypesOptionsContext.Provider value={dataTypeOptions}>
+    <DataTypesOptionsContext.Provider value={value}>
       {children}
     </DataTypesOptionsContext.Provider>
   );
