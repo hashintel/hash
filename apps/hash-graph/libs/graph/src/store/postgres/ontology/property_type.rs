@@ -429,9 +429,13 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 .insert(id)
                 .then_some((id, (vertex_id, property_type)))
         })
-        .collect::<HashMap<_, _>>();
+        .collect::<Vec<_>>();
 
-        let filtered_ids = property_types.keys().copied().collect::<Vec<_>>();
+        let filtered_ids = property_types
+            .iter()
+            .map(|(property_type_id, _)| *property_type_id)
+            .collect::<Vec<_>>();
+
         let (permissions, zookie) = authorization_api
             .check_property_types_permission(
                 actor_id,
@@ -448,15 +452,17 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             temporal_axes.clone(),
         );
 
-        let (property_type_ids, property_type_vertices): (Vec<_>, _) = property_types
+        let (property_type_ids, property_type_vertices): (Vec<_>, Vec<_>) = property_types
             .into_iter()
             .filter(|(id, _)| permissions.get(id).copied().unwrap_or(false))
             .unzip();
-        subgraph.vertices.property_types = property_type_vertices;
 
-        for vertex_id in subgraph.vertices.property_types.keys() {
-            subgraph.roots.insert(vertex_id.clone().into());
-        }
+        subgraph.roots.extend(
+            property_type_vertices
+                .iter()
+                .map(|(vertex_id, _)| vertex_id.clone().into()),
+        );
+        subgraph.vertices.property_types = property_type_vertices.into_iter().collect();
 
         let mut traversal_context = TraversalContext::default();
 

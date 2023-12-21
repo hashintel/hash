@@ -5,10 +5,7 @@ pub mod temporal_axes;
 pub mod vertices;
 
 use std::{
-    collections::{
-        hash_map::{RandomState, RawEntryMut},
-        HashSet,
-    },
+    collections::hash_map::{RandomState, RawEntryMut},
     hash::Hash,
 };
 
@@ -28,7 +25,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Subgraph {
-    pub roots: HashSet<GraphElementVertexId>,
+    pub roots: Vec<GraphElementVertexId>,
     pub vertices: Vertices,
     pub edges: Edges,
     pub depths: GraphResolveDepths,
@@ -43,7 +40,7 @@ impl Subgraph {
         resolved_temporal_axes: QueryTemporalAxes,
     ) -> Self {
         Self {
-            roots: HashSet::new(),
+            roots: Vec::new(),
             vertices: Vertices::default(),
             edges: Edges::default(),
             depths,

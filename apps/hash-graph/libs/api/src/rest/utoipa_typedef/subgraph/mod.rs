@@ -29,7 +29,7 @@ pub(crate) struct Subgraph {
 impl From<graph::subgraph::Subgraph> for Subgraph {
     fn from(subgraph: graph::subgraph::Subgraph) -> Self {
         Self {
-            roots: subgraph.roots.into_iter().collect(),
+            roots: subgraph.roots,
             vertices: subgraph.vertices.into(),
             edges: subgraph.edges.into(),
             depths: subgraph.depths,
