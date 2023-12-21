@@ -1,15 +1,15 @@
-import {
-  ArchivedById,
-  CreatedById,
-  EditionCreatedById,
-} from "./shared/branded";
+import { EditionArchivedById, EditionCreatedById } from "./shared/branded";
 
 export * from "./shared/branded";
 export * from "./shared/temporal-versioning";
 
 export type OntologyProvenanceMetadata = {
-  createdById: CreatedById;
-  archivedById?: ArchivedById;
+  edition: OntologyEditionProvenanceMetadata;
+};
+
+export type OntologyEditionProvenanceMetadata = {
+  createdById: EditionCreatedById;
+  archivedById?: EditionArchivedById;
 };
 
 export type EntityProvenanceMetadata = {

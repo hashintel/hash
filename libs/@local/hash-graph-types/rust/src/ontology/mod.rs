@@ -24,7 +24,7 @@ pub use self::{
     property_type::{PartialPropertyTypeMetadata, PropertyTypeMetadata, PropertyTypeWithMetadata},
 };
 use crate::{
-    account::{ArchivedById, CreatedById},
+    account::{EditionArchivedById, EditionCreatedById},
     owned_by_id::OwnedById,
 };
 
@@ -113,9 +113,16 @@ pub struct OntologyTemporalMetadata {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct OntologyProvenanceMetadata {
-    pub created_by_id: CreatedById,
+    pub edition: OntologyEditionProvenanceMetadata,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct OntologyEditionProvenanceMetadata {
+    pub created_by_id: EditionCreatedById,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub archived_by_id: Option<ArchivedById>,
+    pub archived_by_id: Option<EditionArchivedById>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -20,7 +20,7 @@ use authorization::{
 };
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
-    account::{AccountGroupId, AccountId, ArchivedById, CreatedById, EditionCreatedById},
+    account::{AccountGroupId, AccountId, EditionArchivedById, EditionCreatedById},
     knowledge::{
         entity::{EntityEditionId, EntityId, EntityProperties, EntityTemporalMetadata},
         link::LinkOrder,
@@ -211,7 +211,7 @@ where
     async fn create_ontology_temporal_metadata(
         &self,
         ontology_id: OntologyId,
-        created_by_id: CreatedById,
+        created_by_id: EditionCreatedById,
     ) -> Result<LeftClosedTemporalInterval<TransactionTime>, InsertionError> {
         let query = "
               INSERT INTO ontology_temporal_metadata (
@@ -232,7 +232,7 @@ where
     async fn archive_ontology_type(
         &self,
         id: &VersionedUrl,
-        archived_by_id: ArchivedById,
+        archived_by_id: EditionArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         let query = "
           UPDATE ontology_temporal_metadata
@@ -295,7 +295,7 @@ where
     async fn unarchive_ontology_type(
         &self,
         id: &VersionedUrl,
-        created_by_id: CreatedById,
+        created_by_id: EditionCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         let query = "
           INSERT INTO ontology_temporal_metadata (
@@ -728,7 +728,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn create_ontology_metadata(
         &self,
-        created_by_id: CreatedById,
+        created_by_id: EditionCreatedById,
         record_id: &OntologyTypeRecordId,
         classification: &OntologyTypeClassificationMetadata,
         on_conflict: ConflictBehavior,
@@ -791,7 +791,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn update<T>(
         &self,
         database_type: &T,
-        created_by_id: CreatedById,
+        created_by_id: EditionCreatedById,
     ) -> Result<(OntologyId, OwnedById, OntologyTemporalMetadata), UpdateError>
     where
         T: OntologyDatabaseType + Serialize + Debug + Sync,
@@ -818,7 +818,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn update_owned_ontology_id(
         &self,
         url: &VersionedUrl,
-        created_by_id: CreatedById,
+        created_by_id: EditionCreatedById,
     ) -> Result<(OntologyId, OwnedById, OntologyTemporalMetadata), UpdateError> {
         let Some(owned_by_id) = self
             .as_client()

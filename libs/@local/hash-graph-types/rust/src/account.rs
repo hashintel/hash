@@ -111,6 +111,5 @@ macro_rules! define_provenance_id {
     };
 }
 
-define_provenance_id!(CreatedById);
-define_provenance_id!(ArchivedById);
+define_provenance_id!(EditionArchivedById);
 define_provenance_id!(EditionCreatedById);

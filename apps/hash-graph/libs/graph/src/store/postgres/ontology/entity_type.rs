@@ -16,11 +16,11 @@ use authorization::{
 use error_stack::{ensure, Report, Result, ResultExt};
 use futures::TryStreamExt;
 use graph_types::{
-    account::{AccountId, ArchivedById, CreatedById},
+    account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
-        EntityTypeMetadata, EntityTypeWithMetadata, OntologyProvenanceMetadata,
-        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
-        PartialEntityTypeMetadata,
+        EntityTypeMetadata, EntityTypeWithMetadata, OntologyEditionProvenanceMetadata,
+        OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
+        OntologyTypeRecordId, PartialEntityTypeMetadata,
     },
 };
 use temporal_versioning::RightBoundedTemporalInterval;
@@ -431,8 +431,10 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         let provenance = OntologyProvenanceMetadata {
-            created_by_id: CreatedById::new(actor_id),
-            archived_by_id: None,
+            edition: OntologyEditionProvenanceMetadata {
+                created_by_id: EditionCreatedById::new(actor_id),
+                archived_by_id: None,
+            },
         };
 
         let mut relationships = Vec::new();
@@ -475,7 +477,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
             if let Some((ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
-                    provenance.created_by_id,
+                    provenance.edition.created_by_id,
                     &metadata.record_id,
                     &metadata.classification,
                     on_conflict,
@@ -697,12 +699,14 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let record_id = OntologyTypeRecordId::from(url.clone());
 
         let provenance = OntologyProvenanceMetadata {
-            created_by_id: CreatedById::new(actor_id),
-            archived_by_id: None,
+            edition: OntologyEditionProvenanceMetadata {
+                created_by_id: EditionCreatedById::new(actor_id),
+                archived_by_id: None,
+            },
         };
 
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
-            .update_owned_ontology_id(url, provenance.created_by_id)
+            .update_owned_ontology_id(url, provenance.edition.created_by_id)
             .await?;
 
         let mut insertions = transaction
@@ -807,7 +811,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.archive_ontology_type(id, ArchivedById::new(actor_id))
+        self.archive_ontology_type(id, EditionArchivedById::new(actor_id))
             .await
     }
 
@@ -818,7 +822,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(id, CreatedById::new(actor_id))
+        self.unarchive_ontology_type(id, EditionCreatedById::new(actor_id))
             .await
     }
 }

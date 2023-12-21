@@ -15,11 +15,11 @@ use authorization::{
 };
 use error_stack::{Result, ResultExt};
 use graph_types::{
-    account::{AccountId, ArchivedById, CreatedById},
+    account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
-        OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
-        OntologyTypeRecordId, PartialPropertyTypeMetadata, PropertyTypeMetadata,
-        PropertyTypeWithMetadata,
+        OntologyEditionProvenanceMetadata, OntologyProvenanceMetadata, OntologyTemporalMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeRecordId, PartialPropertyTypeMetadata,
+        PropertyTypeMetadata, PropertyTypeWithMetadata,
     },
 };
 use temporal_versioning::RightBoundedTemporalInterval;
@@ -271,8 +271,10 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
         let provenance = OntologyProvenanceMetadata {
-            created_by_id: CreatedById::new(actor_id),
-            archived_by_id: None,
+            edition: OntologyEditionProvenanceMetadata {
+                created_by_id: EditionCreatedById::new(actor_id),
+                archived_by_id: None,
+            },
         };
 
         let mut relationships = Vec::new();
@@ -309,7 +311,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
             if let Some((ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
-                    provenance.created_by_id,
+                    provenance.edition.created_by_id,
                     &metadata.record_id,
                     &metadata.classification,
                     on_conflict,
@@ -517,7 +519,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
-            .update::<PropertyType>(&property_type, CreatedById::new(actor_id))
+            .update::<PropertyType>(&property_type, EditionCreatedById::new(actor_id))
             .await?;
 
         transaction
@@ -580,8 +582,10 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
                 temporal_versioning,
                 provenance: OntologyProvenanceMetadata {
-                    created_by_id: CreatedById::new(actor_id),
-                    archived_by_id: None,
+                    edition: OntologyEditionProvenanceMetadata {
+                        created_by_id: EditionCreatedById::new(actor_id),
+                        archived_by_id: None,
+                    },
                 },
             })
         }
@@ -594,7 +598,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.archive_ontology_type(id, ArchivedById::new(actor_id))
+        self.archive_ontology_type(id, EditionArchivedById::new(actor_id))
             .await
     }
 
@@ -605,7 +609,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(id, CreatedById::new(actor_id))
+        self.unarchive_ontology_type(id, EditionCreatedById::new(actor_id))
             .await
     }
 }

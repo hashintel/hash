@@ -95,15 +95,15 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::PropertyTypeQueryPath;
-    /// let path = PropertyTypeQueryPath::deserialize(json!(["createdById"]))?;
-    /// assert_eq!(path, PropertyTypeQueryPath::CreatedById);
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["editionCreatedById"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::EditionCreatedById);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`PropertyType`]: type_system::PropertyType
     /// [`CreatedById`]: graph_types::account::CreatedById
     /// [`OntologyProvenanceMetadata`]: graph_types::ontology::OntologyProvenanceMetadata
-    CreatedById,
+    EditionCreatedById,
     /// The [`ArchivedById`] of the [`OntologyProvenanceMetadata`] belonging to the
     /// [`PropertyType`].
     ///
@@ -111,15 +111,15 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::PropertyTypeQueryPath;
-    /// let path = PropertyTypeQueryPath::deserialize(json!(["archivedById"]))?;
-    /// assert_eq!(path, PropertyTypeQueryPath::ArchivedById);
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["editionArchivedById"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::EditionArchivedById);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`PropertyType`]: type_system::PropertyType
-    /// [`ArchivedById`]: graph_types::account::ArchivedById
+    /// [`ArchivedById`]: graph_types::account::EditionArchivedById
     /// [`OntologyProvenanceMetadata`]: graph_types::ontology::OntologyProvenanceMetadata
-    ArchivedById,
+    EditionArchivedById,
     /// Corresponds to [`PropertyType::title()`].
     ///
     /// [`PropertyType::title()`]: type_system::PropertyType::title
@@ -260,9 +260,10 @@ impl OntologyQueryPath for PropertyTypeQueryPath<'_> {
 impl QueryPath for PropertyTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::OntologyId | Self::OwnedById | Self::CreatedById | Self::ArchivedById => {
-                ParameterType::Uuid
-            }
+            Self::OntologyId
+            | Self::OwnedById
+            | Self::EditionCreatedById
+            | Self::EditionArchivedById => ParameterType::Uuid,
             Self::Schema(_) | Self::AdditionalMetadata => ParameterType::Object,
             Self::BaseUrl => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
@@ -285,8 +286,8 @@ impl fmt::Display for PropertyTypeQueryPath<'_> {
             Self::VersionedUrl => fmt.write_str("versionedUrl"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::OwnedById => fmt.write_str("ownedById"),
-            Self::CreatedById => fmt.write_str("createdById"),
-            Self::ArchivedById => fmt.write_str("archivedById"),
+            Self::EditionCreatedById => fmt.write_str("editionCreatedById"),
+            Self::EditionArchivedById => fmt.write_str("editionArchivedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
@@ -333,8 +334,8 @@ pub enum PropertyTypeQueryToken {
     Version,
     VersionedUrl,
     OwnedById,
-    CreatedById,
-    ArchivedById,
+    EditionCreatedById,
+    EditionArchivedById,
     Title,
     Description,
     DataTypes,
@@ -350,9 +351,9 @@ pub struct PropertyTypeQueryPathVisitor {
 }
 
 impl PropertyTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `baseUrl`, `version`, `versionedUrl`, \
-                                         `ownedById`, `createdById`, `archivedById`, `title`, \
-                                         `description`, `dataTypes`, `propertyTypes`";
+    pub const EXPECTING: &'static str =
+        "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `editionCreatedById`, \
+         `editionArchivedById`, `title`, `description`, `dataTypes`, `propertyTypes`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -378,8 +379,10 @@ impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
 
         Ok(match token {
             PropertyTypeQueryToken::OwnedById => PropertyTypeQueryPath::OwnedById,
-            PropertyTypeQueryToken::CreatedById => PropertyTypeQueryPath::CreatedById,
-            PropertyTypeQueryToken::ArchivedById => PropertyTypeQueryPath::ArchivedById,
+            PropertyTypeQueryToken::EditionCreatedById => PropertyTypeQueryPath::EditionCreatedById,
+            PropertyTypeQueryToken::EditionArchivedById => {
+                PropertyTypeQueryPath::EditionArchivedById
+            }
             PropertyTypeQueryToken::BaseUrl => PropertyTypeQueryPath::BaseUrl,
             PropertyTypeQueryToken::VersionedUrl => PropertyTypeQueryPath::VersionedUrl,
             PropertyTypeQueryToken::Version => PropertyTypeQueryPath::Version,

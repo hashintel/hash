@@ -63,7 +63,7 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
 
   const archivedByAccountId = useMemo(() => {
     if (isItemEntityType(item)) {
-      return item.metadata.provenance.archivedById!;
+      return item.metadata.provenance.edition.archivedById!;
     } else if (isEntityPageEntity(item)) {
       return item.metadata.provenance.edition.createdById;
     } else {

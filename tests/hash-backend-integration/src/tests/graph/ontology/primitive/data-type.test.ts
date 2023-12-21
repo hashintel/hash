@@ -129,7 +129,7 @@ describe("Data type CRU", () => {
   it("can update a data type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdDataType.metadata) &&
-        createdDataType.metadata.provenance.createdById,
+        createdDataType.metadata.provenance.edition.createdById,
     ).toBe(testUser.accountId);
 
     const authentication = { actorId: testUser2.accountId };
@@ -142,7 +142,7 @@ describe("Data type CRU", () => {
 
     expect(
       isOwnedOntologyElementMetadata(updatedDataType.metadata) &&
-        updatedDataType.metadata.provenance.createdById,
+        updatedDataType.metadata.provenance.edition.createdById,
     ).toBe(testUser2.accountId);
   });
 });

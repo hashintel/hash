@@ -109,7 +109,7 @@ export const BulkActionsDropdown: FunctionComponent<{
     () =>
       selectedItems.filter((item) => {
         const itemOwnedById = isType(item)
-          ? item.metadata.provenance.createdById
+          ? item.metadata.provenance.edition.createdById
           : extractOwnedByIdFromEntityId(item.metadata.recordId.entityId);
 
         // The item has to be owned by the user or an org the user is a member of

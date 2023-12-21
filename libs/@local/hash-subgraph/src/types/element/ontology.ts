@@ -126,11 +126,9 @@ export type EntityTypeWithMetadata = Subtype<
 >;
 
 export const isExternalOntologyElementMetadata = (
-  metadata: OntologyElementMetadata,
-): metadata is ExternalOntologyElementMetadata =>
-  (metadata as ExternalOntologyElementMetadata).fetchedAt !== undefined;
+  metadata: DataTypeMetadata | PropertyTypeMetadata | EntityTypeMetadata,
+): metadata is ExternalOntologyElementMetadata => "fetchedAt" in metadata;
 
 export const isOwnedOntologyElementMetadata = (
-  metadata: OntologyElementMetadata,
-): metadata is OwnedOntologyElementMetadata =>
-  (metadata as OwnedOntologyElementMetadata).ownedById !== undefined;
+  metadata: DataTypeMetadata | PropertyTypeMetadata | EntityTypeMetadata,
+): metadata is OwnedOntologyElementMetadata => "ownedById" in metadata;

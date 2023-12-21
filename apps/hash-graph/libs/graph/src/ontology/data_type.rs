@@ -114,30 +114,30 @@ pub enum DataTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::DataTypeQueryPath;
-    /// let path = DataTypeQueryPath::deserialize(json!(["createdById"]))?;
-    /// assert_eq!(path, DataTypeQueryPath::CreatedById);
+    /// let path = DataTypeQueryPath::deserialize(json!(["editionCreatedById"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::EditionCreatedById);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`DataType`]: type_system::DataType
     /// [`CreatedById`]: graph_types::account::CreatedById
     /// [`OntologyProvenanceMetadata`]: graph_types::ontology::OntologyProvenanceMetadata
-    CreatedById,
+    EditionCreatedById,
     /// The [`ArchivedById`] of the [`OntologyProvenanceMetadata`] belonging to the [`DataType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::DataTypeQueryPath;
-    /// let path = DataTypeQueryPath::deserialize(json!(["archivedById"]))?;
-    /// assert_eq!(path, DataTypeQueryPath::ArchivedById);
+    /// let path = DataTypeQueryPath::deserialize(json!(["editionArchivedById"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::EditionArchivedById);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`DataType`]: type_system::DataType
-    /// [`ArchivedById`]: graph_types::account::ArchivedById
+    /// [`ArchivedById`]: graph_types::account::EditionArchivedById
     /// [`OntologyProvenanceMetadata`]: graph_types::ontology::OntologyProvenanceMetadata
-    ArchivedById,
+    EditionArchivedById,
     /// Corresponds to [`DataType::title()`].
     ///
     /// ```rust
@@ -214,9 +214,10 @@ impl OntologyQueryPath for DataTypeQueryPath<'_> {
 impl QueryPath for DataTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::OntologyId | Self::OwnedById | Self::CreatedById | Self::ArchivedById => {
-                ParameterType::Uuid
-            }
+            Self::OntologyId
+            | Self::OwnedById
+            | Self::EditionCreatedById
+            | Self::EditionArchivedById => ParameterType::Uuid,
             Self::Schema(_) | Self::AdditionalMetadata => ParameterType::Object,
             Self::BaseUrl => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
@@ -237,8 +238,8 @@ impl fmt::Display for DataTypeQueryPath<'_> {
             Self::VersionedUrl => fmt.write_str("versionedUrl"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::OwnedById => fmt.write_str("ownedById"),
-            Self::CreatedById => fmt.write_str("createdById"),
-            Self::ArchivedById => fmt.write_str("archivedById"),
+            Self::EditionCreatedById => fmt.write_str("editionCreatedById"),
+            Self::EditionArchivedById => fmt.write_str("editionArchivedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
@@ -265,8 +266,8 @@ pub enum DataTypeQueryToken {
     Version,
     VersionedUrl,
     OwnedById,
-    CreatedById,
-    ArchivedById,
+    EditionCreatedById,
+    EditionArchivedById,
     Title,
     Description,
     Type,
@@ -282,8 +283,8 @@ pub struct DataTypeQueryPathVisitor {
 
 impl DataTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `baseUrl`, `version`, `versionedUrl`, \
-                                         `ownedById`, `createdById`, `archivedById`, `title`, \
-                                         `description`, `type`";
+                                         `ownedById`, `editionCreatedById`, \
+                                         `editionArchivedById`, `title`, `description`, `type`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -309,8 +310,8 @@ impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
 
         Ok(match token {
             DataTypeQueryToken::OwnedById => DataTypeQueryPath::OwnedById,
-            DataTypeQueryToken::CreatedById => DataTypeQueryPath::CreatedById,
-            DataTypeQueryToken::ArchivedById => DataTypeQueryPath::ArchivedById,
+            DataTypeQueryToken::EditionCreatedById => DataTypeQueryPath::EditionCreatedById,
+            DataTypeQueryToken::EditionArchivedById => DataTypeQueryPath::EditionArchivedById,
             DataTypeQueryToken::BaseUrl => DataTypeQueryPath::BaseUrl,
             DataTypeQueryToken::VersionedUrl => DataTypeQueryPath::VersionedUrl,
             DataTypeQueryToken::Version => DataTypeQueryPath::Version,

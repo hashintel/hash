@@ -5,11 +5,12 @@ use authorization::schema::EntityTypeId;
 use error_stack::{Result, ResultExt};
 use futures::{Stream, StreamExt, TryStreamExt};
 use graph_types::{
-    account::CreatedById,
+    account::EditionCreatedById,
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
-        OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
-        OntologyTypeRecordId, OntologyTypeVersion, PropertyTypeMetadata, PropertyTypeWithMetadata,
+        OntologyEditionProvenanceMetadata, OntologyProvenanceMetadata, OntologyTemporalMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeRecordId, OntologyTypeVersion,
+        PropertyTypeMetadata, PropertyTypeWithMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -140,9 +141,10 @@ impl<C: AsClient> Read<DataTypeWithMetadata> for PostgresStore<C> {
             Some(Ordering::Descending),
         );
         let schema_index = compiler.add_selection_path(&DataTypeQueryPath::Schema(None));
-        let created_by_id_path_index = compiler.add_selection_path(&DataTypeQueryPath::CreatedById);
-        let record_archived_by_id_path_index =
-            compiler.add_selection_path(&DataTypeQueryPath::ArchivedById);
+        let edition_created_by_id_path_index =
+            compiler.add_selection_path(&DataTypeQueryPath::EditionCreatedById);
+        let edition_archived_by_id_path_index =
+            compiler.add_selection_path(&DataTypeQueryPath::EditionArchivedById);
         let additional_metadata_index =
             compiler.add_selection_path(&DataTypeQueryPath::AdditionalMetadata);
 
@@ -174,8 +176,12 @@ impl<C: AsClient> Read<DataTypeWithMetadata> for PostgresStore<C> {
                             transaction_time: row.get(transaction_time_index),
                         },
                         provenance: OntologyProvenanceMetadata {
-                            created_by_id: CreatedById::new(row.get(created_by_id_path_index)),
-                            archived_by_id: row.get(record_archived_by_id_path_index),
+                            edition: OntologyEditionProvenanceMetadata {
+                                created_by_id: EditionCreatedById::new(
+                                    row.get(edition_created_by_id_path_index),
+                                ),
+                                archived_by_id: row.get(edition_archived_by_id_path_index),
+                            },
                         },
                     },
                 })
@@ -252,10 +258,10 @@ impl<C: AsClient> Read<PropertyTypeWithMetadata> for PostgresStore<C> {
             Some(Ordering::Descending),
         );
         let schema_index = compiler.add_selection_path(&PropertyTypeQueryPath::Schema(None));
-        let created_by_id_path_index =
-            compiler.add_selection_path(&PropertyTypeQueryPath::CreatedById);
-        let record_archived_by_id_path_index =
-            compiler.add_selection_path(&PropertyTypeQueryPath::ArchivedById);
+        let edition_created_by_id_path_index =
+            compiler.add_selection_path(&PropertyTypeQueryPath::EditionCreatedById);
+        let edition_archived_by_id_path_index =
+            compiler.add_selection_path(&PropertyTypeQueryPath::EditionArchivedById);
         let additional_metadata_index =
             compiler.add_selection_path(&PropertyTypeQueryPath::AdditionalMetadata);
 
@@ -287,8 +293,12 @@ impl<C: AsClient> Read<PropertyTypeWithMetadata> for PostgresStore<C> {
                             transaction_time: row.get(transaction_time_index),
                         },
                         provenance: OntologyProvenanceMetadata {
-                            created_by_id: CreatedById::new(row.get(created_by_id_path_index)),
-                            archived_by_id: row.get(record_archived_by_id_path_index),
+                            edition: OntologyEditionProvenanceMetadata {
+                                created_by_id: EditionCreatedById::new(
+                                    row.get(edition_created_by_id_path_index),
+                                ),
+                                archived_by_id: row.get(edition_archived_by_id_path_index),
+                            },
                         },
                     },
                 })
@@ -364,10 +374,10 @@ impl<C: AsClient> Read<EntityTypeWithMetadata> for PostgresStore<C> {
             Some(Ordering::Descending),
         );
         let schema_index = compiler.add_selection_path(&EntityTypeQueryPath::Schema(None));
-        let created_by_id_path_index =
-            compiler.add_selection_path(&EntityTypeQueryPath::CreatedById);
-        let record_archived_by_id_path_index =
-            compiler.add_selection_path(&EntityTypeQueryPath::ArchivedById);
+        let edition_created_by_id_path_index =
+            compiler.add_selection_path(&EntityTypeQueryPath::EditionCreatedById);
+        let edition_archived_by_id_path_index =
+            compiler.add_selection_path(&EntityTypeQueryPath::EditionArchivedById);
         let additional_metadata_index =
             compiler.add_selection_path(&EntityTypeQueryPath::AdditionalMetadata);
         let label_property_index = compiler.add_selection_path(&EntityTypeQueryPath::LabelProperty);
@@ -407,8 +417,12 @@ impl<C: AsClient> Read<EntityTypeWithMetadata> for PostgresStore<C> {
                             transaction_time: row.get(transaction_time_index),
                         },
                         provenance: OntologyProvenanceMetadata {
-                            created_by_id: CreatedById::new(row.get(created_by_id_path_index)),
-                            archived_by_id: row.get(record_archived_by_id_path_index),
+                            edition: OntologyEditionProvenanceMetadata {
+                                created_by_id: EditionCreatedById::new(
+                                    row.get(edition_created_by_id_path_index),
+                                ),
+                                archived_by_id: row.get(edition_archived_by_id_path_index),
+                            },
                         },
                         label_property,
                         icon: row.get(icon_index),

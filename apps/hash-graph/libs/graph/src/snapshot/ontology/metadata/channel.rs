@@ -103,8 +103,8 @@ impl
             .start_send(OntologyTemporalMetadataRow {
                 ontology_id,
                 transaction_time: temporal_versioning.transaction_time,
-                record_created_by_id: provenance.created_by_id,
-                record_archived_by_id: provenance.archived_by_id,
+                record_created_by_id: provenance.edition.created_by_id,
+                record_archived_by_id: provenance.edition.archived_by_id,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send temporal metadata")?;

@@ -215,7 +215,9 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               version: 1,
             },
             provenance: {
-              createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+              edition: {
+                createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+              },
             },
             temporalVersioning: {
               transactionTime: {
@@ -269,7 +271,9 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               version: 1,
             },
             provenance: {
-              createdById: "a0711135-214a-4a38-9e63-b01a1a14826f",
+              edition: {
+                createdById: "a0711135-214a-4a38-9e63-b01a1a14826f",
+              },
             },
             temporalVersioning: {
               transactionTime: {
@@ -340,7 +344,9 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               version: 4,
             },
             provenance: {
-              createdById: "a0711135-214a-4a38-9e63-b01a1a14826f",
+              edition: {
+                createdById: "a0711135-214a-4a38-9e63-b01a1a14826f",
+              },
             },
             temporalVersioning: {
               transactionTime: {
@@ -378,7 +384,9 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               version: 1,
             },
             provenance: {
-              createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+              edition: {
+                createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+              },
             },
             temporalVersioning: {
               transactionTime: {
@@ -471,7 +479,9 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               version: 3,
             },
             provenance: {
-              createdById: "a0711135-214a-4a38-9e63-b01a1a14826f",
+              edition: {
+                createdById: "a0711135-214a-4a38-9e63-b01a1a14826f",
+              },
             },
             temporalVersioning: {
               transactionTime: {
@@ -512,7 +522,9 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               version: 1,
             },
             provenance: {
-              createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+              edition: {
+                createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+              },
             },
             temporalVersioning: {
               transactionTime: {
@@ -553,7 +565,9 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               version: 1,
             },
             provenance: {
-              createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+              edition: {
+                createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+              },
             },
             temporalVersioning: {
               transactionTime: {
@@ -594,7 +608,9 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               version: 1,
             },
             provenance: {
-              createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+              edition: {
+                createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+              },
             },
             temporalVersioning: {
               transactionTime: {
@@ -636,7 +652,9 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               version: 1,
             },
             provenance: {
-              createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+              edition: {
+                createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+              },
             },
             temporalVersioning: {
               transactionTime: {
@@ -677,7 +695,9 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               version: 1,
             },
             provenance: {
-              createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+              edition: {
+                createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+              },
             },
             temporalVersioning: {
               transactionTime: {
@@ -715,7 +735,9 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               version: 1,
             },
             provenance: {
-              createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+              edition: {
+                createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+              },
             },
             temporalVersioning: {
               transactionTime: {
@@ -756,7 +778,9 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               version: 1,
             },
             provenance: {
-              createdById: "3660bed8-caae-4f20-a52c-a7e8ebca8bc4",
+              edition: {
+                createdById: "3660bed8-caae-4f20-a52c-a7e8ebca8bc4",
+              },
             },
             temporalVersioning: {
               transactionTime: {

@@ -27,10 +27,9 @@ import {
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
 import {
-  ArchivedById,
   BaseUrl,
-  CreatedById,
   DataTypeMetadata,
+  EditionArchivedById,
   EditionCreatedById,
   EntityId,
   EntityMetadata,
@@ -109,8 +108,10 @@ const mapOntologyProvenanceMetadata = (
   metadata: OntologyProvenanceMetadataGraphApi,
 ): OntologyProvenanceMetadata => {
   return {
-    createdById: metadata.createdById as CreatedById,
-    archivedById: metadata.archivedById as ArchivedById,
+    edition: {
+      createdById: metadata.edition.createdById as EditionCreatedById,
+      archivedById: metadata.edition.archivedById as EditionArchivedById,
+    },
   };
 };
 

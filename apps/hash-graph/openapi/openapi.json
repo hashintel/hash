@@ -2520,10 +2520,6 @@
           }
         }
       },
-      "ArchivedById": {
-        "type": "string",
-        "format": "uuid"
-      },
       "ClosedTemporalBound": {
         "oneOf": [
           {
@@ -2712,10 +2708,6 @@
           }
         }
       },
-      "CreatedById": {
-        "type": "string",
-        "format": "uuid"
-      },
       "DataTypeMetadata": {
         "oneOf": [
           {
@@ -2808,8 +2800,8 @@
           "version",
           "versionedUrl",
           "ownedById",
-          "createdById",
-          "archivedById",
+          "editionCreatedById",
+          "editionArchivedById",
           "title",
           "description",
           "type"
@@ -2973,6 +2965,10 @@
             }
           }
         }
+      },
+      "EditionArchivedById": {
+        "type": "string",
+        "format": "uuid"
       },
       "EditionCreatedById": {
         "type": "string",
@@ -3672,8 +3668,8 @@
           "version",
           "versionedUrl",
           "ownedById",
-          "createdById",
-          "archivedById",
+          "editionCreatedById",
+          "editionArchivedById",
           "title",
           "description",
           "examples",
@@ -4653,6 +4649,25 @@
           "CONSTRAINS_LINK_DESTINATIONS_ON"
         ]
       },
+      "OntologyEditionProvenanceMetadata": {
+        "type": "object",
+        "required": [
+          "createdById"
+        ],
+        "properties": {
+          "archivedById": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EditionArchivedById"
+              }
+            ],
+            "nullable": true
+          },
+          "createdById": {
+            "$ref": "#/components/schemas/EditionCreatedById"
+          }
+        }
+      },
       "OntologyOutwardEdge": {
         "oneOf": [
           {
@@ -4700,19 +4715,11 @@
       "OntologyProvenanceMetadata": {
         "type": "object",
         "required": [
-          "createdById"
+          "edition"
         ],
         "properties": {
-          "archivedById": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ArchivedById"
-              }
-            ],
-            "nullable": true
-          },
-          "createdById": {
-            "$ref": "#/components/schemas/CreatedById"
+          "edition": {
+            "$ref": "#/components/schemas/OntologyEditionProvenanceMetadata"
           }
         }
       },
@@ -5039,8 +5046,8 @@
           "version",
           "versionedUrl",
           "ownedById",
-          "createdById",
-          "archivedById",
+          "editionCreatedById",
+          "editionArchivedById",
           "title",
           "description",
           "dataTypes",

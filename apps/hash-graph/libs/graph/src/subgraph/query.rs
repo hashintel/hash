@@ -113,7 +113,7 @@ use crate::{
 ///     "any": [
 ///       {
 ///         "equal": [
-///           { "path": ["createdById"] },
+///           { "path": ["editionCreatedById"] },
 ///           { "parameter": "12345678-90ab-cdef-1234-567890abcdef" }
 ///         ]
 ///       },
