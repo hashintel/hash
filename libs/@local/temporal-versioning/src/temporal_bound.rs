@@ -148,6 +148,14 @@ pub enum ClosedTemporalBound<A> {
     Inclusive(Timestamp<A>),
 }
 
+impl<A> From<ClosedTemporalBound<A>> for Timestamp<A> {
+    fn from(bound: ClosedTemporalBound<A>) -> Self {
+        match bound {
+            ClosedTemporalBound::Inclusive(limit) => limit,
+        }
+    }
+}
+
 impl<A> Clone for ClosedTemporalBound<A> {
     fn clone(&self) -> Self {
         *self

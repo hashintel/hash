@@ -208,6 +208,11 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let right_to_left_order_index =
             compiler.add_selection_path(&EntityQueryPath::RightToLeftOrder);
 
+        let created_by_id_index = compiler.add_selection_path(&EntityQueryPath::CreatedById);
+        let created_at_transaction_time_index =
+            compiler.add_selection_path(&EntityQueryPath::CreatedAtTransactionTime);
+        let created_at_decision_time_index =
+            compiler.add_selection_path(&EntityQueryPath::CreatedAtDecisionTime);
         let edition_created_by_id_index =
             compiler.add_selection_path(&EntityQueryPath::EditionCreatedById);
 
@@ -282,6 +287,9 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                         },
                         entity_type_id,
                         provenance: EntityProvenanceMetadata {
+                            created_by_id: row.get(created_by_id_index),
+                            created_at_transaction_time: row.get(created_at_transaction_time_index),
+                            created_at_decision_time: row.get(created_at_decision_time_index),
                             edition: EntityEditionProvenanceMetadata {
                                 created_by_id: row.get(edition_created_by_id_index),
                             },

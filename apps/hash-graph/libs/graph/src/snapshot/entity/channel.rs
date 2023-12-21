@@ -64,6 +64,9 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
     ) -> Result<(), Self::Error> {
         self.id
             .start_send_unpin(EntityIdRow {
+                created_by_id: entity.metadata.provenance.created_by_id,
+                created_at_transaction_time: entity.metadata.provenance.created_at_transaction_time,
+                created_at_decision_time: entity.metadata.provenance.created_at_decision_time,
                 web_id: entity.metadata.record_id.entity_id.owned_by_id,
                 entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
             })

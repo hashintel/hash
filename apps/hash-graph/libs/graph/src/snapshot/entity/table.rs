@@ -1,5 +1,5 @@
 use graph_types::{
-    account::EditionCreatedById,
+    account::{CreatedById, EditionCreatedById},
     knowledge::{
         entity::{EntityEditionId, EntityProperties, EntityUuid},
         link::LinkOrder,
@@ -8,11 +8,14 @@ use graph_types::{
     owned_by_id::OwnedById,
 };
 use postgres_types::ToSql;
-use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, TransactionTime};
+use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_ids")]
 pub struct EntityIdRow {
+    pub created_by_id: CreatedById,
+    pub created_at_transaction_time: Timestamp<TransactionTime>,
+    pub created_at_decision_time: Timestamp<DecisionTime>,
     pub web_id: OwnedById,
     pub entity_uuid: EntityUuid,
 }
