@@ -273,8 +273,7 @@ describe("Ontology queries", () => {
     expect(initialSubgraph.roots.length).toEqual(1);
 
     const actorId =
-      getRoots(initialSubgraph)[0]!.metadata.custom.provenance
-        .recordCreatedById;
+      getRoots(initialSubgraph)[0]!.metadata.provenance.createdById;
 
     await archiveDataType(
       graphContext,
@@ -368,8 +367,7 @@ describe("Ontology queries", () => {
     expect(initialSubgraph.roots.length).toEqual(1);
 
     const actorId =
-      getRoots(initialSubgraph)[0]!.metadata.custom.provenance
-        .recordCreatedById;
+      getRoots(initialSubgraph)[0]!.metadata.provenance.createdById;
 
     await archivePropertyType(
       graphContext,
@@ -488,8 +486,7 @@ it("archives/unarchives entity types", async () => {
   });
   expect(initialSubgraph.roots.length).toEqual(1);
 
-  const actorId =
-    getRoots(initialSubgraph)[0]!.metadata.custom.provenance.recordCreatedById;
+  const actorId = getRoots(initialSubgraph)[0]!.metadata.provenance.createdById;
 
   await archiveEntityType(
     graphContext,

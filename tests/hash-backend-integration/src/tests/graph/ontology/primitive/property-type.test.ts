@@ -140,7 +140,7 @@ describe("Property type CRU", () => {
   it("can update a property type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdPropertyType.metadata) &&
-        createdPropertyType.metadata.custom.provenance.recordCreatedById,
+        createdPropertyType.metadata.provenance.createdById,
     ).toBe(testUser.accountId);
 
     const authentication = { actorId: testUser2.accountId };
@@ -168,7 +168,7 @@ describe("Property type CRU", () => {
 
     expect(
       isOwnedOntologyElementMetadata(updatedPropertyType.metadata) &&
-        updatedPropertyType.metadata.custom.provenance.recordCreatedById,
+        updatedPropertyType.metadata.provenance.createdById,
     ).toBe(testUser2.accountId);
   });
 
