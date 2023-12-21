@@ -15,7 +15,7 @@ locals {
   graph_task_defs = [
     {
       task_def = local.graph_migration_container_def
-      env_vars = aws_ssm_parameter.graph_env_vars
+      env_vars = aws_ssm_parameter.graph_migration_env_vars
       ecr_arn  = var.graph_image.ecr_arn
     },
     {

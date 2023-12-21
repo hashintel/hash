@@ -219,6 +219,21 @@ module "application" {
   worker_memory                = 512
   ses_verified_domain_identity = var.ses_verified_domain_identity
   graph_image                  = module.graph_ecr
+  graph_migration_env_vars               = concat(var.hash_graph_env_vars, [
+    { name = "HASH_GRAPH_PG_USER", secret = false, value = "superuser" },
+    {
+      name  = "HASH_GRAPH_PG_PASSWORD", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["pg_superuser_password"])
+    },
+    { name = "HASH_GRAPH_PG_HOST", secret = false, value = module.postgres.pg_host },
+    { name = "HASH_GRAPH_PG_PORT", secret = false, value = module.postgres.pg_port },
+    { name = "HASH_GRAPH_PG_DATABASE", secret = false, value = "graph" },
+    {
+      name  = "HASH_GRAPH_SENTRY_DSN", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["graph_sentry_dsn"])
+    },
+    { name = "HASH_GRAPH_SENTRY_ENVIRONMENT", secret = false, value = "production" },
+  ])
   graph_env_vars               = concat(var.hash_graph_env_vars, [
     { name = "HASH_GRAPH_PG_USER", secret = false, value = "graph" },
     {

@@ -8,6 +8,18 @@ locals {
 }
 
 
+resource "aws_ssm_parameter" "graph_migration_env_vars" {
+  # Only put secrets into SSM
+  for_each = {for env_var in var.graph_migration_env_vars : env_var.name => env_var if env_var.secret}
+
+  name      = "${local.graph_param_prefix}/migration/${each.value.name}"
+  # Still supports non-secret values
+  type      = each.value.secret ? "SecureString" : "String"
+  value     = each.value.secret ? sensitive(each.value.value) : each.value.value
+  overwrite = true
+  tags      = {}
+}
+
 resource "aws_ssm_parameter" "graph_env_vars" {
   # Only put secrets into SSM
   for_each = {for env_var in var.graph_env_vars : env_var.name => env_var if env_var.secret}
@@ -131,12 +143,12 @@ locals {
       }
     }
     Environment = [
-      for env_var in var.graph_env_vars :
+      for env_var in var.graph_migration_env_vars :
       { name = env_var.name, value = env_var.value } if !env_var.secret
     ]
 
     secrets = [
-      for env_name, ssm_param in aws_ssm_parameter.graph_env_vars :
+      for env_name, ssm_param in aws_ssm_parameter.graph_migration_env_vars :
       { name = env_name, valueFrom = ssm_param.arn }
     ]
 
