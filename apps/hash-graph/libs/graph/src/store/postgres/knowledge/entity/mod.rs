@@ -753,6 +753,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     owned_by_id,
                     entity_uuid: entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
                 },
+                actor_id,
+                decision_time,
                 link_data.as_ref().map(|link_data| link_data.left_entity_id),
                 link_data
                     .as_ref()
@@ -773,7 +775,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         // TODO: match on and return the relevant error
         //   https://app.asana.com/0/1200211978612931/1202574350052904/f
         transaction
-            .insert_entity_ids(entity_ids.iter().copied().map(|(id, ..)| id))
+            .insert_entity_ids(entity_ids.iter().copied().map(
+                |(id, actor_id, decision_time, ..)| (id, CreatedById::new(actor_id), decision_time),
+            ))
             .await?;
 
         transaction
@@ -782,7 +786,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_ids
                     .iter()
                     .copied()
-                    .filter_map(|(id, left, _)| left.map(|left| (id, left))),
+                    .filter_map(|(id, _, _, left, _)| left.map(|left| (id, left))),
             )
             .await?;
         transaction
@@ -791,7 +795,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_ids
                     .iter()
                     .copied()
-                    .filter_map(|(id, _, right)| right.map(|right| (id, right))),
+                    .filter_map(|(id, _, _, _, right)| right.map(|right| (id, right))),
             )
             .await?;
 
