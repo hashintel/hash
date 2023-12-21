@@ -1,9 +1,10 @@
 mod common;
 
-use std::net::SocketAddrV4;
+use std::net::Ipv4Addr;
 
 use graph_types::account::{AccountGroupId, AccountId};
 use hash_graph_rpc::{
+    harpc::server::ListenOn,
     specification::account::{
         AccountService, AddAccountGroupMember, CheckAccountGroupPermission, CreateAccount,
         CreateAccountGroup, RemoveAccountGroupMember,
@@ -30,7 +31,11 @@ pub async fn main() {
 
     server
         .serve(
-            SocketAddrV4::new(std::net::Ipv4Addr::LOCALHOST, 4087),
+            ListenOn {
+                ip: Ipv4Addr::LOCALHOST,
+                tcp: 4087,
+                ws: 4088,
+            },
             TransportConfig::default(),
         )
         .expect("transport layer created")

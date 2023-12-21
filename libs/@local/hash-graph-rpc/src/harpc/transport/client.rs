@@ -16,10 +16,11 @@ use libp2p::{
     Multiaddr, PeerId,
 };
 use thiserror::Error;
+#[cfg(not(target_arch = "wasm32"))]
+use tokio::time;
 use tokio::{
     select,
     sync::{mpsc, oneshot},
-    time,
 };
 use tokio_util::sync::CancellationToken;
 
@@ -358,6 +359,7 @@ impl ClientTransportLayer {
             .change_context(TransportError)
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) async fn call_with_timeout(
         &self,
         request: Request,
@@ -389,6 +391,7 @@ impl ClientTransportLayer {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) async fn call_with_deadline(
         &self,
         request: Request,

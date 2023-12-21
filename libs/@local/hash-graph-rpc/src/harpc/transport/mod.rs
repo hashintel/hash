@@ -283,7 +283,7 @@ mod test {
     {
         let server_config = ServerTransportConfig {
             transport: transport_config.clone(),
-            listen_on: "/ip4/0.0.0.0/tcp/0".parse().unwrap(),
+            listen_on_tcp: "/ip4/0.0.0.0/tcp/0".parse().unwrap(),
         };
 
         let server = ServerTransportLayer::new(router, server_config).unwrap();

@@ -1,9 +1,13 @@
-use std::future::{ready, Future};
+use std::{
+    borrow::Cow,
+    future::{ready, Future},
+};
 
 use error_stack::ResultExt;
 use libp2p::{
     core::transport::ListenerId,
     futures::{FutureExt, Stream, StreamExt},
+    multiaddr::Protocol,
     request_response::{Event, Message, ResponseChannel},
     swarm::SwarmEvent,
     Multiaddr,
@@ -61,13 +65,15 @@ impl ServerTransportMetrics {
 pub(crate) struct ServerTransportConfig {
     pub(crate) transport: TransportConfig,
 
-    pub(crate) listen_on: Multiaddr,
+    pub(crate) listen_on_tcp: Multiaddr,
+    pub(crate) listen_on_ws: Multiaddr,
 }
 
 pub(crate) struct ServerTransportLayer<T> {
     transport: TransportLayer,
 
-    listen_on: Multiaddr,
+    listen_on_tcp: Multiaddr,
+    listen_on_ws: Multiaddr,
 
     metrics_rx: mpsc::Receiver<ServerTransportCommand>,
     metrics: ServerTransportMetrics,
@@ -90,7 +96,8 @@ where
 
         Ok(Self {
             transport: TransportLayer::new_server(config.transport)?,
-            listen_on: config.listen_on,
+            listen_on_tcp: config.listen_on_tcp,
+            listen_on_ws: config.listen_on_ws,
             metrics_rx,
             metrics,
             router,
@@ -104,7 +111,12 @@ where
     fn listen(&mut self) -> error_stack::Result<ListenerId, TransportError> {
         self.transport
             .swarm
-            .listen_on(self.listen_on.clone())
+            .listen_on(self.listen_on_ws.clone())
+            .change_context(TransportError)?;
+
+        self.transport
+            .swarm
+            .listen_on(self.listen_on_tcp.clone())
             .change_context(TransportError)
     }
 

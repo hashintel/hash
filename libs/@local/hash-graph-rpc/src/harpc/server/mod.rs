@@ -2,9 +2,10 @@ mod erase;
 mod service;
 
 use std::{
+    borrow::Cow,
     collections::HashMap,
     future::{ready, Future},
-    net::SocketAddrV4,
+    net::{Ipv4Addr, SocketAddrV4},
 };
 
 use error_stack::ResultExt;
@@ -130,6 +131,14 @@ impl<C> CollectServices<C> for Empty {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
+pub struct ListenOn {
+    pub ip: Ipv4Addr,
+
+    pub tcp: u16,
+    pub ws: u16,
+}
+
 pub struct Server<C>
 where
     C: Context,
@@ -185,12 +194,15 @@ where
     /// Returns an error if the transport layer cannot be started.
     pub fn serve(
         self,
-        listen_on: SocketAddrV4,
+        listen_on: ListenOn,
         config: TransportConfig,
     ) -> error_stack::Result<impl Future<Output = !> + Send, ServerError> {
         let config = ServerTransportConfig {
             transport: config,
-            listen_on: Multiaddr::from(*listen_on.ip()).with(Protocol::Tcp(listen_on.port())),
+            listen_on_tcp: Multiaddr::from(listen_on.ip).with(Protocol::Tcp(listen_on.tcp)),
+            listen_on_ws: Multiaddr::from(listen_on.ip)
+                .with(Protocol::Tcp(listen_on.ws))
+                .with(Protocol::Ws(Cow::Borrowed("/"))),
         };
 
         let service =
@@ -210,12 +222,15 @@ where
     /// Returns an error if the transport layer cannot be started.
     pub fn spawn(
         self,
-        listen_on: SocketAddrV4,
+        listen_on: ListenOn,
         config: TransportConfig,
     ) -> error_stack::Result<(SpawnGuard, ServerTransportMetrics), ServerError> {
         let config = ServerTransportConfig {
             transport: config,
-            listen_on: Multiaddr::from(*listen_on.ip()).with(Protocol::Tcp(listen_on.port())),
+            listen_on_tcp: Multiaddr::from(listen_on.ip).with(Protocol::Tcp(listen_on.tcp)),
+            listen_on_ws: Multiaddr::from(listen_on.ip)
+                .with(Protocol::Tcp(listen_on.ws))
+                .with(Protocol::Ws(Cow::Borrowed("/"))),
         };
 
         let service =

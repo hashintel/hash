@@ -100,13 +100,14 @@ macro_rules! service {
                 #[allow(unused_parens)]
                 #[wasm_bindgen::prelude::wasm_bindgen]
                 $vis async fn [< $name:snake:lower >](&self, $($fname :$ftype ,)*)
-                    -> Result<($($output)?), wasm_bindgen::JsValue>
+                    -> Result<u8, wasm_bindgen::JsValue>
                 {
                     self.client
                         .call($name {
                             $($fname,)*
                         })
                         .await
+                        .map(|_| 0)
                         .map_err(|error| {
                             match serde_wasm_bindgen::to_value(&error) {
                                 Ok(value) => value,
