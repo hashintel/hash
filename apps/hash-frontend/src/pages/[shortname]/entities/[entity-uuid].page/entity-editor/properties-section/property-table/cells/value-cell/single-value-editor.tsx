@@ -1,4 +1,5 @@
 import { Chip } from "@hashintel/design-system";
+import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 import { Box } from "@mui/material";
 import produce from "immer";
 import { useEffect, useRef, useState } from "react";
@@ -10,7 +11,7 @@ import { EditorTypePicker } from "./editor-type-picker";
 import { BooleanInput } from "./inputs/boolean-input";
 import { JsonInput } from "./inputs/json-input";
 import { NumberOrTextInput } from "./inputs/number-or-text-input";
-import { EditorType, ValueCellEditorComponent } from "./types";
+import { EditorType, ValueCell, ValueCellEditorComponent } from "./types";
 import {
   guessEditorTypeFromExpectedType,
   guessEditorTypeFromValue,
@@ -52,22 +53,10 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     return guessEditorTypeFromValue(value, expectedTypes);
   });
 
+  const latestValueCellRef = useRef<ValueCell>(cell);
   useEffect(() => {
-    const validateOnBlur = (event: MouseEvent) => {
-      if (!textInputFormRef.current) {
-        return;
-      }
-      if (!textInputFormRef.current.checkValidity()) {
-        event.stopImmediatePropagation();
-        event.preventDefault();
-        textInputFormRef.current.requestSubmit();
-      }
-    };
-
-    document.addEventListener("mousedown", validateOnBlur);
-
-    return () => document.removeEventListener("mousedown", validateOnBlur);
-  }, []);
+    latestValueCellRef.current = cell;
+  });
 
   if (!editorType) {
     return (
@@ -164,26 +153,54 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     );
   }
 
+  const validationHandler = (event?: MouseEvent) => {
+    if (
+      !textInputFormRef.current ||
+      (event && textInputFormRef.current.contains(event.target as Node))
+    ) {
+      return;
+    }
+    textInputFormRef.current.requestSubmit();
+
+    if (textInputFormRef.current.checkValidity()) {
+      document.body.classList.remove(GRID_CLICK_IGNORE_CLASS);
+      onFinishedEditing(latestValueCellRef.current);
+      document.removeEventListener("click", validationHandler);
+    }
+  };
+
+  const ensureFormValidation = () => {
+    if (document.body.classList.contains(GRID_CLICK_IGNORE_CLASS)) {
+      return;
+    }
+    document.body.classList.add(GRID_CLICK_IGNORE_CLASS);
+    document.addEventListener("click", validationHandler);
+  };
+
   return (
     <GridEditorWrapper sx={{ px: 2 }}>
       <Box
         component="form"
-        ref={textInputFormRef}
         onSubmit={(event) => {
           event.preventDefault();
-          event.stopPropagation();
         }}
+        ref={textInputFormRef}
       >
         <NumberOrTextInput
           expectedType={expectedType}
           isNumber={editorType === "number"}
           value={(value as number | string | undefined) ?? ""}
           onChange={(newValue) => {
+            ensureFormValidation();
+
             const newCell = produce(cell, (draftCell) => {
               draftCell.data.propertyRow.value = newValue;
             });
 
             onChange(newCell);
+          }}
+          onEnterPressed={() => {
+            validationHandler();
           }}
         />
       </Box>
