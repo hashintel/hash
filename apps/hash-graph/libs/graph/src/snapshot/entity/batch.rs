@@ -253,12 +253,12 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             };
 
             for entity in entities {
-                let entity_type_id = EntityTypeId::from_url(entity.metadata.entity_type_id());
+                let entity_type_id = EntityTypeId::from_url(&entity.metadata.entity_type_id);
                 let schema = schemas.get(&entity_type_id).ok_or(InsertionError)?;
                 entity
                     .validate(
                         schema,
-                        if entity.metadata.draft() {
+                        if entity.metadata.draft {
                             ValidationProfile::Draft
                         } else {
                             ValidationProfile::Full

@@ -246,7 +246,7 @@ mod tests {
     use graph_types::{
         knowledge::entity::{EntityId, EntityUuid},
         ontology::OntologyTypeVersion,
-        provenance::OwnedById,
+        owned_by_id::OwnedById,
     };
     use temporal_versioning::{
         ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,

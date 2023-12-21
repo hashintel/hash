@@ -36,12 +36,13 @@ use graph::{
 use graph_types::{
     knowledge::{
         entity::{
-            Entity, EntityEditionId, EntityEmbedding, EntityId, EntityMetadata, EntityProperties,
-            EntityRecordId, EntityTemporalMetadata, EntityUuid,
+            Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding, EntityId,
+            EntityMetadata, EntityProperties, EntityProvenanceMetadata, EntityRecordId,
+            EntityTemporalMetadata, EntityUuid,
         },
         link::{EntityLinkOrder, LinkData, LinkOrder},
     },
-    provenance::OwnedById,
+    owned_by_id::OwnedById,
     Embedding,
 };
 use serde::Deserialize;
@@ -101,6 +102,8 @@ use crate::rest::{
             EntityId,
             EntityEditionId,
             EntityMetadata,
+            EntityProvenanceMetadata,
+            EntityEditionProvenanceMetadata,
             EntityLinkOrder,
             EntityProperties,
             EntityRecordId,

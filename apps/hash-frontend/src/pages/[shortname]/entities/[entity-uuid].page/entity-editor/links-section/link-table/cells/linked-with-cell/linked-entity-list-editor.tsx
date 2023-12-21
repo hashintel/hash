@@ -2,10 +2,10 @@ import { VersionedUrl } from "@blockprotocol/type-system";
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
+  EditionCreatedById,
   Entity,
   EntityId,
   EntityRootType,
-  RecordCreatedById,
   Subgraph,
   Timestamp,
 } from "@local/hash-subgraph";
@@ -50,7 +50,7 @@ export const createDraftLinkEntity = ({
       draft: false,
       recordId: { editionId: "", entityId: `draft~${Date.now()}` as EntityId },
       entityTypeId: linkEntityTypeId,
-      provenance: { recordCreatedById: "" as RecordCreatedById },
+      provenance: { edition: { createdById: "" as EditionCreatedById } },
       temporalVersioning: {
         decisionTime: {
           start: {

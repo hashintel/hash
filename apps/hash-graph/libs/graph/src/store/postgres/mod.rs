@@ -20,16 +20,16 @@ use authorization::{
 };
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
-    account::{AccountGroupId, AccountId},
+    account::{AccountGroupId, AccountId, EditionArchivedById, EditionCreatedById},
     knowledge::{
         entity::{EntityEditionId, EntityId, EntityProperties, EntityTemporalMetadata},
         link::LinkOrder,
     },
     ontology::{
-        CustomOntologyMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
-        OntologyTypeRecordId, OntologyTypeVersion, PartialCustomOntologyMetadata,
+        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
+        OntologyTypeVersion,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+    owned_by_id::OwnedById,
 };
 use postgres_types::Json;
 use serde::Serialize;
@@ -211,7 +211,7 @@ where
     async fn create_ontology_temporal_metadata(
         &self,
         ontology_id: OntologyId,
-        record_created_by_id: RecordCreatedById,
+        created_by_id: EditionCreatedById,
     ) -> Result<LeftClosedTemporalInterval<TransactionTime>, InsertionError> {
         let query = "
               INSERT INTO ontology_temporal_metadata (
@@ -223,7 +223,7 @@ where
             ";
 
         self.as_client()
-            .query_one(query, &[&ontology_id, &record_created_by_id])
+            .query_one(query, &[&ontology_id, &created_by_id])
             .await
             .change_context(InsertionError)
             .map(|row| row.get(0))
@@ -232,7 +232,7 @@ where
     async fn archive_ontology_type(
         &self,
         id: &VersionedUrl,
-        record_archived_by_id: RecordArchivedById,
+        archived_by_id: EditionArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         let query = "
           UPDATE ontology_temporal_metadata
@@ -254,7 +254,7 @@ where
                 &[
                     &id.base_url.as_str(),
                     &OntologyTypeVersion::new(id.version),
-                    &record_archived_by_id,
+                    &archived_by_id,
                 ],
             )
             .await
@@ -295,7 +295,7 @@ where
     async fn unarchive_ontology_type(
         &self,
         id: &VersionedUrl,
-        record_created_by_id: RecordCreatedById,
+        created_by_id: EditionCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         let query = "
           INSERT INTO ontology_temporal_metadata (
@@ -318,7 +318,7 @@ where
                     &[
                         &id.base_url.as_str(),
                         &OntologyTypeVersion::new(id.version),
-                        &record_created_by_id,
+                        &created_by_id,
                     ],
                 )
                 .await
@@ -382,7 +382,7 @@ where
     }
 
     /// Inserts an [`OntologyDatabaseType`] identified by [`OntologyId`], and associated with an
-    /// [`OwnedById`] and [`RecordCreatedById`], into the database.
+    /// [`OwnedById`] and [`EditionCreatedById`], into the database.
     ///
     /// # Errors
     ///
@@ -419,7 +419,7 @@ where
     }
 
     /// Inserts a [`EntityType`] identified by [`OntologyId`], and associated with an
-    /// [`OwnedById`], [`RecordCreatedById`], and the optional label property, into the database.
+    /// [`OwnedById`], [`EditionCreatedById`], and the optional label property, into the database.
     ///
     /// # Errors
     ///
@@ -728,29 +728,31 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn create_ontology_metadata(
         &self,
-        record_created_by_id: RecordCreatedById,
+        created_by_id: EditionCreatedById,
         record_id: &OntologyTypeRecordId,
-        custom_metadata: &PartialCustomOntologyMetadata,
+        classification: &OntologyTypeClassificationMetadata,
         on_conflict: ConflictBehavior,
-    ) -> Result<Option<(OntologyId, LeftClosedTemporalInterval<TransactionTime>)>, InsertionError>
-    {
-        match custom_metadata {
-            PartialCustomOntologyMetadata::Owned { owned_by_id } => {
+    ) -> Result<Option<(OntologyId, OntologyTemporalMetadata)>, InsertionError> {
+        match classification {
+            OntologyTypeClassificationMetadata::Owned { owned_by_id } => {
                 self.create_base_url(&record_id.base_url, on_conflict, OntologyLocation::Owned)
                     .await?;
                 let ontology_id = self.create_ontology_id(record_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
                     let transaction_time = self
-                        .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
+                        .create_ontology_temporal_metadata(ontology_id, created_by_id)
                         .await?;
                     self.create_ontology_owned_metadata(ontology_id, *owned_by_id)
                         .await?;
-                    Ok(Some((ontology_id, transaction_time)))
+                    Ok(Some((
+                        ontology_id,
+                        OntologyTemporalMetadata { transaction_time },
+                    )))
                 } else {
                     Ok(None)
                 }
             }
-            PartialCustomOntologyMetadata::External { fetched_at } => {
+            OntologyTypeClassificationMetadata::External { fetched_at } => {
                 self.create_base_url(
                     &record_id.base_url,
                     ConflictBehavior::Skip,
@@ -760,11 +762,14 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 let ontology_id = self.create_ontology_id(record_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
                     let transaction_time = self
-                        .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
+                        .create_ontology_temporal_metadata(ontology_id, created_by_id)
                         .await?;
                     self.create_ontology_external_metadata(ontology_id, *fetched_at)
                         .await?;
-                    Ok(Some((ontology_id, transaction_time)))
+                    Ok(Some((
+                        ontology_id,
+                        OntologyTemporalMetadata { transaction_time },
+                    )))
                 } else {
                     Ok(None)
                 }
@@ -786,36 +791,19 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn update<T>(
         &self,
         database_type: &T,
-        record_created_by_id: RecordCreatedById,
-    ) -> Result<(OntologyId, OwnedById, OntologyElementMetadata), UpdateError>
+        created_by_id: EditionCreatedById,
+    ) -> Result<(OntologyId, OwnedById, OntologyTemporalMetadata), UpdateError>
     where
         T: OntologyDatabaseType + Serialize + Debug + Sync,
     {
-        let url = database_type.id();
-        let record_id = OntologyTypeRecordId::from(url.clone());
-
-        let (ontology_id, owned_by_id, transaction_time) = self
-            .update_owned_ontology_id(url, record_created_by_id)
+        let (ontology_id, owned_by_id, temporal_versioning) = self
+            .update_owned_ontology_id(database_type.id(), created_by_id)
             .await?;
         self.insert_with_id(ontology_id, database_type)
             .await
             .change_context(UpdateError)?;
 
-        Ok((
-            ontology_id,
-            owned_by_id,
-            OntologyElementMetadata {
-                record_id,
-                custom: CustomOntologyMetadata::Owned {
-                    provenance: ProvenanceMetadata {
-                        record_created_by_id,
-                        record_archived_by_id: None,
-                    },
-                    owned_by_id,
-                    temporal_versioning: OntologyTemporalMetadata { transaction_time },
-                },
-            },
-        ))
+        Ok((ontology_id, owned_by_id, temporal_versioning))
     }
 
     /// Updates the latest version of [`VersionedUrl::base_url`] and creates a new [`OntologyId`]
@@ -830,15 +818,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn update_owned_ontology_id(
         &self,
         url: &VersionedUrl,
-        record_created_by_id: RecordCreatedById,
-    ) -> Result<
-        (
-            OntologyId,
-            OwnedById,
-            LeftClosedTemporalInterval<TransactionTime>,
-        ),
-        UpdateError,
-    > {
+        created_by_id: EditionCreatedById,
+    ) -> Result<(OntologyId, OwnedById, OntologyTemporalMetadata), UpdateError> {
         let Some(owned_by_id) = self
             .as_client()
             .query_opt(
@@ -893,14 +874,18 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .expect("ontology id should have been created");
 
         let transaction_time = self
-            .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
+            .create_ontology_temporal_metadata(ontology_id, created_by_id)
             .await
             .change_context(UpdateError)?;
         self.create_ontology_owned_metadata(ontology_id, owned_by_id)
             .await
             .change_context(UpdateError)?;
 
-        Ok((ontology_id, owned_by_id, transaction_time))
+        Ok((
+            ontology_id,
+            owned_by_id,
+            OntologyTemporalMetadata { transaction_time },
+        ))
     }
 
     /// # Errors
@@ -1019,7 +1004,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             Item = (EntityProperties, Option<LinkOrder>, Option<LinkOrder>),
             IntoIter: Send,
         > + Send,
-        actor_id: RecordCreatedById,
+        actor_id: EditionCreatedById,
     ) -> Result<Vec<EntityEditionId>, InsertionError> {
         self.client
             .simple_query(

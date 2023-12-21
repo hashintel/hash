@@ -13,7 +13,7 @@ use graph_types::{
         entity::{EntityProperties, EntityUuid},
         link::{EntityLinkOrder, LinkData},
     },
-    provenance::OwnedById,
+    owned_by_id::OwnedById,
 };
 use type_system::{url::VersionedUrl, EntityType};
 use uuid::Uuid;
@@ -199,8 +199,8 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                             None,
                             EntityProperties::empty(),
                             Some(LinkData {
-                                left_entity_id: left_entity_metadata.record_id().entity_id,
-                                right_entity_id: right_entity_metadata.record_id().entity_id,
+                                left_entity_id: left_entity_metadata.record_id.entity_id,
+                                right_entity_id: right_entity_metadata.record_id.entity_id,
                                 order: EntityLinkOrder {
                                     left_to_right: None,
                                     right_to_left: None,

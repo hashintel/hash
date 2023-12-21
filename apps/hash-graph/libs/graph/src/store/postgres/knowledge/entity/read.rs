@@ -6,12 +6,12 @@ use futures::{StreamExt, TryStreamExt};
 use graph_types::{
     knowledge::{
         entity::{
-            Entity, EntityEditionId, EntityId, EntityMetadata, EntityRecordId,
-            EntityTemporalMetadata, EntityUuid,
+            Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityId, EntityMetadata,
+            EntityProvenanceMetadata, EntityRecordId, EntityTemporalMetadata, EntityUuid,
         },
         link::{EntityLinkOrder, LinkData},
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    owned_by_id::OwnedById,
 };
 use temporal_versioning::{
     LeftClosedTemporalInterval, RightBoundedTemporalInterval, TemporalTagged, TimeAxis, Timestamp,
@@ -208,8 +208,8 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let right_to_left_order_index =
             compiler.add_selection_path(&EntityQueryPath::RightToLeftOrder);
 
-        let record_created_by_id_index =
-            compiler.add_selection_path(&EntityQueryPath::RecordCreatedById);
+        let edition_created_by_id_index =
+            compiler.add_selection_path(&EntityQueryPath::EditionCreatedById);
 
         let archived_index = compiler.add_selection_path(&EntityQueryPath::Archived);
         let draft_index = compiler.add_selection_path(&EntityQueryPath::Draft);
@@ -265,32 +265,30 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     }
                 };
 
-                let record_created_by_id =
-                    RecordCreatedById::new(row.get(record_created_by_id_index));
-
                 Ok(Entity {
                     properties: row.get(properties_index),
                     link_data,
-                    metadata: EntityMetadata::new(
-                        EntityRecordId {
+                    metadata: EntityMetadata {
+                        record_id: EntityRecordId {
                             entity_id: EntityId {
                                 owned_by_id: row.get(owned_by_id_index),
                                 entity_uuid: row.get(entity_uuid_index),
                             },
                             edition_id: row.get(edition_id_index),
                         },
-                        EntityTemporalMetadata {
+                        temporal_versioning: EntityTemporalMetadata {
                             decision_time: row.get(decision_time_index),
                             transaction_time: row.get(transaction_time_index),
                         },
                         entity_type_id,
-                        ProvenanceMetadata {
-                            record_created_by_id,
-                            record_archived_by_id: None,
+                        provenance: EntityProvenanceMetadata {
+                            edition: EntityEditionProvenanceMetadata {
+                                created_by_id: row.get(edition_created_by_id_index),
+                            },
                         },
-                        row.get(archived_index),
-                        row.get(draft_index),
-                    ),
+                        archived: row.get(archived_index),
+                        draft: row.get(draft_index),
+                    },
                 })
             });
         Ok(stream)

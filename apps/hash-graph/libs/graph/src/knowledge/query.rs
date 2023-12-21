@@ -48,7 +48,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`OwnedById`]: graph_types::provenance::OwnedById
+    /// [`OwnedById`]: graph_types::owned_by_id::OwnedById
     /// [`EntityId`]: graph_types::knowledge::entity::EntityId
     OwnedById,
     /// The [`EntityEditionId`] of the [`EntityRecordId`] belonging to the [`Entity`].
@@ -107,20 +107,20 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Archived,
-    /// The [`RecordCreatedById`] of the [`ProvenanceMetadata`] belonging to the [`Entity`].
+    /// The [`EditionCreatedById`] of the [`EntityProvenanceMetadata`] belonging to the [`Entity`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["recordCreatedById"]))?;
-    /// assert_eq!(path, EntityQueryPath::RecordCreatedById);
+    /// let path = EntityQueryPath::deserialize(json!(["editionCreatedById"]))?;
+    /// assert_eq!(path, EntityQueryPath::EditionCreatedById);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`RecordCreatedById`]: graph_types::provenance::RecordCreatedById
-    /// [`ProvenanceMetadata`]: graph_types::provenance::ProvenanceMetadata
-    RecordCreatedById,
+    /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
+    /// [`EntityProvenanceMetadata`]: graph_types::knowledge::entity::EntityProvenanceMetadata
+    EditionCreatedById,
     /// An edge from this [`Entity`] to it's [`EntityType`] using a [`SharedEdgeKind`].
     ///
     /// The corresponding reversed edge is [`EntityTypeQueryPath::EntityEdge`].
@@ -345,7 +345,7 @@ impl fmt::Display for EntityQueryPath<'_> {
         match self {
             Self::Uuid => fmt.write_str("uuid"),
             Self::OwnedById => fmt.write_str("ownedById"),
-            Self::RecordCreatedById => fmt.write_str("recordCreatedById"),
+            Self::EditionCreatedById => fmt.write_str("editionCreatedById"),
             Self::EditionId => fmt.write_str("editionId"),
             Self::DecisionTime => fmt.write_str("decisionTime"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
@@ -393,7 +393,7 @@ impl fmt::Display for EntityQueryPath<'_> {
 impl QueryPath for EntityQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::EditionId | Self::Uuid | Self::OwnedById | Self::RecordCreatedById => {
+            Self::EditionId | Self::Uuid | Self::OwnedById | Self::EditionCreatedById => {
                 ParameterType::Uuid
             }
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
@@ -418,7 +418,7 @@ pub enum EntityQueryToken {
     Archived,
     Draft,
     OwnedById,
-    RecordCreatedById,
+    EditionCreatedById,
     Type,
     Properties,
     Embedding,
@@ -438,7 +438,7 @@ pub struct EntityQueryPathVisitor {
 
 impl EntityQueryPathVisitor {
     pub const EXPECTING: &'static str =
-        "one of `uuid`, `editionId`, `archived`, `draft`, `ownedById`, `recordCreatedById`, \
+        "one of `uuid`, `editionId`, `archived`, `draft`, `ownedById`, `editionCreatedById`, \
          `type`, `properties`, `embedding`, `incomingLinks`, `outgoingLinks`, `leftEntity`, \
          `rightEntity`, `leftToRightOrder`, `rightToLeftOrder`";
 
@@ -469,7 +469,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::Uuid => EntityQueryPath::Uuid,
             EntityQueryToken::EditionId => EntityQueryPath::EditionId,
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
-            EntityQueryToken::RecordCreatedById => EntityQueryPath::RecordCreatedById,
+            EntityQueryToken::EditionCreatedById => EntityQueryPath::EditionCreatedById,
             EntityQueryToken::Archived => EntityQueryPath::Archived,
             EntityQueryToken::Draft => EntityQueryPath::Draft,
             EntityQueryToken::Embedding => EntityQueryPath::Embedding,
@@ -548,19 +548,19 @@ impl Record for Entity {
         let ClosedTemporalBound::Inclusive(timestamp) = match time_axis {
             TimeAxis::DecisionTime => self
                 .metadata
-                .temporal_versioning()
+                .temporal_versioning
                 .decision_time
                 .start()
                 .cast(),
             TimeAxis::TransactionTime => self
                 .metadata
-                .temporal_versioning()
+                .temporal_versioning
                 .transaction_time
                 .start()
                 .cast(),
         };
         EntityVertexId {
-            base_id: self.metadata.record_id().entity_id,
+            base_id: self.metadata.record_id.entity_id,
             revision_id: timestamp,
         }
     }

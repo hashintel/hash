@@ -630,7 +630,7 @@ mod tests {
         compiler.add_selection_path(&EntityQueryPath::Properties(None));
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::RecordCreatedById)),
+            Some(FilterExpression::Path(EntityQueryPath::EditionCreatedById)),
             Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
         );
         compiler.add_filter(&filter);
@@ -1026,7 +1026,7 @@ mod tests {
         use graph_types::{
             knowledge::entity::{EntityId, EntityUuid},
             ontology::OntologyTypeVersion,
-            provenance::OwnedById,
+            owned_by_id::OwnedById,
         };
         use type_system::url::{BaseUrl, VersionedUrl};
 

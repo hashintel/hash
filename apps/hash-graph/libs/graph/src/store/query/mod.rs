@@ -87,40 +87,13 @@ impl fmt::Display for ParameterType {
 }
 
 pub trait OntologyQueryPath {
-    /// Returns the path identifying the internal ontology id.
-    fn ontology_id() -> Self;
-
     /// Returns the path identifying the [`BaseUrl`].
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
     fn base_url() -> Self;
 
-    /// Returns the path identifying the [`VersionedUrl`].
-    ///
-    /// [`VersionedUrl`]: type_system::url::VersionedUrl
-    fn versioned_url() -> Self;
-
     /// Returns the path identifying the [`OntologyTypeVersion`].
     ///
     /// [`OntologyTypeVersion`]: graph_types::ontology::OntologyTypeVersion
     fn version() -> Self;
-
-    /// Returns the path identifying the transaction time.
-    fn transaction_time() -> Self;
-
-    /// Returns the path identifying the [`RecordCreatedById`].
-    ///
-    /// [`RecordCreatedById`]: graph_types::provenance::RecordCreatedById
-    fn record_created_by_id() -> Self;
-
-    /// Returns the path identifying the [`RecordArchivedById`].
-    ///
-    /// [`RecordArchivedById`]: graph_types::provenance::RecordArchivedById
-    fn record_archived_by_id() -> Self;
-
-    /// Returns the path identifying the schema.
-    fn schema() -> Self;
-
-    /// Returns the path identifying the metadata
-    fn additional_metadata() -> Self;
 }

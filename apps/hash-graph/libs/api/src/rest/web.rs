@@ -23,7 +23,7 @@ use axum::{
 };
 use error_stack::Report;
 use graph::store::{AccountStore, StorePool};
-use graph_types::provenance::OwnedById;
+use graph_types::owned_by_id::OwnedById;
 use serde::Deserialize;
 use utoipa::{OpenApi, ToSchema};
 

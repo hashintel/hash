@@ -214,23 +214,23 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
               version: 1,
             },
-            custom: {
-              provenance: {
-                recordCreatedById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+            provenance: {
+              edition: {
+                createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
               },
-              temporalVersioning: {
-                transactionTime: {
-                  start: {
-                    kind: "inclusive",
-                    limit: "2023-11-11T17:07:53.815929000Z",
-                  },
-                  end: {
-                    kind: "unbounded",
-                  },
+            },
+            temporalVersioning: {
+              transactionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: "2023-11-11T17:07:53.815929000Z",
+                },
+                end: {
+                  kind: "unbounded",
                 },
               },
-              fetchedAt: "2023-11-11T17:07:53.812588000Z",
             },
+            fetchedAt: "2023-11-11T17:07:53.812588000Z",
           },
         },
       },
@@ -270,23 +270,23 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
                 "https://hash.ai/@test/types/property-type/notes-and-summary/",
               version: 1,
             },
-            custom: {
-              provenance: {
-                recordCreatedById: "a0711135-214a-4a38-9e63-b01a1a14826f",
+            provenance: {
+              edition: {
+                createdById: "a0711135-214a-4a38-9e63-b01a1a14826f",
               },
-              temporalVersioning: {
-                transactionTime: {
-                  start: {
-                    kind: "inclusive",
-                    limit: "2023-11-24T15:10:43.310883000Z",
-                  },
-                  end: {
-                    kind: "unbounded",
-                  },
+            },
+            temporalVersioning: {
+              transactionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: "2023-11-24T15:10:43.310883000Z",
+                },
+                end: {
+                  kind: "unbounded",
                 },
               },
-              ownedById: "a0711135-214a-4a38-9e63-b01a1a14826f",
             },
+            ownedById: "a0711135-214a-4a38-9e63-b01a1a14826f",
           },
         },
       },
@@ -343,23 +343,23 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
                 "https://hash.ai/@test/types/entity-type/property-values-demo/",
               version: 4,
             },
-            custom: {
-              provenance: {
-                recordCreatedById: "a0711135-214a-4a38-9e63-b01a1a14826f",
+            provenance: {
+              edition: {
+                createdById: "a0711135-214a-4a38-9e63-b01a1a14826f",
               },
-              temporalVersioning: {
-                transactionTime: {
-                  start: {
-                    kind: "inclusive",
-                    limit: "2023-11-24T18:44:26.425746000Z",
-                  },
-                  end: {
-                    kind: "unbounded",
-                  },
+            },
+            temporalVersioning: {
+              transactionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: "2023-11-24T18:44:26.425746000Z",
+                },
+                end: {
+                  kind: "unbounded",
                 },
               },
-              ownedById: "a0711135-214a-4a38-9e63-b01a1a14826f",
             },
+            ownedById: "a0711135-214a-4a38-9e63-b01a1a14826f",
           },
         },
       },
@@ -383,23 +383,23 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
                 "https://blockprotocol.org/@blockprotocol/types/data-type/number/",
               version: 1,
             },
-            custom: {
-              provenance: {
-                recordCreatedById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+            provenance: {
+              edition: {
+                createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
               },
-              temporalVersioning: {
-                transactionTime: {
-                  start: {
-                    kind: "inclusive",
-                    limit: "2023-11-11T17:07:57.946361000Z",
-                  },
-                  end: {
-                    kind: "unbounded",
-                  },
+            },
+            temporalVersioning: {
+              transactionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: "2023-11-11T17:07:57.946361000Z",
+                },
+                end: {
+                  kind: "unbounded",
                 },
               },
-              fetchedAt: "2023-11-11T17:07:57.946363000Z",
             },
+            fetchedAt: "2023-11-11T17:07:57.946363000Z",
           },
         },
       },
@@ -478,23 +478,23 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               baseUrl: "https://hash.ai/@test/types/property-type/mixed-array/",
               version: 3,
             },
-            custom: {
-              provenance: {
-                recordCreatedById: "a0711135-214a-4a38-9e63-b01a1a14826f",
+            provenance: {
+              edition: {
+                createdById: "a0711135-214a-4a38-9e63-b01a1a14826f",
               },
-              temporalVersioning: {
-                transactionTime: {
-                  start: {
-                    kind: "inclusive",
-                    limit: "2023-11-24T15:35:45.866857000Z",
-                  },
-                  end: {
-                    kind: "unbounded",
-                  },
+            },
+            temporalVersioning: {
+              transactionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: "2023-11-24T15:35:45.866857000Z",
+                },
+                end: {
+                  kind: "unbounded",
                 },
               },
-              ownedById: "a0711135-214a-4a38-9e63-b01a1a14826f",
             },
+            ownedById: "a0711135-214a-4a38-9e63-b01a1a14826f",
           },
         },
       },
@@ -521,23 +521,23 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               baseUrl: "https://hash.ai/@hash/types/property-type/archived/",
               version: 1,
             },
-            custom: {
-              provenance: {
-                recordCreatedById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+            provenance: {
+              edition: {
+                createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
               },
-              temporalVersioning: {
-                transactionTime: {
-                  start: {
-                    kind: "inclusive",
-                    limit: "2023-11-11T17:07:57.272633000Z",
-                  },
-                  end: {
-                    kind: "unbounded",
-                  },
+            },
+            temporalVersioning: {
+              transactionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: "2023-11-11T17:07:57.272633000Z",
+                },
+                end: {
+                  kind: "unbounded",
                 },
               },
-              ownedById: "b22dc013-c4a3-4f32-b0bc-dda4d3c00c1e",
             },
+            ownedById: "b22dc013-c4a3-4f32-b0bc-dda4d3c00c1e",
           },
         },
       },
@@ -564,23 +564,23 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               baseUrl: "https://hash.ai/@hash/types/property-type/expired-at/",
               version: 1,
             },
-            custom: {
-              provenance: {
-                recordCreatedById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+            provenance: {
+              edition: {
+                createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
               },
-              temporalVersioning: {
-                transactionTime: {
-                  start: {
-                    kind: "inclusive",
-                    limit: "2023-11-11T17:07:58.934500000Z",
-                  },
-                  end: {
-                    kind: "unbounded",
-                  },
+            },
+            temporalVersioning: {
+              transactionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: "2023-11-11T17:07:58.934500000Z",
+                },
+                end: {
+                  kind: "unbounded",
                 },
               },
-              ownedById: "b22dc013-c4a3-4f32-b0bc-dda4d3c00c1e",
             },
+            ownedById: "b22dc013-c4a3-4f32-b0bc-dda4d3c00c1e",
           },
         },
       },
@@ -607,23 +607,23 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               baseUrl: "https://hash.ai/@hash/types/property-type/summary/",
               version: 1,
             },
-            custom: {
-              provenance: {
-                recordCreatedById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+            provenance: {
+              edition: {
+                createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
               },
-              temporalVersioning: {
-                transactionTime: {
-                  start: {
-                    kind: "inclusive",
-                    limit: "2023-11-11T17:07:57.151833000Z",
-                  },
-                  end: {
-                    kind: "unbounded",
-                  },
+            },
+            temporalVersioning: {
+              transactionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: "2023-11-11T17:07:57.151833000Z",
+                },
+                end: {
+                  kind: "unbounded",
                 },
               },
-              ownedById: "b22dc013-c4a3-4f32-b0bc-dda4d3c00c1e",
             },
+            ownedById: "b22dc013-c4a3-4f32-b0bc-dda4d3c00c1e",
           },
         },
       },
@@ -651,23 +651,23 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
                 "https://hash.ai/@hash/types/property-type/organization-name/",
               version: 1,
             },
-            custom: {
-              provenance: {
-                recordCreatedById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+            provenance: {
+              edition: {
+                createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
               },
-              temporalVersioning: {
-                transactionTime: {
-                  start: {
-                    kind: "inclusive",
-                    limit: "2023-11-11T17:07:56.848510000Z",
-                  },
-                  end: {
-                    kind: "unbounded",
-                  },
+            },
+            temporalVersioning: {
+              transactionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: "2023-11-11T17:07:56.848510000Z",
+                },
+                end: {
+                  kind: "unbounded",
                 },
               },
-              ownedById: "b22dc013-c4a3-4f32-b0bc-dda4d3c00c1e",
             },
+            ownedById: "b22dc013-c4a3-4f32-b0bc-dda4d3c00c1e",
           },
         },
       },
@@ -694,23 +694,23 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               baseUrl: "https://hash.ai/@hash/types/property-type/deleted-at/",
               version: 1,
             },
-            custom: {
-              provenance: {
-                recordCreatedById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+            provenance: {
+              edition: {
+                createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
               },
-              temporalVersioning: {
-                transactionTime: {
-                  start: {
-                    kind: "inclusive",
-                    limit: "2023-11-11T17:07:58.782258000Z",
-                  },
-                  end: {
-                    kind: "unbounded",
-                  },
+            },
+            temporalVersioning: {
+              transactionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: "2023-11-11T17:07:58.782258000Z",
+                },
+                end: {
+                  kind: "unbounded",
                 },
               },
-              ownedById: "b22dc013-c4a3-4f32-b0bc-dda4d3c00c1e",
             },
+            ownedById: "b22dc013-c4a3-4f32-b0bc-dda4d3c00c1e",
           },
         },
       },
@@ -734,23 +734,23 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
                 "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/",
               version: 1,
             },
-            custom: {
-              provenance: {
-                recordCreatedById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+            provenance: {
+              edition: {
+                createdById: "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
               },
-              temporalVersioning: {
-                transactionTime: {
-                  start: {
-                    kind: "inclusive",
-                    limit: "2023-11-11T17:07:56.221431000Z",
-                  },
-                  end: {
-                    kind: "unbounded",
-                  },
+            },
+            temporalVersioning: {
+              transactionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: "2023-11-11T17:07:56.221431000Z",
+                },
+                end: {
+                  kind: "unbounded",
                 },
               },
-              fetchedAt: "2023-11-11T17:07:56.220506000Z",
             },
+            fetchedAt: "2023-11-11T17:07:56.220506000Z",
           },
         },
       },
@@ -777,23 +777,23 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
               baseUrl: "https://hash.ai/@d/types/property-type/notes/",
               version: 1,
             },
-            custom: {
-              provenance: {
-                recordCreatedById: "3660bed8-caae-4f20-a52c-a7e8ebca8bc4",
+            provenance: {
+              edition: {
+                createdById: "3660bed8-caae-4f20-a52c-a7e8ebca8bc4",
               },
-              temporalVersioning: {
-                transactionTime: {
-                  start: {
-                    kind: "inclusive",
-                    limit: "2023-11-22T13:11:10.848780000Z",
-                  },
-                  end: {
-                    kind: "unbounded",
-                  },
+            },
+            temporalVersioning: {
+              transactionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: "2023-11-22T13:11:10.848780000Z",
+                },
+                end: {
+                  kind: "unbounded",
                 },
               },
-              ownedById: "3660bed8-caae-4f20-a52c-a7e8ebca8bc4",
             },
+            ownedById: "3660bed8-caae-4f20-a52c-a7e8ebca8bc4",
           },
         },
       },

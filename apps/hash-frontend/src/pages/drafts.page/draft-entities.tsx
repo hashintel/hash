@@ -214,7 +214,7 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
         entity.metadata.recordId.entityId,
       );
 
-      return firstRevision.metadata.provenance.recordCreatedById;
+      return firstRevision.metadata.provenance.edition.createdById;
     });
 
     return derivedCreatorAccountIds;
@@ -245,7 +245,7 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
       const creator = actors.find(
         (actor) =>
           actor.accountId ===
-          firstRevision.metadata.provenance.recordCreatedById,
+          firstRevision.metadata.provenance.edition.createdById,
       );
 
       if (!creator) {

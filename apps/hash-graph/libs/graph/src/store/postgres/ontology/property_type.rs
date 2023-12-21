@@ -15,12 +15,12 @@ use authorization::{
 };
 use error_stack::{Result, ResultExt};
 use graph_types::{
-    account::AccountId,
+    account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
-        OntologyElementMetadata, OntologyTemporalMetadata, PartialCustomOntologyMetadata,
-        PartialOntologyElementMetadata, PropertyTypeWithMetadata,
+        OntologyEditionProvenanceMetadata, OntologyProvenanceMetadata, OntologyTemporalMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeRecordId, PartialPropertyTypeMetadata,
+        PropertyTypeMetadata, PropertyTypeWithMetadata,
     },
-    provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{url::VersionedUrl, PropertyType};
@@ -259,20 +259,22 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         actor_id: AccountId,
         authorization_api: &mut A,
         property_types: impl IntoIterator<
-            Item = (PropertyType, PartialOntologyElementMetadata),
+            Item = (PropertyType, PartialPropertyTypeMetadata),
             IntoIter: Send,
         > + Send,
         on_conflict: ConflictBehavior,
         relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
-    ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
+    ) -> Result<Vec<PropertyTypeMetadata>, InsertionError> {
         let requested_relationships = relationships.into_iter().collect::<Vec<_>>();
 
         let property_types = property_types.into_iter();
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        let provenance = ProvenanceMetadata {
-            record_created_by_id: RecordCreatedById::new(actor_id),
-            record_archived_by_id: None,
+        let provenance = OntologyProvenanceMetadata {
+            edition: OntologyEditionProvenanceMetadata {
+                created_by_id: EditionCreatedById::new(actor_id),
+                archived_by_id: None,
+            },
         };
 
         let mut relationships = Vec::new();
@@ -283,7 +285,9 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
         for (schema, metadata) in property_types {
             let property_type_id = PropertyTypeId::from_url(schema.id());
-            if let PartialCustomOntologyMetadata::Owned { owned_by_id } = &metadata.custom {
+            if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
+                &metadata.classification
+            {
                 authorization_api
                     .check_web_permission(
                         actor_id,
@@ -305,11 +309,11 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 ));
             }
 
-            if let Some((ontology_id, transaction_time)) = transaction
+            if let Some((ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
-                    provenance.record_created_by_id,
+                    provenance.edition.created_by_id,
                     &metadata.record_id,
-                    &metadata.custom,
+                    &metadata.classification,
                     on_conflict,
                 )
                 .await?
@@ -317,11 +321,12 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 transaction.insert_with_id(ontology_id, &schema).await?;
 
                 inserted_property_types.push((ontology_id, schema));
-                inserted_property_type_metadata.push(OntologyElementMetadata::from_partial(
-                    metadata,
+                inserted_property_type_metadata.push(PropertyTypeMetadata {
+                    record_id: metadata.record_id,
+                    classification: metadata.classification,
+                    temporal_versioning,
                     provenance,
-                    transaction_time,
-                ));
+                });
             }
 
             relationships.extend(
@@ -493,7 +498,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         authorization_api: &mut A,
         property_type: PropertyType,
         relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
-    ) -> Result<OntologyElementMetadata, UpdateError> {
+    ) -> Result<PropertyTypeMetadata, UpdateError> {
         let old_ontology_id = PropertyTypeId::from_url(&VersionedUrl {
             base_url: property_type.id().base_url.clone(),
             version: property_type.id().version - 1,
@@ -513,11 +518,8 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
-        // This clone is currently necessary because we extract the references as we insert them.
-        // We can only insert them after the type has been created, and so we currently extract them
-        // after as well. See `insert_property_type_references` taking `&property_type`
-        let (ontology_id, owned_by_id, metadata) = transaction
-            .update::<PropertyType>(&property_type, RecordCreatedById::new(actor_id))
+        let (ontology_id, owned_by_id, temporal_versioning) = transaction
+            .update::<PropertyType>(&property_type, EditionCreatedById::new(actor_id))
             .await?;
 
         transaction
@@ -575,7 +577,17 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
             Err(error)
         } else {
-            Ok(metadata)
+            Ok(PropertyTypeMetadata {
+                record_id: OntologyTypeRecordId::from(property_type.id().clone()),
+                classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
+                temporal_versioning,
+                provenance: OntologyProvenanceMetadata {
+                    edition: OntologyEditionProvenanceMetadata {
+                        created_by_id: EditionCreatedById::new(actor_id),
+                        archived_by_id: None,
+                    },
+                },
+            })
         }
     }
 
@@ -586,7 +598,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.archive_ontology_type(id, RecordArchivedById::new(actor_id))
+        self.archive_ontology_type(id, EditionArchivedById::new(actor_id))
             .await
     }
 
@@ -597,7 +609,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(id, RecordCreatedById::new(actor_id))
+        self.unarchive_ontology_type(id, EditionCreatedById::new(actor_id))
             .await
     }
 }

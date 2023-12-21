@@ -28,8 +28,7 @@ export const ensureHashSystemAccountExists = async (params: {
       entityTypeId: systemEntityTypes.organization.entityTypeId,
     });
 
-    systemAccountId =
-      orgEntityType.metadata.custom.provenance.recordCreatedById;
+    systemAccountId = orgEntityType.metadata.provenance.edition.createdById;
 
     logger.debug(`Using existing system account id: ${systemAccountId}`);
   } catch {

@@ -58,7 +58,13 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
         let ontology_id = Uuid::new_v5(&Uuid::NAMESPACE_URL, record_id.as_bytes());
 
         self.metadata
-            .start_send_unpin((ontology_id, data_type.metadata))
+            .start_send_unpin((
+                ontology_id,
+                data_type.metadata.record_id,
+                data_type.metadata.classification,
+                data_type.metadata.temporal_versioning,
+                data_type.metadata.provenance,
+            ))
             .attach_printable("could not send metadata")?;
         self.schema
             .start_send_unpin(DataTypeRow {

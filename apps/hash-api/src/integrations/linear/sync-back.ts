@@ -60,7 +60,7 @@ export const processEntityChange = async (
     { identifier: "linear" },
   );
 
-  if (entity.metadata.provenance.recordCreatedById === linearMachineActorId) {
+  if (entity.metadata.provenance.edition.createdById === linearMachineActorId) {
     /**
      * To prevent update loops where changes from linear are saved in HASH, and
      * then propagate back to linear, only consider entity editions that weren't

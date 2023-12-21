@@ -14,9 +14,7 @@ use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
 use crate::{
-    knowledge::link::LinkData,
-    provenance::{OwnedById, ProvenanceMetadata},
-    Embedding,
+    account::EditionCreatedById, knowledge::link::LinkData, owned_by_id::OwnedById, Embedding,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -98,73 +96,32 @@ impl EntityProperties {
     }
 }
 
-/// The metadata of an [`Entity`] record.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[cfg_attr(feature = "utoipa", derive(ToSchema))]
-// TODO: deny_unknown_fields on other structs
-// TODO: Make fields `pub` and restrict mutability when `#[feature(mut_restriction)]` is available.
-//   see https://github.com/rust-lang/rust/issues/105077
-//   see https://app.asana.com/0/0/1203977361907407/f
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct EntityMetadata {
-    record_id: EntityRecordId,
-    temporal_versioning: EntityTemporalMetadata,
-    #[cfg_attr(feature = "utoipa", schema(value_type = String))]
-    entity_type_id: VersionedUrl,
-    provenance: ProvenanceMetadata,
-    archived: bool,
-    draft: bool,
+pub struct EntityEditionProvenanceMetadata {
+    pub created_by_id: EditionCreatedById,
 }
 
-impl EntityMetadata {
-    #[must_use]
-    pub const fn new(
-        record_id: EntityRecordId,
-        temporal_versioning: EntityTemporalMetadata,
-        entity_type_id: VersionedUrl,
-        provenance: ProvenanceMetadata,
-        archived: bool,
-        draft: bool,
-    ) -> Self {
-        Self {
-            record_id,
-            temporal_versioning,
-            entity_type_id,
-            provenance,
-            archived,
-            draft,
-        }
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct EntityProvenanceMetadata {
+    pub edition: EntityEditionProvenanceMetadata,
+}
 
-    #[must_use]
-    pub const fn record_id(&self) -> EntityRecordId {
-        self.record_id
-    }
-
-    #[must_use]
-    pub const fn temporal_versioning(&self) -> &EntityTemporalMetadata {
-        &self.temporal_versioning
-    }
-
-    #[must_use]
-    pub const fn entity_type_id(&self) -> &VersionedUrl {
-        &self.entity_type_id
-    }
-
-    #[must_use]
-    pub const fn provenance(&self) -> ProvenanceMetadata {
-        self.provenance
-    }
-
-    #[must_use]
-    pub const fn archived(&self) -> bool {
-        self.archived
-    }
-
-    #[must_use]
-    pub const fn draft(&self) -> bool {
-        self.draft
-    }
+/// The metadata of an [`Entity`] record.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct EntityMetadata {
+    pub record_id: EntityRecordId,
+    pub temporal_versioning: EntityTemporalMetadata,
+    #[cfg_attr(feature = "utoipa", schema(value_type = String))]
+    pub entity_type_id: VersionedUrl,
+    pub provenance: EntityProvenanceMetadata,
+    pub archived: bool,
+    pub draft: bool,
 }
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated

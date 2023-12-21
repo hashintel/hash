@@ -3,7 +3,7 @@
  * names are converted from snake_case to camelCase for consistency.
  */
 import { JsonObject } from "@blockprotocol/core";
-import { Uuid } from "@local/hash-subgraph";
+import { EditionCreatedById, Uuid } from "@local/hash-subgraph";
 
 import { Wal2JsonMsg } from "./wal2json";
 
@@ -13,7 +13,7 @@ type EntityEditionRecord = {
   properties: JsonObject;
   leftToRightOrder?: number;
   rightToLeftOrder?: number;
-  recordCreatedById?: Uuid; // the UUID of the user who created this record
+  editionCreatedById?: EditionCreatedById; // the UUID of the user who created this edition
 };
 
 export const entityEditionTableName = "entity_editions";
@@ -36,6 +36,8 @@ export const entityEditionRecordFromRealtimeMessage = (
     properties: JSON.parse(obj.properties as string) as JsonObject,
     leftToRightOrder: obj.left_to_right_order as number | undefined,
     rightToLeftOrder: obj.right_to_left_order as number | undefined,
-    recordCreatedById: obj.record_created_by_id as Uuid | undefined,
+    editionCreatedById: obj.record_created_by_id as
+      | EditionCreatedById
+      | undefined,
   };
 };

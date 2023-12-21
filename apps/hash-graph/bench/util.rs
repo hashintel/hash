@@ -19,9 +19,10 @@ use graph::{
 use graph_types::{
     account::AccountId,
     ontology::{
-        PartialCustomOntologyMetadata, PartialEntityTypeMetadata, PartialOntologyElementMetadata,
+        OntologyTypeClassificationMetadata, PartialDataTypeMetadata, PartialEntityTypeMetadata,
+        PartialPropertyTypeMetadata,
     },
-    provenance::OwnedById,
+    owned_by_id::OwnedById,
 };
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
@@ -225,9 +226,9 @@ pub async fn seed<D, P, E, C>(
                 account_id,
                 &mut NoAuthorization,
                 data_type.clone(),
-                PartialOntologyElementMetadata {
+                PartialDataTypeMetadata {
                     record_id: data_type.id().clone().into(),
-                    custom: PartialCustomOntologyMetadata::Owned {
+                    classification: OntologyTypeClassificationMetadata::Owned {
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
                 },
@@ -269,9 +270,9 @@ pub async fn seed<D, P, E, C>(
                 account_id,
                 &mut NoAuthorization,
                 property_type.clone(),
-                PartialOntologyElementMetadata {
+                PartialPropertyTypeMetadata {
                     record_id: property_type.id().clone().into(),
-                    custom: PartialCustomOntologyMetadata::Owned {
+                    classification: OntologyTypeClassificationMetadata::Owned {
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
                 },
@@ -317,7 +318,7 @@ pub async fn seed<D, P, E, C>(
                     record_id: entity_type.id().clone().into(),
                     label_property: None,
                     icon: None,
-                    custom: PartialCustomOntologyMetadata::Owned {
+                    classification: OntologyTypeClassificationMetadata::Owned {
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
                 },

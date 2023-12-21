@@ -90,7 +90,7 @@ export const getOrCreateOwningAccountGroupId = async (
 
     if (foundOrg) {
       const machineActorIdForWeb =
-        foundOrg.entity.metadata.provenance.recordCreatedById;
+        foundOrg.entity.metadata.provenance.edition.createdById;
 
       logger.debug(
         `Found org entity with shortname ${webShortname}, accountGroupId: ${foundOrg.accountGroupId}, machine actor accountId: ${machineActorIdForWeb}`,
@@ -354,7 +354,7 @@ export const ensureSystemEntitiesExist = async (params: {
       });
     } catch (err) {
       if (err instanceof NotFoundError) {
-        const orgAdminAccountId = org.metadata.provenance.recordCreatedById;
+        const orgAdminAccountId = org.metadata.provenance.edition.createdById;
 
         await createWebMachineActor(
           context,

@@ -50,7 +50,7 @@ export const useActors = (params: {
             all: [
               {
                 equal: [
-                  { path: ["recordCreatedById"] },
+                  { path: ["editionCreatedById"] },
                   { parameter: accountId },
                 ],
               },
@@ -84,7 +84,7 @@ export const useActors = (params: {
 
     const machineActors = getRoots(subgraph).map((entity) => {
       return {
-        accountId: entity.metadata.provenance.recordCreatedById,
+        accountId: entity.metadata.provenance.edition.createdById,
         kind: "machine" as const,
         displayName: (entity.properties as MachineProperties)[
           "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"

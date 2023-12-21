@@ -78,11 +78,11 @@ export const extractEntityUuidFromEntityId = (
   return splitEntityId(entityId)[1]!;
 };
 
-/** An account ID of an actor that has created a record */
-export type RecordCreatedById = Brand<AccountId, "RecordCreatedById">;
+/** An account ID of an actor that has created a specific edition */
+export type EditionCreatedById = Brand<AccountId, "EditionCreatedById">;
 
-/** An account ID of an actor that has created a record */
-export type RecordArchivedById = Brand<AccountId, "RecordArchivedById">;
+/** An account ID of an actor that has archived an edition */
+export type EditionArchivedById = Brand<AccountId, "EditionArchivedById">;
 
 /** An `EntityId` identifying a `User` Entity */
 export type AccountEntityId = Brand<EntityId, "AccountEntityId">;

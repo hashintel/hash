@@ -53,11 +53,12 @@ use graph_types::{
         link::{EntityLinkOrder, LinkData},
     },
     ontology::{
-        DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
-        OntologyTypeVersion, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
-        PartialOntologyElementMetadata, PropertyTypeWithMetadata,
+        DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeVersion, PartialDataTypeMetadata,
+        PartialEntityTypeMetadata, PartialPropertyTypeMetadata, PropertyTypeMetadata,
+        PropertyTypeWithMetadata,
     },
-    provenance::OwnedById,
+    owned_by_id::OwnedById,
 };
 use temporal_versioning::{DecisionTime, LimitedTemporalBound, TemporalBound, Timestamp};
 use time::{format_description::well_known::Iso8601, Duration, OffsetDateTime};
@@ -190,9 +191,9 @@ impl DatabaseTestWrapper {
             let data_type: DataType = serde_json::from_str(data_type_str)
                 .expect("could not parse data type representation");
 
-            let metadata = PartialOntologyElementMetadata {
+            let metadata = PartialDataTypeMetadata {
                 record_id: data_type.id().clone().into(),
-                custom: PartialCustomOntologyMetadata::Owned {
+                classification: OntologyTypeClassificationMetadata::Owned {
                     owned_by_id: OwnedById::new(account_id.into_uuid()),
                 },
             };
@@ -213,9 +214,9 @@ impl DatabaseTestWrapper {
             let property_type: PropertyType = serde_json::from_str(property_type_str)
                 .expect("could not parse property type representation");
 
-            let metadata = PartialOntologyElementMetadata {
+            let metadata = PartialPropertyTypeMetadata {
                 record_id: property_type.id().clone().into(),
-                custom: PartialCustomOntologyMetadata::Owned {
+                classification: OntologyTypeClassificationMetadata::Owned {
                     owned_by_id: OwnedById::new(account_id.into_uuid()),
                 },
             };
@@ -240,7 +241,7 @@ impl DatabaseTestWrapper {
                 record_id: entity_type.id().clone().into(),
                 label_property: None,
                 icon: None,
-                custom: PartialCustomOntologyMetadata::Owned {
+                classification: OntologyTypeClassificationMetadata::Owned {
                     owned_by_id: OwnedById::new(account_id.into_uuid()),
                 },
             };
@@ -279,10 +280,10 @@ impl DatabaseApi<'_> {
     pub async fn create_owned_data_type(
         &mut self,
         data_type: DataType,
-    ) -> Result<OntologyElementMetadata, InsertionError> {
-        let metadata = PartialOntologyElementMetadata {
+    ) -> Result<DataTypeMetadata, InsertionError> {
+        let metadata = PartialDataTypeMetadata {
             record_id: data_type.id().clone().into(),
-            custom: PartialCustomOntologyMetadata::Owned {
+            classification: OntologyTypeClassificationMetadata::Owned {
                 owned_by_id: OwnedById::new(self.account_id.into_uuid()),
             },
         };
@@ -301,10 +302,10 @@ impl DatabaseApi<'_> {
     pub async fn create_external_data_type(
         &mut self,
         data_type: DataType,
-    ) -> Result<OntologyElementMetadata, InsertionError> {
-        let metadata = PartialOntologyElementMetadata {
+    ) -> Result<DataTypeMetadata, InsertionError> {
+        let metadata = PartialDataTypeMetadata {
             record_id: data_type.id().clone().into(),
-            custom: PartialCustomOntologyMetadata::External {
+            classification: OntologyTypeClassificationMetadata::External {
                 fetched_at: OffsetDateTime::now_utc(),
             },
         };
@@ -354,7 +355,7 @@ impl DatabaseApi<'_> {
     pub async fn update_data_type(
         &mut self,
         data_type: DataType,
-    ) -> Result<OntologyElementMetadata, UpdateError> {
+    ) -> Result<DataTypeMetadata, UpdateError> {
         self.store
             .update_data_type(
                 self.account_id,
@@ -368,10 +369,10 @@ impl DatabaseApi<'_> {
     pub async fn create_property_type(
         &mut self,
         property_type: PropertyType,
-    ) -> Result<OntologyElementMetadata, InsertionError> {
-        let metadata = PartialOntologyElementMetadata {
+    ) -> Result<PropertyTypeMetadata, InsertionError> {
+        let metadata = PartialPropertyTypeMetadata {
             record_id: property_type.id().clone().into(),
-            custom: PartialCustomOntologyMetadata::Owned {
+            classification: OntologyTypeClassificationMetadata::Owned {
                 owned_by_id: OwnedById::new(self.account_id.into_uuid()),
             },
         };
@@ -421,7 +422,7 @@ impl DatabaseApi<'_> {
     pub async fn update_property_type(
         &mut self,
         property_type: PropertyType,
-    ) -> Result<OntologyElementMetadata, UpdateError> {
+    ) -> Result<PropertyTypeMetadata, UpdateError> {
         self.store
             .update_property_type(
                 self.account_id,
@@ -440,7 +441,7 @@ impl DatabaseApi<'_> {
             record_id: entity_type.id().clone().into(),
             label_property: None,
             icon: None,
-            custom: PartialCustomOntologyMetadata::Owned {
+            classification: OntologyTypeClassificationMetadata::Owned {
                 owned_by_id: OwnedById::new(self.account_id.into_uuid()),
             },
         };

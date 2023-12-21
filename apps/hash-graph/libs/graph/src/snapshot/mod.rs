@@ -37,7 +37,8 @@ use futures::{
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{Entity, EntityUuid},
-    provenance::OwnedById,
+    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+    owned_by_id::OwnedById,
 };
 use hash_status::StatusCode;
 use postgres_types::ToSql;
@@ -50,10 +51,7 @@ use tokio_postgres::{
 use type_system::url::VersionedUrl;
 
 use crate::{
-    snapshot::{
-        entity::{CustomEntityMetadata, EntityMetadata, EntitySnapshotRecord},
-        restore::SnapshotRecordBatch,
-    },
+    snapshot::{entity::EntitySnapshotRecord, restore::SnapshotRecordBatch},
     store::{
         crud::Read, query::Filter, AsClient, InsertionError, PostgresStore, PostgresStorePool,
         StorePool,
@@ -358,7 +356,7 @@ where
             );
 
             scope.spawn(
-                self.create_dump_stream::<DataTypeSnapshotRecord>()
+                self.create_dump_stream::<DataTypeWithMetadata>()
                     .try_flatten_stream()
                     .and_then(move |record| async move {
                         Ok(SnapshotEntry::DataType(DataTypeSnapshotRecord {
@@ -382,7 +380,7 @@ where
             );
 
             scope.spawn(
-                self.create_dump_stream::<PropertyTypeSnapshotRecord>()
+                self.create_dump_stream::<PropertyTypeWithMetadata>()
                     .try_flatten_stream()
                     .and_then(move |record| async move {
                         Ok(SnapshotEntry::PropertyType(PropertyTypeSnapshotRecord {
@@ -406,7 +404,7 @@ where
             );
 
             scope.spawn(
-                self.create_dump_stream::<EntityTypeSnapshotRecord>()
+                self.create_dump_stream::<EntityTypeWithMetadata>()
                     .try_flatten_stream()
                     .and_then(move |record| async move {
                         Ok(SnapshotEntry::EntityType(EntityTypeSnapshotRecord {
@@ -435,23 +433,11 @@ where
                     .and_then(move |entity| async move {
                         Ok(SnapshotEntry::Entity(EntitySnapshotRecord {
                             properties: entity.properties,
-                            metadata: EntityMetadata {
-                                record_id: entity.metadata.record_id(),
-                                entity_type_id: entity.metadata.entity_type_id().clone(),
-                                temporal_versioning: Some(
-                                    entity.metadata.temporal_versioning().clone(),
-                                ),
-                                custom: CustomEntityMetadata {
-                                    provenance: entity.metadata.provenance(),
-                                    archived: entity.metadata.archived(),
-                                    draft: entity.metadata.draft(),
-                                },
-                            },
                             link_data: entity.link_data,
                             relations: authorization_api
                                 .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
                                     RelationshipFilter::from_resource(
-                                        entity.metadata.record_id().entity_id.entity_uuid,
+                                        entity.metadata.record_id.entity_id.entity_uuid,
                                     ),
                                     Consistency::FullyConsistent,
                                 )
@@ -460,6 +446,7 @@ where
                                 .into_iter()
                                 .map(|(_, relation)| relation)
                                 .collect(),
+                            metadata: entity.metadata,
                         }))
                     })
                     .forward(snapshot_record_tx),

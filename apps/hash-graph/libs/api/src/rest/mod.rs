@@ -50,12 +50,13 @@ use graph::{
     },
 };
 use graph_types::{
-    account::AccountId,
+    account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
-        CustomOntologyMetadata, EntityTypeMetadata, OntologyElementMetadata,
-        OntologyTemporalMetadata, OntologyTypeRecordId, OntologyTypeReference, OntologyTypeVersion,
+        DataTypeMetadata, EntityTypeMetadata, OntologyEditionProvenanceMetadata,
+        OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyTypeMetadata,
+        OntologyTypeRecordId, OntologyTypeReference, OntologyTypeVersion, PropertyTypeMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+    owned_by_id::OwnedById,
 };
 use hash_status::Status;
 use hyper::Uri;
@@ -85,7 +86,8 @@ use self::{
             OntologyOutwardEdge, OntologyTypeVertexId, OntologyVertex, OntologyVertices, Subgraph,
             Vertex, Vertices,
         },
-        MaybeListOfEntityTypeMetadata, MaybeListOfOntologyElementMetadata,
+        MaybeListOfDataTypeMetadata, MaybeListOfEntityTypeMetadata,
+        MaybeListOfPropertyTypeMetadata,
     },
 };
 
@@ -186,7 +188,7 @@ pub trait RestApiStore: Store + TypeFetcher {
         authorization_api: &mut A,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
-    ) -> Result<OntologyElementMetadata, Response>;
+    ) -> Result<OntologyTypeMetadata, Response>;
 }
 
 #[async_trait]
@@ -200,7 +202,7 @@ where
         authorization_api: &mut A,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
-    ) -> Result<OntologyElementMetadata, Response> {
+    ) -> Result<OntologyTypeMetadata, Response> {
         if domain_validator.validate_url(reference.url().base_url.as_str()) {
             let error = "Ontology type is not external".to_owned();
             tracing::error!(id=%reference.url(), error);
@@ -338,15 +340,17 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             PermissionResponse,
 
             OwnedById,
-            RecordCreatedById,
-            RecordArchivedById,
-            ProvenanceMetadata,
+            EditionCreatedById,
+            EditionArchivedById,
+            OntologyProvenanceMetadata,
+            OntologyEditionProvenanceMetadata,
             OntologyTypeRecordId,
-            OntologyElementMetadata,
             OntologyTemporalMetadata,
-            CustomOntologyMetadata,
+            DataTypeMetadata,
+            MaybeListOfDataTypeMetadata,
+            PropertyTypeMetadata,
+            MaybeListOfPropertyTypeMetadata,
             EntityTypeMetadata,
-            MaybeListOfOntologyElementMetadata,
             MaybeListOfEntityTypeMetadata,
             EntityVertexId,
             EntityIdWithInterval,

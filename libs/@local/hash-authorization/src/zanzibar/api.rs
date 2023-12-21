@@ -4,7 +4,7 @@ use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
-    provenance::OwnedById,
+    owned_by_id::OwnedById,
 };
 
 use crate::{

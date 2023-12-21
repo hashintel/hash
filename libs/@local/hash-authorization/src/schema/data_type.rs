@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use graph_types::provenance::OwnedById;
+use graph_types::owned_by_id::OwnedById;
 use serde::{Deserialize, Serialize};
 use type_system::url::VersionedUrl;
 use uuid::Uuid;

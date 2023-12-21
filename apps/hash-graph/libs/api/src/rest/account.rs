@@ -22,7 +22,7 @@ use axum::{
 use graph::store::{AccountStore, StorePool};
 use graph_types::{
     account::{AccountGroupId, AccountId},
-    provenance::OwnedById,
+    owned_by_id::OwnedById,
 };
 use utoipa::OpenApi;
 use uuid::Uuid;

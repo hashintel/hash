@@ -106,14 +106,14 @@ const bpMultiFilterFieldPathToPathExpression = (
 
           const [provenanceRoot, ...provenanceRest] = metadataRest;
 
-          // case `RecordCreatedById`
-          if (provenanceRoot === "recordCreatedById") {
+          // case `EditionCreatedById`
+          if (provenanceRoot === "createdById") {
             if (provenanceRest.length > 0) {
               throw new InvalidEntityQueryError(
-                `Invalid filter field path, unable to index inside \`metadata.provenance.recordCreatedById\``,
+                `Invalid filter field path, unable to index inside \`metadata.provenance.edition.createdById\``,
               );
             }
-            return ["recordCreatedById"];
+            return ["createdById"];
           }
 
           throw new InvalidEntityQueryError(
