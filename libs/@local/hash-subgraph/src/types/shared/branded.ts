@@ -14,10 +14,7 @@ import {
 } from "@local/hash-graph-client";
 import { validate as validateUuid } from "uuid";
 
-import {
-  InclusiveLimitedTemporalBound,
-  Timestamp,
-} from "./temporal-versioning";
+import { Timestamp } from "./temporal-versioning";
 
 export type BaseUrl = Brand<BaseUrlBp, "BaseUrl">;
 
