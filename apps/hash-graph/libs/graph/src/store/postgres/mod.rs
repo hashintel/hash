@@ -924,7 +924,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let sink = self
             .client
             .copy_in(
-                "COPY entity_ids (
+                "COPY entity_ids_temp (
                     web_id,
                     entity_uuid,
                     created_by_id,
