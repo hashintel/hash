@@ -24,10 +24,6 @@ import {
   UpdatePropertyType,
 } from "@local/hash-graph-client";
 import {
-  ConstructDataTypeParams,
-  CustomDataType,
-} from "@local/hash-isomorphic-utils/data-types";
-import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
@@ -46,6 +42,8 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   BaseUrl,
+  ConstructDataTypeParams,
+  CustomDataType,
   DataTypeWithMetadata,
   Entity,
   EntityRootType,

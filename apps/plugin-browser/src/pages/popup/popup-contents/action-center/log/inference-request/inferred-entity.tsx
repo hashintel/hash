@@ -7,10 +7,7 @@ import {
 } from "@hashintel/design-system";
 import { customColors } from "@hashintel/design-system/theme";
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/ai-inference-types";
-import {
-  formatDataValue,
-  FormattedValuePart,
-} from "@local/hash-isomorphic-utils/data-types";
+import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   BaseUrl,
@@ -19,6 +16,7 @@ import type {
   EntityPropertyValue,
   EntityTypeRootType,
   EntityTypeWithMetadata,
+  FormattedValuePart,
   Subgraph,
 } from "@local/hash-subgraph";
 import {

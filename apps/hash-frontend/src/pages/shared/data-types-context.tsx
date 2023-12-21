@@ -2,12 +2,10 @@ import { useQuery } from "@apollo/client";
 import { JsonValue } from "@blockprotocol/core";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
-import {
-  formatDataValue,
-  FormattedValuePart,
-} from "@local/hash-isomorphic-utils/data-types";
+import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
 import {
   DataTypeWithMetadata,
+  FormattedValuePart,
   OntologyTypeRevisionId,
 } from "@local/hash-subgraph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";

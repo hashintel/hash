@@ -25,12 +25,12 @@ import {
   PropertyTypeMetadata as PropertyTypeMetadataGraphApi,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
-import { CustomDataType } from "@local/hash-isomorphic-utils/data-types";
 import {
   BaseUrl,
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
   CreatedById,
+  CustomDataType,
   DataTypeMetadata,
   EditionArchivedById,
   EditionCreatedById,
