@@ -20,15 +20,16 @@ use graph_types::{
     account::AccountId,
     knowledge::{
         entity::{
-            Entity, EntityEditionId, EntityId, EntityMetadata, EntityProperties, EntityRecordId,
-            EntityTemporalMetadata, EntityUuid,
+            Entity, EntityEditionId, EntityEmbedding, EntityId, EntityMetadata, EntityProperties,
+            EntityRecordId, EntityTemporalMetadata, EntityUuid,
         },
         link::{EntityLinkOrder, LinkData},
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    Embedding,
 };
 use hash_status::StatusCode;
-use postgres_types::Json;
+use postgres_types::{Json, ToSql};
 use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp};
 use tokio_postgres::GenericClient;
 use type_system::{url::VersionedUrl, EntityType};
@@ -275,6 +276,7 @@ impl<C: AsClient> PostgresStore<C> {
                     DELETE FROM entity_is_of_type;
                     DELETE FROM entity_temporal_metadata;
                     DELETE FROM entity_editions;
+                    DELETE FROM entity_embeddings;
                     DELETE FROM entity_ids;
                 ",
             )
@@ -1085,6 +1087,70 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             archived,
             draft,
         ))
+    }
+
+    async fn update_entity_embeddings<A: AuthorizationApi + Send + Sync>(
+        &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut A,
+        embeddings: impl IntoIterator<Item = EntityEmbedding<'_>> + Send,
+    ) -> Result<(), UpdateError> {
+        #[derive(Debug, ToSql)]
+        #[postgres(name = "entity_embeddings")]
+        pub struct EntityEmbeddingsRow<'a> {
+            web_id: OwnedById,
+            entity_uuid: EntityUuid,
+            property: Option<String>,
+            embedding: Embedding<'a>,
+        }
+        let (entity_ids, entity_embeddings): (HashSet<_>, Vec<_>) = embeddings
+            .into_iter()
+            .map(|embedding: EntityEmbedding<'_>| {
+                (
+                    embedding.entity_id,
+                    EntityEmbeddingsRow {
+                        web_id: embedding.entity_id.owned_by_id,
+                        entity_uuid: embedding.entity_id.entity_uuid,
+                        property: embedding.property.as_ref().map(ToString::to_string),
+                        embedding: embedding.embedding,
+                    },
+                )
+            })
+            .unzip();
+        let permissions = authorization_api
+            .check_entities_permission(
+                actor_id,
+                EntityPermission::Update,
+                entity_ids,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(UpdateError)?
+            .0
+            .into_iter()
+            .filter_map(|(entity_id, has_permission)| (!has_permission).then_some(entity_id))
+            .collect::<Vec<_>>();
+        if !permissions.is_empty() {
+            let mut status = Report::new(PermissionAssertion);
+            for entity_id in permissions {
+                status = status.attach(format!("Permission denied for entity {entity_id}"));
+            }
+            return Err(status.change_context(UpdateError));
+        }
+        self.as_client()
+            .query(
+                "
+                    INSERT INTO entity_embeddings
+                    SELECT * FROM UNNEST($1::entity_embeddings[])
+                    ON CONFLICT (web_id, entity_uuid, property) DO UPDATE
+                    SET embedding = EXCLUDED.embedding;
+                ",
+                &[&entity_embeddings],
+            )
+            .await
+            .change_context(UpdateError)?;
+
+        Ok(())
     }
 }
 

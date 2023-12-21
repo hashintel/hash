@@ -6,7 +6,7 @@ use crate::{
     knowledge::EntityQueryPath,
     store::postgres::query::{
         table::{
-            Column, EntityEditions, EntityHasLeftEntity, EntityHasRightEntity,
+            Column, EntityEditions, EntityEmbeddings, EntityHasLeftEntity, EntityHasRightEntity,
             EntityTemporalMetadata, JsonField, ReferenceTable, Relation,
         },
         PostgresQueryPath, PostgresRecord, Table,
@@ -28,6 +28,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             | Self::EditionId
             | Self::DecisionTime
             | Self::TransactionTime => vec![],
+            Self::Embedding => vec![Relation::EntityEmbeddings],
             Self::Properties(_)
             | Self::LeftToRightOrder
             | Self::RightToLeftOrder
@@ -97,6 +98,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::Draft => Column::EntityEditions(EntityEditions::Draft),
             Self::OwnedById => Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),
             Self::RecordCreatedById => Column::EntityEditions(EntityEditions::RecordCreatedById),
+            Self::Embedding => Column::EntityEmbeddings(EntityEmbeddings::Embedding),
             Self::EntityTypeEdge { path, .. } => path.terminating_column(),
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,

@@ -811,6 +811,47 @@
         }
       }
     },
+    "/entities/embeddings": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "update_entity_embeddings",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEntityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The embeddings were created"
+          },
+          "403": {
+            "description": "Insufficient permissions to update the entity"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/entities/query": {
       "post": {
         "tags": [
@@ -2917,6 +2958,13 @@
           }
         }
       },
+      "Embedding": {
+        "type": "array",
+        "items": {
+          "type": "number",
+          "format": "float"
+        }
+      },
       "Entity": {
         "type": "object",
         "description": "A record of an [`Entity`] that has been persisted in the datastore, with its associated\nmetadata.",
@@ -3028,6 +3076,43 @@
         ],
         "discriminator": {
           "propertyName": "kind"
+        }
+      },
+      "EntityEmbedding": {
+        "type": "object",
+        "required": [
+          "entityId",
+          "embedding"
+        ],
+        "properties": {
+          "embedding": {
+            "$ref": "#/components/schemas/Embedding"
+          },
+          "entityId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "property": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BaseUrl"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "EntityEmbeddingUpdateRequest": {
+        "type": "object",
+        "required": [
+          "embeddings"
+        ],
+        "properties": {
+          "embeddings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityEmbedding"
+            }
+          }
         }
       },
       "EntityId": {
@@ -3148,6 +3233,7 @@
           "recordCreatedById",
           "type",
           "properties",
+          "embedding",
           "incomingLinks",
           "outgoingLinks",
           "leftEntity",

@@ -14,7 +14,7 @@ use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::{
-        entity::{Entity, EntityId, EntityMetadata, EntityProperties, EntityUuid},
+        entity::{Entity, EntityEmbedding, EntityId, EntityMetadata, EntityProperties, EntityUuid},
         link::{EntityLinkOrder, LinkData},
     },
     ontology::{
@@ -1198,6 +1198,17 @@ where
                 properties,
                 link_order,
             )
+            .await
+    }
+
+    async fn update_entity_embeddings<Au: AuthorizationApi + Send + Sync>(
+        &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut Au,
+        embeddings: impl IntoIterator<Item = EntityEmbedding<'_>> + Send,
+    ) -> Result<(), UpdateError> {
+        self.store
+            .update_entity_embeddings(actor_id, authorization_api, embeddings)
             .await
     }
 }

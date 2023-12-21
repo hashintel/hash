@@ -7,7 +7,8 @@ use crate::{
     store::{
         postgres::query::{
             table::{
-                EntityEditions, EntityTemporalMetadata, OntologyIds, OntologyTemporalMetadata,
+                EntityEditions, EntityEmbeddings, EntityTemporalMetadata, OntologyIds,
+                OntologyTemporalMetadata,
             },
             Alias, AliasedColumn, AliasedTable, Column, Condition, Constant, Distinctness,
             EqualityOperator, Expression, Function, JoinExpression, OrderByExpression, Ordering,
@@ -332,6 +333,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
     }
 
     /// Compiles a [`Filter`] to a `Condition`.
+    #[expect(clippy::too_many_lines)]
     pub fn compile_filter<'f: 'p>(&mut self, filter: &'p Filter<'f, R>) -> Condition
     where
         R::QueryPath<'f>: PostgresQueryPath,
@@ -366,11 +368,79 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                 rhs.as_ref()
                     .map(|expression| self.compile_filter_expression(expression).0),
             ),
-            Filter::CosineDistance(lhs, rhs, max) => Condition::CosineDistance(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
-                self.compile_filter_expression(max).0,
-            ),
+            Filter::CosineDistance(lhs, rhs, max) => match (lhs, rhs) {
+                (FilterExpression::Path(path), FilterExpression::Parameter(parameter))
+                | (FilterExpression::Parameter(parameter), FilterExpression::Path(path)) => {
+                    // We don't support custom sorting yet and limit/cursor implicitly set an order.
+                    // We special case the distance function to allow sorting by distance, so we
+                    // need to make sure that we don't have a limit or cursor.
+                    assert!(
+                        self.statement.limit.is_none() && !self.artifacts.uses_cursor,
+                        "Cannot use distance function with limit or cursor",
+                    );
+
+                    let path_column = self.compile_path_column(path);
+                    let parameter_expression = self.compile_parameter(parameter).0;
+                    let maximum_expression = self.compile_filter_expression(max).0;
+
+                    let distance_column = Column::EntityEmbeddings(EntityEmbeddings::Distance)
+                        .aliased(path_column.alias);
+
+                    if let Some(last_join) = self.statement.joins.last_mut() {
+                        assert!(
+                            last_join.table.table == Table::EntityEmbeddings
+                                || last_join.statement.is_some(),
+                            "Only a single embedding for the same path is allowed"
+                        );
+
+                        let table = AliasedTable {
+                            table: Table::EntityEmbeddings,
+                            alias: Alias {
+                                condition_index: 0,
+                                chain_depth: 0,
+                                number: 0,
+                            },
+                        };
+                        let embeddings_column = AliasedColumn {
+                            column: Column::EntityEmbeddings(EntityEmbeddings::Embedding),
+                            alias: table.alias,
+                        };
+
+                        last_join.statement = Some(SelectStatement {
+                            with: WithExpression::default(),
+                            distinct: vec![],
+                            selects: vec![
+                                SelectExpression::new(Expression::Asterisk, None),
+                                SelectExpression::new(
+                                    Expression::CosineDistance(
+                                        Box::new(Expression::Column(embeddings_column)),
+                                        Box::new(parameter_expression),
+                                    ),
+                                    Some("distance"),
+                                ),
+                            ],
+                            from: table,
+                            joins: vec![],
+                            where_expression: WhereExpression::default(),
+                            order_by_expression: OrderByExpression::default(),
+                            limit: None,
+                        });
+                    }
+
+                    self.statement
+                        .order_by_expression
+                        .push(distance_column, Ordering::Ascending);
+                    self.statement
+                        .selects
+                        .push(SelectExpression::from_column(distance_column, None));
+                    self.statement.distinct.push(distance_column);
+                    Condition::LessOrEqual(Expression::Column(distance_column), maximum_expression)
+                }
+                _ => panic!(
+                    "Cosine distance is only supported with exactly one `path` and one \
+                     `parameter` expression."
+                ),
+            },
             Filter::In(lhs, rhs) => Condition::In(
                 self.compile_filter_expression(lhs).0,
                 self.compile_parameter_list(rhs).0,

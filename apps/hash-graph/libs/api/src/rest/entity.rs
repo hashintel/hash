@@ -36,12 +36,13 @@ use graph::{
 use graph_types::{
     knowledge::{
         entity::{
-            Entity, EntityEditionId, EntityId, EntityMetadata, EntityProperties, EntityRecordId,
-            EntityTemporalMetadata, EntityUuid,
+            Entity, EntityEditionId, EntityEmbedding, EntityId, EntityMetadata, EntityProperties,
+            EntityRecordId, EntityTemporalMetadata, EntityUuid,
         },
         link::{EntityLinkOrder, LinkData, LinkOrder},
     },
     provenance::OwnedById,
+    Embedding,
 };
 use serde::Deserialize;
 use type_system::url::VersionedUrl;
@@ -62,6 +63,7 @@ use crate::rest::{
         check_entity_permission,
         get_entities_by_query,
         update_entity,
+        update_entity_embeddings,
 
         get_entity_authorization_relationships,
         modify_entity_authorization_relationships,
@@ -77,6 +79,9 @@ use crate::rest::{
             ValidateEntityRequest,
             ValidationOperation,
             UpdateEntityRequest,
+            Embedding,
+            EntityEmbeddingUpdateRequest,
+            EntityEmbedding,
             EntityQueryToken,
             EntityStructuralQuery,
 
@@ -128,6 +133,7 @@ impl RoutedResource for EntityResource {
                     post(modify_entity_authorization_relationships::<A>),
                 )
                 .route("/validate", post(validate_entity::<S, A>))
+                .route("/embeddings", post(update_entity_embeddings::<S, A>))
                 .nest(
                     "/:entity_id",
                     Router::new()
@@ -504,6 +510,52 @@ where
         })
         .map_err(report_to_response)
         .map(Json)
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct EntityEmbeddingUpdateRequest {
+    embeddings: Vec<EntityEmbedding<'static>>,
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/embeddings",
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 204, content_type = "application/json", description = "The embeddings were created"),
+
+        (status = 403, description = "Insufficient permissions to update the entity"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = UpdateEntityRequest,
+)]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+async fn update_entity_embeddings<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    body: Json<EntityEmbeddingUpdateRequest>,
+) -> Result<(), Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let Json(EntityEmbeddingUpdateRequest { embeddings }) = body;
+
+    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
+    let mut authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .update_entity_embeddings(actor_id, &mut authorization_api, embeddings)
+        .await
+        .map_err(report_to_response)
 }
 
 #[utoipa::path(
