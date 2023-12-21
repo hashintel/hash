@@ -171,6 +171,9 @@ pub(crate) struct ClientTransportLayer {
 
 impl ClientTransportLayer {
     pub(crate) fn new(config: ClientTransportConfig) -> error_stack::Result<Self, TransportError> {
+        #[cfg(target_arch = "wasm32")]
+        console_error_panic_hook::set_once();
+
         let transport = TransportLayer::new_client(config.transport)?;
 
         let (tx, rx) = mpsc::channel(32);
@@ -313,7 +316,12 @@ impl ClientTransportLayer {
                 context.cancel_pending();
             }
 
-            _ => {}
+            other => {
+                #[cfg(target_arch = "wasm32")]
+                web_sys::console::log_1(&format!("{:?}", other).into());
+
+                tracing::trace!(?other, "unhandled swarm event");
+            }
         }
     }
 
