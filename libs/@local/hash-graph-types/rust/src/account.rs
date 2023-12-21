@@ -11,7 +11,7 @@ use uuid::Uuid;
 #[cfg_attr(feature = "wasm", derive(tsify::Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 #[repr(transparent)]
-pub struct AccountId(Uuid);
+pub struct AccountId(#[cfg_attr(feature = "wasm", tsify(type = "string"))] Uuid);
 
 #[cfg(feature = "wasm")]
 impl From<AccountId> for wasm_bindgen::JsValue {
@@ -51,7 +51,7 @@ impl fmt::Display for AccountId {
 #[cfg_attr(feature = "wasm", derive(tsify::Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 #[repr(transparent)]
-pub struct AccountGroupId(Uuid);
+pub struct AccountGroupId(#[cfg_attr(feature = "wasm", tsify(type = "string"))] Uuid);
 
 #[cfg(feature = "wasm")]
 impl From<AccountGroupId> for wasm_bindgen::JsValue {

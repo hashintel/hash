@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, net::SocketAddrV4};
+use std::{borrow::Cow, marker::PhantomData, net::SocketAddrV4};
 
 use error_stack::{Report, Result, ResultExt};
 use libp2p::{multiaddr::Protocol, Multiaddr};
@@ -103,6 +103,18 @@ impl<S, C> Client<S, C>
 where
     S: Service,
 {
+    #[cfg(not(target_arch = "wasm32"))]
+    fn new_remote(remote: SocketAddrV4) -> Multiaddr {
+        Multiaddr::from(*remote.ip()).with(Protocol::Tcp(remote.port()))
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn new_remote(remote: SocketAddrV4) -> Multiaddr {
+        Multiaddr::from(*remote.ip())
+            .with(Protocol::Tcp(remote.port()))
+            .with(Protocol::Ws(Cow::Borrowed("/")))
+    }
+
     /// Create a new client.
     ///
     /// # Errors
@@ -116,7 +128,7 @@ where
         config: TransportConfig,
     ) -> Result<Self, ClientError> {
         let transport = ClientTransportLayer::new(ClientTransportConfig {
-            remote: Multiaddr::from(*remote.ip()).with(Protocol::Tcp(remote.port())),
+            remote: Self::new_remote(remote),
             transport: config,
         })
         .change_context(ClientError::Internal)?;
