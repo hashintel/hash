@@ -5,10 +5,6 @@
     lint_reasons,
     never_type
 )]
-#![expect(
-    clippy::let_underscore_untyped,
-    reason = "Conflicts with `clippy::no_effect_underscore_binding` in function bindings"
-)]
 
 pub mod backend;
 pub mod schema;

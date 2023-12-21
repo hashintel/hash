@@ -190,7 +190,7 @@ mod tests {
         async fn provide_entity(
             &self,
             entity_id: EntityId,
-            _include_drafts: bool,
+            _: bool,
         ) -> Result<&Entity, Report<InvalidEntity>> {
             self.entities
                 .get(&entity_id)

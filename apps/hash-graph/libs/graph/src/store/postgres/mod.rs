@@ -1440,11 +1440,11 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
 }
 
 impl<C: AsClient> PostgresStore<C> {
-    #[tracing::instrument(level = "trace", skip(self, _authorization_api))]
+    #[tracing::instrument(level = "trace", skip(self))]
     pub async fn delete_accounts<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &A,
+        _: &A,
     ) -> Result<(), DeletionError> {
         self.as_client()
             .client()
