@@ -18,8 +18,8 @@ import {
   BaseUrl,
   ExclusiveLimitedTemporalBound,
   InclusiveLimitedTemporalBound,
+  OntologyProvenanceMetadata,
   OwnedById,
-  ProvenanceMetadata,
   TimeInterval,
   Timestamp,
   Unbounded,
@@ -62,33 +62,29 @@ export const isOntologyTypeRecordId = (
 
 export type OwnedOntologyElementMetadata = {
   recordId: OntologyTypeRecordId;
-  custom: {
-    ownedById: OwnedById;
-    provenance: ProvenanceMetadata;
-    temporalVersioning: {
-      transactionTime: TimeInterval<
-        InclusiveLimitedTemporalBound,
-        ExclusiveLimitedTemporalBound | Unbounded
-      >;
-    };
+  ownedById: OwnedById;
+  provenance: OntologyProvenanceMetadata;
+  temporalVersioning: {
+    transactionTime: TimeInterval<
+      InclusiveLimitedTemporalBound,
+      ExclusiveLimitedTemporalBound | Unbounded
+    >;
   };
 };
 
 export type ExternalOntologyElementMetadata = {
   recordId: OntologyTypeRecordId;
-  custom: {
-    fetchedAt: Timestamp;
-    provenance: ProvenanceMetadata;
-    temporalVersioning: {
-      transactionTime: TimeInterval<
-        InclusiveLimitedTemporalBound,
-        ExclusiveLimitedTemporalBound | Unbounded
-      >;
-    };
+  fetchedAt: Timestamp;
+  provenance: OntologyProvenanceMetadata;
+  temporalVersioning: {
+    transactionTime: TimeInterval<
+      InclusiveLimitedTemporalBound,
+      ExclusiveLimitedTemporalBound | Unbounded
+    >;
   };
 };
 
-export type OntologyElementMetadata = Subtype<
+type OntologyElementMetadata = Subtype<
   OntologyElementMetadataBp,
   OwnedOntologyElementMetadata | ExternalOntologyElementMetadata
 >;
@@ -97,6 +93,10 @@ export type EditableOntologyElementMetadata = {
   labelProperty?: BaseUrl;
   icon?: string | null;
 };
+
+export type DataTypeMetadata = OntologyElementMetadata & {};
+
+export type PropertyTypeMetadata = OntologyElementMetadata & {};
 
 export type EntityTypeMetadata = OntologyElementMetadata &
   EditableOntologyElementMetadata;
@@ -128,11 +128,9 @@ export type EntityTypeWithMetadata = Subtype<
 export const isExternalOntologyElementMetadata = (
   metadata: OntologyElementMetadata,
 ): metadata is ExternalOntologyElementMetadata =>
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this can be undefined if the cast is wrong
-  (metadata as ExternalOntologyElementMetadata).custom.fetchedAt !== undefined;
+  (metadata as ExternalOntologyElementMetadata).fetchedAt !== undefined;
 
 export const isOwnedOntologyElementMetadata = (
   metadata: OntologyElementMetadata,
 ): metadata is OwnedOntologyElementMetadata =>
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this can be undefined if the cast is wrong
-  (metadata as OwnedOntologyElementMetadata).custom.ownedById !== undefined;
+  (metadata as OwnedOntologyElementMetadata).ownedById !== undefined;

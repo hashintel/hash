@@ -17,10 +17,10 @@ import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { ConstructDataTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
   DataTypeAuthorizationRelationship,
+  DataTypeMetadata,
   DataTypeRelationAndSubject,
   DataTypeRootType,
   DataTypeWithMetadata,
-  OntologyElementMetadata,
   OntologyTypeRecordId,
   ontologyTypeRecordIdToVersionedUrl,
   OwnedById,
@@ -90,7 +90,7 @@ export const createDataType: ImpureGraphFunction<
     },
   );
 
-  return { schema, metadata: metadata as OntologyElementMetadata };
+  return { schema, metadata: metadata as DataTypeMetadata };
 };
 
 /**
@@ -223,7 +223,7 @@ export const updateDataType: ImpureGraphFunction<
       ...schema,
       $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
     },
-    metadata: metadata as OntologyElementMetadata,
+    metadata: metadata as DataTypeMetadata,
   };
 };
 

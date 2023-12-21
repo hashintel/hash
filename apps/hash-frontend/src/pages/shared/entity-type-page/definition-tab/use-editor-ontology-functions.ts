@@ -153,8 +153,8 @@ export const useEditorOntologyFunctions = (
       const resourceMetadata = typesWithMetadata[resource.$id]?.metadata;
       const resourceAccountId =
         resourceMetadata &&
-        "ownedById" in resourceMetadata.custom &&
-        resourceMetadata.custom.ownedById;
+        "ownedById" in resourceMetadata &&
+        resourceMetadata.ownedById;
 
       return resourceAccountId &&
         canUserEditType(resourceAccountId, authenticatedUser)

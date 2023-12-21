@@ -17,11 +17,11 @@ import {
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
-  OntologyElementMetadata,
   OntologyTypeRecordId,
   ontologyTypeRecordIdToVersionedUrl,
   OwnedById,
   PropertyTypeAuthorizationRelationship,
+  PropertyTypeMetadata,
   PropertyTypeRelationAndSubject,
   PropertyTypeRootType,
   PropertyTypeWithMetadata,
@@ -85,7 +85,7 @@ export const createPropertyType: ImpureGraphFunction<
     },
   );
 
-  return { schema, metadata: metadata as OntologyElementMetadata };
+  return { schema, metadata: metadata as PropertyTypeMetadata };
 };
 
 /**
@@ -217,7 +217,7 @@ export const updatePropertyType: ImpureGraphFunction<
       ...schema,
       $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
     },
-    metadata: metadata as OntologyElementMetadata,
+    metadata: metadata as PropertyTypeMetadata,
   };
 };
 

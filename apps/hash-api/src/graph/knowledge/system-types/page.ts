@@ -543,7 +543,7 @@ export const getPageAuthor: ImpureGraphFunction<
   );
 
   const firstRevisionCreatorId =
-    firstRevision.metadata.provenance.recordCreatedById;
+    firstRevision.metadata.provenance.edition.createdById;
 
   const user = await getUserById(context, authentication, {
     entityId: entityIdFromOwnedByIdAndEntityUuid(

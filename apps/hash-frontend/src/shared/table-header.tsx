@@ -154,7 +154,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             )
           : isExternalOntologyElementMetadata(metadata)
             ? false
-            : internalWebIds.includes(metadata.custom.ownedById),
+            : internalWebIds.includes(metadata.ownedById),
       ).length,
     [items, internalWebIds],
   );

@@ -39,16 +39,16 @@ export const DraftEntityProvenance: FunctionComponent<{
 }> = ({ entity, createdAt }) => {
   const { authenticatedUser } = useAuthenticatedUser();
 
-  const recordCreatedById = entity.metadata.provenance.recordCreatedById;
+  const editionCreatedById = entity.metadata.provenance.edition.createdById;
 
   const { actors } = useActors({
-    accountIds: [recordCreatedById],
+    accountIds: [editionCreatedById],
   });
 
   /** @todo: account for machine users */
   const createdBy = useMemo(
-    () => actors?.find(({ accountId }) => accountId === recordCreatedById),
-    [actors, recordCreatedById],
+    () => actors?.find(({ accountId }) => accountId === editionCreatedById),
+    [actors, editionCreatedById],
   );
 
   const formattedCreatedAt = useMemo(

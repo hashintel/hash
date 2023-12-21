@@ -172,7 +172,7 @@ export const useEntitiesTable = (params: {
 
             const lastEditedBy = users?.find(
               ({ accountId }) =>
-                accountId === entity.metadata.provenance.recordCreatedById,
+                accountId === entity.metadata.provenance.edition.createdById,
             );
 
             return {
