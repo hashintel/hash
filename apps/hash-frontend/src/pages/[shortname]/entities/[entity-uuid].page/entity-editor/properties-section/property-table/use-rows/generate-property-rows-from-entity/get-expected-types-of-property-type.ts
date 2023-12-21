@@ -47,6 +47,7 @@ export const getExpectedTypesOfPropertyType = (
   let isArray = false;
   let expectedTypes: DataTypeWithMetadata["schema"][] = [];
 
+  // @todo handle property types with multiple expected values
   const firstType = propertyType.oneOf[0];
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment

@@ -1,5 +1,4 @@
 import { TextField, TextFieldProps } from "@hashintel/design-system";
-import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 import { DataTypeWithMetadata } from "@local/hash-subgraph";
 
 import { CellInputProps } from "./types";
@@ -11,7 +10,7 @@ export const NumberOrTextInput = ({
   onEnterPressed,
   value,
   isNumber,
-}: CellInputProps<number | string> & {
+}: CellInputProps<number | string | undefined> & {
   onBlur?: TextFieldProps["onBlur"];
   expectedType: DataTypeWithMetadata["schema"];
   isNumber: boolean;
@@ -84,7 +83,8 @@ export const NumberOrTextInput = ({
         const newValue =
           isNumber && !isEmptyString ? Number(target.value) : target.value;
 
-        onChange(newValue);
+        // Unset the value if it's empty
+        onChange(isEmptyString ? undefined : newValue);
 
         target.checkValidity();
       }}

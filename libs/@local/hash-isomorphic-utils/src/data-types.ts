@@ -1,6 +1,5 @@
 import { JsonValue } from "@blockprotocol/core";
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { customColors } from "@hashintel/design-system/theme";
 import { Subtype } from "@local/advanced-types/subtype";
 import { DataType } from "@local/hash-graph-client";
 import { DistributiveOmit } from "@local/hash-isomorphic-utils/util";
@@ -137,37 +136,59 @@ export type FormattedValuePart = {
 
 const createFormattedParts = ({
   inner,
-  schema: { label },
+  schema,
 }: {
   inner: string | FormattedValuePart[];
-  schema: Pick<ValueConstraint, "label">;
+  schema: Pick<ValueConstraint, "label"> | null;
 }): FormattedValuePart[] => {
-  const { left = "", right = "" } = label ?? {};
+  const { left = "", right = "" } = schema?.label ?? {};
 
   const parts: FormattedValuePart[] = [];
 
   if (left) {
-    parts.push({ color: customColors.gray[50], type: "label", text: left });
+    parts.push({ color: "#91A5BA", type: "label", text: left });
   }
 
   if (Array.isArray(inner)) {
     parts.push(...inner);
   } else {
-    parts.push({ color: customColors.gray[90], type: "value", text: inner });
+    parts.push({ color: "#37434F", type: "value", text: inner });
   }
 
   if (right) {
-    parts.push({ color: customColors.gray[50], type: "label", text: right });
+    parts.push({ color: "#91A5BA", type: "label", text: right });
   }
 
   return parts;
 };
 
+export const getJsonSchemaTypeFromValue = (
+  value: unknown,
+): DataType["type"] => {
+  if (value === null) {
+    return "null";
+  }
+
+  if (Array.isArray(value)) {
+    return "array";
+  }
+
+  switch (typeof value) {
+    case "number":
+    case "bigint":
+      return "number";
+    default:
+      return typeof value;
+  }
+};
+
 export const formatDataValue = (
   value: JsonValue,
-  schema: ValueConstraint,
+  schema: ValueConstraint | null,
 ): FormattedValuePart[] => {
-  const { type } = schema;
+  const { type } = schema ?? {
+    type: getJsonSchemaTypeFromValue(value),
+  };
 
   if (type === "null") {
     return createFormattedParts({ inner: "Null", schema });
@@ -182,18 +203,18 @@ export const formatDataValue = (
       throw new Error("Non-array value provided for array data type");
     }
 
-    if (!("items" in schema)) {
+    if (schema && !("items" in schema)) {
       // Handle the Empty List, which is a const [] with no 'items'
       return [
         {
-          color: customColors.gray[90],
+          color: "#37434F",
           type: "value",
           text: "Empty List",
         },
       ];
     }
 
-    const isTuple = "prefixItems" in schema;
+    const isTuple = schema && "prefixItems" in schema;
 
     const innerValue: string = value
       .map((inner, index) => {
@@ -201,14 +222,14 @@ export const formatDataValue = (
           return formatDataValue(inner, schema.prefixItems[index]!);
         }
 
-        if (!schema.items) {
+        if (schema && !schema.items) {
           // schema.items is false for tuple types (specifying that additional items are not allowed)
           throw new Error(
             "Expected 'items' schema in non-tuple array data type",
           );
         }
 
-        return formatDataValue(inner, schema.items);
+        return formatDataValue(inner, schema?.items ?? null);
       })
       .join("");
 

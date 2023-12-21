@@ -245,9 +245,9 @@ export const ExpectedValueSelector = ({
           selectOnFocus={false}
           clearOnBlur={false}
           {...expectedValuesField}
-          filterOptions={(options, { inputValue }) => {
+          filterOptions={(options, { inputValue: searchValue }) => {
             return options.filter((option) => {
-              const lowercaseInput = inputValue.toLowerCase();
+              const lowercaseInput = searchValue.toLowerCase();
 
               if (typeof option === "object") {
                 return option.typeId.toLowerCase().includes(lowercaseInput);
@@ -260,15 +260,16 @@ export const ExpectedValueSelector = ({
 
               const leftLabel =
                 "label" in dataType && "left" in dataType.label
-                  ? dataType.label.left
+                  ? (dataType.label as { left: string }).left
                   : "";
               const rightLabel =
                 "label" in dataType && "right" in dataType.label
-                  ? dataType.label.right
+                  ? (dataType.label as { right: string }).right
                   : "";
 
               return (
-                description.toLowerCase().includes(lowercaseInput) ||
+                (description &&
+                  description.toLowerCase().includes(lowercaseInput)) ||
                 title.toLowerCase().includes(lowercaseInput) ||
                 leftLabel.toLowerCase().includes(lowercaseInput) ||
                 rightLabel.toLowerCase().includes(lowercaseInput)

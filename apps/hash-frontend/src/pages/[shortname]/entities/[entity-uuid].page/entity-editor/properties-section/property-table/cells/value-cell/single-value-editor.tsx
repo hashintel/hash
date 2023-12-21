@@ -153,15 +153,11 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     );
   }
 
-  const validationHandler = (event?: MouseEvent) => {
-    if (
-      !textInputFormRef.current ||
-      (event && textInputFormRef.current.contains(event.target as Node))
-    ) {
+  const validationHandler = () => {
+    if (!textInputFormRef.current) {
       return;
     }
     textInputFormRef.current.requestSubmit();
-
     if (textInputFormRef.current.checkValidity()) {
       document.body.classList.remove(GRID_CLICK_IGNORE_CLASS);
       onFinishedEditing(latestValueCellRef.current);

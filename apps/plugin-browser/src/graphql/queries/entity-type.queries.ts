@@ -1,4 +1,5 @@
 import { subgraphFieldsFragment } from "@local/hash-isomorphic-utils/graphql/queries/subgraph";
+import { print } from "graphql";
 
 export const getEntityTypesQuery = /* GraphQL */ `
   query getEntityTypes {
@@ -14,5 +15,5 @@ export const getEntityTypesQuery = /* GraphQL */ `
       ...SubgraphFields
     }
   }
-  ${subgraphFieldsFragment.toString()}
+  ${print(subgraphFieldsFragment)}
 `;

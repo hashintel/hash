@@ -98,7 +98,7 @@ export const InferenceRequest = ({
   user: NonNullable<LocalStorage["user"]>;
 }) => {
   const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
-  const allEntityTypes = useEntityTypes();
+  const { entityTypes: allEntityTypes, entityTypesSubgraph } = useEntityTypes();
 
   const { entityTypeIds, status } = request;
 
@@ -121,7 +121,11 @@ export const InferenceRequest = ({
     );
   }, [allEntityTypes, entityTypeIds, request, status]);
 
-  if (status === "pending" || status === "not-started") {
+  if (
+    status === "pending" ||
+    status === "not-started" ||
+    !entityTypesSubgraph
+  ) {
     return (
       <Skeleton variant="rectangular" height={54} sx={{ borderRadius: 1 }} />
     );
@@ -209,6 +213,7 @@ export const InferenceRequest = ({
                     }
                     entityType={entityType}
                     entityTypes={allEntityTypes}
+                    entityTypesSubgraph={entityTypesSubgraph}
                     expanded={expanded}
                     key={locallyUniqueId}
                     indexInType={index}

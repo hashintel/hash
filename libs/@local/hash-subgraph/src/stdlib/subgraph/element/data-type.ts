@@ -38,6 +38,17 @@ export const getDataTypeById = (
     | DataTypeWithMetadata
     | undefined;
 
+export const mustGetDataTypeById = (
+  subgraph: Subgraph,
+  dataTypeId: VersionedUrl,
+): DataTypeWithMetadata => {
+  const dataType = getDataTypeById(subgraph, dataTypeId);
+  if (!dataType) {
+    throw new Error(`Data type with id ${dataTypeId} not found in subgraph`);
+  }
+  return dataType;
+};
+
 /**
  * Gets a `DataTypeWithMetadata` by its `OntologyTypeVertexId` from within the vertices of the subgraph. Returns
  * `undefined` if the data type couldn't be found.

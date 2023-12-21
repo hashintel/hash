@@ -1,5 +1,5 @@
-import { Subgraph } from "@local/hash-graph-client";
-import { EntityTypeRootType } from "@local/hash-subgraph";
+import type { Subgraph } from "@local/hash-graph-client";
+import type { EntityTypeRootType } from "@local/hash-subgraph";
 import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
