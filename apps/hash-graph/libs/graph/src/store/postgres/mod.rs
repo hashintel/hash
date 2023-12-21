@@ -913,7 +913,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .simple_query(
                 "CREATE TEMPORARY TABLE entity_ids_temp (
                     web_id UUID NOT NULL,
-                    entity_uud UUID NOT NULL,
+                    entity_uuid UUID NOT NULL,
                     created_by_id UUID NOT NULL,
                     created_at_decision_time TIMESTAMP WITH TIME ZONE
                 );",
