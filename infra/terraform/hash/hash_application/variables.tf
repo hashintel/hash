@@ -65,6 +65,15 @@ variable "graph_image" {
   description = "URL of the docker image for the Graph service"
 }
 
+variable "graph_migration_env_vars" {
+  type = list(object({
+    name   = string,
+    secret = bool,
+    value  = string
+  }))
+  description = "A list of environment variables to save as system parameters and inject into the Graph migration script"
+}
+
 variable "graph_env_vars" {
   type = list(object({
     name   = string,
