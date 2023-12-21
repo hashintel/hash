@@ -21,6 +21,7 @@ use tokio::{
     sync::{mpsc, oneshot},
     time,
 };
+use tokio_util::sync::CancellationToken;
 
 use crate::harpc::transport::{
     codec::Codec,
@@ -172,7 +173,22 @@ impl ClientTransportLayer {
         let transport = TransportLayer::new_client(config.transport)?;
 
         let (tx, rx) = mpsc::channel(32);
-        let guard = tokio::spawn(Self::event_loop(transport, config.remote, rx)).into();
+
+        let cancel = CancellationToken::new();
+
+        let event_loop = Self::event_loop(transport, config.remote, rx, cancel.child_token());
+
+        #[cfg(not(target_arch = "wasm32"))]
+        let handle = tokio::spawn(event_loop);
+
+        #[cfg(target_arch = "wasm32")]
+        wasm_bindgen_futures::spawn_local(event_loop);
+
+        let guard = SpawnGuard {
+            #[cfg(not(target_arch = "wasm32"))]
+            force: Some(handle.abort_handle()),
+            graceful: Some(cancel),
+        };
 
         Ok(Self {
             tx,
@@ -304,11 +320,16 @@ impl ClientTransportLayer {
         mut transport: TransportLayer,
         remote: Multiaddr,
         mut rx: mpsc::Receiver<EventLoopRequest>,
-    ) -> ! {
+        cancel: CancellationToken,
+    ) {
         let mut context = EventLoopContext::new(remote);
 
         loop {
             select! {
+                _ = cancel.cancelled() => {
+                    tracing::info!("event loop cancelled");
+                    return;
+                },
                 Some(request) = rx.recv() => {
                     Self::handle_channel_event(&mut transport, request, &mut context);
                 },

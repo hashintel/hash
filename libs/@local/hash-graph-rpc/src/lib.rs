@@ -12,5 +12,5 @@ mod types;
 pub use harpc::{
     client::{Client, ClientError},
     server::{Server, ServerBuilder, Service, ServiceBuilder},
-    transport::TransportConfig,
+    transport::{message::actor::ActorId, TransportConfig},
 };

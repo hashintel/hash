@@ -1,9 +1,10 @@
-use std::{borrow::Cow, marker::PhantomData, net::SocketAddrV4};
+#[cfg(target_arch = "wasm32")]
+use std::borrow::Cow;
+use std::{marker::PhantomData, net::SocketAddrV4};
 
 use error_stack::{Report, Result, ResultExt};
 use libp2p::{multiaddr::Protocol, Multiaddr};
 use thiserror::Error;
-use uuid::Uuid;
 
 use crate::{
     harpc::{
@@ -95,6 +96,8 @@ impl From<ResponseError> for ClientError {
 
 pub struct Client<S, C> {
     _service: PhantomData<S>,
+    actor: ActorId,
+
     context: C,
     transport: ClientTransportLayer,
 }
@@ -124,6 +127,7 @@ where
     /// properly configure the swarm.
     pub fn new(
         context: C,
+        actor: ActorId,
         remote: SocketAddrV4,
         config: TransportConfig,
     ) -> Result<Self, ClientError> {
@@ -135,6 +139,7 @@ where
 
         Ok(Self {
             _service: PhantomData,
+            actor,
             context,
             transport,
         })
@@ -167,7 +172,7 @@ where
                 },
                 service: S::ID,
                 procedure: P::ID,
-                actor: ActorId::from(Uuid::nil()),
+                actor: self.actor,
                 size: PayloadSize::len(&request),
             },
             body: request,
@@ -219,7 +224,10 @@ mod tests {
     use uuid::Uuid;
 
     use crate::{
-        harpc::{client::Client, transport::TransportConfig},
+        harpc::{
+            client::Client,
+            transport::{message::actor::ActorId, TransportConfig},
+        },
         specification::account::{
             AccountService, AddAccountGroupMember, CheckAccountGroupPermission, CreateAccount,
         },
@@ -272,6 +280,7 @@ mod tests {
     async fn _never_called() {
         let client = Client::<AccountService, _>::new(
             NullContext,
+            ActorId::new(Uuid::nil()),
             SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0),
             TransportConfig::default(),
         )

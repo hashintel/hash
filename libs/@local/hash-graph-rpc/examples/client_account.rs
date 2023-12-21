@@ -4,8 +4,9 @@ use std::net::{Ipv4Addr, SocketAddrV4};
 
 use hash_graph_rpc::{
     specification::account::{AccountService, CreateAccount},
-    Client, TransportConfig,
+    ActorId, Client, TransportConfig,
 };
+use uuid::Uuid;
 
 use crate::common::JsonContext;
 
@@ -15,6 +16,7 @@ pub async fn main() {
 
     let client = Client::<AccountService, _>::new(
         JsonContext,
+        ActorId::new(Uuid::new_v4()),
         SocketAddrV4::new(Ipv4Addr::LOCALHOST, 4087),
         TransportConfig::default(),
     )

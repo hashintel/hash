@@ -192,11 +192,13 @@ macro_rules! service {
                 #[wasm_bindgen::prelude::wasm_bindgen(constructor)]
                 pub fn new(
                     remote: wasm_bindgen::JsValue,
+                    actor: $crate::harpc::transport::message::actor::ActorId,
                 ) -> Result<[< $name Client >], wasm_bindgen::JsValue> {
                     let remote = serde_wasm_bindgen::from_value(remote)?;
 
                     let client = $crate::harpc::client::Client::new(
                             $crate::specification::generic::DefaultEncoder,
+                            actor,
                             remote,
                             $crate::harpc::transport::TransportConfig::default()
                         ).map_err(|error| {

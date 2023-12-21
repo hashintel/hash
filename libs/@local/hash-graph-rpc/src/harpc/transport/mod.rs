@@ -17,7 +17,9 @@ use libp2p::{
 #[cfg(not(target_arch = "wasm32"))]
 use libp2p::{tcp, websocket};
 use thiserror::Error;
-use tokio::task::JoinHandle;
+#[cfg(not(target_arch = "wasm32"))]
+use tokio::task::AbortHandle;
+use tokio_util::sync::CancellationToken;
 
 use crate::harpc::transport::{
     codec::{Codec, CodecKind},
@@ -195,23 +197,28 @@ fn log_behaviour_event<TRequest, TResponse, TChannelResponse>(
 }
 
 #[derive(Debug)]
-pub struct SpawnGuard(Option<JoinHandle<!>>);
+pub struct SpawnGuard {
+    #[cfg(not(target_arch = "wasm32"))]
+    force: Option<AbortHandle>,
+    graceful: Option<CancellationToken>,
+}
 
 impl SpawnGuard {
     pub fn disarm(&mut self) {
-        self.0.take();
-    }
-}
-
-impl From<JoinHandle<!>> for SpawnGuard {
-    fn from(handle: JoinHandle<!>) -> Self {
-        Self(Some(handle))
+        #[cfg(not(target_arch = "wasm32"))]
+        self.force.take();
+        self.graceful.take();
     }
 }
 
 impl Drop for SpawnGuard {
     fn drop(&mut self) {
-        if let Some(handle) = self.0.take() {
+        if let Some(graceful) = self.graceful.take() {
+            graceful.cancel();
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(handle) = self.force.take() {
             handle.abort();
         }
     }

@@ -197,14 +197,28 @@ where
         Ok(self.event_loop())
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn spawn(mut self) -> error_stack::Result<SpawnGuard, TransportError>
     where
         T: 'static,
     {
         self.listen()?;
 
-        let handle = tokio::spawn(self.event_loop()).into();
+        let handle = tokio::spawn(self.event_loop());
 
-        Ok(handle)
+        let guard = SpawnGuard {
+            force: Some(handle.abort_handle()),
+            graceful: None,
+        };
+
+        Ok(guard)
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub(crate) fn spawn(mut self) -> error_stack::Result<SpawnGuard, TransportError>
+    where
+        T: 'static,
+    {
+        panic!("server transport not supported on wasm32")
     }
 }

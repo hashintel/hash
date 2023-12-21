@@ -6,10 +6,13 @@ use crate::harpc::transport::codec::{decode::DecodeBinary, encode::EncodeBinary}
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
 )]
-pub struct ActorId(Uuid);
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", tsify(into_wasm_abi, from_wasm_abi))]
+pub struct ActorId(#[cfg_attr(target_arch = "wasm32", tsify(type = "string"))] Uuid);
 
 impl ActorId {
-    pub(crate) const fn new(value: Uuid) -> Self {
+    #[must_use]
+    pub const fn new(value: Uuid) -> Self {
         Self(value)
     }
 }
