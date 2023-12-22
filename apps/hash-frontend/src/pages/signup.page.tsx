@@ -1,3 +1,4 @@
+import { useLazyQuery } from "@apollo/client";
 import { TextField } from "@hashintel/design-system";
 import { Box, Container, Typography } from "@mui/material";
 import { RegistrationFlow } from "@ory/client";
@@ -13,6 +14,8 @@ import {
 
 import { useHashInstance } from "../components/hooks/use-hash-instance";
 import { useUpdateAuthenticatedUser } from "../components/hooks/use-update-authenticated-user";
+import { HasAccessToHashQuery } from "../graphql/api-types.gen";
+import { hasAccessToHashQuery } from "../graphql/queries/user.queries";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import { useAuthInfo } from "./shared/auth-info-context";
@@ -53,6 +56,9 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
     setFlow,
     setErrorMessage,
   });
+
+  const [checkUserAccess] =
+    useLazyQuery<HasAccessToHashQuery>(hasAccessToHashQuery);
 
   // Get ?flow=... from the URL
   const { flow: flowId, return_to: returnTo } = router.query;
@@ -111,9 +117,17 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
               method: "password",
             },
           })
-          .then(() => {
-            // If the user has successfully logged in, refetch the authenticated user which should transition
-            // the user to the next step of the signup flow.
+          .then(async () => {
+            const hasAccessToHash = await checkUserAccess().then(
+              ({ data }) => data?.hasAccessToHash,
+            );
+            if (!hasAccessToHash) {
+              void router.push("/");
+              return;
+            }
+
+            // If the user has successfully logged in and has access to complete signup,
+            // refetch the authenticated user which should transition the user to the next step of the signup flow.
             void refetch();
           })
           .catch(handleFlowError)
