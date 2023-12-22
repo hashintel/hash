@@ -64,6 +64,7 @@
     "dedent": "0.7.0",
     "express": "4.17.3",
     "express-http-proxy": "2.0.0",
+    "express-rate-limit": "7.1.5",
     "fractional-indexing": "2.1.0",
     "graphql": "16.8.1",
     "graphql-parse-resolve-info": "4.13.0",
@@ -115,3 +116,4 @@
     "ts-node-dev": "2.0.0"
   }
 }
+
