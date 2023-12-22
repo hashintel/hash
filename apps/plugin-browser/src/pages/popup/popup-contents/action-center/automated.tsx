@@ -3,7 +3,6 @@ import {
   FormControlLabel,
   FormGroup,
   Stack,
-  Switch,
   Typography,
 } from "@mui/material";
 
@@ -12,6 +11,7 @@ import { SelectScope } from "./automated/select-scope";
 import { ModelSelector } from "./shared/model-selector";
 import { Section } from "./shared/section";
 import { SelectWebTarget } from "./shared/select-web-target";
+import { SwitchWithDarkMode } from "./switch-with-dark-mode";
 
 export const Automated = ({
   automaticInferenceConfig,
@@ -37,7 +37,7 @@ export const Automated = ({
           <FormGroup>
             <FormControlLabel
               control={
-                <Switch
+                <SwitchWithDarkMode
                   checked={enabled}
                   onChange={(event) =>
                     setAutomaticInferenceConfig({
@@ -54,6 +54,10 @@ export const Automated = ({
                     color: ({ palette }) =>
                       enabled ? palette.blue[70] : palette.gray[90],
                     fontWeight: enabled ? 600 : 400,
+                    "@media (prefers-color-scheme: dark)": {
+                      color: ({ palette }) =>
+                        enabled ? palette.blue[70] : palette.gray[60],
+                    },
                   }}
                 >
                   {enabled ? "Enabled" : "Disabled"}

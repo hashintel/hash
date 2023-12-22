@@ -1,11 +1,5 @@
 import { VersionedUrl } from "@blockprotocol/graph";
-import {
-  Button,
-  ButtonProps,
-  CloseIcon,
-  IconButton,
-  PlusIcon,
-} from "@hashintel/design-system";
+import { Button, ButtonProps, PlusIcon } from "@hashintel/design-system";
 import {
   Box,
   Stack,
@@ -17,7 +11,7 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { LocalStorage } from "../../../../../shared/storage";
 import {
@@ -27,9 +21,11 @@ import {
   darkModeInputColor,
   lightModeBorderColor,
 } from "../../../../shared/style-values";
-import { EntityTypeSelector } from "../shared/entity-type-selector";
 import { CircleExclamationIcon } from "./select-scope/circle-exclamation-icon";
-import { SelectDomains } from "./select-scope/select-domains";
+import { RowsByLocation } from "./select-scope/rows-by-location";
+import { RowsByType } from "./select-scope/rows-by-type";
+import { SelectGrouping } from "./select-scope/select-grouping";
+import { CommonRowsProps } from "./select-scope/shared/common-rows-props";
 
 const AddTypeButton = ({
   disabled,
@@ -88,7 +84,7 @@ export const SelectScope = ({
     config: LocalStorage["automaticInferenceConfig"],
   ) => void;
 }) => {
-  const { rules } = inferenceConfig;
+  const { displayGroupedBy, rules } = inferenceConfig;
 
   const anyTypesSelected = rules.length > 0;
 
@@ -110,95 +106,6 @@ export const SelectScope = ({
       ),
     [rules, draftRule],
   );
-
-  const updateOrAddRule = useCallback(
-    ({
-      targetEntityTypeId,
-      previousEntityTypeId,
-      restrictToDomains = [],
-    }: {
-      targetEntityTypeId?: VersionedUrl;
-      previousEntityTypeId?: VersionedUrl;
-      restrictToDomains: string[];
-    }) => {
-      const rulesByType = rules.reduce<
-        Record<
-          VersionedUrl,
-          LocalStorage["automaticInferenceConfig"]["rules"][0]
-        >
-      >(
-        (acc, rule) => ({
-          ...acc,
-          [rule.entityTypeId]: rule,
-        }),
-        {},
-      );
-
-      if (!previousEntityTypeId && !targetEntityTypeId) {
-        // This is a draft rule – we don't have a type set yet so can't take it out of draft, just update the domains
-        setDraftRule({
-          restrictToDomains,
-        });
-        return;
-      }
-
-      if (
-        targetEntityTypeId &&
-        previousEntityTypeId &&
-        targetEntityTypeId !== previousEntityTypeId
-      ) {
-        delete rulesByType[previousEntityTypeId];
-      }
-
-      if (!targetEntityTypeId) {
-        throw new Error("Cannot update a rule without a target entity type");
-      }
-
-      /**
-       * If we're switching the type for the rule, check for an existing rule for that type and merge them
-       */
-      const duplicateRuleForType =
-        targetEntityTypeId !== previousEntityTypeId
-          ? rulesByType[targetEntityTypeId]
-          : undefined;
-
-      rulesByType[targetEntityTypeId] = {
-        entityTypeId: targetEntityTypeId,
-        restrictToDomains: Array.from(
-          new Set([
-            ...restrictToDomains,
-            ...(duplicateRuleForType?.restrictToDomains ?? []),
-          ]),
-        ),
-      };
-
-      setInferenceConfig({
-        ...inferenceConfig,
-        rules: Object.values(rulesByType),
-      });
-    },
-    [inferenceConfig, setInferenceConfig, rules],
-  );
-
-  const removeRule = ({
-    targetEntityTypeId,
-  }: {
-    targetEntityTypeId: VersionedUrl;
-  }) => {
-    const rulesByType = rules.reduce<
-      Record<VersionedUrl, LocalStorage["automaticInferenceConfig"]["rules"][0]>
-    >((acc, rule) => {
-      if (rule.entityTypeId !== targetEntityTypeId) {
-        acc[rule.entityTypeId] = rule;
-      }
-      return acc;
-    }, {});
-
-    setInferenceConfig({
-      ...inferenceConfig,
-      rules: Object.values(rulesByType),
-    });
-  };
 
   if (!anyTypesSelected && !showTable) {
     return (
@@ -231,6 +138,14 @@ export const SelectScope = ({
     );
   }
 
+  const rowsComponentProps: CommonRowsProps = {
+    domainOptions: uniqueDomainsUsed,
+    draftRule,
+    setDraftRule,
+    inferenceConfig,
+    setInferenceConfig,
+  };
+
   return (
     <Box>
       {!anyTypesSelected && <NoTypesSelectedMessage />}
@@ -245,13 +160,16 @@ export const SelectScope = ({
             color: ({ palette }) => palette.gray[90],
             fontSize: 13,
             fontWeight: 600,
+            px: 1.5,
             "@media (prefers-color-scheme: dark)": {
               background: darkModeInputBackgroundColor,
               color: darkModeInputColor,
             },
           },
-          "th, td": {
+          td: {
             px: 1,
+          },
+          "th, td": {
             py: 0.8,
             borderStyle: "solid",
             borderWidth: 1,
@@ -265,67 +183,54 @@ export const SelectScope = ({
       >
         <TableHead>
           <TableRow>
+            <TableCell colSpan={3}>
+              <Stack alignItems="center" direction="row" spacing={0.8}>
+                <Typography
+                  sx={({ palette }) => ({
+                    color: palette.gray[90],
+                    fontWeight: 600,
+                  })}
+                >
+                  Permitted Access
+                </Typography>
+                <Typography
+                  sx={({ palette }) => ({
+                    color: palette.gray[70],
+                    fontWeight: 600,
+                  })}
+                >
+                  grouped by
+                </Typography>
+                <SelectGrouping
+                  selectedGrouping={displayGroupedBy}
+                  setSelectedGrouping={(newGrouping) => {
+                    setInferenceConfig({
+                      ...inferenceConfig,
+                      displayGroupedBy: newGrouping,
+                    });
+                  }}
+                />
+              </Stack>
+            </TableCell>
+          </TableRow>
+          <TableRow>
             <TableCell>
-              <Typography>Type</Typography>
+              <Typography sx={{ fontWeight: 600 }}>
+                {displayGroupedBy === "type" ? "Target" : "Location"}
+              </Typography>
             </TableCell>
             <TableCell colSpan={2}>
-              <Typography>Where</Typography>
+              <Typography sx={{ fontWeight: 600 }}>
+                {displayGroupedBy === "type" ? "Location" : "Target"}
+              </Typography>
             </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {[...rules, ...(draftRule ? [draftRule] : [])].map(
-            ({ entityTypeId, restrictToDomains }) => {
-              return (
-                <TableRow key={entityTypeId ?? "draft-rule"}>
-                  <TableCell>
-                    <EntityTypeSelector
-                      inputHeight={44}
-                      multiple={false}
-                      setTargetEntityTypeIds={(newTargetIds) => {
-                        const targetEntityTypeId = newTargetIds[0];
-                        updateOrAddRule({
-                          targetEntityTypeId,
-                          previousEntityTypeId: entityTypeId,
-                          restrictToDomains,
-                        });
-
-                        // If this was the draft rule (no entityTypeId), we can reset the draft state now
-                        if (!entityTypeId) {
-                          setDraftRule(null);
-                        }
-                      }}
-                      targetEntityTypeIds={entityTypeId ? [entityTypeId] : []}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <SelectDomains
-                      options={uniqueDomainsUsed}
-                      selectedDomains={restrictToDomains}
-                      setSelectedDomains={(newDomains) => {
-                        updateOrAddRule({
-                          previousEntityTypeId: entityTypeId,
-                          targetEntityTypeId: entityTypeId,
-                          restrictToDomains: newDomains,
-                        });
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell sx={{ width: 20, p: `4px !important` }}>
-                    {entityTypeId && (
-                      <IconButton
-                        onClick={() =>
-                          removeRule({ targetEntityTypeId: entityTypeId })
-                        }
-                        size="small"
-                      >
-                        <CloseIcon />
-                      </IconButton>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            },
+          {displayGroupedBy === "type" ? (
+            <RowsByType {...rowsComponentProps} />
+          ) : (
+            <RowsByLocation {...rowsComponentProps} />
           )}
         </TableBody>
         <TableFooter>

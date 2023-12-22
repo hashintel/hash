@@ -13,14 +13,14 @@ import {
   darkModePlaceholderColor,
 } from "../../../../shared/style-values";
 
-export const inputHeight = 30;
-
-export const inputPropsSx: SxProps<Theme> = {
+export const inputPropsSx: (props: {
+  inputHeight: number;
+}) => SxProps<Theme> = ({ inputHeight }) => ({
   height: inputHeight,
 
   [`&.${outlinedInputClasses.root}`]: {
-    padding: 0,
-    pl: 1.2,
+    padding: "0 !important",
+    pl: "10px !important",
   },
 
   [`.${autocompleteClasses.input}`]: {
@@ -44,7 +44,7 @@ export const inputPropsSx: SxProps<Theme> = {
       },
     },
   },
-};
+});
 
 export const menuItemSx: SxProps<Theme> = ({ palette }) => ({
   minHeight: 0,

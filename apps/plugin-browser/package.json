@@ -1,6 +1,6 @@
 {
   "name": "@apps/plugin-browser",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "private": true,
   "description": "A browser extension for gathering info from the web into your HASH account.",
   "repository": {
@@ -14,8 +14,8 @@
     ]
   },
   "scripts": {
-    "build": "NODE_ENV=production node utils/build.js",
-    "build:firefox": "NODE_ENV=production BROWSER=firefox node utils/build.js",
+    "build": "NODE_ENV=production yarn lint:tsc && node utils/build.js",
+    "build:firefox": "NODE_ENV=production yarn lint:tsc && BROWSER=firefox node utils/build.js",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "node utils/webserver.js",
     "dev:firefox": "BROWSER=firefox node utils/webserver.js",

@@ -7,7 +7,7 @@ import {
   darkModeInputBackgroundColor,
   darkModeInputColor,
 } from "../../../../shared/style-values";
-import { inputHeight, inputPropsSx, menuItemSx } from "./autocomplete-sx";
+import { inputPropsSx, menuItemSx } from "./autocomplete-sx";
 import { OpenAiIcon } from "./model-selector/openai-icon";
 
 type ModelOption = {
@@ -57,6 +57,8 @@ const RenderOptionContent = ({ label }: Pick<ModelOption, "label">) => {
   );
 };
 
+const inputHeight = 30;
+
 export const ModelSelector = ({
   selectedModel,
   setSelectedModel,
@@ -85,7 +87,7 @@ export const ModelSelector = ({
       inputProps={{
         endAdornment: <div />,
         startAdornment: <OpenAiIcon sx={{ fontSize: iconFontSize }} />,
-        sx: inputPropsSx,
+        sx: inputPropsSx({ inputHeight }),
       }}
       multiple={false}
       onChange={(_event, option) => {

@@ -12,7 +12,7 @@ import {
   Tabs as MuiTabs,
   Typography,
 } from "@mui/material";
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent } from "react";
 import type { Tabs } from "webextension-polyfill";
 
 import { LocalStorage } from "../../../shared/storage";
@@ -59,19 +59,20 @@ const generateCommonTabProps = (
 });
 
 export const ActionCenter = ({
-  activeTab,
+  activeBrowserTab,
+  popupTab,
+  setPopupTab,
   user,
 }: {
-  activeTab?: Tabs.Tab | null;
+  activeBrowserTab?: Tabs.Tab | null;
+  popupTab: NonNullable<LocalStorage["popupTab"]>;
+  setPopupTab: (popupTab: NonNullable<LocalStorage["popupTab"]>) => void;
   user: NonNullable<LocalStorage["user"]>;
 }) => {
-  const [popupTab, setPopupTab] = useState<"one-off" | "automated" | "log">(
-    "one-off",
-  );
-
   const [automaticInferenceConfig, setAutomaticInferenceConfig] =
     useLocalStorage("automaticInferenceConfig", {
       createAs: "draft",
+      displayGroupedBy: "type",
       enabled: false,
       model: "gpt-4-turbo",
       ownedById: user.webOwnedById,
@@ -146,7 +147,7 @@ export const ActionCenter = ({
       </Stack>
       <Box sx={{ maxHeight: 545, overflowY: "scroll" }}>
         {popupTab === "one-off" ? (
-          <OneOff activeTab={activeTab} user={user} />
+          <OneOff activeTab={activeBrowserTab} user={user} />
         ) : popupTab === "automated" ? (
           <Automated
             automaticInferenceConfig={automaticInferenceConfig}
