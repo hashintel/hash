@@ -337,8 +337,8 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
     async fn validate_value<'a>(
         &'a self,
         value: &'a JsonValue,
-        _profile: ValidationProfile,
-        _provider: &'a P,
+        _: ValidationProfile,
+        _: &'a P,
     ) -> Result<(), Report<DataValidationError>> {
         match self.json_type() {
             "null" => ensure!(

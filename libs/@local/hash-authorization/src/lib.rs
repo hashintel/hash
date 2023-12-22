@@ -46,10 +46,10 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_account_group_permission(
         &self,
-        _actor: AccountId,
-        _permission: AccountGroupPermission,
-        _account_group: AccountGroupId,
-        _consistency: Consistency<'_>,
+        _: AccountId,
+        _: AccountGroupPermission,
+        _: AccountGroupId,
+        _: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         Ok(CheckResponse {
             has_permission: true,
@@ -59,7 +59,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn modify_account_group_relations(
         &mut self,
-        _relationships: impl IntoIterator<
+        _: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
                 AccountGroupId,
@@ -73,10 +73,10 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_web_permission(
         &self,
-        _actor: AccountId,
-        _permission: WebPermission,
-        _web: OwnedById,
-        _consistency: Consistency<'_>,
+        _: AccountId,
+        _: WebPermission,
+        _: OwnedById,
+        _: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         Ok(CheckResponse {
             has_permission: true,
@@ -86,7 +86,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn modify_web_relations(
         &mut self,
-        _relationships: impl IntoIterator<
+        _: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
                 OwnedById,
@@ -100,18 +100,18 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn get_web_relations(
         &self,
-        _web: OwnedById,
-        _consistency: Consistency<'static>,
+        _: OwnedById,
+        _: Consistency<'static>,
     ) -> Result<Vec<WebRelationAndSubject>, ReadError> {
         Ok(Vec::new())
     }
 
     async fn check_entity_permission(
         &self,
-        _actor: AccountId,
-        _permission: EntityPermission,
-        _entity: EntityId,
-        _consistency: Consistency<'_>,
+        _: AccountId,
+        _: EntityPermission,
+        _: EntityId,
+        _: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         Ok(CheckResponse {
             has_permission: true,
@@ -121,10 +121,10 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_entities_permission(
         &self,
-        _actor: AccountId,
-        _permission: EntityPermission,
+        _: AccountId,
+        _: EntityPermission,
         entities: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
-        _consistency: Consistency<'_>,
+        _: Consistency<'_>,
     ) -> Result<(HashMap<EntityUuid, bool>, Zookie<'static>), CheckError> {
         Ok((
             entities
@@ -137,7 +137,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn modify_entity_relations(
         &mut self,
-        _relationships: impl IntoIterator<
+        _: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
                 EntityId,
@@ -151,15 +151,15 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn get_entity_relations(
         &self,
-        _entity: EntityId,
-        _consistency: Consistency<'static>,
+        _: EntityId,
+        _: Consistency<'static>,
     ) -> Result<Vec<EntityRelationAndSubject>, ReadError> {
         Ok(Vec::new())
     }
 
     async fn modify_entity_type_relations(
         &mut self,
-        _relationships: impl IntoIterator<
+        _: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
                 EntityTypeId,
@@ -173,10 +173,10 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_entity_type_permission(
         &self,
-        _actor: AccountId,
-        _permission: EntityTypePermission,
-        _entity_type: EntityTypeId,
-        _consistency: Consistency<'_>,
+        _: AccountId,
+        _: EntityTypePermission,
+        _: EntityTypeId,
+        _: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         Ok(CheckResponse {
             has_permission: true,
@@ -186,10 +186,10 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_entity_types_permission(
         &self,
-        _actor: AccountId,
-        _permission: EntityTypePermission,
+        _: AccountId,
+        _: EntityTypePermission,
         entity_types: impl IntoIterator<Item = EntityTypeId, IntoIter: Send> + Send,
-        _consistency: Consistency<'_>,
+        _: Consistency<'_>,
     ) -> Result<(HashMap<EntityTypeId, bool>, Zookie<'static>), CheckError> {
         Ok((
             entity_types
@@ -202,15 +202,15 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn get_entity_type_relations(
         &self,
-        _entity_type: EntityTypeId,
-        _consistency: Consistency<'static>,
+        _: EntityTypeId,
+        _: Consistency<'static>,
     ) -> Result<Vec<EntityTypeRelationAndSubject>, ReadError> {
         Ok(Vec::new())
     }
 
     async fn modify_property_type_relations(
         &mut self,
-        _relationships: impl IntoIterator<
+        _: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
                 PropertyTypeId,
@@ -224,10 +224,10 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_property_type_permission(
         &self,
-        _actor: AccountId,
-        _permission: PropertyTypePermission,
-        _property_type: PropertyTypeId,
-        _consistency: Consistency<'_>,
+        _: AccountId,
+        _: PropertyTypePermission,
+        _: PropertyTypeId,
+        _: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         Ok(CheckResponse {
             has_permission: true,
@@ -237,10 +237,10 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_property_types_permission(
         &self,
-        _actor: AccountId,
-        _permission: PropertyTypePermission,
+        _: AccountId,
+        _: PropertyTypePermission,
         property_types: impl IntoIterator<Item = PropertyTypeId, IntoIter: Send> + Send,
-        _consistency: Consistency<'_>,
+        _: Consistency<'_>,
     ) -> Result<(HashMap<PropertyTypeId, bool>, Zookie<'static>), CheckError> {
         Ok((
             property_types
@@ -253,15 +253,15 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn get_property_type_relations(
         &self,
-        _property_type: PropertyTypeId,
-        _consistency: Consistency<'static>,
+        _: PropertyTypeId,
+        _: Consistency<'static>,
     ) -> Result<Vec<PropertyTypeRelationAndSubject>, ReadError> {
         Ok(Vec::new())
     }
 
     async fn modify_data_type_relations(
         &mut self,
-        _relationships: impl IntoIterator<
+        _: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
                 DataTypeId,
@@ -275,10 +275,10 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_data_type_permission(
         &self,
-        _actor: AccountId,
-        _permission: DataTypePermission,
-        _data_type: DataTypeId,
-        _consistency: Consistency<'_>,
+        _: AccountId,
+        _: DataTypePermission,
+        _: DataTypeId,
+        _: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         Ok(CheckResponse {
             has_permission: true,
@@ -288,10 +288,10 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn check_data_types_permission(
         &self,
-        _actor: AccountId,
-        _permission: DataTypePermission,
+        _: AccountId,
+        _: DataTypePermission,
         data_types: impl IntoIterator<Item = DataTypeId, IntoIter: Send> + Send,
-        _consistency: Consistency<'_>,
+        _: Consistency<'_>,
     ) -> Result<(HashMap<DataTypeId, bool>, Zookie<'static>), CheckError> {
         Ok((
             data_types
@@ -304,8 +304,8 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn get_data_type_relations(
         &self,
-        _data_type: DataTypeId,
-        _consistency: Consistency<'static>,
+        _: DataTypeId,
+        _: Consistency<'static>,
     ) -> Result<Vec<DataTypeRelationAndSubject>, ReadError> {
         Ok(Vec::new())
     }

@@ -43,8 +43,10 @@ allow = [
     "clippy::else_if_without_else",
     "clippy::enum_variant_names",
     "clippy::expect_used",
+    "clippy::infinite_loop",
     "clippy::indexing_slicing",
     "clippy::let_underscore_must_use",
+    "clippy::let_underscore_untyped", # Conflicts with `clippy::no_effect_underscore_binding` in function bindings
     "clippy::missing_assert_message",
     "clippy::multiple_inherent_impl",
     "clippy::panic",

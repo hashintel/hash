@@ -241,7 +241,7 @@ pub trait ZanzibarBackend {
 impl ZanzibarBackend for NoAuthorization {
     async fn import_schema(
         &mut self,
-        _schema: &str,
+        _: &str,
     ) -> Result<ImportSchemaResponse, Report<ImportSchemaError>> {
         unimplemented!()
     }
@@ -252,7 +252,7 @@ impl ZanzibarBackend for NoAuthorization {
 
     async fn modify_relationships<T>(
         &mut self,
-        _tuples: impl IntoIterator<Item = (ModifyRelationshipOperation, T), IntoIter: Send> + Send,
+        _: impl IntoIterator<Item = (ModifyRelationshipOperation, T), IntoIter: Send> + Send,
     ) -> Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>
     where
         T: Sync,
@@ -264,10 +264,10 @@ impl ZanzibarBackend for NoAuthorization {
 
     async fn check_permission<O, R, S>(
         &self,
-        _resource: &O,
-        _permission: &R,
-        _subject: &S,
-        _consistency: Consistency<'_>,
+        _: &O,
+        _: &R,
+        _: &S,
+        _: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>>
     where
         O: Sync,
@@ -283,7 +283,7 @@ impl ZanzibarBackend for NoAuthorization {
     async fn check_permissions<O, R, S>(
         &self,
         relationships: impl IntoIterator<Item = (O, R, S)> + Send,
-        _consistency: Consistency<'_>,
+        _: Consistency<'_>,
     ) -> Result<
         BulkCheckResponse<impl IntoIterator<Item = BulkCheckItem<O, R, S>>>,
         Report<CheckError>,
@@ -303,7 +303,7 @@ impl ZanzibarBackend for NoAuthorization {
 
     async fn read_relations<R>(
         &self,
-        _filter: RelationshipFilter<
+        _: RelationshipFilter<
             impl Serialize + Send + Sync,
             impl Serialize + Send + Sync,
             impl Serialize + Send + Sync,
@@ -311,14 +311,14 @@ impl ZanzibarBackend for NoAuthorization {
             impl Serialize + Send + Sync,
             impl Serialize + Send + Sync,
         >,
-        _consistency: Consistency<'_>,
+        _: Consistency<'_>,
     ) -> Result<Vec<R>, Report<ReadError>> {
         Ok(Vec::new())
     }
 
     async fn delete_relations(
         &mut self,
-        _filter: RelationshipFilter<
+        _: RelationshipFilter<
             impl Serialize + Send + Sync,
             impl Serialize + Send + Sync,
             impl Serialize + Send + Sync,

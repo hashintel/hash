@@ -190,7 +190,7 @@ where
     async fn validate_value<'a>(
         &'a self,
         link_data: &'a LinkData,
-        _profile: ValidationProfile,
+        _: ValidationProfile,
         provider: &'a P,
     ) -> Result<(), Report<EntityValidationError>> {
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());
