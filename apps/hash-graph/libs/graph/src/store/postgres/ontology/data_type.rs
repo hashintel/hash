@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    iter::once,
-};
+use std::{collections::HashSet, iter::once};
 
 use async_trait::async_trait;
 use authorization::{
@@ -294,9 +291,13 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 .insert(id)
                 .then_some((id, (vertex_id, data_type)))
         })
-        .collect::<HashMap<_, _>>();
+        .collect::<Vec<_>>();
 
-        let filtered_ids = data_types.keys().copied().collect::<Vec<_>>();
+        let filtered_ids = data_types
+            .iter()
+            .map(|(data_type_id, _)| *data_type_id)
+            .collect::<Vec<_>>();
+
         let (permissions, zookie) = authorization_api
             .check_data_types_permission(
                 actor_id,
@@ -313,15 +314,17 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             temporal_axes.clone(),
         );
 
-        let (data_type_ids, data_type_vertices): (Vec<_>, _) = data_types
+        let (data_type_ids, data_type_vertices): (Vec<_>, Vec<_>) = data_types
             .into_iter()
             .filter(|(id, _)| permissions.get(id).copied().unwrap_or(false))
             .unzip();
-        subgraph.vertices.data_types = data_type_vertices;
 
-        for vertex_id in subgraph.vertices.data_types.keys() {
-            subgraph.roots.insert(vertex_id.clone().into());
-        }
+        subgraph.roots.extend(
+            data_type_vertices
+                .iter()
+                .map(|(vertex_id, _)| vertex_id.clone().into()),
+        );
+        subgraph.vertices.data_types = data_type_vertices.into_iter().collect();
 
         let mut traversal_context = TraversalContext::default();
 

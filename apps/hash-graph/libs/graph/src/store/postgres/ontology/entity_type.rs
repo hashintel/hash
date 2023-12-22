@@ -605,9 +605,13 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 .insert(id)
                 .then_some((id, (vertex_id, entity_type)))
         })
-        .collect::<HashMap<_, _>>();
+        .collect::<Vec<_>>();
 
-        let filtered_ids = entity_types.keys().copied().collect::<Vec<_>>();
+        let filtered_ids = entity_types
+            .iter()
+            .map(|(entity_type_id, _)| *entity_type_id)
+            .collect::<Vec<_>>();
+
         let (permissions, zookie) = authorization_api
             .check_entity_types_permission(
                 actor_id,
@@ -624,15 +628,17 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             temporal_axes.clone(),
         );
 
-        let (entity_type_ids, entity_type_vertices): (Vec<_>, _) = entity_types
+        let (entity_type_ids, entity_type_vertices): (Vec<_>, Vec<_>) = entity_types
             .into_iter()
             .filter(|(id, _)| permissions.get(id).copied().unwrap_or(false))
             .unzip();
-        subgraph.vertices.entity_types = entity_type_vertices;
 
-        for vertex_id in subgraph.vertices.entity_types.keys() {
-            subgraph.roots.insert(vertex_id.clone().into());
-        }
+        subgraph.roots.extend(
+            entity_type_vertices
+                .iter()
+                .map(|(vertex_id, _)| vertex_id.clone().into()),
+        );
+        subgraph.vertices.entity_types = entity_type_vertices.into_iter().collect();
 
         let mut traversal_context = TraversalContext::default();
 

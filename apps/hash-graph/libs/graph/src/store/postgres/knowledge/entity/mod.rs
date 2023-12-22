@@ -54,7 +54,7 @@ use crate::{
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
-        identifier::{EntityIdWithInterval, EntityVertexId},
+        identifier::{EntityIdWithInterval, EntityVertexId, GraphElementVertexId},
         query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableAxis,
@@ -842,14 +842,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         .await?
         .into_iter()
         .map(|entity| (entity.vertex_id(time_axis), entity))
-        .collect::<HashMap<_, _>>();
+        .collect::<Vec<_>>();
         // TODO: The subgraph structure differs from the API interface. At the API the vertices
         //       are stored in a nested `HashMap` and here it's flattened. We need to adjust the
         //       the subgraph anyway so instead of refactoring this now this will just copy the ids.
         //   see https://linear.app/hash/issue/H-297/revisit-subgraph-layout-to-allow-temporal-ontology-types
         let filtered_ids = entities
-            .keys()
-            .map(|vertex_id| vertex_id.base_id)
+            .iter()
+            .map(|(vertex_id, _)| vertex_id.base_id)
             .collect::<HashSet<_>>();
 
         let (permissions, zookie) = authorization_api
@@ -867,18 +867,20 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
             .collect::<HashSet<_>>();
 
-        entities.retain(|vertex_id, _| permitted_ids.contains(&vertex_id.base_id.entity_uuid));
+        entities.retain(|(vertex_id, _)| permitted_ids.contains(&vertex_id.base_id.entity_uuid));
 
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
             unresolved_temporal_axes.clone(),
             temporal_axes.clone(),
         );
-        subgraph.vertices.entities = entities;
 
-        for vertex_id in subgraph.vertices.entities.keys() {
-            subgraph.roots.insert((*vertex_id).into());
-        }
+        subgraph.roots.extend(
+            entities
+                .iter()
+                .map(|(vertex_id, _)| GraphElementVertexId::from(*vertex_id)),
+        );
+        subgraph.vertices.entities = entities.into_iter().collect();
 
         let mut traversal_context = TraversalContext::default();
 
