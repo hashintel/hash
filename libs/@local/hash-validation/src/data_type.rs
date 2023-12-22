@@ -1,5 +1,8 @@
 use core::{borrow::Borrow, fmt};
-use std::str::FromStr;
+use std::{
+    net::{Ipv4Addr, Ipv6Addr},
+    str::FromStr,
+};
 
 use chrono::{DateTime, NaiveDate};
 use email_address::EmailAddress;
@@ -10,6 +13,7 @@ use serde_json::Value as JsonValue;
 use thiserror::Error;
 use type_system::{url::VersionedUrl, DataType, DataTypeReference};
 use url::Url;
+use uuid::Uuid;
 
 use crate::{
     error::{Actual, Expected},
@@ -254,11 +258,53 @@ fn check_format(value: &str, format: &str) -> Result<(), Report<DataValidationEr
                 })
                 .change_context(DataValidationError::ConstraintUnfulfilled)?;
         }
+        "uuid" => {
+            Uuid::parse_str(value)
+                .change_context_lazy(|| DataTypeConstraint::Format {
+                    actual: value.to_owned(),
+                    format: "uuid",
+                })
+                .change_context(DataValidationError::ConstraintUnfulfilled)?;
+        }
+        "regex" => {
+            Regex::new(value)
+                .change_context_lazy(|| DataTypeConstraint::Format {
+                    actual: value.to_owned(),
+                    format: "regex",
+                })
+                .change_context(DataValidationError::ConstraintUnfulfilled)?;
+        }
         "email" => {
             EmailAddress::from_str(value)
                 .change_context_lazy(|| DataTypeConstraint::Format {
                     actual: value.to_owned(),
                     format: "email",
+                })
+                .change_context(DataValidationError::ConstraintUnfulfilled)?;
+        }
+        "ipv4" => {
+            value
+                .parse::<Ipv4Addr>()
+                .change_context_lazy(|| DataTypeConstraint::Format {
+                    actual: value.to_owned(),
+                    format: "ipv4",
+                })
+                .change_context(DataValidationError::ConstraintUnfulfilled)?;
+        }
+        "ipv6" => {
+            value
+                .parse::<Ipv6Addr>()
+                .change_context_lazy(|| DataTypeConstraint::Format {
+                    actual: value.to_owned(),
+                    format: "ipv6",
+                })
+                .change_context(DataValidationError::ConstraintUnfulfilled)?;
+        }
+        "hostname" => {
+            url::Host::parse(value)
+                .change_context_lazy(|| DataTypeConstraint::Format {
+                    actual: value.to_owned(),
+                    format: "hostname",
                 })
                 .change_context(DataValidationError::ConstraintUnfulfilled)?;
         }
