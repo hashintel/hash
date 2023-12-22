@@ -2708,6 +2708,10 @@
           }
         }
       },
+      "CreatedById": {
+        "type": "string",
+        "format": "uuid"
+      },
       "DataTypeMetadata": {
         "oneOf": [
           {
@@ -3251,9 +3255,21 @@
       "EntityProvenanceMetadata": {
         "type": "object",
         "required": [
+          "createdById",
+          "createdAtTransactionTime",
+          "createdAtDecisionTime",
           "edition"
         ],
         "properties": {
+          "createdAtDecisionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "createdAtTransactionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "createdById": {
+            "$ref": "#/components/schemas/CreatedById"
+          },
           "edition": {
             "$ref": "#/components/schemas/EntityEditionProvenanceMetadata"
           }
@@ -3269,6 +3285,9 @@
           "draft",
           "ownedById",
           "editionCreatedById",
+          "createdById",
+          "createdAtTransactionTime",
+          "createdAtDecisionTime",
           "type",
           "properties",
           "embedding",

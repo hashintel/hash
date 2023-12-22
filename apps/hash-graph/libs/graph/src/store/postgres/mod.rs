@@ -20,7 +20,7 @@ use authorization::{
 };
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
-    account::{AccountGroupId, AccountId, EditionArchivedById, EditionCreatedById},
+    account::{AccountGroupId, AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
     knowledge::{
         entity::{EntityEditionId, EntityId, EntityProperties, EntityTemporalMetadata},
         link::LinkOrder,
@@ -217,7 +217,7 @@ where
               INSERT INTO ontology_temporal_metadata (
                 ontology_id,
                 transaction_time,
-                record_created_by_id
+                edition_created_by_id
               ) VALUES ($1, tstzrange(now(), NULL, '[)'), $2)
               RETURNING transaction_time;
             ";
@@ -238,7 +238,7 @@ where
           UPDATE ontology_temporal_metadata
           SET
             transaction_time = tstzrange(lower(transaction_time), now(), '[)'),
-            record_archived_by_id = $3
+            edition_archived_by_id = $3
           WHERE ontology_id = (
             SELECT ontology_id
             FROM ontology_ids
@@ -301,7 +301,7 @@ where
           INSERT INTO ontology_temporal_metadata (
             ontology_id,
             transaction_time,
-            record_created_by_id
+            edition_created_by_id
           ) VALUES (
             (SELECT ontology_id FROM ontology_ids WHERE base_url = $1 AND version = $2),
             tstzrange(now(), NULL, '[)'),
@@ -904,31 +904,87 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
 
     async fn insert_entity_ids(
         &self,
-        entity_uuids: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
+        entity_uuids: impl IntoIterator<
+            Item = (EntityId, CreatedById, Option<Timestamp<DecisionTime>>),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<u64, InsertionError> {
+        self.client
+            .simple_query(
+                "CREATE TEMPORARY TABLE entity_ids_temp (
+                    web_id UUID NOT NULL,
+                    entity_uuid UUID NOT NULL,
+                    created_by_id UUID NOT NULL,
+                    created_at_decision_time TIMESTAMP WITH TIME ZONE
+                );",
+            )
+            .await
+            .change_context(InsertionError)?;
+
         let sink = self
             .client
             .copy_in(
-                "COPY entity_ids (
+                "COPY entity_ids_temp (
                     web_id,
-                    entity_uuid
+                    entity_uuid,
+                    created_by_id,
+                    created_at_decision_time
                 ) FROM STDIN BINARY",
             )
             .await
             .change_context(InsertionError)?;
-        let writer = BinaryCopyInWriter::new(sink, &[Type::UUID, Type::UUID]);
+        let writer = BinaryCopyInWriter::new(
+            sink,
+            &[Type::UUID, Type::UUID, Type::UUID, Type::TIMESTAMPTZ],
+        );
 
         futures::pin_mut!(writer);
-        for entity_id in entity_uuids {
+        for (entity_id, actor_id, decision_time) in entity_uuids {
             writer
                 .as_mut()
-                .write(&[&entity_id.owned_by_id, &entity_id.entity_uuid])
+                .write(&[
+                    &entity_id.owned_by_id,
+                    &entity_id.entity_uuid,
+                    &actor_id,
+                    &decision_time.as_ref(),
+                ])
                 .await
                 .change_context(InsertionError)
                 .attach_printable(entity_id.entity_uuid)?;
         }
 
-        writer.finish().await.change_context(InsertionError)
+        let rows_written = writer.finish().await.change_context(InsertionError)?;
+
+        // The decision is optional. If it's NULL we use `now()`
+        self.client
+            .simple_query(
+                "INSERT INTO entity_ids (
+                    web_id,
+                    entity_uuid,
+                    created_by_id,
+                    created_at_transaction_time,
+                    created_at_decision_time
+                )
+                SELECT
+                    web_id,
+                    entity_uuid,
+                    created_by_id,
+                    now(),
+                    CASE WHEN created_at_decision_time IS NULL
+                         THEN now()
+                         ELSE created_at_decision_time
+                    END
+                FROM entity_ids_temp",
+            )
+            .await
+            .change_context(InsertionError)?;
+
+        self.client
+            .simple_query("DROP TABLE entity_ids_temp;")
+            .await
+            .change_context(InsertionError)?;
+
+        Ok(rows_written)
     }
 
     async fn insert_entity_is_of_type(
@@ -1012,7 +1068,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     properties JSONB NOT NULL,
                     left_to_right_order INT,
                     right_to_left_order INT,
-                    record_created_by_id UUID NOT NULL,
+                    edition_created_by_id UUID NOT NULL,
                     archived BOOLEAN NOT NULL,
                     draft BOOLEAN NOT NULL
                 );",
@@ -1027,7 +1083,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     properties,
                     left_to_right_order,
                     right_to_left_order,
-                    record_created_by_id,
+                    edition_created_by_id,
                     archived,
                     draft
                 ) FROM STDIN BINARY",
@@ -1073,7 +1129,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     properties,
                     left_to_right_order,
                     right_to_left_order,
-                    record_created_by_id,
+                    edition_created_by_id,
                     archived,
                     draft
                 )
@@ -1082,7 +1138,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     properties,
                     left_to_right_order,
                     right_to_left_order,
-                    record_created_by_id,
+                    edition_created_by_id,
                     archived,
                     draft
                 FROM entity_editions_temp

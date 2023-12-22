@@ -50,7 +50,7 @@ use graph::{
     },
 };
 use graph_types::{
-    account::{AccountId, EditionArchivedById, EditionCreatedById},
+    account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
     ontology::{
         DataTypeMetadata, EntityTypeMetadata, OntologyEditionProvenanceMetadata,
         OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyTypeMetadata,
@@ -340,6 +340,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             PermissionResponse,
 
             OwnedById,
+            CreatedById,
             EditionCreatedById,
             EditionArchivedById,
             OntologyProvenanceMetadata,

@@ -7,7 +7,7 @@ use crate::{
     store::postgres::query::{
         table::{
             Column, EntityEditions, EntityEmbeddings, EntityHasLeftEntity, EntityHasRightEntity,
-            EntityTemporalMetadata, JsonField, ReferenceTable, Relation,
+            EntityIds, EntityTemporalMetadata, JsonField, ReferenceTable, Relation,
         },
         PostgresQueryPath, PostgresRecord, Table,
     },
@@ -28,6 +28,9 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             | Self::EditionId
             | Self::DecisionTime
             | Self::TransactionTime => vec![],
+            Self::CreatedById | Self::CreatedAtTransactionTime | Self::CreatedAtDecisionTime => {
+                vec![Relation::EntityIds]
+            }
             Self::Embedding => vec![Relation::EntityEmbeddings],
             Self::Properties(_)
             | Self::LeftToRightOrder
@@ -99,6 +102,11 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::OwnedById => Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),
             Self::EditionCreatedById => Column::EntityEditions(EntityEditions::EditionCreatedById),
             Self::Embedding => Column::EntityEmbeddings(EntityEmbeddings::Embedding),
+            Self::CreatedById => Column::EntityIds(EntityIds::CreatedById),
+            Self::CreatedAtDecisionTime => Column::EntityIds(EntityIds::CreatedAtDecisionTime),
+            Self::CreatedAtTransactionTime => {
+                Column::EntityIds(EntityIds::CreatedAtTransactionTime)
+            }
             Self::EntityTypeEdge { path, .. } => path.terminating_column(),
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,

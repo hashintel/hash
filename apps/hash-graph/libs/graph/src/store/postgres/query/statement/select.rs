@@ -648,7 +648,7 @@ mod tests {
               ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
             WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-              AND "entity_editions_0_1_0"."record_created_by_id" = $3
+              AND "entity_editions_0_1_0"."edition_created_by_id" = $3
             ORDER BY "entity_temporal_metadata_0_0_0"."entity_uuid" ASC,
                      "entity_temporal_metadata_0_0_0"."decision_time" DESC
             "#,

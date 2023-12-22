@@ -3,6 +3,9 @@ import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import {
+  CreatedAtDecisionTime,
+  CreatedAtTransactionTime,
+  CreatedById,
   EditionCreatedById,
   Entity,
   EntityId,
@@ -97,6 +100,9 @@ export const useFetchBlockSubgraph = (): ((
             archived: false,
             draft: false,
             provenance: {
+              createdById: "placeholder-account" as CreatedById,
+              createdAtTransactionTime: now as CreatedAtTransactionTime,
+              createdAtDecisionTime: now as CreatedAtDecisionTime,
               edition: {
                 createdById: "placeholder-account" as EditionCreatedById,
               },

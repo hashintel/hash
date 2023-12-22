@@ -7,14 +7,17 @@ use bytes::BytesMut;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, TransactionTime};
+use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
 use type_system::url::{BaseUrl, VersionedUrl};
 #[cfg(feature = "utoipa")]
 use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
 use crate::{
-    account::EditionCreatedById, knowledge::link::LinkData, owned_by_id::OwnedById, Embedding,
+    account::{CreatedById, EditionCreatedById},
+    knowledge::link::LinkData,
+    owned_by_id::OwnedById,
+    Embedding,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -107,6 +110,9 @@ pub struct EntityEditionProvenanceMetadata {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityProvenanceMetadata {
+    pub created_by_id: CreatedById,
+    pub created_at_transaction_time: Timestamp<TransactionTime>,
+    pub created_at_decision_time: Timestamp<DecisionTime>,
     pub edition: EntityEditionProvenanceMetadata,
 }
 

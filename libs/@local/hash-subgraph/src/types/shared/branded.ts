@@ -14,6 +14,8 @@ import {
 } from "@local/hash-graph-client";
 import { validate as validateUuid } from "uuid";
 
+import { Timestamp } from "./temporal-versioning";
+
 export type BaseUrl = Brand<BaseUrlBp, "BaseUrl">;
 
 export const isBaseUrl = (baseUrl: string): baseUrl is BaseUrl => {
@@ -77,6 +79,19 @@ export const extractEntityUuidFromEntityId = (
 ): EntityUuid => {
   return splitEntityId(entityId)[1]!;
 };
+
+/** An account ID of creating actor */
+export type CreatedById = Brand<AccountId, "CreatedById">;
+
+/** The transaction time when the record was inserted into the database the first time */
+export type CreatedAtTransactionTime = Brand<
+  Timestamp,
+  "CreatedAtTransactionTime"
+>;
+
+/** The transaction time when the record was inserted into the database the first time. This does not take into account
+ *  if an updated later happened with a decision time before the initial decision time. */
+export type CreatedAtDecisionTime = Brand<Timestamp, "CreatedAtDecisionTime">;
 
 /** An account ID of an actor that has created a specific edition */
 export type EditionCreatedById = Brand<AccountId, "EditionCreatedById">;

@@ -109,7 +109,7 @@ impl<A> FromStr for Timestamp<A> {
 }
 
 #[cfg(feature = "postgres")]
-impl<'a> FromSql<'a> for Timestamp<()> {
+impl<'a, A> FromSql<'a> for Timestamp<A> {
     postgres_types::accepts!(TIMESTAMPTZ);
 
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {

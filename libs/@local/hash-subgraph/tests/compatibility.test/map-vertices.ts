@@ -28,6 +28,9 @@ import {
 } from "@local/hash-graph-client";
 import {
   BaseUrl,
+  CreatedAtDecisionTime,
+  CreatedAtTransactionTime,
+  CreatedById,
   DataTypeMetadata,
   EditionArchivedById,
   EditionCreatedById,
@@ -119,6 +122,11 @@ const mapEntityProvenanceMetadata = (
   metadata: EntityProvenanceMetadataGraphApi,
 ): EntityProvenanceMetadata => {
   return {
+    createdById: metadata.createdById as CreatedById,
+    createdAtTransactionTime:
+      metadata.createdAtTransactionTime as CreatedAtTransactionTime,
+    createdAtDecisionTime:
+      metadata.createdAtDecisionTime as CreatedAtDecisionTime,
     edition: {
       createdById: metadata.edition.createdById as EditionCreatedById,
     },

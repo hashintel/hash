@@ -36,7 +36,7 @@ export const entityEditionRecordFromRealtimeMessage = (
     properties: JSON.parse(obj.properties as string) as JsonObject,
     leftToRightOrder: obj.left_to_right_order as number | undefined,
     rightToLeftOrder: obj.right_to_left_order as number | undefined,
-    editionCreatedById: obj.record_created_by_id as
+    editionCreatedById: obj.edition_created_by_id as
       | EditionCreatedById
       | undefined,
   };
