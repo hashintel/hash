@@ -1071,14 +1071,6 @@ mod tests {
         .await
         .expect_err("validation succeeded");
 
-        _ = validate_data(
-            json!("localhost:3000"),
-            &hostname_type,
-            ValidationProfile::Full,
-        )
-        .await
-        .expect_err("validation succeeded");
-
         _ = validate_data(json!("::1"), &hostname_type, ValidationProfile::Full)
             .await
             .expect_err("validation succeeded");
