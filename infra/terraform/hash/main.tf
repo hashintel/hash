@@ -273,6 +273,14 @@ module "application" {
   api_image    = module.api_ecr
   api_env_vars = concat(var.hash_api_env_vars, [
     {
+      name  = "MAILCHIMP_API_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["mailchimp_api_key"])
+    },
+    {
+      name  = "MAILCHIMP_LIST_ID", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["mailchimp_list_id"])
+    },
+    {
       name  = "USER_EMAIL_ALLOW_LIST", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["user_email_allow_list"])
     },

@@ -3,12 +3,16 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   OwnedById,
 } from "@local/hash-subgraph";
 
+import { isProdEnv } from "../../../../lib/env-config";
+import { createOrUpdateMailchimpUser } from "../../../../mailchimp";
 import {
   getBlockCollectionByBlock,
   getBlockFromEntity,
@@ -265,6 +269,30 @@ const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
   return entity;
 };
 
+const userCreateHookCallback: CreateEntityHookCallback = async ({ entity }) => {
+  if (isProdEnv) {
+    const {
+      email: emails,
+      shortname,
+      preferredName,
+    } = simplifyProperties(entity.properties as UserProperties);
+
+    /**
+     * @todo: when we allow users to have more than one email, come up with
+     * a better way of determining which to use for mailchimp.
+     */
+    const [email] = emails;
+
+    await createOrUpdateMailchimpUser({
+      email,
+      shortname,
+      preferredName,
+    });
+  }
+
+  return entity;
+};
+
 export const afterCreateEntityHooks: CreateEntityHook[] = [
   {
     entityTypeId: systemEntityTypes.comment.entityTypeId,
@@ -273,5 +301,9 @@ export const afterCreateEntityHooks: CreateEntityHook[] = [
   {
     entityTypeId: systemLinkEntityTypes.hasText.linkEntityTypeId,
     callback: hasTextCreateHookCallback,
+  },
+  {
+    entityTypeId: systemEntityTypes.user.entityTypeId,
+    callback: userCreateHookCallback,
   },
 ];
