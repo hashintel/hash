@@ -1,13 +1,13 @@
 use core::{borrow::Borrow, fmt};
 use std::str::FromStr;
 
+use chrono::{DateTime, NaiveDate};
 use email_address::EmailAddress;
 use error_stack::{bail, ensure, Report, ResultExt};
 use iso8601_duration::Duration;
 use regex::Regex;
 use serde_json::Value as JsonValue;
 use thiserror::Error;
-use time::{format_description::well_known::Rfc3339, PrimitiveDateTime};
 use type_system::{url::VersionedUrl, DataType, DataTypeReference};
 use url::Url;
 
@@ -263,10 +263,18 @@ fn check_format(value: &str, format: &str) -> Result<(), Report<DataValidationEr
                 .change_context(DataValidationError::ConstraintUnfulfilled)?;
         }
         "date-time" => {
-            PrimitiveDateTime::parse(value, &Rfc3339)
+            DateTime::parse_from_rfc3339(value)
                 .change_context_lazy(|| DataTypeConstraint::Format {
                     actual: value.to_owned(),
                     format: "date-time",
+                })
+                .change_context(DataValidationError::ConstraintUnfulfilled)?;
+        }
+        "date" => {
+            NaiveDate::from_str(value)
+                .change_context_lazy(|| DataTypeConstraint::Format {
+                    actual: value.to_owned(),
+                    format: "date",
                 })
                 .change_context(DataValidationError::ConstraintUnfulfilled)?;
         }
@@ -795,27 +803,27 @@ mod tests {
             "2023-12-22T12:15:01.187+00:00",
             "2023-12-22t12:15:01z",
             "2023-12-22t12:15:01.187z",
-            // "2023-12-22 13:15:01+01:00",
-            // "2023-12-22 13:15:01.1+01:00",
-            // "2023-12-22 13:15:01.18+01:00",
-            // "2023-12-22 13:15:01.187+01:00",
-            // "2023-12-22 13:15:01.187226+01:00",
-            // "2023-12-22 12:15:01Z",
+            "2023-12-22 13:15:01+01:00",
+            "2023-12-22 13:15:01.1+01:00",
+            "2023-12-22 13:15:01.18+01:00",
+            "2023-12-22 13:15:01.187+01:00",
+            "2023-12-22 13:15:01.187226+01:00",
+            "2023-12-22 12:15:01Z",
+            "2023-12-22 12:15:01z",
+            "2023-12-22 12:15:01.1Z",
+            "2023-12-22 12:15:01.18Z",
+            "2023-12-22 12:15:01.187Z",
+            "2023-12-22 12:15:01.187226Z",
+            "2023-12-22 12:15:01.187z",
+            "2023-12-22 12:15:01.187226z",
+            "2023-12-22 12:15:01-00:00",
+            "2023-12-22 12:15:01.187-00:00",
             // "2023-12-22_12:15:01Z",
-            // "2023-12-22 12:15:01z",
             // "2023-12-22_12:15:01z",
-            // "2023-12-22 12:15:01.1Z",
-            // "2023-12-22 12:15:01.18Z",
-            // "2023-12-22 12:15:01.187Z",
             // "2023-12-22_12:15:01.187Z",
-            // "2023-12-22 12:15:01.187226Z",
             // "2023-12-22_12:15:01.187226Z",
-            // "2023-12-22 12:15:01.187z",
             // "2023-12-22_12:15:01.187z",
-            // "2023-12-22 12:15:01.187226z",
             // "2023-12-22_12:15:01.187226z",
-            // "2023-12-22 12:15:01-00:00",
-            // "2023-12-22 12:15:01.187-00:00",
         ];
 
         // TODO: A few formats were validated as valid but are not valid according to RFC3339:
@@ -1195,6 +1203,322 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn date() {
+        const VALID_FORMATS: &[&str] = &[
+            "2023-12-22", // %Y-%M-%D
+        ];
+
+        const INVALID_FORMATS: &[&str] = &[
+            "20",         // %C
+            "202",        // %X
+            "2023",       // %Y
+            "2023-12",    // %Y-%M
+            "2023-356",   // %Y-%O
+            "2023-W51",   // %V-W%W
+            "2023-W51-5", // %V-W%W-%w
+            "20231222",   // %Y%M%D
+            "2023356",    // %Y%O
+            "2023W51",    // %VW%W
+            "2023W515",   // %VW%W%w
+            "--12-22",    // --%M-%D
+            "12-22",      // %M-%D
+        ];
+
+        let url_type = serde_json::to_string(&json!({
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            "kind": "dataType",
+            "$id": "https://localhost:4000/@alice/types/data-type/date/v/1",
+            "title": "Date",
+            "type": "string",
+            "format": "date",
+        }))
+        .expect("failed to serialize date type");
+
+        let mut failed_formats = Vec::new();
+        for format in VALID_FORMATS {
+            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+                .await
+                .is_err()
+            {
+                failed_formats.push(format);
+            }
+        }
+        assert!(
+            failed_formats.is_empty(),
+            "failed to validate formats: {failed_formats:#?}"
+        );
+
+        _ = validate_data(json!(""), &url_type, ValidationProfile::Full)
+            .await
+            .expect_err("validation succeeded");
+
+        let mut passed_formats = Vec::new();
+        for format in INVALID_FORMATS {
+            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+                .await
+                .is_ok()
+            {
+                passed_formats.push(format);
+            }
+        }
+        assert!(
+            passed_formats.is_empty(),
+            "passed invalid formats: {passed_formats:#?}"
+        );
+    }
+
+    #[tokio::test]
+    #[ignore]
+    #[expect(clippy::too_many_lines, reason = "Most lines are just test data")]
+    async fn time() {
+        const VALID_FORMATS: &[&str] = &[
+            "14:26:28+01:00",        // %h:%m:%s%Z:%z
+            "14:26:28.9+01:00",      // %h:%m:%.1s%Z:%z
+            "14:26:28.95+01:00",     // %h:%m:%.2s%Z:%z
+            "14:26:28.950+01:00",    // %h:%m:%.3s%Z:%z
+            "14:26:28.950086+01:00", // %h:%m:%s.%u%Z:%z
+            "13:26:28Z",             // %h:%m:%sZ
+            "13:26:28.9Z",           // %h:%m:%.1sZ
+            "13:26:28.95Z",          // %h:%m:%.2sZ
+            "13:26:28.950Z",         // %h:%m:%.3sZ
+            "13:26:28.950086Z",      // %h:%m:%s.%uZ
+            "13:26:28+00:00",        // %h:%m:%s+00:00
+            "13:26:28.9+00:00",      // %h:%m:%.1s+00:00
+            "13:26:28.950+00:00",    // %h:%m:%.3s+00:00
+            "13:26:28.950086+00:00", // %h:%m:%s.%u+00:00
+            "13:26:28-00:00",        // %h:%m:%s-00:00
+            "13:26:28.9-00:00",      // %h:%m:%.1s-00:00
+            "13:26:28.950-00:00",    // %h:%m:%.3s-00:00
+            "13:26:28.950086-00:00", // %h:%m:%s.%u-00:00
+        ];
+
+        const INVALID_FORMATS: &[&str] = &[
+            "14",                     // %h
+            "14,4",                   // %,1h
+            "14.4",                   // %.1h
+            "14:26",                  // %h:%m
+            "14:26,4",                // %h:%,1m
+            "14:26.4",                // %h:%.1m
+            "14:26:28",               // %h:%m:%s
+            "14:26:28.9",             // %h:%m:%.1s
+            "14:26:28.95",            // %h:%m:%.2s
+            "14:26:28,950",           // %h:%m:%,3s
+            "14:26:28.950",           // %h:%m:%.3s
+            "14:26:28,950086",        // %h:%m:%s,%u
+            "14:26:28.950086",        // %h:%m:%s.%u
+            "13Z",                    // %hZ
+            "13,4Z",                  // %,1hZ
+            "13.4Z",                  // %.1hZ
+            "13:26Z",                 // %h:%mZ
+            "13:26,4Z",               // %h:%,1mZ
+            "13:26.4Z",               // %h:%.1mZ
+            "13:26:28,950Z",          // %h:%m:%,3sZ
+            "13:26:28,950086Z",       // %h:%m:%s,%uZ
+            "14+01",                  // %h%Z
+            "14,4+01",                // %,1h%Z
+            "14.4+01",                // %.1h%Z
+            "14:26+01",               // %h:%m%Z
+            "14:26,4+01",             // %h:%,1m%Z
+            "14:26.4+01",             // %h:%.1m%Z
+            "14:26:28+01",            // %h:%m:%s%Z
+            "14:26:28.9+01",          // %h:%m:%.1s%Z
+            "14:26:28.95+01",         // %h:%m:%.2s%Z
+            "14:26:28,950+01",        // %h:%m:%,3s%Z
+            "14:26:28.950+01",        // %h:%m:%.3s%Z
+            "14:26:28,950086+01",     // %h:%m:%s,%u%Z
+            "14:26:28.950086+01",     // %h:%m:%s.%u%Z
+            "14+01:00",               // %h%Z:%z
+            "14,4+01:00",             // %,1h%Z:%z
+            "14.4+01:00",             // %.1h%Z:%z
+            "14:26+01:00",            // %h:%m%Z:%z
+            "14:26,4+01:00",          // %h:%,1m%Z:%z
+            "14:26.4+01:00",          // %h:%.1m%Z:%z
+            "14:26:28,950+01:00",     // %h:%m:%,3s%Z:%z
+            "14:26:28,950086+01:00",  // %h:%m:%s,%u%Z:%z
+            "T14",                    // T%h
+            "T14,4",                  // T%,1h
+            "T14.4",                  // T%.1h
+            "T14:26",                 // T%h:%m
+            "T14:26,4",               // T%h:%,1m
+            "T14:26.4",               // T%h:%.1m
+            "T14:26:28",              // T%h:%m:%s
+            "T14:26:28.9",            // T%h:%m:%.1s
+            "T14:26:28.95",           // T%h:%m:%.2s
+            "T14:26:28,950",          // T%h:%m:%,3s
+            "T14:26:28.950",          // T%h:%m:%.3s
+            "T14:26:28,950086",       // T%h:%m:%s,%u
+            "T14:26:28.950086",       // T%h:%m:%s.%u
+            "T13Z",                   // T%hZ
+            "T13,4Z",                 // T%,1hZ
+            "T13.4Z",                 // T%.1hZ
+            "T13:26Z",                // T%h:%mZ
+            "T13:26,4Z",              // T%h:%,1mZ
+            "T13:26.4Z",              // T%h:%.1mZ
+            "T13:26:28Z",             // T%h:%m:%sZ
+            "T13:26:28.9Z",           // T%h:%m:%.1sZ
+            "T13:26:28.95Z",          // T%h:%m:%.2sZ
+            "T13:26:28,950Z",         // T%h:%m:%,3sZ
+            "T13:26:28.950Z",         // T%h:%m:%.3sZ
+            "T13:26:28,950086Z",      // T%h:%m:%s,%uZ
+            "T13:26:28.950086Z",      // T%h:%m:%s.%uZ
+            "T14+01",                 // T%h%Z
+            "T14,4+01",               // T%,1h%Z
+            "T14.4+01",               // T%.1h%Z
+            "T14:26+01",              // T%h:%m%Z
+            "T14:26,4+01",            // T%h:%,1m%Z
+            "T14:26.4+01",            // T%h:%.1m%Z
+            "T14:26:28+01",           // T%h:%m:%s%Z
+            "T14:26:28.9+01",         // T%h:%m:%.1s%Z
+            "T14:26:28.95+01",        // T%h:%m:%.2s%Z
+            "T14:26:28,950+01",       // T%h:%m:%,3s%Z
+            "T14:26:28.950+01",       // T%h:%m:%.3s%Z
+            "T14:26:28,950086+01",    // T%h:%m:%s,%u%Z
+            "T14:26:28.950086+01",    // T%h:%m:%s.%u%Z
+            "T14+01:00",              // T%h%Z:%z
+            "T14,4+01:00",            // T%,1h%Z:%z
+            "T14.4+01:00",            // T%.1h%Z:%z
+            "T14:26+01:00",           // T%h:%m%Z:%z
+            "T14:26,4+01:00",         // T%h:%,1m%Z:%z
+            "T14:26.4+01:00",         // T%h:%.1m%Z:%z
+            "T14:26:28+01:00",        // T%h:%m:%s%Z:%z
+            "T14:26:28.9+01:00",      // T%h:%m:%.1s%Z:%z
+            "T14:26:28.95+01:00",     // T%h:%m:%.2s%Z:%z
+            "T14:26:28,950+01:00",    // T%h:%m:%,3s%Z:%z
+            "T14:26:28.950+01:00",    // T%h:%m:%.3s%Z:%z
+            "T14:26:28,950086+01:00", // T%h:%m:%s,%u%Z:%z
+            "T14:26:28.950086+01:00", // T%h:%m:%s.%u%Z:%z
+            "1426",                   // %h%m
+            "1426,4",                 // %h%,1m
+            "1426.4",                 // %h%.1m
+            "142628",                 // %h%m%s
+            "142628.9",               // %h%m%.1s
+            "142628.95",              // %h%m%.2s
+            "142628,950",             // %h%m%,3s
+            "142628.950",             // %h%m%.3s
+            "142628,950086",          // %h%m%s,%u
+            "142628.950086",          // %h%m%s.%u
+            "1326Z",                  // %h%mZ
+            "1326,4Z",                // %h%,1mZ
+            "1326.4Z",                // %h%.1mZ
+            "132628Z",                // %h%m%sZ
+            "132628.9Z",              // %h%m%.1sZ
+            "132628.95Z",             // %h%m%.2sZ
+            "132628,950Z",            // %h%m%,3sZ
+            "132628.950Z",            // %h%m%.3sZ
+            "132628,950086Z",         // %h%m%s,%uZ
+            "132628.950086Z",         // %h%m%s.%uZ
+            "1426+01",                // %h%m%Z
+            "1426,4+01",              // %h%,1m%Z
+            "1426.4+01",              // %h%.1m%Z
+            "142628+01",              // %h%m%s%Z
+            "142628.9+01",            // %h%m%.1s%Z
+            "142628.95+01",           // %h%m%.2s%Z
+            "142628,950+01",          // %h%m%,3s%Z
+            "142628.950+01",          // %h%m%.3s%Z
+            "142628,950086+01",       // %h%m%s,%u%Z
+            "142628.950086+01",       // %h%m%s.%u%Z
+            "14+0100",                // %h%Z%z
+            "14,4+0100",              // %,1h%Z%z
+            "14.4+0100",              // %.1h%Z%z
+            "1426+0100",              // %h%m%Z%z
+            "1426,4+0100",            // %h%,1m%Z%z
+            "1426.4+0100",            // %h%.1m%Z%z
+            "142628+0100",            // %h%m%s%Z%z
+            "142628.9+0100",          // %h%m%.1s%Z%z
+            "142628.95+0100",         // %h%m%.2s%Z%z
+            "142628,950+0100",        // %h%m%,3s%Z%z
+            "142628.950+0100",        // %h%m%.3s%Z%z
+            "142628,950086+0100",     // %h%m%s,%u%Z%z
+            "142628.950086+0100",     // %h%m%s.%u%Z%z
+            "T1426",                  // T%h%m
+            "T1426,4",                // T%h%,1m
+            "T1426.4",                // T%h%.1m
+            "T142628",                // T%h%m%s
+            "T142628.9",              // T%h%m%.1s
+            "T142628.95",             // T%h%m%.2s
+            "T142628,950",            // T%h%m%,3s
+            "T142628.950",            // T%h%m%.3s
+            "T142628,950086",         // T%h%m%s,%u
+            "T142628.950086",         // T%h%m%s.%u
+            "T1326Z",                 // T%h%mZ
+            "T1326,4Z",               // T%h%,1mZ
+            "T1326.4Z",               // T%h%.1mZ
+            "T132628Z",               // T%h%m%sZ
+            "T132628.9Z",             // T%h%m%.1sZ
+            "T132628.95Z",            // T%h%m%.2sZ
+            "T132628,950Z",           // T%h%m%,3sZ
+            "T132628.950Z",           // T%h%m%.3sZ
+            "T132628,950086Z",        // T%h%m%s,%uZ
+            "T132628.950086Z",        // T%h%m%s.%uZ
+            "T1426+01",               // T%h%m%Z
+            "T1426,4+01",             // T%h%,1m%Z
+            "T1426.4+01",             // T%h%.1m%Z
+            "T142628+01",             // T%h%m%s%Z
+            "T142628.9+01",           // T%h%m%.1s%Z
+            "T142628.95+01",          // T%h%m%.2s%Z
+            "T142628,950+01",         // T%h%m%,3s%Z
+            "T142628.950+01",         // T%h%m%.3s%Z
+            "T142628,950086+01",      // T%h%m%s,%u%Z
+            "T142628.950086+01",      // T%h%m%s.%u%Z
+            "T14+0100",               // T%h%Z%z
+            "T14,4+0100",             // T%,1h%Z%z
+            "T14.4+0100",             // T%.1h%Z%z
+            "T1426+0100",             // T%h%m%Z%z
+            "T1426,4+0100",           // T%h%,1m%Z%z
+            "T1426.4+0100",           // T%h%.1m%Z%z
+            "T142628+0100",           // T%h%m%s%Z%z
+            "T142628.9+0100",         // T%h%m%.1s%Z%z
+            "T142628.95+0100",        // T%h%m%.2s%Z%z
+            "T142628,950+0100",       // T%h%m%,3s%Z%z
+            "T142628.950+0100",       // T%h%m%.3s%Z%z
+            "T142628,950086+0100",    // T%h%m%s,%u%Z%z
+            "T142628.950086+0100",    // T%h%m%s.%u%Z%z
+        ];
+
+        let url_type = serde_json::to_string(&json!({
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            "kind": "dataType",
+            "$id": "https://localhost:4000/@alice/types/data-type/time/v/1",
+            "title": "Time",
+            "type": "string",
+            "format": "time",
+        }))
+        .expect("failed to serialize time type");
+
+        let mut failed_formats = Vec::new();
+        for format in VALID_FORMATS {
+            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+                .await
+                .is_err()
+            {
+                failed_formats.push(format);
+            }
+        }
+        assert!(
+            failed_formats.is_empty(),
+            "failed to validate formats: {failed_formats:#?}"
+        );
+
+        _ = validate_data(json!(""), &url_type, ValidationProfile::Full)
+            .await
+            .expect_err("validation succeeded");
+
+        let mut passed_formats = Vec::new();
+        for format in INVALID_FORMATS {
+            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+                .await
+                .is_ok()
+            {
+                passed_formats.push(format);
+            }
+        }
+        assert!(
+            passed_formats.is_empty(),
+            "passed invalid formats: {passed_formats:#?}"
+        );
+    }
+
+    #[tokio::test]
     async fn duration() {
         // TODO: Allow durations which are allowed in ISO8601
         const VALID_FORMATS: &[&str] = &[
@@ -1243,7 +1567,7 @@ mod tests {
             "type": "string",
             "format": "duration",
         }))
-        .expect("failed to serialize date time type");
+        .expect("failed to serialize duration type");
 
         let mut failed_formats = Vec::new();
         for format in VALID_FORMATS {
