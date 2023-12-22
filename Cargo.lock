@@ -135,9 +135,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.75"
+version = "1.0.76"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
+checksum = "59d2a3357dde987206219e78ecfbbb6e8dad06cbb65292758d3270e6254f7355"
 
 [[package]]
 name = "arrayref"
@@ -227,13 +227,13 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.74"
+version = "0.1.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a66537f1bb974b254c98ed142ff995236e81b9d0fe4db0575f46612cb15eb0f9"
+checksum = "fdf6721fb0140e4f897002dd086c06f6c27775df19cfe1fccb21181a48fd2c98"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -652,7 +652,7 @@ dependencies = [
  "heck",
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -878,7 +878,7 @@ checksum = "f46882e17999c6cc590af592290432be3bce0428cb0d5f8b6715e4dc7b383eb3"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -970,7 +970,7 @@ checksum = "62d671cc41a825ebabc75757b62d3d168c577f9149b2d49ece1dad1f72119d25"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -1001,7 +1001,7 @@ checksum = "487585f4d0c6655fe74905e2504d8ad6908e4db67f744eb140876906c2f3175d"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -1077,7 +1077,7 @@ dependencies = [
  "heck",
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -1090,7 +1090,7 @@ dependencies = [
  "num-traits",
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -1206,8 +1206,7 @@ dependencies = [
 [[package]]
 name = "futures-bounded"
 version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1e2774cc104e198ef3d3e1ff4ab40f86fa3245d6cb6a3a46174f21463cee173"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "futures-timer",
  "futures-util",
@@ -1265,7 +1264,7 @@ checksum = "53b153fd91e4b0147f4aced87be237c98248656bb01050b96bf3ee89220a8ddb"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -1927,9 +1926,9 @@ dependencies = [
 
 [[package]]
 name = "hyper-util"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ca339002caeb0d159cc6e023dff48e199f081e42fa039895c7c6f38b37f2e9d"
+checksum = "bdea9aac0dbe5a9240d68cfd9501e2db94222c6dc06843e06640b9e07f0fdc67"
 dependencies = [
  "bytes",
  "futures-channel",
@@ -1940,8 +1939,6 @@ dependencies = [
  "pin-project-lite",
  "socket2",
  "tokio",
- "tower",
- "tower-service",
  "tracing",
 ]
 
@@ -2148,8 +2145,7 @@ checksum = "302d7ab3130588088d277783b1e2d2e10c9e9e4a16dd9050e6ec93fb3e7048f4"
 [[package]]
 name = "libp2p"
 version = "0.53.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "681fb3f183edfbedd7a57d32ebe5dcdc0b9f94061185acf3c30249349cc6fc99"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "bytes",
  "either",
@@ -2184,8 +2180,7 @@ dependencies = [
 [[package]]
 name = "libp2p-allow-block-list"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "107b238b794cb83ab53b74ad5dcf7cca3200899b72fe662840cfb52f5b0a32e6"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "libp2p-core",
  "libp2p-identity",
@@ -2196,8 +2191,7 @@ dependencies = [
 [[package]]
 name = "libp2p-connection-limits"
 version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7cd50a78ccfada14de94cbacd3ce4b0138157f376870f13d3a8422cd075b4fd"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "libp2p-core",
  "libp2p-identity",
@@ -2208,8 +2202,7 @@ dependencies = [
 [[package]]
 name = "libp2p-core"
 version = "0.41.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8130a8269e65a2554d55131c770bdf4bcd94d2b8d4efb24ca23699be65066c05"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "either",
  "fnv",
@@ -2236,8 +2229,7 @@ dependencies = [
 [[package]]
 name = "libp2p-dns"
 version = "0.41.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d17cbcf7160ff35c3e8e560de4a068fe9d6cb777ea72840e48eb76ff9576c4b6"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "async-trait",
  "futures",
@@ -2252,8 +2244,7 @@ dependencies = [
 [[package]]
 name = "libp2p-gossipsub"
 version = "0.46.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d665144a616dadebdc5fff186b1233488cdcd8bfb1223218ff084b6d052c94f7"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "asynchronous-codec",
  "base64 0.21.5",
@@ -2283,8 +2274,7 @@ dependencies = [
 [[package]]
 name = "libp2p-identify"
 version = "0.44.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20499a945d2f0221fdc6269b3848892c0f370d2ee3e19c7f65a29d8f860f6126"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "asynchronous-codec",
  "either",
@@ -2324,8 +2314,7 @@ dependencies = [
 [[package]]
 name = "libp2p-mdns"
 version = "0.45.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49007d9a339b3e1d7eeebc4d67c05dbf23d300b7d091193ec2d3f26802d7faf2"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "data-encoding",
  "futures",
@@ -2345,8 +2334,7 @@ dependencies = [
 [[package]]
 name = "libp2p-metrics"
 version = "0.14.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdac91ae4f291046a3b2660c039a2830c931f84df2ee227989af92f7692d3357"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "futures",
  "instant",
@@ -2361,8 +2349,7 @@ dependencies = [
 [[package]]
 name = "libp2p-noise"
 version = "0.44.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ecd0545ce077f6ea5434bcb76e8d0fe942693b4380aaad0d34a358c2bd05793"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "asynchronous-codec",
  "bytes",
@@ -2387,8 +2374,7 @@ dependencies = [
 [[package]]
 name = "libp2p-quic"
 version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0375cdfee57b47b313ef1f0fdb625b78aed770d33a40cf1c294a371ff5e6666"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "bytes",
  "futures",
@@ -2411,8 +2397,7 @@ dependencies = [
 [[package]]
 name = "libp2p-request-response"
 version = "0.26.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e12823250fe0c45bdddea6eefa2be9a609aff1283ff4e1d8a294fdbb89572f6f"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "async-trait",
  "futures",
@@ -2431,8 +2416,7 @@ dependencies = [
 [[package]]
 name = "libp2p-swarm"
 version = "0.44.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e92532fc3c4fb292ae30c371815c9b10103718777726ea5497abc268a4761866"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "either",
  "fnv",
@@ -2455,21 +2439,19 @@ dependencies = [
 
 [[package]]
 name = "libp2p-swarm-derive"
-version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b644268b4acfdaa6a6100b31226ee7a36d96ab4c43287d113bfd2308607d8b6f"
+version = "0.34.2"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "heck",
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
 name = "libp2p-tcp"
 version = "0.41.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b2460fc2748919adff99ecbc1aab296e4579e41f374fb164149bd2c9e529d4c"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "futures",
  "futures-timer",
@@ -2485,8 +2467,7 @@ dependencies = [
 [[package]]
 name = "libp2p-tls"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93ce7e3c2e7569d685d08ec795157981722ff96e9e9f9eae75df3c29d02b07a5"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "futures",
  "futures-rustls",
@@ -2504,8 +2485,7 @@ dependencies = [
 [[package]]
 name = "libp2p-upnp"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "963eb8a174f828f6a51927999a9ab5e45dfa9aa2aa5fed99aa65f79de6229464"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "futures",
  "futures-timer",
@@ -2520,8 +2500,7 @@ dependencies = [
 [[package]]
 name = "libp2p-websocket"
 version = "0.43.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4846d51afd08180e164291c3754ba30dd4fbac6fac65571be56403c16431a5e"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "either",
  "futures",
@@ -2540,8 +2519,7 @@ dependencies = [
 [[package]]
 name = "libp2p-websocket-websys"
 version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "550e578dcc9cd572be9dd564831d1f5efe8e6661953768b1d56c1d462855bf6f"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "bytes",
  "futures",
@@ -2558,8 +2536,7 @@ dependencies = [
 [[package]]
 name = "libp2p-yamux"
 version = "0.45.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "200cbe50349a44760927d50b431d77bed79b9c0a3959de1af8d24a63434b71e5"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "either",
  "futures",
@@ -2737,15 +2714,14 @@ dependencies = [
 [[package]]
 name = "multistream-select"
 version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea0df8e5eec2298a62b326ee4f0d7fe1a6b90a09dfcf9df37b38f947a8c42f19"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "bytes",
  "futures",
- "log",
  "pin-project",
  "smallvec",
- "unsigned-varint 0.7.2",
+ "tracing",
+ "unsigned-varint 0.8.0",
 ]
 
 [[package]]
@@ -3160,7 +3136,7 @@ checksum = "4359fd9c9171ec6e8c62926d6faaf553a8dc3f64e1507e76da7911b4f6a04405"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -3265,7 +3241,7 @@ dependencies = [
  "heck",
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -3340,9 +3316,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.70"
+version = "1.0.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39278fbbf5fb4f646ce651690877f89d1c5811a3d4acb27700c1cb3cdb78fd3b"
+checksum = "75cb1540fadbd5b8fbccc4dddad2734eba435053f725621c070711a14bb5f4b8"
 dependencies = [
  "unicode-ident",
 ]
@@ -3367,7 +3343,7 @@ checksum = "440f724eba9f6996b75d63681b0a92b06947f1457076d503a4d2e2c8f56442b8"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -3397,7 +3373,7 @@ dependencies = [
 name = "query-builder-derive"
 version = "0.1.0"
 dependencies = [
- "syn 2.0.41",
+ "syn 2.0.42",
  "trybuild",
  "virtue",
 ]
@@ -3420,8 +3396,7 @@ dependencies = [
 [[package]]
 name = "quick-protobuf-codec"
 version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15a0580ab32b169745d7a39db2ba969226ca16738931be152a3209b409de2474"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "asynchronous-codec",
  "bytes",
@@ -3600,7 +3575,7 @@ dependencies = [
  "quote",
  "refinery-core",
  "regex",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -3826,8 +3801,7 @@ checksum = "7ffc183a10b4478d04cbbbfc96d0873219d962dd5accaff2ffbd4ceb7df837f4"
 [[package]]
 name = "rw-stream-sink"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8c9026ff5d2f23da5e45bbc283f156383001bfb09c4e44256d02c1a685fe9a1"
+source = "git+https://github.com/indietyp/rust-libp2p.git?branch=bm/nodejs-interval#39523871ff2da03353636f84143121704b1b9e03"
 dependencies = [
  "futures",
  "pin-project",
@@ -4038,7 +4012,7 @@ checksum = "43576ca501357b9b071ac53cdc7da8ef0cbd9493d8df094cd821777ea6e894d3"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -4049,7 +4023,7 @@ checksum = "e578a843d40b4189a4d66bba51d7684f57da5bd7c304c64e14bd63efbef49509"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -4284,9 +4258,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.41"
+version = "2.0.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44c8b28c477cc3bf0e7966561e3460130e1255f7a1cf71931075f1c5e7a7e269"
+checksum = "5b7d0a2c048d661a1a59fcd7355baa232f7ed34e0ee4df2eef3c1c1c0d3852d8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4418,7 +4392,7 @@ checksum = "7ba277e77219e9eea169e8508942db1bf5d8a41ff2db9b20aab5a5aadc9fa25d"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -4438,7 +4412,7 @@ checksum = "01742297787513b79cf8e29d1056ede1313e2420b7b3b15d0a768b4921f549df"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -4541,7 +4515,7 @@ checksum = "5b8a1e28f2deaa14e508979454cb3a223b10b938b45af148bc0986de36f1923b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -4766,7 +4740,7 @@ checksum = "34704c8d6ebcbc939824180af020566b01a7c01f80641264eba0999f6c2b6be7"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -4906,7 +4880,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "serde_derive_internals",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -5073,7 +5047,7 @@ dependencies = [
  "proc-macro-error",
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
  "uuid",
 ]
 
@@ -5173,7 +5147,7 @@ dependencies = [
  "once_cell",
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
  "wasm-bindgen-shared",
 ]
 
@@ -5207,7 +5181,7 @@ checksum = "f0eb82fcb7930ae6219a7ecfd55b217f5f0893484b7a13022ebb2b2bf20b5283"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
  "wasm-bindgen-backend",
  "wasm-bindgen-shared",
 ]
@@ -5560,22 +5534,22 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
-version = "0.7.31"
+version = "0.7.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c4061bedbb353041c12f413700357bec76df2c7e2ca8e4df8bac24c6bf68e3d"
+checksum = "74d4d3961e53fa4c9a25a8637fc2bfaf2595b3d3ae34875568a5cf64787716be"
 dependencies = [
  "zerocopy-derive",
 ]
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.7.31"
+version = "0.7.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3c129550b3e6de3fd0ba67ba5c81818f9805e58b8d7fee80a3a59d2c9fc601a"
+checksum = "9ce1b18ccd8e73a9321186f97e46f9f04b778851177567b1975109d26a08d2a6"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -5595,5 +5569,5 @@ checksum = "ce36e65b0d2999d2aafac989fb249189a141aee1f53c612c1f37d72631959f69"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
