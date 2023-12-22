@@ -30,6 +30,7 @@ export {
   getDataTypeByVertexId,
   getDataTypes,
   getDataTypesByBaseUrl,
+  getJsonSchemaTypeFromValue,
 } from "./stdlib/subgraph/element/data-type";
 export {
   getEntities,

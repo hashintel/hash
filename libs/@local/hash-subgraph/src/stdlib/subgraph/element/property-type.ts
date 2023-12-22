@@ -11,7 +11,6 @@ import {
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
-import { getJsonSchemaTypeFromValue } from "@local/hash-isomorphic-utils/data-types";
 
 import {
   BaseUrl,
@@ -20,7 +19,7 @@ import {
   PropertyTypeWithMetadata,
   Subgraph,
 } from "../../../main";
-import { mustGetDataTypeById } from "./data-type";
+import { getJsonSchemaTypeFromValue, mustGetDataTypeById } from "./data-type";
 import { getEntityTypeAndParentsById } from "./entity-type";
 
 /**

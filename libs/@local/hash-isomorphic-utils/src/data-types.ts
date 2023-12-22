@@ -1,6 +1,6 @@
 import { JsonValue } from "@blockprotocol/core";
-import { DataType } from "@local/hash-graph-client";
 import { ValueConstraint } from "@local/hash-subgraph";
+import { getJsonSchemaTypeFromValue } from "@local/hash-subgraph/stdlib";
 
 export type FormattedValuePart = {
   color: string;
@@ -34,26 +34,6 @@ const createFormattedParts = ({
   }
 
   return parts;
-};
-
-export const getJsonSchemaTypeFromValue = (
-  value: unknown,
-): DataType["type"] => {
-  if (value === null) {
-    return "null";
-  }
-
-  if (Array.isArray(value)) {
-    return "array";
-  }
-
-  switch (typeof value) {
-    case "number":
-    case "bigint":
-      return "number";
-    default:
-      return typeof value;
-  }
 };
 
 export const formatDataValue = (

@@ -6,6 +6,7 @@ import {
   getDataTypesByBaseUrl as getDataTypesByBaseUrlBp,
 } from "@blockprotocol/graph/temporal/stdlib";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { DataType } from "@local/hash-graph-client";
 
 import {
   BaseUrl,
@@ -79,3 +80,23 @@ export const getDataTypesByBaseUrl = (
     subgraph as unknown as SubgraphBp,
     baseUrl,
   ) as DataTypeWithMetadata[];
+
+export const getJsonSchemaTypeFromValue = (
+  value: unknown,
+): DataType["type"] => {
+  if (value === null) {
+    return "null";
+  }
+
+  if (Array.isArray(value)) {
+    return "array";
+  }
+
+  switch (typeof value) {
+    case "number":
+    case "bigint":
+      return "number";
+    default:
+      return typeof value;
+  }
+};
