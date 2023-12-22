@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-// A UUID, as defined in RFC 4122.
-// Protocol Buffers still don't support UUIDs natively (or as a well-known type),
-// there are multiple possible representations possible, each with different sizes.
-// as outlined in: https://github.com/protocolbuffers/protobuf/issues/2224#issuecomment-1184082730
-message Uuid {
-  bytes value = 1;
-}

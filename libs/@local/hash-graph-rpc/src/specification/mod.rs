@@ -1,6 +1,6 @@
 pub mod account;
 pub(crate) mod generic;
-#[cfg(target_arch = "wasm32")]
+#[cfg(any(target_arch = "wasm32", feature = "wasm"))]
 pub(crate) mod wasm;
 
 /// Convenience macro for defining a service.
@@ -51,13 +51,14 @@ pub(crate) mod wasm;
 macro_rules! service {
     (@type[$vis:vis] procedure $name:ident()) => {
         #[derive(serde::Serialize, serde::Deserialize)]
-        #[cfg_attr(target_arch = "wasm32", derive(specta::Type))]
+        #[cfg_attr(any(target_arch = "wasm32", feature = "wasm"), derive(specta::Type))]
         $vis struct $name;
     };
 
     (@type[$vis:vis] procedure $name:ident($($fields:tt)+)) => {
         #[derive(serde::Serialize, serde::Deserialize)]
-        #[cfg_attr(target_arch = "wasm32", derive(specta::Type))]
+        #[cfg_attr(any(target_arch = "wasm32", feature = "wasm"), derive(specta::Type))]
+        #[serde(rename_all = "camelCase")]
         $vis struct $name {
             $($fields)+
         }
@@ -172,17 +173,22 @@ macro_rules! service {
     (@wasm #types[$vis:vis $service:ident $map:ident $types:ident]) => {};
 
     (@wasm #types[$vis:vis $service:ident $map:ident $types:ident] rpc$([$($options:tt)*])? $name:ident($($($args:tt)+)?) $(-> $output:ty)?; $($rest:tt)*) => {
-        let func = specta::functions::FunctionDataType {
-            asyncness: true,
-            name: std::borrow::Cow::Borrowed(paste::paste!(stringify!([< call $name >]))),
-            args: vec![
-                // TODO: this needs to reference the class
-                (std::borrow::Cow::Borrowed("client"), <paste::paste!([< $service Client >]) as specta::Type>::definition($map)),
-                $(${ignore(args)} (std::borrow::Cow::Borrowed("args"), <$name as specta::Type>::definition($map)))?
-            ],
-            result: <Result<($($output)?), $crate::specification::wasm::AnyError> as specta::Type>::definition($map),
-            docs: std::borrow::Cow::Borrowed(concat!("Call the `", stringify!($name), "` procedure of the `", stringify!($service), "` service.")),
-            deprecated: None
+        let func = {
+            let client = <paste::paste!([< $service Client >]) as specta::Type>::reference($map, &[]).inner;
+            $(${ignore(args)} let args = <$name as specta::Type>::reference($map, &[]).inner;)?;
+            let result = <($($output)?) as specta::Type>::reference($map, &[]).inner;
+
+            specta::functions::FunctionDataType {
+                asyncness: true,
+                name: std::borrow::Cow::Borrowed(paste::paste!(stringify!([< call $name >]))),
+                args: vec![
+                    (std::borrow::Cow::Borrowed("client"), client),
+                    $(${ignore(args)} (std::borrow::Cow::Borrowed("args"), args))?
+                ],
+                result,
+                docs: std::borrow::Cow::Borrowed(concat!("Call the `", stringify!($name), "` procedure of the `", stringify!($service), "` service.")),
+                deprecated: None
+            }
         };
 
         $types.push(func);
@@ -195,17 +201,18 @@ macro_rules! service {
     };
 
     (@wasm[$vis:vis $service:ident] $($tt:tt)*) => {
-        #[cfg(target_arch = "wasm32")]
+        #[cfg(any(target_arch = "wasm32", feature = "wasm"))]
         #[automatically_derived]
-        mod __wasm {
+        pub mod wasm {
             use super::*;
 
             paste::paste! {
-                #[wasm_bindgen::prelude::wasm_bindgen]
+                #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
                 struct [< $service Client >] {
                     client: $crate::harpc::client::Client<$service, $crate::specification::generic::DefaultEncoder>,
                 }
 
+                #[cfg(target_arch = "wasm32")]
                 #[wasm_bindgen::prelude::wasm_bindgen]
                 impl [< $service Client >] {
                     #[doc = "Create a new " $service " client."]
@@ -238,11 +245,12 @@ macro_rules! service {
             }
 
 
+            #[cfg(target_arch = "wasm32")]
             service!(@wasm #client[$vis $service] $($tt)*);
 
             service!(@wasm #types[$vis $service] $($tt)*);
 
-            #[cfg(target_arch = "wasm32")]
+            #[cfg(any(target_arch = "wasm32", feature = "wasm"))]
             paste::paste!($crate::specification::wasm::export_service!([<$service Client>]););
         }
     };
