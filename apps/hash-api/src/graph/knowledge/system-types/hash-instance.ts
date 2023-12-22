@@ -1,90 +1,19 @@
+import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
-  EntityTypeMismatchError,
-  NotFoundError,
-} from "@local/hash-backend-utils/error";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+  getHashInstance,
+  getHashInstanceFromEntity,
+  HashInstance,
+} from "@local/hash-backend-utils/hash-instance";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  SimpleProperties,
-  simplifyProperties,
-} from "@local/hash-isomorphic-utils/simplify-properties";
 import { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import { Entity, EntityRootType, OwnedById } from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { AccountGroupId, OwnedById } from "@local/hash-subgraph";
 
 import { createAccountGroup } from "../../account-permission-management";
-import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import { ImpureGraphFunction } from "../../context-types";
 import { modifyEntityTypeAuthorizationRelationships } from "../../ontology/primitive/entity-type";
 import { createEntity } from "../primitive/entity";
 import { getOrgByShortname } from "./org";
 import { User } from "./user";
-
-export type HashInstance = {
-  entity: Entity;
-} & SimpleProperties<HASHInstanceProperties>;
-
-export const getHashInstanceFromEntity: PureGraphFunction<
-  { entity: Entity },
-  HashInstance
-> = ({ entity }) => {
-  if (
-    entity.metadata.entityTypeId !== systemEntityTypes.hashInstance.entityTypeId
-  ) {
-    throw new EntityTypeMismatchError(
-      entity.metadata.recordId.entityId,
-      systemEntityTypes.hashInstance.entityTypeId,
-      entity.metadata.entityTypeId,
-    );
-  }
-
-  return {
-    ...simplifyProperties(entity.properties as HASHInstanceProperties),
-    entity,
-  };
-};
-
-/**
- * Get the hash instance.
- */
-export const getHashInstance: ImpureGraphFunction<
-  {},
-  Promise<HashInstance>
-> = async ({ graphApi }, { actorId }) => {
-  const entities = await graphApi
-    .getEntitiesByQuery(actorId, {
-      filter: generateVersionedUrlMatchingFilter(
-        systemEntityTypes.hashInstance.entityTypeId,
-        { ignoreParents: true },
-      ),
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-    })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
-
-      return getRoots(subgraph);
-    });
-
-  if (entities.length > 1) {
-    throw new Error("More than one hash instance entity found in the graph.");
-  }
-
-  const entity = entities[0];
-
-  if (!entity) {
-    throw new NotFoundError("Could not find hash instance entity.");
-  }
-
-  return getHashInstanceFromEntity({ entity });
-};
 
 /**
  * Create the hash instance entity.
@@ -104,16 +33,14 @@ export const createHashInstance: ImpureGraphFunction<
   Promise<HashInstance>
 > = async (ctx, authentication, params) => {
   // Ensure the hash instance entity has not already been created.
-  const existingHashInstance = await getHashInstance(
-    ctx,
-    authentication,
-    {},
-  ).catch((error: Error) => {
-    if (error instanceof NotFoundError) {
-      return null;
-    }
-    throw error;
-  });
+  const existingHashInstance = await getHashInstance(ctx, authentication).catch(
+    (error: Error) => {
+      if (error instanceof NotFoundError) {
+        return null;
+      }
+      throw error;
+    },
+  );
 
   if (existingHashInstance) {
     throw new Error("HASH instance entity already exists.");
@@ -194,7 +121,7 @@ export const addHashInstanceAdmin: ImpureGraphFunction<
   { user: User },
   Promise<void>
 > = async (ctx, authentication, params) => {
-  const hashInstance = await getHashInstance(ctx, authentication, {});
+  const hashInstance = await getHashInstance(ctx, authentication);
 
   const entityPermissions = await ctx.graphApi
     .getEntityAuthorizationRelationships(
@@ -227,7 +154,7 @@ export const removeHashInstanceAdmin: ImpureGraphFunction<
   { user: User },
   Promise<void>
 > = async (ctx, authentication, params): Promise<void> => {
-  const hashInstance = await getHashInstance(ctx, authentication, {});
+  const hashInstance = await getHashInstance(ctx, authentication);
 
   const entityPermissions = await ctx.graphApi
     .getEntityAuthorizationRelationships(

@@ -1,5 +1,6 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { NotFoundError } from "@local/hash-backend-utils/error";
+import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
   createMachineActorEntity,
   createWebMachineActor,
@@ -24,10 +25,8 @@ import {
   createWeb,
 } from "../account-permission-management";
 import { ImpureGraphContext } from "../context-types";
-import {
-  createHashInstance,
-  getHashInstance,
-} from "../knowledge/system-types/hash-instance";
+import { createEntity } from "../knowledge/primitive/entity";
+import { createHashInstance } from "../knowledge/system-types/hash-instance";
 import { createOrg, getOrgByShortname } from "../knowledge/system-types/org";
 import { systemAccountId } from "../system-account";
 import { getEntitiesByType } from "./migrate-ontology-types/util";

@@ -41,7 +41,6 @@ export type MachineActorIdentifier =
 /**
  * Retrieve a machine actor's accountId by its unique identifier
  */
-
 export const getMachineActorId = async (
   context: { graphApi: GraphApi },
   authentication: { actorId: AccountId },

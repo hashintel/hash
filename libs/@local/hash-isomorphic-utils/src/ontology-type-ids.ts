@@ -113,6 +113,11 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/service-account/",
   },
+  serviceFeature: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/service-feature/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/service-feature/",
+  },
   text: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/text/v/1",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/text/",
@@ -126,6 +131,10 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/twitter-account/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/twitter-account/",
+  },
+  usageRecord: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/usage-record/v/1",
+    entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/usage-record/",
   },
   user: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/2",
@@ -142,6 +151,10 @@ export const systemLinkEntityTypes = {
     linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/authored-by/v/1",
     linkEntityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/authored-by/",
+  },
+  created: {
+    linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/created/v/1",
+    linkEntityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/created/",
   },
   hasAvatar: {
     linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/has-avatar/v/1",
@@ -219,6 +232,12 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/occurred-in-text/",
   },
+  recordsUsageOf: {
+    linkEntityTypeId:
+      "https://hash.ai/@hash/types/entity-type/records-usage-of/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/records-usage-of/",
+  },
   repliedToComment: {
     linkEntityTypeId:
       "https://hash.ai/@hash/types/entity-type/replied-to-comment/v/1",
@@ -243,6 +262,10 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/triggered-by-user/",
   },
+  updated: {
+    linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/updated/v/1",
+    linkEntityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/updated/",
+  },
   usesUserSecret: {
     linkEntityTypeId:
       "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1",
@@ -252,6 +275,18 @@ export const systemLinkEntityTypes = {
 } as const;
 
 export const systemPropertyTypes = {
+  appliesFrom: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/applies-from/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/applies-from/",
+  },
+  appliesUntil: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/applies-until/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/applies-until/",
+  },
   archived: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/archived/v/1",
     propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/archived/",
@@ -287,6 +322,12 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/expired-at/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/expired-at/",
+  },
+  featureName: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/feature-name/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/feature-name/",
   },
   fileStorageBucket: {
     propertyTypeId:
@@ -346,6 +387,18 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/icon/v/1",
     propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/icon/",
   },
+  inputUnitCost: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/input-unit-cost/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/input-unit-cost/",
+  },
+  inputUnitCount: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/input-unit-count/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/input-unit-count/",
+  },
   kratosIdentityId: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/kratos-identity-id/v/1",
@@ -385,6 +438,18 @@ export const systemPropertyTypes = {
       "https://hash.ai/@hash/types/property-type/organization-name/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/organization-name/",
+  },
+  outputUnitCost: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/output-unit-cost/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/output-unit-cost/",
+  },
+  outputUnitCount: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/output-unit-count/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/output-unit-count/",
   },
   pagesAreEnabled: {
     propertyTypeId:
@@ -429,6 +494,18 @@ export const systemPropertyTypes = {
       "https://hash.ai/@hash/types/property-type/rotation-in-rads/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/rotation-in-rads/",
+  },
+  serviceName: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/service-name/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/service-name/",
+  },
+  serviceUnitCost: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/service-unit-cost/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/service-unit-cost/",
   },
   shortname: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/shortname/v/1",

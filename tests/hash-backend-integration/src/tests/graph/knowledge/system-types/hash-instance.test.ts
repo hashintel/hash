@@ -3,17 +3,17 @@ import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
   addHashInstanceAdmin,
-  getHashInstance,
-  HashInstance,
   removeHashInstanceAdmin,
 } from "@apps/hash-api/src/graph/knowledge/system-types/hash-instance";
-import {
-  isUserHashInstanceAdmin,
-  User,
-} from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import {
+  getHashInstance,
+  HashInstance,
+  isUserHashInstanceAdmin,
+} from "@local/hash-backend-utils/hash-instance";
 import { Logger } from "@local/hash-backend-utils/logger";
 
 import { resetGraph } from "../../../test-server";
@@ -64,7 +64,7 @@ describe("Hash Instance", () => {
 
     expect(
       await isUserHashInstanceAdmin(graphContext, authentication, {
-        user: testHashInstanceAdmin,
+        userAccountId: testHashInstanceAdmin.accountId,
       }),
     ).toBeFalsy();
   });
@@ -80,7 +80,7 @@ describe("Hash Instance", () => {
 
     expect(
       await isUserHashInstanceAdmin(graphContext, authentication, {
-        user: testHashInstanceAdmin,
+        userAccountId: testHashInstanceAdmin.accountId,
       }),
     ).toBeTruthy();
   });
@@ -96,7 +96,7 @@ describe("Hash Instance", () => {
 
     expect(
       await isUserHashInstanceAdmin(graphContext, authentication, {
-        user: testHashInstanceAdmin,
+        userAccountId: testHashInstanceAdmin.accountId,
       }),
     ).toBeFalsy();
   });

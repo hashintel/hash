@@ -92,7 +92,7 @@ import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-depend
 
 const systemTypeDomain = "https://hash.ai";
 
-const generateSystemTypeBaseUrl = ({
+export const generateSystemTypeBaseUrl = ({
   kind,
   title,
   shortname,
@@ -314,8 +314,10 @@ type PropertyTypeDefinition = {
   title: string;
   description?: string;
   possibleValues: {
+    dataTypeId?: VersionedUrl;
     primitiveDataType?: PrimitiveDataTypeKey;
     propertyTypeObjectProperties?: { [_ in string]: { $ref: VersionedUrl } };
+    propertyTypeObjectRequiredProperties?: BaseUrl[];
     array?: boolean;
   }[];
 };
@@ -327,10 +329,21 @@ export const generateSystemPropertyTypeSchema = (
   params: PropertyTypeDefinition,
 ): PropertyType => {
   const possibleValues: PropertyValues[] = params.possibleValues.map(
-    ({ array, primitiveDataType, propertyTypeObjectProperties }) => {
+    ({
+      array,
+      dataTypeId,
+      primitiveDataType,
+      propertyTypeObjectProperties,
+      propertyTypeObjectRequiredProperties,
+    }) => {
       let inner: PropertyValues;
 
-      if (primitiveDataType) {
+      if (dataTypeId) {
+        const dataTypeReference: DataTypeReference = {
+          $ref: dataTypeId,
+        };
+        inner = dataTypeReference;
+      } else if (primitiveDataType) {
         const dataTypeReference: DataTypeReference = {
           $ref: blockProtocolDataTypes[primitiveDataType].dataTypeId,
         };
@@ -341,6 +354,7 @@ export const generateSystemPropertyTypeSchema = (
         > = {
           type: "object" as const,
           properties: propertyTypeObjectProperties,
+          required: propertyTypeObjectRequiredProperties ?? [],
         };
         inner = propertyTypeObject;
       } else {

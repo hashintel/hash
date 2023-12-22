@@ -1,11 +1,11 @@
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { Session } from "@ory/client";
 import { AxiosError } from "axios";
 import { Express, Request, RequestHandler } from "express";
 
 import { ImpureGraphContext } from "../graph/context-types";
-import { getHashInstance } from "../graph/knowledge/system-types/hash-instance";
 import {
   createUser,
   getUserByKratosIdentityId,
