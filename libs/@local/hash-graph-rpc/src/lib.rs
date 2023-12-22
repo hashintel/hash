@@ -3,6 +3,7 @@
 #![feature(never_type)]
 #![feature(associated_type_bounds)]
 #![feature(type_alias_impl_trait)]
+#![feature(macro_metavar_expr)]
 extern crate core;
 
 pub mod harpc;

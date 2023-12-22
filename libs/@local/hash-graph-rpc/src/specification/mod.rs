@@ -82,48 +82,6 @@ macro_rules! service {
         service!(@procedure[$vis] $($rest)*);
     };
 
-    (@client[$vis:vis $service:ident]) => {};
-
-    (@client[$vis:vis $service:ident] rpc$([$($options:tt)*])? $name:ident($($_:vis $fname:ident : $ftype:ty),* $(,)?) $(-> $output:ty)?; $($rest:tt)*) => {
-        paste::paste! {
-            #[cfg(target_arch = "wasm32")]
-            #[wasm_bindgen::prelude::wasm_bindgen]
-            impl [< $service Client >] {
-                #[doc = "Call the " $name " procedure of the " $service " service."]
-                ///
-                /// # Errors
-                ///
-                /// Returns an error if the request cannot be encoded, the response cannot be decoded, or if the
-                /// remote encountered a transport error.
-                // TODO: JS name
-                // TODO: JS types
-                #[allow(unused_parens)]
-                #[wasm_bindgen::prelude::wasm_bindgen]
-                $vis async fn [< $name:snake:lower >](&self, $($fname :$ftype ,)*)
-                    -> Result<($($output)?), wasm_bindgen::JsValue>
-                {
-                    self.client
-                        .call($name {
-                            $($fname,)*
-                        })
-                        .await
-                        .map_err(|error| {
-                            match serde_wasm_bindgen::to_value(&error) {
-                                Ok(value) => value,
-                                Err(error) => error.into(),
-                            }
-                        })
-                }
-            }
-        }
-
-        service!(@client[$vis $service] $($rest)*);
-    };
-
-    (@client[$vis:vis $service:ident] $_:tt $($rest:tt)*) => {
-        service!(@client[$vis $service] $($rest)*);
-    };
-
     (@extract version;) => {
         const VERSION: $crate::harpc::ServiceVersion = $crate::harpc::ServiceVersion::new(0);
     };
@@ -160,6 +118,90 @@ macro_rules! service {
         service!(@extract names; $($rest)*)
     };
 
+    (@wasm #client[$vis:vis $service:ident]) => {};
+
+    (@wasm #client[$vis:vis $service:ident] rpc$([$($options:tt)*])? $name:ident($($($args:tt)+)?) $(-> $output:ty)?; $($rest:tt)*) => {
+        paste::paste! {
+            #[doc = "Call the `" $name "` procedure of the `" $service "` service."]
+            ///
+            /// # Errors
+            ///
+            /// Returns an error if the request cannot be encoded, the response cannot be decoded, or if the
+            /// remote encountered a transport error.
+            // TODO: in the future I'd like to remove the `call` prefix, but `:camel` returns `PascalCase`(?)
+            //     instead of `camelCase` which is what we want, and https://github.com/rustwasm/wasm-bindgen/issues/1818
+            //     is still open.
+            #[allow(unused_parens)]
+            #[wasm_bindgen::prelude::wasm_bindgen(js_name = [< call $name:camel >])]
+            pub async fn [< $name:snake >](client: & [<$service Client>], $(${ignore(args)} args: $name)?)
+                -> Result<($($output)?), wasm_bindgen::JsValue>
+            {
+                client.client
+                    .call($name { $(${ignore(args)} ..args)? })
+                    .await
+                    .map_err(|error| {
+                        match serde_wasm_bindgen::to_value(&error) {
+                            Ok(value) => value,
+                            Err(error) => error.into(),
+                        }
+                    })
+            }
+        }
+
+        service!(@wasm #client[$vis $service] $($rest)*);
+    };
+
+    (@wasm #client[$vis:vis $service:ident] $_:tt $($rest:tt)*) => {
+        service!(@wasm #client[$vis $service] $($rest)*);
+    };
+
+    (@wasm[$vis:vis $service:ident] $($tt:tt)*) => {
+        #[cfg(target_arch = "wasm32")]
+        mod __wasm {
+            use super::*;
+
+            paste::paste! {
+                #[wasm_bindgen::prelude::wasm_bindgen]
+                struct [< $service Client >] {
+                    client: $crate::harpc::client::Client<$service, $crate::specification::generic::DefaultEncoder>,
+                }
+
+                #[wasm_bindgen::prelude::wasm_bindgen]
+                impl [< $service Client >] {
+                    #[doc = "Create a new " $service " client."]
+                    ///
+                    /// # Errors
+                    ///
+                    /// This function can fail if the underlying transport fails to connect.
+                    #[wasm_bindgen::prelude::wasm_bindgen(constructor)]
+                    pub fn new(
+                        remote: wasm_bindgen::JsValue,
+                        actor: $crate::harpc::transport::message::actor::ActorId,
+                    ) -> Result<[< $service Client >], wasm_bindgen::JsValue> {
+                        let remote = serde_wasm_bindgen::from_value(remote)?;
+
+                        let client = $crate::harpc::client::Client::new(
+                                $crate::specification::generic::DefaultEncoder,
+                                actor,
+                                remote,
+                                $crate::harpc::transport::TransportConfig::default()
+                            ).map_err(|error| {
+                                match serde_wasm_bindgen::to_value(&error) {
+                                    Ok(value) => value,
+                                    Err(error) => error.into(),
+                                }
+                            })?;
+
+                        Ok(Self { client })
+                    }
+                }
+            }
+
+
+            service!(@wasm #client[$vis $service] $($tt)*);
+        }
+    };
+
     ($vis:vis service $name:ident {
         $($tt:tt)*
     }) => {
@@ -174,46 +216,7 @@ macro_rules! service {
 
         service!(@procedure[$vis] $($tt)*);
 
-        paste::paste! {
-            #[cfg(target_arch = "wasm32")]
-            #[wasm_bindgen::prelude::wasm_bindgen]
-            $vis struct [< $name Client >] {
-                client: $crate::harpc::client::Client<$name, $crate::specification::generic::DefaultEncoder>,
-            }
-
-            #[cfg(target_arch = "wasm32")]
-            #[wasm_bindgen::prelude::wasm_bindgen]
-            impl [< $name Client >] {
-                #[doc = "Create a new " $name " client."]
-                ///
-                /// # Errors
-                ///
-                /// This function can fail if the underlying transport fails to connect.
-                #[wasm_bindgen::prelude::wasm_bindgen(constructor)]
-                pub fn new(
-                    remote: wasm_bindgen::JsValue,
-                    actor: $crate::harpc::transport::message::actor::ActorId,
-                ) -> Result<[< $name Client >], wasm_bindgen::JsValue> {
-                    let remote = serde_wasm_bindgen::from_value(remote)?;
-
-                    let client = $crate::harpc::client::Client::new(
-                            $crate::specification::generic::DefaultEncoder,
-                            actor,
-                            remote,
-                            $crate::harpc::transport::TransportConfig::default()
-                        ).map_err(|error| {
-                            match serde_wasm_bindgen::to_value(&error) {
-                                Ok(value) => value,
-                                Err(error) => error.into(),
-                            }
-                        })?;
-
-                    Ok(Self { client })
-                }
-            }
-        }
-
-        service!(@client[$vis $name] $($tt)*);
+        service!(@wasm[$vis $name] $($tt)*);
     };
 }
 
