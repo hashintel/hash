@@ -269,7 +269,7 @@ const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
   return entity;
 };
 
-const userCreatehookCallback: CreateEntityHookCallback = async ({ entity }) => {
+const userCreateHookCallback: CreateEntityHookCallback = async ({ entity }) => {
   if (isProdEnv) {
     const {
       email: emails,
@@ -304,6 +304,6 @@ export const afterCreateEntityHooks: CreateEntityHook[] = [
   },
   {
     entityTypeId: systemEntityTypes.user.entityTypeId,
-    callback: userCreatehookCallback,
+    callback: userCreateHookCallback,
   },
 ];
