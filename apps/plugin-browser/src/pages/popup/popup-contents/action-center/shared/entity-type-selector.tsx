@@ -39,7 +39,7 @@ export const EntityTypeSelector = ({
   setTargetEntityTypeIds,
   targetEntityTypeIds,
 }: SelectTypesAndInferProps) => {
-  const allEntityTypes = useEntityTypes();
+  const { entityTypes: allEntityTypes } = useEntityTypes();
 
   const selectedEntityTypes = useMemo(
     () =>

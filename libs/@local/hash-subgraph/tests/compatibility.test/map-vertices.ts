@@ -1,5 +1,4 @@
 import {
-  DataType,
   EntityType,
   OneOf,
   PropertyType,
@@ -31,6 +30,7 @@ import {
   CreatedAtDecisionTime,
   CreatedAtTransactionTime,
   CreatedById,
+  CustomDataType,
   DataTypeMetadata,
   EditionArchivedById,
   EditionCreatedById,
@@ -51,7 +51,7 @@ import {
   Vertices,
 } from "@local/hash-subgraph";
 
-const mapDataType = (dataType: DataTypeGraphApi): DataType => {
+const mapDataType = (dataType: DataTypeGraphApi): CustomDataType => {
   const idResult = validateVersionedUrl(dataType.$id);
   if (idResult.type === "Err") {
     throw new Error(
@@ -63,7 +63,7 @@ const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const { inner: $id } = idResult;
 
   return {
-    ...dataType,
+    ...(dataType as CustomDataType),
     $id,
   };
 };

@@ -6,14 +6,6 @@ import { uniq } from "lodash";
  */
 export type EmptyObject = Record<any, never>;
 
-export type DistributiveOmit<T, K extends keyof any> = T extends any
-  ? Omit<T, K>
-  : never;
-
-export type DistributivePick<T, K extends keyof T> = T extends unknown
-  ? Pick<T, K>
-  : never;
-
 /**
  * @see https://github.com/microsoft/TypeScript/issues/25720#issuecomment-533438205
  */

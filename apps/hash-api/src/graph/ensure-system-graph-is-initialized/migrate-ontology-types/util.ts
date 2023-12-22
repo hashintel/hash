@@ -4,6 +4,7 @@ import path from "node:path";
 
 import {
   Array,
+  DATA_TYPE_META_SCHEMA,
   DataTypeReference,
   ENTITY_TYPE_META_SCHEMA,
   EntityType,
@@ -18,7 +19,10 @@ import {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
-import { UpdatePropertyType } from "@local/hash-graph-client";
+import {
+  DataTypeRelationAndSubject,
+  UpdatePropertyType,
+} from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -38,6 +42,8 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   BaseUrl,
+  ConstructDataTypeParams,
+  CustomDataType,
   DataTypeWithMetadata,
   Entity,
   EntityRootType,
@@ -64,7 +70,10 @@ import {
   CACHED_PROPERTY_TYPE_SCHEMAS,
 } from "../../../seed-data";
 import { ImpureGraphFunction } from "../../context-types";
-import { getDataTypeById } from "../../ontology/primitive/data-type";
+import {
+  createDataType,
+  getDataTypeById,
+} from "../../ontology/primitive/data-type";
 import {
   createEntityType,
   getEntityTypeById,
@@ -368,6 +377,105 @@ export const generateSystemPropertyTypeSchema = (
 type BaseCreateTypeIfNotExistsParameters = {
   webShortname: SystemTypeWebShortname;
   migrationState: MigrationState;
+};
+
+const generateSystemDataTypeSchema = ({
+  dataTypeId,
+  ...rest
+}: ConstructDataTypeParams & { dataTypeId: VersionedUrl }): CustomDataType => {
+  return {
+    $id: dataTypeId,
+    $schema: DATA_TYPE_META_SCHEMA,
+    kind: "dataType",
+    ...rest,
+  };
+};
+
+export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
+  {
+    dataTypeDefinition: ConstructDataTypeParams;
+  } & BaseCreateTypeIfNotExistsParameters,
+  Promise<DataTypeWithMetadata>
+> = async (
+  context,
+  authentication,
+  { dataTypeDefinition, migrationState, webShortname },
+) => {
+  const { title } = dataTypeDefinition;
+  const baseUrl = generateSystemTypeBaseUrl({
+    kind: "data-type",
+    title,
+    shortname: webShortname,
+  });
+
+  const versionNumber = 1;
+
+  const dataTypeId = versionedUrlFromComponents(baseUrl, versionNumber);
+
+  migrationState.dataTypeVersions[baseUrl] = versionNumber;
+
+  const existingDataType = await getDataTypeById(context, authentication, {
+    dataTypeId,
+  }).catch((error: Error) => {
+    if (error instanceof NotFoundError) {
+      return null;
+    }
+    throw error;
+  });
+
+  if (existingDataType) {
+    return existingDataType;
+  }
+
+  const dataTypeSchema = generateSystemDataTypeSchema({
+    ...dataTypeDefinition,
+    dataTypeId,
+  });
+
+  const { accountGroupId, machineActorId } =
+    await getOrCreateOwningAccountGroupId(context, webShortname);
+
+  const relationships: DataTypeRelationAndSubject[] = [
+    {
+      relation: "viewer",
+      subject: {
+        kind: "public",
+      },
+    },
+  ];
+
+  if (isSelfHostedInstance) {
+    /**
+     * If this is a self-hosted instance, the system types will be created as external types that don't belong to an in-instance web,
+     * although they will be created by a machine actor associated with an equivalently named web.
+     */
+    await context.graphApi.loadExternalDataType(machineActorId, {
+      // Specify the schema so that self-hosted instances don't need network access to hash.ai
+      schema: dataTypeSchema,
+      relationships,
+    });
+
+    return await getDataTypeById(context, authentication, {
+      dataTypeId: dataTypeSchema.$id,
+    });
+  } else {
+    // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
+    const createdDataType = await createDataType(
+      context,
+      { actorId: machineActorId },
+      {
+        ownedById: accountGroupId as OwnedById,
+        schema: dataTypeSchema,
+        webShortname,
+        relationships,
+      },
+    ).catch((createError) => {
+      // logger.warn(`Failed to create data type: ${propertyTypeId}`);
+      throw createError;
+    });
+
+    return createdDataType;
+  }
 };
 
 export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<

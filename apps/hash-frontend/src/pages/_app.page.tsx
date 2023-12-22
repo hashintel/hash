@@ -48,6 +48,7 @@ import { RoutePageInfoProvider } from "../shared/routing";
 import { ErrorFallback } from "./_app.page/error-fallback";
 import { AppPage, redirectInGetInitialProps } from "./shared/_app.util";
 import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
+import { DataTypesContextProvider } from "./shared/data-types-context";
 import { setSentryUser } from "./shared/sentry";
 import { WorkspaceContextProvider } from "./shared/workspace-context";
 
@@ -148,22 +149,24 @@ const App: FunctionComponent<AppProps> = ({
                       <DraftEntitiesContextProvider>
                         <EntityTypesContextProvider>
                           <PropertyTypesContextProvider includeArchived>
-                            <FileUploadsProvider>
-                              <SidebarContextProvider>
-                                <ErrorBoundary
-                                  beforeCapture={(scope) => {
-                                    scope.setTag("error-boundary", "_app");
-                                  }}
-                                  fallback={(props) =>
-                                    getLayoutWithSidebar(
-                                      <ErrorFallback {...props} />,
-                                    )
-                                  }
-                                >
-                                  {getLayout(<Component {...pageProps} />)}
-                                </ErrorBoundary>
-                              </SidebarContextProvider>
-                            </FileUploadsProvider>
+                            <DataTypesContextProvider>
+                              <FileUploadsProvider>
+                                <SidebarContextProvider>
+                                  <ErrorBoundary
+                                    beforeCapture={(scope) => {
+                                      scope.setTag("error-boundary", "_app");
+                                    }}
+                                    fallback={(props) =>
+                                      getLayoutWithSidebar(
+                                        <ErrorFallback {...props} />,
+                                      )
+                                    }
+                                  >
+                                    {getLayout(<Component {...pageProps} />)}
+                                  </ErrorBoundary>
+                                </SidebarContextProvider>
+                              </FileUploadsProvider>
+                            </DataTypesContextProvider>
                           </PropertyTypesContextProvider>
                         </EntityTypesContextProvider>
                       </DraftEntitiesContextProvider>

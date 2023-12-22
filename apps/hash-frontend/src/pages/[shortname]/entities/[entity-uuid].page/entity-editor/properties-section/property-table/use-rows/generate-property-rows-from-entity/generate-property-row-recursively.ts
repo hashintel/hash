@@ -8,12 +8,12 @@ import {
   EntityRootType,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getPropertyTypesByBaseUrl } from "@local/hash-subgraph/stdlib";
+import { getPropertyTypeForEntity } from "@local/hash-subgraph/stdlib";
 import { get } from "lodash";
 
 import {
   isPropertyValueArray,
-  isPropertyValueNested,
+  isPropertyValuePropertyObject,
 } from "../../../../../../../../../lib/typeguards";
 import { PropertyRow } from "../../types";
 import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property-type";
@@ -66,19 +66,11 @@ export const generatePropertyRowRecursively = ({
 
   propertyOnEntityTypeSchema?: ValueOrArray<PropertyTypeReference>;
 }): PropertyRow => {
-  const propertyTypeVersions = getPropertyTypesByBaseUrl(
+  const { propertyType } = getPropertyTypeForEntity(
     entitySubgraph,
+    entity.metadata.entityTypeId,
     propertyTypeBaseUrl,
   );
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
-  if (!propertyTypeVersions) {
-    throw new Error(
-      `propertyType not found for base URL: ${propertyTypeBaseUrl}`,
-    );
-  }
-
-  const propertyType = propertyTypeVersions[0]!.schema;
 
   const { isArray: isPropertyTypeArray, expectedTypes } =
     getExpectedTypesOfPropertyType(propertyType, entitySubgraph);
@@ -95,7 +87,7 @@ export const generatePropertyRowRecursively = ({
   const children: PropertyRow[] = [];
 
   const firstOneOf = propertyType.oneOf[0];
-  const isFirstOneOfNested = isPropertyValueNested(firstOneOf);
+  const isFirstOneOfNested = isPropertyValuePropertyObject(firstOneOf);
   const isFirstOneOfArray = isPropertyValueArray(firstOneOf);
 
   // if first `oneOf` of property type is nested property, it means it should have children

@@ -22,6 +22,7 @@ import { useEntityTypesContextRequired } from "../../../../shared/entity-types-c
 import { ArrowRightIcon } from "../../../../shared/icons/arrow-right";
 import { Link } from "../../../../shared/ui";
 import { useRouteNamespace } from "../../../[shortname]/shared/use-route-namespace";
+import { useDataTypesContext } from "../../data-types-context";
 import { EntityTypeContext } from "../shared/entity-type-context";
 import { EntityTypeHeader } from "../shared/entity-type-header";
 import { getTypesWithoutMetadata } from "../shared/get-types-without-metadata";
@@ -100,7 +101,17 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
     }, 300);
   }, [setAnimateOut, onBack]);
 
-  if (!remotePropertyTypes) {
+  const { dataTypes } = useDataTypesContext();
+  const dataTypeOptions = useMemo(() => {
+    if (!dataTypes) {
+      return null;
+    }
+    return Object.fromEntries(
+      Object.entries(dataTypes).map(([key, value]) => [key, value.schema]),
+    );
+  }, [dataTypes]);
+
+  if (!remotePropertyTypes || !dataTypeOptions) {
     return null;
   }
 
@@ -194,6 +205,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
                 />
                 <EntityTypeEditor
                   customization={{ onNavigateToType }}
+                  dataTypeOptions={dataTypeOptions}
                   entityType={remoteEntityType.schema}
                   entityTypeOptions={entityTypeOptions}
                   ontologyFunctions={null}

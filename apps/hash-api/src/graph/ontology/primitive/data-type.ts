@@ -14,8 +14,8 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { ConstructDataTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
+  ConstructDataTypeParams,
   DataTypeAuthorizationRelationship,
   DataTypeMetadata,
   DataTypeRelationAndSubject,

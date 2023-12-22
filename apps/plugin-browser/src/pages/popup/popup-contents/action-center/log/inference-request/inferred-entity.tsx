@@ -1,17 +1,30 @@
+import type { JsonValue } from "@blockprotocol/core";
 import {
   CaretDownSolidIcon,
   IconButton,
   LinkIcon,
   PlusIcon,
 } from "@hashintel/design-system";
+import { customColors } from "@hashintel/design-system/theme";
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/ai-inference-types";
+import {
+  formatDataValue,
+  FormattedValuePart,
+} from "@local/hash-isomorphic-utils/data-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   BaseUrl,
+  DataTypeWithMetadata,
   Entity,
   EntityPropertyValue,
+  EntityTypeRootType,
   EntityTypeWithMetadata,
+  Subgraph,
 } from "@local/hash-subgraph";
+import {
+  getPropertyTypeForEntity,
+  guessSchemaForPropertyValue,
+} from "@local/hash-subgraph/stdlib";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 
 import { getOwnedByIdFromEntityId } from "../../../../../../shared/get-user";
@@ -54,20 +67,27 @@ const generateEntityLabel = (
   return `${entityType.schema.title}-${index + 1}`;
 };
 
-// This assumes a hash.ai/blockprotocol.org type URL format ending in [slugified-title]/
-const baseUrlToPropertyTitle = (baseUrl: BaseUrl) =>
-  baseUrl
-    .split("/")
-    .slice(-2, -1)[0]
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+const joinArrayParts = (partsGroupArray: FormattedValuePart[][]) => {
+  const result: FormattedValuePart[] = [];
+  for (const [index, sectionParts] of partsGroupArray.entries()) {
+    result.push(...sectionParts);
+    if (index < partsGroupArray.length - 1) {
+      result.push({
+        color: customColors.gray[50],
+        type: "rightLabel",
+        text: ", ",
+      });
+    }
+  }
+  return result;
+};
 
 type InferredEntityProps = {
   allEntityStatuses: InferEntitiesReturn["contents"][number]["results"];
   expanded: boolean;
   entityType: EntityTypeWithMetadata;
   entityTypes: EntityTypeWithMetadata[];
+  entityTypesSubgraph: Subgraph<EntityTypeRootType>;
   indexInType: number;
   result: InferEntitiesReturn["contents"][number]["results"][number];
   toggleExpanded: () => void;
@@ -79,6 +99,7 @@ export const InferredEntity = ({
   expanded,
   entityType,
   entityTypes,
+  entityTypesSubgraph,
   indexInType,
   result,
   toggleExpanded,
@@ -297,42 +318,127 @@ export const InferredEntity = ({
         <Stack mt={0.5}>
           {Object.entries(proposedEntity.properties ?? {})
             .sort((a, b) => a[0].localeCompare(b[0]))
-            .map(([key, value]) => (
-              <Stack
-                direction="row"
-                key={key}
-                sx={{ "&:not(:last-child)": { mb: 0.5 } }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    mr: 0.5,
-                    width: 120,
-                    whiteSpace: "nowrap",
-                    textOverflow: "ellipsis",
-                    overflow: "hidden",
-                  }}
+            .map(([key, value]) => {
+              const { propertyType, refSchema } = getPropertyTypeForEntity(
+                entityTypesSubgraph,
+                entityType.schema.$id,
+                key as BaseUrl,
+              );
+
+              const isArrayOfPropertyType = "items" in refSchema;
+
+              const { schema, isArrayOfSchema } = guessSchemaForPropertyValue(
+                entityTypesSubgraph,
+                propertyType,
+                value,
+              );
+
+              const formatValue = (
+                dataValue: JsonValue,
+                dataSchema: DataTypeWithMetadata["schema"] | null,
+              ): FormattedValuePart[] => {
+                if (isArrayOfSchema) {
+                  if (!Array.isArray(dataValue)) {
+                    throw new Error("Non-array value provided to array schema");
+                  }
+                  return joinArrayParts(
+                    dataValue.map((innerValue) =>
+                      formatDataValue(innerValue, dataSchema),
+                    ),
+                  );
+                }
+                return formatDataValue(dataValue, dataSchema);
+              };
+
+              // @todo check and improve this logic for handling nested arrays
+              const formatPropertyTypeValue = (
+                propertyValue: JsonValue,
+              ): FormattedValuePart[] => {
+                if (Array.isArray(schema)) {
+                  if (!Array.isArray(propertyValue)) {
+                    throw new Error("Non-array value provided to array schema");
+                  }
+
+                  return joinArrayParts(
+                    propertyValue.map((innerValue, index) =>
+                      formatValue(innerValue, schema[index]),
+                    ),
+                  );
+                }
+                return formatValue(propertyValue, schema);
+              };
+
+              const formattedValue: FormattedValuePart[] = [];
+              if (isArrayOfPropertyType) {
+                formattedValue.push(
+                  ...joinArrayParts(
+                    (value as JsonValue[]).map((innerValue) =>
+                      formatPropertyTypeValue(innerValue),
+                    ),
+                  ),
+                );
+              } else {
+                formattedValue.push(...formatPropertyTypeValue(value));
+              }
+
+              return (
+                <Stack
+                  direction="row"
+                  key={key}
+                  sx={{ "&:not(:last-child)": { mb: 0.5 } }}
                 >
-                  {baseUrlToPropertyTitle(key as BaseUrl)}:
-                </Typography>
-                <Typography
-                  sx={{
-                    display: "-webkit-box",
-                    "-webkit-line-clamp": "3",
-                    "-webkit-box-orient": "vertical",
-                    fontSize: 13,
-                    opacity: 0.8,
-                    overflow: "hidden",
-                    width: "calc(100% - 100px)",
-                  }}
-                >
-                  {typeof value === "string"
-                    ? value
-                    : value?.toString() ?? "[cannot display]"}
-                </Typography>
-              </Stack>
-            ))}
+                  <Typography
+                    sx={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      mr: 0.5,
+                      width: 120,
+                      whiteSpace: "nowrap",
+                      textOverflow: "ellipsis",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {propertyType.title}:
+                  </Typography>
+                  <Typography
+                    sx={{
+                      display: "-webkit-box",
+                      "-webkit-line-clamp": "3",
+                      "-webkit-box-orient": "vertical",
+                      fontSize: 13,
+                      opacity: 0.8,
+                      overflow: "hidden",
+                      width: "calc(100% - 100px)",
+                    }}
+                  >
+                    {formattedValue.map((part, index) => {
+                      const additionalRightPadding =
+                        part.type === "leftLabel"
+                          ? 0.5
+                          : part.type === "value" &&
+                              formattedValue[index + 1]?.type === "rightLabel"
+                            ? 0.5
+                            : 0;
+
+                      return (
+                        <Box
+                          component="span"
+                          /* eslint-disable-next-line react/no-array-index-key */
+                          key={index}
+                          sx={{
+                            color:
+                              part.type === "value" ? "inherit" : part.color,
+                            paddingRight: `${additionalRightPadding}px`,
+                          }}
+                        >
+                          {part.text}
+                        </Box>
+                      );
+                    })}
+                  </Typography>
+                </Stack>
+              );
+            })}
         </Stack>
         {!wasSuccess && (
           <Typography

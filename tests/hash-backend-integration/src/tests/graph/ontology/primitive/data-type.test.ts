@@ -14,8 +14,8 @@ import {
 import { modifyWebAuthorizationRelationships } from "@apps/hash-api/src/graph/ontology/primitive/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { ConstructDataTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
+  ConstructDataTypeParams,
   DataTypeWithMetadata,
   isOwnedOntologyElementMetadata,
   OwnedById,

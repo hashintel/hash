@@ -1,23 +1,21 @@
 import { FontAwesomeIcon } from "@hashintel/design-system";
+import { DataTypeWithMetadata } from "@local/hash-subgraph";
 import { Box, ButtonBase, Typography } from "@mui/material";
 
 import { editorSpecs } from "./editor-specs";
 import { OnTypeChange } from "./types";
-import {
-  findDataTypeDefinitionByTitle,
-  guessEditorTypeFromExpectedType,
-} from "./utils";
+import { guessEditorTypeFromExpectedType } from "./utils";
 
 const ExpectedTypeButton = ({
   onClick,
-  title,
-  description,
+  expectedType,
 }: {
   onClick: () => void;
-  title: string;
-  description?: string;
+  expectedType: DataTypeWithMetadata["schema"];
 }) => {
-  const editorSpec = editorSpecs[guessEditorTypeFromExpectedType(title)];
+  const editorSpec = editorSpecs[guessEditorTypeFromExpectedType(expectedType)];
+
+  const { description, title } = expectedType;
 
   return (
     <ButtonBase
@@ -50,7 +48,7 @@ const ExpectedTypeButton = ({
 };
 
 interface EditorTypePickerProps {
-  expectedTypes: string[];
+  expectedTypes: DataTypeWithMetadata["schema"][];
   onTypeChange: OnTypeChange;
 }
 
@@ -69,13 +67,10 @@ export const EditorTypePicker = ({
 
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 1 }}>
         {expectedTypes.map((expectedType) => {
-          const { description } = findDataTypeDefinitionByTitle(expectedType);
-
           return (
             <ExpectedTypeButton
-              title={expectedType}
-              key={expectedType}
-              description={description}
+              expectedType={expectedType}
+              key={expectedType.$id}
               onClick={() =>
                 onTypeChange(guessEditorTypeFromExpectedType(expectedType))
               }

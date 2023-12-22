@@ -11,8 +11,10 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
+  EntityTypeRootType,
   EntityTypeWithMetadata,
   OwnedById,
+  Subgraph,
 } from "@local/hash-subgraph";
 import browser from "webextension-polyfill";
 
@@ -79,6 +81,7 @@ export type LocalStorage = {
     targetEntityTypeIds: VersionedUrl[];
   };
   draftQuickNote: string;
+  entityTypesSubgraph: Subgraph<EntityTypeRootType> | null;
   entityTypes: EntityTypeWithMetadata[];
   inferenceRequests: PageEntityInference[];
   popupTab: "one-off" | "automated" | "log";
