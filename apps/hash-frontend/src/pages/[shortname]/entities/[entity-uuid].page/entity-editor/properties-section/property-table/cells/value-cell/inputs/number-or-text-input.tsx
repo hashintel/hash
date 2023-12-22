@@ -29,7 +29,7 @@ export const NumberOrTextInput = ({
         : undefined;
   const maximum =
     "maximum" in expectedType
-      ? expectedType.minimum
+      ? expectedType.maximum
       : "exclusiveMaximum" in expectedType &&
           typeof expectedType.exclusiveMaximum === "number"
         ? expectedType.exclusiveMaximum - 1
