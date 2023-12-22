@@ -160,7 +160,6 @@ macro_rules! service {
     };
 
     (@wasm #types[$vis:vis $service:ident] $($tt:tt)*) => {
-        #[cfg(target_arch = "wasm32")]
         pub fn collect_types(map: &mut specta::TypeMap) -> Vec<specta::functions::FunctionDataType> {
             let mut types = vec![];
 
@@ -178,7 +177,7 @@ macro_rules! service {
             name: std::borrow::Cow::Borrowed(paste::paste!(stringify!([< call $name >]))),
             args: vec![
                 // TODO: this needs to reference the class
-                (std::borrow::Cow::Borrowed("client"), <$service as specta::Type>::definition($map)),
+                (std::borrow::Cow::Borrowed("client"), <paste::paste!([< $service Client >]) as specta::Type>::definition($map)),
                 $(${ignore(args)} (std::borrow::Cow::Borrowed("args"), <$name as specta::Type>::definition($map)))?
             ],
             result: <Result<($($output)?), $crate::specification::wasm::AnyError> as specta::Type>::definition($map),
@@ -197,6 +196,7 @@ macro_rules! service {
 
     (@wasm[$vis:vis $service:ident] $($tt:tt)*) => {
         #[cfg(target_arch = "wasm32")]
+        #[automatically_derived]
         mod __wasm {
             use super::*;
 
@@ -239,6 +239,11 @@ macro_rules! service {
 
 
             service!(@wasm #client[$vis $service] $($tt)*);
+
+            service!(@wasm #types[$vis $service] $($tt)*);
+
+            #[cfg(target_arch = "wasm32")]
+            paste::paste!($crate::specification::wasm::export_service!([<$service Client>]););
         }
     };
 
@@ -257,9 +262,6 @@ macro_rules! service {
         service!(@procedure[$vis] $($tt)*);
 
         service!(@wasm[$vis $name] $($tt)*);
-        service!(@wasm #types[$vis $name] $($tt)*);
-        #[cfg(target_arch = "wasm32")]
-        $crate::specification::wasm::export_service!($name);
     };
 }
 

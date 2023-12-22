@@ -13,8 +13,6 @@ mod any_error {
     const IMPL_LOCATION: ImplLocation =
         specta::internal::construct::impl_location(concat!(file!(), ":", line!(), ":", column!()));
 
-    const DEFINITION_GENERICS: &[DataType] = &[];
-
     impl specta::Type for AnyError {
         fn inline(_: &mut TypeMap, _: &[DataType]) -> DataType {
             DataType::Any
