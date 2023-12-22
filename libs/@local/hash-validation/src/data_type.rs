@@ -3,9 +3,11 @@ use std::str::FromStr;
 
 use email_address::EmailAddress;
 use error_stack::{bail, ensure, Report, ResultExt};
+use iso8601_duration::Duration;
 use regex::Regex;
 use serde_json::Value as JsonValue;
 use thiserror::Error;
+use time::{format_description::well_known::Rfc3339, PrimitiveDateTime};
 use type_system::{url::VersionedUrl, DataType, DataTypeReference};
 use url::Url;
 
@@ -118,8 +120,11 @@ pub enum DataTypeConstraint {
     InvalidPattern { pattern: String },
     #[error("the provided value does not match the expected pattern `{pattern}`, got `{actual}`")]
     Pattern { actual: String, pattern: Regex },
-    #[error("the provided value does not match the expected format `{format}`")]
-    Format { actual: JsonValue, format: String },
+    #[error("the provided value `{actual}` does not match the expected format `{format}`")]
+    Format {
+        actual: String,
+        format: &'static str,
+    },
     #[error("unknown constraint: `{key}`")]
     UnknownConstraint { key: String },
     #[error("unknown format: `{key}`")]
@@ -178,7 +183,7 @@ where
                 ensure!(
                     number >= minimum,
                     Report::new(DataTypeConstraint::Minimum {
-                        actual: value.clone(),
+                        actual: value.to_owned(),
                         expected: additional_property.clone(),
                     })
                     .change_context(DataValidationError::ConstraintUnfulfilled)
@@ -188,7 +193,7 @@ where
                 ensure!(
                     number <= maximum,
                     Report::new(DataTypeConstraint::Maximum {
-                        actual: value.clone(),
+                        actual: value.to_owned(),
                         expected: additional_property.clone(),
                     })
                     .change_context(DataValidationError::ConstraintUnfulfilled)
@@ -239,6 +244,54 @@ where
     Ok(())
 }
 
+fn check_format(value: &str, format: &str) -> Result<(), Report<DataValidationError>> {
+    match format {
+        "uri" => {
+            Url::parse(value)
+                .change_context_lazy(|| DataTypeConstraint::Format {
+                    actual: value.to_owned(),
+                    format: "uri",
+                })
+                .change_context(DataValidationError::ConstraintUnfulfilled)?;
+        }
+        "email" => {
+            EmailAddress::from_str(value)
+                .change_context_lazy(|| DataTypeConstraint::Format {
+                    actual: value.to_owned(),
+                    format: "email",
+                })
+                .change_context(DataValidationError::ConstraintUnfulfilled)?;
+        }
+        "date-time" => {
+            PrimitiveDateTime::parse(value, &Rfc3339)
+                .change_context_lazy(|| DataTypeConstraint::Format {
+                    actual: value.to_owned(),
+                    format: "date-time",
+                })
+                .change_context(DataValidationError::ConstraintUnfulfilled)?;
+        }
+        "duration" => {
+            value
+                .parse::<Duration>()
+                .map_err(|error| {
+                    Report::new(DataTypeConstraint::Format {
+                        actual: value.to_owned(),
+                        format: "duration",
+                    })
+                    .attach_printable(format!("{error:?}"))
+                })
+                .change_context(DataValidationError::ConstraintUnfulfilled)?;
+        }
+        _ => bail!(
+            Report::new(DataTypeConstraint::UnknownFormat {
+                key: format.to_owned(),
+            })
+            .change_context(DataValidationError::ConstraintUnfulfilled)
+        ),
+    }
+    Ok(())
+}
+
 fn check_string_additional_property<'a>(
     value: &JsonValue,
     additional_properties: impl IntoIterator<Item = (impl AsRef<str>, &'a JsonValue)>,
@@ -254,32 +307,7 @@ fn check_string_additional_property<'a>(
     for (additional_key, additional_property) in additional_properties {
         match (additional_key.as_ref(), additional_property) {
             ("format", JsonValue::String(additional_property)) => {
-                match additional_property.as_str() {
-                    "uri" => {
-                        Url::parse(string)
-                            .change_context_lazy(|| DataTypeConstraint::Format {
-                                actual: value.clone(),
-                                format: additional_property.to_owned(),
-                            })
-                            .change_context(DataValidationError::ConstraintUnfulfilled)?;
-                    }
-                    "email" => {
-                        EmailAddress::from_str(string)
-                            .change_context_lazy(|| DataTypeConstraint::Format {
-                                actual: value.clone(),
-                                format: additional_property.to_owned(),
-                            })
-                            .change_context(DataValidationError::ConstraintUnfulfilled)?;
-                    }
-                    _ => {
-                        bail!(
-                            Report::new(DataTypeConstraint::UnknownFormat {
-                                key: additional_key.as_ref().to_owned(),
-                            })
-                            .change_context(DataValidationError::ConstraintUnfulfilled)
-                        );
-                    }
-                }
+                check_format(string, additional_property)?;
             }
             ("minLength", minimum) => {
                 let minimum = as_usize(minimum)?;
@@ -745,5 +773,168 @@ mod tests {
         _ = validate_data(json!("foo bar baz"), &url_type, ValidationProfile::Full)
             .await
             .expect_err("validation succeeded");
+    }
+
+    #[tokio::test]
+    async fn date_time() {
+        // TODO: Allow dates which are allowed in RFC3339
+        const FORMATS_TO_VALIDATE: &[&str] = &[
+            "2023-12-22T12:15:01Z",
+            "2023-12-22T12:15:01.1Z",
+            "2023-12-22T12:15:01.18Z",
+            "2023-12-22T12:15:01.187Z",
+            "2023-12-22T12:15:01.187226Z",
+            "2023-12-22T13:15:01+01:00",
+            "2023-12-22T13:15:01.187+01:00",
+            "2023-12-22T13:15:01.187226+01:00",
+            "2023-12-22T12:15:01-00:00",
+            "2023-12-22T12:15:01.187-00:00",
+            "2023-12-22T21:00:01+08:45",
+            "2023-12-22T12:15:01+00:00",
+            "2023-12-22T12:15:01.187+00:00",
+            "2023-12-22t12:15:01z",
+            "2023-12-22t12:15:01.187z",
+            // "2023-12-22 13:15:01+01:00",
+            // "2023-12-22 13:15:01.1+01:00",
+            // "2023-12-22 13:15:01.18+01:00",
+            // "2023-12-22 13:15:01.187+01:00",
+            // "2023-12-22 13:15:01.187226+01:00",
+            // "2023-12-22 12:15:01Z",
+            // "2023-12-22_12:15:01Z",
+            // "2023-12-22 12:15:01z",
+            // "2023-12-22_12:15:01z",
+            // "2023-12-22 12:15:01.1Z",
+            // "2023-12-22 12:15:01.18Z",
+            // "2023-12-22 12:15:01.187Z",
+            // "2023-12-22_12:15:01.187Z",
+            // "2023-12-22 12:15:01.187226Z",
+            // "2023-12-22_12:15:01.187226Z",
+            // "2023-12-22 12:15:01.187z",
+            // "2023-12-22_12:15:01.187z",
+            // "2023-12-22 12:15:01.187226z",
+            // "2023-12-22_12:15:01.187226z",
+            // "2023-12-22 12:15:01-00:00",
+            // "2023-12-22 12:15:01.187-00:00",
+        ];
+
+        let url_type = serde_json::to_string(&json!({
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            "kind": "dataType",
+            "$id": "https://localhost:4000/@alice/types/data-type/date-time/v/1",
+            "title": "Date Time",
+            "type": "string",
+            "format": "date-time",
+        }))
+        .expect("failed to serialize date time type");
+
+        let mut failed_formats = Vec::new();
+        for format in FORMATS_TO_VALIDATE {
+            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+                .await
+                .is_err()
+            {
+                failed_formats.push(format);
+            }
+        }
+        assert!(
+            failed_formats.is_empty(),
+            "failed to validate formats: {failed_formats:#?}"
+        );
+
+        _ = validate_data(json!(""), &url_type, ValidationProfile::Full)
+            .await
+            .expect_err("validation succeeded");
+
+        _ = validate_data(
+            json!("2021-01-01T00:00:00"),
+            &url_type,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect_err("validation succeeded");
+    }
+
+    #[tokio::test]
+    async fn duration() {
+        // TODO: Allow durations which are allowed in ISO8601
+        const VALID_FORMATS: &[&str] = &[
+            "P1Y",
+            // "P1,5Y",
+            "P1.5Y",
+            "P1M",
+            "P1W",
+            "P1D",
+            "PT1H",
+            // "P1H",
+            "PT1M",
+            "PT1S",
+            // "P1S",
+            // "PT1,5S",
+            "PT1.5S",
+            "P1Y1M",
+            "P1Y1D",
+            "P1Y1M1D",
+            "P1Y1M1DT1H1M1S",
+            "P1DT1H",
+            "P1MT1M",
+            "P1DT1M",
+            "P1.5W",
+            // "P1,5W",
+            "P1DT1.000S",
+            "P1DT1.00000S",
+            "P1DT1H1M1.1S",
+            // "P1H1M1.1S",
+        ];
+        const INVALID_FORMATS: &[&str] = &[
+            "1W1M1S",
+            "1S1M1H1W",
+            "1 W",
+            "1.5W",
+            "1 D 1 W",
+            "1.5 S 1.5 M",
+            "1H 15 M",
+        ];
+
+        let url_type = serde_json::to_string(&json!({
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            "kind": "dataType",
+            "$id": "https://localhost:4000/@alice/types/data-type/duration/v/1",
+            "title": "Duration",
+            "type": "string",
+            "format": "duration",
+        }))
+        .expect("failed to serialize date time type");
+
+        let mut failed_formats = Vec::new();
+        for format in VALID_FORMATS {
+            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+                .await
+                .is_err()
+            {
+                failed_formats.push(format);
+            }
+        }
+        assert!(
+            failed_formats.is_empty(),
+            "failed to validate formats: {failed_formats:#?}"
+        );
+
+        _ = validate_data(json!(""), &url_type, ValidationProfile::Full)
+            .await
+            .expect_err("validation succeeded");
+
+        let mut passed_formats = Vec::new();
+        for format in INVALID_FORMATS {
+            if validate_data(json!(format), &url_type, ValidationProfile::Full)
+                .await
+                .is_ok()
+            {
+                passed_formats.push(format);
+            }
+        }
+        assert!(
+            passed_formats.is_empty(),
+            "passed invalid formats: {passed_formats:#?}"
+        );
     }
 }

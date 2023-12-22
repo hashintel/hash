@@ -11,11 +11,13 @@ graph-types.workspace = true
 error-stack = { workspace = true, features = ["hooks"] }
 type-system.workspace = true
 
-thiserror = "1.0.51"
-serde_json = { version = "1.0.108" }
+email_address.workspace = true
 regex = "1.10.2"
-url = { workspace = true }
-email_address = { workspace = true }
+serde_json.workspace = true
+thiserror = "1.0.51"
+time = { workspace = true, features = ["parsing"] }
+iso8601-duration = "0.2.0"
+url.workspace = true
 
 [dev-dependencies]
 graph-test-data.workspace = true
