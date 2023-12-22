@@ -5,8 +5,11 @@ import {
   GridCellKind,
 } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
-import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
-import { DataTypeWithMetadata, FormattedValuePart } from "@local/hash-subgraph";
+import {
+  formatDataValue,
+  FormattedValuePart,
+} from "@local/hash-isomorphic-utils/data-types";
+import { DataTypeWithMetadata } from "@local/hash-subgraph";
 
 import {
   getCellHorizontalPadding,
@@ -107,7 +110,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
             valueParts.push({
               text: ", ",
               color: customColors.gray[50],
-              type: "label",
+              type: "rightLabel",
             });
           }
         }
@@ -120,10 +123,19 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       }
 
       let textOffset = left;
-      for (const part of valueParts) {
+      for (const [index, part] of valueParts.entries()) {
         ctx.fillStyle = part.color;
         ctx.fillText(part.text, textOffset, yCenter);
-        textOffset += ctx.measureText(part.text).width;
+
+        const additionalRightPadding =
+          part.type === "leftLabel"
+            ? 0.5
+            : part.type === "value" &&
+                valueParts[index + 1]?.type === "rightLabel"
+              ? 0.5
+              : 0;
+
+        textOffset += ctx.measureText(part.text).width + additionalRightPadding;
       }
     }
 

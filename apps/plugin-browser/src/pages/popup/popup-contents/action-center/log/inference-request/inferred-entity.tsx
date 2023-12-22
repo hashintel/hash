@@ -7,7 +7,10 @@ import {
 } from "@hashintel/design-system";
 import { customColors } from "@hashintel/design-system/theme";
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
+import {
+  formatDataValue,
+  FormattedValuePart,
+} from "@local/hash-isomorphic-utils/data-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   BaseUrl,
@@ -16,7 +19,6 @@ import type {
   EntityPropertyValue,
   EntityTypeRootType,
   EntityTypeWithMetadata,
-  FormattedValuePart,
   Subgraph,
 } from "@local/hash-subgraph";
 import {
@@ -70,7 +72,11 @@ const joinArrayParts = (partsGroupArray: FormattedValuePart[][]) => {
   for (const [index, sectionParts] of partsGroupArray.entries()) {
     result.push(...sectionParts);
     if (index < partsGroupArray.length - 1) {
-      result.push({ color: customColors.gray[50], type: "label", text: ", " });
+      result.push({
+        color: customColors.gray[50],
+        type: "rightLabel",
+        text: ", ",
+      });
     }
   }
   return result;
@@ -405,18 +411,30 @@ export const InferredEntity = ({
                       width: "calc(100% - 100px)",
                     }}
                   >
-                    {formattedValue.map((part, index) => (
-                      <Box
-                        component="span"
-                        /* eslint-disable-next-line react/no-array-index-key */
-                        key={index}
-                        sx={{
-                          color: part.type === "value" ? "inherit" : part.color,
-                        }}
-                      >
-                        {part.text}
-                      </Box>
-                    ))}
+                    {formattedValue.map((part, index) => {
+                      const additionalRightPadding =
+                        part.type === "leftLabel"
+                          ? 0.5
+                          : part.type === "value" &&
+                              formattedValue[index + 1]?.type === "rightLabel"
+                            ? 0.5
+                            : 0;
+
+                      return (
+                        <Box
+                          component="span"
+                          /* eslint-disable-next-line react/no-array-index-key */
+                          key={index}
+                          sx={{
+                            color:
+                              part.type === "value" ? "inherit" : part.color,
+                            paddingRight: `${additionalRightPadding}px`,
+                          }}
+                        >
+                          {part.text}
+                        </Box>
+                      );
+                    })}
                   </Typography>
                 </Stack>
               );

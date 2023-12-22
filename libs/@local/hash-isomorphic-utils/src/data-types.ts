@@ -1,6 +1,12 @@
 import { JsonValue } from "@blockprotocol/core";
 import { DataType } from "@local/hash-graph-client";
-import { FormattedValuePart, ValueConstraint } from "@local/hash-subgraph";
+import { ValueConstraint } from "@local/hash-subgraph";
+
+export type FormattedValuePart = {
+  color: string;
+  type: "leftLabel" | "rightLabel" | "value";
+  text: string;
+};
 
 const createFormattedParts = ({
   inner,
@@ -14,7 +20,7 @@ const createFormattedParts = ({
   const parts: FormattedValuePart[] = [];
 
   if (left) {
-    parts.push({ color: "#91A5BA", type: "label", text: left });
+    parts.push({ color: "#91A5BA", type: "leftLabel", text: left });
   }
 
   if (Array.isArray(inner)) {
@@ -24,7 +30,7 @@ const createFormattedParts = ({
   }
 
   if (right) {
-    parts.push({ color: "#91A5BA", type: "label", text: right });
+    parts.push({ color: "#91A5BA", type: "rightLabel", text: right });
   }
 
   return parts;

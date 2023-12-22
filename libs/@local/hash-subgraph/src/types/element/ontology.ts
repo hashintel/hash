@@ -226,12 +226,6 @@ export type ConstructDataTypeParams = DistributiveOmit<
   "$id" | "kind" | "$schema"
 >;
 
-export type FormattedValuePart = {
-  color: string;
-  type: "label" | "value";
-  text: string;
-};
-
 export type DataTypeWithMetadata = Subtype<
   DataTypeWithMetadataBp,
   {
