@@ -10,6 +10,7 @@ use uuid::Uuid;
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[cfg_attr(feature = "wasm", derive(tsify::Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
+#[cfg_attr(feature = "wasm", derive(specta::Type))]
 #[repr(transparent)]
 pub struct AccountId(#[cfg_attr(feature = "wasm", tsify(type = "string"))] Uuid);
 
@@ -50,6 +51,7 @@ impl fmt::Display for AccountId {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[cfg_attr(feature = "wasm", derive(tsify::Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
+#[cfg_attr(feature = "wasm", derive(specta::Type))]
 #[repr(transparent)]
 pub struct AccountGroupId(#[cfg_attr(feature = "wasm", tsify(type = "string"))] Uuid);
 

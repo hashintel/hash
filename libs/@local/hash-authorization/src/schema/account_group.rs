@@ -46,6 +46,7 @@ impl Relation<AccountGroupId> for AccountGroupResourceRelation {}
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[cfg_attr(feature = "wasm", derive(tsify::Tsify))]
 #[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
+#[cfg_attr(feature = "wasm", derive(specta::Type))]
 #[serde(rename_all = "snake_case")]
 pub enum AccountGroupPermission {
     AddMember,

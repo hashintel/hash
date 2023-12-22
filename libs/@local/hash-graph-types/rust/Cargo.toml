@@ -20,6 +20,7 @@ time = { version = "0.3.30", default-features = false, features = ["serde", "par
 uuid = { version = "1.6.1", default-features = false, features = ["serde"] }
 tsify = { version = "0.4.5", optional = true, features = ["js"] }
 wasm-bindgen = { version = "0.2.89", optional = true }
+specta = { version = "2.0.0-rc.7", optional = true, features = ["uuid"] }
 
 [dev-dependencies]
 graph-test-data = { path = "../../../../tests/hash-graph-test-data/rust" }
@@ -27,4 +28,4 @@ graph-test-data = { path = "../../../../tests/hash-graph-test-data/rust" }
 [features]
 postgres = ["dep:postgres-types", "temporal-versioning/postgres"]
 utoipa = ["dep:utoipa", "temporal-versioning/utoipa"]
-wasm = ["dep:tsify", "dep:wasm-bindgen"]
+wasm = ["dep:tsify", "dep:wasm-bindgen", "dep:specta"]

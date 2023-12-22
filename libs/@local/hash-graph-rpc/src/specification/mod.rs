@@ -1,5 +1,7 @@
 pub mod account;
 pub(crate) mod generic;
+#[cfg(target_arch = "wasm32")]
+pub(crate) mod wasm;
 
 /// Convenience macro for defining a service.
 ///
@@ -49,15 +51,13 @@ pub(crate) mod generic;
 macro_rules! service {
     (@type[$vis:vis] procedure $name:ident()) => {
         #[derive(serde::Serialize, serde::Deserialize)]
-        #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-        #[cfg_attr(target_arch = "wasm32", tsify(into_wasm_abi, from_wasm_abi))]
+        #[cfg_attr(target_arch = "wasm32", derive(specta::Type))]
         $vis struct $name;
     };
 
     (@type[$vis:vis] procedure $name:ident($($fields:tt)+)) => {
         #[derive(serde::Serialize, serde::Deserialize)]
-        #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-        #[cfg_attr(target_arch = "wasm32", tsify(into_wasm_abi, from_wasm_abi))]
+        #[cfg_attr(target_arch = "wasm32", derive(specta::Type))]
         $vis struct $name {
             $($fields)+
         }
@@ -132,11 +132,13 @@ macro_rules! service {
             //     instead of `camelCase` which is what we want, and https://github.com/rustwasm/wasm-bindgen/issues/1818
             //     is still open.
             #[allow(unused_parens)]
-            #[wasm_bindgen::prelude::wasm_bindgen(js_name = [< call $name:camel >])]
-            pub async fn [< $name:snake >](client: & [<$service Client>], $(${ignore(args)} args: $name)?)
-                -> Result<($($output)?), wasm_bindgen::JsValue>
+            #[wasm_bindgen::prelude::wasm_bindgen(js_name = [< call $name >], skip_typescript)]
+            pub async fn [< $name:snake >](client: & [<$service Client>], $(${ignore(args)} args: wasm_bindgen::JsValue)?)
+                -> Result<wasm_bindgen::JsValue, wasm_bindgen::JsValue>
             {
-                client.client
+                $(${ignore(args)} let args = serde_wasm_bindgen::from_value(args)?;)?
+
+                let value = client.client
                     .call($name { $(${ignore(args)} ..args)? })
                     .await
                     .map_err(|error| {
@@ -144,7 +146,9 @@ macro_rules! service {
                             Ok(value) => value,
                             Err(error) => error.into(),
                         }
-                    })
+                    })?;
+
+                serde_wasm_bindgen::to_value(&value).map_err(Into::into)
             }
         }
 
@@ -153,6 +157,42 @@ macro_rules! service {
 
     (@wasm #client[$vis:vis $service:ident] $_:tt $($rest:tt)*) => {
         service!(@wasm #client[$vis $service] $($rest)*);
+    };
+
+    (@wasm #types[$vis:vis $service:ident] $($tt:tt)*) => {
+        #[cfg(target_arch = "wasm32")]
+        pub fn collect_types(map: &mut specta::TypeMap) -> Vec<specta::functions::FunctionDataType> {
+            let mut types = vec![];
+
+            service!(@wasm #types[$vis $service map types] $($tt)*);
+
+            types
+        }
+    };
+
+    (@wasm #types[$vis:vis $service:ident $map:ident $types:ident]) => {};
+
+    (@wasm #types[$vis:vis $service:ident $map:ident $types:ident] rpc$([$($options:tt)*])? $name:ident($($($args:tt)+)?) $(-> $output:ty)?; $($rest:tt)*) => {
+        let func = specta::functions::FunctionDataType {
+            asyncness: true,
+            name: std::borrow::Cow::Borrowed(paste::paste!(stringify!([< call $name >]))),
+            args: vec![
+                // TODO: this needs to reference the class
+                (std::borrow::Cow::Borrowed("client"), <$service as specta::Type>::definition($map)),
+                $(${ignore(args)} (std::borrow::Cow::Borrowed("args"), <$name as specta::Type>::definition($map)))?
+            ],
+            result: <Result<($($output)?), $crate::specification::wasm::AnyError> as specta::Type>::definition($map),
+            docs: std::borrow::Cow::Borrowed(concat!("Call the `", stringify!($name), "` procedure of the `", stringify!($service), "` service.")),
+            deprecated: None
+        };
+
+        $types.push(func);
+
+        service!(@wasm #types[$vis $service $map $types] $($rest)*);
+    };
+
+    (@wasm #types[$vis:vis $service:ident $map:ident $types:ident] $_:tt $($rest:tt)*) => {
+        service!(@wasm #types[$vis $service $map $types] $($rest)*);
     };
 
     (@wasm[$vis:vis $service:ident] $($tt:tt)*) => {
@@ -217,6 +257,9 @@ macro_rules! service {
         service!(@procedure[$vis] $($tt)*);
 
         service!(@wasm[$vis $name] $($tt)*);
+        service!(@wasm #types[$vis $name] $($tt)*);
+        #[cfg(target_arch = "wasm32")]
+        $crate::specification::wasm::export_service!($name);
     };
 }
 
