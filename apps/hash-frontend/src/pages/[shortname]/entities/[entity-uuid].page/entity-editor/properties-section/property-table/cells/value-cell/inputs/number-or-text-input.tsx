@@ -24,16 +24,18 @@ export const NumberOrTextInput = ({
     "minimum" in expectedType
       ? expectedType.minimum
       : "exclusiveMinimum" in expectedType &&
-          typeof expectedType.exclusiveMinimum === "number"
-        ? expectedType.exclusiveMinimum + 1
-        : undefined;
+        typeof expectedType.exclusiveMinimum === "number"
+      ? expectedType.exclusiveMinimum + 1
+      : undefined;
   const maximum =
     "maximum" in expectedType
       ? expectedType.minimum
       : "exclusiveMaximum" in expectedType &&
-          typeof expectedType.exclusiveMaximum === "number"
-        ? expectedType.exclusiveMaximum - 1
-        : undefined;
+        typeof expectedType.exclusiveMaximum === "number"
+      ? expectedType.exclusiveMaximum - 1
+      : undefined;
+  const step =
+    "multipleOf" in expectedType ? expectedType.multipleOf : undefined;
 
   const format = "format" in expectedType ? expectedType.format : undefined;
 
@@ -67,6 +69,7 @@ export const NumberOrTextInput = ({
           maxLength,
           minimum,
           maximum,
+          step,
         },
       }}
       autoFocus
