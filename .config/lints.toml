@@ -4,7 +4,6 @@ allow = [
     "clippy::exhaustive_enums",
     "clippy::exhaustive_structs",
     "clippy::implicit_return",
-    "clippy::let_underscore_untyped", # Conflicts with `clippy::no_effect_underscore_binding` in function bindings, but should be enabled
     "clippy::missing_docs_in_private_items",
     "clippy::missing_inline_in_public_items",
     "clippy::missing_trait_methods", # Should be enabled per `impl` instead of globally
@@ -47,6 +46,7 @@ allow = [
     "clippy::infinite_loop",
     "clippy::indexing_slicing",
     "clippy::let_underscore_must_use",
+    "clippy::let_underscore_untyped", # Conflicts with `clippy::no_effect_underscore_binding` in function bindings
     "clippy::missing_assert_message",
     "clippy::multiple_inherent_impl",
     "clippy::panic",
