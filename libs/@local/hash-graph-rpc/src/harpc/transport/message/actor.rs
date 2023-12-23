@@ -6,9 +6,9 @@ use crate::harpc::transport::codec::{decode::DecodeBinary, encode::EncodeBinary}
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
 )]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-#[cfg_attr(target_arch = "wasm32", tsify(into_wasm_abi, from_wasm_abi))]
-pub struct ActorId(#[cfg_attr(target_arch = "wasm32", tsify(type = "string"))] Uuid);
+#[cfg_attr(any(target_arch = "wasm32", feature = "wasm"), derive(specta::Type))]
+#[serde(transparent)]
+pub struct ActorId(Uuid);
 
 impl ActorId {
     #[must_use]

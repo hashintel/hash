@@ -4,7 +4,7 @@ pub(crate) mod generic;
 pub(crate) mod wasm;
 
 #[cfg(feature = "wasm")]
-pub use self::wasm::ClientFunctions;
+pub use self::wasm::ClientImplementation;
 
 /// Convenience macro for defining a service.
 ///
@@ -164,7 +164,7 @@ macro_rules! service {
     };
 
     (@wasm #types[$vis:vis $service:ident] $($tt:tt)*) => {
-        pub fn collect_types(map: &mut specta::TypeMap) -> Vec<specta::functions::FunctionDataType> {
+        fn collect_functions(map: &mut specta::TypeMap) -> Vec<specta::functions::FunctionDataType> {
             let mut types = vec![];
 
             service!(@wasm #types[$vis $service map types] $($tt)*);
@@ -172,8 +172,9 @@ macro_rules! service {
             types
         }
 
-        inventory::submit!($crate::specification::wasm::ClientFunctions {
-            get_functions: collect_types,
+        inventory::submit!($crate::specification::wasm::ClientImplementation {
+            name: paste::paste!(stringify!([< $service Client >])),
+            functions: collect_functions,
         });
     };
 
@@ -209,8 +210,7 @@ macro_rules! service {
 
     (@wasm[$vis:vis $service:ident] $($tt:tt)*) => {
         #[cfg(any(target_arch = "wasm32", feature = "wasm"))]
-        #[automatically_derived]
-        pub mod wasm {
+        mod __wasm {
             use super::*;
 
             paste::paste! {
@@ -230,9 +230,10 @@ macro_rules! service {
                     #[wasm_bindgen::prelude::wasm_bindgen(constructor)]
                     pub fn new(
                         remote: wasm_bindgen::JsValue,
-                        actor: $crate::harpc::transport::message::actor::ActorId,
+                        actor: wasm_bindgen::JsValue,
                     ) -> Result<[< $service Client >], wasm_bindgen::JsValue> {
                         let remote = serde_wasm_bindgen::from_value(remote)?;
+                        let actor = serde_wasm_bindgen::from_value(actor)?;
 
                         let client = $crate::harpc::client::Client::new(
                                 $crate::specification::generic::DefaultEncoder,

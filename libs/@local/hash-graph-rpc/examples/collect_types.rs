@@ -1,5 +1,7 @@
-use hash_graph_rpc::specification::ClientFunctions;
-use specta::TypeMap;
+use std::net::{Ipv4Addr, SocketAddrV4};
+
+use hash_graph_rpc::{specification::ClientImplementation, ActorId};
+use specta::{NamedType, Type, TypeMap};
 
 #[allow(clippy::print_stdout)]
 fn main() {
@@ -12,9 +14,13 @@ fn main() {
 
     let mut functions = vec![];
 
-    for client_functions in inventory::iter::<ClientFunctions>() {
-        functions.extend((client_functions.get_functions)(&mut types));
+    for client_functions in inventory::iter::<ClientImplementation>() {
+        functions.extend((client_functions.functions)(&mut types));
     }
+
+    // types that are referenced in the constructor
+    let ipv4 = SocketAddrV4::reference(&mut types, &[]);
+    let actor = ActorId::reference(&mut types, &[]);
 
     let config = specta::ts::ExportConfig::new();
 
@@ -54,5 +60,28 @@ fn main() {
         output.push(';');
 
         println!("{output}");
+    }
+
+    for ClientImplementation { name, .. } in inventory::iter::<ClientImplementation>() {
+        println!("export class {name} {{");
+        println!("free(): void;");
+
+        let mut constructor = "constructor(remote: ".to_owned();
+        constructor
+            .push_str(&specta::ts::datatype(&config, &ipv4.inner, &types).expect("exported"));
+        constructor.push_str(", actor: ");
+        constructor
+            .push_str(&specta::ts::datatype(&config, &actor.inner, &types).expect("exported"));
+        constructor.push_str(");");
+
+        let service_name = name.trim_end_matches("Client");
+        println!("/**");
+        println!(" * Create a new `{service_name}` client");
+        println!(" *");
+        println!(" * @param remote The remote address to connect to");
+        println!(" * @param actor The actor to use for this client");
+        println!(" */");
+        println!("{constructor}");
+        println!("}}");
     }
 }

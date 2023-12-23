@@ -110,8 +110,9 @@ macro_rules! export_service {
 
 pub(crate) use export_service;
 
-pub struct ClientFunctions {
-    pub get_functions: fn(&mut TypeMap) -> Vec<FunctionDataType>,
+pub struct ClientImplementation {
+    pub name: &'static str,
+    pub functions: fn(&mut TypeMap) -> Vec<FunctionDataType>,
 }
 
-inventory::collect!(ClientFunctions);
+inventory::collect!(ClientImplementation);
