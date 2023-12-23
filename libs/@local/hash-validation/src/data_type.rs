@@ -1,11 +1,10 @@
 use core::{borrow::Borrow, fmt};
 use std::{
-    cell::OnceCell,
     net::{Ipv4Addr, Ipv6Addr},
     str::FromStr,
+    sync::OnceLock,
 };
 
-use chrono::{DateTime, NaiveDate};
 use email_address::EmailAddress;
 use error_stack::{bail, ensure, Report, ResultExt};
 use iso8601_duration::Duration;
@@ -249,17 +248,18 @@ where
     Ok(())
 }
 
+#[expect(clippy::too_many_lines)]
 fn check_format(value: &str, format: &str) -> Result<(), Report<DataValidationError>> {
     // Only the simplest date format are supported in all three, RFC-3331, ISO-8601 and HTML
     const DATE_REGEX_STRING: &str = r"(?P<Y>\d{4})-(?P<M>\d{2})-(?P<D>\d{2})";
-    const DATE_REGEX: OnceCell<Regex> = OnceCell::new();
+    static DATE_REGEX: OnceLock<Regex> = OnceLock::new();
 
     // Only the simplest time format are supported in all three, RFC-3331, ISO-8601 and HTML
     const TIME_REGEX_STRING: &str =
         r"(?P<h>\d{2}):(?P<m>\d{2}):(?P<s>\d{2}(?:\.\d+)?)(?:(?P<Z>[+-]\d{2}):(?P<z>\d{2})|Z)";
-    const TIME_REGEX: OnceCell<Regex> = OnceCell::new();
+    static TIME_REGEX: OnceLock<Regex> = OnceLock::new();
 
-    const DATE_TIME_REGEX: OnceCell<Regex> = OnceCell::new();
+    static DATE_TIME_REGEX: OnceLock<Regex> = OnceLock::new();
 
     match format {
         "uri" => {
@@ -327,7 +327,7 @@ fn check_format(value: &str, format: &str) -> Result<(), Report<DataValidationEr
                         .expect("failed to compile date-time regex")
                 })
                 .is_match(value)
-                .then(|| ())
+                .then_some(())
                 .ok_or_else(|| {
                     Report::new(DataTypeConstraint::Format {
                         actual: value.to_owned(),
@@ -343,7 +343,7 @@ fn check_format(value: &str, format: &str) -> Result<(), Report<DataValidationEr
                         .expect("failed to compile date-time regex")
                 })
                 .is_match(value)
-                .then(|| ())
+                .then_some(())
                 .ok_or_else(|| {
                     Report::new(DataTypeConstraint::Format {
                         actual: value.to_owned(),
@@ -359,7 +359,7 @@ fn check_format(value: &str, format: &str) -> Result<(), Report<DataValidationEr
                         .expect("failed to compile date-time regex")
                 })
                 .is_match(value)
-                .then(|| ())
+                .then_some(())
                 .ok_or_else(|| {
                     Report::new(DataTypeConstraint::Format {
                         actual: value.to_owned(),
@@ -690,9 +690,13 @@ mod tests {
             .await
             .expect_err("validation succeeded");
 
-        _ = validate_data(json!(3.14), &integer_type, ValidationProfile::Full)
-            .await
-            .expect_err("validation succeeded");
+        _ = validate_data(
+            json!(std::f64::consts::PI),
+            &integer_type,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect_err("validation succeeded");
 
         _ = validate_data(json!("foo"), &integer_type, ValidationProfile::Full)
             .await
