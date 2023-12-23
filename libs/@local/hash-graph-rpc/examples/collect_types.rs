@@ -1,7 +1,7 @@
-use std::net::{Ipv4Addr, SocketAddrV4};
+use std::net::SocketAddrV4;
 
 use hash_graph_rpc::{specification::ClientImplementation, ActorId};
-use specta::{NamedType, Type, TypeMap};
+use specta::{Type, TypeMap};
 
 #[allow(clippy::print_stdout)]
 fn main() {
