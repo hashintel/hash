@@ -1,12 +1,5 @@
-use hash_graph_rpc::specification;
+use hash_graph_rpc::specification::ClientFunctions;
 use specta::TypeMap;
-
-#[derive(specta::Type)]
-struct X<const T: usize> {
-    values: [u8; T],
-}
-#[derive(specta::Type)]
-struct Example(X<3>);
 
 #[allow(clippy::print_stdout)]
 fn main() {
@@ -17,8 +10,11 @@ fn main() {
 
     let mut types = TypeMap::default();
 
-    let functions = specification::account::wasm::collect_types(&mut types);
-    // ...add additional services here
+    let mut functions = vec![];
+
+    for client_functions in inventory::iter::<ClientFunctions>() {
+        functions.extend((client_functions.get_functions)(&mut types));
+    }
 
     let config = specta::ts::ExportConfig::new();
 
@@ -26,7 +22,7 @@ fn main() {
         let output =
             specta::ts::export_named_datatype(&config, data_type, &types).expect("exported");
 
-        println!("{output}");
+        println!("{output};");
     }
 
     for function in functions {

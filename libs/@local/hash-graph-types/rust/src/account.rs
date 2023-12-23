@@ -8,20 +8,9 @@ use uuid::Uuid;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(feature = "wasm", derive(tsify::Tsify))]
-#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 #[cfg_attr(feature = "wasm", derive(specta::Type))]
 #[repr(transparent)]
-pub struct AccountId(#[cfg_attr(feature = "wasm", tsify(type = "string"))] Uuid);
-
-#[cfg(feature = "wasm")]
-impl From<AccountId> for wasm_bindgen::JsValue {
-    fn from(value: AccountId) -> Self {
-        <AccountId as tsify::Tsify>::into_js(&value)
-            .unwrap() // TODO: don't unwrap lol
-            .into()
-    }
-}
+pub struct AccountId(Uuid);
 
 impl AccountId {
     #[must_use]
@@ -49,20 +38,9 @@ impl fmt::Display for AccountId {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(feature = "wasm", derive(tsify::Tsify))]
-#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 #[cfg_attr(feature = "wasm", derive(specta::Type))]
 #[repr(transparent)]
-pub struct AccountGroupId(#[cfg_attr(feature = "wasm", tsify(type = "string"))] Uuid);
-
-#[cfg(feature = "wasm")]
-impl From<AccountGroupId> for wasm_bindgen::JsValue {
-    fn from(value: AccountGroupId) -> Self {
-        <AccountGroupId as tsify::Tsify>::into_js(&value)
-            .unwrap() // TODO: don't unwrap lol
-            .into()
-    }
-}
+pub struct AccountGroupId(Uuid);
 
 impl AccountGroupId {
     #[must_use]

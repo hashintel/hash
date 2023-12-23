@@ -1,4 +1,7 @@
-use specta::{internal::construct::sid, DataType, ImplLocation, NamedDataType, SpectaID, TypeMap};
+use specta::{
+    functions::FunctionDataType, internal::construct::sid, DataType, ImplLocation, NamedDataType,
+    SpectaID, TypeMap,
+};
 
 #[derive(Debug, Clone)]
 pub(crate) struct AnyError;
@@ -106,3 +109,9 @@ macro_rules! export_service {
 }
 
 pub(crate) use export_service;
+
+pub struct ClientFunctions {
+    pub get_functions: fn(&mut TypeMap) -> Vec<FunctionDataType>,
+}
+
+inventory::collect!(ClientFunctions);

@@ -3,6 +3,9 @@ pub(crate) mod generic;
 #[cfg(any(target_arch = "wasm32", feature = "wasm"))]
 pub(crate) mod wasm;
 
+#[cfg(feature = "wasm")]
+pub use self::wasm::ClientFunctions;
+
 /// Convenience macro for defining a service.
 ///
 /// A service is defined as a struct with a set of procedures. Each procedure is defined as a struct
@@ -168,6 +171,10 @@ macro_rules! service {
 
             types
         }
+
+        inventory::submit!($crate::specification::wasm::ClientFunctions {
+            get_functions: collect_types,
+        });
     };
 
     (@wasm #types[$vis:vis $service:ident $map:ident $types:ident]) => {};

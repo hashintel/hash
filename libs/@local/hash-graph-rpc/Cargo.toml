@@ -30,7 +30,7 @@ uuid = "1.6.1"
 paste = "1.0.14"
 
 specta = { version = "2.0.0-rc.7", optional = true, features = ["functions", "serde"] }
-
+inventory = { version = "0.3.14", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1.35.1", features = ["rt"] }
@@ -51,7 +51,7 @@ console_error_panic_hook = "0.1.7"
 specta = { version = "2.0.0-rc.7", features = ["functions", "serde"] }
 
 [features]
-wasm = ["dep:specta", "authorization/wasm", "graph-types/wasm"]
+wasm = ["dep:specta", "authorization/wasm", "graph-types/wasm", "dep:inventory"]
 
 [dev-dependencies]
 test-log = { version = "0.2.14", default-features = false, features = ["trace"] }

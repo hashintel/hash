@@ -44,22 +44,11 @@ impl Relation<AccountGroupId> for AccountGroupResourceRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(feature = "wasm", derive(tsify::Tsify))]
-#[cfg_attr(feature = "wasm", tsify(into_wasm_abi, from_wasm_abi))]
 #[cfg_attr(feature = "wasm", derive(specta::Type))]
 #[serde(rename_all = "snake_case")]
 pub enum AccountGroupPermission {
     AddMember,
     RemoveMember,
-}
-
-#[cfg(feature = "wasm")]
-impl From<AccountGroupPermission> for wasm_bindgen::JsValue {
-    fn from(value: AccountGroupPermission) -> Self {
-        <AccountGroupPermission as tsify::Tsify>::into_js(&value)
-            .unwrap() // TODO: don't unwrap lol
-            .into()
-    }
 }
 
 impl Permission<AccountGroupId> for AccountGroupPermission {}
