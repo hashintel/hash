@@ -1005,8 +1005,6 @@ export const inferEntities = async ({
     usage: [],
   });
 
-  console.log(JSON.stringify(response.contents[0], null, 2));
-
   if (response.contents[0]?.usage) {
     const hashInstanceAdminGroupId = await getHashInstanceAdminAccountGroupId(
       { graphApi: graphApiClient },

@@ -110,8 +110,6 @@ export const getUserServiceUsage = async (
       );
     }
 
-    console.log(JSON.stringify(serviceFeatureLinkAndEntities, undefined, 2));
-
     const serviceFeatureEntity = serviceFeatureLinkAndEntities[0]!
       .rightEntity[0]! as Entity<ServiceFeatureProperties>;
 
