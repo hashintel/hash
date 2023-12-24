@@ -1,11 +1,11 @@
 import { gql } from "apollo-server-express";
 
 export const userTypedef = gql`
-  scalar AggregateUsageRecord
+  scalar AggregatedUsageRecord
 
   type UserUsageRecords {
     email: String!
-    usageRecords: [AggregateUsageRecord!]!
+    usageRecords: [AggregatedUsageRecord!]!
   }
 
   extend type Query {

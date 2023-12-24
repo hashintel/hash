@@ -6,7 +6,7 @@ import {
 } from "@local/hash-backend-utils/hash-instance";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import { AccountGroupId, OwnedById } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 
 import { createAccountGroup } from "../../account-permission-management";
 import { ImpureGraphFunction } from "../../context-types";

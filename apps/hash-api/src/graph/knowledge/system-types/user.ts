@@ -336,7 +336,7 @@ export const createUser: ImpureGraphFunction<
       : {}),
   };
 
-  const hashInstance = await getHashInstance(ctx, authentication, {});
+  const hashInstance = await getHashInstance(ctx, authentication);
   const hashInstanceAdmins = extractOwnedByIdFromEntityId(
     hashInstance.entity.metadata.recordId.entityId,
   ) as AccountGroupId;

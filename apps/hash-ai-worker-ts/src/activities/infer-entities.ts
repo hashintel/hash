@@ -783,7 +783,7 @@ const systemMessage: OpenAI.ChatCompletionSystemMessageParam = {
   `),
 };
 
-const usageLCostLimit = {
+const usageCostLimit = {
   admin: {
     day: 100,
     month: 500,
@@ -842,7 +842,7 @@ export const inferEntities = async ({
   );
 
   const { day: dayLimit, month: monthLimit } =
-    usageLCostLimit[isUserAdmin ? "admin" : "user"];
+    usageCostLimit[isUserAdmin ? "admin" : "user"];
 
   if (lastDaysCost >= dayLimit) {
     return {

@@ -42,11 +42,9 @@ describe("Hash Instance", () => {
   let hashInstance: HashInstance;
 
   it("can get the hash instance", async () => {
-    hashInstance = await getHashInstance(
-      graphContext,
-      { actorId: publicUserAccountId },
-      {},
-    );
+    hashInstance = await getHashInstance(graphContext, {
+      actorId: publicUserAccountId,
+    });
 
     expect(hashInstance).toBeTruthy();
   });

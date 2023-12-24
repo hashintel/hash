@@ -13,7 +13,7 @@ export const hashInstanceEntityResolver: ResolverFn<
 > = async (_, __, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const hashInstance = await getHashInstance(context, authentication, {});
+  const hashInstance = await getHashInstance(context, authentication);
 
   return hashInstance.entity;
 };
