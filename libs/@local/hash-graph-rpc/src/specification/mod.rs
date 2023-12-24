@@ -256,6 +256,7 @@ macro_rules! service {
             #[cfg(target_arch = "wasm32")]
             service!(@wasm #client[$vis $service] $($tt)*);
 
+            #[cfg(feature = "wasm")]
             service!(@wasm #types[$vis $service] $($tt)*);
 
             #[cfg(any(target_arch = "wasm32", feature = "wasm"))]

@@ -110,9 +110,11 @@ macro_rules! export_service {
 
 pub(crate) use export_service;
 
+#[cfg(feature = "wasm")]
 pub struct ClientImplementation {
     pub name: &'static str,
     pub functions: fn(&mut TypeMap) -> Vec<FunctionDataType>,
 }
 
+#[cfg(feature = "wasm")]
 inventory::collect!(ClientImplementation);
