@@ -1,8 +1,8 @@
-import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import {
   EntityTypeMismatchError,
   NotFoundError,
 } from "@local/hash-backend-utils/error";
+import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -115,6 +115,12 @@ export const getHashInstanceAdminAccountGroupId = async (
   authentication: { actorId: AccountId },
 ): Promise<AccountGroupId> => {
   const hashInstance = await getHashInstance(ctx, authentication);
+
+  const systemAccountId = await getMachineActorId(
+    { graphApi: ctx.graphApi },
+    authentication,
+    { identifier: "hash" },
+  );
 
   const entityPermissions = await ctx.graphApi
     .getEntityAuthorizationRelationships(

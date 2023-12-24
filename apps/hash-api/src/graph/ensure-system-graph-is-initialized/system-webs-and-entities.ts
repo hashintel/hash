@@ -25,7 +25,6 @@ import {
   createWeb,
 } from "../account-permission-management";
 import { ImpureGraphContext } from "../context-types";
-import { createEntity } from "../knowledge/primitive/entity";
 import { createHashInstance } from "../knowledge/system-types/hash-instance";
 import { createOrg, getOrgByShortname } from "../knowledge/system-types/org";
 import { systemAccountId } from "../system-account";
@@ -227,7 +226,7 @@ export const ensureSystemEntitiesExist = async (params: {
    */
   const authentication = { actorId: systemAccountId };
   try {
-    await getHashInstance(context, authentication, {});
+    await getHashInstance(context, authentication);
   } catch (error) {
     if (error instanceof NotFoundError) {
       await createHashInstance(context, authentication, {});

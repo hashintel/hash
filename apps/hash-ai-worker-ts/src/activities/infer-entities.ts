@@ -835,14 +835,14 @@ export const inferEntities = async ({
     { lastDaysCost: 0, lastThirtyDaysCost: 0 },
   );
 
-  const isUsreAdmin = await isUserHashInstanceAdmin(
+  const isUserAdmin = await isUserHashInstanceAdmin(
     { graphApi: graphApiClient },
     userAuthenticationInfo,
     { userAccountId: userAuthenticationInfo.actorId },
   );
 
   const { day: dayLimit, month: monthLimit } =
-    usageLCostLimit[isUsreAdmin ? "admin" : "user"];
+    usageLCostLimit[isUserAdmin ? "admin" : "user"];
 
   if (lastDaysCost >= dayLimit) {
     return {
@@ -1004,6 +1004,8 @@ export const inferEntities = async ({
     results: [],
     usage: [],
   });
+
+  console.log(JSON.stringify(response.contents[0], null, 2));
 
   if (response.contents[0]?.usage) {
     const hashInstanceAdminGroupId = await getHashInstanceAdminAccountGroupId(

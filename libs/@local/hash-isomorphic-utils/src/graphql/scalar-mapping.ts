@@ -36,6 +36,9 @@ export const scalars = {
     "@local/hash-subgraph#EntityTemporalVersioningMetadata",
   EntityPropertiesObject: "@local/hash-subgraph#EntityPropertiesObject",
 
+  AggregateUsageRecord:
+    "@local/hash-isomorphic-utils/service-usage#AggregateUsageRecord",
+
   UserPermissionsOnEntities:
     "@local/hash-isomorphic-utils/types#UserPermissionsOnEntities",
   UserPermissions: "@local/hash-isomorphic-utils/types#UserPermissions",

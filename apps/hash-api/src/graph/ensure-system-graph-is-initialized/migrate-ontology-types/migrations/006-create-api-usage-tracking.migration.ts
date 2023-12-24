@@ -400,10 +400,9 @@ const migrate: MigrationFunction = async ({
         },
         {
           // Let everyone view the service feature entities
-          relation: "setting",
+          relation: "viewer",
           subject: {
-            kind: "setting",
-            subjectId: "viewFromWeb",
+            kind: "public",
           },
         },
       ],

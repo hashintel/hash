@@ -1,4 +1,3 @@
-import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import { GraphApi } from "@local/hash-graph-client";
 import {
@@ -11,6 +10,7 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { AggregatedUsageRecord } from "@local/hash-isomorphic-utils/service-usage";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { ServiceFeatureProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { UsageRecordProperties } from "@local/hash-isomorphic-utils/system-types/usagerecord";
@@ -26,16 +26,6 @@ import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
-
-type AggregatedUsageRecord = {
-  serviceName: string;
-  featureName: string;
-  totalInputUnitCount: number;
-  totalOutputUnitCount: number;
-  totalCostInUsd: number;
-  last24hoursTotalCostInUsd: number;
-  limitedToPeriod: BoundedTimeInterval | null;
-};
 
 const generateAggregateUsageKey = ({
   serviceName,
@@ -112,13 +102,15 @@ export const getUserServiceUsage = async (
     const serviceFeatureLinkAndEntities = linkedEntities.filter(
       ({ linkEntity }) =>
         linkEntity[0]!.metadata.entityTypeId ===
-        systemEntityTypes.serviceFeature.entityTypeId,
+        systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
     );
     if (serviceFeatureLinkAndEntities.length !== 1) {
       throw new Error(
-        `Expected exactly one service feature link for service usage record ${record.metadata.recordId.entityId}.`,
+        `Expected exactly one service feature link for service usage record ${record.metadata.recordId.entityId}, got ${serviceFeatureLinkAndEntities.length}.`,
       );
     }
+
+    console.log(JSON.stringify(serviceFeatureLinkAndEntities, undefined, 2));
 
     const serviceFeatureEntity = serviceFeatureLinkAndEntities[0]!
       .rightEntity[0]! as Entity<ServiceFeatureProperties>;
@@ -150,8 +142,10 @@ export const getUserServiceUsage = async (
     };
     const aggregateUsage = aggregateUsageByServiceFeature[serviceFeatureKey]!;
 
-    aggregateUsage.totalInputUnitCount += inputUnitCount ?? 0;
-    aggregateUsage.totalOutputUnitCount += outputUnitCount ?? 0;
+    aggregateUsage.totalInputUnitCount +=
+      inputUnitCount && inputUnitCount >= 0 ? inputUnitCount : 0;
+    aggregateUsage.totalOutputUnitCount +=
+      outputUnitCount && outputUnitCount >= 0 ? outputUnitCount : 0;
 
     const applicablePrice = serviceUnitCost.find((entry) => {
       const { appliesUntil, appliesFrom } = simplifyProperties(entry);
@@ -176,8 +170,12 @@ export const getUserServiceUsage = async (
     const { inputUnitCost, outputUnitCost } =
       simplifyProperties(applicablePrice);
 
-    const inputCost = (inputUnitCount ?? 0) * (inputUnitCost ?? 0);
-    const outputCost = (outputUnitCount ?? 0) * (outputUnitCost ?? 0);
+    const inputCost =
+      (inputUnitCount ?? 0) *
+      (inputUnitCost && inputUnitCost >= 0 ? inputUnitCost : 0);
+    const outputCost =
+      (outputUnitCount ?? 0) *
+      (outputUnitCost && outputUnitCost >= 0 ? outputUnitCost : 0);
     const totalCost = inputCost + outputCost;
 
     aggregateUsage.totalCostInUsd += totalCost;

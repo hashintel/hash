@@ -47,7 +47,7 @@ const kratosAfterRegistrationHookHandler =
       try {
         const { emails } = traits;
 
-        const hashInstance = await getHashInstance(context, authentication, {});
+        const hashInstance = await getHashInstance(context, authentication);
 
         if (!hashInstance.userSelfRegistrationIsEnabled) {
           throw new Error("User registration is disabled.");
