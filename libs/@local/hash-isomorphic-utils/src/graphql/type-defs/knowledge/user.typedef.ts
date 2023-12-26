@@ -1,6 +1,13 @@
 import { gql } from "apollo-server-express";
 
 export const userTypedef = gql`
+  scalar AggregatedUsageRecord
+
+  type UserUsageRecords {
+    email: String!
+    usageRecords: [AggregatedUsageRecord!]!
+  }
+
   extend type Query {
     me(
       hasLeftEntity: EdgeResolveDepthsInput! = { incoming: 0, outgoing: 0 }
@@ -14,5 +21,7 @@ export const userTypedef = gql`
     Determines whether the authenticated user has access to the instance of HASH
     """
     hasAccessToHash: Boolean!
+
+    getUsageRecords: [UserUsageRecords!]!
   }
 `;

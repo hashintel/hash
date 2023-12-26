@@ -79,6 +79,7 @@ const getWebSocket = async () => {
               : requestInState,
           ),
         );
+        return;
       }
 
       await setInferenceRequestValue((currentValue) =>

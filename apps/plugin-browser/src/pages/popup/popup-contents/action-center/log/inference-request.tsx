@@ -28,7 +28,7 @@ const MetadataItem = ({ label, value }: { label: string; value: string }) => (
     >
       {label}:{` `}
     </Typography>
-    <Typography sx={{ fontSize: metadataFontSize, opacity: 0.6 }}>
+    <Typography sx={{ fontSize: metadataFontSize, opacity: 0.6, ml: 0.2 }}>
       {value}
     </Typography>
   </Stack>
@@ -84,8 +84,8 @@ const InferenceMetadata = ({ request }: { request: PageEntityInference }) => {
         View source page
       </Box>
       <MetadataItem label="Model" value={request.model} />
-      {usage && <MetadataItem label="Tokens used" value={usage.toString()} />}
-      {duration && <MetadataItem label="Time taken" value={duration} />}
+      {usage && <MetadataItem label="Tokens" value={usage.toString()} />}
+      {duration && <MetadataItem label="Time" value={duration} />}
     </Stack>
   );
 };
@@ -133,19 +133,18 @@ export const InferenceRequest = ({
 
   if (status === "error") {
     return (
-      <>
+      <Box px={1.5} py={1}>
         <Typography
           sx={{
             color: ({ palette }) => palette.error.main,
             fontSize: 12,
-            px: 1.5,
-            py: 1,
+            pb: 1,
           }}
         >
           {request.errorMessage}
         </Typography>
         <InferenceMetadata request={request} />
-      </>
+      </Box>
     );
   }
 

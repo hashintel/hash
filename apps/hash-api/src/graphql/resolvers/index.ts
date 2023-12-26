@@ -58,6 +58,7 @@ import {
   canUserEdit,
   checkUserPermissionsOnEntity,
 } from "./knowledge/shared/check-permissions";
+import { getUsageRecordsResolver } from "./knowledge/user/get-usage-records";
 import { hasAccessToHashResolver } from "./knowledge/user/has-access-to-hash";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
 import { meResolver } from "./knowledge/user/me";
@@ -90,6 +91,8 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     getBlockProtocolBlocks: getBlockProtocolBlocksResolver,
     // Logged in users only
     me: loggedInMiddleware(meResolver),
+    // Admins
+    getUsageRecords: loggedInMiddleware(getUsageRecordsResolver),
     // Any user
     isShortnameTaken: isShortnameTakenResolver,
     embedCode,

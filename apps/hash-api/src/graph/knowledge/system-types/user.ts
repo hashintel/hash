@@ -1,4 +1,5 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
 import {
   currentTimeInstantTemporalAxes,
@@ -40,7 +41,6 @@ import { createAccount, createWeb } from "../../account-permission-management";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { systemAccountId } from "../../system-account";
 import {
-  checkEntityPermission,
   createEntity,
   getEntityOutgoingLinks,
   getLatestEntityById,
@@ -50,7 +50,7 @@ import {
   shortnameIsRestricted,
   shortnameIsTaken,
 } from "./account.fields";
-import { addHashInstanceAdmin, getHashInstance } from "./hash-instance";
+import { addHashInstanceAdmin } from "./hash-instance";
 import {
   createOrgMembership,
   getOrgMembershipFromLinkEntity,
@@ -336,7 +336,7 @@ export const createUser: ImpureGraphFunction<
       : {}),
   };
 
-  const hashInstance = await getHashInstance(ctx, authentication, {});
+  const hashInstance = await getHashInstance(ctx, authentication);
   const hashInstanceAdmins = extractOwnedByIdFromEntityId(
     hashInstance.entity.metadata.recordId.entityId,
   ) as AccountGroupId;
@@ -548,23 +548,3 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
       params.orgEntityUuid,
   );
 };
-
-/**
- * Check whether or not the user is a hash instance admin.
- *
- * @param params.user - the user that may be a hash instance admin.
- */
-export const isUserHashInstanceAdmin: ImpureGraphFunction<
-  { user: User },
-  Promise<boolean>
-> = async (ctx, authentication, { user }) =>
-  getHashInstance(ctx, authentication, {}).then((hashInstance) =>
-    checkEntityPermission(
-      ctx,
-      { actorId: user.accountId },
-      {
-        entityId: hashInstance.entity.metadata.recordId.entityId,
-        permission: "update",
-      },
-    ),
-  );

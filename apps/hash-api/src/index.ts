@@ -26,6 +26,7 @@ import { json } from "body-parser";
 import cors from "cors";
 import express, { raw } from "express";
 import proxy from "express-http-proxy";
+import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
 import { createHttpTerminator } from "http-terminator";
@@ -90,6 +91,13 @@ declare global {
 }
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
+
+const rateLimiter = rateLimit({
+  windowMs: 60 * 20, // 20 seconds
+  limit: 5, // Limit each IP to 5 requests every 20 seconds
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
 
 const main = async () => {
   await TypeSystemInitializer.initialize();
@@ -317,7 +325,7 @@ const main = async () => {
    * can be sent the the Ory Kratos public URL directly, because the
    * CORS requirements are not as strict as the one from the browser.
    */
-  app.use("/auth/*", cors(CORS_CONFIG), (req, res, next) => {
+  app.use("/auth/*", rateLimiter, cors(CORS_CONFIG), (req, res, next) => {
     const expectedAccessControlAllowOriginHeader = res.getHeader(
       "Access-Control-Allow-Origin",
     );
@@ -360,8 +368,8 @@ const main = async () => {
   });
 
   // Integrations
-  app.get("/oauth/linear", oAuthLinear);
-  app.get("/oauth/linear/callback", oAuthLinearCallback);
+  app.get("/oauth/linear", rateLimiter, oAuthLinear);
+  app.get("/oauth/linear/callback", rateLimiter, oAuthLinearCallback);
   app.post("/webhooks/linear", linearWebhook);
 
   /**

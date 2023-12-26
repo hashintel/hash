@@ -140,6 +140,8 @@ export const openInferEntitiesWebSocket = ({
           context,
           cookie,
           logger,
+        }).catch(() => {
+          return { user: null };
         });
 
         if (!user) {

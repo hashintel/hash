@@ -18,4 +18,5 @@ export const hiddenEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.tiktokAccount.entityTypeId,
   systemEntityTypes.machine.entityTypeId,
   systemEntityTypes.user.entityTypeId,
+  systemEntityTypes.usageRecord.entityTypeId,
 ];

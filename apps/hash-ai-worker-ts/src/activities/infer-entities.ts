@@ -3,10 +3,18 @@ import * as path from "node:path";
 
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import {
+  getHashInstanceAdminAccountGroupId,
+  isUserHashInstanceAdmin,
+} from "@local/hash-backend-utils/hash-instance";
+import {
   getMachineActorId,
   getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
 import { createGraphChangeNotification } from "@local/hash-backend-utils/notifications";
+import {
+  createUsageRecord,
+  getUserServiceUsage,
+} from "@local/hash-backend-utils/service-usage";
 import type {
   Entity as GraphApiEntity,
   GraphApi,
@@ -22,11 +30,13 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   AccountId,
   Entity,
   OwnedById,
   Subgraph,
+  Timestamp,
 } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
@@ -773,6 +783,17 @@ const systemMessage: OpenAI.ChatCompletionSystemMessageParam = {
   `),
 };
 
+const usageCostLimit = {
+  admin: {
+    day: 100,
+    month: 500,
+  },
+  user: {
+    day: 10,
+    month: 50,
+  },
+};
+
 /**
  * Infer and create entities of the requested types from the provided text input.
  * @param authentication information on the user making the request
@@ -786,6 +807,58 @@ export const inferEntities = async ({
 }: InferEntitiesCallerParams & {
   graphApiClient: GraphApi;
 }): Promise<InferEntitiesReturn> => {
+  const now = new Date();
+
+  const userServiceUsage = await getUserServiceUsage(
+    { graphApi: graphApiClient },
+    userAuthenticationInfo,
+    {
+      userAccountId: userAuthenticationInfo.actorId,
+      decisionTimeInterval: {
+        start: {
+          kind: "inclusive",
+          limit: new Date(
+            now.valueOf() - 1000 * 60 * 60 * 24 * 30,
+          ).toISOString() as Timestamp,
+        },
+        end: { kind: "inclusive", limit: now.toISOString() as Timestamp },
+      },
+    },
+  );
+
+  const { lastDaysCost, lastThirtyDaysCost } = userServiceUsage.reduce(
+    (acc, usageRecord) => {
+      acc.lastDaysCost += usageRecord.last24hoursTotalCostInUsd;
+      acc.lastThirtyDaysCost += usageRecord.totalCostInUsd;
+      return acc;
+    },
+    { lastDaysCost: 0, lastThirtyDaysCost: 0 },
+  );
+
+  const isUserAdmin = await isUserHashInstanceAdmin(
+    { graphApi: graphApiClient },
+    userAuthenticationInfo,
+    { userAccountId: userAuthenticationInfo.actorId },
+  );
+
+  const { day: dayLimit, month: monthLimit } =
+    usageCostLimit[isUserAdmin ? "admin" : "user"];
+
+  if (lastDaysCost >= dayLimit) {
+    return {
+      code: StatusCode.ResourceExhausted,
+      contents: [],
+      message: `You have exceeded your daily usage limit of ${dayLimit}.`,
+    };
+  }
+  if (lastThirtyDaysCost >= monthLimit) {
+    return {
+      code: StatusCode.ResourceExhausted,
+      contents: [],
+      message: `You have exceeded your monthly usage limit of ${monthLimit}.`,
+    };
+  }
+
   const {
     createAs,
     entityTypeIds,
@@ -907,7 +980,7 @@ export const inferEntities = async ({
     Your detailed, comprehensive response, with as many entities and properties as possible:
   `);
 
-  return requestEntityInference({
+  const response = await requestEntityInference({
     authentication: { machineActorId: aiAssistantAccountId },
     completionPayload: {
       max_tokens: maxTokens,
@@ -931,4 +1004,75 @@ export const inferEntities = async ({
     results: [],
     usage: [],
   });
+
+  if (response.contents[0]?.usage) {
+    const hashInstanceAdminGroupId = await getHashInstanceAdminAccountGroupId(
+      { graphApi: graphApiClient },
+      { actorId: aiAssistantAccountId },
+    );
+
+    const { inputUnitCount, outputUnitCount } =
+      response.contents[0].usage.reduce(
+        (acc, usageRecord) => {
+          acc.inputUnitCount += usageRecord.prompt_tokens;
+          acc.outputUnitCount += usageRecord.completion_tokens;
+          return acc;
+        },
+        { inputUnitCount: 0, outputUnitCount: 0 },
+      );
+
+    const usageRecordMetadata = await createUsageRecord(
+      { graphApi: graphApiClient },
+      { actorId: aiAssistantAccountId },
+      {
+        serviceName: "OpenAI",
+        featureName: model,
+        userAccountId: userAuthenticationInfo.actorId,
+        inputUnitCount,
+        outputUnitCount,
+      },
+    );
+    for (const entityResult of response.contents[0].results) {
+      if (entityResult.status === "success") {
+        await graphApiClient.createEntity(aiAssistantAccountId, {
+          draft: false,
+          properties: {},
+          ownedById: userAuthenticationInfo.actorId,
+          entityTypeId:
+            entityResult.operation === "create"
+              ? systemLinkEntityTypes.created.linkEntityTypeId
+              : systemLinkEntityTypes.updated.linkEntityTypeId,
+          linkData: {
+            leftEntityId: usageRecordMetadata.recordId.entityId,
+            rightEntityId: entityResult.entity.metadata.recordId.entityId,
+          },
+          relationships: [
+            {
+              relation: "administrator",
+              subject: {
+                kind: "account",
+                subjectId: aiAssistantAccountId,
+              },
+            },
+            {
+              relation: "viewer",
+              subject: {
+                kind: "account",
+                subjectId: userAuthenticationInfo.actorId,
+              },
+            },
+            {
+              relation: "viewer",
+              subject: {
+                kind: "accountGroup",
+                subjectId: hashInstanceAdminGroupId,
+              },
+            },
+          ],
+        });
+      }
+    }
+  }
+
+  return response;
 };

@@ -1,5 +1,6 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { NotFoundError } from "@local/hash-backend-utils/error";
+import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
   createMachineActorEntity,
   createWebMachineActor,
@@ -24,10 +25,7 @@ import {
   createWeb,
 } from "../account-permission-management";
 import { ImpureGraphContext } from "../context-types";
-import {
-  createHashInstance,
-  getHashInstance,
-} from "../knowledge/system-types/hash-instance";
+import { createHashInstance } from "../knowledge/system-types/hash-instance";
 import { createOrg, getOrgByShortname } from "../knowledge/system-types/org";
 import { systemAccountId } from "../system-account";
 import { getEntitiesByType } from "./migrate-ontology-types/util";
@@ -228,7 +226,7 @@ export const ensureSystemEntitiesExist = async (params: {
    */
   const authentication = { actorId: systemAccountId };
   try {
-    await getHashInstance(context, authentication, {});
+    await getHashInstance(context, authentication);
   } catch (error) {
     if (error instanceof NotFoundError) {
       await createHashInstance(context, authentication, {});

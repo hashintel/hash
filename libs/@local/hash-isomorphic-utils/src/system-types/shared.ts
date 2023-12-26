@@ -16,6 +16,16 @@ export type ActorOutgoingLinksByLinkEntityTypeId = {};
 export type ActorProperties = {};
 
 /**
+ * The point in time at which something begins to apply
+ */
+export type AppliesFromPropertyValue = DateTimeDataType;
+
+/**
+ * The point at which something ceases to apply
+ */
+export type AppliesUntilPropertyValue = DateTimeDataType;
+
+/**
  * Whether or not something has been archived.
  */
 export type ArchivedPropertyValue = BooleanDataType;
@@ -112,6 +122,11 @@ export type ComponentIdPropertyValue = TextDataType;
 export type ConnectionSourceNamePropertyValue = TextDataType;
 
 /**
+ * A reference to a particular date and time.
+ */
+export type DateTimeDataType = string;
+
+/**
  * Stringified timestamp of when something was deleted.
  */
 export type DeletedAtPropertyValue = TextDataType;
@@ -140,6 +155,11 @@ export type EntityEditionIdPropertyValue = TextDataType;
  * Stringified timestamp of when something expired.
  */
 export type ExpiredAtPropertyValue = TextDataType;
+
+/**
+ * The name of a feature
+ */
+export type FeatureNamePropertyValue = TextDataType;
 
 export type File = Entity<FileProperties>;
 
@@ -366,6 +386,11 @@ export type ImageProperties1 = FileProperties;
 
 export type ImageProperties2 = {};
 
+/**
+ * The cost of an input unit
+ */
+export type InputUnitCostPropertyValue = NumberDataType;
+
 export type IsMemberOf = Entity<IsMemberOfProperties> & { linkData: LinkData };
 
 export type IsMemberOfOutgoingLinkAndTarget = never;
@@ -553,6 +578,11 @@ export type OriginalSourcePropertyValue = TextDataType;
  */
 export type OriginalURLPropertyValue = TextDataType;
 
+/**
+ * The cost of an output unit
+ */
+export type OutputUnitCostPropertyValue = NumberDataType;
+
 export type Page = Entity<PageProperties>;
 
 export type PageHasParentLink = { linkEntity: HasParent; rightEntity: Page };
@@ -640,6 +670,36 @@ export type ServiceAccountOutgoingLinksByLinkEntityTypeId = {};
  */
 export type ServiceAccountProperties = {
   "https://hash.ai/@hash/types/property-type/profile-url/": ProfileURLPropertyValue;
+};
+
+export type ServiceFeature = Entity<ServiceFeatureProperties>;
+
+export type ServiceFeatureOutgoingLinkAndTarget = never;
+
+export type ServiceFeatureOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A feature of a service
+ */
+export type ServiceFeatureProperties = {
+  "https://hash.ai/@hash/types/property-type/feature-name/": FeatureNamePropertyValue;
+  "https://hash.ai/@hash/types/property-type/service-name/": ServiceNamePropertyValue;
+  "https://hash.ai/@hash/types/property-type/service-unit-cost/"?: ServiceUnitCostPropertyValue[];
+};
+
+/**
+ * The name of a service
+ */
+export type ServiceNamePropertyValue = TextDataType;
+
+/**
+ * The unit cost of a service
+ */
+export type ServiceUnitCostPropertyValue = {
+  "https://hash.ai/@hash/types/property-type/applies-from/": AppliesFromPropertyValue;
+  "https://hash.ai/@hash/types/property-type/applies-until/"?: AppliesUntilPropertyValue;
+  "https://hash.ai/@hash/types/property-type/input-unit-cost/"?: InputUnitCostPropertyValue;
+  "https://hash.ai/@hash/types/property-type/output-unit-cost/"?: OutputUnitCostPropertyValue;
 };
 
 /**
