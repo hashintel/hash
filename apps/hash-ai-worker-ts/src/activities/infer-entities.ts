@@ -848,14 +848,14 @@ export const inferEntities = async ({
     return {
       code: StatusCode.ResourceExhausted,
       contents: [],
-      message: `You have exceeded your daily usage limit of $${dayLimit}.`,
+      message: `You have exceeded your daily usage limit of ${dayLimit}.`,
     };
   }
   if (lastThirtyDaysCost >= monthLimit) {
     return {
       code: StatusCode.ResourceExhausted,
       contents: [],
-      message: `You have exceeded your monthly usage limit of $${monthLimit}.`,
+      message: `You have exceeded your monthly usage limit of ${monthLimit}.`,
     };
   }
 
