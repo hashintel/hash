@@ -73,6 +73,20 @@ const migrate: MigrationFunction = async ({
 
   await createSystemDataTypeIfNotExists(context, authentication, {
     dataTypeDefinition: {
+      title: "Kilometers",
+      description:
+        "A unit of length in the International System of Units (SI), equal to one thousand meters.",
+      label: {
+        right: "km",
+      },
+      type: "number",
+    },
+    webShortname: "hash",
+    migrationState,
+  });
+
+  await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
       title: "Miles",
       description:
         "An imperial unit of length, equivalent to 1,609.344 meters in the International System of Units (SI).",
