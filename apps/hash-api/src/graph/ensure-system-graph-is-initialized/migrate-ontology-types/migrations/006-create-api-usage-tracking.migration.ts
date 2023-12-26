@@ -290,20 +290,20 @@ const migrate: MigrationFunction = async ({
     {
       serviceName: "OpenAI",
       featureName: "gpt-4-1106-preview",
-      inputUnitCost: 0.01,
-      outputUnitCost: 0.03,
+      inputUnitCost: 0.00001, // price per input token
+      outputUnitCost: 0.00003, // price per output token
     },
     {
       serviceName: "OpenAI",
       featureName: "gpt-4",
-      inputUnitCost: 0.03,
-      outputUnitCost: 0.06,
+      inputUnitCost: 0.00003,
+      outputUnitCost: 0.00006,
     },
     {
       serviceName: "OpenAI",
       featureName: "gpt-3.5-turbo-1106",
-      inputUnitCost: 0.001,
-      outputUnitCost: 0.002,
+      inputUnitCost: 0.000001,
+      outputUnitCost: 0.000002,
     },
   ];
 

@@ -156,7 +156,7 @@ export const getUserServiceUsage = async (
       if (!appliesFrom) {
         return false;
       }
-      return appliesFrom >= record.metadata.provenance.createdAtTransactionTime;
+      return appliesFrom <= record.metadata.provenance.createdAtTransactionTime;
     });
 
     if (!applicablePrice) {
