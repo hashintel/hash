@@ -16,7 +16,7 @@ serde = { workspace = true, features = ["derive", "unstable"] }
 tokio.workspace = true
 
 derive-where = { version = "1.2.7", default-features = false, features = ["nightly"] }
-futures = { version = "0.3.29", default-features = false }
+futures = { version = "0.3.30", default-features = false }
 serde_json = { version = "1.0.108" }
 serde_plain = "1.0.2"
 
