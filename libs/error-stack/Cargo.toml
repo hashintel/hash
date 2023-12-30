@@ -39,7 +39,7 @@ once_cell = "1.19.0"
 supports-color = "2.1.0"
 supports-unicode = "2.0.0"
 owo-colors = "4.0.0"
-thiserror = "1.0.52"
+thiserror = "1.0.53"
 
 [build-dependencies]
 rustc_version = "0.4"

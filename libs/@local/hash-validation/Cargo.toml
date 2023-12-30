@@ -15,7 +15,7 @@ chrono = { version = "0.4.31", default-features = false, features = ["std"] }
 email_address.workspace = true
 regex = "1.10.2"
 serde_json.workspace = true
-thiserror = "1.0.52"
+thiserror = "1.0.53"
 iso8601-duration = "0.2.0"
 url.workspace = true
 
