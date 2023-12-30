@@ -19,7 +19,7 @@ codec = { workspace = true }
 error-stack = { workspace = true }
 type-system = { workspace = true }
 
-axum = "0.7.2"
+axum = "0.7.3"
 clap = { version = "4.4.11", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = "4.4.4"
 mimalloc = { version = "0.1.39", default-features = false }
