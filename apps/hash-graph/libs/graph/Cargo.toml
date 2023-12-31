@@ -22,7 +22,7 @@ serde = { workspace = true, features = ["derive"] }
 utoipa = { workspace = true, features = ["uuid"], optional = true }
 tracing = { workspace = true }
 
-async-trait = "0.1.75"
+async-trait = "0.1.76"
 async-scoped = { version = "0.8.0", features = ["use-tokio"] }
 bb8-postgres = "0.8.1"
 bytes = { workspace = true }
