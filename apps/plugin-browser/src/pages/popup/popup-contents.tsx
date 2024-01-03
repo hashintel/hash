@@ -45,6 +45,8 @@ export const PopupContents = () => {
 
   const loading = userLoading || !popupTabLoaded;
 
+  console.log({ userLoading });
+
   return (
     <ThemeProvider theme={theme}>
       <Box

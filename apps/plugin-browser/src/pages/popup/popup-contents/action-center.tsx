@@ -141,8 +141,7 @@ export const ActionCenter = ({
               ? `${FRONTEND_ORIGIN}/@${user.properties.shortname}`
               : undefined
           }
-          // @todo handle users who haven't signed up
-          name={user.properties.preferredName ?? "?"}
+          name={user.properties.preferredName}
         />
       </Stack>
       <Box sx={{ maxHeight: 545, overflowY: "scroll" }}>
