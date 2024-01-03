@@ -73,7 +73,7 @@ export const useFetchBlockSubgraph = (): ((
         const placeholderEntity: Entity = {
           metadata: {
             recordId: {
-              entityId: "placeholder-account%entity-id-not-set" as EntityId,
+              entityId: "placeholder-account~entity-id-not-set" as EntityId,
               editionId: now,
             },
             entityTypeId: blockEntityTypeId,
