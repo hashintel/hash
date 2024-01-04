@@ -16,9 +16,13 @@ test("user can sign up", async ({ page }) => {
 
   await page.waitForURL("**/signup");
 
+  const randomNumber = Math.floor(Math.random() * 10_000)
+    .toString()
+    .padEnd(4, "0"); // shortnames must be at least 4 characters
+
   await page.fill(
     '[placeholder="Enter your email address"]',
-    "new-user@example.com",
+    `${randomNumber}@example.com`,
   );
 
   await page.fill('[type="password"]', "some-complex-pw-1ab2");
@@ -29,7 +33,7 @@ test("user can sign up", async ({ page }) => {
     page.locator("text=Thanks for confirming your account"),
   ).toBeVisible();
 
-  await page.fill('[placeholder="example"]', "new-user");
+  await page.fill('[placeholder="example"]', randomNumber.toString());
 
   await page.fill('[placeholder="Bobby"]', "New User");
 
