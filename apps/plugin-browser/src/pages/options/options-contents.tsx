@@ -68,8 +68,7 @@ export const OptionsContents = () => {
                       fontSize: 20,
                     }}
                   >
-                    Welcome,{" "}
-                    {user.properties.preferredName ?? user.properties.email}!
+                    Welcome, {user.properties.preferredName}
                   </Typography>
                   <Typography
                     sx={{
