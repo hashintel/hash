@@ -47,13 +47,10 @@ test("user can create entity type", async ({ page }) => {
       url.searchParams.has("draft"),
   );
 
-  // Click on New Entity button to create new instance of entity
-  // @todo uncomment when API is sped up (this page relies on very slow queryEntityTypes and queryPropertyTypes calls)
-  // await page.click('[data-testid="editbar-confirm"]');
-  // await page.waitForURL(
-  //   (url) =>
-  //     !!url.pathname.match(
-  //       /^\/@alice\/types\/entity-type\/testentity/,
-  //     ) && !url.searchParams.has("draft"),
-  // );
+  await page.click('[data-testid="editbar-confirm"]');
+  await page.waitForURL(
+    (url) =>
+      !!url.pathname.match(/^\/@alice\/types\/entity-type\/testentity/) &&
+      !url.searchParams.has("draft"),
+  );
 });
