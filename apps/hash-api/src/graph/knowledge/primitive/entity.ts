@@ -104,6 +104,17 @@ export const createEntity: ImpureGraphFunction<
     relationships: params.relationships,
   });
 
+  // for (let i = 0; i < 100; i++) {
+  //   await graphApi.createEntity(actorId, {
+  //     ownedById,
+  //     entityTypeId,
+  //     properties,
+  //     entityUuid: overrideEntityUuid,
+  //     draft: true,
+  //     relationships: params.relationships,
+  //   });
+  // }
+
   const entity = { properties, metadata: metadata as EntityMetadata };
 
   for (const createOutgoingLinkParams of outgoingLinks ?? []) {

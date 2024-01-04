@@ -40,6 +40,7 @@ import { useDraftEntities } from "../../shared/draft-entities-context";
 import { getFirstRevision } from "../../shared/entity-utils";
 import { Button } from "../../shared/ui";
 import { MinimalActor, useActors } from "../../shared/use-actors";
+import { DraftEntitiesContextBar } from "./draft-entities/draft-entities-context-bar";
 import {
   DraftEntitiesFilters,
   DraftEntityFilterState,
@@ -342,6 +343,20 @@ export const DraftEntities: FunctionComponent<{
   const numberOfEntitiesToDisplay =
     incrementNumberOfEntitiesToDisplay * numberOfIncrements;
 
+  const displayedDraftEntitiesWithCreatedAt = useMemo(
+    () =>
+      filteredAndSortedDraftEntitiesWithCreatedAt
+        ? /**
+           * @todo: use pagination instead
+           */
+          filteredAndSortedDraftEntitiesWithCreatedAt.slice(
+            0,
+            numberOfEntitiesToDisplay,
+          )
+        : undefined,
+    [filteredAndSortedDraftEntitiesWithCreatedAt, numberOfEntitiesToDisplay],
+  );
+
   return (
     <Container
       sx={{
@@ -366,6 +381,17 @@ export const DraftEntities: FunctionComponent<{
           </Typography>
         ) : (
           <>
+            <DraftEntitiesContextBar
+              draftEntities={draftEntities}
+              selectedDraftEntityIds={selectedDraftEntityIds}
+              setSelectedDraftEntityIds={setSelectedDraftEntityIds}
+              displayedDraftEntities={displayedDraftEntitiesWithCreatedAt?.map(
+                ({ entity }) => entity,
+              )}
+              matchingDraftEntities={filteredAndSortedDraftEntitiesWithCreatedAt?.map(
+                ({ entity }) => entity,
+              )}
+            />
             <Box
               sx={{
                 background: ({ palette }) => palette.common.white,
@@ -376,15 +402,11 @@ export const DraftEntities: FunctionComponent<{
                 flexGrow: 1,
               }}
             >
-              {filteredAndSortedDraftEntitiesWithCreatedAt &&
+              {displayedDraftEntitiesWithCreatedAt &&
               draftEntitiesWithLinkedDataSubgraph ? (
                 <>
-                  {filteredAndSortedDraftEntitiesWithCreatedAt
-                    /**
-                     * @todo: use pagination instead
-                     */
-                    .slice(0, numberOfEntitiesToDisplay)
-                    .map(({ entity, createdAt }, i, all) => {
+                  {displayedDraftEntitiesWithCreatedAt.map(
+                    ({ entity, createdAt }, i, all) => {
                       const isSelected = selectedDraftEntityIds.includes(
                         entity.metadata.recordId.entityId,
                       );
@@ -419,7 +441,8 @@ export const DraftEntities: FunctionComponent<{
                           ) : null}
                         </Fragment>
                       );
-                    })}
+                    },
+                  )}
                 </>
               ) : (
                 <Box paddingY={4.5} paddingX={3.25}>
