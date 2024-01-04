@@ -18,11 +18,11 @@ error-stack = { git = "https://github.com/hashintel/hash", rev = "0829935", defa
 
 num-traits = { version = "0.2.17", default_features = false }
 
-serde = { version = "1.0.193", default_features = false, features = ['alloc', 'derive'] }
+serde = { version = "1.0.194", default_features = false, features = ['alloc', 'derive'] }
 erased-serde = { version = "0.4.2", default_features = false, features = ['alloc'] }
 
 [dev-dependencies]
-serde_json = { version = "1.0.109", features = ['arbitrary_precision'] }
+serde_json = { version = "1.0.110", features = ['arbitrary_precision'] }
 similar-asserts = { version = "1.5.0", features = ['serde'] }
 deer-desert = { path = "./desert", features = ['pretty'] }
 proptest = "1.4.0"
