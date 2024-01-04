@@ -85,9 +85,11 @@ const isDateWithinLastEditedTimeRange = (params: {
 
 export type SortOrder = "created-at-asc" | "created-at-desc";
 
-export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
-  sortOrder,
-}) => {
+export const DraftEntities: FunctionComponent<{
+  sortOrder: SortOrder;
+  selectedDraftEntityIds: EntityId[];
+  setSelectedDraftEntityIds: Dispatch<SetStateAction<EntityId[]>>;
+}> = ({ sortOrder, selectedDraftEntityIds, setSelectedDraftEntityIds }) => {
   const [filterState, setFilterState] = useState<DraftEntityFilterState>();
 
   const { draftEntities } = useDraftEntities();
@@ -382,22 +384,42 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
                      * @todo: use pagination instead
                      */
                     .slice(0, numberOfEntitiesToDisplay)
-                    .map(({ entity, createdAt }, i, all) => (
-                      <Fragment key={entity.metadata.recordId.entityId}>
-                        <DraftEntity
-                          entity={entity}
-                          createdAt={createdAt}
-                          subgraph={draftEntitiesWithLinkedDataSubgraph}
-                        />
-                        {i < all.length - 1 ? (
-                          <Divider
-                            sx={{
-                              borderColor: ({ palette }) => palette.gray[30],
-                            }}
+                    .map(({ entity, createdAt }, i, all) => {
+                      const isSelected = selectedDraftEntityIds.includes(
+                        entity.metadata.recordId.entityId,
+                      );
+                      return (
+                        <Fragment key={entity.metadata.recordId.entityId}>
+                          <DraftEntity
+                            entity={entity}
+                            createdAt={createdAt}
+                            subgraph={draftEntitiesWithLinkedDataSubgraph}
+                            selected={isSelected}
+                            toggleSelected={() =>
+                              setSelectedDraftEntityIds((prev) =>
+                                isSelected
+                                  ? prev.filter(
+                                      (entityId) =>
+                                        entityId !==
+                                        entity.metadata.recordId.entityId,
+                                    )
+                                  : [
+                                      ...prev,
+                                      entity.metadata.recordId.entityId,
+                                    ],
+                              )
+                            }
                           />
-                        ) : null}
-                      </Fragment>
-                    ))}
+                          {i < all.length - 1 ? (
+                            <Divider
+                              sx={{
+                                borderColor: ({ palette }) => palette.gray[30],
+                              }}
+                            />
+                          ) : null}
+                        </Fragment>
+                      );
+                    })}
                 </>
               ) : (
                 <Box paddingY={4.5} paddingX={3.25}>

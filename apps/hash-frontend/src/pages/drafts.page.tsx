@@ -1,4 +1,5 @@
 import { PenRegularIcon } from "@hashintel/design-system";
+import { EntityId } from "@local/hash-subgraph";
 import {
   Box,
   breadcrumbsClasses,
@@ -24,6 +25,10 @@ const sortOrderHumanReadable: Record<SortOrder, string> = {
 };
 
 const DraftsPage: NextPageWithLayout = () => {
+  const [selectedDraftEntityIds, setSelectedDraftEntityIds] = useState<
+    EntityId[]
+  >([]);
+
   const [sortOrder, setSortOrder] = useState<SortOrder>("created-at-desc");
 
   return (
@@ -90,7 +95,11 @@ const DraftsPage: NextPageWithLayout = () => {
           </Box>
         }
       />
-      <DraftEntities sortOrder={sortOrder} />
+      <DraftEntities
+        sortOrder={sortOrder}
+        selectedDraftEntityIds={selectedDraftEntityIds}
+        setSelectedDraftEntityIds={setSelectedDraftEntityIds}
+      />
     </NotificationsWithLinksContextProvider>
   );
 };
