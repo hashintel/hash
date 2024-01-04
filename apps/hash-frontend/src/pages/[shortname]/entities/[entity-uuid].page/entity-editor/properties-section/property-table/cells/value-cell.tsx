@@ -21,7 +21,7 @@ import { InteractableManager } from "../../../../../../../../components/grid/uti
 import { drawInteractableTooltipIcons } from "../../../../../../../../components/grid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
 import { isValueEmpty } from "../../is-value-empty";
 import { ArrayEditor } from "./value-cell/array-editor";
-import { editorSpecs } from "./value-cell/editor-specs";
+import { getEditorSpecs } from "./value-cell/editor-specs";
 import { SingleValueEditor } from "./value-cell/single-value-editor";
 import { ValueCell } from "./value-cell/types";
 import { guessEditorTypeFromValue } from "./value-cell/utils";
@@ -59,7 +59,9 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     const left = rect.x + getCellHorizontalPadding();
 
     const editorType = guessEditorTypeFromValue(value, expectedTypes);
-    const editorSpec = editorSpecs[editorType];
+    const relevantType = expectedTypes.find((type) => type.type === editorType);
+
+    const editorSpec = getEditorSpecs(editorType, relevantType?.title);
 
     if (isValueEmpty(value)) {
       // draw empty value

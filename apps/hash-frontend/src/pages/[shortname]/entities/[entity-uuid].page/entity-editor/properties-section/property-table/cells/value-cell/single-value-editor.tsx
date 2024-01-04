@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { isValueEmpty } from "../../../is-value-empty";
-import { editorSpecs } from "./editor-specs";
+import { getEditorSpecs } from "./editor-specs";
 import { EditorTypePicker } from "./editor-type-picker";
 import { BooleanInput } from "./inputs/boolean-input";
 import { JsonInput } from "./inputs/json-input";
@@ -64,7 +64,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
         <EditorTypePicker
           expectedTypes={expectedTypes}
           onTypeChange={(type) => {
-            const editorSpec = editorSpecs[type];
+            const editorSpec = getEditorSpecs(type);
 
             // if no edit mode supported for selected type, set the default value and close the editor
             if (editorSpec.arrayEditException === "no-edit-mode") {
@@ -120,7 +120,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   }
 
   if (editorType === "null" || editorType === "emptyList") {
-    const spec = editorSpecs[editorType];
+    const spec = getEditorSpecs(editorType);
     const title = editorType === "null" ? "Null" : "Empty List";
 
     const shouldClearOnClick = value !== undefined;

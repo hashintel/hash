@@ -1,5 +1,6 @@
 export { fa100 } from "./fa-100";
 export { faAsterisk } from "./fa-asterisk";
+export { faAtRegular } from "./fa-at-regular";
 export { faBracketsCurly } from "./fa-brackets-curly";
 export { faBracketsSquare } from "./fa-brackets-square";
 export { faCheck } from "./fa-check";
@@ -8,9 +9,11 @@ export { faCube } from "./fa-cube";
 export { faCubes } from "./fa-cubes";
 export { faDiagramSubtask } from "./fa-diagram-subtask";
 export { faEmptySet } from "./fa-empty-set";
+export { faInputPipeRegular } from "./fa-input-pipe-regular";
 export { faListTree } from "./fa-list-tree";
 export { faPen } from "./fa-pen";
 export { faPlus } from "./fa-plus";
+export { faRulerRegular } from "./fa-ruler-regular";
 export { faSquareCheck } from "./fa-square-check";
 export { faText } from "./fa-text";
 export { faTrash } from "./fa-trash";

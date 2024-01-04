@@ -13,7 +13,7 @@ import { getPropertyCountSummary } from "../get-property-count-summary";
 import { isValueEmpty } from "../is-value-empty";
 import { ChangeTypeCell } from "./cells/change-type-cell";
 import { PropertyNameCell } from "./cells/property-name-cell";
-import { editorSpecs } from "./cells/value-cell/editor-specs";
+import { getEditorSpecs } from "./cells/value-cell/editor-specs";
 import { ValueCell } from "./cells/value-cell/types";
 import {
   guessEditorTypeFromExpectedType,
@@ -157,8 +157,10 @@ export const useCreateGetCellContent = (
               data: {
                 kind: "chip-cell",
                 chips: row.expectedTypes.map((type) => {
-                  const editorSpec =
-                    editorSpecs[guessEditorTypeFromExpectedType(type)];
+                  const editorSpec = getEditorSpecs(
+                    guessEditorTypeFromExpectedType(type),
+                    type.title,
+                  );
 
                   return {
                     text: type.title,

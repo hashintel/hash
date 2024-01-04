@@ -62,10 +62,10 @@ index ba1b224..3105602 100644
  /** @category Drawing */
  export interface PrepResult {
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts
-index f13ff02..6cfe200 100644
+index f13ff02..c1eebc3 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts
 +++ b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts
-@@ -6,6 +6,27 @@ declare type Sprite = HeaderIconMap["headerArray"];
+@@ -6,6 +6,30 @@ declare type Sprite = HeaderIconMap["headerArray"];
  export declare type SpriteMap = Record<string | HeaderIcon, Sprite>;
  /** @category Columns */
  export declare type SpriteVariant = "normal" | "selected" | "special";
@@ -88,12 +88,15 @@ index f13ff02..6cfe200 100644
 +  | "bpBracketsCurly"
 +  | "bpBracketsSquare"
 +  | "bpEmptySet"
-+  | "bpChevronDown";
++  | "bpChevronDown"
++  | "inputPipeRegular"
++  | "atRegular"
++  | "rulerRegular";
 +
  /** @category Columns */
  export declare class SpriteManager {
      private onSettled;
-@@ -13,7 +34,7 @@ export declare class SpriteManager {
+@@ -13,7 +37,7 @@ export declare class SpriteManager {
      private headerIcons;
      private inFlight;
      constructor(headerIcons: SpriteMap | undefined, onSettled: () => void);
@@ -102,7 +105,6 @@ index f13ff02..6cfe200 100644
  }
  export {};
  //# sourceMappingURL=data-grid-sprites.d.ts.map
-\ No newline at end of file
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-types.d.ts b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-types.d.ts
 index 8ead3e1..5763081 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-types.d.ts
