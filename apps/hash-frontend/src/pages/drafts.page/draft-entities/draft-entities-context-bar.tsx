@@ -26,12 +26,14 @@ const SelectAdditionalButton = styled(Button)(({ theme }) => ({
 }));
 
 export const DraftEntitiesContextBar: FunctionComponent<{
+  isDefaultFilterState: boolean;
   selectedDraftEntityIds: EntityId[];
   setSelectedDraftEntityIds: Dispatch<SetStateAction<EntityId[]>>;
   draftEntities?: Entity[];
   displayedDraftEntities?: Entity[];
   matchingDraftEntities?: Entity[];
 }> = ({
+  isDefaultFilterState,
   draftEntities,
   displayedDraftEntities,
   matchingDraftEntities,
@@ -152,7 +154,8 @@ export const DraftEntitiesContextBar: FunctionComponent<{
               onClick={handleSelectAllMatchingDraftEntitiesClick}
               endIcon={<CheckRegularIcon />}
             >
-              Select all {matchingDraftEntities.length} matching current filters
+              Select all {matchingDraftEntities.length}{" "}
+              {isDefaultFilterState ? "drafts" : "matching current filters"}
             </SelectAdditionalButton>
           ) : null}
         </Box>

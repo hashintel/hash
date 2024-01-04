@@ -45,6 +45,7 @@ import {
   DraftEntitiesFilters,
   DraftEntityFilterState,
   generateDefaultFilterState,
+  isFilerStateDefaultFilterState,
   LastEditedTimeRanges,
 } from "./draft-entities/draft-entities-filters";
 import { DraftEntity } from "./draft-entity";
@@ -284,6 +285,22 @@ export const DraftEntities: FunctionComponent<{
     );
   }
 
+  const isDefaultFilterState = useMemo(
+    () =>
+      !!filterState &&
+      !!draftEntitiesWithCreatedAtAndCreators &&
+      !!draftEntitiesWithLinkedDataSubgraph &&
+      isFilerStateDefaultFilterState({
+        draftEntitiesWithCreatedAtAndCreators,
+        draftEntitiesSubgraph: draftEntitiesWithLinkedDataSubgraph,
+      })(filterState),
+    [
+      filterState,
+      draftEntitiesWithCreatedAtAndCreators,
+      draftEntitiesWithLinkedDataSubgraph,
+    ],
+  );
+
   const filteredAndSortedDraftEntitiesWithCreatedAt = useMemo(
     () =>
       filterState &&
@@ -382,6 +399,7 @@ export const DraftEntities: FunctionComponent<{
         ) : (
           <>
             <DraftEntitiesContextBar
+              isDefaultFilterState={isDefaultFilterState}
               draftEntities={draftEntities}
               selectedDraftEntityIds={selectedDraftEntityIds}
               setSelectedDraftEntityIds={setSelectedDraftEntityIds}
