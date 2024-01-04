@@ -26,10 +26,10 @@ test("user can sign up", async ({ page }) => {
   await page.click("text=Sign up with email");
 
   await expect(
-    page.locator("text=Thanks for confirming your account."),
+    page.locator("text=Thanks for confirming your account"),
   ).toBeVisible();
 
-  await page.fill('[placeholder="@example"]', "new-user");
+  await page.fill('[placeholder="example"]', "new-user");
 
   await page.fill('[placeholder="Bobby"]', "New User");
 
