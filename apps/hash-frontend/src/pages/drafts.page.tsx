@@ -15,6 +15,7 @@ import { BarsSortRegularIcon } from "../shared/icons/bars-sort-regular-icon";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { MenuItem } from "../shared/ui";
 import { DraftEntities, SortOrder } from "./drafts.page/draft-entities";
+import { DraftEntitiesBulkActionsDropdown } from "./drafts.page/draft-entities-bulk-actions-dropdown";
 import { InlineSelect } from "./shared/inline-select";
 import { NotificationsWithLinksContextProvider } from "./shared/notifications-with-links-context";
 import { TopContextBar } from "./shared/top-context-bar";
@@ -51,47 +52,57 @@ const DraftsPage: NextPageWithLayout = () => {
           },
         }}
         breadcrumbsEndAdornment={
-          <Box
-            display="flex"
-            alignItems="center"
-            columnGap={1}
-            sx={{
-              "> div": {
-                lineHeight: 0,
-                [`.${selectClasses.select}.${inputBaseClasses.input}`]: {
-                  fontSize: 14,
-                  height: 14,
-                },
-              },
-            }}
-          >
-            <Typography
+          <Box display="flex" alignItems="center">
+            <Box
+              display="flex"
+              alignItems="center"
+              columnGap={1}
               sx={{
-                fontSize: 14,
-                fontWeight: 500,
-                color: ({ palette }) => palette.gray[70],
+                "> div": {
+                  lineHeight: 0,
+                  [`.${selectClasses.select}.${inputBaseClasses.input}`]: {
+                    fontSize: 14,
+                    height: 14,
+                  },
+                },
               }}
             >
-              <BarsSortRegularIcon
+              <Typography
                 sx={{
                   fontSize: 14,
-                  marginRight: 0.5,
-                  position: "relative",
-                  top: 2,
+                  fontWeight: 500,
+                  color: ({ palette }) => palette.gray[70],
                 }}
-              />
-              Sort by
-            </Typography>
-            <InlineSelect
-              value={sortOrder}
-              onChange={({ target }) => setSortOrder(target.value as SortOrder)}
-            >
-              {Object.entries(sortOrderHumanReadable).map(([value, label]) => (
-                <MenuItem key={value} value={value}>
-                  {label}
-                </MenuItem>
-              ))}
-            </InlineSelect>
+              >
+                <BarsSortRegularIcon
+                  sx={{
+                    fontSize: 14,
+                    marginRight: 0.5,
+                    position: "relative",
+                    top: 2,
+                  }}
+                />
+                Sort by
+              </Typography>
+              <InlineSelect
+                value={sortOrder}
+                onChange={({ target }) =>
+                  setSortOrder(target.value as SortOrder)
+                }
+              >
+                {Object.entries(sortOrderHumanReadable).map(
+                  ([value, label]) => (
+                    <MenuItem key={value} value={value}>
+                      {label}
+                    </MenuItem>
+                  ),
+                )}
+              </InlineSelect>
+            </Box>
+            <DraftEntitiesBulkActionsDropdown
+              deselectAllDraftEntities={() => setSelectedDraftEntityIds([])}
+              selectedDraftEntityIds={selectedDraftEntityIds}
+            />
           </Box>
         }
       />
