@@ -41,7 +41,6 @@
     "lint:dependency-version-consistency": "check-dependency-version-consistency . --ignore-package=@apps/hashdotdev --ignore-package=@blocks/chart --ignore-package=@blocks/embed --ignore-package=@blocks/person",
     "lint:eslint": "turbo --continue lint:eslint --",
     "lint:license-in-workspaces": "yarn workspace @local/repo-chores exe scripts/check-license-in-workspaces.ts",
-    "lint:lock-files": "turbo lint:lock-files",
     "lint:lockfile-lint": "lockfile-lint --path yarn.lock --allowed-hosts registry.yarnpkg.com --allowed-schemes \"https:\"",
     "lint:markdownlint": "markdownlint --dot .",
     "lint:prettier": "prettier --check --ignore-unknown .",
