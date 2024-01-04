@@ -376,7 +376,7 @@ export const EntitiesTable: FunctionComponent<{
                 entityTypeBaseUrl
               : entityTypeId
                 ? entityTypeId === entity.metadata.entityTypeId
-                : false
+                : true
           }
           filterEntity={(entity) =>
             filterState.includeGlobal
