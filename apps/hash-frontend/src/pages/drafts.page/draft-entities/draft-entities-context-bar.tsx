@@ -41,21 +41,29 @@ export const DraftEntitiesContextBar: FunctionComponent<{
   setSelectedDraftEntityIds,
 }) => {
   const hasSelectedAllDisplayedDraftEntities =
-    displayedDraftEntities &&
+    !!displayedDraftEntities &&
     displayedDraftEntities.filter((displayedEntity) =>
       selectedDraftEntityIds.includes(
         displayedEntity.metadata.recordId.entityId,
       ),
     ).length === displayedDraftEntities.length;
 
+  const hasSelectedAllMatchingDraftEntities =
+    !!matchingDraftEntities &&
+    matchingDraftEntities.filter((matchingEntity) =>
+      selectedDraftEntityIds.includes(
+        matchingEntity.metadata.recordId.entityId,
+      ),
+    ).length === matchingDraftEntities.length;
+
   const hasPartiallySelectedDisplayedDraftEntities =
     selectedDraftEntityIds.length > 0 &&
-    displayedDraftEntities &&
+    !!displayedDraftEntities &&
     selectedDraftEntityIds.length < displayedDraftEntities.length;
 
   const hasPartiallySelectedMatchingDraftEntities =
     selectedDraftEntityIds.length > 0 &&
-    matchingDraftEntities &&
+    !!matchingDraftEntities &&
     selectedDraftEntityIds.length !== matchingDraftEntities.length;
 
   const isDisplayingAllDraftEntities =
@@ -105,8 +113,15 @@ export const DraftEntitiesContextBar: FunctionComponent<{
       <Fade in={selectedDraftEntityIds.length > 0}>
         <Box display="flex" alignItems="center" columnGap={1}>
           <Checkbox
-            checked={hasSelectedAllDisplayedDraftEntities}
-            indeterminate={hasPartiallySelectedDisplayedDraftEntities}
+            checked={
+              hasSelectedAllDisplayedDraftEntities ||
+              hasSelectedAllMatchingDraftEntities
+            }
+            indeterminate={
+              hasPartiallySelectedDisplayedDraftEntities ||
+              (!hasSelectedAllDisplayedDraftEntities &&
+                hasPartiallySelectedMatchingDraftEntities)
+            }
             onClick={handleCheckboxClick}
             sx={{
               svg: {
