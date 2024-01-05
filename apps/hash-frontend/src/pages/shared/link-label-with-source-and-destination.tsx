@@ -141,6 +141,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   subgraph: Subgraph<EntityRootType>;
   leftEntityEndAdornment?: ReactNode;
   rightEntityEndAdornment?: ReactNode;
+  sx?: BoxProps["sx"];
   leftEntitySx?: BoxProps["sx"];
   rightEntitySx?: BoxProps["sx"];
   displayLabels?: boolean;
@@ -150,6 +151,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   subgraph,
   leftEntityEndAdornment,
   rightEntityEndAdornment,
+  sx,
   leftEntitySx,
   rightEntitySx,
   displayLabels = false,
@@ -178,85 +180,87 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   );
 
   return (
-    <Box>
-      <Box
-        sx={{
+    <Box
+      sx={[
+        {
           display: "flex",
           width: "fit-content",
           alignItems: "flex-end",
+        },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
+    >
+      <LeftOrRightEntity
+        entity={leftEntity}
+        subgraph={subgraph}
+        endAdornment={leftEntityEndAdornment}
+        openInNew={openInNew}
+        label={displayLabels ? "Source entity" : undefined}
+        sx={leftEntitySx}
+      />
+      <Link
+        openInNew={openInNew}
+        href={generateLinkParameters(linkEntityType.schema.$id).href}
+        noLinkStyle
+        sx={{
+          flexGrow: 1,
+          "&:hover": {
+            [`.${typographyClasses.root}, svg`]: {
+              color: ({ palette }) => palette.blue[70],
+            },
+          },
         }}
       >
-        <LeftOrRightEntity
-          entity={leftEntity}
-          subgraph={subgraph}
-          endAdornment={leftEntityEndAdornment}
-          openInNew={openInNew}
-          label={displayLabels ? "Source entity" : undefined}
-          sx={leftEntitySx}
-        />
-        <Link
-          openInNew={openInNew}
-          href={generateLinkParameters(linkEntityType.schema.$id).href}
-          noLinkStyle
+        <Box
           sx={{
-            "&:hover": {
-              [`.${typographyClasses.root}, svg`]: {
-                color: ({ palette }) => palette.blue[70],
-              },
-            },
+            background: ({ palette }) => palette.gray[5],
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 1,
+            paddingX: 1.5,
+            paddingY: 0.75,
+            borderColor: ({ palette }) => palette.gray[30],
+            borderWidth: 1,
+            borderStyle: "solid",
+            borderLeftWidth: 0,
+            borderRightWidth: 0,
           }}
         >
-          <Box
-            sx={{
-              background: ({ palette }) => palette.gray[5],
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              paddingX: 1.5,
-              paddingY: 0.75,
-              borderColor: ({ palette }) => palette.gray[30],
-              borderWidth: 1,
-              borderStyle: "solid",
-              borderLeftWidth: 0,
-              borderRightWidth: 0,
-            }}
-          >
-            <Box display="flex">
-              {linkEntityType.metadata.icon ?? (
-                <LinkRegularIcon
-                  sx={{
-                    color: ({ palette }) => palette.common.black,
-                    fontSize: 16,
-                    transition: ({ transitions }) =>
-                      transitions.create("color"),
-                  }}
-                />
-              )}
-            </Box>
-            <ContentTypography>
-              {linkEntityType.schema.title}{" "}
-              <Box
-                component="span"
+          <Box display="flex">
+            {linkEntityType.metadata.icon ?? (
+              <LinkRegularIcon
                 sx={{
-                  color: ({ palette }) => palette.gray[50],
-                  fontSize: 11,
-                  fontWeight: 400,
+                  color: ({ palette }) => palette.common.black,
+                  fontSize: 16,
+                  transition: ({ transitions }) => transitions.create("color"),
                 }}
-              >
-                v{linkEntityTypeVersion}
-              </Box>
-            </ContentTypography>
+              />
+            )}
           </Box>
-        </Link>
-        <LeftOrRightEntity
-          entity={rightEntity}
-          subgraph={subgraph}
-          endAdornment={rightEntityEndAdornment}
-          sx={rightEntitySx}
-          openInNew={openInNew}
-          label={displayLabels ? "Target entity" : undefined}
-        />
-      </Box>
+          <ContentTypography>
+            {linkEntityType.schema.title}{" "}
+            <Box
+              component="span"
+              sx={{
+                color: ({ palette }) => palette.gray[50],
+                fontSize: 11,
+                fontWeight: 400,
+              }}
+            >
+              v{linkEntityTypeVersion}
+            </Box>
+          </ContentTypography>
+        </Box>
+      </Link>
+      <LeftOrRightEntity
+        entity={rightEntity}
+        subgraph={subgraph}
+        endAdornment={rightEntityEndAdornment}
+        sx={rightEntitySx}
+        openInNew={openInNew}
+        label={displayLabels ? "Target entity" : undefined}
+      />
     </Box>
   );
 };
