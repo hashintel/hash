@@ -243,7 +243,7 @@ const SignupPage: NextPageWithLayout = () => {
   }) => {
     const { shortname, preferredName } = params;
 
-    const { updatedAuthenticatedUser, errors } = await updateAuthenticatedUser({
+    const { errors } = await updateAuthenticatedUser({
       shortname,
       preferredName,
     });
@@ -253,11 +253,7 @@ const SignupPage: NextPageWithLayout = () => {
       setErrorMessage(message);
     }
 
-    if (updatedAuthenticatedUser) {
-      if (updatedAuthenticatedUser.accountSignupComplete) {
-        void router.push("/");
-      }
-    }
+    // Redirecting to the homepage is covered by the useEffect to redirect all authenticated users away from /signup
   };
 
   /** @todo: un-comment this to actually check whether the email is verified */

@@ -416,6 +416,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
                 unpadded
                 rounded
                 className="end-adornment-button"
+                data-testid="create-page-btn"
                 onClick={addPage}
                 sx={({ palette }) => ({
                   color: palette.gray[80],
