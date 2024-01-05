@@ -36,6 +36,7 @@ const LeftOrRightEntityEndAdornment: FunctionComponent<{
         top: 1,
       },
       textTransform: "uppercase",
+      flexShrink: 0,
     }}
   >
     {isDraft ? (
@@ -234,6 +235,9 @@ export const AcceptDraftEntityButton: FunctionComponent<
           }}
         >
           <LinkLabelWithSourceAndDestination
+            sx={{
+              maxWidth: "100%",
+            }}
             openInNew
             linkEntity={draftEntity as LinkEntity}
             subgraph={draftEntitySubgraph}

@@ -31,6 +31,9 @@ const ContentTypography = styled(Typography)(({ theme }) => ({
   color: theme.palette.common.black,
   fontWeight: 600,
   transition: theme.transitions.create("color"),
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 }));
 
 const LeftOrRightEntity: FunctionComponent<{
@@ -66,6 +69,7 @@ const LeftOrRightEntity: FunctionComponent<{
       display="flex"
       flexDirection="column"
       sx={{
+        minWidth: 0,
         "&:first-of-type > a > div": {
           borderTopRightRadius: 0,
           borderBottomRightRadius: 0,
