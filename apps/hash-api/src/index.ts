@@ -367,6 +367,19 @@ const main = async () => {
     })(req, res, next);
   });
 
+  app.use((req, _res, next) => {
+    if (req.path !== "/graphql") {
+      if (!req.user?.isAccountSignupComplete) {
+        /**
+         * Only GraphQL requests need to be provided with incomplete users, to allow them to complete signup
+         *   – otherwise they should be treated as anonymous requests.
+         */
+        delete req.user;
+      }
+    }
+    next();
+  });
+
   // Integrations
   app.get("/oauth/linear", rateLimiter, oAuthLinear);
   app.get("/oauth/linear/callback", rateLimiter, oAuthLinearCallback);
