@@ -72,7 +72,9 @@ export const generateLinkParameters = (
          * The exceptions are the /contact and /discord routes which actually reside at https://hash.ai
          * @todo when implementing H-1172, just use the href here
          */
-        pathname.startsWith("/discord") || pathname.startsWith("/contact")
+        isExternal ||
+        pathname.startsWith("/discord") ||
+        pathname.startsWith("/contact")
           ? href
           : `${pathname}${paramsString ? `?${paramsString}` : ""}`,
     };
