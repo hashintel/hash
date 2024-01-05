@@ -2,7 +2,7 @@ import { FontAwesomeIcon } from "@hashintel/design-system";
 import { DataTypeWithMetadata } from "@local/hash-subgraph";
 import { Box, ButtonBase, Typography } from "@mui/material";
 
-import { editorSpecs } from "./editor-specs";
+import { getEditorSpecs } from "./editor-specs";
 import { OnTypeChange } from "./types";
 import { guessEditorTypeFromExpectedType } from "./utils";
 
@@ -13,7 +13,10 @@ const ExpectedTypeButton = ({
   onClick: () => void;
   expectedType: DataTypeWithMetadata["schema"];
 }) => {
-  const editorSpec = editorSpecs[guessEditorTypeFromExpectedType(expectedType)];
+  const editorSpec = getEditorSpecs(
+    guessEditorTypeFromExpectedType(expectedType),
+    expectedType.title,
+  );
 
   const { description, title } = expectedType;
 

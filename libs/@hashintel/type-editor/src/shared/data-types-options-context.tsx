@@ -8,12 +8,15 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import {
   fa100,
+  faAtRegular,
   faBracketsCurly,
   faBracketsSquare,
   faCube,
   faCubes,
   faEmptySet,
+  faInputPipeRegular,
   faListTree,
+  faRulerRegular,
   faSquareCheck,
   faText,
 } from "@hashintel/design-system";
@@ -50,13 +53,26 @@ type ExpectedValueDisplay = {
   title: string;
 };
 
+// @todo consolidate this with editor-specs.ts in the entity editor
 const expectedValuesDisplayMap = {
   string: {
     icon: faText,
     colors: chipColors.blue,
   },
+  email: {
+    icon: faAtRegular,
+    colors: chipColors.blue,
+  },
+  identifier: {
+    icon: faInputPipeRegular,
+    colors: chipColors.blue,
+  },
   number: {
     icon: fa100,
+    colors: chipColors.blue,
+  },
+  measurement: {
+    icon: faRulerRegular,
     colors: chipColors.blue,
   },
   boolean: {
@@ -112,6 +128,20 @@ const expectedValuesDisplayMap = {
     colors: chipColors.aqua,
   },
 } as const satisfies Record<string, Omit<ExpectedValueDisplay, "title">>;
+
+const measurementTypeTitles = [
+  "Inches",
+  "Feet",
+  "Yards",
+  "Miles",
+  "Nanometers",
+  "Millimeters",
+  "Centimeters",
+  "Meters",
+  "Kilometers",
+];
+
+const identifierTypeTitles = ["URL", "URI"];
 
 export type CustomExpectedValueTypeId = VersionedUrl | "array" | "object";
 
@@ -190,11 +220,17 @@ export const DataTypesOptionsContextProvider = ({
           };
         }
 
+        const displayType = measurementTypeTitles.includes(dataType.title)
+          ? "measurement"
+          : identifierTypeTitles.includes(dataType.title)
+            ? "identifier"
+            : dataType.title === "Email"
+              ? "email"
+              : (dataType.type as keyof typeof expectedValuesDisplayMap);
+
         return {
           title: dataType.title,
-          ...expectedValuesDisplayMap[
-            dataType.type as keyof typeof expectedValuesDisplayMap
-          ],
+          ...expectedValuesDisplayMap[displayType],
         };
       }
 

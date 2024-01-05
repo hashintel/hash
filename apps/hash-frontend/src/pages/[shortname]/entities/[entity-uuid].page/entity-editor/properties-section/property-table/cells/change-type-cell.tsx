@@ -16,7 +16,7 @@ import { drawChip } from "../../../../../../../../components/grid/utils/draw-chi
 import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/draw-chip-with-icon";
 import { propertyGridIndexes } from "../constants";
 import { PropertyRow } from "../types";
-import { editorSpecs } from "./value-cell/editor-specs";
+import { getEditorSpecs } from "./value-cell/editor-specs";
 import { ValueCell } from "./value-cell/types";
 import { guessEditorTypeFromExpectedType } from "./value-cell/utils";
 
@@ -53,8 +53,10 @@ export const createRenderChangeTypeCell = (
       ctx.font = changeTextFont;
       const changeTextWidth = ctx.measureText(changeText).width;
 
-      const editorSpec =
-        editorSpecs[guessEditorTypeFromExpectedType(currentType)];
+      const editorSpec = getEditorSpecs(
+        guessEditorTypeFromExpectedType(currentType),
+        currentType.title,
+      );
 
       const drawTheLeftChip = () =>
         drawChipWithIcon({

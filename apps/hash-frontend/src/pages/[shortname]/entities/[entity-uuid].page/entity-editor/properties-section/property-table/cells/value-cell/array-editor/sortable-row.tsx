@@ -13,7 +13,7 @@ import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Box, Divider, Typography } from "@mui/material";
 import { useRef, useState } from "react";
 
-import { editorSpecs } from "../editor-specs";
+import { getEditorSpecs } from "../editor-specs";
 import { BooleanInput } from "../inputs/boolean-input";
 import { JsonInput } from "../inputs/json-input";
 import { NumberOrTextInput } from "../inputs/number-or-text-input";
@@ -65,8 +65,9 @@ export const SortableRow = ({
 
   const editorType =
     overriddenEditorType ?? guessEditorTypeFromValue(value, expectedTypes);
+  const expectedType = expectedTypes.find((type) => type.type === editorType);
 
-  const editorSpec = editorSpecs[editorType];
+  const editorSpec = getEditorSpecs(editorType, expectedType?.title);
 
   const { arrayEditException } = editorSpec;
 
@@ -117,7 +118,6 @@ export const SortableRow = ({
       );
     }
 
-    const expectedType = expectedTypes.find((type) => type.type === editorType);
     if (!expectedType) {
       throw new Error(
         `Could not find guessed editor type ${editorType} among expected types ${expectedTypes
@@ -149,7 +149,6 @@ export const SortableRow = ({
       );
     }
 
-    const expectedType = expectedTypes.find((type) => type.type === editorType);
     if (!expectedType) {
       throw new Error(
         `Could not find guessed editor type ${editorType} among expected types ${expectedTypes

@@ -2,7 +2,7 @@ import { DataTypeWithMetadata } from "@local/hash-subgraph";
 import { useState } from "react";
 
 import { DRAFT_ROW_KEY } from "../array-editor";
-import { editorSpecs } from "../editor-specs";
+import { getEditorSpecs } from "../editor-specs";
 import { EditorTypePicker } from "../editor-type-picker";
 import { EditorType } from "../types";
 import {
@@ -41,7 +41,7 @@ export const DraftRow = ({
       <EditorTypePicker
         expectedTypes={expectedTypes}
         onTypeChange={(type) => {
-          const editorSpec = editorSpecs[type];
+          const editorSpec = getEditorSpecs(type);
 
           if (editorSpec.arrayEditException === "no-edit-mode") {
             onDraftSaved(editorSpec.defaultValue);

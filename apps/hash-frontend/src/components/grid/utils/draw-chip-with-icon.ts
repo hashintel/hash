@@ -104,7 +104,7 @@ export const drawChipWithIcon = ({
   const yCenter = getYCenter(args);
 
   const paddingX = 12;
-  const iconHeight = imageSrc ? 24 : 10;
+  const iconHeight = imageSrc ? 24 : 12;
   const gap = 8;
 
   const iconLeft = left + paddingX;
