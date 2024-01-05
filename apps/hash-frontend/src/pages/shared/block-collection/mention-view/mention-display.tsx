@@ -45,6 +45,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     graphResolveDepths: {
       ...zeroedGraphResolveDepths,
       isOfType: { outgoing: 1 },
+      inheritsFrom: { outgoing: 255 },
       hasLeftEntity: { incoming: 1, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 1 },
     },
