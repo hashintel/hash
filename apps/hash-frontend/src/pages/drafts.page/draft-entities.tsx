@@ -13,6 +13,7 @@ import {
   EntityId,
   EntityRootType,
   extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -298,7 +299,12 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
                     entity.metadata.temporalVersioning.decisionTime.start.limit,
                   ),
                   lastEditedTimeRange: filterState.lastEditedTimeRange,
-                }),
+                }) &&
+                filterState.webOwnedByIds.includes(
+                  extractOwnedByIdFromEntityId(
+                    entity.metadata.recordId.entityId,
+                  ),
+                ),
             )
             .sort((a, b) =>
               a.createdAt.getTime() === b.createdAt.getTime()

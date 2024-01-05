@@ -1,9 +1,5 @@
 import { faHome } from "@fortawesome/free-solid-svg-icons";
-import {
-  FontAwesomeIcon,
-  IconButton,
-  PenRegularIcon,
-} from "@hashintel/design-system";
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Drawer, Tooltip } from "@mui/material";
 import { useRouter } from "next/router";
 import { FunctionComponent } from "react";
@@ -12,6 +8,7 @@ import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { useDraftEntities } from "../../draft-entities-context";
 import { SidebarToggleIcon } from "../../icons";
+import { FeatherLightIcon } from "../../icons/feather-light-icon";
 import { InboxIcon } from "../../icons/inbox-icon";
 import { QuickNoteIcon } from "../../icons/quick-note-icon";
 import { useNotificationEntities } from "../../notification-entities-context";
@@ -94,7 +91,7 @@ export const PageSidebar: FunctionComponent = () => {
         active={router.pathname === "/inbox"}
       />
       <TopNavLink
-        icon={<PenRegularIcon sx={{ fontSize: 16 }} />}
+        icon={<FeatherLightIcon sx={{ fontSize: 16 }} />}
         title="Drafts"
         href="/drafts"
         tooltipTitle=""
