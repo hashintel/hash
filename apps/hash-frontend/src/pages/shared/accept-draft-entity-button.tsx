@@ -35,6 +35,7 @@ const LeftOrRightEntityEndAdornment: FunctionComponent<{
         position: "relative",
         top: 1,
       },
+      textTransform: "uppercase",
     }}
   >
     {isDraft ? (
