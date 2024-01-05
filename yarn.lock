@@ -14872,10 +14872,10 @@ https-proxy-agent@^7.0.0, https-proxy-agent@^7.0.2:
     agent-base "^7.0.2"
     debug "4"
 
-httpyac@6.10.0:
-  version "6.10.0"
-  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-6.10.0.tgz#a1c248754f25a1d9b4ef50b50a208665ee2d80ff"
-  integrity sha512-MBk3cxzziVCARbZU+Ei3NyZzKwIYyi6WPDTOF3ci5hChPWapNgqgUZcOtXskQZ2nNC/8X76MDcUsqcwvCpwD9A==
+httpyac@6.11.0:
+  version "6.11.0"
+  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-6.11.0.tgz#ffe40bdda67c28c74f4a5c4acebfcc60016a0925"
+  integrity sha512-A791WRNb+DQaWh4nfKy1xZtoSpQvc6GNZ7bPzn6b+5JgSzCKoYt9t2gqCWn5pumGLCigAt9K5efdHrDDARmnHg==
   dependencies:
     "@cloudamqp/amqp-client" "^2.1.1"
     "@grpc/grpc-js" "^1.9.9"
@@ -14907,7 +14907,7 @@ httpyac@6.10.0:
     uuid "^9.0.1"
     ws "^8.14.2"
     xmldom-format "^1.1.1"
-    xpath "^0.0.33"
+    xpath "^0.0.34"
 
 human-id@^1.0.2:
   version "1.0.2"
@@ -24610,10 +24610,10 @@ xmldom-format@^1.1.1:
   resolved "https://registry.yarnpkg.com/xmldom-format/-/xmldom-format-1.1.1.tgz#484ab1b088dfcae49ec3fb095839b1bceb89b03a"
   integrity sha512-1nrF7EjSnF2eXsgSWdotcMuESYtUvhWWYPSFkHjJNTKRPL94rdEkhk14vMui/ghYIipjL0qKmVornp5iVTf6PA==
 
-xpath@^0.0.33:
-  version "0.0.33"
-  resolved "https://registry.yarnpkg.com/xpath/-/xpath-0.0.33.tgz#5136b6094227c5df92002e7c3a13516a5074eb07"
-  integrity sha512-NNXnzrkDrAzalLhIUc01jO2mOzXGXh1JwPgkihcLLzw98c0WgYDmmjSh1Kl3wzaxSVWMuA+fe0WTWOBDWCBmNA==
+xpath@^0.0.34:
+  version "0.0.34"
+  resolved "https://registry.yarnpkg.com/xpath/-/xpath-0.0.34.tgz#a769255e8816e0938e1e0005f2baa7279be8be12"
+  integrity sha512-FxF6+rkr1rNSQrhUNYrAFJpRXNzlDoMxeXN5qI84939ylEv3qqPFKa85Oxr6tDaJKqwW6KKyo2v26TSv3k6LeA==
 
 xregexp@^5.1.1:
   version "5.1.1"
