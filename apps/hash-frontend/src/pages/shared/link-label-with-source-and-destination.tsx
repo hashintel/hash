@@ -203,7 +203,6 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
         href={generateLinkParameters(linkEntityType.schema.$id).href}
         noLinkStyle
         sx={{
-          flexGrow: 1,
           "&:hover": {
             [`.${typographyClasses.root}, svg`]: {
               color: ({ palette }) => palette.blue[70],

@@ -234,9 +234,6 @@ export const AcceptDraftEntityButton: FunctionComponent<
           }}
         >
           <LinkLabelWithSourceAndDestination
-            sx={{
-              width: "100%",
-            }}
             openInNew
             linkEntity={draftEntity as LinkEntity}
             subgraph={draftEntitySubgraph}
