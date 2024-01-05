@@ -252,14 +252,20 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   );
 
   const tooltip =
-    mention.kind === "property-value"
-      ? `The value for ${propertyType?.schema.title} of ${entityLabel}`
-      : `The target of a ${outgoingLinkType?.schema
-          .title} link from ${entityLabel}${
-          rawTitle === inaccessibleTargetEntityLabel
-            ? ", which is in draft, archived, or you do not have permission to view."
-            : ""
-        }`;
+    mention.kind === "property-value" ? (
+      <>
+        The value for <strong>{propertyType?.schema.title}</strong> of{" "}
+        <strong>{entityLabel}</strong>
+      </>
+    ) : (
+      <>
+        The target of a <strong>{outgoingLinkType?.schema.title}</strong> link
+        from <strong>{entityLabel}</strong>
+        {rawTitle === inaccessibleTargetEntityLabel
+          ? ", which is in draft, archived, or you do not have permission to view."
+          : ""}
+      </>
+    );
 
   const content = (
     <>
