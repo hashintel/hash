@@ -333,7 +333,7 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
           variant="tertiary_quiet"
           sx={{
             fontSize: 14,
-            fontWeight: 600,
+            fontWeight: 500,
             color: ({ palette }) => palette.gray[90],
             [`.${buttonClasses.endIcon}`]: {
               color: ({ palette }) => palette.gray[90],
