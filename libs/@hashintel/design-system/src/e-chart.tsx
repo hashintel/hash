@@ -72,7 +72,7 @@ export const EChart: FunctionComponent<GraphProps> = ({
 
   useEffect(() => {
     if (chart) {
-      chart.setOption(options);
+      chart.setOption(options, false);
     }
   }, [chart, options]);
 
