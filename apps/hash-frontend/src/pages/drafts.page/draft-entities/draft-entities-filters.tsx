@@ -529,7 +529,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
         </Box>
       </Box>
       <Box>
-        <FilterSectionHeading>Webs</FilterSectionHeading>
+        <FilterSectionHeading>Web</FilterSectionHeading>
         <Box display="flex" flexDirection="column">
           {webs
             ?.map((web) => {
