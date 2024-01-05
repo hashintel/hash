@@ -585,8 +585,7 @@ jobs:
           [[ ${{ needs.integration-tests.result }} =~ success|skipped ]]
       - name: Check system tests
         run: |
-          # TODO: Stop allowing failure of system tests
-          [[ ${{ needs.system-tests.result }} =~ success|skipped|failure ]]
+          [[ ${{ needs.system-tests.result }} =~ success|skipped ]]
       - name: Check publish results
         run: |
           [[ ${{ needs.publish.result }} =~ success|skipped ]]
