@@ -419,7 +419,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
         </Fade>
       </Box>
       <Box>
-        <FilterSectionHeading>Types</FilterSectionHeading>
+        <FilterSectionHeading>Type</FilterSectionHeading>
         <Box display="flex" flexDirection="column">
           {entityTypes?.map((entityType) => {
             const entityTypeBaseUrl = extractBaseUrl(entityType.schema.$id);
