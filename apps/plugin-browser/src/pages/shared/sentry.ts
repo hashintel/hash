@@ -1,6 +1,6 @@
-import { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
-import { User } from "@local/hash-isomorphic-utils/system-types/shared";
 import * as Sentry from "@sentry/browser";
+
+import { LocalStorage } from "../../shared/storage";
 
 /**
  * Initialize Sentry. Run this as early as possible in the app.
@@ -21,7 +21,7 @@ export const initializeSentry = () =>
     tracesSampleRate: 1.0, // Capture 100% of the transactions
   });
 
-export const setSentryUser = (user?: Simplified<User> | null) => {
+export const setSentryUser = (user?: LocalStorage["user"] | null) => {
   Sentry.configureScope((scope) => {
     const sentryUser = scope.getUser();
     if (!user && sentryUser) {

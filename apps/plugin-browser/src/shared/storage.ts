@@ -3,7 +3,10 @@ import type {
   InferenceModelName,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
+import type {
+  SimpleProperties,
+  Simplified,
+} from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   ImageProperties,
   OrganizationProperties,
@@ -49,7 +52,16 @@ export type PageEntityInference = InferenceStatus & {
   trigger: "passive" | "user";
 };
 
-type UserAndLinkedData = Simplified<Entity<UserProperties>> & {
+type SimplifiedUser = Entity & {
+  properties: Required<
+    Pick<
+      SimpleProperties<UserProperties>,
+      "email" | "preferredName" | "shortname"
+    >
+  >;
+};
+
+type UserAndLinkedData = SimplifiedUser & {
   avatar?: Entity<ImageProperties>;
   orgs: (Simplified<Entity<OrganizationProperties>> & {
     avatar?: Entity<ImageProperties>;

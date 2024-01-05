@@ -1,4 +1,6 @@
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
+// eslint-disable-next-line no-restricted-imports
+import { test as testTolerateConsoleErrors } from "@playwright/test";
 
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
 import { resetDb } from "./shared/reset-db";
@@ -8,6 +10,21 @@ const pageTitleInputSelector = '[placeholder="Untitled"]';
 
 test.beforeEach(async () => {
   await resetDb();
+});
+
+testTolerateConsoleErrors("logged-in user shown 404 page", async ({ page }) => {
+  await loginUsingTempForm({
+    page,
+    userEmail: "alice@example.com",
+    userPassword: "password",
+  });
+
+  await page.goto("/non/existing/page");
+  await expect(page).toHaveTitle("404: This page could not be found");
+
+  await expect(
+    page.locator("text=This page could not be found."),
+  ).toBeVisible();
 });
 
 test("user can toggle nested pages", async ({ page }) => {

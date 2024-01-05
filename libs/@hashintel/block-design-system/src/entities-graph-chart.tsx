@@ -9,7 +9,7 @@ import { Chart, EChart, ECOption } from "@hashintel/design-system";
 // eslint-disable-next-line no-restricted-imports
 import { generateEntityLabel as hashGenerateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { BoxProps, useTheme } from "@mui/material";
-import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
+import { FunctionComponent, useEffect, useMemo, useState } from "react";
 
 const generateEntityLabel = (
   subgraph: Subgraph<EntityRootType>,
@@ -95,7 +95,7 @@ export const EntitiesGraphChart: FunctionComponent<{
     };
   }, [chart, entities, onEntityClick]);
 
-  const chartInitialized = useRef(false);
+  const chartInitialized = !!chart;
 
   const theme = useTheme();
 
@@ -167,6 +167,9 @@ export const EntitiesGraphChart: FunctionComponent<{
       series: {
         roam: true,
         draggable: true,
+        force: {
+          layoutAnimation: chartInitialized,
+        },
         data: nonLinkEntities?.map((entity) => ({
           name: generateEntityLabel(subgraph!, entity),
           id: entity.metadata.recordId.entityId,
@@ -201,7 +204,7 @@ export const EntitiesGraphChart: FunctionComponent<{
         type: "graph",
         layout: "force",
         // Hack for only setting the zoom if the chart hasn't already been initialized
-        ...(chartInitialized.current ? {} : { zoom: 5 }),
+        ...(chartInitialized ? {} : { zoom: 5 }),
       },
     };
   }, [
@@ -211,6 +214,7 @@ export const EntitiesGraphChart: FunctionComponent<{
     nonLinkEntities,
     isPrimaryEntity,
     theme,
+    chartInitialized,
   ]);
 
   return (
@@ -218,7 +222,6 @@ export const EntitiesGraphChart: FunctionComponent<{
       sx={sx}
       onChartInitialized={(initializedChart) => {
         setChart(initializedChart);
-        chartInitialized.current = true;
       }}
       options={eChartOptions}
     />

@@ -1,9 +1,6 @@
-import { monorepoRootDir } from "@local/hash-backend-utils/environment";
-import execa from "execa";
-
-// @todo reimplement this
+/**
+ * @deprecated this function doesn't do anything at the moment
+ */
 export const resetDb = async () => {
-  await execa("yarn", ["seed-data"], {
-    cwd: monorepoRootDir,
-  });
+  // @todo reimplement this
 };

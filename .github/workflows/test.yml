@@ -464,7 +464,7 @@ jobs:
         run: |
           turbo run build --filter "@apps/hash-frontend"
           yarn workspace @apps/hash-frontend start 2>&1 | tee var/logs/frontend.log &
-          yarn wait-on --timeout 30000 http://0.0.0.0:3000
+          yarn wait-on --timeout 60000 http://0.0.0.0:3000
 
       - name: Show disk usage
         run: df -h

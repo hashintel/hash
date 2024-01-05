@@ -9,6 +9,7 @@ const tolerableConsoleMessageMatches: RegExp[] = [
 
   // You can add temporarily add more RegExps, but please track their removal
   /Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/,
+  /No validator provided for shape type bpBlock/, // canvas page warning from TLDraw
 ];
 
 export * from "@playwright/test";

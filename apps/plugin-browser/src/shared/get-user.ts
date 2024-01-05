@@ -64,6 +64,15 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
 
       const user = getRoots(subgraph)[0];
 
+      const { email, shortname, preferredName } = simplifyProperties(
+        user.properties as UserProperties,
+      );
+
+      if (!shortname || !preferredName) {
+        // User has not completed signup
+        return null;
+      }
+
       const userAvatar = getAvatarForEntity(
         subgraph,
         user.metadata.recordId.entityId,
@@ -101,7 +110,11 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         ...user,
         avatar: userAvatar,
         orgs,
-        properties: simplifyProperties(user.properties as UserProperties),
+        properties: {
+          email,
+          preferredName,
+          shortname,
+        },
         webOwnedById: getOwnedByIdFromEntityId(user.metadata.recordId.entityId),
       };
     })

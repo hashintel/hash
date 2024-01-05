@@ -136,7 +136,7 @@ export const AccountEntitiesList: FunctionComponent<
             <Link tabIndex={-1} href="/new/entity" noLinkStyle>
               <Tooltip title="Create new entity " sx={{ left: 5 }}>
                 <IconButton
-                  data-testid="create-entity-type-btn"
+                  data-testid="create-entity-btn"
                   size="small"
                   unpadded
                   rounded
