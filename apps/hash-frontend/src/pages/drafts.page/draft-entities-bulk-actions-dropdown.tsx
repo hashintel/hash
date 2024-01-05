@@ -1,7 +1,11 @@
 import { useMutation } from "@apollo/client";
 import { AlertModal, CaretDownSolidIcon } from "@hashintel/design-system";
 import { EntityId, EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getEntityRevision } from "@local/hash-subgraph/stdlib";
+import {
+  getEntityRevision,
+  getIncomingLinksForEntity,
+  getOutgoingLinksForEntity,
+} from "@local/hash-subgraph/stdlib";
 import { Box, buttonClasses, ListItemText, Menu } from "@mui/material";
 import {
   anchorRef,
@@ -60,6 +64,31 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
     [draftEntities, selectedDraftEntityIds],
   );
 
+  const incomingOrOutgoingDraftLinksToIgnore = useMemo(() => {
+    if (!draftEntitiesWithLinkedDataSubgraph) {
+      return;
+    }
+
+    return selectedDraftEntities
+      .map((selectedDraftEntity) => {
+        if (selectedDraftEntity.linkData) {
+          return [];
+        }
+
+        return [
+          ...getIncomingLinksForEntity(
+            draftEntitiesWithLinkedDataSubgraph,
+            selectedDraftEntity.metadata.recordId.entityId,
+          ).filter((linkEntity) => linkEntity.metadata.draft),
+          ...getOutgoingLinksForEntity(
+            draftEntitiesWithLinkedDataSubgraph,
+            selectedDraftEntity.metadata.recordId.entityId,
+          ).filter((linkEntity) => linkEntity.metadata.draft),
+        ];
+      })
+      .flat();
+  }, [draftEntitiesWithLinkedDataSubgraph, selectedDraftEntities]);
+
   const [archiveEntity] = useMutation<
     ArchiveEntityMutation,
     ArchiveEntityMutationVariables
@@ -82,7 +111,10 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
           notificationEntity: notification.entity,
         }),
       ),
-      ...selectedDraftEntities.map((selectedDraftEntity) =>
+      ...[
+        ...selectedDraftEntities,
+        ...(incomingOrOutgoingDraftLinksToIgnore ?? []),
+      ].map((selectedDraftEntity) =>
         archiveEntity({
           variables: {
             entityId: selectedDraftEntity.metadata.recordId.entityId,
@@ -92,6 +124,8 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
     ]);
 
     await refetchDraftEntities();
+
+    deselectAllDraftEntities();
   }, [
     notifications,
     archiveNotification,
@@ -99,15 +133,38 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
     selectedDraftEntityIds,
     selectedDraftEntities,
     refetchDraftEntities,
+    incomingOrOutgoingDraftLinksToIgnore,
+    deselectAllDraftEntities,
   ]);
 
-  const handleIgnoreAll = useCallback(async () => {
+  const [
+    showDraftEntitiesWithDraftLinksWarning,
+    setShowDraftEntitiesWithDraftLinksWarning,
+  ] = useState<boolean>(false);
+
+  const handleIgnoreDraftLinkEntitiesWithDraftLinks = useCallback(async () => {
     await ignoreAllSelectedDraftEntities();
 
-    deselectAllDraftEntities();
+    setShowDraftEntitiesWithDraftLinksWarning(false);
+  }, [ignoreAllSelectedDraftEntities]);
+
+  const handleIgnoreAll = useCallback(async () => {
+    if (!incomingOrOutgoingDraftLinksToIgnore) {
+      return;
+    }
+
+    if (incomingOrOutgoingDraftLinksToIgnore.length > 0) {
+      setShowDraftEntitiesWithDraftLinksWarning(true);
+    } else {
+      await ignoreAllSelectedDraftEntities();
+    }
 
     popupState.close();
-  }, [ignoreAllSelectedDraftEntities, deselectAllDraftEntities, popupState]);
+  }, [
+    ignoreAllSelectedDraftEntities,
+    popupState,
+    incomingOrOutgoingDraftLinksToIgnore,
+  ]);
 
   const leftOrRightDraftEntitiesToAccept = useMemo(() => {
     if (!draftEntitiesWithLinkedDataSubgraph) {
@@ -225,19 +282,41 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
 
   return (
     <>
+      {showDraftEntitiesWithDraftLinksWarning &&
+        incomingOrOutgoingDraftLinksToIgnore && (
+          <AlertModal
+            callback={handleIgnoreDraftLinkEntitiesWithDraftLinks}
+            calloutMessage={
+              <>
+                {incomingOrOutgoingDraftLinksToIgnore.length} additional draft
+                link{incomingOrOutgoingDraftLinksToIgnore.length > 1 ? "s" : ""}{" "}
+                will be ignored because you are ignoring draft entities which
+                they depend on.
+              </>
+            }
+            close={() => setShowDraftEntitiesWithDraftLinksWarning(false)}
+            header="Ignore additional drafts"
+            type="info"
+          />
+        )}
       {showDraftLinkEntitiesWithDraftLeftOrRightEntityWarning &&
         leftOrRightDraftEntitiesToAccept && (
           <AlertModal
             callback={handleAcceptDraftLinkEntitiesWithDraftLeftOrRightEntities}
             calloutMessage={
-              leftOrRightDraftEntitiesToAccept.length > 1
-                ? `Some of the selected draft links establish a relationship with ${leftOrRightDraftEntitiesToAccept.length} entities which are in draft, which will be accepted as well.`
-                : "A selected draft link establish a relationship with an entity which is in draft, which will be accepted as well."
+              <>
+                {leftOrRightDraftEntitiesToAccept.length} additional draft{" "}
+                {leftOrRightDraftEntitiesToAccept.length > 1
+                  ? "entities"
+                  : "entity"}{" "}
+                will be accepted because you are accepting links which depend on
+                them.
+              </>
             }
             close={() =>
               setShowDraftLinkEntitiesWithDraftLeftOrRightEntityWarning(false)
             }
-            header={<>Accept {selectedDraftEntities.length} drafts</>}
+            header="Accept additional drafts"
             type="info"
           />
         )}
