@@ -8,7 +8,10 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   isPageEntityTypeId,
   pageEntityTypeIds,
@@ -50,6 +53,7 @@ import { isEntityPageEntity } from "../../../../shared/is-of-type";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
 import { useScrollLock } from "../../../../shared/use-scroll-lock";
 import { useAuthenticatedUser } from "../../auth-info-context";
+import { hiddenEntityTypeIds } from "../../hidden-types";
 import { fuzzySearchBy } from "./fuzzy-search-by";
 import {
   MentionSuggesterEntity,
@@ -226,8 +230,15 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
             ?.reduce(
               (prev, currentEntity) => {
                 if (
-                  isEntityPageEntity(currentEntity) &&
-                  isPageArchived(currentEntity)
+                  (isEntityPageEntity(currentEntity) &&
+                    isPageArchived(currentEntity)) ||
+                  hiddenEntityTypeIds.includes(
+                    currentEntity.metadata.entityTypeId,
+                  ) ||
+                  Object.values(systemLinkEntityTypes).some(
+                    ({ linkEntityTypeId }) =>
+                      linkEntityTypeId === currentEntity.metadata.entityTypeId,
+                  )
                 ) {
                   return prev;
                 }

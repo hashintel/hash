@@ -1,5 +1,6 @@
 import { IconButton } from "@hashintel/design-system";
 import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   isOwnedOntologyElementMetadata,
   OwnedById,
@@ -71,8 +72,10 @@ export const AccountEntitiesList: FunctionComponent<
           // Filter out external types from blockprotocol.org, except the Address type.
           (!root.schema.$id.startsWith(blockProtocolHubOrigin) ||
             root.schema.$id.includes("/address/")) &&
+          // Filter out link types and some system types
           !isSpecialEntityTypeLookup?.[root.schema.$id]?.isLink &&
-          !hiddenEntityTypeIds.includes(root.schema.$id),
+          !hiddenEntityTypeIds.includes(root.schema.$id) &&
+          root.schema.$id !== systemEntityTypes.user.entityTypeId,
       );
     }
 
