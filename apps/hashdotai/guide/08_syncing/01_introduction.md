@@ -1,4 +1,6 @@
 ---
+headtitle: Syncing - HASH
+title: Syncing
 description: Syncing data with HASH
 ---
 
