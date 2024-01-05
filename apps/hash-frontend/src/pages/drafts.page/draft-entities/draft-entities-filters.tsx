@@ -6,6 +6,8 @@ import {
   Entity,
   EntityRootType,
   EntityTypeWithMetadata,
+  extractOwnedByIdFromEntityId,
+  OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
@@ -31,6 +33,8 @@ import {
   useMemo,
 } from "react";
 
+import { useOrgs } from "../../../components/hooks/use-orgs";
+import { useUsers } from "../../../components/hooks/use-users";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { AsteriskLightIcon } from "../../../shared/icons/asterisk-light-icon";
 import { CalendarDayLightIcon } from "../../../shared/icons/calendar-day-light-icon";
@@ -40,6 +44,7 @@ import { CalendarWeekLightIcon } from "../../../shared/icons/calendar-week-light
 import { CalendarsLightIcon } from "../../../shared/icons/calendars-light-icon";
 import { LinkRegularIcon } from "../../../shared/icons/link-regular-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";
+import { UsersRegularIcon } from "../../../shared/icons/users-regular-icon";
 import { Button } from "../../../shared/ui";
 import { MinimalActor } from "../../../shared/use-actors";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
@@ -122,6 +127,7 @@ const lastEditedTimeRangesToIcon: Record<LastEditedTimeRanges, ReactNode> = {
 export type DraftEntityFilterState = {
   entityTypeBaseUrls: BaseUrl[];
   sourceAccountIds: AccountId[];
+  webOwnedByIds: OwnedById[];
   lastEditedTimeRange: LastEditedTimeRanges;
 };
 
@@ -182,6 +188,15 @@ const getDraftEntitySources = (params: {
         index,
     );
 
+const getDraftEntityWebOwnedByIds = (params: {
+  draftEntities: Entity[];
+}): OwnedById[] =>
+  params.draftEntities
+    .map(({ metadata }) =>
+      extractOwnedByIdFromEntityId(metadata.recordId.entityId),
+    )
+    .filter((webOwnedById, index, all) => all.indexOf(webOwnedById) === index);
+
 export const generateDefaultFilterState = (params: {
   draftEntitiesWithCreatedAtAndCreators: {
     entity: Entity;
@@ -204,11 +219,18 @@ export const generateDefaultFilterState = (params: {
     draftEntitiesWithCreatedAtAndCreators,
   });
 
+  const webOwnedByIds = getDraftEntityWebOwnedByIds({
+    draftEntities: draftEntitiesWithCreatedAtAndCreators.map(
+      ({ entity }) => entity,
+    ),
+  });
+
   return {
     entityTypeBaseUrls: entityTypes.map((entityType) =>
       extractBaseUrl(entityType.schema.$id),
     ),
     sourceAccountIds: sources.map(({ accountId }) => accountId),
+    webOwnedByIds,
     lastEditedTimeRange: "anytime",
   };
 };
@@ -276,6 +298,51 @@ export const DraftEntitiesFilters: FunctionComponent<{
     [draftEntitiesWithCreatedAtAndCreators],
   );
 
+  const webOwnedByIds = useMemo(
+    () =>
+      draftEntitiesWithCreatedAtAndCreators
+        ? getDraftEntityWebOwnedByIds({
+            draftEntities: draftEntitiesWithCreatedAtAndCreators.map(
+              ({ entity }) => entity,
+            ),
+          })
+        : undefined,
+    [draftEntitiesWithCreatedAtAndCreators],
+  );
+
+  const { orgs } = useOrgs();
+  const { users } = useUsers();
+
+  const webs = useMemo(() => {
+    if (!orgs || !users || !webOwnedByIds) {
+      return undefined;
+    }
+
+    return webOwnedByIds.map((webOwnedById) => {
+      const org = orgs.find(
+        ({ accountGroupId }) => accountGroupId === webOwnedById,
+      );
+
+      if (org) {
+        return org;
+      }
+
+      if (authenticatedUser.accountId === webOwnedById) {
+        return authenticatedUser;
+      }
+
+      const user = users.find(({ accountId }) => accountId === webOwnedById);
+
+      if (user) {
+        return user;
+      }
+
+      throw new Error(
+        `Could not find web of draft entity with ownedById ${webOwnedById}`,
+      );
+    });
+  }, [webOwnedByIds, orgs, users, authenticatedUser]);
+
   const allEntityTypesSelected = useMemo(
     () =>
       filterState &&
@@ -292,13 +359,22 @@ export const DraftEntitiesFilters: FunctionComponent<{
     [filterState, sources],
   );
 
+  const allWebsSelected = useMemo(
+    () =>
+      filterState &&
+      webOwnedByIds &&
+      filterState.webOwnedByIds.length === webOwnedByIds.length,
+    [filterState, webOwnedByIds],
+  );
+
   const isDefaultFilterState = useMemo(
     () =>
       filterState &&
       allEntityTypesSelected &&
       allSourcesSelected &&
+      allWebsSelected &&
       filterState.lastEditedTimeRange === "anytime",
-    [filterState, allEntityTypesSelected, allSourcesSelected],
+    [filterState, allEntityTypesSelected, allSourcesSelected, allWebsSelected],
   );
 
   return (
@@ -450,6 +526,77 @@ export const DraftEntitiesFilters: FunctionComponent<{
                 }
               />
             ))}
+        </Box>
+      </Box>
+      <Box>
+        <FilterSectionHeading>Webs</FilterSectionHeading>
+        <Box display="flex" flexDirection="column">
+          {webs
+            ?.map((web) => {
+              const label =
+                web.kind === "user"
+                  ? web.accountId === authenticatedUser.accountId
+                    ? "My Web"
+                    : web.preferredName
+                      ? web.preferredName
+                      : "Unknown User"
+                  : web.name;
+
+              return { label, web };
+            })
+            .sort(
+              ({ label: labelA, web: webA }, { label: labelB, web: webB }) => {
+                if (
+                  webA.kind === "user" &&
+                  authenticatedUser.accountId === webA.accountId
+                ) {
+                  return -1;
+                } else if (
+                  webB.kind === "user" &&
+                  authenticatedUser.accountId === webB.accountId
+                ) {
+                  return 1;
+                }
+                return labelA.localeCompare(labelB);
+              },
+            )
+            .map(({ web, label }) => {
+              const webOwnedById = (
+                web.kind === "user" ? web.accountId : web.accountGroupId
+              ) as OwnedById;
+
+              return (
+                <CheckboxFilter
+                  key={web.kind === "user" ? web.accountId : web.accountGroupId}
+                  label={
+                    <>
+                      {web.kind === "user" ? (
+                        <UserIcon />
+                      ) : (
+                        <UsersRegularIcon />
+                      )}
+                      {label}
+                    </>
+                  }
+                  checked={!!filterState?.webOwnedByIds.includes(webOwnedById)}
+                  onChange={(checked) =>
+                    setFilterState((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            webOwnedByIds: checked
+                              ? [...prev.webOwnedByIds, webOwnedById]
+                              : prev.webOwnedByIds.filter(
+                                  (prevWebOwnedById) =>
+                                    prevWebOwnedById !== webOwnedById,
+                                ),
+                          }
+                        : undefined,
+                    )
+                  }
+                />
+              );
+            })}
         </Box>
       </Box>
       <Box>
