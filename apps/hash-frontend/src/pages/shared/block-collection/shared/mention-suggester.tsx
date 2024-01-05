@@ -378,8 +378,6 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
 
             if (!linkEntity) {
               throw new Error("Link entity not found");
-            } else if (!rightEntity) {
-              throw new Error("Right entity not found");
             }
 
             const linkEntityType = getEntityTypeById(
@@ -392,10 +390,9 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               linkEntity,
               linkEntityType,
               targetEntity: rightEntity,
-              targetEntityLabel: generateEntityLabel(
-                entitiesSubgraph,
-                rightEntity,
-              ),
+              targetEntityLabel: rightEntity
+                ? generateEntityLabel(entitiesSubgraph, rightEntity)
+                : "",
             };
           },
         );
