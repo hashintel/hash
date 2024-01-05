@@ -24,6 +24,7 @@ import {
   FunctionComponent,
   SetStateAction,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -299,6 +300,37 @@ export const DraftEntities: FunctionComponent<{
       draftEntitiesWithLinkedDataSubgraph,
     ],
   );
+
+  useEffect(() => {
+    if (filteredAndSortedDraftEntitiesWithCreatedAt) {
+      /**
+       * If the filter state has changed, there may be previously selected drafts
+       * which are no longer listed in the UI which we need to deselect.
+       */
+      const nonMatchingSelectedDraftEntityIds = selectedDraftEntityIds.filter(
+        (selectedDraftEntityId) =>
+          !filteredAndSortedDraftEntitiesWithCreatedAt.some(
+            ({ entity }) =>
+              entity.metadata.recordId.entityId === selectedDraftEntityId,
+          ),
+      );
+
+      if (nonMatchingSelectedDraftEntityIds.length > 0) {
+        setSelectedDraftEntityIds((prev) =>
+          prev.filter(
+            (selectedDraftEntityId) =>
+              !nonMatchingSelectedDraftEntityIds.includes(
+                selectedDraftEntityId,
+              ),
+          ),
+        );
+      }
+    }
+  }, [
+    filteredAndSortedDraftEntitiesWithCreatedAt,
+    selectedDraftEntityIds,
+    setSelectedDraftEntityIds,
+  ]);
 
   const [numberOfIncrements, setNumberOfIncrements] = useState(1);
 
