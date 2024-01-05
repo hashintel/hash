@@ -1,6 +1,7 @@
 import { useMutation } from "@apollo/client";
-import { CaretDownSolidIcon } from "@hashintel/design-system";
-import { EntityId } from "@local/hash-subgraph";
+import { AlertModal, CaretDownSolidIcon } from "@hashintel/design-system";
+import { EntityId, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { getEntityRevision } from "@local/hash-subgraph/stdlib";
 import { Box, buttonClasses, ListItemText, Menu } from "@mui/material";
 import {
   anchorRef,
@@ -8,7 +9,7 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useCallback, useMemo } from "react";
+import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
 import {
   ArchiveEntityMutation,
@@ -28,8 +29,13 @@ import { useNotificationsWithLinks } from "../shared/notifications-with-links-co
 
 export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
   selectedDraftEntityIds: EntityId[];
+  draftEntitiesWithLinkedDataSubgraph?: Subgraph<EntityRootType>;
   deselectAllDraftEntities: () => void;
-}> = ({ selectedDraftEntityIds, deselectAllDraftEntities }) => {
+}> = ({
+  selectedDraftEntityIds,
+  draftEntitiesWithLinkedDataSubgraph,
+  deselectAllDraftEntities,
+}) => {
   const { draftEntities, refetch: refetchDraftEntities } = useDraftEntities();
   const { notifications } = useNotificationsWithLinks();
   const { archiveNotification, markNotificationAsRead } =
@@ -103,6 +109,43 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
     popupState.close();
   }, [ignoreAllSelectedDraftEntities, deselectAllDraftEntities, popupState]);
 
+  const leftOrRightDraftEntitiesToAccept = useMemo(() => {
+    if (!draftEntitiesWithLinkedDataSubgraph) {
+      return;
+    }
+
+    return selectedDraftEntities
+      .map((selectedDraftEntity) => {
+        if (!selectedDraftEntity.linkData) {
+          return [];
+        }
+
+        const leftEntity = getEntityRevision(
+          draftEntitiesWithLinkedDataSubgraph,
+          selectedDraftEntity.linkData.leftEntityId,
+        );
+
+        if (!leftEntity) {
+          throw new Error("Left entity of link entity not found in subgraph.");
+        }
+
+        const rightEntity = getEntityRevision(
+          draftEntitiesWithLinkedDataSubgraph,
+          selectedDraftEntity.linkData.rightEntityId,
+        );
+
+        if (!rightEntity) {
+          throw new Error("Right entity of link entity not found in subgraph.");
+        }
+
+        return [
+          leftEntity.metadata.draft ? leftEntity : [],
+          rightEntity.metadata.draft ? rightEntity : [],
+        ].flat();
+      })
+      .flat();
+  }, [draftEntitiesWithLinkedDataSubgraph, selectedDraftEntities]);
+
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
     UpdateEntityMutationVariables
@@ -122,7 +165,10 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
       ...relatedGraphChangeNotifications.map((notification) =>
         markNotificationAsRead({ notificationEntity: notification.entity }),
       ),
-      ...selectedDraftEntities.map((draftEntity) =>
+      ...[
+        ...selectedDraftEntities,
+        ...(leftOrRightDraftEntitiesToAccept ?? []),
+      ].map((draftEntity) =>
         updateEntity({
           variables: {
             entityId: draftEntity.metadata.recordId.entityId,
@@ -134,103 +180,147 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
     ]);
 
     await refetchDraftEntities();
+
+    deselectAllDraftEntities();
   }, [
     notifications,
     markNotificationAsRead,
     selectedDraftEntityIds,
     selectedDraftEntities,
+    leftOrRightDraftEntitiesToAccept,
     updateEntity,
     refetchDraftEntities,
+    deselectAllDraftEntities,
   ]);
 
-  const handleAcceptAll = useCallback(async () => {
-    await acceptAllSelectedDraftEntities();
+  const [
+    showDraftLinkEntitiesWithDraftLeftOrRightEntityWarning,
+    setShowDraftLinkEntitiesWithDraftLeftOrRightEntityWarning,
+  ] = useState<boolean>(false);
 
-    deselectAllDraftEntities();
+  const handleAcceptDraftLinkEntitiesWithDraftLeftOrRightEntities =
+    useCallback(async () => {
+      await acceptAllSelectedDraftEntities();
+
+      setShowDraftLinkEntitiesWithDraftLeftOrRightEntityWarning(false);
+    }, [acceptAllSelectedDraftEntities]);
+
+  const handleAcceptAll = useCallback(async () => {
+    if (!leftOrRightDraftEntitiesToAccept) {
+      return;
+    }
+
+    if (leftOrRightDraftEntitiesToAccept.length > 0) {
+      setShowDraftLinkEntitiesWithDraftLeftOrRightEntityWarning(true);
+    } else {
+      await acceptAllSelectedDraftEntities();
+    }
 
     popupState.close();
-  }, [acceptAllSelectedDraftEntities, deselectAllDraftEntities, popupState]);
+  }, [
+    leftOrRightDraftEntitiesToAccept,
+    acceptAllSelectedDraftEntities,
+    popupState,
+  ]);
 
   return (
-    <Box
-      display="flex"
-      columnGap={1}
-      alignItems="flex-end"
-      ref={anchorRef(popupState)}
-    >
-      <LayerGroupLightIcon
-        sx={{ fontSize: 16, color: ({ palette }) => palette.gray[50] }}
-      />
-      <Button
-        variant="tertiary_quiet"
-        sx={{
-          fontSize: 14,
-          fontWeight: 600,
-          color: ({ palette }) => palette.gray[90],
-          [`.${buttonClasses.endIcon}`]: {
+    <>
+      {showDraftLinkEntitiesWithDraftLeftOrRightEntityWarning &&
+        leftOrRightDraftEntitiesToAccept && (
+          <AlertModal
+            callback={handleAcceptDraftLinkEntitiesWithDraftLeftOrRightEntities}
+            calloutMessage={
+              leftOrRightDraftEntitiesToAccept.length > 1
+                ? `Some of the selected draft links establish a relationship with ${leftOrRightDraftEntitiesToAccept.length} entities which are in draft, which will be accepted as well.`
+                : "A selected draft link establish a relationship with an entity which is in draft, which will be accepted as well."
+            }
+            close={() =>
+              setShowDraftLinkEntitiesWithDraftLeftOrRightEntityWarning(false)
+            }
+            header={<>Accept {selectedDraftEntities.length} drafts</>}
+            type="info"
+          />
+        )}
+      <Box
+        display="flex"
+        columnGap={1}
+        alignItems="flex-end"
+        ref={anchorRef(popupState)}
+      >
+        <LayerGroupLightIcon
+          sx={{ fontSize: 16, color: ({ palette }) => palette.gray[50] }}
+        />
+        <Button
+          variant="tertiary_quiet"
+          sx={{
+            fontSize: 14,
+            fontWeight: 600,
             color: ({ palette }) => palette.gray[90],
-          },
-          padding: 0,
-          minWidth: "unset",
-          minHeight: "unset",
-          border: "none",
-          lineHeight: 0,
-          background: "transparent",
-          "&:hover": {
-            background: "transparent",
-            border: "none",
-            color: ({ palette }) => palette.gray[90],
-          },
-          [`&.${buttonClasses.disabled}`]: {
-            background: "transparent",
-            color: ({ palette }) => palette.gray[70],
             [`.${buttonClasses.endIcon}`]: {
-              color: ({ palette }) => palette.gray[70],
+              color: ({ palette }) => palette.gray[90],
             },
-          },
-        }}
-        endIcon={<CaretDownSolidIcon />}
-        disabled={isDisabled}
-        {...bindTrigger(popupState)}
-      >
-        Bulk Action
-      </Button>
-      <Menu
-        {...bindMenu(popupState)}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "left",
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "left",
-        }}
-        slotProps={{
-          paper: {
-            elevation: 4,
-            sx: ({ palette }) => ({
-              borderRadius: "6px",
-              marginTop: 1,
-              border: `1px solid ${palette.gray["20"]}`,
-            }),
-          },
-        }}
-      >
-        <MenuItem onClick={handleIgnoreAll}>
-          <ListItemText
-            primary={`Ignore ${selectedDraftEntityIds.length} draft${
-              selectedDraftEntityIds.length > 1 ? "s" : ""
-            }`}
-          />
-        </MenuItem>
-        <MenuItem onClick={handleAcceptAll}>
-          <ListItemText
-            primary={`Accept ${selectedDraftEntityIds.length} draft${
-              selectedDraftEntityIds.length > 1 ? "s" : ""
-            }`}
-          />
-        </MenuItem>
-      </Menu>
-    </Box>
+            padding: 0,
+            minWidth: "unset",
+            minHeight: "unset",
+            border: "none",
+            lineHeight: 0,
+            background: "transparent",
+            "&:hover": {
+              background: "transparent",
+              border: "none",
+              color: ({ palette }) => palette.gray[90],
+            },
+            [`&.${buttonClasses.disabled}`]: {
+              background: "transparent",
+              color: ({ palette }) => palette.gray[70],
+              [`.${buttonClasses.endIcon}`]: {
+                color: ({ palette }) => palette.gray[70],
+              },
+            },
+          }}
+          endIcon={<CaretDownSolidIcon />}
+          disabled={isDisabled}
+          {...bindTrigger(popupState)}
+        >
+          Bulk Action
+        </Button>
+        <Menu
+          {...bindMenu(popupState)}
+          anchorOrigin={{
+            vertical: "bottom",
+            horizontal: "left",
+          }}
+          transformOrigin={{
+            vertical: "top",
+            horizontal: "left",
+          }}
+          slotProps={{
+            paper: {
+              elevation: 4,
+              sx: ({ palette }) => ({
+                borderRadius: "6px",
+                marginTop: 1,
+                border: `1px solid ${palette.gray["20"]}`,
+              }),
+            },
+          }}
+        >
+          <MenuItem onClick={handleIgnoreAll}>
+            <ListItemText
+              primary={`Ignore ${selectedDraftEntityIds.length} draft${
+                selectedDraftEntityIds.length > 1 ? "s" : ""
+              }`}
+            />
+          </MenuItem>
+          <MenuItem onClick={handleAcceptAll}>
+            <ListItemText
+              primary={`Accept ${selectedDraftEntityIds.length} draft${
+                selectedDraftEntityIds.length > 1 ? "s" : ""
+              }`}
+            />
+          </MenuItem>
+        </Menu>
+      </Box>
+    </>
   );
 };

@@ -3,7 +3,6 @@ import { Skeleton } from "@hashintel/design-system";
 import { Filter } from "@local/hash-graph-client";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
-  currentTimeInstantTemporalAxes,
   fullDecisionTimeAxis,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
@@ -91,7 +90,13 @@ export const DraftEntities: FunctionComponent<{
   sortOrder: SortOrder;
   selectedDraftEntityIds: EntityId[];
   setSelectedDraftEntityIds: Dispatch<SetStateAction<EntityId[]>>;
-}> = ({ sortOrder, selectedDraftEntityIds, setSelectedDraftEntityIds }) => {
+  draftEntitiesWithLinkedDataSubgraph?: Subgraph<EntityRootType>;
+}> = ({
+  sortOrder,
+  selectedDraftEntityIds,
+  setSelectedDraftEntityIds,
+  draftEntitiesWithLinkedDataSubgraph,
+}) => {
   const [filterState, setFilterState] = useState<DraftEntityFilterState>();
 
   const { draftEntities } = useDraftEntities();
@@ -111,55 +116,6 @@ export const DraftEntities: FunctionComponent<{
         })) ?? [],
     }),
     [draftEntities],
-  );
-
-  const [
-    previouslyFetchedDraftEntitiesWithLinkedDataResponse,
-    setPreviouslyFetchedDraftEntitiesWithLinkedDataResponse,
-  ] = useState<StructuralQueryEntitiesQuery>();
-
-  const { data: draftEntitiesWithLinkedDataResponse } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
-    variables: {
-      query: {
-        filter: getDraftEntitiesFilter,
-        includeDrafts: true,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        graphResolveDepths: {
-          isOfType: { outgoing: 1 },
-          inheritsFrom: { outgoing: 255 },
-          constrainsPropertiesOn: { outgoing: 255 },
-          constrainsValuesOn: { outgoing: 255 },
-          constrainsLinksOn: { outgoing: 255 },
-          constrainsLinkDestinationsOn: { outgoing: 255 },
-          hasLeftEntity: { outgoing: 1, incoming: 1 },
-          hasRightEntity: { outgoing: 1, incoming: 1 },
-        },
-      },
-      includePermissions: false,
-    },
-    skip: !draftEntities,
-    onCompleted: (data) =>
-      setPreviouslyFetchedDraftEntitiesWithLinkedDataResponse(data),
-    fetchPolicy: "network-only",
-  });
-
-  const draftEntitiesWithLinkedDataSubgraph = useMemo(
-    () =>
-      draftEntitiesWithLinkedDataResponse ||
-      previouslyFetchedDraftEntitiesWithLinkedDataResponse
-        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-            (draftEntitiesWithLinkedDataResponse ??
-              previouslyFetchedDraftEntitiesWithLinkedDataResponse)!
-              .structuralQueryEntities.subgraph,
-          )
-        : undefined,
-    [
-      draftEntitiesWithLinkedDataResponse,
-      previouslyFetchedDraftEntitiesWithLinkedDataResponse,
-    ],
   );
 
   const [
