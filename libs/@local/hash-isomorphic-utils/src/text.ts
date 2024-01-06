@@ -71,7 +71,7 @@ export const textBlockNodeToTextTokens = (node: ComponentNode): TextToken[] => {
           mentionType: child.attrs.mentionType,
           entityId: child.attrs.entityId,
           propertyTypeBaseUrl: child.attrs.propertyTypeBaseUrl,
-          linkEntityTypeBaseUrl: child.attrs.linkEntityTypeId,
+          linkEntityTypeBaseUrl: child.attrs.linkEntityTypeBaseUrl,
         });
         break;
       }

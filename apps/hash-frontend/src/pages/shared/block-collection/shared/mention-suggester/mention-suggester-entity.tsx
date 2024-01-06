@@ -75,8 +75,8 @@ export type SubMenuItem =
       kind: "outgoing-link";
       linkEntity: Entity;
       linkEntityType: EntityTypeWithMetadata;
-      targetEntity: Entity;
-      targetEntityLabel: string;
+      targetEntity?: Entity;
+      targetEntityLabel?: string;
     };
 
 export const MentionSuggesterEntity = forwardRef<

@@ -199,6 +199,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
   >(structuralQueryEntitiesQuery, {
     variables:
       getBlockCollectionContentsStructuralQueryVariables(pageEntityUuid),
+    fetchPolicy: "cache-and-network",
   });
 
   const pageHeaderRef = useRef<HTMLElement>();
