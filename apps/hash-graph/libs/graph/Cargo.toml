@@ -39,7 +39,7 @@ regex = "1.10.2"
 semver = { version = "1.0.21", default-features = false, features = ["serde"] }
 sentry = { version = "0.32.1", features = ["tracing", "tower", "tower-http"], default-features = false }
 serde_json = { workspace = true }
-tarpc = { version = "0.33", features = ["serde-transport", "tcp"] }
+tarpc = { version = "0.34", features = ["serde-transport", "tcp"] }
 time = { workspace = true }
 tokio = { workspace = true, features = ["macros"] }
 tokio-postgres = { version = "0.7.10", default-features = false }

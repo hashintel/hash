@@ -13,7 +13,7 @@ time = { workspace = true, features = ["serde", "std"] }
 tracing = "0.1.40"
 
 futures = "0.3"
-tarpc = { version = "0.33", features = ["tokio1"] }
+tarpc = { version = "0.34", features = ["tokio1"] }
 tokio = { workspace = true, features = ["macros"] }
 
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
