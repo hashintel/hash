@@ -20,6 +20,7 @@ export const isExternalTypeId = (typeId: VersionedUrl) =>
   !typeId.startsWith(frontendUrl) &&
   // To be removed in H-1172: Temporary provision to serve types with a https://hash.ai URL from https://app.hash.ai
   !(
+    process.env.NEXT_PUBLIC_SELF_HOSTED_HASH !== "true" &&
     ["https://app.hash.ai", "http://localhost:3000"].includes(frontendUrl) &&
     new URL(typeId).hostname === "hash.ai"
   );
