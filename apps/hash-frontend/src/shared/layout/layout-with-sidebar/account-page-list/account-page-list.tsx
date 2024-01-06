@@ -43,10 +43,10 @@ import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/u
 import { constructPageRelativeUrl } from "../../../../lib/routes";
 import { PlusRegularIcon } from "../../../icons/plus-regular";
 import { NavLink } from "../nav-link";
+import { LoadingSkeleton } from "../shared/loading-skeleton";
 import { ViewAllLink } from "../view-all-link";
 import { AccountPageListItem } from "./account-page-list-item";
 import { IDENTATION_WIDTH } from "./page-tree-item";
-import { PagesLoadingState } from "./pages-loading-state";
 import {
   getLastIndex,
   getProjection,
@@ -416,6 +416,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
                 unpadded
                 rounded
                 className="end-adornment-button"
+                data-testid="create-page-btn"
                 onClick={addPage}
                 sx={({ palette }) => ({
                   color: palette.gray[80],
@@ -427,7 +428,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           }
         >
           {pagesLoading ? (
-            <PagesLoadingState />
+            <LoadingSkeleton page />
           ) : (
             <Box sx={{ marginX: 0.75 }} data-testid="pages-tree">
               {renderPageTree(treeItems)}

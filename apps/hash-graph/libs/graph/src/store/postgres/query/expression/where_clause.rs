@@ -58,7 +58,7 @@ mod tests {
     #[test]
     fn transpile_where_expression() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::new(Some(&temporal_axes));
+        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::new(Some(&temporal_axes), false);
         let mut where_clause = WhereExpression::default();
         assert_eq!(where_clause.transpile_to_string(), "");
 
@@ -84,7 +84,7 @@ mod tests {
             ),
             Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                Some(FilterExpression::Parameter(Parameter::Number(1))),
+                Some(FilterExpression::Parameter(Parameter::I32(1))),
             ),
         ]);
         where_clause.add_condition(compiler.compile_filter(&filter_b));

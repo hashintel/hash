@@ -116,6 +116,7 @@ pub enum Expression {
     /// prevent SQL injection and no user input should ever be used as a [`Constant`].
     Constant(Constant),
     Function(Function),
+    CosineDistance(Box<Self>, Box<Self>),
     Window(Box<Self>, WindowStatement),
 }
 
@@ -127,6 +128,11 @@ impl Transpile for Expression {
             Self::Parameter(index) => write!(fmt, "${index}"),
             Self::Constant(constant) => constant.transpile(fmt),
             Self::Function(function) => function.transpile(fmt),
+            Self::CosineDistance(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" <=> ")?;
+                rhs.transpile(fmt)
+            }
             Self::Window(expression, window) => {
                 expression.transpile(fmt)?;
                 fmt.write_str(" OVER (")?;

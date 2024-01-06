@@ -9,7 +9,10 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_types::ontology::{CustomOntologyMetadata, OntologyElementMetadata};
+use graph_types::ontology::{
+    OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
+    OntologyTypeRecordId,
+};
 use uuid::Uuid;
 
 use crate::snapshot::{
@@ -28,7 +31,15 @@ pub struct OntologyTypeMetadataSender {
     external_metadata: Sender<OntologyExternalMetadataRow>,
 }
 
-impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
+impl
+    Sink<(
+        Uuid,
+        OntologyTypeRecordId,
+        OntologyTypeClassificationMetadata,
+        OntologyTemporalMetadata,
+        OntologyProvenanceMetadata,
+    )> for OntologyTypeMetadataSender
+{
     type Error = Report<SnapshotRestoreError>;
 
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -50,14 +61,16 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
 
     fn start_send(
         mut self: Pin<&mut Self>,
-        (ontology_id, metadata): (Uuid, OntologyElementMetadata),
+        (ontology_id, record_id, classification, temporal_versioning, provenance): (
+            Uuid,
+            OntologyTypeRecordId,
+            OntologyTypeClassificationMetadata,
+            OntologyTemporalMetadata,
+            OntologyProvenanceMetadata,
+        ),
     ) -> Result<(), Self::Error> {
-        let (provenance, temporal_versioning) = match metadata.custom {
-            CustomOntologyMetadata::Owned {
-                provenance,
-                temporal_versioning,
-                owned_by_id,
-            } => {
+        match classification {
+            OntologyTypeClassificationMetadata::Owned { owned_by_id } => {
                 self.owned_metadata
                     .start_send(OntologyOwnedMetadataRow {
                         ontology_id,
@@ -65,13 +78,8 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
                     })
                     .change_context(SnapshotRestoreError::Read)
                     .attach_printable("could not send owned metadata")?;
-                (provenance, temporal_versioning)
             }
-            CustomOntologyMetadata::External {
-                provenance,
-                temporal_versioning,
-                fetched_at,
-            } => {
+            OntologyTypeClassificationMetadata::External { fetched_at } => {
                 self.external_metadata
                     .start_send(OntologyExternalMetadataRow {
                         ontology_id,
@@ -79,15 +87,14 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
                     })
                     .change_context(SnapshotRestoreError::Read)
                     .attach_printable("could not send external metadata")?;
-                (provenance, temporal_versioning)
             }
         };
 
         self.id
             .start_send(OntologyIdRow {
                 ontology_id,
-                base_url: metadata.record_id.base_url.as_str().to_owned(),
-                version: metadata.record_id.version,
+                base_url: record_id.base_url.as_str().to_owned(),
+                version: record_id.version,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send id")?;
@@ -96,8 +103,8 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
             .start_send(OntologyTemporalMetadataRow {
                 ontology_id,
                 transaction_time: temporal_versioning.transaction_time,
-                record_created_by_id: provenance.record_created_by_id,
-                record_archived_by_id: provenance.record_archived_by_id,
+                edition_created_by_id: provenance.edition.created_by_id,
+                edition_archived_by_id: provenance.edition.archived_by_id,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send temporal metadata")?;

@@ -26,13 +26,17 @@ import { json } from "body-parser";
 import cors from "cors";
 import express, { raw } from "express";
 import proxy from "express-http-proxy";
+import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
 import { createHttpTerminator } from "http-terminator";
 import { customAlphabet } from "nanoid";
 
-import { inferEntitiesController } from "./ai/infer-entities";
-import setupAuth from "./auth";
+import { openInferEntitiesWebSocket } from "./ai/infer-entities-websocket";
+import {
+  addKratosAfterRegistrationHandler,
+  createAuthMiddleware,
+} from "./auth/create-auth-handlers";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { RedisCache } from "./cache";
 import {
@@ -42,6 +46,7 @@ import {
 } from "./email/transporters";
 import { ImpureGraphContext } from "./graph/context-types";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
+import { isSelfHostedInstance } from "./graph/ensure-system-graph-is-initialized/system-webs-and-entities";
 import { User } from "./graph/knowledge/system-types/user";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
@@ -86,6 +91,13 @@ declare global {
 }
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
+
+const rateLimiter = rateLimit({
+  windowMs: 60 * 20, // 20 seconds
+  limit: 5, // Limit each IP to 5 requests every 20 seconds
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
 
 const main = async () => {
   await TypeSystemInitializer.initialize();
@@ -206,7 +218,9 @@ const main = async () => {
   });
 
   // Set up authentication related middleware and routes
-  setupAuth({ app, logger, context });
+  addKratosAfterRegistrationHandler({ app, context });
+  const authMiddleware = createAuthMiddleware({ logger, context });
+  app.use(authMiddleware);
 
   // Create an email transporter
   const emailTransporter =
@@ -311,7 +325,7 @@ const main = async () => {
    * can be sent the the Ory Kratos public URL directly, because the
    * CORS requirements are not as strict as the one from the browser.
    */
-  app.use("/auth/*", cors(CORS_CONFIG), (req, res, next) => {
+  app.use("/auth/*", rateLimiter, cors(CORS_CONFIG), (req, res, next) => {
     const expectedAccessControlAllowOriginHeader = res.getHeader(
       "Access-Control-Allow-Origin",
     );
@@ -353,12 +367,23 @@ const main = async () => {
     })(req, res, next);
   });
 
-  // Integrations
-  app.get("/oauth/linear", oAuthLinear);
-  app.get("/oauth/linear/callback", oAuthLinearCallback);
-  app.post("/webhooks/linear", linearWebhook);
+  app.use((req, _res, next) => {
+    if (req.path !== "/graphql") {
+      if (!req.user?.isAccountSignupComplete) {
+        /**
+         * Only GraphQL requests need to be provided with incomplete users, to allow them to complete signup
+         *   – otherwise they should be treated as anonymous requests.
+         */
+        delete req.user;
+      }
+    }
+    next();
+  });
 
-  app.post("/entities/infer", inferEntitiesController);
+  // Integrations
+  app.get("/oauth/linear", rateLimiter, oAuthLinear);
+  app.get("/oauth/linear/callback", rateLimiter, oAuthLinearCallback);
+  app.post("/webhooks/linear", linearWebhook);
 
   /**
    * This middleware MUST:
@@ -383,6 +408,15 @@ const main = async () => {
   const httpServer = http.createServer(app);
   const httpTerminator = createHttpTerminator({ server: httpServer });
   shutdown.addCleanup("HTTP Server", async () => httpTerminator.terminate());
+
+  if (!isSelfHostedInstance && temporalClient) {
+    openInferEntitiesWebSocket({
+      context,
+      httpServer,
+      logger,
+      temporalClient,
+    });
+  }
 
   // Start the Apollo GraphQL server.
   // Note: the server must be started before the middleware can be applied

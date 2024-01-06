@@ -1,6 +1,9 @@
 use std::error::Error;
 
-use graph_types::account::{AccountGroupId, AccountId};
+use graph_types::{
+    account::{AccountGroupId, AccountId},
+    owned_by_id::OwnedById,
+};
 use serde::{Deserialize, Serialize};
 use type_system::url::VersionedUrl;
 use uuid::Uuid;
@@ -55,9 +58,10 @@ impl Resource for PropertyTypeId {
     type Id = Self;
     type Kind = PropertyTypeNamespace;
 
-    fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
+    #[expect(refining_impl_trait)]
+    fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, !> {
         match kind {
-            PropertyTypeNamespace::PropertyType => Ok::<_, !>(id),
+            PropertyTypeNamespace::PropertyType => Ok(id),
         }
     }
 
@@ -74,6 +78,8 @@ impl Resource for PropertyTypeId {
 #[serde(rename_all = "snake_case")]
 pub enum PropertyTypeResourceRelation {
     Owner,
+    Setting,
+    Editor,
     Viewer,
 }
 
@@ -90,8 +96,17 @@ pub enum PropertyTypePermission {
 impl Permission<PropertyTypeId> for PropertyTypePermission {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum PropertyTypeSetting {
+    UpdateFromWeb,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum PropertyTypeSubject {
+    Web(OwnedById),
+    Setting(PropertyTypeSetting),
     Public,
     Account(AccountId),
     AccountGroup(AccountGroupId),
@@ -108,6 +123,10 @@ impl Relation<PropertyTypeSubject> for PropertyTypeSubjectSet {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PropertyTypeSubjectNamespace {
+    #[serde(rename = "graph/web")]
+    Web,
+    #[serde(rename = "graph/setting")]
+    Setting,
     #[serde(rename = "graph/account")]
     Account,
     #[serde(rename = "graph/account_group")]
@@ -118,6 +137,7 @@ pub enum PropertyTypeSubjectNamespace {
 #[serde(untagged)]
 pub enum PropertyTypeSubjectId {
     Uuid(Uuid),
+    Setting(PropertyTypeSetting),
     Asteriks(PublicAccess),
 }
 
@@ -127,6 +147,12 @@ impl Resource for PropertyTypeSubject {
 
     fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
         Ok(match (kind, id) {
+            (PropertyTypeSubjectNamespace::Web, PropertyTypeSubjectId::Uuid(uuid)) => {
+                Self::Web(OwnedById::new(uuid))
+            }
+            (PropertyTypeSubjectNamespace::Setting, PropertyTypeSubjectId::Setting(setting)) => {
+                Self::Setting(setting)
+            }
             (
                 PropertyTypeSubjectNamespace::Account,
                 PropertyTypeSubjectId::Asteriks(PublicAccess::Public),
@@ -138,8 +164,11 @@ impl Resource for PropertyTypeSubject {
                 Self::AccountGroup(AccountGroupId::new(id))
             }
             (
-                PropertyTypeSubjectNamespace::AccountGroup,
-                PropertyTypeSubjectId::Asteriks(PublicAccess::Public),
+                PropertyTypeSubjectNamespace::Web
+                | PropertyTypeSubjectNamespace::Setting
+                | PropertyTypeSubjectNamespace::Account
+                | PropertyTypeSubjectNamespace::AccountGroup,
+                _,
             ) => {
                 return Err(InvalidResource::<Self>::invalid_id(kind, id));
             }
@@ -148,6 +177,14 @@ impl Resource for PropertyTypeSubject {
 
     fn into_parts(self) -> (Self::Kind, Self::Id) {
         match self {
+            Self::Web(web_id) => (
+                PropertyTypeSubjectNamespace::Web,
+                PropertyTypeSubjectId::Uuid(web_id.into_uuid()),
+            ),
+            Self::Setting(setting) => (
+                PropertyTypeSubjectNamespace::Setting,
+                PropertyTypeSubjectId::Setting(setting),
+            ),
             Self::Public => (
                 PropertyTypeSubjectNamespace::Account,
                 PropertyTypeSubjectId::Asteriks(PublicAccess::Public),
@@ -172,6 +209,26 @@ impl Resource for PropertyTypeSubject {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum PropertyTypeOwnerSubject {
+    Web {
+        #[serde(rename = "subjectId")]
+        id: OwnedById,
+    },
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
+pub enum PropertyTypeSettingSubject {
+    Setting {
+        #[serde(rename = "subjectId")]
+        id: PropertyTypeSetting,
+    },
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
+pub enum PropertyTypeEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
         id: AccountId,
@@ -200,6 +257,16 @@ pub enum PropertyTypeRelationAndSubject {
         #[serde(skip)]
         level: u8,
     },
+    Setting {
+        subject: PropertyTypeSettingSubject,
+        #[serde(skip)]
+        level: u8,
+    },
+    Editor {
+        subject: PropertyTypeEditorSubject,
+        #[serde(skip)]
+        level: u8,
+    },
     Viewer {
         subject: PropertyTypeViewerSubject,
         #[serde(skip)]
@@ -218,41 +285,85 @@ impl Relationship for (PropertyTypeId, PropertyTypeRelationAndSubject) {
             parts.resource,
             match parts.relation.name {
                 PropertyTypeResourceRelation::Owner => match (parts.subject, parts.subject_set) {
-                    (PropertyTypeSubject::Account(id), None) => {
-                        PropertyTypeRelationAndSubject::Owner {
-                            subject: PropertyTypeOwnerSubject::Account { id },
-                            level: parts.relation.level,
-                        }
-                    }
-                    (PropertyTypeSubject::AccountGroup(id), Some(set)) => {
-                        PropertyTypeRelationAndSubject::Owner {
-                            subject: PropertyTypeOwnerSubject::AccountGroup { id, set },
-                            level: parts.relation.level,
-                        }
-                    }
-                    (PropertyTypeSubject::Public, _subject_set) => {
-                        return Err(InvalidRelationship::<Self>::invalid_subject(parts));
-                    }
-                    (
-                        PropertyTypeSubject::Account(_) | PropertyTypeSubject::AccountGroup(_),
-                        _subject_set,
-                    ) => {
-                        return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
-                    }
-                },
-                PropertyTypeResourceRelation::Viewer => match (parts.subject, parts.subject_set) {
-                    (PropertyTypeSubject::Public, None) => PropertyTypeRelationAndSubject::Viewer {
-                        subject: PropertyTypeViewerSubject::Public,
+                    (PropertyTypeSubject::Web(id), None) => PropertyTypeRelationAndSubject::Owner {
+                        subject: PropertyTypeOwnerSubject::Web { id },
                         level: parts.relation.level,
                     },
-                    (
-                        PropertyTypeSubject::Account(_)
-                        | PropertyTypeSubject::AccountGroup(_)
-                        | PropertyTypeSubject::Public,
-                        _subject_set,
-                    ) => {
+                    (PropertyTypeSubject::Web(_), _) => {
                         return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
                     }
+                    (
+                        PropertyTypeSubject::Setting(_)
+                        | PropertyTypeSubject::Public
+                        | PropertyTypeSubject::Account(_)
+                        | PropertyTypeSubject::AccountGroup(_),
+                        _,
+                    ) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                    }
+                },
+                PropertyTypeResourceRelation::Setting => PropertyTypeRelationAndSubject::Setting {
+                    subject: match (parts.subject, parts.subject_set) {
+                        (PropertyTypeSubject::Setting(id), None) => {
+                            PropertyTypeSettingSubject::Setting { id }
+                        }
+                        (PropertyTypeSubject::Setting(_), _) => {
+                            return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
+                        }
+                        (
+                            PropertyTypeSubject::Web(_)
+                            | PropertyTypeSubject::Public
+                            | PropertyTypeSubject::Account(_)
+                            | PropertyTypeSubject::AccountGroup(_),
+                            _,
+                        ) => {
+                            return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                        }
+                    },
+                    level: parts.relation.level,
+                },
+                PropertyTypeResourceRelation::Editor => PropertyTypeRelationAndSubject::Editor {
+                    subject: match (parts.subject, parts.subject_set) {
+                        (PropertyTypeSubject::Account(id), None) => {
+                            PropertyTypeEditorSubject::Account { id }
+                        }
+                        (PropertyTypeSubject::AccountGroup(id), Some(set)) => {
+                            PropertyTypeEditorSubject::AccountGroup { id, set }
+                        }
+                        (
+                            PropertyTypeSubject::Account(_) | PropertyTypeSubject::AccountGroup(_),
+                            _,
+                        ) => {
+                            return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
+                        }
+                        (
+                            PropertyTypeSubject::Web(_)
+                            | PropertyTypeSubject::Setting(_)
+                            | PropertyTypeSubject::Public,
+                            _,
+                        ) => {
+                            return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                        }
+                    },
+                    level: parts.relation.level,
+                },
+                PropertyTypeResourceRelation::Viewer => PropertyTypeRelationAndSubject::Viewer {
+                    subject: match (parts.subject, parts.subject_set) {
+                        (PropertyTypeSubject::Public, None) => PropertyTypeViewerSubject::Public,
+                        (PropertyTypeSubject::Public, _) => {
+                            return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
+                        }
+                        (
+                            PropertyTypeSubject::Web(_)
+                            | PropertyTypeSubject::Setting(_)
+                            | PropertyTypeSubject::Account(_)
+                            | PropertyTypeSubject::AccountGroup(_),
+                            _,
+                        ) => {
+                            return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                        }
+                    },
+                    level: parts.relation.level,
                 },
             },
         ))
@@ -270,10 +381,30 @@ impl Relationship for (PropertyTypeId, PropertyTypeRelationAndSubject) {
                     level,
                 },
                 match subject {
-                    PropertyTypeOwnerSubject::Account { id } => {
+                    PropertyTypeOwnerSubject::Web { id } => (PropertyTypeSubject::Web(id), None),
+                },
+            ),
+            PropertyTypeRelationAndSubject::Setting { subject, level } => (
+                LeveledRelation {
+                    name: PropertyTypeResourceRelation::Setting,
+                    level,
+                },
+                match subject {
+                    PropertyTypeSettingSubject::Setting { id } => {
+                        (PropertyTypeSubject::Setting(id), None)
+                    }
+                },
+            ),
+            PropertyTypeRelationAndSubject::Editor { subject, level } => (
+                LeveledRelation {
+                    name: PropertyTypeResourceRelation::Editor,
+                    level,
+                },
+                match subject {
+                    PropertyTypeEditorSubject::Account { id } => {
                         (PropertyTypeSubject::Account(id), None)
                     }
-                    PropertyTypeOwnerSubject::AccountGroup { id, set } => {
+                    PropertyTypeEditorSubject::AccountGroup { id, set } => {
                         (PropertyTypeSubject::AccountGroup(id), Some(set))
                     }
                 },

@@ -14,7 +14,12 @@ mod property_type;
 use std::{borrow::Cow, str::FromStr};
 
 use authorization::{
-    schema::{EntityOwnerSubject, WebOwnerSubject},
+    schema::{
+        DataTypeRelationAndSubject, DataTypeViewerSubject, EntityTypeInstantiatorSubject,
+        EntityTypeRelationAndSubject, EntityTypeSetting, EntityTypeSettingSubject,
+        EntityTypeViewerSubject, PropertyTypeRelationAndSubject, PropertyTypeSetting,
+        PropertyTypeSettingSubject, PropertyTypeViewerSubject, WebOwnerSubject,
+    },
     NoAuthorization,
 };
 use error_stack::Result;
@@ -48,11 +53,12 @@ use graph_types::{
         link::{EntityLinkOrder, LinkData},
     },
     ontology::{
-        DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
-        OntologyTypeVersion, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
-        PartialOntologyElementMetadata, PropertyTypeWithMetadata,
+        DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeVersion, PartialDataTypeMetadata,
+        PartialEntityTypeMetadata, PartialPropertyTypeMetadata, PropertyTypeMetadata,
+        PropertyTypeWithMetadata,
     },
-    provenance::OwnedById,
+    owned_by_id::OwnedById,
 };
 use temporal_versioning::{DecisionTime, LimitedTemporalBound, TemporalBound, Timestamp};
 use time::{format_description::well_known::Iso8601, Duration, OffsetDateTime};
@@ -68,6 +74,47 @@ pub struct DatabaseTestWrapper {
 pub struct DatabaseApi<'pool> {
     store: PostgresStore<Transaction<'pool>>,
     account_id: AccountId,
+}
+
+const fn data_type_relationships() -> [DataTypeRelationAndSubject; 1] {
+    [DataTypeRelationAndSubject::Viewer {
+        subject: DataTypeViewerSubject::Public,
+        level: 0,
+    }]
+}
+
+const fn property_type_relationships() -> [PropertyTypeRelationAndSubject; 2] {
+    [
+        PropertyTypeRelationAndSubject::Setting {
+            subject: PropertyTypeSettingSubject::Setting {
+                id: PropertyTypeSetting::UpdateFromWeb,
+            },
+            level: 0,
+        },
+        PropertyTypeRelationAndSubject::Viewer {
+            subject: PropertyTypeViewerSubject::Public,
+            level: 0,
+        },
+    ]
+}
+
+const fn entity_type_relationships() -> [EntityTypeRelationAndSubject; 3] {
+    [
+        EntityTypeRelationAndSubject::Setting {
+            subject: EntityTypeSettingSubject::Setting {
+                id: EntityTypeSetting::UpdateFromWeb,
+            },
+            level: 0,
+        },
+        EntityTypeRelationAndSubject::Viewer {
+            subject: EntityTypeViewerSubject::Public,
+            level: 0,
+        },
+        EntityTypeRelationAndSubject::Instantiator {
+            subject: EntityTypeInstantiatorSubject::Public,
+            level: 0,
+        },
+    ]
 }
 
 impl DatabaseTestWrapper {
@@ -144,9 +191,9 @@ impl DatabaseTestWrapper {
             let data_type: DataType = serde_json::from_str(data_type_str)
                 .expect("could not parse data type representation");
 
-            let metadata = PartialOntologyElementMetadata {
+            let metadata = PartialDataTypeMetadata {
                 record_id: data_type.id().clone().into(),
-                custom: PartialCustomOntologyMetadata::Owned {
+                classification: OntologyTypeClassificationMetadata::Owned {
                     owned_by_id: OwnedById::new(account_id.into_uuid()),
                 },
             };
@@ -159,6 +206,7 @@ impl DatabaseTestWrapper {
                 &mut NoAuthorization,
                 data_types_iter,
                 ConflictBehavior::Skip,
+                data_type_relationships(),
             )
             .await?;
 
@@ -166,9 +214,9 @@ impl DatabaseTestWrapper {
             let property_type: PropertyType = serde_json::from_str(property_type_str)
                 .expect("could not parse property type representation");
 
-            let metadata = PartialOntologyElementMetadata {
+            let metadata = PartialPropertyTypeMetadata {
                 record_id: property_type.id().clone().into(),
-                custom: PartialCustomOntologyMetadata::Owned {
+                classification: OntologyTypeClassificationMetadata::Owned {
                     owned_by_id: OwnedById::new(account_id.into_uuid()),
                 },
             };
@@ -181,6 +229,7 @@ impl DatabaseTestWrapper {
                 &mut NoAuthorization,
                 property_types_iter,
                 ConflictBehavior::Skip,
+                property_type_relationships(),
             )
             .await?;
 
@@ -192,7 +241,7 @@ impl DatabaseTestWrapper {
                 record_id: entity_type.id().clone().into(),
                 label_property: None,
                 icon: None,
-                custom: PartialCustomOntologyMetadata::Owned {
+                classification: OntologyTypeClassificationMetadata::Owned {
                     owned_by_id: OwnedById::new(account_id.into_uuid()),
                 },
             };
@@ -205,6 +254,7 @@ impl DatabaseTestWrapper {
                 &mut NoAuthorization,
                 entity_types_iter,
                 ConflictBehavior::Skip,
+                entity_type_relationships(),
             )
             .await?;
 
@@ -230,32 +280,44 @@ impl DatabaseApi<'_> {
     pub async fn create_owned_data_type(
         &mut self,
         data_type: DataType,
-    ) -> Result<OntologyElementMetadata, InsertionError> {
-        let metadata = PartialOntologyElementMetadata {
+    ) -> Result<DataTypeMetadata, InsertionError> {
+        let metadata = PartialDataTypeMetadata {
             record_id: data_type.id().clone().into(),
-            custom: PartialCustomOntologyMetadata::Owned {
+            classification: OntologyTypeClassificationMetadata::Owned {
                 owned_by_id: OwnedById::new(self.account_id.into_uuid()),
             },
         };
 
         self.store
-            .create_data_type(self.account_id, &mut NoAuthorization, data_type, metadata)
+            .create_data_type(
+                self.account_id,
+                &mut NoAuthorization,
+                data_type,
+                metadata,
+                data_type_relationships(),
+            )
             .await
     }
 
     pub async fn create_external_data_type(
         &mut self,
         data_type: DataType,
-    ) -> Result<OntologyElementMetadata, InsertionError> {
-        let metadata = PartialOntologyElementMetadata {
+    ) -> Result<DataTypeMetadata, InsertionError> {
+        let metadata = PartialDataTypeMetadata {
             record_id: data_type.id().clone().into(),
-            custom: PartialCustomOntologyMetadata::External {
+            classification: OntologyTypeClassificationMetadata::External {
                 fetched_at: OffsetDateTime::now_utc(),
             },
         };
 
         self.store
-            .create_data_type(self.account_id, &mut NoAuthorization, data_type, metadata)
+            .create_data_type(
+                self.account_id,
+                &mut NoAuthorization,
+                data_type,
+                metadata,
+                data_type_relationships(),
+            )
             .await
     }
 
@@ -278,6 +340,7 @@ impl DatabaseApi<'_> {
                             None,
                         ),
                     },
+                    include_drafts: false,
                 },
                 None,
                 None,
@@ -292,19 +355,24 @@ impl DatabaseApi<'_> {
     pub async fn update_data_type(
         &mut self,
         data_type: DataType,
-    ) -> Result<OntologyElementMetadata, UpdateError> {
+    ) -> Result<DataTypeMetadata, UpdateError> {
         self.store
-            .update_data_type(self.account_id, &mut NoAuthorization, data_type)
+            .update_data_type(
+                self.account_id,
+                &mut NoAuthorization,
+                data_type,
+                data_type_relationships(),
+            )
             .await
     }
 
     pub async fn create_property_type(
         &mut self,
         property_type: PropertyType,
-    ) -> Result<OntologyElementMetadata, InsertionError> {
-        let metadata = PartialOntologyElementMetadata {
+    ) -> Result<PropertyTypeMetadata, InsertionError> {
+        let metadata = PartialPropertyTypeMetadata {
             record_id: property_type.id().clone().into(),
-            custom: PartialCustomOntologyMetadata::Owned {
+            classification: OntologyTypeClassificationMetadata::Owned {
                 owned_by_id: OwnedById::new(self.account_id.into_uuid()),
             },
         };
@@ -315,6 +383,7 @@ impl DatabaseApi<'_> {
                 &mut NoAuthorization,
                 property_type,
                 metadata,
+                property_type_relationships(),
             )
             .await
     }
@@ -338,6 +407,7 @@ impl DatabaseApi<'_> {
                             None,
                         ),
                     },
+                    include_drafts: false,
                 },
                 None,
                 None,
@@ -352,9 +422,14 @@ impl DatabaseApi<'_> {
     pub async fn update_property_type(
         &mut self,
         property_type: PropertyType,
-    ) -> Result<OntologyElementMetadata, UpdateError> {
+    ) -> Result<PropertyTypeMetadata, UpdateError> {
         self.store
-            .update_property_type(self.account_id, &mut NoAuthorization, property_type)
+            .update_property_type(
+                self.account_id,
+                &mut NoAuthorization,
+                property_type,
+                property_type_relationships(),
+            )
             .await
     }
 
@@ -366,13 +441,19 @@ impl DatabaseApi<'_> {
             record_id: entity_type.id().clone().into(),
             label_property: None,
             icon: None,
-            custom: PartialCustomOntologyMetadata::Owned {
+            classification: OntologyTypeClassificationMetadata::Owned {
                 owned_by_id: OwnedById::new(self.account_id.into_uuid()),
             },
         };
 
         self.store
-            .create_entity_type(self.account_id, &mut NoAuthorization, entity_type, metadata)
+            .create_entity_type(
+                self.account_id,
+                &mut NoAuthorization,
+                entity_type,
+                metadata,
+                entity_type_relationships(),
+            )
             .await
     }
 
@@ -395,6 +476,7 @@ impl DatabaseApi<'_> {
                             None,
                         ),
                     },
+                    include_drafts: false,
                 },
                 None,
                 None,
@@ -417,6 +499,7 @@ impl DatabaseApi<'_> {
                 entity_type,
                 None,
                 None,
+                entity_type_relationships(),
             )
             .await
     }
@@ -432,9 +515,6 @@ impl DatabaseApi<'_> {
                 self.account_id,
                 &mut NoAuthorization,
                 OwnedById::new(self.account_id.into_uuid()),
-                EntityOwnerSubject::Account {
-                    id: self.account_id,
-                },
                 entity_uuid,
                 Some(generate_decision_time()),
                 false,
@@ -442,6 +522,7 @@ impl DatabaseApi<'_> {
                 entity_type_id,
                 properties,
                 None,
+                [],
             )
             .await
     }
@@ -462,6 +543,7 @@ impl DatabaseApi<'_> {
                             None,
                         ),
                     },
+                    include_drafts: false,
                 },
                 None,
                 None,
@@ -493,6 +575,7 @@ impl DatabaseApi<'_> {
                             Some(LimitedTemporalBound::Inclusive(timestamp)),
                         ),
                     },
+                    include_drafts: false,
                 },
                 None,
                 None,
@@ -519,6 +602,7 @@ impl DatabaseApi<'_> {
                         pinned: PinnedTemporalAxisUnresolved::new(None),
                         variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
+                    include_drafts: false,
                 },
                 None,
                 None,
@@ -567,9 +651,6 @@ impl DatabaseApi<'_> {
                 self.account_id,
                 &mut NoAuthorization,
                 OwnedById::new(self.account_id.into_uuid()),
-                EntityOwnerSubject::Account {
-                    id: self.account_id,
-                },
                 entity_uuid,
                 None,
                 false,
@@ -584,6 +665,7 @@ impl DatabaseApi<'_> {
                         right_to_left: None,
                     },
                 }),
+                [],
             )
             .await
     }
@@ -651,6 +733,7 @@ impl DatabaseApi<'_> {
                             None,
                         ),
                     },
+                    include_drafts: false,
                 },
                 None,
                 None,
@@ -717,6 +800,7 @@ impl DatabaseApi<'_> {
                         pinned: PinnedTemporalAxisUnresolved::new(None),
                         variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
+                    include_drafts: false,
                 },
                 None,
                 None,

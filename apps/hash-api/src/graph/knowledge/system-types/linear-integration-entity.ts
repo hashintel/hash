@@ -1,4 +1,6 @@
+import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import {
+  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
@@ -28,14 +30,9 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { systemAccountId } from "../../system-account";
-import {
-  getLatestEntityById,
-  modifyEntityAuthorizationRelationships,
-  updateEntity,
-} from "../primitive/entity";
+import { getLatestEntityById, updateEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 
 export type LinearIntegration = {
@@ -69,9 +66,11 @@ export const getLinearIntegrationFromEntity: PureGraphFunction<
  * Get all linear integrations by the linear org ID
  */
 export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
-  { linearOrgId: string },
+  { linearOrgId: string; includeDrafts?: boolean },
   Promise<LinearIntegration[]>
-> = async ({ graphApi }, { actorId }, { linearOrgId }) => {
+> = async ({ graphApi }, { actorId }, params) => {
+  const { linearOrgId, includeDrafts = false } = params;
+
   const entities = await graphApi
     .getEntitiesByQuery(actorId, {
       filter: {
@@ -97,6 +96,7 @@ export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
@@ -110,9 +110,10 @@ export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
  * Get a linear integration by the linear org ID
  */
 export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
-  { userAccountId: AccountId; linearOrgId: string },
+  { userAccountId: AccountId; linearOrgId: string; includeDrafts?: boolean },
   Promise<LinearIntegration | null>
-> = async ({ graphApi }, { actorId }, { userAccountId, linearOrgId }) => {
+> = async ({ graphApi }, { actorId }, params) => {
+  const { userAccountId, linearOrgId, includeDrafts = false } = params;
   const entities = await graphApi
     .getEntitiesByQuery(actorId, {
       filter: {
@@ -141,6 +142,7 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
@@ -173,9 +175,13 @@ export const getLinearIntegrationById: ImpureGraphFunction<
 };
 
 export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
-  { linearIntegrationEntityId: EntityId },
+  { linearIntegrationEntityId: EntityId; includeDrafts?: boolean },
   Promise<{ syncLinearDataWithLinkEntity: Entity; workspaceEntity: Entity }[]>
-> = async ({ graphApi }, { actorId }, { linearIntegrationEntityId }) =>
+> = async (
+  { graphApi },
+  { actorId },
+  { linearIntegrationEntityId, includeDrafts = false },
+) =>
   graphApi
     .getEntitiesByQuery(actorId, {
       filter: {
@@ -204,6 +210,7 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
         hasRightEntity: { incoming: 0, outgoing: 1 },
       },
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
@@ -227,13 +234,17 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
     linearIntegrationEntityId: EntityId;
     workspaceEntityId: EntityId;
     linearTeamIds: string[];
+    includeDrafts?: boolean;
   },
   Promise<void>
-> = async (
-  context,
-  authentication,
-  { linearIntegrationEntityId, workspaceEntityId, linearTeamIds },
-) => {
+> = async (context, authentication, params) => {
+  const {
+    linearIntegrationEntityId,
+    workspaceEntityId,
+    linearTeamIds,
+    includeDrafts = false,
+  } = params;
+
   const existingLinkEntities = await context.graphApi
     .getEntitiesByQuery(authentication.actorId, {
       filter: {
@@ -267,6 +278,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
@@ -289,7 +301,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
       } as SyncLinearDataWithProperties,
     });
   } else {
-    const linkEntity = await createLinkEntity(context, authentication, {
+    await createLinkEntity(context, authentication, {
       ownedById: extractOwnedByIdFromEntityId(linearIntegrationEntityId),
       linkEntityTypeId:
         systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
@@ -299,21 +311,14 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
         "https://hash.ai/@hash/types/property-type/linear-team-id/":
           linearTeamIds,
       } as SyncLinearDataWithProperties,
-    });
-
-    // Allow the system account ID to view the link
-    await modifyEntityAuthorizationRelationships(context, authentication, [
-      {
-        operation: "touch",
-        relationship: {
-          resource: {
-            kind: "entity",
-            resourceId: linkEntity.metadata.recordId.entityId,
-          },
+      relationships: [
+        ...createDefaultAuthorizationRelationships(authentication),
+        {
+          // Allow the system account ID to view the link
           relation: "viewer",
           subject: { kind: "account", subjectId: systemAccountId },
         },
-      },
-    ]);
+      ],
+    });
   }
 };

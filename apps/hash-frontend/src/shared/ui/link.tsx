@@ -54,6 +54,7 @@ export const NextLinkComposed = forwardRef<
 export type LinkProps = {
   activeClassName?: string;
   noLinkStyle?: boolean;
+  openInNew?: boolean;
 } & Omit<NextLinkProps, "passHref"> &
   Omit<MuiLinkProps, "href" | "color">;
 
@@ -70,6 +71,7 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
       className: classNameProps,
       href: unvalidatedHref,
       noLinkStyle,
+      openInNew,
       ...other
     } = props;
 
@@ -94,7 +96,7 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
 
     const { href, isExternal } = generateLinkParameters(unvalidatedHref);
 
-    if (isExternal) {
+    if (isExternal || openInNew) {
       other.rel = "noopener";
       other.target = "_blank";
 

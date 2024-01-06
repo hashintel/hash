@@ -14,9 +14,7 @@ export const isTypeArchived = (
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata,
-) =>
-  type.metadata.custom.temporalVersioning.transactionTime.end.kind ===
-  "exclusive";
+) => type.metadata.temporalVersioning.transactionTime.end.kind === "exclusive";
 
 export const isPageArchived = (pageEntity: Entity) => {
   if (!isEntityPageEntity(pageEntity)) {

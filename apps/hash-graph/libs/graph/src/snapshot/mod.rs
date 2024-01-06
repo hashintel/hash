@@ -37,7 +37,8 @@ use futures::{
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{Entity, EntityUuid},
-    web::WebId,
+    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+    owned_by_id::OwnedById,
 };
 use hash_status::StatusCode;
 use postgres_types::ToSql;
@@ -50,10 +51,7 @@ use tokio_postgres::{
 use type_system::url::VersionedUrl;
 
 use crate::{
-    snapshot::{
-        entity::{CustomEntityMetadata, EntityMetadata, EntitySnapshotRecord},
-        restore::SnapshotRecordBatch,
-    },
+    snapshot::{entity::EntitySnapshotRecord, restore::SnapshotRecordBatch},
     store::{
         crud::Read, query::Filter, AsClient, InsertionError, PostgresStore, PostgresStorePool,
         StorePool,
@@ -73,7 +71,7 @@ pub struct AccountGroup {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Web {
-    id: WebId,
+    id: OwnedById,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     relations: Vec<WebRelationAndSubject>,
 }
@@ -163,7 +161,10 @@ trait WriteBatch<C> {
         postgres_client: &PostgresStore<C>,
         authorization_api: &mut (impl ZanzibarBackend + Send),
     ) -> Result<(), InsertionError>;
-    async fn commit(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError>;
+    async fn commit(
+        postgres_client: &PostgresStore<C>,
+        validation: bool,
+    ) -> Result<(), InsertionError>;
 }
 
 pub struct SnapshotStore<C>(PostgresStore<C>);
@@ -257,11 +258,11 @@ where
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))
             .and_then(move |row| async move {
-                let id = WebId::new(row.get(0));
+                let id = OwnedById::new(row.get(0));
                 Ok(Web {
                     id,
                     relations: authorization_api
-                        .read_relations::<(WebId, WebRelationAndSubject)>(
+                        .read_relations::<(OwnedById, WebRelationAndSubject)>(
                             RelationshipFilter::from_resource(id),
                             Consistency::FullyConsistent,
                         )
@@ -291,6 +292,7 @@ where
             None,
             None,
             None,
+            true,
         )
         .await
         .map_err(|future_error| future_error.change_context(SnapshotDumpError::Query))?
@@ -354,7 +356,7 @@ where
             );
 
             scope.spawn(
-                self.create_dump_stream::<DataTypeSnapshotRecord>()
+                self.create_dump_stream::<DataTypeWithMetadata>()
                     .try_flatten_stream()
                     .and_then(move |record| async move {
                         Ok(SnapshotEntry::DataType(DataTypeSnapshotRecord {
@@ -378,7 +380,7 @@ where
             );
 
             scope.spawn(
-                self.create_dump_stream::<PropertyTypeSnapshotRecord>()
+                self.create_dump_stream::<PropertyTypeWithMetadata>()
                     .try_flatten_stream()
                     .and_then(move |record| async move {
                         Ok(SnapshotEntry::PropertyType(PropertyTypeSnapshotRecord {
@@ -402,7 +404,7 @@ where
             );
 
             scope.spawn(
-                self.create_dump_stream::<EntityTypeSnapshotRecord>()
+                self.create_dump_stream::<EntityTypeWithMetadata>()
                     .try_flatten_stream()
                     .and_then(move |record| async move {
                         Ok(SnapshotEntry::EntityType(EntityTypeSnapshotRecord {
@@ -431,23 +433,11 @@ where
                     .and_then(move |entity| async move {
                         Ok(SnapshotEntry::Entity(EntitySnapshotRecord {
                             properties: entity.properties,
-                            metadata: EntityMetadata {
-                                record_id: entity.metadata.record_id(),
-                                entity_type_id: entity.metadata.entity_type_id().clone(),
-                                temporal_versioning: Some(
-                                    entity.metadata.temporal_versioning().clone(),
-                                ),
-                                custom: CustomEntityMetadata {
-                                    provenance: entity.metadata.provenance(),
-                                    archived: entity.metadata.archived(),
-                                    draft: entity.metadata.draft(),
-                                },
-                            },
                             link_data: entity.link_data,
                             relations: authorization_api
                                 .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
                                     RelationshipFilter::from_resource(
-                                        entity.metadata.record_id().entity_id.entity_uuid,
+                                        entity.metadata.record_id.entity_id.entity_uuid,
                                     ),
                                     Consistency::FullyConsistent,
                                 )
@@ -456,6 +446,7 @@ where
                                 .into_iter()
                                 .map(|(_, relation)| relation)
                                 .collect(),
+                            metadata: entity.metadata,
                         }))
                     })
                     .forward(snapshot_record_tx),
@@ -507,6 +498,7 @@ impl<C: AsClient> SnapshotStore<C> {
         snapshot: impl Stream<Item = Result<SnapshotEntry, impl Context>> + Send + 'static,
         authorization_api: &mut (impl ZanzibarBackend + Send),
         chunk_size: usize,
+        validation: bool,
     ) -> Result<(), SnapshotRestoreError> {
         tracing::info!("snapshot restore started");
 
@@ -547,7 +539,11 @@ impl<C: AsClient> SnapshotStore<C> {
 
         tracing::info!("snapshot reading finished, committing...");
 
-        SnapshotRecordBatch::commit(&client)
+        read_thread
+            .await
+            .change_context(SnapshotRestoreError::Read)??;
+
+        SnapshotRecordBatch::commit(&client, validation)
             .await
             .change_context(SnapshotRestoreError::Write)
             .map_err(|report| {
@@ -574,10 +570,6 @@ impl<C: AsClient> SnapshotStore<C> {
             .await
             .change_context(SnapshotRestoreError::Write)
             .attach_printable("unable to commit snapshot to the store")?;
-
-        read_thread
-            .await
-            .change_context(SnapshotRestoreError::Read)??;
 
         let mut found_metadata = false;
         for metadata in metadata_rx.collect::<Vec<SnapshotMetadata>>().await {

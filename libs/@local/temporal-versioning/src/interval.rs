@@ -21,7 +21,7 @@ use utoipa::{openapi, ToSchema};
 
 use crate::bounds::{compare_bounds, BoundType, IntervalBound, IntervalBoundHelper};
 #[cfg(feature = "postgres")]
-use crate::{TemporalTagged, Timestamp};
+use crate::Timestamp;
 
 enum Return<T> {
     None,
@@ -587,12 +587,14 @@ fn parse_bound<A>(
             );
             Ok(Bound::Unbounded)
         }
-        RangeBound::Inclusive(Some(bytes)) => Ok(Bound::Included(
-            Timestamp::from_sql(&Type::TIMESTAMPTZ, bytes)?.cast(),
-        )),
-        RangeBound::Exclusive(Some(bytes)) => Ok(Bound::Excluded(
-            Timestamp::from_sql(&Type::TIMESTAMPTZ, bytes)?.cast(),
-        )),
+        RangeBound::Inclusive(Some(bytes)) => Ok(Bound::Included(Timestamp::from_sql(
+            &Type::TIMESTAMPTZ,
+            bytes,
+        )?)),
+        RangeBound::Exclusive(Some(bytes)) => Ok(Bound::Excluded(Timestamp::from_sql(
+            &Type::TIMESTAMPTZ,
+            bytes,
+        )?)),
         RangeBound::Inclusive(None) | RangeBound::Exclusive(None) => {
             unimplemented!("null ranges are not supported")
         }

@@ -1,8 +1,27 @@
-import type { EntityType } from "@blockprotocol/graph";
-import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/temporal-types";
+import type { VersionedUrl } from "@blockprotocol/graph";
+import type {
+  InferenceModelName,
+  InferEntitiesReturn,
+} from "@local/hash-isomorphic-utils/ai-inference-types";
+import type {
+  SimpleProperties,
+  Simplified,
+} from "@local/hash-isomorphic-utils/simplify-properties";
+import type {
+  ImageProperties,
+  OrganizationProperties,
+  UserProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
+import {
+  Entity,
+  EntityTypeRootType,
+  EntityTypeWithMetadata,
+  OwnedById,
+  Subgraph,
+} from "@local/hash-subgraph";
 import browser from "webextension-polyfill";
+
+import { setDisabledBadge, setEnabledBadge } from "./badge";
 
 type InferenceErrorStatus = {
   errorMessage: string;
@@ -23,11 +42,32 @@ export type InferenceStatus =
 
 export type PageEntityInference = InferenceStatus & {
   createdAt: string;
-  entityTypes: EntityType[];
-  localRequestUuid: string;
+  entityTypeIds: VersionedUrl[];
+  finishedAt?: string;
+  requestUuid: string;
+  model: InferenceModelName;
+  ownedById: OwnedById;
   sourceTitle: string;
   sourceUrl: string;
   trigger: "passive" | "user";
+};
+
+type SimplifiedUser = Entity & {
+  properties: Required<
+    Pick<
+      SimpleProperties<UserProperties>,
+      "email" | "preferredName" | "shortname"
+    >
+  >;
+};
+
+type UserAndLinkedData = SimplifiedUser & {
+  avatar?: Entity<ImageProperties>;
+  orgs: (Simplified<Entity<OrganizationProperties>> & {
+    avatar?: Entity<ImageProperties>;
+    webOwnedById: OwnedById;
+  })[];
+  webOwnedById: OwnedById;
 };
 
 /**
@@ -35,15 +75,29 @@ export type PageEntityInference = InferenceStatus & {
  * Cleared if the extension is loaded with no user present.
  */
 export type LocalStorage = {
-  passiveInference: {
-    conditions: ({ domain: string } | { urlRegExp: string })[];
+  automaticInferenceConfig: {
+    createAs: "draft" | "live";
+    displayGroupedBy: "type" | "location";
     enabled: boolean;
+    model: InferenceModelName;
+    ownedById: OwnedById;
+    rules: {
+      restrictToDomains: string[];
+      entityTypeId: VersionedUrl;
+    }[];
+  };
+  manualInferenceConfig: {
+    createAs: "draft" | "live";
+    model: InferenceModelName;
+    ownedById: OwnedById;
+    targetEntityTypeIds: VersionedUrl[];
   };
   draftQuickNote: string;
-  entityTypes: EntityType[];
+  entityTypesSubgraph: Subgraph<EntityTypeRootType> | null;
+  entityTypes: EntityTypeWithMetadata[];
   inferenceRequests: PageEntityInference[];
-  targetEntityTypes: EntityType[];
-  user: Simplified<User> | null;
+  popupTab: "one-off" | "automated" | "log";
+  user: UserAndLinkedData | null;
 };
 
 export const getFromLocalStorage = async <Key extends keyof LocalStorage>(
@@ -62,6 +116,14 @@ export const setInLocalStorage = async (
   value: LocalStorage[keyof LocalStorage],
 ) => {
   await browser.storage.local.set({ [key]: value });
+
+  if (key === "automaticInferenceConfig") {
+    if ((value as LocalStorage["automaticInferenceConfig"]).enabled) {
+      setEnabledBadge();
+    } else {
+      setDisabledBadge();
+    }
+  }
 };
 
 type ReplaceFromLocalStorageValue<Key extends keyof LocalStorage> = (

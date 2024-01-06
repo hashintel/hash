@@ -6,10 +6,14 @@ import {
   isEntityTypeRootedSubgraph as isEntityTypeRootedSubgraphBp,
   isPropertyTypeRootedSubgraph as isPropertyTypeRootedSubgraphBp,
 } from "@blockprotocol/graph/temporal/stdlib";
-import { Subgraph as GraphApiSubgraph } from "@local/hash-graph-client";
+import {
+  EntityMetadata as GraphApiEntityMetadata,
+  Subgraph as GraphApiSubgraph,
+} from "@local/hash-graph-client";
 
 import {
   DataTypeRootType,
+  EntityMetadata,
   EntityRootType,
   EntityTypeRootType,
   PropertyTypeRootType,
@@ -147,3 +151,10 @@ export const mapGraphApiSubgraphToSubgraph = <
 >(
   subgraph: GraphApiSubgraph,
 ) => subgraph as Subgraph<RootType>;
+
+/**
+ * A mapping function that can be used to map entity metadata returned by the Graph API to the HASH `EntityMetadata` definition.
+ */
+export const mapGraphApiEntityMetadataToMetadata = (
+  metadata: GraphApiEntityMetadata,
+) => metadata as EntityMetadata;

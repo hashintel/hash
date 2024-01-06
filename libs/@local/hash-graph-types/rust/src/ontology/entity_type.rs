@@ -1,84 +1,108 @@
 use std::iter::once;
 
 use serde::{Deserialize, Serialize};
-use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use type_system::{
     url::{BaseUrl, VersionedUrl},
     EntityType,
 };
 #[cfg(feature = "utoipa")]
 use utoipa::{
-    openapi::{schema, Ref, RefOr, Schema},
+    openapi::{schema, Ref, RefOr, Schema, SchemaType},
     ToSchema,
 };
 
-use crate::{
-    ontology::{
-        CustomOntologyMetadata, OntologyElementMetadata, OntologyTemporalMetadata, OntologyType,
-        OntologyTypeRecordId, OntologyTypeReference, OntologyTypeWithMetadata,
-        PartialCustomOntologyMetadata,
-    },
-    provenance::ProvenanceMetadata,
+use crate::ontology::{
+    OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyType,
+    OntologyTypeClassificationMetadata, OntologyTypeRecordId, OntologyTypeReference,
+    OntologyTypeWithMetadata,
 };
 
 /// An [`EntityTypeMetadata`] that has not yet been fully resolved.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartialEntityTypeMetadata {
     pub record_id: OntologyTypeRecordId,
+    pub classification: OntologyTypeClassificationMetadata,
     pub label_property: Option<BaseUrl>,
     pub icon: Option<String>,
-    pub custom: PartialCustomOntologyMetadata,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct EntityTypeMetadata {
     pub record_id: OntologyTypeRecordId,
+    #[serde(flatten)]
+    pub classification: OntologyTypeClassificationMetadata,
+    pub temporal_versioning: OntologyTemporalMetadata,
+    pub provenance: OntologyProvenanceMetadata,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label_property: Option<BaseUrl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
-    pub custom: CustomOntologyMetadata,
 }
 
-impl EntityTypeMetadata {
-    #[must_use]
-    pub fn from_partial(
-        partial: PartialEntityTypeMetadata,
-        provenance: ProvenanceMetadata,
-        transaction_time: LeftClosedTemporalInterval<TransactionTime>,
-    ) -> Self {
-        Self {
-            record_id: partial.record_id,
-            label_property: partial.label_property,
-            icon: partial.icon,
-            custom: match partial.custom {
-                PartialCustomOntologyMetadata::Owned { owned_by_id } => {
-                    CustomOntologyMetadata::Owned {
-                        provenance,
-                        temporal_versioning: OntologyTemporalMetadata { transaction_time },
-                        owned_by_id,
-                    }
-                }
-                PartialCustomOntologyMetadata::External { fetched_at } => {
-                    CustomOntologyMetadata::External {
-                        provenance,
-                        temporal_versioning: OntologyTemporalMetadata { transaction_time },
-                        fetched_at,
-                    }
-                }
-            },
-        }
-    }
-}
-
-impl From<EntityTypeMetadata> for OntologyElementMetadata {
-    fn from(value: EntityTypeMetadata) -> Self {
-        Self {
-            record_id: value.record_id,
-            custom: value.custom,
-        }
+#[cfg(feature = "utoipa")]
+impl ToSchema<'static> for EntityTypeMetadata {
+    fn schema() -> (&'static str, RefOr<Schema>) {
+        (
+            "EntityTypeMetadata",
+            Schema::OneOf(
+                schema::OneOfBuilder::new()
+                    .item(
+                        schema::ObjectBuilder::new()
+                            .title(Some("OwnedEntityTypeMetadata"))
+                            .property("recordId", Ref::from_schema_name("OntologyTypeRecordId"))
+                            .required("recordId")
+                            .property("ownedById", Ref::from_schema_name("OwnedById"))
+                            .required("ownedById")
+                            .property(
+                                "temporalVersioning",
+                                Ref::from_schema_name("OntologyTemporalMetadata"),
+                            )
+                            .required("temporalVersioning")
+                            .property(
+                                "provenance",
+                                Ref::from_schema_name("OntologyProvenanceMetadata"),
+                            )
+                            .required("provenance")
+                            .property("labelProperty", Ref::from_schema_name("BaseUrl"))
+                            .property(
+                                "icon",
+                                schema::ObjectBuilder::new()
+                                    .schema_type(SchemaType::String)
+                                    .build(),
+                            )
+                            .build(),
+                    )
+                    .item(
+                        schema::ObjectBuilder::new()
+                            .title(Some("ExternalEntityTypeMetadata"))
+                            .property("recordId", Ref::from_schema_name("OntologyTypeRecordId"))
+                            .required("recordId")
+                            .property("fetchedAt", Ref::from_schema_name("Timestamp"))
+                            .required("fetchedAt")
+                            .property(
+                                "temporalVersioning",
+                                Ref::from_schema_name("OntologyTemporalMetadata"),
+                            )
+                            .required("temporalVersioning")
+                            .property(
+                                "provenance",
+                                Ref::from_schema_name("OntologyProvenanceMetadata"),
+                            )
+                            .required("provenance")
+                            .property("labelProperty", Ref::from_schema_name("BaseUrl"))
+                            .property(
+                                "icon",
+                                schema::ObjectBuilder::new()
+                                    .schema_type(SchemaType::String)
+                                    .build(),
+                            )
+                            .build(),
+                    )
+                    .build(),
+            )
+            .into(),
+        )
     }
 }
 

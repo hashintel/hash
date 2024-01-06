@@ -28,10 +28,11 @@ import {
   useState,
 } from "react";
 
-import { MeQuery } from "../graphql/api-types.gen";
-import { meQuery } from "../graphql/queries/user.queries";
+import { HasAccessToHashQuery, MeQuery } from "../graphql/api-types.gen";
+import { hasAccessToHashQuery, meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
 import { constructMinimalUser } from "../lib/user-and-org";
+import { DraftEntitiesContextProvider } from "../shared/draft-entities-context";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { FileUploadsProvider } from "../shared/file-upload-context";
 import { KeyboardShortcutsContextProvider } from "../shared/keyboard-shortcuts-context";
@@ -41,13 +42,13 @@ import {
   NextPageWithLayout,
 } from "../shared/layout";
 import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
-import { NotificationsContextProvider } from "../shared/notifications-context";
+import { NotificationEntitiesContextProvider } from "../shared/notification-entities-context";
 import { PropertyTypesContextProvider } from "../shared/property-types-context";
 import { RoutePageInfoProvider } from "../shared/routing";
 import { ErrorFallback } from "./_app.page/error-fallback";
 import { AppPage, redirectInGetInitialProps } from "./shared/_app.util";
 import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
-import { fetchKratosSession } from "./shared/ory-kratos";
+import { DataTypesContextProvider } from "./shared/data-types-context";
 import { setSentryUser } from "./shared/sentry";
 import { WorkspaceContextProvider } from "./shared/workspace-context";
 
@@ -144,28 +145,32 @@ const App: FunctionComponent<AppProps> = ({
               <WorkspaceContextProvider>
                 <KeyboardShortcutsContextProvider>
                   <SnackbarProvider maxSnack={3}>
-                    <NotificationsContextProvider>
-                      <EntityTypesContextProvider>
-                        <PropertyTypesContextProvider includeArchived>
-                          <FileUploadsProvider>
-                            <SidebarContextProvider>
-                              <ErrorBoundary
-                                beforeCapture={(scope) => {
-                                  scope.setTag("error-boundary", "_app");
-                                }}
-                                fallback={(props) =>
-                                  getLayoutWithSidebar(
-                                    <ErrorFallback {...props} />,
-                                  )
-                                }
-                              >
-                                {getLayout(<Component {...pageProps} />)}
-                              </ErrorBoundary>
-                            </SidebarContextProvider>
-                          </FileUploadsProvider>
-                        </PropertyTypesContextProvider>
-                      </EntityTypesContextProvider>
-                    </NotificationsContextProvider>
+                    <NotificationEntitiesContextProvider>
+                      <DraftEntitiesContextProvider>
+                        <EntityTypesContextProvider>
+                          <PropertyTypesContextProvider includeArchived>
+                            <DataTypesContextProvider>
+                              <FileUploadsProvider>
+                                <SidebarContextProvider>
+                                  <ErrorBoundary
+                                    beforeCapture={(scope) => {
+                                      scope.setTag("error-boundary", "_app");
+                                    }}
+                                    fallback={(props) =>
+                                      getLayoutWithSidebar(
+                                        <ErrorFallback {...props} />,
+                                      )
+                                    }
+                                  >
+                                    {getLayout(<Component {...pageProps} />)}
+                                  </ErrorBoundary>
+                                </SidebarContextProvider>
+                              </FileUploadsProvider>
+                            </DataTypesContextProvider>
+                          </PropertyTypesContextProvider>
+                        </EntityTypesContextProvider>
+                      </DraftEntitiesContextProvider>
+                    </NotificationEntitiesContextProvider>
                   </SnackbarProvider>
                 </KeyboardShortcutsContextProvider>
               </WorkspaceContextProvider>
@@ -227,20 +232,15 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
    *   on subsequent loads it will be cached so long as the cookie value remains the same.
    * We leave it up to the client to re-fetch the user as necessary in response to user-initiated actions.
    */
-  const [initialAuthenticatedUserSubgraph, kratosSession] = await Promise.all([
-    apolloClient
-      .query<MeQuery>({
-        query: meQuery,
-        context: { headers: { cookie } },
-      })
-      .then(({ data }) =>
-        mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-          data.me.subgraph,
-        ),
-      )
-      .catch(() => undefined),
-    fetchKratosSession(cookie),
-  ]);
+  const initialAuthenticatedUserSubgraph = await apolloClient
+    .query<MeQuery>({
+      query: meQuery,
+      context: { headers: { cookie } },
+    })
+    .then(({ data }) =>
+      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(data.me.subgraph),
+    )
+    .catch(() => undefined);
 
   const userEntity = initialAuthenticatedUserSubgraph
     ? (getRoots<EntityRootType>(initialAuthenticatedUserSubgraph)[0] as
@@ -249,7 +249,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     : undefined;
 
   /** @todo: make additional pages publicly accessible */
-  if (!userEntity || !kratosSession) {
+  if (!userEntity) {
     // If the user is logged out and not on a page that should be publicly accessible...
     if (!publiclyAccessiblePagePathnames.includes(pathname)) {
       // ...redirect them to the login page
@@ -262,13 +262,26 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   // The type system package needs to be initialized before calling `constructAuthenticatedUser`
   // await TypeSystemInitializer.initialize();
 
-  // If the user is logged in but hasn't completed signup and isn't on the signup page...
-  if (
-    !constructMinimalUser({ userEntity }).accountSignupComplete &&
-    !pathname.startsWith("/signup")
-  ) {
-    // ...then redirect them to the signup page.
-    redirectInGetInitialProps({ appContext, location: "/signup" });
+  const user = constructMinimalUser({ userEntity });
+
+  // If the user is logged in but hasn't completed signup...
+  if (!user.accountSignupComplete) {
+    const hasAccessToHash = await apolloClient
+      .query<HasAccessToHashQuery>({
+        query: hasAccessToHashQuery,
+        context: { headers: { cookie } },
+      })
+      .then(({ data }) => data.hasAccessToHash);
+
+    // ...if they have access to HASH but aren't on the signup page...
+    if (hasAccessToHash && !pathname.startsWith("/signup")) {
+      // ...then redirect them to the signup page.
+      redirectInGetInitialProps({ appContext, location: "/signup" });
+      // ...if they don't have access to HASH but aren't on the home page...
+    } else if (!hasAccessToHash && pathname !== "/") {
+      // ...then redirect them to the home page.
+      redirectInGetInitialProps({ appContext, location: "/" });
+    }
   }
 
   return { initialAuthenticatedUserSubgraph };

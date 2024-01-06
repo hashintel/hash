@@ -18,7 +18,10 @@ use graph_types::{
 };
 use tokio::sync::RwLock;
 use tokio_postgres::GenericClient;
-use type_system::{url::VersionedUrl, DataType, EntityType, PropertyType};
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    DataType, EntityType, PropertyType,
+};
 use validation::{EntityProvider, EntityTypeProvider, OntologyTypeProvider};
 
 use crate::{
@@ -181,6 +184,7 @@ where
                     }
                     .resolve(),
                 ),
+                false,
             )
             .await
             .map(|data_type| data_type.schema)?;
@@ -250,6 +254,7 @@ where
                     }
                     .resolve(),
                 ),
+                false,
             )
             .await
             .map(|property_type| property_type.schema)?;
@@ -371,22 +376,23 @@ where
     async fn is_parent_of(
         &self,
         child: &VersionedUrl,
-        parent: &VersionedUrl,
+        parent: &BaseUrl,
     ) -> Result<bool, Report<QueryError>> {
         let client = self.store.as_client().client();
         let child_id = EntityTypeId::from_url(child);
-        let parent_id = EntityTypeId::from_url(parent);
 
         Ok(client
             .query_one(
                 "
                     SELECT EXISTS (
                         SELECT 1 FROM closed_entity_type_inherits_from
+                         JOIN ontology_ids
+                           ON ontology_ids.ontology_id = target_entity_type_ontology_id
                         WHERE source_entity_type_ontology_id = $1
-                          AND target_entity_type_ontology_id = $2
+                          AND ontology_ids.base_url = $2
                     );
                 ",
-                &[child_id.as_uuid(), parent_id.as_uuid()],
+                &[child_id.as_uuid(), &parent.as_str()],
             )
             .await
             .change_context(QueryError)?
@@ -400,7 +406,11 @@ where
     A: AuthorizationApi + Sync,
 {
     #[expect(refining_impl_trait)]
-    async fn provide_entity(&self, entity_id: EntityId) -> Result<Entity, Report<QueryError>> {
+    async fn provide_entity(
+        &self,
+        entity_id: EntityId,
+        include_drafts: bool,
+    ) -> Result<Entity, Report<QueryError>> {
         if let Some((authorization_api, actor_id, consistency)) = self.authorization {
             authorization_api
                 .check_entity_permission(actor_id, EntityPermission::View, entity_id, consistency)
@@ -420,6 +430,7 @@ where
                     }
                     .resolve(),
                 ),
+                include_drafts,
             )
             .await
     }

@@ -19,11 +19,14 @@ use type_system::{
 };
 
 pub use self::{
-    data_type::DataTypeWithMetadata,
+    data_type::{DataTypeMetadata, DataTypeWithMetadata, PartialDataTypeMetadata},
     entity_type::{EntityTypeMetadata, EntityTypeWithMetadata, PartialEntityTypeMetadata},
-    property_type::PropertyTypeWithMetadata,
+    property_type::{PartialPropertyTypeMetadata, PropertyTypeMetadata, PropertyTypeWithMetadata},
 };
-use crate::provenance::{OwnedById, ProvenanceMetadata};
+use crate::{
+    account::{EditionArchivedById, EditionCreatedById},
+    owned_by_id::OwnedById,
+};
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -106,86 +109,32 @@ pub struct OntologyTemporalMetadata {
     pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
-/// A [`CustomOntologyMetadata`] that has not yet been fully resolved.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PartialCustomOntologyMetadata {
-    Owned { owned_by_id: OwnedById },
-    External { fetched_at: OffsetDateTime },
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct OntologyProvenanceMetadata {
+    pub edition: OntologyEditionProvenanceMetadata,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct OntologyEditionProvenanceMetadata {
+    pub created_by_id: EditionCreatedById,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub archived_by_id: Option<EditionArchivedById>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase")]
-pub struct OntologyElementMetadata {
-    pub record_id: OntologyTypeRecordId,
-    pub custom: CustomOntologyMetadata,
-}
-
-// TODO: Restrict mutable access when `#[feature(mut_restriction)]` is available.
-//   see https://github.com/rust-lang/rust/issues/105077
-//   see https://app.asana.com/0/0/1203977361907407/f
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
-pub enum CustomOntologyMetadata {
-    #[cfg_attr(
-        feature = "utoipa",
-        schema(title = "CustomOwnedOntologyElementMetadata")
-    )]
+pub enum OntologyTypeClassificationMetadata {
     #[serde(rename_all = "camelCase")]
-    Owned {
-        provenance: ProvenanceMetadata,
-        temporal_versioning: OntologyTemporalMetadata,
-        owned_by_id: OwnedById,
-    },
-    #[cfg_attr(
-        feature = "utoipa",
-        schema(title = "CustomExternalOntologyElementMetadata")
-    )]
+    Owned { owned_by_id: OwnedById },
     #[serde(rename_all = "camelCase")]
     External {
-        provenance: ProvenanceMetadata,
-        temporal_versioning: OntologyTemporalMetadata,
-        #[cfg_attr(feature = "utoipa", schema(value_type = String))]
         #[serde(with = "temporal_versioning::serde::time")]
         fetched_at: OffsetDateTime,
     },
-}
-
-/// An [`OntologyElementMetadata`] that has not yet been fully resolved.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PartialOntologyElementMetadata {
-    pub record_id: OntologyTypeRecordId,
-    pub custom: PartialCustomOntologyMetadata,
-}
-
-impl OntologyElementMetadata {
-    #[must_use]
-    pub fn from_partial(
-        partial: PartialOntologyElementMetadata,
-        provenance: ProvenanceMetadata,
-        transaction_time: LeftClosedTemporalInterval<TransactionTime>,
-    ) -> Self {
-        Self {
-            record_id: partial.record_id,
-            custom: match partial.custom {
-                PartialCustomOntologyMetadata::Owned { owned_by_id } => {
-                    CustomOntologyMetadata::Owned {
-                        provenance,
-                        temporal_versioning: OntologyTemporalMetadata { transaction_time },
-                        owned_by_id,
-                    }
-                }
-                PartialCustomOntologyMetadata::External { fetched_at } => {
-                    CustomOntologyMetadata::External {
-                        provenance,
-                        temporal_versioning: OntologyTemporalMetadata { transaction_time },
-                        fetched_at,
-                    }
-                }
-            },
-        }
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -203,6 +152,52 @@ impl OntologyTypeReference<'_> {
             Self::EntityTypeReference(entity_type_ref) => entity_type_ref.url(),
             Self::PropertyTypeReference(property_type_ref) => property_type_ref.url(),
             Self::DataTypeReference(data_type_ref) => data_type_ref.url(),
+        }
+    }
+}
+
+#[derive(Debug)]
+#[allow(clippy::enum_variant_names)]
+pub enum OntologyTypeMetadata {
+    DataType(DataTypeMetadata),
+    PropertyType(PropertyTypeMetadata),
+    EntityType(EntityTypeMetadata),
+}
+
+impl OntologyTypeMetadata {
+    #[must_use]
+    pub const fn record_id(&self) -> &OntologyTypeRecordId {
+        match self {
+            Self::DataType(metadata) => &metadata.record_id,
+            Self::PropertyType(metadata) => &metadata.record_id,
+            Self::EntityType(metadata) => &metadata.record_id,
+        }
+    }
+
+    #[must_use]
+    pub const fn classification(&self) -> &OntologyTypeClassificationMetadata {
+        match self {
+            Self::DataType(metadata) => &metadata.classification,
+            Self::PropertyType(metadata) => &metadata.classification,
+            Self::EntityType(metadata) => &metadata.classification,
+        }
+    }
+
+    #[must_use]
+    pub const fn temporal_versioning(&self) -> &OntologyTemporalMetadata {
+        match self {
+            Self::DataType(metadata) => &metadata.temporal_versioning,
+            Self::PropertyType(metadata) => &metadata.temporal_versioning,
+            Self::EntityType(metadata) => &metadata.temporal_versioning,
+        }
+    }
+
+    #[must_use]
+    pub const fn provenance(&self) -> &OntologyProvenanceMetadata {
+        match self {
+            Self::DataType(metadata) => &metadata.provenance,
+            Self::PropertyType(metadata) => &metadata.provenance,
+            Self::EntityType(metadata) => &metadata.provenance,
         }
     }
 }

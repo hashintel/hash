@@ -115,10 +115,6 @@ services:
       timeout: 2s
       retries: 10
 
-  type-fetcher:
-    ports:
-      - "${HASH_GRAPH_TYPE_FETCHER_PORT}:4444"
-
   graph-migrate:
     depends_on:
       telemetry-collector:

@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: returntocorp/semgrep:1.51.0@sha256:aad7d16af2db59691d4d3541768ab0a36ead70db07a99bfae08c737d55a59ea5
+      image: returntocorp/semgrep:1.55.2@sha256:58f3b75b530743634b7a9222c843bf84a72d9f446fd391f907c805b21a41cf63
 
     # Skip any PR created by Dependabot to avoid permission issues:
     if: (github.actor != 'dependabot[bot]')
@@ -43,7 +43,7 @@ jobs:
           files: "semgrep.sarif"
 
       - name: Upload SARIF file for GitHub Advanced Security Dashboard
-        uses: github/codeql-action/upload-sarif@407ffafae6a767df3e0230c3df91b6443ae8df75 # v2.22.8
+        uses: github/codeql-action/upload-sarif@012739e5082ff0c22ca6d6ab32e07c36df03c4a4 # v3.22.12
         if: steps.sarif_file_check.outputs.files_exists == 'true'
         with:
           sarif_file: semgrep.sarif

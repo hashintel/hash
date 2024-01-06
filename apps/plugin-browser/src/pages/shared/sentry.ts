@@ -1,5 +1,6 @@
-import { User } from "@local/hash-isomorphic-utils/system-types/shared";
 import * as Sentry from "@sentry/browser";
+
+import { LocalStorage } from "../../shared/storage";
 
 /**
  * Initialize Sentry. Run this as early as possible in the app.
@@ -20,20 +21,15 @@ export const initializeSentry = () =>
     tracesSampleRate: 1.0, // Capture 100% of the transactions
   });
 
-export const setSentryUser = (user?: User | null) => {
+export const setSentryUser = (user?: LocalStorage["user"] | null) => {
   Sentry.configureScope((scope) => {
     const sentryUser = scope.getUser();
     if (!user && sentryUser) {
       scope.setUser(null);
     } else if (user && sentryUser?.id !== user.metadata.recordId.entityId) {
-      // @todo update when system types have fixed https://hash.ai URLs – H-828
-      const primaryEmailKey = Object.keys(user.properties).find((key) =>
-        key.includes("email"),
-      );
       scope.setUser({
         id: user.metadata.recordId.entityId,
-        email:
-          user.properties[primaryEmailKey as keyof typeof user.properties]?.[0],
+        email: user.properties.email[0],
       });
     }
   });

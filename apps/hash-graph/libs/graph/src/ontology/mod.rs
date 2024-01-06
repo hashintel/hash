@@ -15,6 +15,7 @@ use serde::Deserialize;
 use serde_json;
 use temporal_versioning::TimeAxis;
 use type_system::url::VersionedUrl;
+#[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 pub use self::{
@@ -27,7 +28,8 @@ use crate::{
     subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
 };
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub enum Selector {
     #[serde(rename = "*")]
     Asterisk,

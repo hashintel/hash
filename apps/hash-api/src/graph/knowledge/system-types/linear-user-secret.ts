@@ -1,4 +1,8 @@
 import {
+  EntityTypeMismatchError,
+  NotFoundError,
+} from "@local/hash-backend-utils/error";
+import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
@@ -26,7 +30,6 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import { VaultClient } from "../../../vault";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 
@@ -65,9 +68,11 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
  * Get a Linear user secret by the linear org ID
  */
 export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
-  { userAccountId: AccountId; linearOrgId: string },
+  { userAccountId: AccountId; linearOrgId: string; includeDrafts?: boolean },
   Promise<LinearUserSecret>
-> = async ({ graphApi }, { actorId }, { userAccountId, linearOrgId }) => {
+> = async ({ graphApi }, { actorId }, params) => {
+  const { userAccountId, linearOrgId, includeDrafts = false } = params;
+
   const entities = await graphApi
     .getEntitiesByQuery(actorId, {
       filter: {
@@ -112,6 +117,7 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
@@ -144,9 +150,14 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
  */
 
 export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
-  { hashWorkspaceEntityId: EntityId; vaultClient: VaultClient },
+  {
+    hashWorkspaceEntityId: EntityId;
+    vaultClient: VaultClient;
+    includeDrafts?: boolean;
+  },
   Promise<string>
-> = async (context, authentication, { hashWorkspaceEntityId, vaultClient }) => {
+> = async (context, authentication, params) => {
+  const { hashWorkspaceEntityId, vaultClient, includeDrafts = false } = params;
   const [workspaceOwnedById, workspaceUuid] = splitEntityId(
     hashWorkspaceEntityId,
   );
@@ -182,6 +193,7 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);

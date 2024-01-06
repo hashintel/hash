@@ -1,96 +1,19 @@
+import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+  getHashInstance,
+  getHashInstanceFromEntity,
+  HashInstance,
+} from "@local/hash-backend-utils/hash-instance";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  SimpleProperties,
-  simplifyProperties,
-} from "@local/hash-isomorphic-utils/simplify-properties";
 import { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import {
-  Entity,
-  EntityRootType,
-  extractOwnedByIdFromEntityId,
-  OwnedById,
-} from "@local/hash-subgraph";
-import {
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { OwnedById } from "@local/hash-subgraph";
 
-import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
-import {
-  createAccountGroup,
-  createWeb,
-} from "../../account-permission-management";
-import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import {
-  createEntity,
-  CreateEntityParams,
-  modifyEntityAuthorizationRelationships,
-} from "../primitive/entity";
+import { createAccountGroup } from "../../account-permission-management";
+import { ImpureGraphFunction } from "../../context-types";
+import { modifyEntityTypeAuthorizationRelationships } from "../../ontology/primitive/entity-type";
+import { createEntity } from "../primitive/entity";
+import { getOrgByShortname } from "./org";
 import { User } from "./user";
-
-export type HashInstance = {
-  entity: Entity;
-} & SimpleProperties<HASHInstanceProperties>;
-
-export const getHashInstanceFromEntity: PureGraphFunction<
-  { entity: Entity },
-  HashInstance
-> = ({ entity }) => {
-  if (
-    entity.metadata.entityTypeId !== systemEntityTypes.hashInstance.entityTypeId
-  ) {
-    throw new EntityTypeMismatchError(
-      entity.metadata.recordId.entityId,
-      systemEntityTypes.hashInstance.entityTypeId,
-      entity.metadata.entityTypeId,
-    );
-  }
-
-  return {
-    ...simplifyProperties(entity.properties as HASHInstanceProperties),
-    entity,
-  };
-};
-
-/**
- * Get the hash instance.
- */
-export const getHashInstance: ImpureGraphFunction<
-  {},
-  Promise<HashInstance>
-> = async ({ graphApi }, { actorId }) => {
-  const entities = await graphApi
-    .getEntitiesByQuery(actorId, {
-      filter: generateVersionedUrlMatchingFilter(
-        systemEntityTypes.hashInstance.entityTypeId,
-        { ignoreParents: true },
-      ),
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-    })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
-
-      return getRoots(subgraph);
-    });
-
-  if (entities.length > 1) {
-    throw new Error("More than one hash instance entity found in the graph.");
-  }
-
-  const entity = entities[0];
-
-  if (!entity) {
-    throw new NotFoundError("Could not find hash instance entity.");
-  }
-
-  return getHashInstanceFromEntity({ entity });
-};
 
 /**
  * Create the hash instance entity.
@@ -99,11 +22,9 @@ export const getHashInstance: ImpureGraphFunction<
  * @param params.userSelfRegistrationIsEnabled - whether or not user self registration is enabled
  * @param params.userRegistrationByInviteIsEnabled - whether or not user registration by invitation is enabled
  * @param params.orgSelfRegistrationIsEnabled - whether or not org registration is enabled
- *
- * @see {@link EntityModel.create} for the remaining params
  */
 export const createHashInstance: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId" | "ownedById"> & {
+  {
     pagesAreEnabled?: boolean;
     userSelfRegistrationIsEnabled?: boolean;
     userRegistrationByInviteIsEnabled?: boolean;
@@ -112,29 +33,37 @@ export const createHashInstance: ImpureGraphFunction<
   Promise<HashInstance>
 > = async (ctx, authentication, params) => {
   // Ensure the hash instance entity has not already been created.
-  const existingHashInstance = await getHashInstance(
+  const existingHashInstance = await getHashInstance(ctx, authentication).catch(
+    (error: Error) => {
+      if (error instanceof NotFoundError) {
+        return null;
+      }
+      throw error;
+    },
+  );
+
+  if (existingHashInstance) {
+    throw new Error("HASH instance entity already exists.");
+  }
+
+  const hashInstanceAdminsAccountGroupId = await createAccountGroup(
     ctx,
     authentication,
     {},
-  ).catch((error: Error) => {
-    if (error instanceof NotFoundError) {
-      return null;
-    }
-    throw error;
+  );
+
+  const hashOrg = await getOrgByShortname(ctx, authentication, {
+    shortname: "hash",
   });
 
-  if (existingHashInstance) {
-    throw new Error("Hash instance entity already exists.");
+  if (!hashOrg) {
+    throw new Error(
+      "Cannot create HASH Instance entity before HASH Org is created",
+    );
   }
 
-  const hashInstanceAdmins = await createAccountGroup(ctx, authentication, {});
-  await createWeb(ctx, authentication, {
-    ownedById: hashInstanceAdmins as OwnedById,
-    owner: { kind: "accountGroup", subjectId: hashInstanceAdmins },
-  });
-
   const entity = await createEntity(ctx, authentication, {
-    ownedById: hashInstanceAdmins as OwnedById,
+    ownedById: hashOrg.accountGroupId as OwnedById,
     properties: {
       "https://hash.ai/@hash/types/property-type/pages-are-enabled/":
         params.pagesAreEnabled ?? true,
@@ -146,18 +75,33 @@ export const createHashInstance: ImpureGraphFunction<
         params.orgSelfRegistrationIsEnabled ?? true,
     } as HASHInstanceProperties,
     entityTypeId: systemEntityTypes.hashInstance.entityTypeId,
-  });
-  await modifyEntityAuthorizationRelationships(ctx, authentication, [
-    {
-      operation: "create",
-      relationship: {
-        subject: {
-          kind: "public",
-        },
+    relationships: [
+      {
         relation: "viewer",
+        subject: { kind: "public" },
+      },
+      {
+        relation: "administrator",
+        subject: {
+          kind: "accountGroup",
+          subjectId: hashInstanceAdminsAccountGroupId,
+        },
+      },
+    ],
+  });
+
+  await modifyEntityTypeAuthorizationRelationships(ctx, authentication, [
+    {
+      operation: "touch",
+      relationship: {
+        relation: "instantiator",
+        subject: {
+          kind: "accountGroup",
+          subjectId: hashInstanceAdminsAccountGroupId,
+        },
         resource: {
-          kind: "entity",
-          resourceId: entity.metadata.recordId.entityId,
+          kind: "entityType",
+          resourceId: systemEntityTypes.hashInstance.entityTypeId,
         },
       },
     },
@@ -177,13 +121,26 @@ export const addHashInstanceAdmin: ImpureGraphFunction<
   { user: User },
   Promise<void>
 > = async (ctx, authentication, params) => {
-  const hashInstance = await getHashInstance(ctx, authentication, {});
+  const hashInstance = await getHashInstance(ctx, authentication);
+
+  const entityPermissions = await ctx.graphApi
+    .getEntityAuthorizationRelationships(
+      authentication.actorId,
+      hashInstance.entity.metadata.recordId.entityId,
+    )
+    .then((resp) => resp.data);
+
+  const entityAdmin = entityPermissions.find(
+    (permission) => permission.relation === "administrator",
+  )?.subject;
+
+  if (!entityAdmin || !("subjectId" in entityAdmin)) {
+    throw new Error("No administrator role over HASH Instance entity.");
+  }
 
   await ctx.graphApi.addAccountGroupMember(
     authentication.actorId,
-    extractOwnedByIdFromEntityId(
-      hashInstance.entity.metadata.recordId.entityId,
-    ),
+    entityAdmin.subjectId,
     params.user.accountId,
   );
 };
@@ -197,13 +154,26 @@ export const removeHashInstanceAdmin: ImpureGraphFunction<
   { user: User },
   Promise<void>
 > = async (ctx, authentication, params): Promise<void> => {
-  const hashInstance = await getHashInstance(ctx, authentication, {});
+  const hashInstance = await getHashInstance(ctx, authentication);
+
+  const entityPermissions = await ctx.graphApi
+    .getEntityAuthorizationRelationships(
+      authentication.actorId,
+      hashInstance.entity.metadata.recordId.entityId,
+    )
+    .then((resp) => resp.data);
+
+  const entityAdmin = entityPermissions.find(
+    (permission) => permission.relation === "administrator",
+  )?.subject;
+
+  if (!entityAdmin || !("subjectId" in entityAdmin)) {
+    throw new Error("No administrator role over HASH Instance entity.");
+  }
 
   await ctx.graphApi.removeAccountGroupMember(
     authentication.actorId,
-    extractOwnedByIdFromEntityId(
-      hashInstance.entity.metadata.recordId.entityId,
-    ),
+    entityAdmin.subjectId,
     params.user.accountId,
   );
 };

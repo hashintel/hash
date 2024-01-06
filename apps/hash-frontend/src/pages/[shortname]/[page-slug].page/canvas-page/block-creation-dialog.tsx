@@ -2,8 +2,7 @@ import { useMutation } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
-import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import { OwnedById } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId, OwnedById } from "@local/hash-subgraph";
 import { useApp } from "@tldraw/editor";
 import { DialogProps } from "@tldraw/tldraw";
 import { useCallback, useState } from "react";
@@ -12,9 +11,10 @@ import {
   UpdateBlockCollectionContentsMutation,
   UpdateBlockCollectionContentsMutationVariables,
 } from "../../../../graphql/api-types.gen";
+import { structuralQueryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { BlockSuggester } from "../../../shared/block-collection/create-suggester/block-suggester";
 import { usePageContext } from "../../../shared/block-collection/page-context";
-import { blockCollectionContentsStaticVariables } from "../../../shared/block-collection-contents";
+import { getBlockCollectionContentsStructuralQueryVariables } from "../../../shared/block-collection-contents";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { BlockShape } from "./block-shape";
 import { defaultBlockHeight, defaultBlockWidth } from "./shared";
@@ -83,11 +83,10 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
         // temporary hack to keep page data consistent, in the absence of proper data subscriptions
         refetchQueries: [
           {
-            query: getEntityQuery,
-            variables: {
-              entityId: pageEntityId,
-              ...blockCollectionContentsStaticVariables,
-            },
+            query: structuralQueryEntitiesQuery,
+            variables: getBlockCollectionContentsStructuralQueryVariables(
+              extractEntityUuidFromEntityId(pageEntityId),
+            ),
           },
         ],
       });

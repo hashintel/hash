@@ -3,6 +3,10 @@ import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import {
+  CreatedAtDecisionTime,
+  CreatedAtTransactionTime,
+  CreatedById,
+  EditionCreatedById,
   Entity,
   EntityId,
   EntityPropertiesObject,
@@ -10,7 +14,6 @@ import {
   EntityRootType,
   GraphResolveDepths,
   KnowledgeGraphVertices,
-  RecordCreatedById,
   Subgraph,
   Timestamp,
 } from "@local/hash-subgraph";
@@ -70,7 +73,7 @@ export const useFetchBlockSubgraph = (): ((
         const placeholderEntity: Entity = {
           metadata: {
             recordId: {
-              entityId: "placeholder-account%entity-id-not-set" as EntityId,
+              entityId: "placeholder-account~entity-id-not-set" as EntityId,
               editionId: now,
             },
             entityTypeId: blockEntityTypeId,
@@ -97,7 +100,12 @@ export const useFetchBlockSubgraph = (): ((
             archived: false,
             draft: false,
             provenance: {
-              recordCreatedById: "placeholder-account" as RecordCreatedById,
+              createdById: "placeholder-account" as CreatedById,
+              createdAtTransactionTime: now as CreatedAtTransactionTime,
+              createdAtDecisionTime: now as CreatedAtDecisionTime,
+              edition: {
+                createdById: "placeholder-account" as EditionCreatedById,
+              },
             },
           },
           properties: fallbackBlockProperties ?? {},

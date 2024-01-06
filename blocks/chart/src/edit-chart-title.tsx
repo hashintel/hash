@@ -1,4 +1,4 @@
-import { Box, styled, TextField } from "@mui/material";
+import { Box, BoxProps, styled, TextField } from "@mui/material";
 import debounce from "lodash.debounce";
 import { FunctionComponent, useMemo, useState } from "react";
 
@@ -17,11 +17,13 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
 type EditableChartTitleProps = {
   title: string;
   updateTitle: (updatedTitle: string) => Promise<void>;
+  sx?: BoxProps["sx"];
 };
 
 export const EditableChartTitle: FunctionComponent<EditableChartTitleProps> = ({
   title: initialTitle,
   updateTitle,
+  sx = [],
 }) => {
   const [textFieldValue, setTextFieldValue] = useState<string>(initialTitle);
 
@@ -32,7 +34,18 @@ export const EditableChartTitle: FunctionComponent<EditableChartTitleProps> = ({
   );
 
   return (
-    <Box display="flex" justifyContent="center" width="100%">
+    <Box
+      sx={[
+        {
+          display: "flex",
+          justifyContent: "center",
+          width: "100%",
+          marginTop: 1,
+        },
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- TODO why is this inferred as any?
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
+    >
       <StyledTextField
         value={textFieldValue}
         onChange={({ target }) => {

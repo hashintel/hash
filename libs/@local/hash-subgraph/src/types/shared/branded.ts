@@ -5,14 +5,16 @@ import {
 } from "@blockprotocol/type-system/slim";
 import { Brand } from "@local/advanced-types/brand";
 import {
-  DataTypeRelationAndSubject,
-  EntityRelationAndSubject,
+  DataTypeRelationAndSubject as DataTypeRelationAndSubjectGraph,
+  EntityRelationAndSubject as EntityRelationAndSubjectGraph,
   EntityTypeInstantiatorSubject as EntityTypeInstantiatorSubjectGraph,
-  EntityTypeRelationAndSubject,
-  PropertyTypeRelationAndSubject,
-  WebRelationAndSubject,
+  EntityTypeRelationAndSubject as EntityTypeRelationAndSubjectGraph,
+  PropertyTypeRelationAndSubject as PropertyTypeRelationAndSubjectGraph,
+  WebRelationAndSubject as WebRelationAndSubjectGraph,
 } from "@local/hash-graph-client";
 import { validate as validateUuid } from "uuid";
+
+import { Timestamp } from "./temporal-versioning";
 
 export type BaseUrl = Brand<BaseUrlBp, "BaseUrl">;
 
@@ -78,11 +80,24 @@ export const extractEntityUuidFromEntityId = (
   return splitEntityId(entityId)[1]!;
 };
 
-/** An account ID of an actor that has created a record */
-export type RecordCreatedById = Brand<AccountId, "RecordCreatedById">;
+/** An account ID of creating actor */
+export type CreatedById = Brand<AccountId, "CreatedById">;
 
-/** An account ID of an actor that has created a record */
-export type RecordArchivedById = Brand<AccountId, "RecordArchivedById">;
+/** The transaction time when the record was inserted into the database the first time */
+export type CreatedAtTransactionTime = Brand<
+  Timestamp,
+  "CreatedAtTransactionTime"
+>;
+
+/** The transaction time when the record was inserted into the database the first time. This does not take into account
+ *  if an updated later happened with a decision time before the initial decision time. */
+export type CreatedAtDecisionTime = Brand<Timestamp, "CreatedAtDecisionTime">;
+
+/** An account ID of an actor that has created a specific edition */
+export type EditionCreatedById = Brand<AccountId, "EditionCreatedById">;
+
+/** An account ID of an actor that has archived an edition */
+export type EditionArchivedById = Brand<AccountId, "EditionArchivedById">;
 
 /** An `EntityId` identifying a `User` Entity */
 export type AccountEntityId = Brand<EntityId, "AccountEntityId">;
@@ -119,39 +134,50 @@ type BrandRelationship<T extends { subject: object }> = {
   [K in keyof T]: K extends "subject" ? BrandSubject<T[K]> : T[K];
 };
 
+export type EntityTypeInstantiatorSubject =
+  BrandSubject<EntityTypeInstantiatorSubjectGraph>;
+
+export type WebRelationAndSubject =
+  BrandRelationship<WebRelationAndSubjectGraph>;
 export type WebAuthorizationRelationship = {
   resource: {
     kind: "web";
     resourceId: OwnedById;
   };
-} & BrandRelationship<WebRelationAndSubject>;
+} & WebRelationAndSubject;
 
+export type EntityRelationAndSubject =
+  BrandRelationship<EntityRelationAndSubjectGraph>;
 export type EntityAuthorizationRelationship = {
   resource: {
     kind: "entity";
     resourceId: EntityId;
   };
-} & BrandRelationship<EntityRelationAndSubject>;
+} & EntityRelationAndSubject;
 
+export type EntityTypeRelationAndSubject =
+  BrandRelationship<EntityTypeRelationAndSubjectGraph>;
 export type EntityTypeAuthorizationRelationship = {
   resource: {
     kind: "entityType";
     resourceId: VersionedUrl;
   };
-} & BrandRelationship<EntityTypeRelationAndSubject>;
-export type EntityTypeInstantiatorSubject =
-  BrandSubject<EntityTypeInstantiatorSubjectGraph>;
+} & EntityTypeRelationAndSubject;
 
+export type PropertyTypeRelationAndSubject =
+  BrandRelationship<PropertyTypeRelationAndSubjectGraph>;
 export type PropertyTypeAuthorizationRelationship = {
   resource: {
     kind: "propertyType";
     resourceId: VersionedUrl;
   };
-} & BrandRelationship<PropertyTypeRelationAndSubject>;
+} & PropertyTypeRelationAndSubject;
 
+export type DataTypeRelationAndSubject =
+  BrandRelationship<DataTypeRelationAndSubjectGraph>;
 export type DataTypeAuthorizationRelationship = {
   resource: {
     kind: "dataType";
     resourceId: VersionedUrl;
   };
-} & BrandRelationship<DataTypeRelationAndSubject>;
+} & DataTypeRelationAndSubject;

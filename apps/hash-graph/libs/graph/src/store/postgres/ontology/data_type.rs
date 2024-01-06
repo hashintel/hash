@@ -1,34 +1,32 @@
-use std::collections::{HashMap, HashSet};
+use std::{collections::HashSet, iter::once};
 
 use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
         DataTypeId, DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject,
-        DataTypeSubjectSet, DataTypeViewerSubject, WebPermission,
+        WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
 };
 use error_stack::{Result, ResultExt};
 use graph_types::{
-    account::AccountId,
+    account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
-        DataTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
-        PartialCustomOntologyMetadata, PartialOntologyElementMetadata,
+        DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenanceMetadata,
+        OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
+        OntologyTypeRecordId, PartialDataTypeMetadata,
     },
-    provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
-    web::WebId,
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{url::VersionedUrl, DataType};
 
-#[cfg(hash_graph_test_environment)]
-use crate::store::error::DeletionError;
 use crate::{
     store::{
         crud::Read,
-        postgres::{ontology::OntologyId, OntologyTypeSubject, TraversalContext},
+        error::DeletionError,
+        postgres::{ontology::OntologyId, TraversalContext},
         AsClient, ConflictBehavior, DataTypeStore, InsertionError, PostgresStore, QueryError,
         Record, UpdateError,
     },
@@ -81,10 +79,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(
-        level = "trace",
-        skip(self, _traversal_context, _subgraph, _authorization_api, _zookie)
-    )]
+    #[tracing::instrument(level = "trace", skip(self))]
     pub(crate) async fn traverse_data_types<A: AuthorizationApi + Sync>(
         &self,
         queue: Vec<(
@@ -92,11 +87,11 @@ impl<C: AsClient> PostgresStore<C> {
             GraphResolveDepths,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
-        _traversal_context: &mut TraversalContext,
+        _: &mut TraversalContext,
         actor_id: AccountId,
-        _authorization_api: &A,
-        _zookie: &Zookie<'static>,
-        _subgraph: &mut Subgraph,
+        _: &A,
+        _: &Zookie<'static>,
+        _: &mut Subgraph,
     ) -> Result<(), QueryError> {
         // TODO: data types currently have no references to other types, so we don't need to do
         //       anything here
@@ -106,7 +101,6 @@ impl<C: AsClient> PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    #[cfg(hash_graph_test_environment)]
     pub async fn delete_data_types(&mut self) -> Result<(), DeletionError> {
         let transaction = self.transaction().await.change_context(DeletionError)?;
 
@@ -135,85 +129,79 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> DataTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, data_types, authorization_api))]
+    #[tracing::instrument(
+        level = "info",
+        skip(self, data_types, authorization_api, relationships)
+    )]
     async fn create_data_types<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
-        data_types: impl IntoIterator<Item = (DataType, PartialOntologyElementMetadata), IntoIter: Send>
-        + Send,
+        data_types: impl IntoIterator<Item = (DataType, PartialDataTypeMetadata), IntoIter: Send> + Send,
         on_conflict: ConflictBehavior,
-    ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
+        relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
+    ) -> Result<Vec<DataTypeMetadata>, InsertionError> {
+        let requested_relationships = relationships.into_iter().collect::<Vec<_>>();
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        let provenance = ProvenanceMetadata {
-            record_created_by_id: RecordCreatedById::new(actor_id),
-            record_archived_by_id: None,
+        let provenance = OntologyProvenanceMetadata {
+            edition: OntologyEditionProvenanceMetadata {
+                created_by_id: EditionCreatedById::new(actor_id),
+                archived_by_id: None,
+            },
         };
 
         let mut relationships = Vec::new();
 
         let mut inserted_data_type_metadata = Vec::new();
         for (schema, metadata) in data_types {
-            if let PartialCustomOntologyMetadata::Owned { owned_by_id } = &metadata.custom {
+            let data_type_id = DataTypeId::from_url(schema.id());
+            if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
+                &metadata.classification
+            {
                 authorization_api
                     .check_web_permission(
                         actor_id,
                         WebPermission::CreateDataType,
-                        WebId::from(*owned_by_id),
+                        *owned_by_id,
                         Consistency::FullyConsistent,
                     )
                     .await
                     .change_context(InsertionError)?
                     .assert_permission()
                     .change_context(InsertionError)?;
+
+                relationships.push((
+                    data_type_id,
+                    DataTypeRelationAndSubject::Owner {
+                        subject: DataTypeOwnerSubject::Web { id: *owned_by_id },
+                        level: 0,
+                    },
+                ));
             }
 
-            relationships.push((
-                DataTypeId::from_url(schema.id()),
-                DataTypeRelationAndSubject::Viewer {
-                    subject: DataTypeViewerSubject::Public,
-                    level: 0,
-                },
-            ));
+            relationships.extend(
+                requested_relationships
+                    .iter()
+                    .map(|relation_and_subject| (data_type_id, *relation_and_subject)),
+            );
 
-            if let Some((ontology_id, transaction_time, owner)) = transaction
+            if let Some((ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
-                    provenance.record_created_by_id,
+                    provenance.edition.created_by_id,
                     &metadata.record_id,
-                    &metadata.custom,
+                    &metadata.classification,
                     on_conflict,
                 )
                 .await?
             {
                 transaction.insert_with_id(ontology_id, &schema).await?;
-                inserted_data_type_metadata.push(OntologyElementMetadata::from_partial(
-                    metadata,
+                inserted_data_type_metadata.push(DataTypeMetadata {
+                    record_id: metadata.record_id,
+                    classification: metadata.classification,
+                    temporal_versioning,
                     provenance,
-                    transaction_time,
-                ));
-
-                if let Some(owner) = owner {
-                    match owner {
-                        OntologyTypeSubject::Account { id } => relationships.push((
-                            DataTypeId::from(ontology_id),
-                            DataTypeRelationAndSubject::Owner {
-                                subject: DataTypeOwnerSubject::Account { id },
-                                level: 0,
-                            },
-                        )),
-                        OntologyTypeSubject::AccountGroup { id } => relationships.push((
-                            DataTypeId::from(ontology_id),
-                            DataTypeRelationAndSubject::Owner {
-                                subject: DataTypeOwnerSubject::AccountGroup {
-                                    id,
-                                    set: DataTypeSubjectSet::Member,
-                                },
-                                level: 0,
-                            },
-                        )),
-                    }
-                }
+                });
             }
         }
 
@@ -255,10 +243,6 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
             Err(error)
         } else {
-            if relationships.is_empty() {
-                tracing::warn!("Inserted datayptes without adding permissions to them");
-            }
-
             Ok(inserted_data_type_metadata)
         }
     }
@@ -276,6 +260,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             ref filter,
             graph_resolve_depths,
             temporal_axes: ref unresolved_temporal_axes,
+            include_drafts,
         } = *query;
 
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
@@ -291,6 +276,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             Some(&temporal_axes),
             after,
             limit,
+            include_drafts,
         )
         .await?
         .into_iter()
@@ -302,9 +288,13 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 .insert(id)
                 .then_some((id, (vertex_id, data_type)))
         })
-        .collect::<HashMap<_, _>>();
+        .collect::<Vec<_>>();
 
-        let filtered_ids = data_types.keys().copied().collect::<Vec<_>>();
+        let filtered_ids = data_types
+            .iter()
+            .map(|(data_type_id, _)| *data_type_id)
+            .collect::<Vec<_>>();
+
         let (permissions, zookie) = authorization_api
             .check_data_types_permission(
                 actor_id,
@@ -321,15 +311,17 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             temporal_axes.clone(),
         );
 
-        let (data_type_ids, data_type_vertices): (Vec<_>, _) = data_types
+        let (data_type_ids, data_type_vertices): (Vec<_>, Vec<_>) = data_types
             .into_iter()
             .filter(|(id, _)| permissions.get(id).copied().unwrap_or(false))
             .unzip();
-        subgraph.vertices.data_types = data_type_vertices;
 
-        for vertex_id in subgraph.vertices.data_types.keys() {
-            subgraph.roots.insert(vertex_id.clone().into());
-        }
+        subgraph.roots.extend(
+            data_type_vertices
+                .iter()
+                .map(|(vertex_id, _)| vertex_id.clone().into()),
+        );
+        subgraph.vertices.data_types = data_type_vertices.into_iter().collect();
 
         let mut traversal_context = TraversalContext::default();
 
@@ -355,19 +347,23 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph)
+            .read_traversed_vertices(self, &mut subgraph, include_drafts)
             .await?;
 
         Ok(subgraph)
     }
 
-    #[tracing::instrument(level = "info", skip(self, data_type, authorization_api))]
+    #[tracing::instrument(
+        level = "info",
+        skip(self, data_type, authorization_api, relationships)
+    )]
     async fn update_data_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         data_type: DataType,
-    ) -> Result<OntologyElementMetadata, UpdateError> {
+        relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
+    ) -> Result<DataTypeMetadata, UpdateError> {
         let old_ontology_id = DataTypeId::from_url(&VersionedUrl {
             base_url: data_type.id().base_url.clone(),
             version: data_type.id().version - 1,
@@ -386,67 +382,41 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
-        let (ontology_id, metadata, owner) = transaction
-            .update::<DataType>(&data_type, RecordCreatedById::new(actor_id))
+        let (ontology_id, owned_by_id, temporal_versioning) = transaction
+            .update::<DataType>(&data_type, EditionCreatedById::new(actor_id))
             .await?;
+        let data_type_id = DataTypeId::from(ontology_id);
 
-        let owner = match owner {
-            OntologyTypeSubject::Account { id } => DataTypeOwnerSubject::Account { id },
-            OntologyTypeSubject::AccountGroup { id } => DataTypeOwnerSubject::AccountGroup {
-                id,
-                set: DataTypeSubjectSet::Member,
-            },
-        };
+        let relationships = relationships
+            .into_iter()
+            .chain(once(DataTypeRelationAndSubject::Owner {
+                subject: DataTypeOwnerSubject::Web { id: owned_by_id },
+                level: 0,
+            }))
+            .collect::<Vec<_>>();
 
-        let relationships = [
-            (
-                DataTypeId::from(ontology_id),
-                DataTypeRelationAndSubject::Owner {
-                    subject: owner,
-                    level: 0,
-                },
-            ),
-            (
-                DataTypeId::from(ontology_id),
-                DataTypeRelationAndSubject::Viewer {
-                    subject: DataTypeViewerSubject::Public,
-                    level: 0,
-                },
-            ),
-        ];
-
-        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
         authorization_api
-            .modify_data_type_relations(
-                relationships
-                    .iter()
-                    .map(|(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Create,
-                            *resource,
-                            *relation_and_subject,
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
+            .modify_data_type_relations(relationships.clone().into_iter().map(
+                |relation_and_subject| {
+                    (
+                        ModifyRelationshipOperation::Create,
+                        data_type_id,
+                        relation_and_subject,
+                    )
+                },
+            ))
             .await
             .change_context(UpdateError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(UpdateError) {
-            #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
             if let Err(auth_error) = authorization_api
-                .modify_data_type_relations(
-                    relationships
-                        .iter()
-                        .map(|(resource, relation_and_subject)| {
-                            (
-                                ModifyRelationshipOperation::Delete,
-                                *resource,
-                                *relation_and_subject,
-                            )
-                        })
-                        .collect::<Vec<_>>(),
-                )
+                .modify_data_type_relations(relationships.into_iter().map(|relation_and_subject| {
+                    (
+                        ModifyRelationshipOperation::Delete,
+                        data_type_id,
+                        relation_and_subject,
+                    )
+                }))
                 .await
                 .change_context(UpdateError)
             {
@@ -457,7 +427,17 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
             Err(error)
         } else {
-            Ok(metadata)
+            Ok(DataTypeMetadata {
+                record_id: OntologyTypeRecordId::from(data_type.id().clone()),
+                classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
+                temporal_versioning,
+                provenance: OntologyProvenanceMetadata {
+                    edition: OntologyEditionProvenanceMetadata {
+                        created_by_id: EditionCreatedById::new(actor_id),
+                        archived_by_id: None,
+                    },
+                },
+            })
         }
     }
 
@@ -468,7 +448,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.archive_ontology_type(id, RecordArchivedById::new(actor_id))
+        self.archive_ontology_type(id, EditionArchivedById::new(actor_id))
             .await
     }
 
@@ -479,7 +459,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(id, RecordCreatedById::new(actor_id))
+        self.unarchive_ontology_type(id, EditionCreatedById::new(actor_id))
             .await
     }
 }

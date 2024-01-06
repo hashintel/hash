@@ -102,6 +102,21 @@ describe("Property type CRU", () => {
       {
         ownedById: testOrg.accountGroupId as OwnedById,
         schema: propertyTypeSchema,
+        relationships: [
+          {
+            relation: "setting",
+            subject: {
+              kind: "setting",
+              subjectId: "updateFromWeb",
+            },
+          },
+          {
+            relation: "viewer",
+            subject: {
+              kind: "public",
+            },
+          },
+        ],
       },
     );
   });
@@ -125,7 +140,7 @@ describe("Property type CRU", () => {
   it("can update a property type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdPropertyType.metadata) &&
-        createdPropertyType.metadata.custom.provenance.recordCreatedById,
+        createdPropertyType.metadata.provenance.edition.createdById,
     ).toBe(testUser.accountId);
 
     const authentication = { actorId: testUser2.accountId };
@@ -139,16 +154,25 @@ describe("Property type CRU", () => {
           ...propertyTypeSchema,
           title: updatedTitle,
         },
+        relationships: [
+          {
+            relation: "setting",
+            subject: {
+              kind: "setting",
+              subjectId: "updateFromWeb",
+            },
+          },
+        ],
       },
     ).catch((err) => Promise.reject(err.data));
 
     expect(
       isOwnedOntologyElementMetadata(updatedPropertyType.metadata) &&
-        updatedPropertyType.metadata.custom.provenance.recordCreatedById,
+        updatedPropertyType.metadata.provenance.edition.createdById,
     ).toBe(testUser2.accountId);
   });
 
-  it("can load an external type on demand", async () => {
+  it.skip("can load an external type on demand", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const propertyTypeId =

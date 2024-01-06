@@ -11,7 +11,7 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_types::{provenance::OwnedById, web::WebId};
+use graph_types::owned_by_id::OwnedById;
 
 use crate::snapshot::{
     web::{WebBatch, WebRow},
@@ -25,7 +25,7 @@ use crate::snapshot::{
 #[derive(Debug, Clone)]
 pub struct WebSender {
     webs: Sender<WebRow>,
-    relations: Sender<(WebId, WebRelationAndSubject)>,
+    relations: Sender<(OwnedById, WebRelationAndSubject)>,
 }
 
 impl Sink<Web> for WebSender {

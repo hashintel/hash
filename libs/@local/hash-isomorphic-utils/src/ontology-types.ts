@@ -1,6 +1,13 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
+import { EntityTypeReference } from "@blockprotocol/type-system/dist/cjs";
+import { EntityType } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 import { BaseUrl } from "@local/hash-subgraph";
+import {
+  componentsFromVersionedUrl,
+  versionedUrlFromComponents,
+} from "@local/hash-subgraph/type-system-patch";
 
 import { frontendUrl } from "./environment";
 
@@ -80,3 +87,44 @@ export const generateTypeId = ({
     webShortname,
   })}v/1` as VersionedUrl;
 };
+
+export const generateLinkMapWithConsistentSelfReferences = (
+  { links }: Pick<EntityType, "links">,
+  currentEntityTypeId: VersionedUrl,
+) =>
+  typedEntries(links ?? {}).reduce<NonNullable<EntityType["links"]>>(
+    (accumulator, [linkTypeId, linkSchema]) => {
+      const schemaWithConsistentSelfReferences = {
+        ...linkSchema,
+        items:
+          /**
+           * @todo remove array check when it's no longer possible for  the value of
+           * `oneOf` to be `{}`
+           *
+           * @see https://linear.app/hash/issue/BP-74/omit-emtpy-oneof-and-allof-in-types
+           */
+          "oneOf" in linkSchema.items && Array.isArray(linkSchema.items.oneOf)
+            ? {
+                oneOf: linkSchema.items.oneOf.map((item) => {
+                  const isSelfReference = item.$ref === currentEntityTypeId;
+                  if (isSelfReference) {
+                    const { baseUrl, version: currentVersion } =
+                      componentsFromVersionedUrl(currentEntityTypeId);
+                    return {
+                      $ref: versionedUrlFromComponents(
+                        baseUrl,
+                        currentVersion + 1,
+                      ),
+                    };
+                  }
+                  return item;
+                }) as [EntityTypeReference, ...EntityTypeReference[]],
+              }
+            : {},
+      };
+
+      accumulator[linkTypeId] = schemaWithConsistentSelfReferences;
+      return accumulator;
+    },
+    {},
+  );

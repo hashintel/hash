@@ -7,6 +7,7 @@ export const createEntityMutation = gql`
     $ownedById: OwnedById
     $properties: EntityPropertiesObject!
     $linkData: LinkData
+    $draft: Boolean
   ) {
     # This is a scalar, which has no selection.
     createEntity(
@@ -14,6 +15,7 @@ export const createEntityMutation = gql`
       ownedById: $ownedById
       properties: $properties
       linkData: $linkData
+      draft: $draft
     )
   }
 `;
@@ -73,6 +75,7 @@ export const updateEntityMutation = gql`
     $leftToRightOrder: Int
     $rightToLeftOrder: Int
     $entityTypeId: VersionedUrl
+    $draft: Boolean
   ) {
     # This is a scalar, which has no selection.
     updateEntity(
@@ -81,6 +84,7 @@ export const updateEntityMutation = gql`
       leftToRightOrder: $leftToRightOrder
       rightToLeftOrder: $rightToLeftOrder
       entityTypeId: $entityTypeId
+      draft: $draft
     )
   }
 `;

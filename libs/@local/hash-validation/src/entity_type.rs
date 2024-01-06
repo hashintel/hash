@@ -43,8 +43,6 @@ pub enum EntityValidationError {
     InvalidLinkTypeId { link_type: VersionedUrl },
     #[error("The link target `{target_type}` is not allowed")]
     InvalidLinkTargetId { target_type: VersionedUrl },
-    #[error("Linking to a draft is only allowed for draft entities")]
-    LinksToDraft { id: EntityId },
 }
 
 impl<P> Schema<HashMap<BaseUrl, JsonValue>, P> for EntityType
@@ -114,14 +112,10 @@ where
                 // TODO: The link type should be a const but the type system crate does not allow
                 //       to make this a `const` variable.
                 //   see https://linear.app/hash/issue/BP-57
-                &VersionedUrl {
-                    base_url: BaseUrl::new(
-                        "https://blockprotocol.org/@blockprotocol/types/entity-type/link/"
-                            .to_owned(),
-                    )
-                    .expect("Not a valid URL"),
-                    version: 1,
-                },
+                &BaseUrl::new(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/link/".to_owned(),
+                )
+                .expect("Not a valid URL"),
             )
             .await
             .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
@@ -196,13 +190,13 @@ where
     async fn validate_value<'a>(
         &'a self,
         link_data: &'a LinkData,
-        profile: ValidationProfile,
+        _: ValidationProfile,
         provider: &'a P,
     ) -> Result<(), Report<EntityValidationError>> {
         let mut status: Result<(), Report<EntityValidationError>> = Ok(());
 
         let left_entity = provider
-            .provide_entity(link_data.left_entity_id)
+            .provide_entity(link_data.left_entity_id, true)
             .await
             .change_context_lazy(|| EntityValidationError::EntityRetrieval {
                 id: link_data.left_entity_id,
@@ -211,7 +205,7 @@ where
             .ok();
 
         let right_entity = provider
-            .provide_entity(link_data.right_entity_id)
+            .provide_entity(link_data.right_entity_id, true)
             .await
             .change_context_lazy(|| EntityValidationError::EntityRetrieval {
                 id: link_data.right_entity_id,
@@ -219,34 +213,16 @@ where
             .map_err(|error| extend_report!(status, error))
             .ok();
 
-        let right_entity_type_id = right_entity.as_ref().map(|entity| {
-            if profile == ValidationProfile::Full && entity.borrow().metadata.draft() {
-                extend_report!(
-                    status,
-                    EntityValidationError::LinksToDraft {
-                        id: entity.borrow().metadata.record_id().entity_id
-                    }
-                );
-            }
-
-            entity.borrow().metadata.entity_type_id()
-        });
+        let right_entity_type_id = right_entity
+            .as_ref()
+            .map(|entity| &entity.borrow().metadata.entity_type_id);
 
         if let Some(left_entity) = left_entity {
-            if profile == ValidationProfile::Full && left_entity.borrow().metadata.draft() {
-                extend_report!(
-                    status,
-                    EntityValidationError::LinksToDraft {
-                        id: left_entity.borrow().metadata.record_id().entity_id
-                    }
-                );
-            }
-
             let left_entity_type = provider
-                .provide_type(left_entity.borrow().metadata.entity_type_id())
+                .provide_type(&left_entity.borrow().metadata.entity_type_id)
                 .await
                 .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
-                    id: left_entity.borrow().metadata.entity_type_id().clone(),
+                    id: left_entity.borrow().metadata.entity_type_id.clone(),
                 })
                 .map_err(|error| extend_report!(status, error))
                 .ok();
@@ -256,14 +232,17 @@ where
                 if maybe_allowed_targets.is_none() {
                     // No exact match found, so we look up parent types
                     for (link_type, allowed_targets) in left_entity_type.borrow().links() {
-                        if provider
-                            .is_parent_of(self.id(), link_type)
-                            .await
-                            .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
-                                id: self.id().clone(),
-                            })
-                            .map_err(|error| extend_report!(status, error))
-                            .unwrap_or(false)
+                        if self.id().base_url == link_type.base_url
+                            || provider
+                                .is_parent_of(self.id(), &link_type.base_url)
+                                .await
+                                .change_context_lazy(|| {
+                                    EntityValidationError::EntityTypeRetrieval {
+                                        id: self.id().clone(),
+                                    }
+                                })
+                                .map_err(|error| extend_report!(status, error))
+                                .unwrap_or(false)
                         {
                             maybe_allowed_targets = Some(allowed_targets);
                             break;
@@ -278,7 +257,7 @@ where
                         let mut found_match = false;
                         for allowed_target in allowed_targets.one_of() {
                             // We test exact matches first to avoid looking up parent types
-                            if allowed_target.url() == right_entity_type_id {
+                            if allowed_target.url().base_url == right_entity_type_id.base_url {
                                 found_match = true;
                                 break;
                             }
@@ -287,7 +266,10 @@ where
                             // No exact match found, so we look up parent types
                             for allowed_target in allowed_targets.one_of() {
                                 if provider
-                                    .is_parent_of(right_entity_type_id, allowed_target.url())
+                                    .is_parent_of(
+                                        right_entity_type_id,
+                                        &allowed_target.url().base_url,
+                                    )
                                     .await
                                     .change_context_lazy(|| {
                                         EntityValidationError::EntityTypeRetrieval {

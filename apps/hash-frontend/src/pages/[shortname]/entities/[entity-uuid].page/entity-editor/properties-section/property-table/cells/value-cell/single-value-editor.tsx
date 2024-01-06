@@ -1,15 +1,17 @@
 import { Chip } from "@hashintel/design-system";
+import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
+import { Box } from "@mui/material";
 import produce from "immer";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { isValueEmpty } from "../../../is-value-empty";
-import { editorSpecs } from "./editor-specs";
+import { getEditorSpecs } from "./editor-specs";
 import { EditorTypePicker } from "./editor-type-picker";
 import { BooleanInput } from "./inputs/boolean-input";
 import { JsonInput } from "./inputs/json-input";
 import { NumberOrTextInput } from "./inputs/number-or-text-input";
-import { EditorType, ValueCellEditorComponent } from "./types";
+import { EditorType, ValueCell, ValueCellEditorComponent } from "./types";
 import {
   guessEditorTypeFromExpectedType,
   guessEditorTypeFromValue,
@@ -18,6 +20,8 @@ import {
 export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   const { value: cell, onChange, onFinishedEditing } = props;
   const { expectedTypes, value } = cell.data.propertyRow;
+
+  const textInputFormRef = useRef<HTMLFormElement>(null);
 
   const [editorType, setEditorType] = useState<EditorType | null>(() => {
     // if there are multiple expected types
@@ -49,13 +53,18 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     return guessEditorTypeFromValue(value, expectedTypes);
   });
 
+  const latestValueCellRef = useRef<ValueCell>(cell);
+  useEffect(() => {
+    latestValueCellRef.current = cell;
+  });
+
   if (!editorType) {
     return (
       <GridEditorWrapper>
         <EditorTypePicker
           expectedTypes={expectedTypes}
           onTypeChange={(type) => {
-            const editorSpec = editorSpecs[type];
+            const editorSpec = getEditorSpecs(type);
 
             // if no edit mode supported for selected type, set the default value and close the editor
             if (editorSpec.arrayEditException === "no-edit-mode") {
@@ -111,8 +120,8 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   }
 
   if (editorType === "null" || editorType === "emptyList") {
-    const spec = editorSpecs[editorType];
-    const title = spec.valueToString(value);
+    const spec = getEditorSpecs(editorType);
+    const title = editorType === "null" ? "Null" : "Empty List";
 
     const shouldClearOnClick = value !== undefined;
 
@@ -135,19 +144,62 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     );
   }
 
+  const expectedType = expectedTypes.find((type) => type.type === editorType);
+  if (!expectedType) {
+    throw new Error(
+      `Could not find guessed editor type ${editorType} among expected types ${expectedTypes
+        .map((opt) => opt.$id)
+        .join(", ")}`,
+    );
+  }
+
+  const validationHandler = () => {
+    if (!textInputFormRef.current) {
+      return;
+    }
+    textInputFormRef.current.requestSubmit();
+    if (textInputFormRef.current.checkValidity()) {
+      document.body.classList.remove(GRID_CLICK_IGNORE_CLASS);
+      onFinishedEditing(latestValueCellRef.current);
+      document.removeEventListener("click", validationHandler);
+    }
+  };
+
+  const ensureFormValidation = () => {
+    if (document.body.classList.contains(GRID_CLICK_IGNORE_CLASS)) {
+      return;
+    }
+    document.body.classList.add(GRID_CLICK_IGNORE_CLASS);
+    document.addEventListener("click", validationHandler);
+  };
+
   return (
     <GridEditorWrapper sx={{ px: 2 }}>
-      <NumberOrTextInput
-        isNumber={editorType === "number"}
-        value={(value as number | string | undefined) ?? ""}
-        onChange={(newValue) => {
-          const newCell = produce(cell, (draftCell) => {
-            draftCell.data.propertyRow.value = newValue;
-          });
-
-          onChange(newCell);
+      <Box
+        component="form"
+        onSubmit={(event) => {
+          event.preventDefault();
         }}
-      />
+        ref={textInputFormRef}
+      >
+        <NumberOrTextInput
+          expectedType={expectedType}
+          isNumber={editorType === "number"}
+          value={(value as number | string | undefined) ?? ""}
+          onChange={(newValue) => {
+            ensureFormValidation();
+
+            const newCell = produce(cell, (draftCell) => {
+              draftCell.data.propertyRow.value = newValue;
+            });
+
+            onChange(newCell);
+          }}
+          onEnterPressed={() => {
+            validationHandler();
+          }}
+        />
+      </Box>
     </GridEditorWrapper>
   );
 };

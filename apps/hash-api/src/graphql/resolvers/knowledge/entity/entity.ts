@@ -1,10 +1,9 @@
 import { Filter, QueryTemporalAxesUnresolved } from "@local/hash-graph-client";
 import {
+  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountGroupId,
   AccountId,
@@ -21,8 +20,8 @@ import {
 
 import { publicUserAccountId } from "../../../../auth/public-user-account-id";
 import {
+  addEntityAdministrator,
   addEntityEditor,
-  addEntityOwner,
   archiveEntity,
   checkEntityPermission,
   createEntityWithLinks,
@@ -30,8 +29,8 @@ import {
   getEntityAuthorizationRelationships,
   getLatestEntityById,
   modifyEntityAuthorizationRelationships,
+  removeEntityAdministrator,
   removeEntityEditor,
-  removeEntityOwner,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
 import { bpMultiFilterToGraphFilter } from "../../../../graph/knowledge/primitive/entity/query";
@@ -40,8 +39,6 @@ import {
   isEntityLinkEntity,
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
-import { modifyWebAuthorizationRelationships } from "../../../../graph/ontology/primitive/util";
-import { systemAccountId } from "../../../../graph/system-account";
 import {
   AccountGroupAuthorizationSubjectRelation,
   AuthorizationSubjectKind,
@@ -76,7 +73,7 @@ export const createEntityResolver: ResolverFn<
   MutationCreateEntityArgs
 > = async (
   _,
-  { ownedById, properties, entityTypeId, linkedEntities, linkData },
+  { ownedById, properties, entityTypeId, linkedEntities, linkData, draft },
   { dataSources, authentication, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
@@ -97,9 +94,11 @@ export const createEntityResolver: ResolverFn<
     const [leftEntity, rightEntity] = await Promise.all([
       getLatestEntityById(context, authentication, {
         entityId: leftEntityId,
+        includeDrafts: draft ?? false,
       }),
       getLatestEntityById(context, authentication, {
         entityId: rightEntityId,
+        includeDrafts: draft ?? false,
       }),
     ]);
 
@@ -111,6 +110,8 @@ export const createEntityResolver: ResolverFn<
       properties,
       linkEntityTypeId: entityTypeId,
       ownedById: ownedById ?? (user.accountId as OwnedById),
+      relationships: createDefaultAuthorizationRelationships(authentication),
+      draft: draft ?? undefined,
     });
   } else {
     entity = await createEntityWithLinks(context, authentication, {
@@ -118,6 +119,8 @@ export const createEntityResolver: ResolverFn<
       entityTypeId,
       properties,
       linkedEntities: linkedEntities ?? undefined,
+      relationships: createDefaultAuthorizationRelationships(authentication),
+      draft: draft ?? undefined,
     });
   }
 
@@ -139,6 +142,7 @@ export const queryEntitiesResolver: Extract<
     isOfType,
     hasLeftEntity,
     hasRightEntity,
+    includeDrafts,
   },
   { logger, dataSources, authentication },
   info,
@@ -174,6 +178,7 @@ export const queryEntitiesResolver: Extract<
         hasRightEntity,
       },
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: includeDrafts ?? false,
     },
   });
 
@@ -219,6 +224,7 @@ export const getEntityResolver: ResolverFn<
     isOfType,
     hasLeftEntity,
     hasRightEntity,
+    includeDrafts,
   },
   { dataSources, authentication },
   info,
@@ -269,6 +275,7 @@ export const getEntityResolver: ResolverFn<
         hasRightEntity,
       },
       temporalAxes,
+      includeDrafts: includeDrafts ?? false,
     },
   });
 
@@ -287,6 +294,7 @@ export const updateEntityResolver: ResolverFn<
 > = async (
   _,
   {
+    draft,
     entityId,
     updatedProperties,
     leftToRightOrder,
@@ -310,52 +318,10 @@ export const updateEntityResolver: ResolverFn<
 
   const entity = await getLatestEntityById(context, authentication, {
     entityId,
+    includeDrafts: true,
   });
 
   let updatedEntity: Entity;
-
-  const { shortname, preferredName } = simplifyProperties(
-    updatedProperties as UserProperties,
-  );
-
-  if (isIncompleteUser && shortname && preferredName) {
-    // Now that the user has completed signup, we can transfer the ownership of the web
-    // allowing them to create entities and types.
-    await modifyWebAuthorizationRelationships(
-      context,
-      { actorId: systemAccountId },
-      [
-        {
-          operation: "delete",
-          relationship: {
-            subject: {
-              kind: "account",
-              subjectId: systemAccountId,
-            },
-            resource: {
-              kind: "web",
-              resourceId: user.accountId as OwnedById,
-            },
-            relation: "owner",
-          },
-        },
-        {
-          operation: "create",
-          relationship: {
-            subject: {
-              kind: "account",
-              subjectId: user.accountId,
-            },
-            resource: {
-              kind: "web",
-              resourceId: user.accountId as OwnedById,
-            },
-            relation: "owner",
-          },
-        },
-      ],
-    );
-  }
 
   if (isEntityLinkEntity(entity)) {
     updatedEntity = await updateLinkEntity(context, authentication, {
@@ -363,6 +329,7 @@ export const updateEntityResolver: ResolverFn<
       properties: updatedProperties,
       leftToRightOrder: leftToRightOrder ?? undefined,
       rightToLeftOrder: rightToLeftOrder ?? undefined,
+      draft: draft ?? undefined,
     });
   } else {
     if (leftToRightOrder || rightToLeftOrder) {
@@ -375,6 +342,7 @@ export const updateEntityResolver: ResolverFn<
       entity,
       entityTypeId: entityTypeId ?? undefined,
       properties: updatedProperties,
+      draft: draft ?? undefined,
     });
   }
 
@@ -389,6 +357,7 @@ export const archiveEntityResolver: ResolverFn<
 > = async (_, { entityId }, { dataSources: context, authentication }) => {
   const entity = await getLatestEntityById(context, authentication, {
     entityId,
+    includeDrafts: true,
   });
 
   await archiveEntity(context, authentication, { entity });
@@ -404,7 +373,10 @@ export const addEntityOwnerResolver: ResolverFn<
 > = async (_, { entityId, owner }, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  await addEntityOwner(context, authentication, { entityId, owner });
+  await addEntityAdministrator(context, authentication, {
+    entityId,
+    administrator: owner,
+  });
 
   return true;
 };
@@ -417,7 +389,10 @@ export const removeEntityOwnerResolver: ResolverFn<
 > = async (_, { entityId, owner }, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  await removeEntityOwner(context, authentication, { entityId, owner });
+  await removeEntityAdministrator(context, authentication, {
+    entityId,
+    administrator: owner,
+  });
 
   return true;
 };
@@ -546,23 +521,31 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
     { entityId },
   );
 
-  // TODO: Align definitions with the ones in the API
-  return relationships.map(({ resource, relation, subject }) => ({
-    objectEntityId: resource.resourceId,
-    relation:
-      relation === "editor"
-        ? EntityAuthorizationRelation.Editor
-        : relation === "owner"
-          ? EntityAuthorizationRelation.Owner
-          : EntityAuthorizationRelation.Viewer,
-    subject:
-      subject.kind === "accountGroup"
-        ? {
-            accountGroupId: subject.subjectId,
-            relation: AccountGroupAuthorizationSubjectRelation.Member,
-          }
-        : subject.kind === "account"
-          ? { accountId: subject.subjectId }
-          : { public: true },
-  }));
+  /**
+   * @todo align definitions with the ones in the API
+   *
+   * @see https://linear.app/hash/issue/H-1115/use-permission-types-from-graph-in-graphql
+   */
+  return relationships
+    .filter(({ subject }) =>
+      ["account", "accountGroup", "public"].includes(subject.kind),
+    )
+    .map(({ resource, relation, subject }) => ({
+      objectEntityId: resource.resourceId,
+      relation:
+        relation === "editor"
+          ? EntityAuthorizationRelation.Editor
+          : relation === "administrator"
+            ? EntityAuthorizationRelation.Owner
+            : EntityAuthorizationRelation.Viewer,
+      subject:
+        subject.kind === "accountGroup"
+          ? {
+              accountGroupId: subject.subjectId,
+              relation: AccountGroupAuthorizationSubjectRelation.Member,
+            }
+          : subject.kind === "account"
+            ? { accountId: subject.subjectId }
+            : { public: true },
+    }));
 };

@@ -36,6 +36,7 @@ export const useUserOrOrg = (
     includePermissions?: boolean;
     graphResolveDepths?: Partial<GraphResolveDepths>;
     temporalAxes?: QueryTemporalAxesUnresolved;
+    includeDrafts?: boolean;
   } & (
     | { shortname?: string }
     | { accountOrAccountGroupId?: AccountId | AccountGroupId }
@@ -95,6 +96,7 @@ export const useUserOrOrg = (
         temporalAxes: params.temporalAxes
           ? params.temporalAxes
           : currentTimeInstantTemporalAxes,
+        includeDrafts: params.includeDrafts ?? false,
       },
     },
     skip: !("accountOrAccountGroupId" in params) && !("shortname" in params),

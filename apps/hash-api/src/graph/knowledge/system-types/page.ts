@@ -1,12 +1,12 @@
+import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
-import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import {
+  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  blockProtocolPropertyTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
@@ -44,7 +44,6 @@ import {
 import { ApolloError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
-import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import {
   archiveEntity,
@@ -59,12 +58,7 @@ import {
   createLinkEntity,
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
-import {
-  Block,
-  createBlock,
-  getBlockComments,
-  getBlockFromEntity,
-} from "./block";
+import { Block, getBlockComments, getBlockFromEntity } from "./block";
 import { addBlockToBlockCollection } from "./block-collection";
 import { Comment } from "./comment";
 import { getUserById, User } from "./user";
@@ -128,7 +122,7 @@ export const getPageById: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createPage: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
+  Pick<CreateEntityParams, "ownedById"> & {
     title: string;
     summary?: string;
     prevFractionalIndex?: string;
@@ -159,30 +153,12 @@ export const createPage: ImpureGraphFunction<
       type === "document"
         ? systemEntityTypes.document.entityTypeId
         : systemEntityTypes.canvas.entityTypeId,
+    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
   const page = getPageFromEntity({ entity });
 
-  const initialBlocks =
-    params.initialBlocks && params.initialBlocks.length > 0
-      ? params.initialBlocks
-      : [
-          await createBlock(ctx, authentication, {
-            ownedById,
-            componentId: paragraphBlockComponentId,
-            blockData: await createEntity(ctx, authentication, {
-              ownedById,
-              properties: {
-                [extractBaseUrl(
-                  blockProtocolPropertyTypes.textualContent.propertyTypeId,
-                )]: [],
-              },
-              entityTypeId: systemEntityTypes.text.entityTypeId,
-            }),
-          }),
-        ];
-
-  for (const block of initialBlocks) {
+  for (const block of params.initialBlocks ?? []) {
     await addBlockToBlockCollection(ctx, authentication, {
       blockCollectionEntityId: page.entity.metadata.recordId.entityId,
       block,
@@ -272,11 +248,12 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
   {
     ownedById: OwnedById;
     includeArchived?: boolean;
+    includeDrafts?: boolean;
   },
   Promise<Page[]>
 > = async (ctx, authentication, params) => {
   const { graphApi } = ctx;
-  const { ownedById, includeArchived = false } = params;
+  const { ownedById, includeArchived = false, includeDrafts = false } = params;
   const pageEntities = await graphApi
     .getEntitiesByQuery(authentication.actorId, {
       filter: {
@@ -289,6 +266,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
@@ -440,6 +418,7 @@ export const setPageParentPage: ImpureGraphFunction<
       leftEntityId: page.entity.metadata.recordId.entityId,
       rightEntityId: parentPage.entity.metadata.recordId.entityId,
       ownedById: authentication.actorId as OwnedById,
+      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   }
 
@@ -525,9 +504,11 @@ export const getPageComments: ImpureGraphFunction<
  * @param params.page - the page
  */
 export const getPageAuthor: ImpureGraphFunction<
-  { pageEntityId: EntityId },
+  { pageEntityId: EntityId; includeDrafts?: boolean },
   Promise<User>
-> = async (context, authentication, { pageEntityId }) => {
+> = async (context, authentication, params) => {
+  const { pageEntityId, includeDrafts = false } = params;
+
   const pageEntityRevisionsSubgraph = await getEntities(
     context,
     authentication,
@@ -551,6 +532,7 @@ export const getPageAuthor: ImpureGraphFunction<
             interval: { start: { kind: "unbounded" }, end: null },
           },
         },
+        includeDrafts,
       },
     },
   );
@@ -561,7 +543,7 @@ export const getPageAuthor: ImpureGraphFunction<
   );
 
   const firstRevisionCreatorId =
-    firstRevision.metadata.provenance.recordCreatedById;
+    firstRevision.metadata.provenance.edition.createdById;
 
   const user = await getUserById(context, authentication, {
     entityId: entityIdFromOwnedByIdAndEntityUuid(

@@ -1,4 +1,6 @@
+import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import {
+  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
@@ -18,7 +20,6 @@ import {
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
-import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import {
   archiveEntity,
@@ -87,7 +88,7 @@ export const getBlockById: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createBlock: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
+  Pick<CreateEntityParams, "ownedById"> & {
     componentId: string;
     blockData: Entity;
   },
@@ -103,6 +104,7 @@ export const createBlock: ImpureGraphFunction<
     ownedById,
     properties,
     entityTypeId: systemEntityTypes.block.entityTypeId,
+    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
   await createLinkEntity(ctx, authentication, {
@@ -110,6 +112,7 @@ export const createBlock: ImpureGraphFunction<
     leftEntityId: entity.metadata.recordId.entityId,
     rightEntityId: blockData.metadata.recordId.entityId,
     ownedById,
+    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
   return getBlockFromEntity({ entity });
@@ -208,6 +211,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
     ownedById: extractOwnedByIdFromEntityId(
       block.entity.metadata.recordId.entityId,
     ),
+    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 };
 
@@ -241,9 +245,11 @@ export const getBlockComments: ImpureGraphFunction<
  * @param params.block - the block entity
  */
 export const getBlockCollectionByBlock: ImpureGraphFunction<
-  { block: Block },
+  { block: Block; includeDrafts?: boolean },
   Promise<Entity | null>
-> = async (context, authentication, { block }) => {
+> = async (context, authentication, params) => {
+  const { block, includeDrafts = false } = params;
+
   const blockEntityUuid = extractEntityUuidFromEntityId(
     block.entity.metadata.recordId.entityId,
   );
@@ -267,6 +273,7 @@ export const getBlockCollectionByBlock: ImpureGraphFunction<
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     },
   }).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity));
 

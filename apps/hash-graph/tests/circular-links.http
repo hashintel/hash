@@ -30,6 +30,35 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   });
 %}
 
+### load entity link type
+POST http://127.0.0.1:4000/entity-types/load
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+    "type": "object",
+    "title": "Link",
+    "properties": {}
+  },
+  "relationships": [{
+    "relation": "viewer",
+    "subject": {
+      "kind": "public"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
 ### Insert link entity type
 POST http://127.0.0.1:4000/entity-types
 Content-Type: application/json
@@ -46,7 +75,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "title": "Object",
     "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1" }],
     "properties": {}
-  }
+  },
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "updateFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -104,7 +140,14 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "ordered": false
       }
     }
-  }
+  },
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "updateFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -145,9 +188,16 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "ownedById": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "entityUuid": "0000000A-0001-0000-0000-000000000000",
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -167,9 +217,16 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "ownedById": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "entityUuid": "0000000B-0001-0000-0000-000000000000",
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -189,9 +246,16 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "ownedById": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "entityUuid": "0000000C-0001-0000-0000-000000000000",
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -211,9 +275,16 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "ownedById": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "entityUuid": "0000000D-0001-0000-0000-000000000000",
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -234,12 +305,19 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000AB-0001-0000-0000-000000000000",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{entity_a}}",
     "rightEntityId": "{{entity_b}}"
   },
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -259,12 +337,19 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000BC-0001-0000-0000-000000000000",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{entity_b}}",
     "rightEntityId": "{{entity_c}}"
   },
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -284,12 +369,19 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000CD-0001-0000-0000-000000000000",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{entity_c}}",
     "rightEntityId": "{{entity_d}}"
   },
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -309,12 +401,19 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000DA-0001-0000-0000-000000000000",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{entity_d}}",
     "rightEntityId": "{{entity_a}}"
   },
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -335,12 +434,19 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000BA-0001-0000-0000-000000000000",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{entity_b}}",
     "rightEntityId": "{{entity_a}}"
   },
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -362,12 +468,19 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000CB-0001-0000-0000-000000000000",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{entity_c}}",
     "rightEntityId": "{{entity_b}}"
   },
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -389,12 +502,19 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000DC-0001-0000-0000-000000000000",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{entity_d}}",
     "rightEntityId": "{{entity_c}}"
   },
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%
@@ -416,12 +536,19 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/link/v/1",
   "entityUuid": "000000AD-0001-0000-0000-000000000000",
-  "owner": "{{account_id}}",
+  "administrator": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{entity_a}}",
     "rightEntityId": "{{entity_d}}"
   },
-  "draft": false
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "administratorFromWeb"
+    }
+  }]
 }
 
 > {%

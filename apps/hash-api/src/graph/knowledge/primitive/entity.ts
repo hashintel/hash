@@ -24,6 +24,7 @@ import {
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
+  EntityRelationAndSubject,
   EntityRootType,
   EntityUuid,
   extractEntityUuidFromEntityId,
@@ -62,8 +63,8 @@ export type CreateEntityParams = {
   entityTypeId: VersionedUrl;
   outgoingLinks?: Omit<CreateLinkEntityParams, "leftEntityId">[];
   entityUuid?: EntityUuid;
-  owner?: AccountId | AccountGroupId;
   draft?: boolean;
+  relationships: EntityRelationAndSubject[];
 };
 
 /** @todo: potentially directly export this from the subgraph package */
@@ -99,8 +100,8 @@ export const createEntity: ImpureGraphFunction<
     entityTypeId,
     properties,
     entityUuid: overrideEntityUuid,
-    owner: params.owner ?? ownedById,
     draft,
+    relationships: params.relationships,
   });
 
   const entity = { properties, metadata: metadata as EntityMetadata };
@@ -166,10 +167,11 @@ export const getEntities: ImpureGraphFunction<
 export const getLatestEntityById: ImpureGraphFunction<
   {
     entityId: EntityId;
+    includeDrafts?: boolean;
   },
   Promise<Entity>
 > = async (context, authentication, params) => {
-  const { entityId } = params;
+  const { entityId, includeDrafts = false } = params;
 
   const [ownedById, entityUuid] = splitEntityId(entityId);
 
@@ -191,6 +193,7 @@ export const getLatestEntityById: ImpureGraphFunction<
         },
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
       },
     },
   ).then(getRoots);
@@ -222,10 +225,12 @@ export const getOrCreateEntity: ImpureGraphFunction<
   {
     ownedById: OwnedById;
     entityDefinition: Omit<EntityDefinition, "linkedEntities">;
+    relationships: EntityRelationAndSubject[];
+    draft?: boolean;
   },
   Promise<Entity>
 > = async (context, authentication, params) => {
-  const { entityDefinition, ownedById } = params;
+  const { entityDefinition, ownedById, relationships, draft } = params;
   const { entityProperties, existingEntityId } = entityDefinition;
 
   let entity;
@@ -255,6 +260,8 @@ export const getOrCreateEntity: ImpureGraphFunction<
       ownedById,
       entityTypeId,
       properties: entityProperties,
+      relationships,
+      draft,
     });
   } else {
     throw new Error(
@@ -280,10 +287,19 @@ export const createEntityWithLinks: ImpureGraphFunction<
     entityTypeId: VersionedUrl;
     properties: EntityPropertiesObject;
     linkedEntities?: LinkedEntityDefinition[];
+    relationships: EntityRelationAndSubject[];
+    draft?: boolean;
   },
   Promise<Entity>
 > = async (context, authentication, params) => {
-  const { ownedById, entityTypeId, properties, linkedEntities } = params;
+  const {
+    ownedById,
+    entityTypeId,
+    properties,
+    linkedEntities,
+    relationships,
+    draft,
+  } = params;
 
   const entitiesInTree = linkedTreeFlatten<
     EntityDefinition,
@@ -317,6 +333,8 @@ export const createEntityWithLinks: ImpureGraphFunction<
       entity: await getOrCreateEntity(context, authentication, {
         ownedById,
         entityDefinition: definition,
+        relationships,
+        draft,
       }),
     })),
   );
@@ -347,6 +365,8 @@ export const createEntityWithLinks: ImpureGraphFunction<
           rightEntityId: entity.metadata.recordId.entityId,
           leftToRightOrder: link.meta.index ?? undefined,
           ownedById,
+          relationships,
+          draft,
         });
       }
     }),
@@ -367,6 +387,7 @@ export const updateEntity: ImpureGraphFunction<
     entity: Entity;
     entityTypeId?: VersionedUrl;
     properties: EntityPropertiesObject;
+    draft?: boolean;
   },
   Promise<Entity>
 > = async (context, authentication, params) => {
@@ -395,7 +416,10 @@ export const updateEntity: ImpureGraphFunction<
      * */
     entityTypeId: entityTypeId ?? entity.metadata.entityTypeId,
     archived: entity.metadata.archived,
-    draft: entity.metadata.draft,
+    draft:
+      typeof params.draft === "undefined"
+        ? entity.metadata.draft
+        : params.draft,
     properties,
   });
 
@@ -506,10 +530,11 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
   {
     entityId: EntityId;
     linkEntityTypeId?: VersionedUrl;
+    includeDrafts?: boolean;
   },
   Promise<LinkEntity[]>
 > = async (context, authentication, params) => {
-  const { entityId } = params;
+  const { entityId, includeDrafts = false } = params;
   const filter: Filter = {
     all: [
       {
@@ -553,6 +578,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
         filter,
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
       },
     },
   );
@@ -583,10 +609,17 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     entityId: EntityId;
     linkEntityTypeVersionedUrl?: VersionedUrl;
     rightEntityId?: EntityId;
+    includeDrafts?: boolean;
   },
   Promise<LinkEntity[]>
 > = async (context, authentication, params) => {
-  const { entityId, linkEntityTypeVersionedUrl, rightEntityId } = params;
+  const {
+    entityId,
+    linkEntityTypeVersionedUrl,
+    rightEntityId,
+    includeDrafts = false,
+  } = params;
+
   const filter: Filter = {
     all: [
       {
@@ -651,6 +684,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
         filter,
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
       },
     },
   );
@@ -676,10 +710,14 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
  * @param params.graphResolveDepths - the custom resolve depths of the subgraph
  */
 export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
-  { entity: Entity; graphResolveDepths: Partial<GraphResolveDepths> },
+  {
+    entity: Entity;
+    graphResolveDepths: Partial<GraphResolveDepths>;
+    includeDrafts?: boolean;
+  },
   Promise<Subgraph<EntityRootType>>
 > = async (context, authentication, params) => {
-  const { entity, graphResolveDepths } = params;
+  const { entity, graphResolveDepths, includeDrafts = false } = params;
 
   return await getEntities(context, authentication, {
     query: {
@@ -713,6 +751,7 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
         ...graphResolveDepths,
       },
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
     },
   });
 };
@@ -734,18 +773,26 @@ export const modifyEntityAuthorizationRelationships: ImpureGraphFunction<
   );
 };
 
-export const addEntityOwner: ImpureGraphFunction<
-  { entityId: EntityId; owner: AccountId | AccountGroupId },
+export const addEntityAdministrator: ImpureGraphFunction<
+  { entityId: EntityId; administrator: AccountId | AccountGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.addEntityOwner(actorId, params.entityId, params.owner);
+  await graphApi.addEntityAdministrator(
+    actorId,
+    params.entityId,
+    params.administrator,
+  );
 };
 
-export const removeEntityOwner: ImpureGraphFunction<
-  { entityId: EntityId; owner: AccountId | AccountGroupId },
+export const removeEntityAdministrator: ImpureGraphFunction<
+  { entityId: EntityId; administrator: AccountId | AccountGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.removeEntityOwner(actorId, params.entityId, params.owner);
+  await graphApi.removeEntityAdministrator(
+    actorId,
+    params.entityId,
+    params.administrator,
+  );
 };
 
 export const addEntityEditor: ImpureGraphFunction<

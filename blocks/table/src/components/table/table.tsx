@@ -24,20 +24,20 @@ import { RowActions } from "./row-actions";
 import styles from "./table.module.scss";
 
 const localColumnsKey: RootKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/table-local-column/";
+  "https://blockprotocol.org/@hash/types/property-type/table-local-column/";
 const localRowsKey: RootKey =
-  "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/table-local-row/";
+  "https://blockprotocol.org/@hash/types/property-type/table-local-row/";
 const isStripedKey: RootKey =
-  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-rows-are-striped/";
+  "https://blockprotocol.org/@hash/types/property-type/table-rows-are-striped/";
 const hideHeaderRowKey: RootKey =
-  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-header-row-is-hidden/";
+  "https://blockprotocol.org/@hash/types/property-type/table-header-row-is-hidden/";
 const hideRowNumbersKey: RootKey =
-  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-row-numbers-are-hidden/";
+  "https://blockprotocol.org/@hash/types/property-type/table-row-numbers-are-hidden/";
 
 const columnTitleKey: ColumnKey =
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
 const columnIdKey: ColumnKey =
-  "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/";
+  "https://blockprotocol.org/@hash/types/property-type/table-local-column-id/";
 
 interface TableProps {
   blockEntity: BlockEntity;

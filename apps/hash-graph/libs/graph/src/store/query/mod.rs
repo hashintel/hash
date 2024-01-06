@@ -52,9 +52,11 @@ pub fn parse_query_token<'de, T: Deserialize<'de>, E: de::Error>(
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ParameterType {
     Boolean,
-    Number,
+    I32,
+    F64,
     OntologyTypeVersion,
     Text,
+    Vector,
     Uuid,
     BaseUrl,
     VersionedUrl,
@@ -68,9 +70,11 @@ impl fmt::Display for ParameterType {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Boolean => fmt.write_str("boolean"),
-            Self::Number => fmt.write_str("number"),
+            Self::I32 => fmt.write_str("signed 32 bit integral number"),
+            Self::F64 => fmt.write_str("64 bit floating point number"),
             Self::OntologyTypeVersion => fmt.write_str("ontology type version"),
             Self::Text => fmt.write_str("text"),
+            Self::Vector => fmt.write_str("vector"),
             Self::Uuid => fmt.write_str("UUID"),
             Self::BaseUrl => fmt.write_str("base URL"),
             Self::VersionedUrl => fmt.write_str("versioned URL"),
@@ -83,40 +87,13 @@ impl fmt::Display for ParameterType {
 }
 
 pub trait OntologyQueryPath {
-    /// Returns the path identifying the internal ontology id.
-    fn ontology_id() -> Self;
-
     /// Returns the path identifying the [`BaseUrl`].
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
     fn base_url() -> Self;
 
-    /// Returns the path identifying the [`VersionedUrl`].
-    ///
-    /// [`VersionedUrl`]: type_system::url::VersionedUrl
-    fn versioned_url() -> Self;
-
     /// Returns the path identifying the [`OntologyTypeVersion`].
     ///
     /// [`OntologyTypeVersion`]: graph_types::ontology::OntologyTypeVersion
     fn version() -> Self;
-
-    /// Returns the path identifying the transaction time.
-    fn transaction_time() -> Self;
-
-    /// Returns the path identifying the [`RecordCreatedById`].
-    ///
-    /// [`RecordCreatedById`]: graph_types::provenance::RecordCreatedById
-    fn record_created_by_id() -> Self;
-
-    /// Returns the path identifying the [`RecordArchivedById`].
-    ///
-    /// [`RecordArchivedById`]: graph_types::provenance::RecordArchivedById
-    fn record_archived_by_id() -> Self;
-
-    /// Returns the path identifying the schema.
-    fn schema() -> Self;
-
-    /// Returns the path identifying the metadata
-    fn additional_metadata() -> Self;
 }

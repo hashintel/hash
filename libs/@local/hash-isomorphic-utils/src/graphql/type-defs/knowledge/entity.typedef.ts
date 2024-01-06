@@ -98,6 +98,7 @@ export const entityTypedef = gql`
       isOfType: OutgoingEdgeResolveDepthInput!
       hasLeftEntity: EdgeResolveDepthsInput!
       hasRightEntity: EdgeResolveDepthsInput!
+      includeDrafts: Boolean
     ): SubgraphAndPermissions!
 
     structuralQueryEntities(
@@ -124,6 +125,7 @@ export const entityTypedef = gql`
       isOfType: OutgoingEdgeResolveDepthInput!
       hasLeftEntity: EdgeResolveDepthsInput!
       hasRightEntity: EdgeResolveDepthsInput!
+      includeDrafts: Boolean
     ): SubgraphAndPermissions!
 
     isEntityPublic(entityId: EntityId!): Boolean!
@@ -171,6 +173,10 @@ export const entityTypedef = gql`
       The link metadata of the entity (required when creating a link entity).
       """
       linkData: LinkData
+      """
+      Whether the created entity should be a draft
+      """
+      draft: Boolean
     ): Entity!
 
     """
@@ -197,6 +203,10 @@ export const entityTypedef = gql`
       The new type of the updated entity
       """
       entityTypeId: VersionedUrl
+      """
+      Whether the updated entity should be a draft
+      """
+      draft: Boolean
     ): Entity!
 
     """

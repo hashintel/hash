@@ -46,7 +46,7 @@ const isDevelopment = process.env.NODE_ENV !== "production";
 
 if (!isDevelopment && (!env.SENTRY_DSN || !env.SENTRY_AUTH_TOKEN)) {
   throw new Error(
-    "No SENTRY_DSN or SENTRY_AUTH_TOKEN in environment – these must be set for a production build. SENTRY_DSN is relied on at runtime, and they are both needed to build and upload source maps to Sentry.",
+    "Both SENTRY_DSN and SENTRY_AUTH_TOKEN must be set in environment for a production build. SENTRY_DSN is relied on at runtime, and they are both needed to build and upload source maps to Sentry.",
   );
 }
 
@@ -204,8 +204,8 @@ const options = {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: "src/assets/img/icon-256.png",
-          to: path.join(__dirname, "build"),
+          from: "src/assets/img",
+          to: path.join(__dirname, "build", "[name][ext]"),
           force: true,
         },
       ],
@@ -222,7 +222,7 @@ const options = {
       chunks: ["popup"],
       cache: false,
     }),
-    env.SENTRY_AUTH_TOKEN && env.SENTRY_DSN
+    env.SENTRY_AUTH_TOKEN && env.SENTRY_DSN && !isDevelopment
       ? sentryWebpackPlugin({
           authToken: env.SENTRY_AUTH_TOKEN,
           org: "hashintel",

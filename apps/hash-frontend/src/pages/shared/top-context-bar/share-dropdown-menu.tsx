@@ -76,12 +76,17 @@ export const ShareDropdownMenu: FunctionComponent<{ entity: Entity }> = ({
       return "public";
     }
 
-    if (isSharedWithOthers) {
-      return "shared-with-others";
-    }
+    /**
+     * @todo: remove this once the state can be correctly determined
+     *
+     * @see https://linear.app/hash/issue/H-1115/use-permission-types-from-graph-in-graphql
+     */
+    // if (isSharedWithOthers) {
+    //   return "shared-with-others";
+    // }
 
     return "private";
-  }, [authorizationRelationships, isSharedWithOthers]);
+  }, [authorizationRelationships]);
 
   const popupState = usePopupState({
     variant: "popover",

@@ -8,7 +8,7 @@ description = "RPC service definition to fetch external BP types"
 [dependencies]
 type-system = { workspace = true }
 
-serde = { version = "1.0.193", features = ["derive"] }
+serde = { version = "1.0.195", features = ["derive"] }
 time = { workspace = true, features = ["serde", "std"] }
 tracing = "0.1.40"
 

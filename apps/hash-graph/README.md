@@ -86,7 +86,7 @@ As such, when modifying return values related to these types, it's important to 
 Responses containing non-OK statuses are returned according to the `Status` format defined in the [`@local/status`](/libs/@local/status/README.md) package.
 
 The [`status.json`](libs/graph/src/api/rest/json_schemas/status.json) schema is responsible for the definition of this type, and should be updated whenever new payloads are added within [`./type-defs`](./type-defs).
-JSON schema definitions can be generated within the build directory by uncommenting the line in the lib's [`build.rs`](./libs/graph/build.rs).
+JSON schema definitions can be generated within the build directory by uncommenting the line in the lib's [`build.rs`](libs/api/build.rs).
 
 To locate the build directory, run with `cargo build -vv` and search for "Generated files in:"
 
@@ -134,16 +134,3 @@ The benchmarks currently have a fairly costly (in time) setup cost per suite on 
 As such, the benchmark databases **are not cleaned up** between or after runs.
 
 This also means that if breaking changes are made to the seeding logic, **you must manually delete the benchmark tables to have them reseed**.
-
-If you for some reason prefer to not use `just` please note, that for testing it's required to pass `--cfg hash_graph_test_environment` to `rustc`. As typically the invocation happens through `cargo` this can be done by setting the `RUSTFLAGS` environment variable:
-
-```shell
-export RUSTFLAGS="--cfg hash_graph_test_environment"
-```
-
-or by adding the following to your `~/.cargo/config`:
-
-```toml
-[target.'cfg(all())']
-rustflags = ["--cfg", "hash_graph_test_environment"]
-```

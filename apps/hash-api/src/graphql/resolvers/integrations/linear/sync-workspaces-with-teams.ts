@@ -1,16 +1,17 @@
+import {
+  getMachineActorId,
+  getWebMachineActorId,
+} from "@local/hash-backend-utils/machine-actors";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
-  AccountGroupEntityId,
   AccountId,
   Entity,
-  extractAccountGroupId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
   Uuid,
 } from "@local/hash-subgraph";
 
-import { addAccountGroupMember } from "../../../../graph/account-permission-management";
 import {
   archiveEntity,
   getLatestEntityById,
@@ -138,33 +139,65 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
         { entityId: workspaceEntityId },
       );
 
-      if (
-        userOrOrganizationEntity.metadata.entityTypeId ===
-        systemEntityTypes.organization.entityTypeId
-      ) {
-        const accountGroupId = extractAccountGroupId(
-          workspaceEntityId as AccountGroupEntityId,
+      const webAccountId = extractEntityUuidFromEntityId(
+        userOrOrganizationEntity.metadata.recordId.entityId,
+      ) as Uuid as AccountId;
+
+      /**
+       * Add the Linear machine user to the web,
+       * if it doesn't already have permission to read and edit entities in it.
+       */
+      const linearBotAccountId = await getMachineActorId(
+        dataSources,
+        authentication,
+        { identifier: "linear" },
+      );
+
+      const linearBotHasPermission = await dataSources.graphApi
+        .checkWebPermission(linearBotAccountId, webAccountId, "create_entity")
+        .then((resp) => resp.data.has_permission);
+
+      if (!linearBotHasPermission) {
+        const webMachineActorId = await getWebMachineActorId(
+          dataSources,
+          authentication,
+          {
+            ownedById: webAccountId as OwnedById,
+          },
         );
 
-        try {
-          await addAccountGroupMember(dataSources, authentication, {
-            accountGroupId,
-            accountId: systemAccountId,
-          });
-        } catch {
-          /** @todo: re-throw error if this isn't a "already in account group" error */
-        }
-      } else {
-        /**
-         * @todo fix this by finding a way of giving the system account
-         * read/write access to specific types in the user's workspace
-         */
-        throw new Error("Cannot sync with user workspace");
+        await dataSources.graphApi.modifyWebAuthorizationRelationships(
+          webMachineActorId,
+          [
+            {
+              operation: "create",
+              resource: webAccountId,
+              relationAndSubject: {
+                subject: {
+                  kind: "account",
+                  subjectId: linearBotAccountId,
+                },
+                relation: "entityCreator",
+              },
+            },
+            {
+              operation: "create",
+              resource: webAccountId,
+              relationAndSubject: {
+                subject: {
+                  kind: "account",
+                  subjectId: linearBotAccountId,
+                },
+                relation: "entityEditor",
+              },
+            },
+          ],
+        );
       }
 
       return Promise.all([
         linearClient.triggerWorkspaceSync({
-          authentication: { actorId: systemAccountId },
+          authentication: { actorId: linearBotAccountId },
           workspaceOwnedById,
           teamIds: linearTeamIds,
         }),

@@ -10,7 +10,7 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_types::ontology::{OntologyElementMetadata, OntologyTypeVersion};
+use graph_types::ontology::OntologyTypeVersion;
 use postgres_types::Json;
 use uuid::Uuid;
 
@@ -38,7 +38,7 @@ pub struct EntityTypeSender {
     constrains_properties: Sender<Vec<EntityTypeConstrainsPropertiesOnRow>>,
     constrains_links: Sender<Vec<EntityTypeConstrainsLinksOnRow>>,
     constrains_link_destinations: Sender<Vec<EntityTypeConstrainsLinkDestinationsOnRow>>,
-    relations: Sender<(EntityTypeId, EntityTypeRelationAndSubject)>,
+    relations: Sender<(EntityTypeId, Vec<EntityTypeRelationAndSubject>)>,
 }
 
 // This is a direct wrapper around several `Sink<mpsc::Sender>` and `OntologyTypeMetadataSender`
@@ -83,10 +83,10 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         self.metadata
             .start_send_unpin((
                 ontology_id,
-                OntologyElementMetadata {
-                    record_id: entity_type.metadata.record_id,
-                    custom: entity_type.metadata.custom,
-                },
+                entity_type.metadata.record_id,
+                entity_type.metadata.classification,
+                entity_type.metadata.temporal_versioning,
+                entity_type.metadata.provenance,
             ))
             .attach_printable("could not send metadata")?;
 
@@ -187,12 +187,10 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;
 
-        for relationships in entity_type.relations {
-            self.relations
-                .start_send_unpin((EntityTypeId::new(ontology_id), relationships))
-                .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send entity relations")?;
-        }
+        self.relations
+            .start_send_unpin((EntityTypeId::new(ontology_id), entity_type.relations))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not send entity relations")?;
 
         Ok(())
     }
@@ -327,7 +325,7 @@ pub fn entity_type_channel(
                     .boxed(),
                 relations_rx
                     .ready_chunks(chunk_size)
-                    .map(EntityTypeRowBatch::Relations)
+                    .map(|relations| EntityTypeRowBatch::Relations(relations.into_iter().collect()))
                     .boxed(),
             ]),
         },

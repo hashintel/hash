@@ -34,7 +34,6 @@ import {
   isEntityUserEntity,
   User,
 } from "../../lib/user-and-org";
-import { fetchKratosSession } from "./ory-kratos";
 
 type RefetchAuthInfoFunction = () => Promise<{
   authenticatedUser?: User;
@@ -126,20 +125,17 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
 
   const fetchAuthenticatedUser =
     useCallback<RefetchAuthInfoFunction>(async () => {
-      const [subgraph, kratosSession] = await Promise.all([
-        getMe()
-          .then(({ data }) =>
-            data
-              ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-                  data.me.subgraph,
-                )
-              : undefined,
-          )
-          .catch(() => undefined),
-        fetchKratosSession(),
-      ]);
+      const subgraph = await getMe()
+        .then(({ data }) =>
+          data
+            ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+                data.me.subgraph,
+              )
+            : undefined,
+        )
+        .catch(() => undefined);
 
-      if (!subgraph || !kratosSession) {
+      if (!subgraph) {
         setAuthenticatedUserSubgraph(undefined);
         return {};
       }
@@ -149,21 +145,21 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
       return { authenticatedUser: constructUserValue(subgraph) };
     }, [constructUserValue, getMe]);
 
+  const authenticatedUser = useMemo(
+    () => constructUserValue(authenticatedUserSubgraph),
+    [authenticatedUserSubgraph, constructUserValue],
+  );
+
   const value = useMemo(
     () => ({
-      authenticatedUser: constructUserValue(authenticatedUserSubgraph),
+      authenticatedUser,
       refetch: async () => {
         // Refetch the detail on orgs in case this refetch is following them being modified
         await refetchOrgs();
         return fetchAuthenticatedUser();
       },
     }),
-    [
-      authenticatedUserSubgraph,
-      constructUserValue,
-      fetchAuthenticatedUser,
-      refetchOrgs,
-    ],
+    [authenticatedUser, fetchAuthenticatedUser, refetchOrgs],
   );
 
   return (

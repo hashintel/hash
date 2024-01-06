@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import { EntityId, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { useBlockProtocolArchiveEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
 import {
@@ -21,13 +21,15 @@ export const useApplyDraftLinkEntityChanges = () => {
   >(createEntityMutation);
 
   const applyDraftLinkEntityChanges = async (
-    leftEntityId: EntityId,
+    leftEntity: Entity,
     draftLinksToCreate: DraftLinksToCreate,
     draftLinksToArchive: DraftLinksToArchive,
   ) => {
     const archivePromises = draftLinksToArchive.map((linkEntityId) =>
       archiveEntity({ data: { entityId: linkEntityId } }),
     );
+
+    const leftEntityId = leftEntity.metadata.recordId.entityId;
 
     const createPromises = draftLinksToCreate.map(
       ({ linkEntity, rightEntity }) =>
@@ -41,6 +43,7 @@ export const useApplyDraftLinkEntityChanges = () => {
               leftEntityId,
               rightEntityId: rightEntity.metadata.recordId.entityId,
             },
+            draft: leftEntity.metadata.draft,
           },
         }),
     );

@@ -13,13 +13,10 @@
       "dependsOn": ["^build", "codegen"],
       "env": ["TEST_COVERAGE"]
     },
-    "test:system": {
-      "dependsOn": ["build"]
-    },
+    "test:system": {},
     "test:miri": {},
     "dev": {
-      "persistent": true,
-      "dependsOn": ["build"]
+      "persistent": true
     },
     "lint": {
       "dependsOn": ["^build", "codegen"]
@@ -39,9 +36,9 @@
   },
   "globalDependencies": [
     "**/turbo.json",
-    ".github/actions/**",
-    ".github/scripts/**",
-    ".github/workflows/**",
+    ".github/actions/**/**/*.yml",
+    ".github/scripts/**/*.rs",
+    ".github/workflows/**/*",
     ".env*",
     ".justfile",
     ".yarnrc",

@@ -1,6 +1,7 @@
 use std::{collections::HashSet, convert::identity};
 
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 use crate::subgraph::{
@@ -23,7 +24,8 @@ pub trait EdgeKind<L: VertexId, R: EdgeEndpoint>: Sized {
     ) -> &'a mut AdjacencyList<L, Self, Self::EdgeSet>;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum OntologyEdgeKind {
     /// An ontology type can inherit from another ontology type.
@@ -95,7 +97,8 @@ impl EdgeKind<PropertyTypeVertexId, DataTypeVertexId> for OntologyEdgeKind {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum KnowledgeGraphEdgeKind {
     /// This link [`Entity`] has another [`Entity`] on its 'left' endpoint.
@@ -122,7 +125,8 @@ impl EdgeKind<EntityVertexId, EntityIdWithInterval> for KnowledgeGraphEdgeKind {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SharedEdgeKind {
     /// An [`Entity`] is of an [`EntityType`].
@@ -143,7 +147,8 @@ impl EdgeKind<EntityVertexId, EntityTypeVertexId> for SharedEdgeKind {
     }
 }
 
-#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(deny_unknown_fields)]
 pub struct EdgeResolveDepths {
     pub incoming: u8,
@@ -159,7 +164,8 @@ impl EdgeResolveDepths {
 
 // TODO: Replace with `EdgeResolveDepths`
 //   see https://app.asana.com/0/1201095311341924/1203399511264512/f
-#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(deny_unknown_fields)]
 pub struct OutgoingEdgeResolveDepth {
     pub outgoing: u8,
@@ -177,7 +183,8 @@ impl OutgoingEdgeResolveDepth {
 }
 
 /// TODO: DOC - <https://app.asana.com/0/0/1203438518991188/f>
-#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GraphResolveDepths {
     pub inherits_from: OutgoingEdgeResolveDepth,

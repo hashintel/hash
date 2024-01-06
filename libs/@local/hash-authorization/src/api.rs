@@ -4,7 +4,7 @@ use error_stack::{Context, Result};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
-    web::WebId,
+    owned_by_id::OwnedById,
 };
 
 use crate::{
@@ -21,6 +21,9 @@ use crate::{
 };
 
 pub trait AuthorizationApi {
+    fn seed(&mut self)
+    -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
     ////////////////////////////////////////////////////////////////////////////
     // Account group authorization
     ////////////////////////////////////////////////////////////////////////////
@@ -51,7 +54,7 @@ pub trait AuthorizationApi {
         &self,
         actor: AccountId,
         permission: WebPermission,
-        web: WebId,
+        web: OwnedById,
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
 
@@ -59,9 +62,9 @@ pub trait AuthorizationApi {
         &self,
         actor: AccountId,
         permission: WebPermission,
-        entities: impl IntoIterator<Item = WebId, IntoIter: Send> + Send,
+        entities: impl IntoIterator<Item = OwnedById, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<(HashMap<WebId, bool>, Zookie<'static>), CheckError>> + Send
+    ) -> impl Future<Output = Result<(HashMap<OwnedById, bool>, Zookie<'static>), CheckError>> + Send
     where
         Self: Sync,
     {
@@ -85,14 +88,18 @@ pub trait AuthorizationApi {
     fn modify_web_relations(
         &mut self,
         relationships: impl IntoIterator<
-            Item = (ModifyRelationshipOperation, WebId, WebRelationAndSubject),
+            Item = (
+                ModifyRelationshipOperation,
+                OwnedById,
+                WebRelationAndSubject,
+            ),
             IntoIter: Send,
         > + Send,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn get_web_relations(
         &self,
-        web: WebId,
+        web: OwnedById,
         consistency: Consistency<'static>,
     ) -> impl Future<Output = Result<Vec<WebRelationAndSubject>, ReadError>> + Send;
 
@@ -162,26 +169,7 @@ pub trait AuthorizationApi {
         permission: EntityTypePermission,
         entity_types: impl IntoIterator<Item = EntityTypeId, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<(HashMap<EntityTypeId, bool>, Zookie<'static>), CheckError>> + Send
-    where
-        Self: Sync,
-    {
-        async move {
-            let mut zookie = Zookie::empty();
-            let mut result = HashMap::new();
-            for entity_type in entity_types {
-                let CheckResponse {
-                    has_permission,
-                    checked_at,
-                } = self
-                    .check_entity_type_permission(actor, permission, entity_type, consistency)
-                    .await?;
-                result.insert(entity_type, has_permission);
-                zookie = checked_at;
-            }
-            Ok((result, zookie))
-        }
-    }
+    ) -> impl Future<Output = Result<(HashMap<EntityTypeId, bool>, Zookie<'static>), CheckError>> + Send;
 
     fn get_entity_type_relations(
         &self,
@@ -218,26 +206,7 @@ pub trait AuthorizationApi {
         permission: PropertyTypePermission,
         property_types: impl IntoIterator<Item = PropertyTypeId, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<(HashMap<PropertyTypeId, bool>, Zookie<'static>), CheckError>> + Send
-    where
-        Self: Sync,
-    {
-        async move {
-            let mut zookie = Zookie::empty();
-            let mut result = HashMap::new();
-            for property_type in property_types {
-                let CheckResponse {
-                    has_permission,
-                    checked_at,
-                } = self
-                    .check_property_type_permission(actor, permission, property_type, consistency)
-                    .await?;
-                result.insert(property_type, has_permission);
-                zookie = checked_at;
-            }
-            Ok((result, zookie))
-        }
-    }
+    ) -> impl Future<Output = Result<(HashMap<PropertyTypeId, bool>, Zookie<'static>), CheckError>> + Send;
 
     fn get_property_type_relations(
         &self,
@@ -274,26 +243,7 @@ pub trait AuthorizationApi {
         permission: DataTypePermission,
         data_types: impl IntoIterator<Item = DataTypeId, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<(HashMap<DataTypeId, bool>, Zookie<'static>), CheckError>> + Send
-    where
-        Self: Sync,
-    {
-        async move {
-            let mut zookie = Zookie::empty();
-            let mut result = HashMap::new();
-            for data_type in data_types {
-                let CheckResponse {
-                    has_permission,
-                    checked_at,
-                } = self
-                    .check_data_type_permission(actor, permission, data_type, consistency)
-                    .await?;
-                result.insert(data_type, has_permission);
-                zookie = checked_at;
-            }
-            Ok((result, zookie))
-        }
-    }
+    ) -> impl Future<Output = Result<(HashMap<DataTypeId, bool>, Zookie<'static>), CheckError>> + Send;
 
     fn get_data_type_relations(
         &self,

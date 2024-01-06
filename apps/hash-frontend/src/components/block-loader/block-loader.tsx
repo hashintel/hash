@@ -31,6 +31,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 
 import { useBlockLoadedContext } from "../../blocks/on-block-loaded";
@@ -117,7 +118,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   // shouldSandbox,
   wrappingEntityId,
   readonly,
-  userPermissionsOnEntities,
+  userPermissionsOnEntities: initialUserPermissions,
 }) => {
   const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
@@ -137,10 +138,14 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   const {
     setBlockSubgraph,
     blockSubgraph: possiblyStaleSubgraph,
-    userPermissions,
+    userPermissions: permissionsFromContext,
     setUserPermissions,
   } = useBlockContext();
+
   const fetchBlockSubgraph = useFetchBlockSubgraph();
+
+  // We may have been given initial user permissions, which we can use if we don't have any set in context yet
+  const userPermissions = permissionsFromContext ?? initialUserPermissions;
 
   /**
    * Rewrite the blockSubgraph for two purposes:
@@ -153,15 +158,46 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
    * 2. Where the block entity has a textual-content property, ensure it is sent as a plain string, not our rich text representation
    */
   const blockSubgraph = useMemo(() => {
-    if (!possiblyStaleSubgraph) {
-      return null;
+    let subgraphToRewrite = possiblyStaleSubgraph;
+
+    if (!subgraphToRewrite && blockEntityId && blockCollectionSubgraph) {
+      /**
+       * If we don't yet have a subgraph set in the block's own context, and we've been given a subgraph for the collection containing it,
+       * use its data first for quicker loading.
+       */
+      const entityEditionMap = blockCollectionSubgraph.vertices[blockEntityId];
+
+      // The block may not be present in the block collection subgraph if the block was just created.
+      if (entityEditionMap) {
+        /**
+         * If the block's entity is in the block collection subgraph,
+         * we can create a new subgraph with the block entity at the root to send to the block.
+         * The traversal depths will not be accurate, because the actual traversal was rooted at the block collection.
+         * This data is only used briefly – we fetch the block's subgraph from the API further on this effect.
+         */
+        const latestEditionId = Object.keys(entityEditionMap).sort().pop()!;
+        subgraphToRewrite = {
+          ...blockCollectionSubgraph,
+          roots: [
+            {
+              baseId: blockEntityId,
+              revisionId: latestEditionId as EntityRevisionId,
+            },
+          ],
+        };
+      }
+    }
+
+    if (!subgraphToRewrite) {
+      // We don't have any subgraph to use yet, we're waiting for it to be fetched and put in context. Likely a new block
+      return;
     }
 
     /**
      * The block subgraph should have a single root: the block entity. We'll default to the API-provided one,
      * but might need to replace it if there's a later version in the entity store, since the version is part of the root identifier
      */
-    let roots: Subgraph<EntityRootType>["roots"] = possiblyStaleSubgraph.roots;
+    let roots: Subgraph<EntityRootType>["roots"] = subgraphToRewrite.roots;
 
     const newVertices: Subgraph<EntityRootType>["vertices"] = {};
 
@@ -169,7 +205,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
      * Check all the vertices and rebuild the vertices object to meet the two requirements for rewriting the subgraph.
      */
     for (const [entityIdOrTypeId, entityOrTypeEditionMap] of typedEntries(
-      possiblyStaleSubgraph.vertices,
+      subgraphToRewrite.vertices,
     )) {
       if (!isEntityId(entityIdOrTypeId)) {
         // This is a type, leave it be
@@ -279,58 +315,44 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     }
 
     return {
-      ...possiblyStaleSubgraph,
+      ...subgraphToRewrite,
       roots,
       vertices: newVertices,
     };
-  }, [entityStore, possiblyStaleSubgraph]);
-
-  const lastFetchedBlockEntityId = useRef(blockEntityId);
+  }, [
+    blockCollectionSubgraph,
+    blockEntityId,
+    entityStore,
+    possiblyStaleSubgraph,
+  ]);
 
   /**
-   * Set the initial block data from either:
-   * - the block collection subgraph and permissions on entities in it, if provided
-   * - via useFetchBlockSubgraph, which will fetch the block's data from the API if we have an entityId,
-   *   or set a placeholder if not. The placeholder will use fallbackBlockProperties.
+   * If we are able to derive the `blockSubgraph` without the value from the context,
+   * set it in the context so it becomes available to other consumers of the context.
+   */
+  if (!possiblyStaleSubgraph && blockSubgraph) {
+    setBlockSubgraph(blockSubgraph);
+  }
+
+  const lastFetchedBlockEntityId = useRef<EntityId | null>(null);
+
+  const [fetchingBlockSubgraph, setFetchingBlockSubgraph] =
+    useState<boolean>(false);
+
+  /**
+   * Fetch the block's subgraph and permissions on load and when the block's entityId changes
    */
   useEffect(() => {
-    if (blockSubgraph && blockEntityId === lastFetchedBlockEntityId.current) {
+    if (
+      (blockSubgraph && blockEntityId === lastFetchedBlockEntityId.current) ||
+      fetchingBlockSubgraph
+    ) {
       return;
     }
 
-    lastFetchedBlockEntityId.current = blockEntityId;
+    lastFetchedBlockEntityId.current = blockEntityId ?? null;
 
-    /**
-     * If we have been given the block collection's subgraph or a permissions object, use its data first for quicker loading.
-     * The block and its permissions may not be present in the subgraph if it was just created.
-     */
-    if (blockEntityId && blockCollectionSubgraph) {
-      const entityEditionMap = blockCollectionSubgraph.vertices[blockEntityId];
-
-      if (entityEditionMap) {
-        /**
-         * If the block's entity is in the block collection subgraph,
-         * we can create a new subgraph with the block entity at the root to send to the block.
-         * The traversal depths will not be accurate, because the actual traversal was rooted at the block collection.
-         * This data is only used briefly – we fetch the block's subgraph from the API further on this effect.
-         */
-        const latestEditionId = Object.keys(entityEditionMap).sort().pop()!;
-        const initialBlockSubgraph = {
-          ...blockCollectionSubgraph,
-          roots: [
-            {
-              baseId: blockEntityId,
-              revisionId: latestEditionId as EntityRevisionId,
-            },
-          ],
-        };
-        setBlockSubgraph(initialBlockSubgraph);
-      }
-
-      if (userPermissionsOnEntities) {
-        setUserPermissions(userPermissionsOnEntities);
-      }
-    }
+    setFetchingBlockSubgraph(true);
 
     /**
      * Fetch the block's subgraph and permissions to replace any initially loaded data.
@@ -344,17 +366,17 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     ).then((newBlockSubgraph) => {
       setBlockSubgraph(newBlockSubgraph.subgraph);
       setUserPermissions(newBlockSubgraph.userPermissionsOnEntities);
+      setFetchingBlockSubgraph(false);
     });
   }, [
+    fetchingBlockSubgraph,
     blockEntityId,
-    blockCollectionSubgraph,
     blockEntityTypeId,
     blockSubgraph,
     fallbackBlockProperties,
     fetchBlockSubgraph,
     setBlockSubgraph,
     setUserPermissions,
-    userPermissionsOnEntities,
   ]);
 
   const refetchSubgraph = useCallback(async () => {
@@ -476,12 +498,12 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
               readonly || // is the entire page readonly?
               /**
                * If we have a blockEntityId, check if the user lacks edit permissions on the block entity.
-               * If we don't have a blockEntityId, this is a newly created entity which the user should have edit permissions on.
+               * If we don't have a blockEntityId or userPermissions, this is a newly created entity which the user should have edit permissions on.
                */
               !!(
                 blockEntityId &&
-                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive on unsafe index access
-                !userPermissions?.[blockEntityId]?.edit
+                userPermissions?.[blockEntityId] &&
+                !userPermissions[blockEntityId]!.edit
               ),
             blockEntitySubgraph:
               blockSubgraph as unknown as BpSubgraph<EntityRootType>,

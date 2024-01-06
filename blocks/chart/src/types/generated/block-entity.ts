@@ -4,29 +4,32 @@
 
 import { Entity, LinkData } from "@blockprotocol/graph";
 
-export type BlockEntity = Chart;
+export type BlockEntity = ChartBlock;
 
-export type BlockEntityOutgoingLinkAndTarget = ChartOutgoingLinkAndTarget;
+export type BlockEntityOutgoingLinkAndTarget = ChartBlockOutgoingLinkAndTarget;
 
-export type Chart = Entity<ChartProperties>;
+export type ChartBlock = Entity<ChartBlockProperties>;
+
+export type ChartBlockHasQueryLink = {
+  linkEntity: HasQuery;
+  rightEntity: Query;
+};
+
+export type ChartBlockOutgoingLinkAndTarget = ChartBlockHasQueryLink;
+
+export type ChartBlockOutgoingLinksByLinkEntityTypeId = {
+  "https://blockprotocol.org/@hash/types/entity-type/has-query/v/1": ChartBlockHasQueryLink;
+};
+
+export type ChartBlockProperties = {
+  "https://blockprotocol.org/@hash/types/property-type/chart-defintion/"?: ChartDefintionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
+};
 
 /**
  * The chart definition of something.
  */
 export type ChartDefintionPropertyValue = Object;
-
-export type ChartHasQueryLink = { linkEntity: HasQuery; rightEntity: Query };
-
-export type ChartOutgoingLinkAndTarget = ChartHasQueryLink;
-
-export type ChartOutgoingLinksByLinkEntityTypeId = {
-  "https://blockprotocol.org/@hash/types/entity-type/has-query/v/1": ChartHasQueryLink;
-};
-
-export type ChartProperties = {
-  "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
-  "https://blockprotocol.org/@hash/types/property-type/chart-defintion/"?: ChartDefintionPropertyValue;
-};
 
 export type HasQuery = Entity<HasQueryProperties> & { linkData: LinkData };
 

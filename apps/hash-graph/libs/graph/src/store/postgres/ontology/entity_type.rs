@@ -1,11 +1,14 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    iter::once,
+};
 
 use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        EntityTypeId, EntityTypeInstantiatorSubject, EntityTypeOwnerSubject, EntityTypePermission,
-        EntityTypeRelationAndSubject, EntityTypeSubjectSet, EntityTypeViewerSubject, WebPermission,
+        EntityTypeId, EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject,
+        WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -13,13 +16,12 @@ use authorization::{
 use error_stack::{ensure, Report, Result, ResultExt};
 use futures::TryStreamExt;
 use graph_types::{
-    account::AccountId,
+    account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
-        EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,
-        PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
+        EntityTypeMetadata, EntityTypeWithMetadata, OntologyEditionProvenanceMetadata,
+        OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
+        OntologyTypeRecordId, PartialEntityTypeMetadata,
     },
-    provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
-    web::WebId,
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{
@@ -28,16 +30,15 @@ use type_system::{
 };
 use uuid::Uuid;
 
-#[cfg(hash_graph_test_environment)]
-use crate::store::error::DeletionError;
 use crate::{
     ontology::EntityTypeQueryPath,
     store::{
         crud::Read,
+        error::DeletionError,
         postgres::{
             ontology::{read::OntologyTypeTraversalData, OntologyId},
             query::ReferenceTable,
-            OntologyTypeSubject, TraversalContext,
+            TraversalContext,
         },
         query::{Filter, FilterExpression, ParameterList},
         AsClient, ConflictBehavior, EntityTypeStore, InsertionError, PostgresStore, QueryError,
@@ -245,7 +246,6 @@ impl<C: AsClient> PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    #[cfg(hash_graph_test_environment)]
     pub async fn delete_entity_types(&mut self) -> Result<(), DeletionError> {
         let transaction = self.transaction().await.change_context(DeletionError)?;
 
@@ -407,7 +407,10 @@ pub struct EntityTypeInsertion {
 
 #[async_trait]
 impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, entity_types, authorization_api))]
+    #[tracing::instrument(
+        level = "info",
+        skip(self, entity_types, authorization_api, relationships)
+    )]
     async fn create_entity_types<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
@@ -415,7 +418,10 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
+        relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
     ) -> Result<Vec<EntityTypeMetadata>, InsertionError> {
+        let requested_relationships = relationships.into_iter().collect::<Vec<_>>();
+
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
         let (entity_type_schemas, metadatas): (Vec<_>, Vec<_>) = entity_types.into_iter().unzip();
@@ -424,9 +430,11 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             .await
             .change_context(InsertionError)?;
 
-        let provenance = ProvenanceMetadata {
-            record_created_by_id: RecordCreatedById::new(actor_id),
-            record_archived_by_id: None,
+        let provenance = OntologyProvenanceMetadata {
+            edition: OntologyEditionProvenanceMetadata {
+                created_by_id: EditionCreatedById::new(actor_id),
+                archived_by_id: None,
+            },
         };
 
         let mut relationships = Vec::new();
@@ -436,38 +444,42 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             Vec::with_capacity(inserted_entity_types.capacity());
 
         for (insertion, metadata) in insertions.into_iter().zip(metadatas) {
-            if let PartialCustomOntologyMetadata::Owned { owned_by_id } = &metadata.custom {
+            let EntityTypeInsertion {
+                schema,
+                closed_schema,
+            } = insertion;
+
+            let entity_type_id = EntityTypeId::from_url(schema.id());
+
+            if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
+                &metadata.classification
+            {
                 authorization_api
                     .check_web_permission(
                         actor_id,
                         WebPermission::CreateEntityType,
-                        WebId::from(*owned_by_id),
+                        *owned_by_id,
                         Consistency::FullyConsistent,
                     )
                     .await
                     .change_context(InsertionError)?
                     .assert_permission()
                     .change_context(InsertionError)?;
+
+                relationships.push((
+                    entity_type_id,
+                    EntityTypeRelationAndSubject::Owner {
+                        subject: EntityTypeOwnerSubject::Web { id: *owned_by_id },
+                        level: 0,
+                    },
+                ));
             }
 
-            let EntityTypeInsertion {
-                schema,
-                closed_schema,
-            } = insertion;
-
-            relationships.push((
-                EntityTypeId::from_url(schema.id()),
-                EntityTypeRelationAndSubject::Viewer {
-                    subject: EntityTypeViewerSubject::Public,
-                    level: 0,
-                },
-            ));
-
-            if let Some((ontology_id, transaction_time, owner)) = transaction
+            if let Some((ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
-                    provenance.record_created_by_id,
+                    provenance.edition.created_by_id,
                     &metadata.record_id,
-                    &metadata.custom,
+                    &metadata.classification,
                     on_conflict,
                 )
                 .await?
@@ -483,41 +495,21 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                     .await?;
 
                 inserted_entity_types.push((ontology_id, schema));
-                inserted_entity_type_metadata.push(EntityTypeMetadata::from_partial(
-                    metadata,
+                inserted_entity_type_metadata.push(EntityTypeMetadata {
+                    record_id: metadata.record_id,
+                    classification: metadata.classification,
+                    temporal_versioning,
                     provenance,
-                    transaction_time,
-                ));
-
-                if let Some(owner) = owner {
-                    match owner {
-                        OntologyTypeSubject::Account { id } => relationships.push((
-                            EntityTypeId::from(ontology_id),
-                            EntityTypeRelationAndSubject::Owner {
-                                subject: EntityTypeOwnerSubject::Account { id },
-                                level: 0,
-                            },
-                        )),
-                        OntologyTypeSubject::AccountGroup { id } => relationships.push((
-                            EntityTypeId::from(ontology_id),
-                            EntityTypeRelationAndSubject::Owner {
-                                subject: EntityTypeOwnerSubject::AccountGroup {
-                                    id,
-                                    set: EntityTypeSubjectSet::Member,
-                                },
-                                level: 0,
-                            },
-                        )),
-                    }
-                } else {
-                    relationships.push((
-                        EntityTypeId::from(ontology_id),
-                        EntityTypeRelationAndSubject::Instantiator {
-                            subject: EntityTypeInstantiatorSubject::Public,
-                        },
-                    ));
-                }
+                    label_property: metadata.label_property,
+                    icon: metadata.icon,
+                });
             }
+
+            relationships.extend(
+                requested_relationships
+                    .iter()
+                    .map(|relation_and_subject| (entity_type_id, *relation_and_subject)),
+            );
         }
 
         for (ontology_id, schema) in inserted_entity_types {
@@ -534,20 +526,16 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 .attach_lazy(|| schema.clone())?;
         }
 
-        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
         authorization_api
-            .modify_entity_type_relations(
-                relationships
-                    .iter()
-                    .map(|(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Create,
-                            *resource,
-                            *relation_and_subject,
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
+            .modify_entity_type_relations(relationships.clone().into_iter().map(
+                |(resource, relation_and_subject)| {
+                    (
+                        ModifyRelationshipOperation::Create,
+                        resource,
+                        relation_and_subject,
+                    )
+                },
+            ))
             .await
             .change_context(InsertionError)?;
 
@@ -589,6 +577,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             ref filter,
             graph_resolve_depths,
             temporal_axes: ref unresolved_temporal_axes,
+            include_drafts,
         } = *query;
 
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
@@ -604,6 +593,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             Some(&temporal_axes),
             after,
             limit,
+            include_drafts,
         )
         .await?
         .into_iter()
@@ -615,9 +605,13 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 .insert(id)
                 .then_some((id, (vertex_id, entity_type)))
         })
-        .collect::<HashMap<_, _>>();
+        .collect::<Vec<_>>();
 
-        let filtered_ids = entity_types.keys().copied().collect::<Vec<_>>();
+        let filtered_ids = entity_types
+            .iter()
+            .map(|(entity_type_id, _)| *entity_type_id)
+            .collect::<Vec<_>>();
+
         let (permissions, zookie) = authorization_api
             .check_entity_types_permission(
                 actor_id,
@@ -634,15 +628,17 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             temporal_axes.clone(),
         );
 
-        let (entity_type_ids, entity_type_vertices): (Vec<_>, _) = entity_types
+        let (entity_type_ids, entity_type_vertices): (Vec<_>, Vec<_>) = entity_types
             .into_iter()
             .filter(|(id, _)| permissions.get(id).copied().unwrap_or(false))
             .unzip();
-        subgraph.vertices.entity_types = entity_type_vertices;
 
-        for vertex_id in subgraph.vertices.entity_types.keys() {
-            subgraph.roots.insert(vertex_id.clone().into());
-        }
+        subgraph.roots.extend(
+            entity_type_vertices
+                .iter()
+                .map(|(vertex_id, _)| vertex_id.clone().into()),
+        );
+        subgraph.vertices.entity_types = entity_type_vertices.into_iter().collect();
 
         let mut traversal_context = TraversalContext::default();
 
@@ -668,13 +664,16 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph)
+            .read_traversed_vertices(self, &mut subgraph, include_drafts)
             .await?;
 
         Ok(subgraph)
     }
 
-    #[tracing::instrument(level = "info", skip(self, entity_type, authorization_api))]
+    #[tracing::instrument(
+        level = "info",
+        skip(self, entity_type, authorization_api, relationships)
+    )]
     async fn update_entity_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
@@ -682,6 +681,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         entity_type: EntityType,
         label_property: Option<BaseUrl>,
         icon: Option<String>,
+        relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
     ) -> Result<EntityTypeMetadata, UpdateError> {
         let old_ontology_id = EntityTypeId::from_url(&VersionedUrl {
             base_url: entity_type.id().base_url.clone(),
@@ -704,13 +704,15 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let url = entity_type.id();
         let record_id = OntologyTypeRecordId::from(url.clone());
 
-        let provenance = ProvenanceMetadata {
-            record_created_by_id: RecordCreatedById::new(actor_id),
-            record_archived_by_id: None,
+        let provenance = OntologyProvenanceMetadata {
+            edition: OntologyEditionProvenanceMetadata {
+                created_by_id: EditionCreatedById::new(actor_id),
+                archived_by_id: None,
+            },
         };
 
-        let (ontology_id, owned_by_id, transaction_time, owner) = transaction
-            .update_owned_ontology_id(url, provenance.record_created_by_id)
+        let (ontology_id, owned_by_id, temporal_versioning) = transaction
+            .update_owned_ontology_id(url, provenance.edition.created_by_id)
             .await?;
 
         let mut insertions = transaction
@@ -739,7 +741,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             record_id,
             label_property,
             icon,
-            custom: PartialCustomOntologyMetadata::Owned { owned_by_id },
+            classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
         };
 
         transaction
@@ -754,63 +756,39 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             })
             .attach_lazy(|| schema.clone())?;
 
-        let owner = match owner {
-            OntologyTypeSubject::Account { id } => EntityTypeOwnerSubject::Account { id },
-            OntologyTypeSubject::AccountGroup { id } => EntityTypeOwnerSubject::AccountGroup {
-                id,
-                set: EntityTypeSubjectSet::Member,
-            },
-        };
+        let entity_type_id = EntityTypeId::from(ontology_id);
+        let relationships = relationships
+            .into_iter()
+            .chain(once(EntityTypeRelationAndSubject::Owner {
+                subject: EntityTypeOwnerSubject::Web { id: owned_by_id },
+                level: 0,
+            }))
+            .collect::<Vec<_>>();
 
-        let relationships = [
-            (
-                EntityTypeId::from(ontology_id),
-                EntityTypeRelationAndSubject::Owner {
-                    subject: owner,
-                    level: 0,
-                },
-            ),
-            (
-                EntityTypeId::from(ontology_id),
-                EntityTypeRelationAndSubject::Viewer {
-                    subject: EntityTypeViewerSubject::Public,
-                    level: 0,
-                },
-            ),
-        ];
-
-        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
         authorization_api
-            .modify_entity_type_relations(
-                relationships
-                    .iter()
-                    .map(|(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Create,
-                            *resource,
-                            *relation_and_subject,
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
+            .modify_entity_type_relations(relationships.clone().into_iter().map(
+                |relation_and_subject| {
+                    (
+                        ModifyRelationshipOperation::Create,
+                        entity_type_id,
+                        relation_and_subject,
+                    )
+                },
+            ))
             .await
             .change_context(UpdateError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(UpdateError) {
-            #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
             if let Err(auth_error) = authorization_api
-                .modify_entity_type_relations(
-                    relationships
-                        .iter()
-                        .map(|(resource, relation_and_subject)| {
-                            (
-                                ModifyRelationshipOperation::Delete,
-                                *resource,
-                                *relation_and_subject,
-                            )
-                        })
-                        .collect::<Vec<_>>(),
-                )
+                .modify_entity_type_relations(relationships.into_iter().map(
+                    |relation_and_subject| {
+                        (
+                            ModifyRelationshipOperation::Delete,
+                            entity_type_id,
+                            relation_and_subject,
+                        )
+                    },
+                ))
                 .await
                 .change_context(UpdateError)
             {
@@ -821,11 +799,14 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
             Err(error)
         } else {
-            Ok(EntityTypeMetadata::from_partial(
-                metadata,
+            Ok(EntityTypeMetadata {
+                record_id: metadata.record_id,
+                classification: metadata.classification,
+                temporal_versioning,
                 provenance,
-                transaction_time,
-            ))
+                label_property: metadata.label_property,
+                icon: metadata.icon,
+            })
         }
     }
 
@@ -836,7 +817,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.archive_ontology_type(id, RecordArchivedById::new(actor_id))
+        self.archive_ontology_type(id, EditionArchivedById::new(actor_id))
             .await
     }
 
@@ -847,7 +828,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(id, RecordCreatedById::new(actor_id))
+        self.unarchive_ontology_type(id, EditionCreatedById::new(actor_id))
             .await
     }
 }

@@ -2,10 +2,13 @@ import { VersionedUrl } from "@blockprotocol/type-system";
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
+  CreatedAtDecisionTime,
+  CreatedAtTransactionTime,
+  CreatedById,
+  EditionCreatedById,
   Entity,
   EntityId,
   EntityRootType,
-  RecordCreatedById,
   Subgraph,
   Timestamp,
 } from "@local/hash-subgraph";
@@ -50,7 +53,12 @@ export const createDraftLinkEntity = ({
       draft: false,
       recordId: { editionId: "", entityId: `draft~${Date.now()}` as EntityId },
       entityTypeId: linkEntityTypeId,
-      provenance: { recordCreatedById: "" as RecordCreatedById },
+      provenance: {
+        createdById: "" as CreatedById,
+        createdAtTransactionTime: "" as CreatedAtTransactionTime,
+        createdAtDecisionTime: "" as CreatedAtDecisionTime,
+        edition: { createdById: "" as EditionCreatedById },
+      },
       temporalVersioning: {
         decisionTime: {
           start: {
@@ -91,6 +99,8 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
   const [addingLink, setAddingLink] = useState(!linkAndTargetEntities.length);
 
+  const entity = useMemo(() => getRoots(entitySubgraph)[0]!, [entitySubgraph]);
+
   const onSelect = (
     selectedEntity: Entity,
     sourceSubgraph: Subgraph<EntityRootType> | null,
@@ -106,8 +116,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       return setAddingLink(false);
     }
 
-    const leftEntityId = getRoots(entitySubgraph)[0]?.metadata.recordId
-      .entityId as EntityId;
+    const leftEntityId = entity.metadata.recordId.entityId;
     const rightEntityId = selectedEntity.metadata.recordId.entityId;
 
     const linkEntity = createDraftLinkEntity({
@@ -188,6 +197,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       {canAddMore &&
         (addingLink ? (
           <EntitySelector
+            includeDrafts={entity.metadata.draft}
             onSelect={onSelect}
             onFinishedEditing={onFinishedEditing}
             expectedEntityTypes={expectedEntityTypes}

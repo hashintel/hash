@@ -11,9 +11,6 @@ use futures::{
     Sink, SinkExt, Stream, StreamExt,
 };
 use graph_types::{knowledge::entity::EntityUuid, ontology::OntologyTypeVersion};
-use temporal_versioning::{
-    ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,
-};
 
 use crate::snapshot::{
     entity::{
@@ -32,7 +29,7 @@ pub struct EntitySender {
     edition: Sender<EntityEditionRow>,
     temporal_metadata: Sender<EntityTemporalMetadataRow>,
     links: Sender<EntityLinkEdgeRow>,
-    relations: Sender<(EntityUuid, EntityRelationAndSubject)>,
+    relations: Sender<(EntityUuid, Vec<EntityRelationAndSubject>)>,
 }
 
 // This is a direct wrapper around several `Sink<mpsc::Sender>` and `AccountSender` with
@@ -67,6 +64,9 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
     ) -> Result<(), Self::Error> {
         self.id
             .start_send_unpin(EntityIdRow {
+                created_by_id: entity.metadata.provenance.created_by_id,
+                created_at_transaction_time: entity.metadata.provenance.created_at_transaction_time,
+                created_at_decision_time: entity.metadata.provenance.created_at_decision_time,
                 web_id: entity.metadata.record_id.entity_id.owned_by_id,
                 entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
             })
@@ -83,9 +83,9 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                 right_to_left_order: entity
                     .link_data
                     .and_then(|link_data| link_data.order.right_to_left),
-                record_created_by_id: entity.metadata.custom.provenance.record_created_by_id,
-                archived: entity.metadata.custom.archived,
-                draft: entity.metadata.custom.draft,
+                edition_created_by_id: entity.metadata.provenance.edition.created_by_id,
+                archived: entity.metadata.archived,
+                draft: entity.metadata.draft,
                 entity_type_base_url: entity.metadata.entity_type_id.base_url.as_str().to_owned(),
                 entity_type_version: OntologyTypeVersion::new(
                     entity.metadata.entity_type_id.version,
@@ -94,29 +94,13 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send entity edition")?;
 
-        let (decision_time, transaction_time) = entity.metadata.temporal_versioning.map_or_else(
-            || {
-                let decision_time = LeftClosedTemporalInterval::new(
-                    ClosedTemporalBound::Inclusive(Timestamp::UNIX_EPOCH),
-                    OpenTemporalBound::Unbounded,
-                );
-                (decision_time, None)
-            },
-            |temporal_versioning| {
-                (
-                    temporal_versioning.decision_time,
-                    Some(temporal_versioning.transaction_time),
-                )
-            },
-        );
-
         self.temporal_metadata
             .start_send_unpin(EntityTemporalMetadataRow {
                 web_id: entity.metadata.record_id.entity_id.owned_by_id,
                 entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
                 entity_edition_id: entity.metadata.record_id.edition_id,
-                decision_time,
-                transaction_time,
+                decision_time: entity.metadata.temporal_versioning.decision_time,
+                transaction_time: entity.metadata.temporal_versioning.transaction_time,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send entity temporal metadata")?;
@@ -135,12 +119,13 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                 .attach_printable("could not send entity link edges")?;
         }
 
-        for relation in entity.relations {
-            self.relations
-                .start_send_unpin((entity.metadata.record_id.entity_id.entity_uuid, relation))
-                .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send entity relations")?;
-        }
+        self.relations
+            .start_send_unpin((
+                entity.metadata.record_id.entity_id.entity_uuid,
+                entity.relations,
+            ))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not send entity relations")?;
 
         Ok(())
     }

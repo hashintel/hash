@@ -1,3 +1,6 @@
+import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
+import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -12,6 +15,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountEntityId,
+  AccountGroupId,
   AccountId,
   Entity,
   EntityId,
@@ -19,6 +23,7 @@ import {
   EntityUuid,
   extractAccountId,
   extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
   OwnedById,
 } from "@local/hash-subgraph";
 import {
@@ -32,24 +37,20 @@ import {
   KratosUserIdentity,
   KratosUserIdentityTraits,
 } from "../../../auth/ory-kratos";
-import { EntityTypeMismatchError } from "../../../lib/error";
 import { createAccount, createWeb } from "../../account-permission-management";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { systemAccountId } from "../../system-account";
 import {
-  checkEntityPermission,
   createEntity,
-  CreateEntityParams,
   getEntityOutgoingLinks,
   getLatestEntityById,
-  modifyEntityAuthorizationRelationships,
 } from "../primitive/entity";
 import {
   shortnameIsInvalid,
   shortnameIsRestricted,
   shortnameIsTaken,
 } from "./account.fields";
-import { addHashInstanceAdmin, getHashInstance } from "./hash-instance";
+import { addHashInstanceAdmin } from "./hash-instance";
 import {
   createOrgMembership,
   getOrgMembershipFromLinkEntity,
@@ -120,7 +121,7 @@ export const getUserById: ImpureGraphFunction<
  * @param params.shortname - the shortname of the user
  */
 export const getUserByShortname: ImpureGraphFunction<
-  { shortname: string },
+  { shortname: string; includeDrafts?: boolean },
   Promise<User | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
@@ -150,6 +151,7 @@ export const getUserByShortname: ImpureGraphFunction<
       //       shortname?
       //   see https://linear.app/hash/issue/H-757
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: params.includeDrafts ?? false,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
@@ -172,7 +174,7 @@ export const getUserByShortname: ImpureGraphFunction<
  * @param params.kratosIdentityId - the kratos identity id
  */
 export const getUserByKratosIdentityId: ImpureGraphFunction<
-  { kratosIdentityId: string },
+  { kratosIdentityId: string; includeDrafts?: boolean },
   Promise<User | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
@@ -200,6 +202,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: params.includeDrafts ?? false,
     })
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
@@ -227,7 +230,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
  * @param params.accountId (optional) - the pre-populated account Id of the user
  */
 export const createUser: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId" | "ownedById"> & {
+  {
     emails: string[];
     kratosIdentityId: string;
     shortname?: string;
@@ -274,6 +277,8 @@ export const createUser: ImpureGraphFunction<
     }
   }
 
+  const userShouldHavePermissionsOnWeb = shortname && preferredName;
+
   let userAccountId: AccountId;
   if (params.userAccountId) {
     userAccountId = params.userAccountId;
@@ -293,12 +298,23 @@ export const createUser: ImpureGraphFunction<
            * - the web is created with the system account as the owner and will be updated to the user account as the
            *   owner once the user has completed signup
            */
-          subjectId:
-            shortname && preferredName ? userAccountId : systemAccountId,
+          subjectId: userShouldHavePermissionsOnWeb
+            ? userAccountId
+            : systemAccountId,
         },
       },
     );
   }
+
+  const userWebMachineActorId = await createWebMachineActor(
+    ctx,
+    {
+      actorId: userShouldHavePermissionsOnWeb ? userAccountId : systemAccountId,
+    },
+    {
+      ownedById: userAccountId as OwnedById,
+    },
+  );
 
   const properties: UserProperties = {
     "https://hash.ai/@hash/types/property-type/email/": emails as [
@@ -320,31 +336,75 @@ export const createUser: ImpureGraphFunction<
       : {}),
   };
 
+  const hashInstance = await getHashInstance(ctx, authentication);
+  const hashInstanceAdmins = extractOwnedByIdFromEntityId(
+    hashInstance.entity.metadata.recordId.entityId,
+  ) as AccountGroupId;
+
+  /** Grant permissions to the web machine actor to create a user entity */
+  await ctx.graphApi.modifyEntityTypeAuthorizationRelationships(
+    systemAccountId,
+    [
+      {
+        operation: "create",
+        resource: systemEntityTypes.user.entityTypeId,
+        relationAndSubject: {
+          subject: {
+            kind: "account",
+            subjectId: userWebMachineActorId,
+          },
+          relation: "instantiator",
+        },
+      },
+    ],
+  );
+
   const entity = await createEntity(
     ctx,
-    { actorId: userAccountId },
+    { actorId: userWebMachineActorId },
     {
       ownedById: userAccountId as OwnedById,
       properties,
       entityTypeId: systemEntityTypes.user.entityTypeId,
       entityUuid: userAccountId as string as EntityUuid,
-    },
-  );
-  await modifyEntityAuthorizationRelationships(
-    ctx,
-    { actorId: userAccountId },
-    [
-      {
-        operation: "create",
-        relationship: {
+      relationships: [
+        {
+          relation: "administrator",
+          subject: {
+            kind: "accountGroup",
+            subjectId: hashInstanceAdmins,
+          },
+        },
+        {
+          relation: "viewer",
           subject: {
             kind: "public",
           },
-          relation: "viewer",
-          resource: {
-            kind: "entity",
-            resourceId: entity.metadata.recordId.entityId,
+        },
+        {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "updateFromWeb",
           },
+        },
+      ],
+    },
+  );
+
+  /** Remove permission from the web machine actor to create a user entity */
+  await ctx.graphApi.modifyEntityTypeAuthorizationRelationships(
+    systemAccountId,
+    [
+      {
+        operation: "delete",
+        resource: systemEntityTypes.user.entityTypeId,
+        relationAndSubject: {
+          subject: {
+            kind: "account",
+            subjectId: userWebMachineActorId,
+          },
+          relation: "instantiator",
         },
       },
     ],
@@ -488,23 +548,3 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
       params.orgEntityUuid,
   );
 };
-
-/**
- * Check whether or not the user is a hash instance admin.
- *
- * @param params.user - the user that may be a hash instance admin.
- */
-export const isUserHashInstanceAdmin: ImpureGraphFunction<
-  { user: User },
-  Promise<boolean>
-> = async (ctx, authentication, { user }) =>
-  getHashInstance(ctx, authentication, {}).then((hashInstance) =>
-    checkEntityPermission(
-      ctx,
-      { actorId: user.accountId },
-      {
-        entityId: hashInstance.entity.metadata.recordId.entityId,
-        permission: "update",
-      },
-    ),
-  );

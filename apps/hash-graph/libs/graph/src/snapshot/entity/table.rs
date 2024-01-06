@@ -1,17 +1,21 @@
 use graph_types::{
+    account::{CreatedById, EditionCreatedById},
     knowledge::{
         entity::{EntityEditionId, EntityProperties, EntityUuid},
         link::LinkOrder,
     },
     ontology::OntologyTypeVersion,
-    provenance::{OwnedById, RecordCreatedById},
+    owned_by_id::OwnedById,
 };
 use postgres_types::ToSql;
-use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, TransactionTime};
+use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_ids")]
 pub struct EntityIdRow {
+    pub created_by_id: CreatedById,
+    pub created_at_transaction_time: Timestamp<TransactionTime>,
+    pub created_at_decision_time: Timestamp<DecisionTime>,
     pub web_id: OwnedById,
     pub entity_uuid: EntityUuid,
 }
@@ -23,7 +27,7 @@ pub struct EntityEditionRow {
     pub properties: EntityProperties,
     pub left_to_right_order: Option<LinkOrder>,
     pub right_to_left_order: Option<LinkOrder>,
-    pub record_created_by_id: RecordCreatedById,
+    pub edition_created_by_id: EditionCreatedById,
     pub archived: bool,
     pub draft: bool,
     pub entity_type_base_url: String,
@@ -37,7 +41,7 @@ pub struct EntityTemporalMetadataRow {
     pub entity_uuid: EntityUuid,
     pub entity_edition_id: EntityEditionId,
     pub decision_time: LeftClosedTemporalInterval<DecisionTime>,
-    pub transaction_time: Option<LeftClosedTemporalInterval<TransactionTime>>,
+    pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
 #[derive(Debug, ToSql)]

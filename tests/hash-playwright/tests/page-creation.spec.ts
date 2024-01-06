@@ -19,6 +19,7 @@ test.beforeEach(async () => {
   await resetDb();
 });
 
+// @todo fix this test
 test.skip("user can create page", async ({ page }) => {
   await loginUsingTempForm({ page });
 
@@ -160,6 +161,7 @@ test.skip("user can create page", async ({ page }) => {
   // );
 });
 
+// @todo fix this test
 test.skip("user can rename page", async ({ page }) => {
   const pageName1 = `Page ${pageNameSuffix}`;
   const pageName2 = `Page 2 ${pageNameSuffix}`;

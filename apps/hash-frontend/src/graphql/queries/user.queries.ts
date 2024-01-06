@@ -7,6 +7,12 @@ export const isShortnameTaken = gql`
   }
 `;
 
+export const hasAccessToHashQuery = gql`
+  query hasAccessToHash {
+    hasAccessToHash
+  }
+`;
+
 export const meQuery = gql`
   query me {
     me(

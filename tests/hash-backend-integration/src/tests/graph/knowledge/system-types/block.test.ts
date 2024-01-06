@@ -1,6 +1,7 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
+import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
 import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
   Block,
@@ -10,10 +11,10 @@ import {
   updateBlockDataEntity,
 } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/migrate-ontology-types/util";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
@@ -68,13 +69,27 @@ describe("Block", () => {
         properties: [],
         outgoingLinks: [],
       }),
-      instantiators: [{ kind: "public" }],
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+        {
+          relation: "instantiator",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     });
 
     testBlockDataEntity = await createEntity(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       properties: {},
       entityTypeId: dummyEntityType.schema.$id,
+      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   });
 
@@ -128,6 +143,7 @@ describe("Block", () => {
         ownedById: testUser.accountId as OwnedById,
         properties: {},
         entityTypeId: dummyEntityType.schema.$id,
+        relationships: createDefaultAuthorizationRelationships(authentication),
       },
     );
 

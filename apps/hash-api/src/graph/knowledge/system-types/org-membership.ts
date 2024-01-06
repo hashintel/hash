@@ -1,3 +1,4 @@
+import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -11,11 +12,9 @@ import {
 } from "@local/hash-subgraph";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
-import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import {
   createLinkEntity,
-  CreateLinkEntityParams,
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
@@ -55,14 +54,7 @@ export const getOrgMembershipFromLinkEntity: PureGraphFunction<
  * @see {@link createLinkEntity} for the documentation of the remaining parameters
  */
 export const createOrgMembership: ImpureGraphFunction<
-  Omit<
-    CreateLinkEntityParams,
-    | "properties"
-    | "linkEntityTypeId"
-    | "leftEntityId"
-    | "rightEntityId"
-    | "ownedById"
-  > & {
+  {
     orgEntityId: EntityId;
     userEntityId: EntityId;
   },
@@ -87,6 +79,28 @@ export const createOrgMembership: ImpureGraphFunction<
       leftEntityId: userEntityId,
       rightEntityId: orgEntityId,
       properties: {},
+      relationships: [
+        {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "administratorFromWeb",
+          },
+        },
+        {
+          relation: "editor",
+          subject: {
+            kind: "account",
+            subjectId: userAccountId,
+          },
+        },
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     });
   } catch (error) {
     await ctx.graphApi.removeAccountGroupMember(

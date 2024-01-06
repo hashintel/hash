@@ -4,7 +4,7 @@ use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
-    web::WebId,
+    owned_by_id::OwnedById,
 };
 
 use crate::{
@@ -14,9 +14,10 @@ use crate::{
     },
     schema::{
         AccountGroupPermission, AccountGroupRelationAndSubject, DataTypeId, DataTypePermission,
-        DataTypeRelationAndSubject, EntityPermission, EntityRelationAndSubject, EntityTypeId,
-        EntityTypePermission, EntityTypeRelationAndSubject, PropertyTypeId, PropertyTypePermission,
-        PropertyTypeRelationAndSubject, WebPermission, WebRelationAndSubject,
+        DataTypeRelationAndSubject, EntityPermission, EntityRelationAndSubject, EntitySetting,
+        EntityTypeId, EntityTypePermission, EntityTypeRelationAndSubject, PropertyTypeId,
+        PropertyTypePermission, PropertyTypeRelationAndSubject, SettingName,
+        SettingRelationAndSubject, SettingSubject, WebPermission, WebRelationAndSubject,
     },
     zanzibar::{types::RelationshipFilter, Consistency, Zookie},
     AuthorizationApi,
@@ -31,12 +32,56 @@ impl<B> ZanzibarClient<B> {
     pub const fn new(backend: B) -> Self {
         Self { backend }
     }
+
+    pub fn into_backend(self) -> B {
+        self.backend
+    }
 }
 
 impl<B> AuthorizationApi for ZanzibarClient<B>
 where
     B: ZanzibarBackend + Send + Sync,
 {
+    async fn seed(&mut self) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(self
+            .backend
+            .modify_relationships([
+                (
+                    ModifyRelationshipOperation::Touch,
+                    (
+                        SettingName::Entity(EntitySetting::AdministratorFromWeb),
+                        SettingRelationAndSubject::Administrator {
+                            subject: SettingSubject::Public,
+                            level: 0,
+                        },
+                    ),
+                ),
+                (
+                    ModifyRelationshipOperation::Touch,
+                    (
+                        SettingName::Entity(EntitySetting::UpdateFromWeb),
+                        SettingRelationAndSubject::Update {
+                            subject: SettingSubject::Public,
+                            level: 0,
+                        },
+                    ),
+                ),
+                (
+                    ModifyRelationshipOperation::Touch,
+                    (
+                        SettingName::Entity(EntitySetting::ViewFromWeb),
+                        SettingRelationAndSubject::View {
+                            subject: SettingSubject::Public,
+                            level: 0,
+                        },
+                    ),
+                ),
+            ])
+            .await
+            .change_context(ModifyRelationError)?
+            .written_at)
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     // Account group authorization
     ////////////////////////////////////////////////////////////////////////////
@@ -80,7 +125,7 @@ where
         &self,
         actor: AccountId,
         permission: WebPermission,
-        web: WebId,
+        web: OwnedById,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         self.backend
@@ -91,7 +136,11 @@ where
     async fn modify_web_relations(
         &mut self,
         relationships: impl IntoIterator<
-            Item = (ModifyRelationshipOperation, WebId, WebRelationAndSubject),
+            Item = (
+                ModifyRelationshipOperation,
+                OwnedById,
+                WebRelationAndSubject,
+            ),
             IntoIter: Send,
         > + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
@@ -109,12 +158,12 @@ where
 
     async fn get_web_relations(
         &self,
-        web: WebId,
+        web: OwnedById,
         consistency: Consistency<'static>,
     ) -> Result<Vec<WebRelationAndSubject>, ReadError> {
         Ok(self
             .backend
-            .read_relations::<(WebId, WebRelationAndSubject)>(
+            .read_relations::<(OwnedById, WebRelationAndSubject)>(
                 RelationshipFilter::from_resource(web),
                 consistency,
             )
@@ -252,6 +301,47 @@ where
             .await
     }
 
+    async fn check_entity_types_permission(
+        &self,
+        actor: AccountId,
+        permission: EntityTypePermission,
+        entity_types: impl IntoIterator<Item = EntityTypeId, IntoIter: Send> + Send,
+        consistency: Consistency<'_>,
+    ) -> Result<(HashMap<EntityTypeId, bool>, Zookie<'static>), CheckError> {
+        let response = self
+            .backend
+            .check_permissions(
+                entity_types
+                    .into_iter()
+                    .map(move |entity_type| (entity_type, permission, actor)),
+                consistency,
+            )
+            .await?;
+        let mut status = Ok::<(), Report<RpcError>>(());
+        let permissions = response
+            .permissions
+            .into_iter()
+            .filter_map(|item| {
+                let permission = match item.has_permission {
+                    Ok(permissionship) => permissionship,
+                    Err(error) => {
+                        if let Err(report) = &mut status {
+                            report.extend_one(Report::new(error));
+                        } else {
+                            status = Err(Report::new(error));
+                        }
+                        return None;
+                    }
+                };
+                Some((item.resource, permission))
+            })
+            .collect();
+
+        status
+            .change_context(CheckError)
+            .map(|()| (permissions, response.checked_at))
+    }
+
     async fn get_entity_type_relations(
         &self,
         entity_type: EntityTypeId,
@@ -307,6 +397,47 @@ where
             .await
     }
 
+    async fn check_property_types_permission(
+        &self,
+        actor: AccountId,
+        permission: PropertyTypePermission,
+        property_types: impl IntoIterator<Item = PropertyTypeId, IntoIter: Send> + Send,
+        consistency: Consistency<'_>,
+    ) -> Result<(HashMap<PropertyTypeId, bool>, Zookie<'static>), CheckError> {
+        let response = self
+            .backend
+            .check_permissions(
+                property_types
+                    .into_iter()
+                    .map(move |property_type| (property_type, permission, actor)),
+                consistency,
+            )
+            .await?;
+        let mut status = Ok::<(), Report<RpcError>>(());
+        let permissions = response
+            .permissions
+            .into_iter()
+            .filter_map(|item| {
+                let permission = match item.has_permission {
+                    Ok(permissionship) => permissionship,
+                    Err(error) => {
+                        if let Err(report) = &mut status {
+                            report.extend_one(Report::new(error));
+                        } else {
+                            status = Err(Report::new(error));
+                        }
+                        return None;
+                    }
+                };
+                Some((item.resource, permission))
+            })
+            .collect();
+
+        status
+            .change_context(CheckError)
+            .map(|()| (permissions, response.checked_at))
+    }
+
     async fn get_property_type_relations(
         &self,
         property_type: PropertyTypeId,
@@ -358,6 +489,47 @@ where
         self.backend
             .check_permission(&data_type, &permission, &actor, consistency)
             .await
+    }
+
+    async fn check_data_types_permission(
+        &self,
+        actor: AccountId,
+        permission: DataTypePermission,
+        data_types: impl IntoIterator<Item = DataTypeId, IntoIter: Send> + Send,
+        consistency: Consistency<'_>,
+    ) -> Result<(HashMap<DataTypeId, bool>, Zookie<'static>), CheckError> {
+        let response = self
+            .backend
+            .check_permissions(
+                data_types
+                    .into_iter()
+                    .map(move |data_type| (data_type, permission, actor)),
+                consistency,
+            )
+            .await?;
+        let mut status = Ok::<(), Report<RpcError>>(());
+        let permissions = response
+            .permissions
+            .into_iter()
+            .filter_map(|item| {
+                let permission = match item.has_permission {
+                    Ok(permissionship) => permissionship,
+                    Err(error) => {
+                        if let Err(report) = &mut status {
+                            report.extend_one(Report::new(error));
+                        } else {
+                            status = Err(Report::new(error));
+                        }
+                        return None;
+                    }
+                };
+                Some((item.resource, permission))
+            })
+            .collect();
+
+        status
+            .change_context(CheckError)
+            .map(|()| (permissions, response.checked_at))
     }
 
     async fn get_data_type_relations(

@@ -1,10 +1,10 @@
-import type { InferEntitiesCallerParams } from "@local/hash-isomorphic-utils/temporal-types";
+import type { InferEntitiesCallerParams } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { proxyActivities } from "@temporalio/workflow";
 
 import { createAiActivities } from "./activities";
 
 const aiActivities = proxyActivities<ReturnType<typeof createAiActivities>>({
-  startToCloseTimeout: "600 second",
+  startToCloseTimeout: "1800 second",
   retry: {
     maximumAttempts: 1,
   },

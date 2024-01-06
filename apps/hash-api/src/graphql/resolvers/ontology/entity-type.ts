@@ -44,7 +44,27 @@ export const createEntityTypeResolver: ResolverFn<
     ownedById: ownedById ?? (user.accountId as OwnedById),
     schema: entityType,
     icon: params.icon ?? undefined,
-    instantiators: [{ kind: "public" }],
+    relationships: [
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "updateFromWeb",
+        },
+      },
+      {
+        relation: "viewer",
+        subject: {
+          kind: "public",
+        },
+      },
+      {
+        relation: "instantiator",
+        subject: {
+          kind: "public",
+        },
+      },
+    ],
   });
 
   return createdEntityType;
@@ -104,6 +124,7 @@ export const queryEntityTypesResolver: ResolverFn<
             },
           }
         : currentTimeInstantTemporalAxes,
+      includeDrafts: false,
     },
   );
 
@@ -161,7 +182,27 @@ export const updateEntityTypeResolver: ResolverFn<
       schema: params.updatedEntityType,
       labelProperty: params.labelProperty ?? undefined,
       icon: params.icon ?? undefined,
-      instantiators: [{ kind: "public" }],
+      relationships: [
+        {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "updateFromWeb",
+          },
+        },
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+        {
+          relation: "instantiator",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     },
   );
 

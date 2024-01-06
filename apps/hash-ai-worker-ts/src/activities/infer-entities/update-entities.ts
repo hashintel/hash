@@ -3,7 +3,7 @@ import type { GraphApi } from "@local/hash-graph-client";
 import type {
   InferredEntityUpdateFailure,
   InferredEntityUpdateSuccess,
-} from "@local/hash-isomorphic-utils/temporal-types";
+} from "@local/hash-isomorphic-utils/ai-inference-types";
 import type {
   AccountId,
   Entity,
@@ -14,10 +14,14 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
+import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 
 import type { DereferencedEntityType } from "./dereference-entity-type";
+import { ensureTrailingSlash } from "./ensure-trailing-slash";
 import { ProposedEntityUpdatesByType } from "./generate-tools";
-import { getEntityByFilter } from "./get-entity-by-filter";
+import { extractErrorMessage } from "./shared/extract-validation-failure-details";
+import { getEntityByFilter } from "./shared/get-entity-by-filter";
+import { stringify } from "./stringify";
 
 type StatusByTemporaryId<T> = Record<string, T>;
 
@@ -60,7 +64,7 @@ export const updateEntities = async ({
 
           const proposedEntity = {
             entityId,
-            properties,
+            properties: ensureTrailingSlash(properties),
           };
 
           let existingEntity: Entity | undefined = undefined;
@@ -102,8 +106,9 @@ export const updateEntities = async ({
             }
 
             await graphApiClient.validateEntity(actorId, {
-              draft: true,
+              draft: existingEntity.metadata.draft,
               entityTypeId,
+              linkData: existingEntity.linkData,
               operations: ["all"],
               properties: {
                 ...existingEntity.properties,
@@ -114,7 +119,7 @@ export const updateEntities = async ({
             const { data: updateEntityMetadata } =
               await graphApiClient.updateEntity(actorId, {
                 archived: false,
-                draft: false,
+                draft: existingEntity.metadata.draft,
                 entityTypeId,
                 entityId: updateEntityId,
                 properties: {
@@ -123,11 +128,14 @@ export const updateEntities = async ({
                 },
               });
 
+            const metadata =
+              mapGraphApiEntityMetadataToMetadata(updateEntityMetadata);
+
             entityStatusMap.updateSuccesses[proposedEntity.entityId] = {
               entityTypeId,
               entity: {
                 ...existingEntity,
-                metadata: updateEntityMetadata,
+                metadata,
               },
               proposedEntity,
               operation: "update",
@@ -139,14 +147,18 @@ export const updateEntities = async ({
                 proposedEntity.entityId
               } and entityId ${
                 existingEntity?.metadata.recordId.entityId ?? "unknown"
-              } failed with err: ${JSON.stringify(err, undefined, 2)}`,
+              } failed with err: ${stringify(err)}}`,
             );
+
+            const failureReason = `${extractErrorMessage(
+              err,
+            )}. The schema is ${JSON.stringify(entityType.schema)}.`;
 
             entityStatusMap.updateFailures[proposedEntity.entityId] = {
               entityTypeId,
               entity: existingEntity,
               proposedEntity,
-              failureReason: (err as Error).message,
+              failureReason,
               operation: "update",
               status: "failure",
             };

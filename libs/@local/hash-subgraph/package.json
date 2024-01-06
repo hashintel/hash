@@ -29,7 +29,7 @@
     "test:unit": "jest"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.1-canary-20231120181031",
+    "@blockprotocol/graph": "0.3.1-canary-20231207113055",
     "@blockprotocol/type-system": "0.1.1",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
-    "@types/jest": "29.5.10",
+    "@types/jest": "29.5.11",
     "@types/uuid": "8.3.0",
     "jest": "29.7.0",
     "ts-jest": "29.1.1",

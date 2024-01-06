@@ -17,10 +17,12 @@
     "build:docker:prod": "docker buildx build --build-arg PROFILE=production --tag hash-graph --tag hash-graph:prod --file docker/Dockerfile ../../ --load",
     "build:docker:test": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_TEST_SERVER=yes --tag hash-graph --tag hash-graph:test --file docker/Dockerfile ../../ --load",
     "codegen:generate-openapi-specs": "just generate-openapi-specs",
-    "dev": "RUST_LOG=info cargo run --all-features -- server",
+    "dev": "RUST_LOG=info cargo run --bin hash-graph --all-features -- server",
+    "dev:test-server": "RUST_LOG=info cargo run --bin hash-graph --all-features -- test-server --api-port 4001",
     "exe": "ts-node",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
+    "reset-database": "httpyac send --all tests/reset-database.http",
     "test:integration": "just test-integration",
     "test:unit": "just test-unit"
   },
@@ -35,7 +37,7 @@
   },
   "devDependencies": {
     "@tests/hash-graph-test-data-rs": "0.0.0-private",
-    "httpyac": "6.10.0",
+    "httpyac": "6.11.0",
     "quicktype": "^16.0.43",
     "typescript": "5.1.6"
   }

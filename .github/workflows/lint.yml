@@ -33,7 +33,8 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          PACKAGES=$(turbo run lint --dry-run=json --filter '...[HEAD^]' \
+          FILTER=$(turbo run lint --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
+          PACKAGES=$(sh -c "turbo run lint --dry-run=json $FILTER" \
             | jq '.tasks[]' \
             | jq 'select(.task == "lint")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
@@ -48,8 +49,6 @@ jobs:
       fail-fast: false
     if: needs.setup.outputs.packages != '{"package":[],"include":[]}'
     runs-on: ubuntu-22.04
-    env:
-      RUSTFLAGS: "--cfg hash_graph_test_environment"
     steps:
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -112,7 +111,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@d211c4be5a95cbcd52a0870dda7d63a107a58368 # v2.21.26
+        uses: taiki-e/install-action@56ab7930c591507f833cbaed864d201386d518a8 # v2.23.7
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
@@ -160,12 +159,6 @@ jobs:
         run: |
           just lint-toml "check"
 
-          # Clippy does not use RUSTFLAGS from `.cargo/config.toml` as `RUSTFLAGS` is set above.
-          CONFIG_FILE="$(cargo metadata --format-version 1 | jq -r '.workspace_root')/.cargo/config.toml"
-          RUSTFLAGS="$(yq -oy '.target["cfg(all())"].rustflags | join(" ")' $CONFIG_FILE) $RUSTFLAGS"
-          # If `export` would be on the same line this would not fail the workflow if the above line fails
-          export RUSTFLAGS
-
           just clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
@@ -185,7 +178,7 @@ jobs:
           mv "$tmp" clippy.sarif
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@407ffafae6a767df3e0230c3df91b6443ae8df75 # v2.22.8
+        uses: github/codeql-action/upload-sarif@012739e5082ff0c22ca6d6ab32e07c36df03c4a4 # v3.22.12
         if: always() && steps.lints.outputs.has-clippy == 'true'
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif

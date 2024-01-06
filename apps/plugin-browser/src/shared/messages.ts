@@ -1,7 +1,12 @@
-import type { EntityType } from "@blockprotocol/graph";
+import { VersionedUrl } from "@blockprotocol/graph";
+import { InferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
+import { OwnedById } from "@local/hash-subgraph";
 
 export type InferEntitiesRequest = {
-  entityTypes: EntityType[];
+  createAs: "draft" | "live";
+  entityTypeIds: VersionedUrl[];
+  model: InferenceModelName;
+  ownedById: OwnedById;
   sourceTitle: string;
   sourceUrl: string;
   type: "infer-entities";

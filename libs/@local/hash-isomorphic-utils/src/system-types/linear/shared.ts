@@ -368,14 +368,10 @@ export type OrganizationProperties = {
   "https://hash.ai/@linear/types/property-type/name/": NamePropertyValue;
   "https://hash.ai/@linear/types/property-type/period-upload-volume/": PeriodUploadVolumePropertyValue;
   "https://hash.ai/@linear/types/property-type/previous-url-keys/": PreviousURLKeysPropertyValue[];
-  "https://hash.ai/@linear/types/property-type/project-update-reminders-day/": ProjectUpdateRemindersDayPropertyValue;
   "https://hash.ai/@linear/types/property-type/project-update-reminders-hour/": ProjectUpdateRemindersHourPropertyValue;
-  "https://hash.ai/@linear/types/property-type/project-updates-reminder-frequency/": ProjectUpdatesReminderFrequencyPropertyValue;
-  "https://hash.ai/@linear/types/property-type/release-channel/": ReleaseChannelPropertyValue;
   "https://hash.ai/@linear/types/property-type/roadmap-enabled/": RoadmapEnabledPropertyValue;
   "https://hash.ai/@linear/types/property-type/saml-enabled/": SAMLEnabledPropertyValue;
   "https://hash.ai/@linear/types/property-type/scim-enabled/": SCIMEnabledPropertyValue;
-  "https://hash.ai/@linear/types/property-type/sla-day-count/": SLADayCountPropertyValue;
   "https://hash.ai/@linear/types/property-type/trial-ends-at/"?: TrialEndsAtPropertyValue;
   "https://hash.ai/@linear/types/property-type/updated-at/": UpdatedAtPropertyValue;
   "https://hash.ai/@linear/types/property-type/url-key/": URLKeyPropertyValue;
@@ -419,7 +415,7 @@ export type PriorityLabelPropertyValue = TextDataType;
 /**
  * The priority of the issue. 0 = No priority, 1 = Urgent, 2 = High, 3 = Normal, 4 = Low.
  */
-export type PriorityPropertyValue = TextDataType;
+export type PriorityPropertyValue = NumberDataType;
 
 /**
  * User's profile URL.
@@ -427,24 +423,9 @@ export type PriorityPropertyValue = TextDataType;
 export type ProfileURLPropertyValue = TextDataType;
 
 /**
- * Day of the week when project update reminders are sent out.
- */
-export type ProjectUpdateRemindersDayPropertyValue = TextDataType;
-
-/**
  * The hour at which to prompt for project updates.
  */
 export type ProjectUpdateRemindersHourPropertyValue = NumberDataType;
-
-/**
- * The frequency at which to prompt for project updates.
- */
-export type ProjectUpdatesReminderFrequencyPropertyValue = TextDataType;
-
-/**
- * The feature release channel the organization belongs to.
- */
-export type ReleaseChannelPropertyValue = TextDataType;
 
 /**
  * Whether the organization is using a roadmap.
@@ -460,11 +441,6 @@ export type SAMLEnabledPropertyValue = BooleanDataType;
  * Whether SCIM provisioning is enabled for organization.
  */
 export type SCIMEnabledPropertyValue = BooleanDataType;
-
-/**
- * Which day count to use for SLA calculations
- */
-export type SLADayCountPropertyValue = TextDataType;
 
 export type SnoozedBy = Entity<SnoozedByProperties> & { linkData: LinkData };
 

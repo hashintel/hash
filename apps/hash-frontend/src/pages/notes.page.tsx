@@ -65,6 +65,7 @@ const NotesPage: NextPageWithLayout = () => {
           all: [
             generateVersionedUrlMatchingFilter(
               systemEntityTypes.quickNote.entityTypeId,
+              { ignoreParents: true },
             ),
             {
               equal: [
@@ -85,6 +86,7 @@ const NotesPage: NextPageWithLayout = () => {
          * add the notArchivedFilter to this query, and remove the latestQuickNoteEntitiesWithCreatedAt creation below.
          */
         temporalAxes: fullDecisionTimeAxis,
+        includeDrafts: false,
       },
     },
     onCompleted: (data) => setPreviouslyFetchedQuickNotesAllVersionsData(data),
@@ -231,6 +233,7 @@ const NotesPage: NextPageWithLayout = () => {
         },
         graphResolveDepths: blockCollectionContentsDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
     },
     fetchPolicy: "cache-and-network",

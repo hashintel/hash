@@ -90,7 +90,9 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
       recordId: { entityId },
       // TODO: The provenance fields shouldn't be used for this
       //   see https://app.asana.com/0/1201095311341924/1203466351235289/f
-      provenance: { recordCreatedById: commentCreatedById },
+      provenance: {
+        edition: { createdById: commentCreatedById },
+      },
     },
     hasText,
     author,

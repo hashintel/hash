@@ -31,6 +31,7 @@ export const queryDataTypes: ResolverFn<
       constrainsValuesOn,
     },
     temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: false,
   });
 
   const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(data);

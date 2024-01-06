@@ -6,6 +6,7 @@ import {
   Item,
 } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
+import { DataTypeWithMetadata } from "@local/hash-subgraph";
 import produce from "immer";
 import { RefObject } from "react";
 
@@ -15,13 +16,13 @@ import { drawChip } from "../../../../../../../../components/grid/utils/draw-chi
 import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/draw-chip-with-icon";
 import { propertyGridIndexes } from "../constants";
 import { PropertyRow } from "../types";
-import { editorSpecs } from "./value-cell/editor-specs";
+import { getEditorSpecs } from "./value-cell/editor-specs";
 import { ValueCell } from "./value-cell/types";
 import { guessEditorTypeFromExpectedType } from "./value-cell/utils";
 
 export interface ChangeTypeCellProps {
   readonly kind: "change-type-cell";
-  currentType: string;
+  currentType: DataTypeWithMetadata["schema"];
   propertyRow: PropertyRow;
   valueCellOfThisRow: ValueCell;
 }
@@ -52,13 +53,15 @@ export const createRenderChangeTypeCell = (
       ctx.font = changeTextFont;
       const changeTextWidth = ctx.measureText(changeText).width;
 
-      const editorSpec =
-        editorSpecs[guessEditorTypeFromExpectedType(currentType)];
+      const editorSpec = getEditorSpecs(
+        guessEditorTypeFromExpectedType(currentType),
+        currentType.title,
+      );
 
       const drawTheLeftChip = () =>
         drawChipWithIcon({
           args,
-          text: currentType,
+          text: currentType.title,
           left: chipLeft,
           color: "blue",
           icon: editorSpec.gridIcon,

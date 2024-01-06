@@ -1,6 +1,13 @@
 use std::mem::ManuallyDrop;
 
-use authorization::NoAuthorization;
+use authorization::{
+    schema::{
+        DataTypeRelationAndSubject, DataTypeViewerSubject, EntityTypeInstantiatorSubject,
+        EntityTypeRelationAndSubject, EntityTypeViewerSubject, PropertyTypeRelationAndSubject,
+        PropertyTypeViewerSubject,
+    },
+    NoAuthorization,
+};
 use graph::{
     load_env,
     store::{
@@ -12,9 +19,10 @@ use graph::{
 use graph_types::{
     account::AccountId,
     ontology::{
-        PartialCustomOntologyMetadata, PartialEntityTypeMetadata, PartialOntologyElementMetadata,
+        OntologyTypeClassificationMetadata, PartialDataTypeMetadata, PartialEntityTypeMetadata,
+        PartialPropertyTypeMetadata,
     },
-    provenance::OwnedById,
+    owned_by_id::OwnedById,
 };
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
@@ -196,6 +204,7 @@ impl Drop for StoreWrapper {
     }
 }
 
+#[expect(clippy::too_many_lines)]
 pub async fn seed<D, P, E, C>(
     store: &mut PostgresStore<C>,
     account_id: AccountId,
@@ -217,12 +226,16 @@ pub async fn seed<D, P, E, C>(
                 account_id,
                 &mut NoAuthorization,
                 data_type.clone(),
-                PartialOntologyElementMetadata {
+                PartialDataTypeMetadata {
                     record_id: data_type.id().clone().into(),
-                    custom: PartialCustomOntologyMetadata::Owned {
+                    classification: OntologyTypeClassificationMetadata::Owned {
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
                 },
+                [DataTypeRelationAndSubject::Viewer {
+                    subject: DataTypeViewerSubject::Public,
+                    level: 0,
+                }],
             )
             .await
         {
@@ -230,7 +243,15 @@ pub async fn seed<D, P, E, C>(
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_data_type(account_id, &mut NoAuthorization, data_type)
+                        .update_data_type(
+                            account_id,
+                            &mut NoAuthorization,
+                            data_type,
+                            [DataTypeRelationAndSubject::Viewer {
+                                subject: DataTypeViewerSubject::Public,
+                                level: 0,
+                            }],
+                        )
                         .await
                         .expect("failed to update data type");
                 } else {
@@ -249,12 +270,16 @@ pub async fn seed<D, P, E, C>(
                 account_id,
                 &mut NoAuthorization,
                 property_type.clone(),
-                PartialOntologyElementMetadata {
+                PartialPropertyTypeMetadata {
                     record_id: property_type.id().clone().into(),
-                    custom: PartialCustomOntologyMetadata::Owned {
+                    classification: OntologyTypeClassificationMetadata::Owned {
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
                 },
+                [PropertyTypeRelationAndSubject::Viewer {
+                    subject: PropertyTypeViewerSubject::Public,
+                    level: 0,
+                }],
             )
             .await
         {
@@ -262,7 +287,15 @@ pub async fn seed<D, P, E, C>(
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_property_type(account_id, &mut NoAuthorization, property_type)
+                        .update_property_type(
+                            account_id,
+                            &mut NoAuthorization,
+                            property_type,
+                            [PropertyTypeRelationAndSubject::Viewer {
+                                subject: PropertyTypeViewerSubject::Public,
+                                level: 0,
+                            }],
+                        )
                         .await
                         .expect("failed to update property type");
                 } else {
@@ -285,10 +318,20 @@ pub async fn seed<D, P, E, C>(
                     record_id: entity_type.id().clone().into(),
                     label_property: None,
                     icon: None,
-                    custom: PartialCustomOntologyMetadata::Owned {
+                    classification: OntologyTypeClassificationMetadata::Owned {
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
                 },
+                [
+                    EntityTypeRelationAndSubject::Viewer {
+                        subject: EntityTypeViewerSubject::Public,
+                        level: 0,
+                    },
+                    EntityTypeRelationAndSubject::Instantiator {
+                        subject: EntityTypeInstantiatorSubject::Public,
+                        level: 0,
+                    },
+                ],
             )
             .await
         {
@@ -302,6 +345,16 @@ pub async fn seed<D, P, E, C>(
                             entity_type,
                             None,
                             None,
+                            [
+                                EntityTypeRelationAndSubject::Viewer {
+                                    subject: EntityTypeViewerSubject::Public,
+                                    level: 0,
+                                },
+                                EntityTypeRelationAndSubject::Instantiator {
+                                    subject: EntityTypeInstantiatorSubject::Public,
+                                    level: 0,
+                                },
+                            ],
                         )
                         .await
                         .expect("failed to update entity type");

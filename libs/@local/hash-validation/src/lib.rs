@@ -20,7 +20,10 @@ use std::{borrow::Borrow, future::Future};
 
 use error_stack::{Context, Report};
 use graph_types::knowledge::entity::{Entity, EntityId};
-use type_system::{url::VersionedUrl, EntityType};
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    EntityType,
+};
 
 trait Schema<V: ?Sized, P: Sync> {
     type Error: Context;
@@ -100,13 +103,14 @@ pub trait EntityTypeProvider: OntologyTypeProvider<EntityType> {
     fn is_parent_of(
         &self,
         child: &VersionedUrl,
-        parent: &VersionedUrl,
+        parent: &BaseUrl,
     ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
 }
 pub trait EntityProvider {
     fn provide_entity(
         &self,
         entity_id: EntityId,
+        include_drafts: bool,
     ) -> impl Future<Output = Result<impl Borrow<Entity> + Send, Report<impl Context>>> + Send;
 }
 
@@ -141,7 +145,7 @@ mod tests {
             Self {
                 entities: entities
                     .into_iter()
-                    .map(|entity| (entity.metadata.record_id().entity_id, entity))
+                    .map(|entity| (entity.metadata.record_id.entity_id, entity))
                     .collect(),
                 entity_types: entity_types
                     .into_iter()
@@ -186,6 +190,7 @@ mod tests {
         async fn provide_entity(
             &self,
             entity_id: EntityId,
+            _: bool,
         ) -> Result<&Entity, Report<InvalidEntity>> {
             self.entities
                 .get(&entity_id)
@@ -197,7 +202,7 @@ mod tests {
         async fn is_parent_of(
             &self,
             child: &VersionedUrl,
-            parent: &VersionedUrl,
+            parent: &BaseUrl,
         ) -> Result<bool, Report<InvalidEntityType>> {
             Ok(
                 OntologyTypeProvider::<EntityType>::provide_type(self, child)
@@ -205,7 +210,7 @@ mod tests {
                     .inherits_from()
                     .all_of()
                     .iter()
-                    .any(|id| id.url() == parent),
+                    .any(|id| id.url().base_url == *parent),
             )
         }
     }
@@ -310,7 +315,7 @@ mod tests {
 
     pub(crate) async fn validate_data(
         data: JsonValue,
-        data_type: &'static str,
+        data_type: &str,
         profile: ValidationProfile,
     ) -> Result<(), Report<DataValidationError>> {
         install_error_stack_hooks();

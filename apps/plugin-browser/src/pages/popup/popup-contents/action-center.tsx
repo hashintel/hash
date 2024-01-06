@@ -1,63 +1,161 @@
-import { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
-import { User } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Box, Stack } from "@mui/material";
-import { Tabs } from "webextension-polyfill";
+import {
+  ListRegularIcon,
+  PlusIcon,
+  WandMagicSparklesIcon,
+} from "@hashintel/design-system";
+import {
+  Box,
+  Stack,
+  SvgIconProps,
+  Tab as MuiTab,
+  TabProps as MuiTabProps,
+  Tabs as MuiTabs,
+  Typography,
+} from "@mui/material";
+import { FunctionComponent } from "react";
+import type { Tabs } from "webextension-polyfill";
 
-import { InferEntitiesAction } from "./action-center/infer-entities-action";
-import { QuickNoteAction } from "./action-center/quick-note-action";
+import { LocalStorage } from "../../../shared/storage";
+import {
+  darkModeBorderColor,
+  lightModeBorderColor,
+} from "../../shared/style-values";
+import { useLocalStorage } from "../../shared/use-local-storage";
+import { Automated } from "./action-center/automated";
+import { defaultProductionRules } from "./action-center/default-production-rules";
+import { Log } from "./action-center/log";
+import { OneOff } from "./action-center/one-off";
+import { Avatar } from "./shared/avatar";
+import { popupWidth } from "./shared/sizing";
+
+const generateCommonTabProps = (
+  active: boolean,
+  label: string,
+  Icon: FunctionComponent<SvgIconProps>,
+): MuiTabProps => ({
+  disableRipple: true,
+  iconPosition: "start",
+  icon: (
+    <Icon
+      sx={{
+        fontSize: 15,
+        fill: ({ palette }) => (active ? palette.blue[70] : palette.gray[70]),
+      }}
+    />
+  ),
+  label: (
+    <Typography sx={{ fontWeight: 500, fontSize: 14 }}>{label}</Typography>
+  ),
+  sx: ({ palette }) => ({
+    borderBottom: active
+      ? `3px solid ${palette.blue[70]}`
+      : `3px solid transparent`,
+    pl: 0.5,
+    pr: 0.7,
+    py: 1.5,
+    mr: 2,
+    color: active ? palette.blue[70] : palette.gray[70],
+  }),
+});
 
 export const ActionCenter = ({
-  activeTab,
+  activeBrowserTab,
+  popupTab,
+  setPopupTab,
   user,
 }: {
-  activeTab?: Tabs.Tab | null;
-  user: Simplified<User>;
+  activeBrowserTab?: Tabs.Tab | null;
+  popupTab: NonNullable<LocalStorage["popupTab"]>;
+  setPopupTab: (popupTab: NonNullable<LocalStorage["popupTab"]>) => void;
+  user: NonNullable<LocalStorage["user"]>;
 }) => {
+  const [automaticInferenceConfig, setAutomaticInferenceConfig] =
+    useLocalStorage("automaticInferenceConfig", {
+      createAs: "draft",
+      displayGroupedBy: "type",
+      enabled: false,
+      model: "gpt-4-turbo",
+      ownedById: user.webOwnedById,
+      rules:
+        FRONTEND_ORIGIN === "https://app.hash.ai" ? defaultProductionRules : [],
+    });
+
+  const [inferenceRequests] = useLocalStorage("inferenceRequests", []);
+
   return (
-    <Box sx={{ maxWidth: "100%", width: 530 }}>
+    <Box sx={{ maxWidth: "100%", width: popupWidth }}>
       <Stack
         component="header"
         direction="row"
-        sx={({ palette }) => ({
+        sx={({ palette, boxShadows }) => ({
+          alignItems: "center",
           background: palette.common.white,
+          borderBottom: `1px solid ${lightModeBorderColor}`,
+          boxShadow: boxShadows.sm,
           justifyContent: "space-between",
           px: 2.5,
-          py: 1,
           "@media (prefers-color-scheme: dark)": {
             background: palette.common.black,
+            borderBottom: `1px solid ${darkModeBorderColor}`,
           },
         })}
       >
-        <Box />
-        <Box
-          component="a"
-          // @todo handle users who haven't completed signup
-          href={`${FRONTEND_ORIGIN}/@${user.properties.shortname!}`}
-          sx={({ palette }) => ({
-            background: palette.blue[70],
-            borderRadius: "50%",
-            color: palette.common.white,
-            height: 32,
-            width: 32,
-            fontSize: 18,
-            fontWeight: 500,
-            lineHeight: "32px",
-            textAlign: "center",
-            textDecoration: "none",
-            transition: ({ transitions }) => transitions.create("opacity"),
-            "&:hover": {
-              opacity: 0.9,
-            },
-          })}
-          target="_blank"
-        >
-          {user.properties.preferredName?.[0] ?? "?"}
+        <Box>
+          <MuiTabs
+            onChange={(_event, newValue) =>
+              setPopupTab(newValue as "one-off" | "automated" | "log")
+            }
+            TabIndicatorProps={{ sx: { transition: "none" } }}
+            value={popupTab}
+          >
+            <MuiTab
+              value="one-off"
+              {...generateCommonTabProps(
+                popupTab === "one-off",
+                "One-off",
+                PlusIcon,
+              )}
+            />
+            <MuiTab
+              value="automated"
+              {...generateCommonTabProps(
+                popupTab === "automated",
+                "Automated",
+                WandMagicSparklesIcon,
+              )}
+            />
+            <MuiTab
+              value="log"
+              {...generateCommonTabProps(
+                popupTab === "log",
+                "Log",
+                ListRegularIcon,
+              )}
+            />
+          </MuiTabs>
         </Box>
+        <Avatar
+          avatar={user.avatar}
+          href={
+            user.properties.shortname
+              ? `${FRONTEND_ORIGIN}/@${user.properties.shortname}`
+              : undefined
+          }
+          name={user.properties.preferredName}
+        />
       </Stack>
-
-      <Box>
-        <QuickNoteAction />
-        <InferEntitiesAction activeTab={activeTab} />
+      <Box sx={{ maxHeight: 545, overflowY: "scroll" }}>
+        {popupTab === "one-off" ? (
+          <OneOff activeTab={activeBrowserTab} user={user} />
+        ) : popupTab === "automated" ? (
+          <Automated
+            automaticInferenceConfig={automaticInferenceConfig}
+            setAutomaticInferenceConfig={setAutomaticInferenceConfig}
+            user={user}
+          />
+        ) : (
+          <Log inferenceRequests={inferenceRequests} user={user} />
+        )}
       </Box>
     </Box>
   );

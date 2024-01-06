@@ -41,7 +41,7 @@ async fn insert() {
         .expect("could not create entity");
 
     let entities = api
-        .get_entities(metadata.record_id().entity_id)
+        .get_entities(metadata.record_id.entity_id)
         .await
         .expect("could not get entity");
     assert_eq!(entities.len(), 1);
@@ -80,7 +80,7 @@ async fn query() {
         .expect("could not create entity");
 
     let queried_organizations = api
-        .get_entities(metadata.record_id().entity_id)
+        .get_entities(metadata.record_id.entity_id)
         .await
         .expect("could not get entity");
     assert_eq!(queried_organizations.len(), 1);
@@ -122,7 +122,7 @@ async fn update() {
 
     let v2_metadata = api
         .update_entity(
-            v1_metadata.record_id().entity_id,
+            v1_metadata.record_id.entity_id,
             page_v2.clone(),
             VersionedUrl {
                 base_url: BaseUrl::new(
@@ -140,31 +140,31 @@ async fn update() {
         .expect("could not update entity");
 
     let entities = api
-        .get_entities(v2_metadata.record_id().entity_id)
+        .get_entities(v2_metadata.record_id.entity_id)
         .await
         .expect("could not get entity");
 
     assert_eq!(entities.len(), 2);
 
     let entity_v2 = api
-        .get_latest_entity(v2_metadata.record_id().entity_id)
+        .get_latest_entity(v2_metadata.record_id.entity_id)
         .await
         .expect("could not get entity");
 
     assert_eq!(entity_v2.properties, page_v2);
 
     let ClosedTemporalBound::Inclusive(entity_v1_timestamp) =
-        *v1_metadata.temporal_versioning().decision_time.start();
+        *v1_metadata.temporal_versioning.decision_time.start();
     let entity_v1 = api
-        .get_entity_by_timestamp(v1_metadata.record_id().entity_id, entity_v1_timestamp)
+        .get_entity_by_timestamp(v1_metadata.record_id.entity_id, entity_v1_timestamp)
         .await
         .expect("could not get entity v1");
     assert_eq!(entity_v1.properties, page_v1);
 
     let ClosedTemporalBound::Inclusive(entity_v2_timestamp) =
-        *v2_metadata.temporal_versioning().decision_time.start();
+        *v2_metadata.temporal_versioning.decision_time.start();
     let entity_v2 = api
-        .get_entity_by_timestamp(v2_metadata.record_id().entity_id, entity_v2_timestamp)
+        .get_entity_by_timestamp(v2_metadata.record_id.entity_id, entity_v2_timestamp)
         .await
         .expect("could not get entity v2");
 

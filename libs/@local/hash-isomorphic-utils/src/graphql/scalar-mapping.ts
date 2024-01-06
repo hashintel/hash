@@ -18,7 +18,7 @@ export const scalars = {
 
   DataTypeWithMetadata: "@local/hash-subgraph#DataTypeWithMetadata",
   ConstructDataTypeParams:
-    "@local/hash-isomorphic-utils/types#ConstructDataTypeParams",
+    "@local/hash-isomorphic-utils/data-types#ConstructDataTypeParams",
 
   EntityTypeWithMetadata: "@local/hash-subgraph#EntityTypeWithMetadata",
   ConstructEntityTypeParams:
@@ -36,6 +36,9 @@ export const scalars = {
     "@local/hash-subgraph#EntityTemporalVersioningMetadata",
   EntityPropertiesObject: "@local/hash-subgraph#EntityPropertiesObject",
 
+  AggregatedUsageRecord:
+    "@local/hash-isomorphic-utils/service-usage#AggregatedUsageRecord",
+
   UserPermissionsOnEntities:
     "@local/hash-isomorphic-utils/types#UserPermissionsOnEntities",
   UserPermissions: "@local/hash-isomorphic-utils/types#UserPermissions",
@@ -47,7 +50,7 @@ export const scalars = {
   SubgraphTemporalAxes: "@local/hash-subgraph#SubgraphTemporalAxes",
 
   OwnedById: "@local/hash-subgraph#OwnedById",
-  RecordCreatedById: "@local/hash-subgraph#RecordCreatedById",
+  EditionCreatedById: "@local/hash-subgraph#EditionCreatedById",
   AccountId: "@local/hash-subgraph#AccountId",
   AccountGroupId: "@local/hash-subgraph#AccountGroupId",
   AuthorizationSubjectId: "@local/hash-subgraph#AuthorizationSubjectId",

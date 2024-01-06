@@ -18,6 +18,7 @@ import {
   SortType,
 } from "./account-entity-type-list/sort-actions-dropdown";
 import { NavLink } from "./nav-link";
+import { LoadingSkeleton } from "./shared/loading-skeleton";
 import { ViewAllLink } from "./view-all-link";
 
 type AccountEntityTypeListProps = {
@@ -36,14 +37,14 @@ export const AccountEntityTypeList: FunctionComponent<
     popupId: "type-sort-actions-menu",
   });
 
-  const { latestEntityTypes } = useLatestEntityTypesOptional();
+  const { latestEntityTypes, loading } = useLatestEntityTypesOptional();
 
   const accountEntityTypes = useMemo(() => {
     if (latestEntityTypes) {
       return latestEntityTypes.filter(
         (root) =>
           isOwnedOntologyElementMetadata(root.metadata) &&
-          root.metadata.custom.ownedById === ownedById,
+          root.metadata.ownedById === ownedById,
       );
     }
 
@@ -128,13 +129,17 @@ export const AccountEntityTypeList: FunctionComponent<
         }
       >
         <Box component="ul">
-          <TransitionGroup>
-            {filteredEntityTypes.map((root) => (
-              <Collapse key={root.schema.$id}>
-                <EntityTypeItem entityType={root} variant="entity-type" />
-              </Collapse>
-            ))}
-          </TransitionGroup>
+          {loading && filteredEntityTypes.length === 0 ? (
+            <LoadingSkeleton />
+          ) : (
+            <TransitionGroup>
+              {filteredEntityTypes.map((root) => (
+                <Collapse key={root.schema.$id}>
+                  <EntityTypeItem entityType={root} variant="entity-type" />
+                </Collapse>
+              ))}
+            </TransitionGroup>
+          )}
           <Box
             tabIndex={0}
             component="li"

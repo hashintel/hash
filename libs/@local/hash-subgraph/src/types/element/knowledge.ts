@@ -17,10 +17,10 @@ import { Subtype } from "@local/advanced-types/subtype";
 import {
   BaseUrl,
   EntityId,
+  EntityProvenanceMetadata,
   ExclusiveLimitedTemporalBound,
   InclusiveLimitedTemporalBound,
   isEntityId,
-  ProvenanceMetadata,
   TemporalAxis,
   TimeInterval,
   Timestamp,
@@ -92,7 +92,7 @@ export type EntityMetadata = Subtype<
     temporalVersioning: EntityTemporalVersioningMetadata;
     archived: boolean;
     draft: boolean;
-    provenance: ProvenanceMetadata;
+    provenance: EntityProvenanceMetadata;
   }
 >;
 

@@ -1,16 +1,21 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
+import {
+  joinOrg,
+  User,
+} from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createDataType,
   getDataTypeById,
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
+import { modifyWebAuthorizationRelationships } from "@apps/hash-api/src/graph/ontology/primitive/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { ConstructDataTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
+  ConstructDataTypeParams,
   DataTypeWithMetadata,
   isOwnedOntologyElementMetadata,
   OwnedById,
@@ -19,6 +24,7 @@ import {
 import { resetGraph } from "../../../test-server";
 import {
   createTestImpureGraphContext,
+  createTestOrg,
   createTestUser,
   textDataTypeId,
 } from "../../../util";
@@ -33,6 +39,7 @@ const logger = new Logger({
 
 const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
+let testOrg: Org;
 let testUser: User;
 let testUser2: User;
 
@@ -47,6 +54,37 @@ beforeAll(async () => {
 
   testUser = await createTestUser(graphContext, "data-type-test-1", logger);
   testUser2 = await createTestUser(graphContext, "data-type-test-2", logger);
+
+  const authentication = { actorId: testUser.accountId };
+
+  testOrg = await createTestOrg(
+    graphContext,
+    authentication,
+    "propertytestorg",
+    logger,
+  );
+  await joinOrg(graphContext, authentication, {
+    userEntityId: testUser2.entity.metadata.recordId.entityId,
+    orgEntityId: testOrg.entity.metadata.recordId.entityId,
+  });
+
+  // Currently, full access permissions are required to update a data type
+  await modifyWebAuthorizationRelationships(graphContext, authentication, [
+    {
+      relationship: {
+        resource: {
+          kind: "web",
+          resourceId: testOrg.accountGroupId as OwnedById,
+        },
+        relation: "owner",
+        subject: {
+          kind: "account",
+          subjectId: testUser2.accountId,
+        },
+      },
+      operation: "create",
+    },
+  ]);
 });
 
 afterAll(async () => {
@@ -63,12 +101,13 @@ afterAll(async () => {
 describe("Data type CRU", () => {
   let createdDataType: DataTypeWithMetadata;
 
-  it.skip("can create a data type", async () => {
+  it("can create a data type", async () => {
     const authentication = { actorId: testUser.accountId };
 
     createdDataType = await createDataType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      ownedById: testOrg.accountGroupId as OwnedById,
       schema: dataTypeSchema,
+      relationships: [{ relation: "viewer", subject: { kind: "public" } }],
     });
   });
 
@@ -87,10 +126,10 @@ describe("Data type CRU", () => {
   });
 
   const updatedTitle = "New text!";
-  it.skip("can update a data type", async () => {
+  it("can update a data type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdDataType.metadata) &&
-        createdDataType.metadata.custom.provenance.recordCreatedById,
+        createdDataType.metadata.provenance.edition.createdById,
     ).toBe(testUser.accountId);
 
     const authentication = { actorId: testUser2.accountId };
@@ -98,11 +137,12 @@ describe("Data type CRU", () => {
     const updatedDataType = await updateDataType(graphContext, authentication, {
       dataTypeId: createdDataType.schema.$id,
       schema: { ...dataTypeSchema, title: updatedTitle },
+      relationships: [{ relation: "viewer", subject: { kind: "public" } }],
     }).catch((err) => Promise.reject(err.data));
 
     expect(
       isOwnedOntologyElementMetadata(updatedDataType.metadata) &&
-        updatedDataType.metadata.custom.provenance.recordCreatedById,
+        updatedDataType.metadata.provenance.edition.createdById,
     ).toBe(testUser2.accountId);
   });
 });

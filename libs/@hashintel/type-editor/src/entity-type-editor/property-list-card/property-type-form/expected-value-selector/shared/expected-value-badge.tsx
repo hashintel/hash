@@ -11,8 +11,10 @@ import {
 } from "@mui/material";
 import { ReactNode, useEffect, useRef, useState } from "react";
 
-import { CustomExpectedValueTypeId } from "../../../shared/expected-value-types";
-import { expectedValuesOptions } from "../../../shared/expected-values-options";
+import {
+  CustomExpectedValueTypeId,
+  useDataTypesOptions,
+} from "../../../../../shared/data-types-options-context";
 
 interface ExpectedValueBadgeProps {
   typeId: CustomExpectedValueTypeId;
@@ -31,7 +33,9 @@ export const ExpectedValueBadge = ({
 }: ExpectedValueBadgeProps) => {
   const [hovered, setHovered] = useState(false);
 
-  const { icon, title } = expectedValuesOptions[typeId]!;
+  const { getExpectedValueDisplay } = useDataTypesOptions();
+
+  const { icon, title } = getExpectedValueDisplay(typeId);
 
   const isArray = typeId === "array";
   const isObject = typeId === "object";

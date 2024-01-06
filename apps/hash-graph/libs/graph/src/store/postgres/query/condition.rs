@@ -165,7 +165,7 @@ mod tests {
         rendered: &'static str,
         parameters: &[&'p dyn ToSql],
     ) {
-        let mut compiler = SelectCompiler::new(None);
+        let mut compiler = SelectCompiler::new(None, false);
         let condition = compiler.compile_filter(filter);
 
         assert_eq!(condition.transpile_to_string(), rendered);
@@ -256,7 +256,7 @@ mod tests {
                 ),
                 Filter::Equal(
                     Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                    Some(FilterExpression::Parameter(Parameter::Number(1))),
+                    Some(FilterExpression::Parameter(Parameter::I32(1))),
                 ),
             ]),
             r#"("ontology_ids_0_1_0"."base_url" = $1) AND ("ontology_ids_0_1_0"."version" = $2)"#,
@@ -290,7 +290,7 @@ mod tests {
                 ),
                 Filter::Equal(
                     Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                    Some(FilterExpression::Parameter(Parameter::Number(1))),
+                    Some(FilterExpression::Parameter(Parameter::I32(1))),
                 ),
             ]),
             r#"(("ontology_ids_0_1_0"."base_url" = $1) OR ("ontology_ids_0_1_0"."version" = $2))"#,

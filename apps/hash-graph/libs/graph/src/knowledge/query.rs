@@ -6,6 +6,7 @@ use serde::{
     Deserialize, Deserializer,
 };
 use temporal_versioning::{ClosedTemporalBound, TemporalTagged, TimeAxis};
+#[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 use crate::{
@@ -47,7 +48,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`OwnedById`]: graph_types::provenance::OwnedById
+    /// [`OwnedById`]: graph_types::owned_by_id::OwnedById
     /// [`EntityId`]: graph_types::knowledge::entity::EntityId
     OwnedById,
     /// The [`EntityEditionId`] of the [`EntityRecordId`] belonging to the [`Entity`].
@@ -84,6 +85,41 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
     /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
     TransactionTime,
+    /// The timestamp of the transaction time when the [`Entity`] was _first inserted_ into the
+    /// database.
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["createdAtTransactionTime"]))?;
+    /// assert_eq!(path, EntityQueryPath::CreatedAtTransactionTime);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
+    /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
+    /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
+    CreatedAtTransactionTime,
+    /// The timestamp of the decision time when the [`Entity`] was _first inserted_ into the
+    /// database.
+    ///
+    /// This does not take into account if the [`Entity`] was updated with an earlier decision
+    /// time.
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["createdAtTransactionTime"]))?;
+    /// assert_eq!(path, EntityQueryPath::CreatedAtTransactionTime);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
+    /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
+    /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
+    CreatedAtDecisionTime,
     /// Whether or not the [`Entity`] is archived.
     ///
     /// ```rust
@@ -106,20 +142,38 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Archived,
-    /// The [`RecordCreatedById`] of the [`ProvenanceMetadata`] belonging to the [`Entity`].
+    /// The [`EditionCreatedById`] of the [`EntityProvenanceMetadata`] belonging to the [`Entity`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["recordCreatedById"]))?;
-    /// assert_eq!(path, EntityQueryPath::RecordCreatedById);
+    /// let path = EntityQueryPath::deserialize(json!(["editionCreatedById"]))?;
+    /// assert_eq!(path, EntityQueryPath::EditionCreatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
+    /// [`EntityProvenanceMetadata`]: graph_types::knowledge::entity::EntityProvenanceMetadata
+    EditionCreatedById,
+    /// The [`RecordCreatedById`] of the [`ProvenanceMetadata`] belonging to the [`Entity`] when
+    /// it was _first inserted_ into the database.
+    ///
+    /// This does not take into account if the [`Entity`] was updated with an earlier decision
+    /// time.
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["createdById"]))?;
+    /// assert_eq!(path, EntityQueryPath::CreatedById);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`RecordCreatedById`]: graph_types::provenance::RecordCreatedById
     /// [`ProvenanceMetadata`]: graph_types::provenance::ProvenanceMetadata
-    RecordCreatedById,
+    CreatedById,
     /// An edge from this [`Entity`] to it's [`EntityType`] using a [`SharedEdgeKind`].
     ///
     /// The corresponding reversed edge is [`EntityTypeQueryPath::EntityEdge`].
@@ -324,6 +378,19 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Properties(Option<JsonPath<'p>>),
+    /// The embedding for the whole entity blob.
+    ///
+    /// Deserializes from `["embedding"]`:
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["embedding"]))?;
+    /// assert_eq!(path, EntityQueryPath::Embedding,);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    Embedding,
 }
 
 impl fmt::Display for EntityQueryPath<'_> {
@@ -331,14 +398,18 @@ impl fmt::Display for EntityQueryPath<'_> {
         match self {
             Self::Uuid => fmt.write_str("uuid"),
             Self::OwnedById => fmt.write_str("ownedById"),
-            Self::RecordCreatedById => fmt.write_str("recordCreatedById"),
+            Self::EditionCreatedById => fmt.write_str("editionCreatedById"),
+            Self::CreatedById => fmt.write_str("createdById"),
             Self::EditionId => fmt.write_str("editionId"),
             Self::DecisionTime => fmt.write_str("decisionTime"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
+            Self::CreatedAtDecisionTime => fmt.write_str("createdAtDecisionTime"),
+            Self::CreatedAtTransactionTime => fmt.write_str("createdAtTransactionTime"),
             Self::Draft => fmt.write_str("draft"),
             Self::Archived => fmt.write_str("archived"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
+            Self::Embedding => fmt.write_str("embedding"),
             Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path,
@@ -378,12 +449,18 @@ impl fmt::Display for EntityQueryPath<'_> {
 impl QueryPath for EntityQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::EditionId | Self::Uuid | Self::OwnedById | Self::RecordCreatedById => {
-                ParameterType::Uuid
-            }
+            Self::EditionId
+            | Self::Uuid
+            | Self::OwnedById
+            | Self::EditionCreatedById
+            | Self::CreatedById => ParameterType::Uuid,
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
+            Self::CreatedAtDecisionTime | Self::CreatedAtTransactionTime => {
+                ParameterType::Timestamp
+            }
             Self::Properties(_) => ParameterType::Any,
-            Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::Number,
+            Self::Embedding => ParameterType::Vector,
+            Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::I32,
             Self::Archived | Self::Draft => ParameterType::Boolean,
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),
@@ -392,7 +469,8 @@ impl QueryPath for EntityQueryPath<'_> {
 }
 
 /// A single token in an [`EntityQueryPath`].
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum EntityQueryToken {
     // TODO: we want to expose `EntityId` here instead
@@ -401,9 +479,13 @@ pub enum EntityQueryToken {
     Archived,
     Draft,
     OwnedById,
-    RecordCreatedById,
+    EditionCreatedById,
+    CreatedById,
+    CreatedAtTransactionTime,
+    CreatedAtDecisionTime,
     Type,
     Properties,
+    Embedding,
     IncomingLinks,
     OutgoingLinks,
     LeftEntity,
@@ -419,10 +501,11 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `uuid`, `editionId`, `archived`, `draft`, \
-                                         `ownedById`, `recordCreatedById`, `type`, `properties`, \
-                                         `incomingLinks`, `outgoingLinks`, `leftEntity`, \
-                                         `rightEntity`, `leftToRightOrder`, `rightToLeftOrder`";
+    pub const EXPECTING: &'static str =
+        "one of `uuid`, `editionId`, `archived`, `draft`, `ownedById`, `editionCreatedById`, \
+         `createdById`, `createdAtTransactionTime`, `createdAtDecisionTime`, `type`, \
+         `properties`, `embedding`, `incomingLinks`, `outgoingLinks`, `leftEntity`, \
+         `rightEntity`, `leftToRightOrder`, `rightToLeftOrder`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -451,9 +534,13 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::Uuid => EntityQueryPath::Uuid,
             EntityQueryToken::EditionId => EntityQueryPath::EditionId,
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
-            EntityQueryToken::RecordCreatedById => EntityQueryPath::RecordCreatedById,
+            EntityQueryToken::EditionCreatedById => EntityQueryPath::EditionCreatedById,
+            EntityQueryToken::CreatedById => EntityQueryPath::CreatedById,
+            EntityQueryToken::CreatedAtTransactionTime => EntityQueryPath::CreatedAtTransactionTime,
+            EntityQueryToken::CreatedAtDecisionTime => EntityQueryPath::CreatedAtDecisionTime,
             EntityQueryToken::Archived => EntityQueryPath::Archived,
             EntityQueryToken::Draft => EntityQueryPath::Draft,
+            EntityQueryToken::Embedding => EntityQueryPath::Embedding,
             EntityQueryToken::Type => EntityQueryPath::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path: EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
@@ -529,19 +616,19 @@ impl Record for Entity {
         let ClosedTemporalBound::Inclusive(timestamp) = match time_axis {
             TimeAxis::DecisionTime => self
                 .metadata
-                .temporal_versioning()
+                .temporal_versioning
                 .decision_time
                 .start()
                 .cast(),
             TimeAxis::TransactionTime => self
                 .metadata
-                .temporal_versioning()
+                .temporal_versioning
                 .transaction_time
                 .start()
                 .cast(),
         };
         EntityVertexId {
-            base_id: self.metadata.record_id().entity_id,
+            base_id: self.metadata.record_id.entity_id,
             revision_id: timestamp,
         }
     }

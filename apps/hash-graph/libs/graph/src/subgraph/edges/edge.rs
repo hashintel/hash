@@ -1,4 +1,5 @@
 use serde::{ser::SerializeStruct, Serialize, Serializer};
+#[cfg(feature = "utoipa")]
 use utoipa::{openapi, ToSchema};
 
 #[derive(Debug, Hash, PartialEq, Eq)]
@@ -46,12 +47,13 @@ impl EdgeDirection {
 
 // Utoipa doesn't seem to be able to generate sensible interfaces for this, it gets confused by
 // the generic
+#[cfg(feature = "utoipa")]
 impl<'s, K, E> OutwardEdge<K, E>
 where
     K: ToSchema<'s>,
     E: ToSchema<'s>,
 {
-    pub(crate) fn generate_schema(title: impl Into<String>) -> openapi::RefOr<openapi::Schema> {
+    pub fn generate_schema(title: impl Into<String>) -> openapi::RefOr<openapi::Schema> {
         openapi::ObjectBuilder::new()
             .title(Some(title))
             .property("kind", openapi::Ref::from_schema_name(K::schema().0))

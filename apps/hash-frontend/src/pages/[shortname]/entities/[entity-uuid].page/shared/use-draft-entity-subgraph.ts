@@ -66,7 +66,7 @@ export const useDraftEntitySubgraph = (
                       editionId: now,
                     },
                     entityTypeId,
-                    provenance: { recordCreatedById: "" },
+                    provenance: { createdById: "" },
                     archived: false,
                     temporalVersioning: {
                       decisionTime: {

@@ -1,5 +1,5 @@
-import { Stack, Typography } from "@mui/material";
-import { ReactElement } from "react";
+import { Box, Stack, Typography } from "@mui/material";
+import { FunctionComponent, PropsWithChildren, ReactNode } from "react";
 
 import { Button } from "./button";
 import { Callout } from "./callout";
@@ -7,21 +7,24 @@ import { Modal } from "./modal";
 
 type AlertModalProps = {
   callback?: () => void;
-  calloutMessage: string;
+  calloutMessage: ReactNode;
   close: () => void;
   confirmButtonText?: string;
-  header: ReactElement;
+  header: ReactNode;
   type: "info" | "warning";
 };
 
-export const AlertModal = ({
+export const AlertModal: FunctionComponent<
+  AlertModalProps & PropsWithChildren
+> = ({
   callback,
   calloutMessage,
   close,
   confirmButtonText,
   header,
   type,
-}: AlertModalProps) => {
+  children,
+}) => {
   return (
     <Modal open onClose={close} contentStyle={{ p: { xs: 0, md: 0 } }}>
       <Stack>
@@ -29,6 +32,7 @@ export const AlertModal = ({
           {header}
         </Typography>
         <Callout type={type}>{calloutMessage}</Callout>
+        {children ? <Box p={{ xs: 2, md: 2.5 }}>{children}</Box> : null}
         <Stack direction="row" spacing={1.5} p={{ xs: 2, md: 2.5 }}>
           {callback && (
             <Button

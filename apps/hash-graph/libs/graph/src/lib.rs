@@ -22,8 +22,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub mod api;
-
 pub mod knowledge;
 pub mod ontology;
 pub mod subgraph;

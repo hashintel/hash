@@ -18,7 +18,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
     knowledge::entity::{EntityMetadata, EntityProperties},
-    provenance::OwnedById,
+    owned_by_id::OwnedById,
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
@@ -129,7 +129,7 @@ pub fn bench_get_entity_by_id(
             // query
             entity_metadata_list
                 .iter()
-                .map(EntityMetadata::record_id)
+                .map(|metadata| metadata.record_id)
                 .choose(&mut thread_rng())
                 .expect("could not choose random entity")
         },
@@ -148,6 +148,7 @@ pub fn bench_get_entity_by_id(
                                 None,
                             ),
                         },
+                        include_drafts: false,
                     },
                     None,
                     None,

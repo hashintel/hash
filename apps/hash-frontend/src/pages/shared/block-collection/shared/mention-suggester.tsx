@@ -141,26 +141,36 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       includePermissions: false,
       query: {
         filter: {
-          any: [
+          all: [
             {
-              equal: [
-                { path: ["ownedById"] },
-                { parameter: authenticatedUser.accountId },
+              any: [
+                {
+                  equal: [
+                    { path: ["ownedById"] },
+                    { parameter: authenticatedUser.accountId },
+                  ],
+                },
+                ...authenticatedUser.memberOf.map(
+                  ({ org: { accountGroupId } }) => ({
+                    equal: [
+                      { path: ["ownedById"] },
+                      { parameter: accountGroupId },
+                    ],
+                  }),
+                ),
+                generateVersionedUrlMatchingFilter(
+                  systemEntityTypes.user.entityTypeId,
+                  { ignoreParents: true },
+                ),
+                generateVersionedUrlMatchingFilter(
+                  systemEntityTypes.organization.entityTypeId,
+                  { ignoreParents: true },
+                ),
               ],
             },
-            ...authenticatedUser.memberOf.map(
-              ({ org: { accountGroupId } }) => ({
-                equal: [{ path: ["ownedById"] }, { parameter: accountGroupId }],
-              }),
-            ),
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.user.entityTypeId,
-              { ignoreParents: true },
-            ),
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.organization.entityTypeId,
-              { ignoreParents: true },
-            ),
+            {
+              equal: [{ path: ["archived"] }, { parameter: false }],
+            },
           ],
         },
         graphResolveDepths: {
@@ -171,6 +181,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
           hasRightEntity: { outgoing: 1, incoming: 1 },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
     },
     fetchPolicy: "cache-and-network",

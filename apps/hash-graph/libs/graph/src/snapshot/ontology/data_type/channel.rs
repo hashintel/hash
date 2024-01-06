@@ -29,7 +29,7 @@ use crate::snapshot::{
 pub struct DataTypeSender {
     metadata: OntologyTypeMetadataSender,
     schema: Sender<DataTypeRow>,
-    relations: Sender<(DataTypeId, DataTypeRelationAndSubject)>,
+    relations: Sender<(DataTypeId, Vec<DataTypeRelationAndSubject>)>,
 }
 
 // This is a direct wrapper around `Sink<mpsc::Sender<DataTypeRow>>` with and
@@ -58,7 +58,13 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
         let ontology_id = Uuid::new_v5(&Uuid::NAMESPACE_URL, record_id.as_bytes());
 
         self.metadata
-            .start_send_unpin((ontology_id, data_type.metadata))
+            .start_send_unpin((
+                ontology_id,
+                data_type.metadata.record_id,
+                data_type.metadata.classification,
+                data_type.metadata.temporal_versioning,
+                data_type.metadata.provenance,
+            ))
             .attach_printable("could not send metadata")?;
         self.schema
             .start_send_unpin(DataTypeRow {
@@ -68,12 +74,10 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;
 
-        for relationships in data_type.relations {
-            self.relations
-                .start_send_unpin((DataTypeId::new(ontology_id), relationships))
-                .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send data relations")?;
-        }
+        self.relations
+            .start_send_unpin((DataTypeId::new(ontology_id), data_type.relations))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not send data relations")?;
 
         Ok(())
     }
@@ -147,7 +151,7 @@ pub fn data_type_channel(
                     .boxed(),
                 relations_rx
                     .ready_chunks(chunk_size)
-                    .map(DataTypeRowBatch::Relations)
+                    .map(|relations| DataTypeRowBatch::Relations(relations.into_iter().collect()))
                     .boxed(),
             ]),
         },

@@ -63,9 +63,9 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
 
   const archivedByAccountId = useMemo(() => {
     if (isItemEntityType(item)) {
-      return item.metadata.custom.provenance.recordArchivedById!;
+      return item.metadata.provenance.edition.archivedById!;
     } else if (isEntityPageEntity(item)) {
-      return item.metadata.provenance.recordCreatedById;
+      return item.metadata.provenance.edition.createdById;
     } else {
       throw new Error("Archived entities are not yet supported.");
     }
@@ -78,9 +78,9 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
     () =>
       new Date(
         isItemEntityType(item)
-          ? item.metadata.custom.temporalVersioning.transactionTime.end.kind ===
+          ? item.metadata.temporalVersioning.transactionTime.end.kind ===
             "exclusive"
-            ? item.metadata.custom.temporalVersioning.transactionTime.end.limit
+            ? item.metadata.temporalVersioning.transactionTime.end.limit
             : 0
           : item.metadata.temporalVersioning.decisionTime.start.limit,
       ),

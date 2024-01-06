@@ -2,6 +2,7 @@ import {
   DATA_TYPE_META_SCHEMA,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
   DataTypePermission,
   DataTypeStructuralQuery,
@@ -13,12 +14,13 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { ConstructDataTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
+  ConstructDataTypeParams,
   DataTypeAuthorizationRelationship,
+  DataTypeMetadata,
+  DataTypeRelationAndSubject,
   DataTypeRootType,
   DataTypeWithMetadata,
-  OntologyElementMetadata,
   OntologyTypeRecordId,
   ontologyTypeRecordIdToVersionedUrl,
   OwnedById,
@@ -29,7 +31,6 @@ import {
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
-import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname, isExternalTypeId } from "./util";
 
@@ -53,6 +54,7 @@ export const createDataType: ImpureGraphFunction<
     ownedById: OwnedById;
     schema: ConstructDataTypeParams;
     webShortname?: string;
+    relationships: DataTypeRelationAndSubject[];
   },
   Promise<DataTypeWithMetadata>
 > = async (ctx, authentication, params) => {
@@ -84,10 +86,11 @@ export const createDataType: ImpureGraphFunction<
     {
       schema,
       ownedById,
+      relationships: params.relationships,
     },
   );
 
-  return { schema, metadata: metadata as OntologyElementMetadata };
+  return { schema, metadata: metadata as DataTypeMetadata };
 };
 
 /**
@@ -97,15 +100,17 @@ export const createDataType: ImpureGraphFunction<
  */
 export const getDataTypes: ImpureGraphFunction<
   {
-    query: DataTypeStructuralQuery;
+    query: Omit<DataTypeStructuralQuery, "includeDrafts">;
   },
   Promise<Subgraph<DataTypeRootType>>
 > = async ({ graphApi }, { actorId }, { query }) => {
-  return await graphApi.getDataTypesByQuery(actorId, query).then(({ data }) => {
-    const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(data);
+  return await graphApi
+    .getDataTypesByQuery(actorId, { includeDrafts: false, ...query })
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(data);
 
-    return subgraph;
-  });
+      return subgraph;
+    });
 };
 
 /**
@@ -144,14 +149,14 @@ export const getDataTypeById: ImpureGraphFunction<
  * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
  */
 export const getDataTypeSubgraphById: ImpureGraphFunction<
-  Omit<DataTypeStructuralQuery, "filter"> & {
+  Omit<DataTypeStructuralQuery, "filter" | "includeDrafts"> & {
     dataTypeId: VersionedUrl;
   },
   Promise<Subgraph<DataTypeRootType>>
 > = async (context, authentication, params) => {
   const { graphResolveDepths, temporalAxes, dataTypeId } = params;
 
-  const query: DataTypeStructuralQuery = {
+  const query: Omit<DataTypeStructuralQuery, "includeDrafts"> = {
     filter: {
       equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
     },
@@ -193,6 +198,7 @@ export const updateDataType: ImpureGraphFunction<
   {
     dataTypeId: VersionedUrl;
     schema: ConstructDataTypeParams;
+    relationships: DataTypeRelationAndSubject[];
   },
   Promise<DataTypeWithMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
@@ -205,6 +211,7 @@ export const updateDataType: ImpureGraphFunction<
       kind: "dataType",
       ...schema,
     },
+    relationships: params.relationships,
   });
 
   const { recordId } = metadata;
@@ -216,7 +223,7 @@ export const updateDataType: ImpureGraphFunction<
       ...schema,
       $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
     },
-    metadata: metadata as OntologyElementMetadata,
+    metadata: metadata as DataTypeMetadata,
   };
 };
 

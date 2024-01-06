@@ -5,7 +5,8 @@ import type {
   InferredEntityCreationFailure,
   InferredEntityCreationSuccess,
   ProposedEntity,
-} from "@local/hash-isomorphic-utils/temporal-types";
+} from "@local/hash-isomorphic-utils/ai-inference-types";
+import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   AccountId,
   EntityId,
@@ -16,11 +17,15 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
+import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 import isMatch from "lodash.ismatch";
 
 import type { DereferencedEntityType } from "./dereference-entity-type";
+import { ensureTrailingSlash } from "./ensure-trailing-slash";
 import type { ProposedEntityCreationsByType } from "./generate-tools";
-import { getEntityByFilter } from "./get-entity-by-filter";
+import { extractErrorMessage } from "./shared/extract-validation-failure-details";
+import { getEntityByFilter } from "./shared/get-entity-by-filter";
+import { stringify } from "./stringify";
 
 type UpdateCandidate = {
   existingEntity: Entity;
@@ -32,11 +37,14 @@ type StatusByTemporaryId<T> = Record<number, T>;
 type EntityStatusMap = {
   creationSuccesses: StatusByTemporaryId<InferredEntityCreationSuccess>;
   creationFailures: StatusByTemporaryId<InferredEntityCreationFailure>;
+  previousSuccesses: StatusByTemporaryId<{ entity: Entity }>;
   updateCandidates: StatusByTemporaryId<UpdateCandidate>;
+  unchangedEntities: StatusByTemporaryId<UpdateCandidate>;
 };
 
 export const createEntities = async ({
   actorId,
+  createAsDraft,
   graphApiClient,
   log,
   proposedEntitiesByType,
@@ -44,8 +52,10 @@ export const createEntities = async ({
   ownedById,
 }: {
   actorId: AccountId;
+  createAsDraft: boolean;
   graphApiClient: GraphApi;
   log: (message: string) => void;
+  previousSuccesses: StatusByTemporaryId<{ entity: Entity }>;
   proposedEntitiesByType: ProposedEntityCreationsByType;
   requestedEntityTypes: Record<
     VersionedUrl,
@@ -63,7 +73,9 @@ export const createEntities = async ({
   const entityStatusMap: EntityStatusMap = {
     creationSuccesses: {},
     creationFailures: {},
+    previousSuccesses: {},
     updateCandidates: {},
+    unchangedEntities: {},
   };
 
   await Promise.all(
@@ -74,9 +86,17 @@ export const createEntities = async ({
 
       await Promise.all(
         (proposedEntities ?? []).map(async (proposedEntity) => {
-          const { properties = {} } = proposedEntity;
+          const properties = ensureTrailingSlash(
+            proposedEntity.properties ?? {},
+          );
 
-          const nameProperties = ["name", "display-name", "preferred-name"];
+          const nameProperties = [
+            "name",
+            "display-name",
+            "legal-name",
+            "preferred-name",
+            "profile-url",
+          ];
           const propertyKeysToMatchOn = typedKeys(properties).filter((key) =>
             nameProperties.includes(
               // capture the last part of the path, e.g. /@example/property-type/name/ -> name
@@ -106,6 +126,7 @@ export const createEntities = async ({
                       },
                     ],
                   },
+                  generateVersionedUrlMatchingFilter(entityTypeId),
                 ],
               },
             });
@@ -125,6 +146,14 @@ export const createEntities = async ({
                   existingEntity,
                   proposedEntity,
                 };
+              } else {
+                log(
+                  `Proposed entity ${proposedEntity.entityId} exactly matches existing entity – continuing`,
+                );
+                entityStatusMap.unchangedEntities[proposedEntity.entityId] = {
+                  existingEntity,
+                  proposedEntity,
+                };
               }
               return;
             }
@@ -132,7 +161,7 @@ export const createEntities = async ({
 
           try {
             await graphApiClient.validateEntity(actorId, {
-              draft: true,
+              draft: createAsDraft,
               entityTypeId,
               operations: ["all"],
               properties,
@@ -140,16 +169,36 @@ export const createEntities = async ({
 
             const { data: createdEntityMetadata } =
               await graphApiClient.createEntity(actorId, {
-                draft: false,
+                draft: createAsDraft,
                 entityTypeId,
                 ownedById,
-                owner: ownedById,
                 properties,
+                relationships: [
+                  {
+                    relation: "setting",
+                    subject: {
+                      kind: "setting",
+                      subjectId: "administratorFromWeb",
+                    },
+                  },
+                  {
+                    relation: "setting",
+                    subject: { kind: "setting", subjectId: "updateFromWeb" },
+                  },
+                  {
+                    relation: "setting",
+                    subject: { kind: "setting", subjectId: "viewFromWeb" },
+                  },
+                ],
               });
+
+            const metadata = mapGraphApiEntityMetadataToMetadata(
+              createdEntityMetadata,
+            );
 
             entityStatusMap.creationSuccesses[proposedEntity.entityId] = {
               entity: {
-                metadata: createdEntityMetadata,
+                metadata,
                 properties,
               },
               entityTypeId,
@@ -161,13 +210,17 @@ export const createEntities = async ({
             log(
               `Creation of entity id ${
                 proposedEntity.entityId
-              } failed with err: ${JSON.stringify(err, undefined, 2)}`,
+              } failed with err: ${stringify(err)}`,
             );
+
+            const failureReason = `${extractErrorMessage(
+              err,
+            )}. The schema is ${JSON.stringify(nonLinkType.schema)}.`;
 
             entityStatusMap.creationFailures[proposedEntity.entityId] = {
               entityTypeId,
               proposedEntity,
-              failureReason: (err as Error).message,
+              failureReason,
               operation: "create",
               status: "failure",
             };
@@ -185,7 +238,9 @@ export const createEntities = async ({
 
       await Promise.all(
         (proposedEntities ?? []).map(async (proposedEntity) => {
-          const { properties = {} } = proposedEntity;
+          const properties = ensureTrailingSlash(
+            proposedEntity.properties ?? {},
+          );
 
           if (
             !(
@@ -208,7 +263,9 @@ export const createEntities = async ({
 
           const sourceEntity =
             entityStatusMap.creationSuccesses[sourceEntityId]?.entity ??
-            entityStatusMap.updateCandidates[sourceEntityId]?.existingEntity;
+            entityStatusMap.updateCandidates[sourceEntityId]?.existingEntity ??
+            entityStatusMap.unchangedEntities[sourceEntityId]?.existingEntity ??
+            entityStatusMap.previousSuccesses[sourceEntityId]?.entity;
 
           if (!sourceEntity) {
             const sourceFailure =
@@ -246,7 +303,9 @@ export const createEntities = async ({
 
           const targetEntity =
             entityStatusMap.creationSuccesses[targetEntityId]?.entity ??
-            entityStatusMap.updateCandidates[targetEntityId]?.existingEntity;
+            entityStatusMap.updateCandidates[targetEntityId]?.existingEntity ??
+            entityStatusMap.unchangedEntities[targetEntityId]?.existingEntity ??
+            entityStatusMap.previousSuccesses[sourceEntityId]?.entity;
 
           if (!targetEntity) {
             const targetFailure =
@@ -289,11 +348,11 @@ export const createEntities = async ({
 
           try {
             await graphApiClient.validateEntity(actorId, {
+              draft: createAsDraft,
               entityTypeId,
               operations: ["all"],
               linkData,
               properties,
-              draft: false,
             });
 
             const existingLinkEntity = await getEntityByFilter({
@@ -370,17 +429,37 @@ export const createEntities = async ({
 
             const { data: createdEntityMetadata } =
               await graphApiClient.createEntity(actorId, {
+                draft: createAsDraft,
                 entityTypeId,
                 linkData,
                 ownedById,
-                owner: ownedById,
                 properties,
-                draft: false,
+                relationships: [
+                  {
+                    relation: "setting",
+                    subject: {
+                      kind: "setting",
+                      subjectId: "administratorFromWeb",
+                    },
+                  },
+                  {
+                    relation: "setting",
+                    subject: { kind: "setting", subjectId: "updateFromWeb" },
+                  },
+                  {
+                    relation: "setting",
+                    subject: { kind: "setting", subjectId: "viewFromWeb" },
+                  },
+                ],
               });
+
+            const metadata = mapGraphApiEntityMetadataToMetadata(
+              createdEntityMetadata,
+            );
 
             entityStatusMap.creationSuccesses[proposedEntity.entityId] = {
               entityTypeId,
-              entity: { linkData, metadata: createdEntityMetadata, properties },
+              entity: { linkData, metadata, properties },
               operation: "create",
               proposedEntity,
               status: "success",
@@ -389,15 +468,19 @@ export const createEntities = async ({
             log(
               `Creation of link entity id ${
                 proposedEntity.entityId
-              } failed with err: ${JSON.stringify(err, undefined, 2)}`,
+              } failed with err: ${stringify(err)}`,
             );
+
+            const failureReason = `${extractErrorMessage(
+              err,
+            )}. The schema is ${JSON.stringify(linkType.schema)}.`;
 
             entityStatusMap.creationFailures[proposedEntity.entityId] = {
               entityTypeId,
               operation: "create",
               proposedEntity,
               status: "failure",
-              failureReason: (err as Error).message,
+              failureReason,
             };
           }
         }),

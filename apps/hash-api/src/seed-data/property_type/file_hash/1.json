@@ -1,0 +1,12 @@
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+  "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/v/1",
+  "kind": "propertyType",
+  "title": "File Hash",
+  "description": "A unique signature derived from a file's contents",
+  "oneOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+    }
+  ]
+}

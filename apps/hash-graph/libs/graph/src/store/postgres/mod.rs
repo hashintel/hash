@@ -12,49 +12,46 @@ use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        AccountGroupOwnerSubject, AccountGroupRelationAndSubject, WebOwnerSubject,
-        WebRelationAndSubject, WebSubject,
+        AccountGroupAdministratorSubject, AccountGroupRelationAndSubject, WebDataTypeViewerSubject,
+        WebEntityCreatorSubject, WebEntityEditorSubject, WebEntityTypeViewerSubject,
+        WebOwnerSubject, WebPropertyTypeViewerSubject, WebRelationAndSubject, WebSubjectSet,
     },
     AuthorizationApi,
 };
 use error_stack::{Report, Result, ResultExt};
-#[cfg(hash_graph_test_environment)]
-use graph_types::knowledge::{
-    entity::{EntityEditionId, EntityId, EntityProperties, EntityTemporalMetadata},
-    link::LinkOrder,
-};
 use graph_types::{
-    account::{AccountGroupId, AccountId},
-    ontology::{
-        CustomOntologyMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
-        OntologyTypeRecordId, OntologyTypeVersion, PartialCustomOntologyMetadata,
+    account::{AccountGroupId, AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
+    knowledge::{
+        entity::{EntityEditionId, EntityId, EntityProperties, EntityTemporalMetadata},
+        link::LinkOrder,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
-    web::WebId,
+    ontology::{
+        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
+        OntologyTypeVersion,
+    },
+    owned_by_id::OwnedById,
 };
 use postgres_types::Json;
 use serde::Serialize;
-#[cfg(hash_graph_test_environment)]
-use temporal_versioning::{DecisionTime, Timestamp};
-use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
+use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
 use time::OffsetDateTime;
-#[cfg(hash_graph_test_environment)]
-use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
-use tokio_postgres::{error::SqlState, GenericClient};
+use tokio_postgres::{
+    binary_copy::BinaryCopyInWriter, error::SqlState, types::Type, GenericClient,
+};
 use type_system::{
     url::{BaseUrl, VersionedUrl},
     DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
 };
 
 pub use self::{
-    ontology::OntologyTypeSubject,
     pool::{AsClient, PostgresStorePool},
     traversal_context::TraversalContext,
 };
-#[cfg(hash_graph_test_environment)]
-use crate::store::error::DeletionError;
 use crate::store::{
-    error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
+    error::{
+        DeletionError, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
+        VersionedUrlAlreadyExists,
+    },
     postgres::ontology::{OntologyDatabaseType, OntologyId},
     AccountStore, BaseUrlAlreadyExists, ConflictBehavior, InsertionError, QueryError, StoreError,
     UpdateError,
@@ -214,19 +211,19 @@ where
     async fn create_ontology_temporal_metadata(
         &self,
         ontology_id: OntologyId,
-        record_created_by_id: RecordCreatedById,
+        created_by_id: EditionCreatedById,
     ) -> Result<LeftClosedTemporalInterval<TransactionTime>, InsertionError> {
         let query = "
               INSERT INTO ontology_temporal_metadata (
                 ontology_id,
                 transaction_time,
-                record_created_by_id
+                edition_created_by_id
               ) VALUES ($1, tstzrange(now(), NULL, '[)'), $2)
               RETURNING transaction_time;
             ";
 
         self.as_client()
-            .query_one(query, &[&ontology_id, &record_created_by_id])
+            .query_one(query, &[&ontology_id, &created_by_id])
             .await
             .change_context(InsertionError)
             .map(|row| row.get(0))
@@ -235,13 +232,13 @@ where
     async fn archive_ontology_type(
         &self,
         id: &VersionedUrl,
-        record_archived_by_id: RecordArchivedById,
+        archived_by_id: EditionArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         let query = "
           UPDATE ontology_temporal_metadata
           SET
             transaction_time = tstzrange(lower(transaction_time), now(), '[)'),
-            record_archived_by_id = $3
+            edition_archived_by_id = $3
           WHERE ontology_id = (
             SELECT ontology_id
             FROM ontology_ids
@@ -257,7 +254,7 @@ where
                 &[
                     &id.base_url.as_str(),
                     &OntologyTypeVersion::new(id.version),
-                    &record_archived_by_id,
+                    &archived_by_id,
                 ],
             )
             .await
@@ -298,13 +295,13 @@ where
     async fn unarchive_ontology_type(
         &self,
         id: &VersionedUrl,
-        record_created_by_id: RecordCreatedById,
+        created_by_id: EditionCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         let query = "
           INSERT INTO ontology_temporal_metadata (
             ontology_id,
             transaction_time,
-            record_created_by_id
+            edition_created_by_id
           ) VALUES (
             (SELECT ontology_id FROM ontology_ids WHERE base_url = $1 AND version = $2),
             tstzrange(now(), NULL, '[)'),
@@ -321,7 +318,7 @@ where
                     &[
                         &id.base_url.as_str(),
                         &OntologyTypeVersion::new(id.version),
-                        &record_created_by_id,
+                        &created_by_id,
                     ],
                 )
                 .await
@@ -348,39 +345,20 @@ where
         &self,
         ontology_id: OntologyId,
         owned_by_id: OwnedById,
-    ) -> Result<OntologyTypeSubject, InsertionError> {
+    ) -> Result<(), InsertionError> {
         let query = "
-                WITH web_ids AS (
-                    INSERT INTO ontology_owned_metadata (
-                        ontology_id,
-                        web_id
-                    ) VALUES ($1, $2)
-                    RETURNING web_id
-                )
-                SELECT EXISTS (
-                    SELECT 1
-                    FROM account_groups
-                    JOIN web_ids ON account_group_id = web_id
-                );
+                INSERT INTO ontology_owned_metadata (
+                    ontology_id,
+                    web_id
+                ) VALUES ($1, $2)
             ";
 
-        let is_account_group: bool = self
-            .as_client()
-            .query_one(query, &[&ontology_id, &owned_by_id])
+        self.as_client()
+            .query(query, &[&ontology_id, &owned_by_id])
             .await
-            .change_context(InsertionError)?
-            .get(0);
+            .change_context(InsertionError)?;
 
-        let owned_by_uuid = owned_by_id.into_uuid();
-        if is_account_group {
-            Ok(OntologyTypeSubject::AccountGroup {
-                id: AccountGroupId::new(owned_by_uuid),
-            })
-        } else {
-            Ok(OntologyTypeSubject::Account {
-                id: AccountId::new(owned_by_uuid),
-            })
-        }
+        Ok(())
     }
 
     async fn create_ontology_external_metadata(
@@ -404,7 +382,7 @@ where
     }
 
     /// Inserts an [`OntologyDatabaseType`] identified by [`OntologyId`], and associated with an
-    /// [`OwnedById`] and [`RecordCreatedById`], into the database.
+    /// [`OwnedById`] and [`EditionCreatedById`], into the database.
     ///
     /// # Errors
     ///
@@ -441,7 +419,7 @@ where
     }
 
     /// Inserts a [`EntityType`] identified by [`OntologyId`], and associated with an
-    /// [`OwnedById`], [`RecordCreatedById`], and the optional label property, into the database.
+    /// [`OwnedById`], [`EditionCreatedById`], and the optional label property, into the database.
     ///
     /// # Errors
     ///
@@ -748,39 +726,33 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
     #[tracing::instrument(level = "info", skip(self))]
-    #[expect(clippy::type_complexity)]
     async fn create_ontology_metadata(
         &self,
-        record_created_by_id: RecordCreatedById,
+        created_by_id: EditionCreatedById,
         record_id: &OntologyTypeRecordId,
-        custom_metadata: &PartialCustomOntologyMetadata,
+        classification: &OntologyTypeClassificationMetadata,
         on_conflict: ConflictBehavior,
-    ) -> Result<
-        Option<(
-            OntologyId,
-            LeftClosedTemporalInterval<TransactionTime>,
-            Option<OntologyTypeSubject>,
-        )>,
-        InsertionError,
-    > {
-        match custom_metadata {
-            PartialCustomOntologyMetadata::Owned { owned_by_id } => {
+    ) -> Result<Option<(OntologyId, OntologyTemporalMetadata)>, InsertionError> {
+        match classification {
+            OntologyTypeClassificationMetadata::Owned { owned_by_id } => {
                 self.create_base_url(&record_id.base_url, on_conflict, OntologyLocation::Owned)
                     .await?;
                 let ontology_id = self.create_ontology_id(record_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
                     let transaction_time = self
-                        .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
+                        .create_ontology_temporal_metadata(ontology_id, created_by_id)
                         .await?;
-                    let owner = self
-                        .create_ontology_owned_metadata(ontology_id, *owned_by_id)
+                    self.create_ontology_owned_metadata(ontology_id, *owned_by_id)
                         .await?;
-                    Ok(Some((ontology_id, transaction_time, Some(owner))))
+                    Ok(Some((
+                        ontology_id,
+                        OntologyTemporalMetadata { transaction_time },
+                    )))
                 } else {
                     Ok(None)
                 }
             }
-            PartialCustomOntologyMetadata::External { fetched_at } => {
+            OntologyTypeClassificationMetadata::External { fetched_at } => {
                 self.create_base_url(
                     &record_id.base_url,
                     ConflictBehavior::Skip,
@@ -790,11 +762,14 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 let ontology_id = self.create_ontology_id(record_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
                     let transaction_time = self
-                        .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
+                        .create_ontology_temporal_metadata(ontology_id, created_by_id)
                         .await?;
                     self.create_ontology_external_metadata(ontology_id, *fetched_at)
                         .await?;
-                    Ok(Some((ontology_id, transaction_time, None)))
+                    Ok(Some((
+                        ontology_id,
+                        OntologyTemporalMetadata { transaction_time },
+                    )))
                 } else {
                     Ok(None)
                 }
@@ -816,36 +791,19 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn update<T>(
         &self,
         database_type: &T,
-        record_created_by_id: RecordCreatedById,
-    ) -> Result<(OntologyId, OntologyElementMetadata, OntologyTypeSubject), UpdateError>
+        created_by_id: EditionCreatedById,
+    ) -> Result<(OntologyId, OwnedById, OntologyTemporalMetadata), UpdateError>
     where
         T: OntologyDatabaseType + Serialize + Debug + Sync,
     {
-        let url = database_type.id();
-        let record_id = OntologyTypeRecordId::from(url.clone());
-
-        let (ontology_id, owned_by_id, transaction_time, owner) = self
-            .update_owned_ontology_id(url, record_created_by_id)
+        let (ontology_id, owned_by_id, temporal_versioning) = self
+            .update_owned_ontology_id(database_type.id(), created_by_id)
             .await?;
         self.insert_with_id(ontology_id, database_type)
             .await
             .change_context(UpdateError)?;
 
-        Ok((
-            ontology_id,
-            OntologyElementMetadata {
-                record_id,
-                custom: CustomOntologyMetadata::Owned {
-                    provenance: ProvenanceMetadata {
-                        record_created_by_id,
-                        record_archived_by_id: None,
-                    },
-                    owned_by_id,
-                    temporal_versioning: OntologyTemporalMetadata { transaction_time },
-                },
-            },
-            owner,
-        ))
+        Ok((ontology_id, owned_by_id, temporal_versioning))
     }
 
     /// Updates the latest version of [`VersionedUrl::base_url`] and creates a new [`OntologyId`]
@@ -860,16 +818,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn update_owned_ontology_id(
         &self,
         url: &VersionedUrl,
-        record_created_by_id: RecordCreatedById,
-    ) -> Result<
-        (
-            OntologyId,
-            OwnedById,
-            LeftClosedTemporalInterval<TransactionTime>,
-            OntologyTypeSubject,
-        ),
-        UpdateError,
-    > {
+        created_by_id: EditionCreatedById,
+    ) -> Result<(OntologyId, OwnedById, OntologyTemporalMetadata), UpdateError> {
         let Some(owned_by_id) = self
             .as_client()
             .query_opt(
@@ -924,15 +874,18 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .expect("ontology id should have been created");
 
         let transaction_time = self
-            .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
+            .create_ontology_temporal_metadata(ontology_id, created_by_id)
             .await
             .change_context(UpdateError)?;
-        let owner = self
-            .create_ontology_owned_metadata(ontology_id, owned_by_id)
+        self.create_ontology_owned_metadata(ontology_id, owned_by_id)
             .await
             .change_context(UpdateError)?;
 
-        Ok((ontology_id, owned_by_id, transaction_time, owner))
+        Ok((
+            ontology_id,
+            owned_by_id,
+            OntologyTemporalMetadata { transaction_time },
+        ))
     }
 
     /// # Errors
@@ -949,39 +902,91 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         self.client.rollback().await.change_context(StoreError)
     }
 
-    #[doc(hidden)]
-    #[cfg(hash_graph_test_environment)]
     async fn insert_entity_ids(
         &self,
-        entity_uuids: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
+        entity_uuids: impl IntoIterator<
+            Item = (EntityId, CreatedById, Option<Timestamp<DecisionTime>>),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<u64, InsertionError> {
+        self.client
+            .simple_query(
+                "CREATE TEMPORARY TABLE entity_ids_temp (
+                    web_id UUID NOT NULL,
+                    entity_uuid UUID NOT NULL,
+                    created_by_id UUID NOT NULL,
+                    created_at_decision_time TIMESTAMP WITH TIME ZONE
+                );",
+            )
+            .await
+            .change_context(InsertionError)?;
+
         let sink = self
             .client
             .copy_in(
-                "COPY entity_ids (
+                "COPY entity_ids_temp (
                     web_id,
-                    entity_uuid
+                    entity_uuid,
+                    created_by_id,
+                    created_at_decision_time
                 ) FROM STDIN BINARY",
             )
             .await
             .change_context(InsertionError)?;
-        let writer = BinaryCopyInWriter::new(sink, &[Type::UUID, Type::UUID]);
+        let writer = BinaryCopyInWriter::new(
+            sink,
+            &[Type::UUID, Type::UUID, Type::UUID, Type::TIMESTAMPTZ],
+        );
 
         futures::pin_mut!(writer);
-        for entity_id in entity_uuids {
+        for (entity_id, actor_id, decision_time) in entity_uuids {
             writer
                 .as_mut()
-                .write(&[&entity_id.owned_by_id, &entity_id.entity_uuid])
+                .write(&[
+                    &entity_id.owned_by_id,
+                    &entity_id.entity_uuid,
+                    &actor_id,
+                    &decision_time.as_ref(),
+                ])
                 .await
                 .change_context(InsertionError)
                 .attach_printable(entity_id.entity_uuid)?;
         }
 
-        writer.finish().await.change_context(InsertionError)
+        let rows_written = writer.finish().await.change_context(InsertionError)?;
+
+        // The decision is optional. If it's NULL we use `now()`
+        self.client
+            .simple_query(
+                "INSERT INTO entity_ids (
+                    web_id,
+                    entity_uuid,
+                    created_by_id,
+                    created_at_transaction_time,
+                    created_at_decision_time
+                )
+                SELECT
+                    web_id,
+                    entity_uuid,
+                    created_by_id,
+                    now(),
+                    CASE WHEN created_at_decision_time IS NULL
+                         THEN now()
+                         ELSE created_at_decision_time
+                    END
+                FROM entity_ids_temp",
+            )
+            .await
+            .change_context(InsertionError)?;
+
+        self.client
+            .simple_query("DROP TABLE entity_ids_temp;")
+            .await
+            .change_context(InsertionError)?;
+
+        Ok(rows_written)
     }
 
-    #[doc(hidden)]
-    #[cfg(hash_graph_test_environment)]
     async fn insert_entity_is_of_type(
         &self,
         entity_edition_ids: impl IntoIterator<Item = EntityEditionId, IntoIter: Send> + Send,
@@ -1011,8 +1016,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         writer.finish().await.change_context(InsertionError)
     }
 
-    #[doc(hidden)]
-    #[cfg(hash_graph_test_environment)]
     async fn insert_entity_links(
         &self,
         left_right: &'static str,
@@ -1051,15 +1054,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         writer.finish().await.change_context(InsertionError)
     }
 
-    #[doc(hidden)]
-    #[cfg(hash_graph_test_environment)]
     async fn insert_entity_records(
         &self,
         entities: impl IntoIterator<
             Item = (EntityProperties, Option<LinkOrder>, Option<LinkOrder>),
             IntoIter: Send,
         > + Send,
-        actor_id: RecordCreatedById,
+        actor_id: EditionCreatedById,
     ) -> Result<Vec<EntityEditionId>, InsertionError> {
         self.client
             .simple_query(
@@ -1067,7 +1068,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     properties JSONB NOT NULL,
                     left_to_right_order INT,
                     right_to_left_order INT,
-                    record_created_by_id UUID NOT NULL,
+                    edition_created_by_id UUID NOT NULL,
                     archived BOOLEAN NOT NULL,
                     draft BOOLEAN NOT NULL
                 );",
@@ -1082,7 +1083,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     properties,
                     left_to_right_order,
                     right_to_left_order,
-                    record_created_by_id,
+                    edition_created_by_id,
                     archived,
                     draft
                 ) FROM STDIN BINARY",
@@ -1128,7 +1129,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     properties,
                     left_to_right_order,
                     right_to_left_order,
-                    record_created_by_id,
+                    edition_created_by_id,
                     archived,
                     draft
                 )
@@ -1137,7 +1138,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     properties,
                     left_to_right_order,
                     right_to_left_order,
-                    record_created_by_id,
+                    edition_created_by_id,
                     archived,
                     draft
                 FROM entity_editions_temp
@@ -1158,8 +1159,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         Ok(entity_edition_ids)
     }
 
-    #[doc(hidden)]
-    #[cfg(hash_graph_test_environment)]
     async fn insert_entity_versions(
         &self,
         entities: impl IntoIterator<
@@ -1295,8 +1294,8 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .modify_account_group_relations([(
                 ModifyRelationshipOperation::Create,
                 account_group_id,
-                AccountGroupRelationAndSubject::Owner {
-                    subject: AccountGroupOwnerSubject::Account { id: actor_id },
+                AccountGroupRelationAndSubject::Administrator {
+                    subject: AccountGroupAdministratorSubject::Account { id: actor_id },
                     level: 0,
                 },
             )])
@@ -1308,8 +1307,8 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 .modify_account_group_relations([(
                     ModifyRelationshipOperation::Delete,
                     account_group_id,
-                    AccountGroupRelationAndSubject::Owner {
-                        subject: AccountGroupOwnerSubject::Account { id: actor_id },
+                    AccountGroupRelationAndSubject::Administrator {
+                        subject: AccountGroupAdministratorSubject::Account { id: actor_id },
                         level: 0,
                     },
                 )])
@@ -1344,28 +1343,69 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .change_context(InsertionError)
             .attach_printable(owned_by_id)?;
 
-        authorization_api
-            .modify_web_relations([(
-                ModifyRelationshipOperation::Create,
-                WebId::new(owned_by_id.into_uuid()),
-                WebRelationAndSubject::Owner {
-                    subject: owner,
+        let mut relationships = vec![
+            WebRelationAndSubject::Owner {
+                subject: owner,
+                level: 0,
+            },
+            WebRelationAndSubject::EntityTypeViewer {
+                subject: WebEntityTypeViewerSubject::Public,
+                level: 0,
+            },
+            WebRelationAndSubject::PropertyTypeViewer {
+                subject: WebPropertyTypeViewerSubject::Public,
+                level: 0,
+            },
+            WebRelationAndSubject::DataTypeViewer {
+                subject: WebDataTypeViewerSubject::Public,
+                level: 0,
+            },
+        ];
+        if let WebOwnerSubject::AccountGroup { id } = owner {
+            relationships.extend([
+                WebRelationAndSubject::EntityCreator {
+                    subject: WebEntityCreatorSubject::AccountGroup {
+                        id,
+                        set: WebSubjectSet::Member,
+                    },
                     level: 0,
                 },
-            )])
+                WebRelationAndSubject::EntityEditor {
+                    subject: WebEntityEditorSubject::AccountGroup {
+                        id,
+                        set: WebSubjectSet::Member,
+                    },
+                    level: 0,
+                },
+                // TODO: Add ontology type creators
+            ]);
+        }
+
+        authorization_api
+            .modify_web_relations(
+                relationships
+                    .clone()
+                    .into_iter()
+                    .map(|relation_and_subject| {
+                        (
+                            ModifyRelationshipOperation::Create,
+                            owned_by_id,
+                            relation_and_subject,
+                        )
+                    }),
+            )
             .await
             .change_context(InsertionError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
             if let Err(auth_error) = authorization_api
-                .modify_web_relations([(
-                    ModifyRelationshipOperation::Delete,
-                    WebId::new(owned_by_id.into_uuid()),
-                    WebRelationAndSubject::Owner {
-                        subject: owner,
-                        level: 0,
-                    },
-                )])
+                .modify_web_relations(relationships.into_iter().map(|relation_and_subject| {
+                    (
+                        ModifyRelationshipOperation::Delete,
+                        owned_by_id,
+                        relation_and_subject,
+                    )
+                }))
                 .await
                 .change_context(InsertionError)
             {
@@ -1400,7 +1440,10 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn identify_owned_by_id(&self, owned_by_id: OwnedById) -> Result<WebSubject, QueryError> {
+    async fn identify_owned_by_id(
+        &self,
+        owned_by_id: OwnedById,
+    ) -> Result<WebOwnerSubject, QueryError> {
         let row = self
             .as_client()
             .query_one(
@@ -1424,10 +1467,12 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             (false, false) => Err(Report::new(QueryError)
                 .attach_printable("Record does not exist")
                 .attach_printable(owned_by_id)),
-            (true, false) => Ok(WebSubject::Account(AccountId::new(owned_by_id.into_uuid()))),
-            (false, true) => Ok(WebSubject::AccountGroup(AccountGroupId::new(
-                owned_by_id.into_uuid(),
-            ))),
+            (true, false) => Ok(WebOwnerSubject::Account {
+                id: AccountId::new(owned_by_id.into_uuid()),
+            }),
+            (false, true) => Ok(WebOwnerSubject::AccountGroup {
+                id: AccountGroupId::new(owned_by_id.into_uuid()),
+            }),
             (true, true) => Err(Report::new(QueryError)
                 .attach_printable("Record exists in both accounts and account_groups")
                 .attach_printable(owned_by_id)),
@@ -1436,12 +1481,11 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
 }
 
 impl<C: AsClient> PostgresStore<C> {
-    #[tracing::instrument(level = "trace", skip(self, _authorization_api))]
-    #[cfg(hash_graph_test_environment)]
+    #[tracing::instrument(level = "trace", skip(self))]
     pub async fn delete_accounts<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &A,
+        _: &A,
     ) -> Result<(), DeletionError> {
         self.as_client()
             .client()

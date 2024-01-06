@@ -40,11 +40,13 @@ locals {
       }
     }
     Environment = concat(
+      [for env_var in var.temporal_worker_ai_ts_env_vars : { name = env_var.name, value = env_var.value } if !env_var.secret],
       [
         { name = "HASH_TEMPORAL_HOST", value = var.temporal_host },
         { name = "HASH_TEMPORAL_PORT", value = var.temporal_port },
+        { name = "HASH_GRAPH_API_HOST", value = local.graph_container_port_dns },
+        { name = "HASH_GRAPH_API_PORT", value = tostring(local.graph_container_port) },
       ],
-      [for env_var in var.temporal_worker_ai_ts_env_vars : { name = env_var.name, value = env_var.value } if !env_var.secret]
     )
 
     secrets = [for env_name, ssm_param in aws_ssm_parameter.temporal_worker_ai_ts_env_vars :

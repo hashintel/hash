@@ -1,8 +1,4 @@
-import {
-  DataType,
-  EntityType,
-  PropertyType,
-} from "@blockprotocol/type-system/slim";
+import { EntityType, PropertyType } from "@blockprotocol/type-system/slim";
 import { BaseUrl, EntityId } from "@local/hash-subgraph";
 
 export type TextToken =
@@ -34,14 +30,6 @@ export type UnknownEntityProperties = {};
 
 export type SystemDefinedProperties = "$schema" | "kind" | "$id";
 
-// we have to manually specify this type because of 'intended' limitations of `Omit` with extended Record types:
-//  https://github.com/microsoft/TypeScript/issues/50638
-//  this is needed for as long as DataType extends Record
-export type ConstructDataTypeParams = Pick<
-  DataType,
-  "title" | "description" | "type"
-> &
-  Record<string, any>;
 export type ConstructPropertyTypeParams = Omit<
   PropertyType,
   SystemDefinedProperties

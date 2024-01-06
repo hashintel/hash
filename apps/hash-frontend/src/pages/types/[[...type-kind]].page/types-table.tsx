@@ -145,13 +145,13 @@ export const TypesTable: FunctionComponent<{
         ?.map((type) => {
           const isExternal = isExternalOntologyElementMetadata(type.metadata)
             ? true
-            : !internalWebIds.includes(type.metadata.custom.ownedById);
+            : !internalWebIds.includes(type.metadata.ownedById);
 
           const namespaceOwnedById = isExternalOntologyElementMetadata(
             type.metadata,
           )
             ? undefined
-            : type.metadata.custom.ownedById;
+            : type.metadata.ownedById;
 
           const webShortname = namespaces?.find(
             (workspace) => extractOwnedById(workspace) === namespaceOwnedById,

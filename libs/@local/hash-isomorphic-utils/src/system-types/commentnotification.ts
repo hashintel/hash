@@ -5,6 +5,10 @@
 import { Entity, LinkData } from "@blockprotocol/graph";
 
 import {
+  Actor,
+  ActorOutgoingLinkAndTarget,
+  ActorOutgoingLinksByLinkEntityTypeId,
+  ActorProperties,
   ArchivedPropertyValue,
   AuthoredBy,
   AuthoredByOutgoingLinkAndTarget,
@@ -32,6 +36,7 @@ import {
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
   EmailPropertyValue,
+  EntityEditionIdPropertyValue,
   File,
   FileHashPropertyValue,
   FileNamePropertyValue,
@@ -165,6 +170,10 @@ import {
 } from "./shared";
 
 export type {
+  Actor,
+  ActorOutgoingLinkAndTarget,
+  ActorOutgoingLinksByLinkEntityTypeId,
+  ActorProperties,
   ArchivedPropertyValue,
   AuthoredBy,
   AuthoredByOutgoingLinkAndTarget,
@@ -192,6 +201,7 @@ export type {
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
   EmailPropertyValue,
+  EntityEditionIdPropertyValue,
   File,
   FileHashPropertyValue,
   FileNamePropertyValue,
@@ -345,7 +355,7 @@ export type CommentNotificationOutgoingLinkAndTarget =
 
 export type CommentNotificationOutgoingLinksByLinkEntityTypeId = {
   "https://hash.ai/@hash/types/entity-type/occurred-in-block/v/1": CommentNotificationOccurredInBlockLink;
-  "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/1": CommentNotificationOccurredInEntityLink;
+  "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/2": CommentNotificationOccurredInEntityLink;
   "https://hash.ai/@hash/types/entity-type/replied-to-comment/v/1": CommentNotificationRepliedToCommentLink;
   "https://hash.ai/@hash/types/entity-type/triggered-by-comment/v/1": CommentNotificationTriggeredByCommentLink;
   "https://hash.ai/@hash/types/entity-type/triggered-by-user/v/1": CommentNotificationTriggeredByUserLink;

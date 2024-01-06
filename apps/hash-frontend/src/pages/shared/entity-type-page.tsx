@@ -1,6 +1,5 @@
 import { extractVersion } from "@blockprotocol/type-system";
-import { VersionedUrl } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
-import { EntityType } from "@blockprotocol/type-system/slim";
+import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   EntityTypeIcon,
   LinkTypeIcon,
@@ -13,6 +12,7 @@ import {
   getSchemaFromFormData,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
+import { generateLinkMapWithConsistentSelfReferences } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
   BaseUrl,
@@ -23,7 +23,7 @@ import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PageErrorState } from "../../components/page-error-state";
 import { EntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
@@ -42,7 +42,7 @@ import { FileUploadsTab } from "./entity-type-page/file-uploads-tab";
 import { EntityTypeContext } from "./entity-type-page/shared/entity-type-context";
 import { EntityTypeHeader } from "./entity-type-page/shared/entity-type-header";
 import { useCurrentTab } from "./entity-type-page/shared/tabs";
-import { TypePreviewSlide } from "./entity-type-page/type-preview-slide";
+import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
 import { useEntityTypeValue } from "./entity-type-page/use-entity-type-value";
 import { TopContextBar } from "./top-context-bar";
 
@@ -155,12 +155,30 @@ export const EntityTypePage = ({
       );
       reset(data);
     } else {
-      const res = await updateEntityType(
-        {
-          ...entityTypeSchema,
-        },
-        { icon: data.icon },
-      );
+      const currentEntityTypeId = entityType?.$id;
+      if (!currentEntityTypeId) {
+        throw new Error(
+          "Cannot update entity type without existing entityType schema",
+        );
+      }
+
+      /**
+       * If an entity type refers to itself as a link destination, e.g. a Company may have a Parent which is a Company,
+       * we want the version specified as the link target in the schema to be the same as the version of the entity type.
+       * This rewriting of the schema ensures that by looking for self references and giving them the expected next version.
+       * If we don't do this, creating a new version of Company means the new version will have a link to the previous version.
+       */
+      const schemaWithConsistentSelfReferences = {
+        ...entityTypeSchema,
+        links: generateLinkMapWithConsistentSelfReferences(
+          entityTypeSchema,
+          currentEntityTypeId,
+        ),
+      };
+
+      const res = await updateEntityType(schemaWithConsistentSelfReferences, {
+        icon: data.icon,
+      });
 
       if (!res.errors?.length && res.data) {
         void router.push(
@@ -177,8 +195,14 @@ export const EntityTypePage = ({
   const [previewEntityTypeUrl, setPreviewEntityTypeUrl] =
     useState<VersionedUrl | null>(null);
 
+  const titleWrapperRef = useRef<HTMLDivElement>(null);
+
   const onNavigateToType = (url: VersionedUrl) => {
-    setPreviewEntityTypeUrl(url);
+    if (entityType && url === entityType.$id) {
+      titleWrapperRef.current?.scrollIntoView({ behavior: "smooth" });
+    } else {
+      setPreviewEntityTypeUrl(url);
+    }
   };
 
   if (!entityType) {
@@ -311,6 +335,7 @@ export const EntityTypePage = ({
               )}
 
               <Box
+                ref={titleWrapperRef}
                 sx={{
                   borderBottom: 1,
                   borderColor: "gray.20",
@@ -370,11 +395,9 @@ export const EntityTypePage = ({
       </EntityTypeFormProvider>
 
       {previewEntityTypeUrl ? (
-        <TypePreviewSlide
-          key={previewEntityTypeUrl}
+        <TypeSlideOverStack
+          rootTypeId={previewEntityTypeUrl}
           onClose={() => setPreviewEntityTypeUrl(null)}
-          onNavigateToType={onNavigateToType}
-          typeUrl={previewEntityTypeUrl}
         />
       ) : null}
 

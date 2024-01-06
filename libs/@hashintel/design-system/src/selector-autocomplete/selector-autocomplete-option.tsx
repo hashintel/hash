@@ -6,6 +6,7 @@ import { HTMLAttributes, ReactNode, useRef, useState } from "react";
 
 import { Chip } from "../chip";
 import { GRID_CLICK_IGNORE_CLASS } from "../constants";
+import { FeatherRegularIcon } from "../icon-feather-regular";
 import { ImageWithCheckedBackground } from "../image-with-checked-background";
 import { OntologyChip } from "../ontology-chip";
 import { EntityTypeIcon } from "../ontology-icons";
@@ -30,6 +31,7 @@ export type SelectorAutocompleteOptionProps = {
   title: string;
   /** the typeId associated with this entity type or entity, displayed as a chip in the option */
   typeId: VersionedUrl;
+  draft?: boolean;
 };
 
 // This assumes a hash.ai/blockprotocol.org type URL format ending in [slugified-title]/v/[number]
@@ -48,6 +50,7 @@ export const SelectorAutocompleteOption = ({
   icon,
   title,
   typeId,
+  draft = false,
 }: SelectorAutocompleteOptionProps) => {
   const ontology = parseUrlForOntologyChip(typeId);
 
@@ -214,6 +217,16 @@ export const SelectorAutocompleteOption = ({
                 />
               )}
             </Tooltip>
+            {draft ? (
+              <Chip
+                icon={<FeatherRegularIcon />}
+                color="gray"
+                label="Draft"
+                sx={{
+                  ml: 1,
+                }}
+              />
+            ) : null}
           </Box>
           {subtitle && (
             <Typography

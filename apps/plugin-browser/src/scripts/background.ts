@@ -1,5 +1,6 @@
 import browser from "webextension-polyfill";
 
+import { setDisabledBadge, setEnabledBadge } from "../shared/badge";
 import { getUser } from "../shared/get-user";
 import {
   GetSiteContentRequest,
@@ -46,19 +47,42 @@ browser.runtime.onMessage.addListener((message: Message, sender) => {
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === "complete") {
-    getFromLocalStorage("passiveInference")
-      .then(async (passiveInference) => {
-        if (passiveInference?.enabled) {
-          const targetEntityTypes =
-            await getFromLocalStorage("targetEntityTypes");
-
-          if (!targetEntityTypes) {
-            return;
-          }
+    getFromLocalStorage("automaticInferenceConfig")
+      .then(async (automaticInferenceConfig) => {
+        if (automaticInferenceConfig?.enabled) {
+          /**
+           * The page title is information we use in inference, but some client-side navigation results in the DOM content being ready
+           * before the page title is updated. This is a workaround to give the page title time to update.
+           */
+          await new Promise((resolve) => {
+            setTimeout(resolve, 2_000);
+          });
 
           const pageDetails = await (browser.tabs.sendMessage(tabId, {
             type: "get-site-content",
           } satisfies GetSiteContentRequest) as Promise<GetSiteContentReturn>);
+
+          const applicableRules = automaticInferenceConfig.rules.filter(
+            ({ restrictToDomains }) => {
+              const pageHostname = new URL(pageDetails.pageUrl).hostname;
+              return (
+                restrictToDomains.length === 0 ||
+                restrictToDomains.some(
+                  (domainToMatch) =>
+                    pageHostname === domainToMatch ||
+                    pageHostname.endsWith(`.${domainToMatch}`),
+                )
+              );
+            },
+          );
+
+          if (applicableRules.length === 0) {
+            return;
+          }
+
+          const entityTypeIdsToInfer = applicableRules.map(
+            ({ entityTypeId }) => entityTypeId,
+          );
 
           const inferenceRequests =
             await getFromLocalStorage("inferenceRequests");
@@ -66,7 +90,12 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
           const pendingRequest = inferenceRequests?.find((request) => {
             return (
               request.sourceUrl === pageDetails.pageUrl &&
-              request.status === "pending" &&
+              (request.status === "pending" ||
+                // Prevent requests for the same page refiring within 30 seconds of a previous one
+                (request.status === "complete" &&
+                  new Date().valueOf() -
+                    new Date(request.finishedAt ?? "").valueOf() <
+                    30_000)) &&
               request.trigger === "passive"
             );
           });
@@ -77,7 +106,10 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
 
           void inferEntities(
             {
-              entityTypes: targetEntityTypes,
+              createAs: automaticInferenceConfig.createAs,
+              entityTypeIds: entityTypeIdsToInfer,
+              model: automaticInferenceConfig.model,
+              ownedById: automaticInferenceConfig.ownedById,
               sourceTitle: pageDetails.pageTitle,
               sourceUrl: pageDetails.pageUrl,
               textInput: pageDetails.innerText,
@@ -88,7 +120,7 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
         }
       })
       .catch((err) => {
-        console.error(`Passive inference error: ${(err as Error).message}`);
+        console.error(`Automatic inference error: ${(err as Error).message}`);
       });
   }
 });
@@ -101,7 +133,15 @@ void getUser().then((user) => {
   }
 });
 
-const tenMinutesInMs = 10 * 60 * 1000;
+void getFromLocalStorage("automaticInferenceConfig").then((config) => {
+  if (config?.enabled) {
+    setEnabledBadge();
+  } else {
+    setDisabledBadge();
+  }
+});
+
+const thirtyMinutesInMs = 30 * 60 * 1000;
 
 const setInferenceRequests = getSetFromLocalStorageValue("inferenceRequests");
 void setInferenceRequests((currentValue) =>
@@ -111,7 +151,7 @@ void setInferenceRequests((currentValue) =>
       const requestDate = new Date(request.createdAt);
       const msSinceRequest = now.getTime() - requestDate.getTime();
 
-      if (msSinceRequest > tenMinutesInMs) {
+      if (msSinceRequest > thirtyMinutesInMs) {
         return {
           ...request,
           errorMessage: "Request timed out",

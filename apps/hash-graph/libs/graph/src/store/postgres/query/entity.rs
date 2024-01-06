@@ -6,8 +6,8 @@ use crate::{
     knowledge::EntityQueryPath,
     store::postgres::query::{
         table::{
-            Column, EntityEditions, EntityHasLeftEntity, EntityHasRightEntity,
-            EntityTemporalMetadata, JsonField, ReferenceTable, Relation,
+            Column, EntityEditions, EntityEmbeddings, EntityHasLeftEntity, EntityHasRightEntity,
+            EntityIds, EntityTemporalMetadata, JsonField, ReferenceTable, Relation,
         },
         PostgresQueryPath, PostgresRecord, Table,
     },
@@ -28,10 +28,14 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             | Self::EditionId
             | Self::DecisionTime
             | Self::TransactionTime => vec![],
+            Self::CreatedById | Self::CreatedAtTransactionTime | Self::CreatedAtDecisionTime => {
+                vec![Relation::EntityIds]
+            }
+            Self::Embedding => vec![Relation::EntityEmbeddings],
             Self::Properties(_)
             | Self::LeftToRightOrder
             | Self::RightToLeftOrder
-            | Self::RecordCreatedById
+            | Self::EditionCreatedById
             | Self::Archived
             | Self::Draft => vec![Relation::EntityEditions],
             Self::EntityTypeEdge {
@@ -96,7 +100,13 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::Archived => Column::EntityEditions(EntityEditions::Archived),
             Self::Draft => Column::EntityEditions(EntityEditions::Draft),
             Self::OwnedById => Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),
-            Self::RecordCreatedById => Column::EntityEditions(EntityEditions::RecordCreatedById),
+            Self::EditionCreatedById => Column::EntityEditions(EntityEditions::EditionCreatedById),
+            Self::Embedding => Column::EntityEmbeddings(EntityEmbeddings::Embedding),
+            Self::CreatedById => Column::EntityIds(EntityIds::CreatedById),
+            Self::CreatedAtDecisionTime => Column::EntityIds(EntityIds::CreatedAtDecisionTime),
+            Self::CreatedAtTransactionTime => {
+                Column::EntityIds(EntityIds::CreatedAtTransactionTime)
+            }
             Self::EntityTypeEdge { path, .. } => path.terminating_column(),
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,

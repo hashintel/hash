@@ -26,12 +26,12 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.1-canary-20231120181031",
+    "@blockprotocol/graph": "0.3.1-canary-20231207113055",
     "@hashintel/block-design-system": "0.0.1",
+    "@hashintel/design-system": "0.0.7",
     "@mui/material": "5.14.11",
     "echarts": "^5.3.2",
     "lodash.debounce": "4.0.8",
-    "pluralize": "8.0.0",
     "react-hook-form": "7.48.2"
   },
   "devDependencies": {
@@ -40,13 +40,12 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.debounce": "4.0.7",
-    "@types/pluralize": "0.0.29",
     "@types/react-dom": "18.0.10",
     "@types/react-is": "18.2.0",
     "block-scripts": "0.3.1",
     "eslint": "8.33.0",
     "mock-block-dock": "0.1.6",
-    "prettier": "3.1.0",
+    "prettier": "3.1.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "typescript": "5.1.6"
@@ -65,7 +64,7 @@
       "entryPoint": "react"
     },
     "protocol": "0.3",
-    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/chart/v/1",
+    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/chart-block/v/1",
     "codegen": {
       "outputFolder": "src/types/generated",
       "targets": {
