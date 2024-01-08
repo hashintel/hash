@@ -8,6 +8,7 @@ import {
   GridSelection,
   Rectangle,
 } from "@glideapps/glide-data-grid";
+import { ButtonBase } from "@mui/material";
 import produce from "immer";
 import debounce from "lodash.debounce";
 import isEqual from "lodash.isequal";
@@ -21,7 +22,6 @@ import {
 import { Grid, ROW_HEIGHT } from "../grid/grid";
 import { HeaderMenu } from "../header-menu/header-menu";
 import { RowActions } from "./row-actions";
-import styles from "./table.module.scss";
 
 const localColumnsKey: RootKey =
   "https://blockprotocol.org/@hash/types/property-type/table-local-column/";
@@ -231,13 +231,24 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
         columns={columns}
         rightElement={
           readonly || hideHeaderRow ? null : (
-            <button
+            <ButtonBase
               type="button"
-              className={styles.addColumnButton}
               onClick={addNewColumn}
+              sx={{
+                padding: ({ spacing }) => spacing(0, 1.25),
+                height: 40,
+                display: "flex",
+                alignItems: "center",
+                fontWeight: 600,
+                fontSize: 13,
+                color: "#0f172a !important",
+                "&:hover": {
+                  backgroundColor: "#ddd",
+                },
+              }}
             >
               Add a Column +
-            </button>
+            </ButtonBase>
           )
         }
         getRowThemeOverride={getRowThemeOverride}
