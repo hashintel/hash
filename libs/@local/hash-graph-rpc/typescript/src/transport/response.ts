@@ -35,11 +35,8 @@ function responseErrorFromErrorCode(value: number) {
       Match.option,
     )
     .pipe(
-      Effect.mapError((error) =>
-        Cause.sequential(
-          Cause.fail(error),
-          Cause.fail(new UnknownResponseError()),
-        ),
+      Effect.mapErrorCause((error) =>
+        Cause.sequential(error, Cause.fail(new UnknownResponseError())),
       ),
     );
 }
