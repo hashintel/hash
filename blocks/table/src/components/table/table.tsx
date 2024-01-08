@@ -242,8 +242,10 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
                 fontWeight: 600,
                 fontSize: 13,
                 color: "#0f172a !important",
+                width: "100%",
+                justifyContent: "flex-start",
                 "&:hover": {
-                  backgroundColor: "#ddd",
+                  backgroundColor: ({ palette }) => palette.gray[10],
                 },
               }}
             >
