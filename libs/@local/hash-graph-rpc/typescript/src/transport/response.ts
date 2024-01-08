@@ -1,6 +1,6 @@
 import { PayloadSize, TransportVersion } from "./request";
 import { Reader } from "./reader";
-import { Cause, Data, Effect, Match, Option } from "effect";
+import { Cause, Data, Effect, Match } from "effect";
 
 export class UnknownResponseError extends Data.TaggedError("UnknownResponse") {}
 

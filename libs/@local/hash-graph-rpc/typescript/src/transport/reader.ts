@@ -39,10 +39,6 @@ export class Reader {
     return Effect.succeed(this.slice[this.offset++]!);
   }
 
-  public peakByte() {
-    return Effect.fromNullable(this.slice[this.offset]);
-  }
-
   public readBytes(length: number) {
     if (this.offset + length > this.slice.length) {
       return Effect.fail(new UnexpectedEndOfStreamError());
@@ -51,36 +47,6 @@ export class Reader {
     const bytes = this.slice.slice(this.offset, this.offset + length);
     this.offset += length;
     return Effect.succeed(bytes);
-  }
-
-  public readString(length: number) {
-    const bytes = this.readBytes(length);
-
-    return Effect.map(bytes, (bytes) => new TextDecoder().decode(bytes));
-  }
-
-  public readUInt8() {
-    return Effect.map(this.readBytes(1), (bytes) =>
-      new DataView(bytes.buffer).getUint8(0),
-    );
-  }
-
-  public readInt8() {
-    return Effect.map(this.readBytes(1), (bytes) =>
-      new DataView(bytes.buffer).getInt8(0),
-    );
-  }
-
-  public readUInt32() {
-    return Effect.map(this.readBytes(4), (bytes) =>
-      new DataView(bytes.buffer).getUint32(0, true),
-    );
-  }
-
-  public readInt32() {
-    return Effect.map(this.readBytes(4), (bytes) =>
-      new DataView(bytes.buffer).getInt32(0, true),
-    );
   }
 
   public readVarUInt32() {
@@ -120,11 +86,11 @@ export class Reader {
     });
   }
 
-  public saveCheckpoint(): Checkpoint {
+  saveCheckpoint(): Checkpoint {
     return new Checkpoint(this.offset);
   }
 
-  public restoreCheckpoint(checkpoint: Checkpoint): void {
+  restoreCheckpoint(checkpoint: Checkpoint): void {
     this.offset = checkpoint.getOffset();
   }
 }
