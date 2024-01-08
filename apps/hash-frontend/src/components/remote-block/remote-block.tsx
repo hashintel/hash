@@ -22,7 +22,7 @@ import { BlockRenderer } from "./block-renderer";
 import { serviceModuleCallbacks } from "./construct-service-module-callbacks";
 import { useRemoteBlock } from "./use-remote-block";
 
-type RemoteBlockProps = {
+export type RemoteBlockProps = {
   graphCallbacks: Omit<
     /** @todo-0.3 - Add these back */
     GraphEmbedderMessageCallbacks,
