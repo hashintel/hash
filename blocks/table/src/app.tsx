@@ -12,7 +12,6 @@ import { isMobile } from "react-device-detect";
 import { SizeMe } from "react-sizeme";
 
 import { RootKey } from "./additional-types";
-import styles from "./base.module.scss";
 import { SettingsBar } from "./components/settings-bar/settings-bar";
 import { Table } from "./components/table/table";
 import { TableWithQuery } from "./components/table/table-with-query";
@@ -102,7 +101,6 @@ export const App: BlockComponent<BlockEntity> = ({
 
           return (
             <Box
-              className={styles.block}
               ref={blockRootRef}
               onMouseEnter={() => setHovered(true)}
               onMouseLeave={() => setHovered(false)}
@@ -124,7 +122,15 @@ export const App: BlockComponent<BlockEntity> = ({
                   updateEntity={updateEntity}
                 />
               ) : null}
-              <div className={styles.titleWrapper}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: "16px",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
                 <div>
                   <EditableField
                     value={titleValue}
@@ -143,7 +149,7 @@ export const App: BlockComponent<BlockEntity> = ({
                     wrapperSx={{ mb: 1.5 }}
                   />
                 </div>
-              </div>
+              </Box>
 
               {hasLinkedQuery ? (
                 <TableWithQuery
