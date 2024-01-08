@@ -79,6 +79,7 @@ export const Grid = ({ gridRef, ...props }: GridProps) => {
        */
       bgHeader: "#F2F5FA",
       bgHeaderHovered: muiTheme.palette.gray[10],
+      bgHeaderHasFocus: muiTheme.palette.gray[10],
     }),
     [muiTheme],
   );
