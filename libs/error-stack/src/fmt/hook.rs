@@ -73,6 +73,7 @@ crate::hook::context::impl_hook_context! {
     /// struct Warning(&'static str);
     /// struct HttpResponseStatusCode(u64);
     /// struct Suggestion(&'static str);
+    /// # #[allow(dead_code)]
     /// struct Secret(&'static str);
     ///
     /// Report::install_debug_hook::<HttpResponseStatusCode>(|HttpResponseStatusCode(value), context| {
