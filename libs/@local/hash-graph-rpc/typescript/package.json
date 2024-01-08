@@ -19,6 +19,9 @@
     "lint:tsc": "tsc --noEmit",
     "test:unit": "jest"
   },
+  "dependencies": {
+    "@local/advanced-types": "0.0.0-private"
+  },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@types/jest": "29.5.11",
