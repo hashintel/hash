@@ -1,6 +1,3 @@
-import fs from "node:fs";
-import * as path from "node:path";
-
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import {
   getHashInstanceAdminAccountGroupId,
@@ -15,17 +12,12 @@ import {
   createUsageRecord,
   getUserServiceUsage,
 } from "@local/hash-backend-utils/service-usage";
-import type {
-  Entity as GraphApiEntity,
-  GraphApi,
-} from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
 import type {
   InferenceModelName,
-  InferenceTokenUsage,
   InferEntitiesCallerParams,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { InferredEntityChangeResult } from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -39,10 +31,8 @@ import type {
   Timestamp,
 } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
-import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 import OpenAI from "openai";
-import { promptTokensEstimate } from "openai-chat-tokens";
 
 import { createEntities } from "./infer-entities/create-entities";
 import {
@@ -50,45 +40,22 @@ import {
   dereferenceEntityType,
 } from "./infer-entities/dereference-entity-type";
 import {
-  CouldNotInferEntitiesReturn,
-  generateTools,
+  CompletionPayload,
+  DereferencedEntityTypesByTypeId,
+  InferenceState,
+  PermittedOpenAiModel,
+} from "./infer-entities/inference-types";
+import { log } from "./infer-entities/log";
+import {
+  generatePersistEntitiesTools,
   ProposedEntityCreationsByType,
   ProposedEntityUpdatesByType,
   validateProposedEntitiesByType,
-} from "./infer-entities/generate-tools";
+} from "./infer-entities/persist-entities/generate-persist-entities-tools";
+import { firstUserMessageIndex } from "./infer-entities/shared/first-user-message-index";
+import { getOpenAiResponse } from "./infer-entities/shared/get-open-ai-response";
 import { stringify } from "./infer-entities/stringify";
 import { updateEntities } from "./infer-entities/update-entities";
-
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY environment variable not set.");
-}
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-type DereferencedEntityTypesByTypeId = Record<
-  VersionedUrl,
-  { isLink: boolean; schema: DereferencedEntityType }
->;
-
-const log = (message: string) => {
-  const requestId = Context.current().info.workflowExecution.runId;
-
-  const logMessage = `[Request ${requestId} – ${new Date().toISOString()}] ${message}`;
-  const logFolderPath = path.join(__dirname, "logs");
-
-  if (process.env.NODE_ENV === "development") {
-    if (!fs.existsSync(logFolderPath)) {
-      fs.mkdirSync(logFolderPath);
-    }
-    const logFilePath = path.join(logFolderPath, `${requestId}.log`);
-    fs.appendFileSync(logFilePath, `${logMessage}\n`);
-  }
-
-  // eslint-disable-next-line no-console
-  console.debug(logMessage);
-};
 
 /**
  * A map of the API consumer-facing model names to the values provided to OpenAI.
@@ -98,48 +65,39 @@ const modelAliasToSpecificModel = {
   "gpt-3.5-turbo": "gpt-3.5-turbo-1106", // bigger context window, will be the resolved value for gpt-3.5-turbo from 11 Dec 2023
   "gpt-4-turbo": "gpt-4-1106-preview", // 'gpt-4-turbo' is not a valid model name in the OpenAI API yet, it's in preview only
   "gpt-4": "gpt-4", // this points to the latest available anyway as of 6 Dec 2023
-} as const satisfies Record<InferenceModelName, string>;
-
-type SpecificModel = (typeof modelAliasToSpecificModel)[InferenceModelName];
-
-const modelToContextWindow: Record<SpecificModel, number> = {
-  "gpt-3.5-turbo-1106": 16_385,
-  "gpt-4-1106-preview": 128_000,
-  "gpt-4": 8_192,
-};
-
-const firstUserMessageIndex = 1;
+} as const satisfies Record<InferenceModelName, PermittedOpenAiModel>;
 
 const requestEntityInference = async (params: {
   authentication: { machineActorId: AccountId };
   createAs: "draft" | "live";
-  completionPayload: Omit<
-    OpenAI.ChatCompletionCreateParams,
-    "stream" | "tools" | "model"
-  > & { model: SpecificModel };
-  entitiesForLinks: Record<number, { entity: GraphApiEntity }>;
+  completionPayload: CompletionPayload;
   entityTypes: DereferencedEntityTypesByTypeId;
-  iterationCount: number;
+  inferenceState: InferenceState;
   graphApiClient: GraphApi;
   ownedById: OwnedById;
-  results: InferredEntityChangeResult[];
+  requestUuid: string;
   requestingUserAccountId: AccountId;
-  usage: InferenceTokenUsage[];
 }): Promise<InferEntitiesReturn> => {
   const {
     authentication,
     completionPayload,
     createAs,
-    entitiesForLinks,
     entityTypes,
-    iterationCount,
+    inferenceState,
     graphApiClient,
     ownedById,
     requestingUserAccountId,
-    results,
   } = params;
 
-  if (iterationCount > 5) {
+  const {
+    iterationCount,
+    iterationEntitiesByTemporaryId,
+    proposedEntitySummaryByTemporaryId,
+    resultsByTemporaryId,
+    usage: usageFromLastIteration,
+  } = inferenceState;
+
+  if (iterationCount > 10) {
     log(
       `Model reached maximum number of iterations. Messages: ${stringify(
         completionPayload.messages,
@@ -179,107 +137,38 @@ const requestEntityInference = async (params: {
 
   const entityTypeIds = Object.keys(entityTypes);
 
-  const tools = generateTools(Object.values(entityTypes));
-
-  const modelContextWindow = modelToContextWindow[completionPayload.model];
-  const completionPayloadOverhead = 2_000;
-
-  let estimatedPromptTokens: number;
-  let excessTokens: number;
-  do {
-    estimatedPromptTokens = promptTokensEstimate({
-      messages: completionPayload.messages,
-      functions: tools.map((tool) => tool.function),
-    });
-    log(`Estimated prompt tokens: ${estimatedPromptTokens}`);
-
-    excessTokens =
-      estimatedPromptTokens + completionPayloadOverhead - modelContextWindow;
-
-    if (excessTokens < 10) {
-      break;
-    }
-
-    log(
-      `Estimated prompt tokens (${estimatedPromptTokens}) + completion token overhead (${completionPayloadOverhead}) exceeds model context window (${modelContextWindow}), trimming original user text input by ${
-        excessTokens / 4
-      } characters.`,
-    );
-
-    const firstUserMessageContent =
-      completionPayload.messages[firstUserMessageIndex]!.content;
-
-    completionPayload.messages[firstUserMessageIndex]!.content =
-      firstUserMessageContent?.slice(
-        0,
-        firstUserMessageContent.length - excessTokens * 4,
-      ) ?? "";
-  } while (excessTokens > 9);
+  const tools = generatePersistEntitiesTools(Object.values(entityTypes));
 
   const openApiPayload: OpenAI.ChatCompletionCreateParams = {
     ...completionPayload,
-    stream: false,
     tools,
   };
 
-  let data: OpenAI.ChatCompletion;
-  try {
-    data = await openai.chat.completions.create(openApiPayload);
+  const openAiResponse = await getOpenAiResponse(openApiPayload);
 
-    log(`Response from AI received: ${stringify(data)}.`);
-  } catch (err) {
-    log(`Error from AI received: ${stringify(err)}.`);
+  if (openAiResponse.code !== StatusCode.Ok) {
     return {
-      code: StatusCode.Internal,
+      ...openAiResponse,
       contents: [],
-      message: `Error from AI Model: ${(err as Error).message}`,
     };
   }
 
-  const response = data.choices[0];
-
-  if (!response) {
-    log(`No data choice available in AI Model response.`);
-    return {
-      code: StatusCode.Internal,
-      contents: [],
-      message: `No data choice available in AI Model response`,
-    };
-  }
+  const { response, usage } = openAiResponse.contents[0]!;
 
   const { finish_reason, message } = response;
 
   const toolCalls = message.tool_calls;
 
-  const usage = [
-    ...params.usage,
-    data.usage ?? { completion_tokens: 0, prompt_tokens: 0, total_tokens: 0 },
-  ];
-
-  if (!data.usage) {
-    log(`OpenAI returned no usage information for call`);
-  } else {
-    const { completion_tokens, prompt_tokens, total_tokens } = data.usage;
-    log(
-      `Actual usage for iteration: prompt tokens: ${prompt_tokens}, completion tokens: ${completion_tokens}, total tokens: ${total_tokens}`,
-    );
-    log(
-      `Estimated prompt usage off by ${
-        prompt_tokens - estimatedPromptTokens
-      } tokens.`,
-    );
-  }
+  const latestUsage = [...usageFromLastIteration, usage];
 
   const retryWithMessages = ({
     retryMessages,
-    latestResults,
     requiresOriginalContext,
   }: {
     retryMessages: (
       | OpenAI.ChatCompletionUserMessageParam
       | OpenAI.ChatCompletionToolMessageParam
     )[];
-    latestResults: InferredEntityChangeResult[];
     requiresOriginalContext: boolean;
   }) => {
     log(`Retrying with additional messages: ${stringify(retryMessages)}`);
@@ -300,13 +189,15 @@ const requestEntityInference = async (params: {
 
     return requestEntityInference({
       ...params,
-      iterationCount: iterationCount + 1,
+      inferenceState: {
+        ...inferenceState,
+        iterationCount: iterationCount + 1,
+        usage: latestUsage,
+      },
       completionPayload: {
         ...completionPayload,
         messages: newMessages,
       },
-      results: latestResults,
-      usage,
     });
   };
 
@@ -320,7 +211,12 @@ const requestEntityInference = async (params: {
 
       return {
         code: StatusCode.Unknown,
-        contents: [{ results: [], usage }],
+        contents: [
+          {
+            results: Object.values(inferenceState.resultsByTemporaryId),
+            usage: latestUsage,
+          },
+        ],
         message:
           message.content ?? "No entities could be inferred from the page.",
       };
@@ -335,7 +231,12 @@ const requestEntityInference = async (params: {
       if (!toolCallId) {
         return {
           code: StatusCode.ResourceExhausted,
-          contents: [{ results: [], usage }],
+          contents: [
+            {
+              results: Object.values(inferenceState.resultsByTemporaryId),
+              usage: latestUsage,
+            },
+          ],
           message:
             "The maximum amount of tokens was reached before the model returned a completion, with no tool call to respond to.",
         };
@@ -351,7 +252,6 @@ const requestEntityInference = async (params: {
             tool_call_id: toolCallId,
           },
         ],
-        latestResults: results,
         requiresOriginalContext: true,
       });
     }
@@ -365,20 +265,30 @@ const requestEntityInference = async (params: {
 
       return {
         code: StatusCode.InvalidArgument,
-        contents: [{ results: [], usage }],
+        contents: [
+          {
+            results: Object.values(inferenceState.resultsByTemporaryId),
+            usage: latestUsage,
+          },
+        ],
         message: "The content filter was triggered",
       };
 
     case "tool_calls": {
       if (!toolCalls) {
         const errorMessage =
-          "AI Model returned 'tool_calls' finish reason no tool calls";
+          "AI Model returned 'tool_calls' finish reason with no tool calls";
 
         log(`${errorMessage}. Message: ${stringify(message)}`);
 
         return {
           code: StatusCode.Internal,
-          contents: [{ results: [], usage }],
+          contents: [
+            {
+              results: Object.values(inferenceState.resultsByTemporaryId),
+              usage: latestUsage,
+            },
+          ],
           message: errorMessage,
         };
       }
@@ -414,26 +324,8 @@ const requestEntityInference = async (params: {
                 tool_call_id: toolCallId,
               },
             ],
-            latestResults: results,
             requiresOriginalContext: true,
           });
-        }
-
-        if (functionName === "could_not_infer_entities") {
-          if (results.length > 0) {
-            log("Could not infer entities, continuing.");
-            continue;
-          }
-
-          const parsedResponse = JSON.parse(
-            modelProvidedArgument,
-          ) as CouldNotInferEntitiesReturn;
-
-          return {
-            code: StatusCode.InvalidArgument,
-            contents: [{ results: [], usage }],
-            message: parsedResponse.reason,
-          };
         }
 
         if (functionName === "create_entities") {
@@ -561,32 +453,6 @@ const requestEntityInference = async (params: {
               `);
             }
 
-            /**
-             * If this is the first iteration and some types have been requested by the user but not inferred,
-             * ask the model to try again. This is a common oversight of GPT-4 Turbo at least, as of Dec 2023.
-             */
-            if (iterationCount === 1) {
-              const typesWithNoSuggestions = entityTypeIds.filter(
-                (entityTypeId) =>
-                  !Object.keys(proposedEntitiesByType).includes(entityTypeId),
-              );
-
-              if (typesWithNoSuggestions.length > 0) {
-                log(
-                  `No suggestions for entity types: ${typesWithNoSuggestions.join(
-                    ", ",
-                  )}`,
-                );
-
-                requiresOriginalContextForRetry = true;
-                retryMessageContent += dedent(`
-                   You did not suggest any entities of the following entity types: ${typesWithNoSuggestions.join(
-                     ", ",
-                   )}. Please reconsider the input text to see if you can identify any entities of those types.
-                `);
-              }
-            }
-
             if (retryMessageContent) {
               retryMessages.push({
                 role: "tool",
@@ -603,7 +469,12 @@ const requestEntityInference = async (params: {
 
             return {
               code: StatusCode.Internal,
-              contents: [{ results: [], usage }],
+              contents: [
+                {
+                  results: Object.values(inferenceState.resultsByTemporaryId),
+                  usage: latestUsage,
+                },
+              ],
               message: errorMessage,
             };
           }
@@ -695,7 +566,12 @@ const requestEntityInference = async (params: {
           } catch (err) {
             return {
               code: StatusCode.Internal,
-              contents: [{ results: [], usage }],
+              contents: [
+                {
+                  results: Object.values(inferenceState.resultsByTemporaryId),
+                  usage: latestUsage,
+                },
+              ],
               message: `Error update entities: ${(err as Error).message}`,
             };
           }
@@ -703,10 +579,11 @@ const requestEntityInference = async (params: {
       }
 
       if (retryMessages.length === 0) {
+        const results = Object.values(resultsByTemporaryId);
         log(`Returning results: ${stringify(results)}`);
         return {
           code: StatusCode.Ok,
-          contents: [{ results, usage }],
+          contents: [{ results, usage: latestUsage }],
         };
       }
 
@@ -733,11 +610,6 @@ const requestEntityInference = async (params: {
         retryMessages: retryMessages.map(
           ({ requiresOriginalContext: _, ...msg }) => msg,
         ),
-        /**
-         * We only return failures from the last iteration, because failures from this one will be retried,
-         * and there may be failures for duplicate entities across iterations.
-         */
-        latestResults: results.filter((result) => result.status === "success"),
         requiresOriginalContext: retryMessages.some(
           (retryMessage) => retryMessage.requiresOriginalContext,
         ),
@@ -750,7 +622,12 @@ const requestEntityInference = async (params: {
 
   return {
     code: StatusCode.Internal,
-    contents: [{ results: [], usage }],
+    contents: [
+      {
+        results: Object.values(inferenceState.resultsByTemporaryId),
+        usage: latestUsage,
+      },
+    ],
     message: errorMessage,
   };
 };
@@ -803,6 +680,7 @@ const usageCostLimit = {
 export const inferEntities = async ({
   authentication: userAuthenticationInfo,
   graphApiClient,
+  requestUuid,
   userArguments,
 }: InferEntitiesCallerParams & {
   graphApiClient: GraphApi;
@@ -996,13 +874,17 @@ export const inferEntities = async ({
     },
     createAs,
     entityTypes,
-    entitiesForLinks: {},
     graphApiClient,
-    iterationCount: 1,
+    inferenceState: {
+      iterationCount: 1,
+      iterationEntitiesByTemporaryId: {},
+      proposedEntitySummaryByTemporaryId: {},
+      resultsByTemporaryId: {},
+      usage: [],
+    },
     ownedById,
     requestingUserAccountId: userAuthenticationInfo.actorId,
-    results: [],
-    usage: [],
+    requestUuid,
   });
 
   if (response.contents[0]?.usage) {
@@ -1032,6 +914,7 @@ export const inferEntities = async ({
         outputUnitCount,
       },
     );
+
     for (const entityResult of response.contents[0].results) {
       if (entityResult.status === "success") {
         await graphApiClient.createEntity(aiAssistantAccountId, {

@@ -1,6 +1,5 @@
 import type { JsonObject } from "@blockprotocol/core";
 import { validateVersionedUrl, VersionedUrl } from "@blockprotocol/type-system";
-import type { Subtype } from "@local/advanced-types/subtype";
 import {
   ProposedEntity,
   ProposedEntitySchemaOrData,
@@ -10,7 +9,7 @@ import dedent from "dedent";
 import OpenAI from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
-import { DereferencedEntityType } from "./dereference-entity-type";
+import { DereferencedEntityType } from "../dereference-entity-type";
 
 export type FunctionName =
   | "could_not_infer_entities"
@@ -77,35 +76,32 @@ export const validateProposedEntitiesByType = <
     );
   }
 
-  const invalidEntities = maybeEntitiesArrays
-    .flat()
-    .filter((maybeEntity): maybeEntity is ProposedEntity => {
-      if (
-        maybeEntity === null ||
-        typeof maybeEntity !== "object" ||
-        Array.isArray(maybeEntity)
-      ) {
-        return true;
-      }
+  const invalidEntities = maybeEntitiesArrays.flat().filter((maybeEntity) => {
+    if (
+      maybeEntity === null ||
+      typeof maybeEntity !== "object" ||
+      Array.isArray(maybeEntity)
+    ) {
+      return true;
+    }
 
-      if (!("entityId" in maybeEntity)) {
-        return true;
-      }
+    if (!("entityId" in maybeEntity)) {
+      return true;
+    }
 
-      if (
-        ("sourceEntityId" in maybeEntity &&
-          !("targetEntityId" in maybeEntity)) ||
-        (!("sourceEntityId" in maybeEntity) && "targetEntityId" in maybeEntity)
-      ) {
-        return true;
-      }
+    if (
+      ("sourceEntityId" in maybeEntity && !("targetEntityId" in maybeEntity)) ||
+      (!("sourceEntityId" in maybeEntity) && "targetEntityId" in maybeEntity)
+    ) {
+      return true;
+    }
 
-      if (update && !("updateEntityId" in maybeEntity)) {
-        return true;
-      }
+    if (update && !("updateEntityId" in maybeEntity)) {
+      return true;
+    }
 
-      return false;
-    });
+    return false;
+  });
 
   if (invalidEntities.length > 0) {
     throw new Error(
@@ -118,42 +114,12 @@ export const validateProposedEntitiesByType = <
   return true;
 };
 
-type CouldNotInferEntitiesReturnKey = "reason";
-type CouldNotInferEntitiesSchemaOrObject = Record<
-  CouldNotInferEntitiesReturnKey,
-  unknown
->;
-export type CouldNotInferEntitiesReturn = Subtype<
-  CouldNotInferEntitiesSchemaOrObject,
-  {
-    reason: string;
-  }
->;
-
-export const generateTools = (
+export const generatePersistEntitiesTools = (
   entityTypes: {
     schema: DereferencedEntityType;
     isLink: boolean;
   }[],
 ): OpenAI.Chat.Completions.ChatCompletionTool[] => [
-  {
-    type: "function",
-    function: {
-      name: "could_not_infer_entities" satisfies FunctionName,
-      description:
-        "Returns a warning to the user explaining why no entities could have been inferred from the provided text",
-      parameters: {
-        type: "object",
-        properties: {
-          reason: {
-            type: "string",
-            description:
-              "A brief explanation as to why no entities could have been inferred, and one suggestion on how to fix the issue",
-          },
-        } satisfies CouldNotInferEntitiesSchemaOrObject,
-      },
-    },
-  },
   {
     type: "function",
     function: {

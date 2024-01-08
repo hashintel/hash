@@ -22,7 +22,7 @@ import isMatch from "lodash.ismatch";
 
 import type { DereferencedEntityType } from "./dereference-entity-type";
 import { ensureTrailingSlash } from "./ensure-trailing-slash";
-import type { ProposedEntityCreationsByType } from "./generate-tools";
+import type { ProposedEntityCreationsByType } from "./persist-entities/generate-persist-entities-tools";
 import { extractErrorMessage } from "./shared/extract-validation-failure-details";
 import { getEntityByFilter } from "./shared/get-entity-by-filter";
 import { stringify } from "./stringify";
@@ -47,6 +47,7 @@ export const createEntities = async ({
   createAsDraft,
   graphApiClient,
   log,
+  previousSuccesses,
   proposedEntitiesByType,
   requestedEntityTypes,
   ownedById,
@@ -73,7 +74,7 @@ export const createEntities = async ({
   const entityStatusMap: EntityStatusMap = {
     creationSuccesses: {},
     creationFailures: {},
-    previousSuccesses: {},
+    previousSuccesses,
     updateCandidates: {},
     unchangedEntities: {},
   };

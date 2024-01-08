@@ -1,0 +1,47 @@
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import {
+  InferenceTokenUsage,
+  InferredEntityChangeResult,
+} from "@local/hash-isomorphic-utils/ai-inference-types";
+import OpenAI from "openai/index";
+
+import { DereferencedEntityType } from "./dereference-entity-type";
+
+export type PermittedOpenAiModel =
+  | "gpt-3.5-turbo-1106"
+  | "gpt-4-1106-preview"
+  | "gpt-4";
+
+export type CompletionPayload = Omit<
+  OpenAI.ChatCompletionCreateParams,
+  "stream" | "tools" | "model"
+> & { model: PermittedOpenAiModel };
+
+export type DereferencedEntityTypesByTypeId = Record<
+  VersionedUrl,
+  { isLink: boolean; schema: DereferencedEntityType }
+>;
+
+export type ProposedEntitySummariesByTemporaryId = Record<
+  number,
+  {
+    entityTypeId: VersionedUrl;
+    summary: string;
+  }
+>;
+
+export type InferenceState = {
+  /** Starting from 1, the current iteration number, where each iteration is a call to the LLM */
+  iterationCount: number;
+  /** The entities which the AI is being asked to provide details for in this iteration */
+  iterationEntitiesByTemporaryId: Record<
+    number,
+    { attempt: number; status: InferredEntityChangeResult["status"] }
+  >;
+  /** A record of summaries of entities that can be inferred from the input */
+  proposedEntitySummaryByTemporaryId: ProposedEntitySummariesByTemporaryId;
+  /** The results of attempting to persist entities inferred from the input */
+  resultsByTemporaryId: Record<number, InferredEntityChangeResult>;
+  /** The token usage for each iteration, in order */
+  usage: InferenceTokenUsage[];
+};

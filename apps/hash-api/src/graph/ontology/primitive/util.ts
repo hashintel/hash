@@ -13,6 +13,7 @@ import {
 } from "@local/hash-subgraph";
 
 import { ImpureGraphFunction } from "../../context-types";
+import { isSelfHostedInstance } from "../../ensure-system-graph-is-initialized/system-webs-and-entities";
 import { getOrgById } from "../../knowledge/system-types/org";
 import { getUserById } from "../../knowledge/system-types/user";
 
@@ -20,6 +21,7 @@ export const isExternalTypeId = (typeId: VersionedUrl) =>
   !typeId.startsWith(frontendUrl) &&
   // To be removed in H-1172: Temporary provision to serve types with a https://hash.ai URL from https://app.hash.ai
   !(
+    !isSelfHostedInstance &&
     ["https://app.hash.ai", "http://localhost:3000"].includes(frontendUrl) &&
     new URL(typeId).hostname === "hash.ai"
   );
