@@ -356,7 +356,7 @@ fn check_format(value: &str, format: &str) -> Result<(), Report<DataValidationEr
             TIME_REGEX
                 .get_or_init(|| {
                     Regex::new(&format!("^{TIME_REGEX_STRING}$"))
-                        .expect("failed to compile date-time regex")
+                        .expect("failed to compile time regex")
                 })
                 .is_match(value)
                 .then_some(())
