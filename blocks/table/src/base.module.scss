@@ -203,18 +203,6 @@
     font-weight: 500;
   }
 
-  p,
-  ol,
-  ul {
-    margin-bottom: var(--space-4);
-  }
-
-  p,
-  li {
-    font-size: var(--font-size-base);
-    line-height: var(--line-height-base);
-  }
-
   p:global(.small-text) {
     font-size: var(--font-size-xs);
     color: var(--neutral-500);
@@ -225,12 +213,6 @@
   }
 
   /* Buttons */
-
-  button {
-    border: none;
-    transition: 250ms ease-in-out;
-    background-color: transparent;
-  }
 
   button:hover {
     cursor: pointer;

@@ -19,6 +19,7 @@ import {
   MuiRadioThemeOptions,
   MuiSwitchThemeOptions,
 } from "./components/inputs";
+import { MuiButtonBaseThemeOptions } from "./components/inputs/mui-button-base-theme-options";
 import { MuiInputBaseThemeOptions } from "./components/inputs/mui-input-base-theme-options";
 import { MuiSelectThemeOptions } from "./components/inputs/mui-select-theme-options";
 import {
@@ -33,6 +34,7 @@ import { MuiCssBaselineThemeOptions } from "./components/utils";
 export const components: Components<Theme> = {
   /** ===== INPUTS ===== */
   MuiButton: MuiButtonThemeOptions,
+  MuiButtonBase: MuiButtonBaseThemeOptions,
   MuiOutlinedInput: MuiOutlinedInputThemeOptions,
   MuiInputLabel: MuiInputLabelThemeOptions,
   MuiSwitch: MuiSwitchThemeOptions,
