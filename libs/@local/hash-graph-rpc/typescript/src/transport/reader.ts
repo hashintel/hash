@@ -1,6 +1,16 @@
+import { Data, Effect, Exit } from "effect";
+
 const DROP_MSB = 0b0111_1111;
 const MSB = 0b1000_0000;
 const MAX_SAFE_SHIFT = 4 * 7;
+
+export class UnexpectedEndOfStreamError extends Data.TaggedError(
+  "UnexpectedEndOfStream",
+) {}
+
+export class VariableIntegerOverflowError extends Data.TaggedError(
+  "VariableIntegerOverflow",
+) {}
 
 class Checkpoint {
   protected offset: number;
@@ -21,109 +31,93 @@ export class Reader {
     this.offset = 0;
   }
 
-  public readByte(): number | null {
+  public readByte() {
     if (this.offset >= this.slice.length) {
-      return null;
+      return Effect.fail(new UnexpectedEndOfStreamError());
     }
 
-    return this.slice[this.offset++]!;
+    return Effect.succeed(this.slice[this.offset++]!);
   }
 
-  public peakByte(): number | null {
-    return this.slice[this.offset] ?? null;
+  public peakByte() {
+    return Effect.fromNullable(this.slice[this.offset]);
   }
 
-  public readBytes(length: number): Uint8Array | null {
+  public readBytes(length: number) {
     if (this.offset + length > this.slice.length) {
-      return null;
+      return Effect.fail(new UnexpectedEndOfStreamError());
     }
 
     const bytes = this.slice.slice(this.offset, this.offset + length);
     this.offset += length;
-    return bytes;
+    return Effect.succeed(bytes);
   }
 
-  public readString(length: number): string | null {
+  public readString(length: number) {
     const bytes = this.readBytes(length);
-    if (bytes === null) {
-      return null;
-    }
 
-    return new TextDecoder().decode(bytes);
+    return Effect.map(bytes, (bytes) => new TextDecoder().decode(bytes));
   }
 
-  public readUInt8(): number | null {
-    const bytes = this.readBytes(1);
-    if (bytes === null) {
-      return null;
-    }
-
-    return new DataView(bytes.buffer).getUint8(0);
+  public readUInt8() {
+    return Effect.map(this.readBytes(1), (bytes) =>
+      new DataView(bytes.buffer).getUint8(0),
+    );
   }
 
-  public readInt8(): number | null {
-    const bytes = this.readBytes(1);
-    if (bytes === null) {
-      return null;
-    }
-
-    return new DataView(bytes.buffer).getInt8(0);
+  public readInt8() {
+    return Effect.map(this.readBytes(1), (bytes) =>
+      new DataView(bytes.buffer).getInt8(0),
+    );
   }
 
-  public readUInt32(): number | null {
-    const bytes = this.readBytes(4);
-    if (bytes === null) {
-      return null;
-    }
-
-    return new DataView(bytes.buffer).getUint32(0, true);
+  public readUInt32() {
+    return Effect.map(this.readBytes(4), (bytes) =>
+      new DataView(bytes.buffer).getUint32(0, true),
+    );
   }
 
-  public readInt32(): number | null {
-    const bytes = this.readBytes(4);
-    if (bytes === null) {
-      return null;
-    }
-
-    return new DataView(bytes.buffer).getInt32(0, true);
+  public readInt32() {
+    return Effect.map(this.readBytes(4), (bytes) =>
+      new DataView(bytes.buffer).getInt32(0, true),
+    );
   }
 
-  public readVarUInt32(): number | null {
-    let value = 0;
-    let shift = 0;
-    const checkpoint = this.saveCheckpoint();
+  public readVarUInt32() {
+    return Effect.gen(this, function* (_) {
+      const checkpoint = this.saveCheckpoint();
 
-    while (true) {
-      const byte = this.readByte();
-      if (byte === null) {
-        this.restoreCheckpoint(checkpoint);
-        return null;
+      let value = 0;
+      let shift = 0;
+
+      _(
+        Effect.addFinalizer((exit) => {
+          if (Exit.isFailure(exit)) {
+            this.restoreCheckpoint(checkpoint);
+          }
+
+          return Effect.unit;
+        }),
+      );
+
+      while (true) {
+        const byte = yield* _(this.readByte());
+
+        let byteValue = byte & DROP_MSB;
+        value |= byteValue << shift;
+        shift += 7;
+
+        if (shift > MAX_SAFE_SHIFT) {
+          yield* _(new VariableIntegerOverflowError());
+        }
+
+        if ((byte & MSB) === 0) {
+          break;
+        }
       }
 
-      let byteValue = byte & DROP_MSB;
-      value |= byteValue << shift;
-      shift += 7;
-
-      if (shift > MAX_SAFE_SHIFT) {
-        this.restoreCheckpoint(checkpoint);
-        return null;
-      }
-
-      if ((byte & MSB) === 0) {
-        break;
-      }
-    }
-
-    return value;
-  }
-
-  public readVarInt32(): number | null {
-    const value = this.readVarUInt32();
-    if (value === null) {
-      return null;
-    }
-
-    return (value >> 1) ^ -(value & 1);
+      return value;
+    });
   }
 
   public saveCheckpoint(): Checkpoint {

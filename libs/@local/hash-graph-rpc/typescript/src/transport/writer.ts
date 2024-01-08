@@ -19,15 +19,18 @@ export class Writer {
       return;
     }
 
-    while (this.view.length < expectedLength) {
-      const newBuffer = new ArrayBuffer(this.buffer.byteLength * 2);
-      const newView = new Uint8Array(newBuffer);
-
-      newView.set(this.view);
-
-      this.buffer = newBuffer;
-      this.view = newView;
+    let newLength = this.view.length * 2;
+    while (newLength < expectedLength) {
+      newLength *= 2;
     }
+
+    const newBuffer = new ArrayBuffer(this.buffer.byteLength * 2);
+    const newView = new Uint8Array(newBuffer);
+
+    newView.set(this.view);
+
+    this.buffer = newBuffer;
+    this.view = newView;
   }
 
   public writeByte(byte: number): void {

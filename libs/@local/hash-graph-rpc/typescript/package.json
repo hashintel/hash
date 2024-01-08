@@ -20,7 +20,8 @@
     "test:unit": "jest"
   },
   "dependencies": {
-    "@local/advanced-types": "0.0.0-private"
+    "@local/advanced-types": "0.0.0-private",
+    "effect": "2.0.2"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
