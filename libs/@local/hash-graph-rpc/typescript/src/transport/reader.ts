@@ -31,7 +31,7 @@ export class Reader {
     this.offset = 0;
   }
 
-  public readByte() {
+  public readByte(): Effect.Effect<never, UnexpectedEndOfStreamError, number> {
     if (this.offset >= this.slice.length) {
       return Effect.fail(new UnexpectedEndOfStreamError());
     }

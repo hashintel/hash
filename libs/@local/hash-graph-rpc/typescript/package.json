@@ -20,8 +20,15 @@
     "test:unit": "jest"
   },
   "dependencies": {
+    "@effect/schema": "0.57.2",
+    "@libp2p/interface": "1.1.1",
+    "@libp2p/interface-internal": "1.0.5",
     "@local/advanced-types": "0.0.0-private",
-    "effect": "2.0.2"
+    "@multiformats/multiaddr": "12.1.12",
+    "effect": "2.0.2",
+    "it-first": "^3.0.4",
+    "it-pipe": "^3.0.1",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",

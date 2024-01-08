@@ -1,8 +1,14 @@
-import { PayloadSize, TransportVersion } from "./request";
-import { Reader } from "./reader";
 import { Cause, Data, Effect, Match } from "effect";
 
+import { PayloadSize, TransportVersion } from "./common";
+import { Reader } from "./reader";
+import { TRANSPORT_VERSION } from "./index";
+
 export class UnknownResponseError extends Data.TaggedError("UnknownResponse") {}
+
+export class UnsupportedTransportVersionError extends Data.TaggedError(
+  "UnsupportedTransportVersion",
+) {}
 
 type ResponseError = Data.TaggedEnum<{
   DeadlineExceeded: {};
@@ -19,7 +25,13 @@ type ResponseError = Data.TaggedEnum<{
 
 const ResponseError = Data.taggedEnum<ResponseError>();
 
-function responseErrorFromErrorCode(value: number) {
+function responseErrorFromErrorCode(
+  value: number,
+): Effect.Effect<
+  never,
+  Cause.NoSuchElementException | UnknownResponseError,
+  ResponseError
+> {
   return Match.value(value)
     .pipe(
       Match.when(0, () => ResponseError.DeadlineExceeded()),
@@ -67,7 +79,7 @@ export interface Response {
 
 function readFlags(reader: Reader) {
   return Effect.gen(function* (_) {
-    const flags = yield* _(reader.readBytes(1));
+    const flags = yield* _(reader.readBytes(2));
 
     const endOfStream = (flags[1] & 0b0000_0010) === 0b0000_0010;
     const streaming = (flags[1] & 0b0000_0001) === 0b0000_0001;
@@ -83,13 +95,24 @@ export function readResponse(buffer: Uint8Array) {
   return Effect.gen(function* (_) {
     const reader = new Reader(buffer);
 
-    const version = yield* _(reader.readByte());
+    const version: TransportVersion = yield* _(
+      reader.readByte(),
+      Effect.andThen((value) => TransportVersion.option(value)),
+    );
+
+    if (version !== TRANSPORT_VERSION) {
+      yield* _(new UnsupportedTransportVersionError());
+    }
+
     const flags = yield* _(readFlags(reader));
 
     const status = yield* _(reader.readByte());
     if (status === 0) {
       // successful response
-      const size = yield* _(reader.readVarUInt32());
+      const size = yield* _(
+        reader.readVarUInt32(),
+        Effect.andThen((value) => PayloadSize.option(value)),
+      );
       const body = yield* _(reader.readBytes(size));
 
       return {
@@ -109,7 +132,7 @@ export function readResponse(buffer: Uint8Array) {
         header: {
           version,
           flags,
-          size: 0,
+          size: PayloadSize(0),
         },
         body: {
           error,

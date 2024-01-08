@@ -1,21 +1,20 @@
-import { Brand } from "@local/advanced-types/brand";
 import { Writer } from "./writer";
+import {
+  ActorId,
+  PayloadSize,
+  ProcedureId,
+  ServiceId,
+  ServiceVersion,
+  TransportVersion,
+} from "./common";
 
 // currently unused
 export interface RequestFlags extends Record<string, never> {}
-
-export type TransportVersion = Brand<number, "TransportVersion">;
-export type ServiceVersion = Brand<number, "ServiceVersion">;
 
 export interface Version {
   transport: TransportVersion;
   service: ServiceVersion;
 }
-
-export type ServiceId = Brand<number, "ServiceId">;
-export type ProcedureId = Brand<number, "ProcedureId">;
-export type ActorId = Brand<Uint8Array, "ActorId">;
-export type PayloadSize = Brand<number, "Size">;
 
 export interface RequestHeader {
   flags: RequestFlags;
