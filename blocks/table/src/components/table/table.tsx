@@ -249,7 +249,7 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
                 },
               }}
             >
-              Add a Column +
+              Add column +
             </ButtonBase>
           )
         }
@@ -259,7 +259,7 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
         onCellsEdited={handleCellsEdited}
         rightElementProps={{ fill: true }}
         trailingRowOptions={{
-          hint: "New row...",
+          hint: "Add row...",
           sticky: true,
           tint: true,
         }}
