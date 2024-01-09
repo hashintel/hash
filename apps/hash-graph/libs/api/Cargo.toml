@@ -18,7 +18,7 @@ codec = { workspace = true, optional = true }
 
 async-trait = "0.1.77"
 axum = "0.7.3"
-base64 = "0.21.5"
+base64 = "0.21.6"
 bytes = "1.5.0"
 error-stack = { workspace = true }
 futures = { workspace = true }
