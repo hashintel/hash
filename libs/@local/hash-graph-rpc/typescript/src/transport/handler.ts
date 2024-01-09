@@ -1,20 +1,18 @@
+import { ParseError } from "@effect/schema/ParseResult";
 import * as S from "@effect/schema/Schema";
 import {
   AbortOptions,
   CodeError,
   ComponentLogger,
   ERR_TIMEOUT,
-  IncomingStreamData,
   Logger,
   PeerId,
   Startable,
 } from "@libp2p/interface";
 import { ConnectionManager } from "@libp2p/interface-internal";
-import { Registrar } from "@libp2p/interface-internal";
-import { Multiaddr } from "@multiformats/multiaddr";
-import { Cause, Data, Duration, Effect, Exit } from "effect";
-import first from "it-first";
-import { pipe } from "it-pipe";
+import { type Multiaddr } from "@multiformats/multiaddr";
+import { Cause, Chunk, Data, Duration, Effect, Exit, Stream } from "effect";
+import { Scope } from "effect/Scope";
 
 import {
   UnexpectedEndOfStreamError,
@@ -27,13 +25,14 @@ import {
   UnknownResponseError,
   UnsupportedTransportVersionError,
 } from "./response";
-import { Scope } from "effect/Scope";
-import { ParseError } from "@effect/schema/ParseResult";
 
 export class TimeoutError extends Data.TaggedError("Timeout") {}
 
+export class AbortedError extends Data.TaggedError("Aborted")<{
+  message: string;
+}> {}
+
 export interface HandlerComponents {
-  registrar: Registrar;
   connectionManager: ConnectionManager;
   logger: ComponentLogger;
 }
@@ -66,7 +65,7 @@ export interface Handler<E> {
   ): Effect.Effect<Scope, E, Response>;
 }
 
-export class WebSocketHandler
+export class DefaultHandler
   implements
     Startable,
     Handler<
@@ -77,6 +76,7 @@ export class WebSocketHandler
       | VariableIntegerOverflowError
       | UnsupportedTransportVersionError
       | ParseError
+      | AbortedError
       | Cause.NoSuchElementException
     >
 {
@@ -84,7 +84,6 @@ export class WebSocketHandler
   private readonly config: HandlerConfig;
 
   public readonly protocol = "/hash/rpc/1";
-  private started: boolean = false;
 
   constructor(
     private readonly components: HandlerComponents,
@@ -94,24 +93,9 @@ export class WebSocketHandler
     this.log = components.logger.forComponent("handler:websocket");
   }
 
-  async start() {
-    // await this.components.registrar.handle(this.protocol, this.handleMessage, {
-    //   maxInboundStreams: this.config.maxInboundStreams,
-    //   maxOutboundStreams: this.config.maxOutboundStreams,
-    //   runOnTransientConnection: this.config.runOnTransientConnection,
-    // });
+  async start() {}
 
-    this.started = true;
-  }
-
-  async stop() {
-    // await this.components.registrar.unhandle(this.protocol);
-    this.started = false;
-  }
-
-  public get isStarted(): boolean {
-    return this.started;
-  }
+  async stop() {}
 
   send(
     peer: PeerId | Multiaddr | Multiaddr[],
@@ -146,9 +130,20 @@ export class WebSocketHandler
             allSignals.push(options.signal);
           }
 
-          const signal: AbortSignal = AbortSignal.any(allSignals);
+          const abortController = new AbortController();
 
-          return connection.newStream(this.protocol, { ...options, signal });
+          for (const signal of allSignals) {
+            signal.addEventListener(
+              "abort",
+              () => {
+                this.log("aborting stream");
+                abortController.abort();
+              },
+              { once: true },
+            );
+          }
+
+          return connection.newStream(this.protocol, {});
         }),
       );
 
@@ -162,18 +157,42 @@ export class WebSocketHandler
         }),
       );
 
-      const rawResponse = yield* _(
-        Effect.tryPromise(() => {
-          return pipe([data], stream, async (source) => first(source));
-        }),
+      yield* _(Effect.promise(() => stream.sink([data])));
+
+      const incomingStream = Stream.fromAsyncIterable(
+        stream.source,
+        (error) => new AbortedError({ message: String(error) }),
       );
 
-      if (rawResponse === undefined || rawResponse === null) {
+      const chunks = yield* _(Stream.runCollect(incomingStream));
+      const chunkArray = Chunk.toReadonlyArray(chunks);
+
+      const bufferLength = chunkArray.reduce(
+        (acc, chunk) => acc + chunk.length,
+        0,
+      );
+
+      const buffer = new Uint8Array(bufferLength);
+
+      let offset = 0;
+      for (const chunk of chunkArray) {
+        const view = chunk.subarray();
+        buffer.set(view, offset);
+        offset += view.length;
+      }
+
+      if (chunkArray.length === 0) {
         yield* _(new TimeoutError());
       }
 
-      const response = yield* _(readResponse(rawResponse!.subarray()));
+      const response = yield* _(readResponse(buffer));
       return response;
     });
   }
+}
+
+export function defaultHandler(config: IncompleteHandlerConfig) {
+  return (components: HandlerComponents): Handler<unknown> => {
+    return new DefaultHandler(components, config);
+  };
 }

@@ -1,12 +1,19 @@
-import { ProcedureId, ServiceId, ServiceVersion } from "./transport/common";
-import { Response, ResponseFrom } from "./transport/response";
-import { Request, RequestHeader } from "./transport/request";
 import { ParseResult } from "@effect/schema";
 import * as S from "@effect/schema/Schema";
-import { TRANSPORT_VERSION } from "./transport";
-import { Data, Effect } from "effect";
-import { Handler, WebSocketHandler } from "./transport/handler";
-import { Multiaddr } from "@multiformats/multiaddr";
+import { type Multiaddr } from "@multiformats/multiaddr";
+import { Effect } from "effect";
+import { parse } from "uuid";
+
+import { TRANSPORT_VERSION } from "./transport/constants";
+import {
+  ActorId,
+  ProcedureId,
+  ServiceId,
+  ServiceVersion,
+} from "./transport/common";
+import { Handler } from "./transport/handler";
+import { Request, RequestHeader } from "./transport/request";
+import { Response, ResponseFrom } from "./transport/response";
 
 export const EncodingContext = RequestHeader.pipe(S.pick("actor"));
 export interface EncodingContext extends S.Schema.To<typeof EncodingContext> {}
@@ -28,7 +35,11 @@ interface Service<
   V extends ServiceVersion,
   T extends Record<string, never>,
 > {
-  new (server: Multiaddr, handler: Handler<unknown>): ServiceInstance<S, V, T>;
+  new (
+    server: Multiaddr,
+    actor: string,
+    handler: Handler<unknown>,
+  ): ServiceInstance<S, V, T>;
 }
 
 export interface Procedure<
@@ -74,7 +85,7 @@ class ServiceBuilder<
       [key in N]: Procedure<S, P, ReqIn, ResOut>;
     }
   > {
-    let requestSchema = S.transformOrFail(
+    const requestSchema = S.transformOrFail(
       S.tuple(EncodingContext, request),
       Request,
       ([context, req]) => {
@@ -100,7 +111,7 @@ class ServiceBuilder<
       (_) => ParseResult.fail(ParseResult.forbidden),
     ) satisfies S.Schema<readonly [EncodingContextFrom, ReqIn], Request>;
 
-    let responseSchema = S.transformOrFail(
+    const responseSchema = S.transformOrFail(
       Response,
       response,
       (res) => {
@@ -133,9 +144,11 @@ class ServiceBuilder<
 
       constructor(
         public server: Multiaddr,
+        public actor: string,
         public handler: Handler<unknown>,
       ) {
-        this.client = new Client(server, handler);
+        const actorId = ActorId(parse(actor) as Uint8Array);
+        this.client = new Client(server, actorId, handler);
       }
     }
 
@@ -164,6 +177,7 @@ export function service<
 export class Client<E> {
   constructor(
     public server: Multiaddr,
+    public actor: ActorId,
     public handler: Handler<E>,
   ) {}
 
@@ -172,7 +186,9 @@ export class Client<E> {
     request: Req,
   ) {
     return Effect.gen(this, function* (_) {
-      const encodedRequest = yield* _(S.parse(procedure.request)(request));
+      const encodedRequest = yield* _(
+        S.parse(procedure.request)([{ actor: this.actor }, request]),
+      );
 
       const response = yield* _(this.handler.send(this.server, encodedRequest));
 

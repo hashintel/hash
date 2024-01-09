@@ -1,5 +1,5 @@
 import * as S from "@effect/schema/Schema";
-import { Writer } from "./writer";
+
 import {
   ActorId,
   PayloadSize,
@@ -8,6 +8,7 @@ import {
   ServiceVersion,
   TransportVersion,
 } from "./common";
+import { Writer } from "./writer";
 
 // currently unused
 export const RequestFlags = S.struct({});

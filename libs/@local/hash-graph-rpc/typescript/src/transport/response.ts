@@ -1,9 +1,9 @@
-import { Cause, Data, Effect, Match } from "effect";
 import * as S from "@effect/schema/Schema";
+import { Cause, Data, Effect, Match } from "effect";
 
 import { PayloadSize, TransportVersion } from "./common";
+import { TRANSPORT_VERSION } from "./constants";
 import { Reader } from "./reader";
-import { TRANSPORT_VERSION } from "./index";
 
 export class UnknownResponseError extends Data.TaggedError("UnknownResponse") {}
 
@@ -76,8 +76,6 @@ export const ResponseBody = S.union(
   }),
 );
 
-export interface ResponseBody extends S.Schema.To<typeof ResponseBody> {}
-
 export const Response = S.struct({
   header: ResponseHeader,
   body: ResponseBody,
@@ -90,8 +88,8 @@ function readFlags(reader: Reader) {
   return Effect.gen(function* (_) {
     const flags = yield* _(reader.readBytes(2));
 
-    const endOfStream = (flags[1] & 0b0000_0010) === 0b0000_0010;
-    const streaming = (flags[1] & 0b0000_0001) === 0b0000_0001;
+    const endOfStream = (flags[1]! & 0b0000_0010) === 0b0000_0010;
+    const streaming = (flags[1]! & 0b0000_0001) === 0b0000_0001;
 
     return {
       endOfStream,

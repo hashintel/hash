@@ -50,6 +50,14 @@ export class Writer {
   }
 
   public writeVarUInt(value: number): void {
-    // TODO: implement
+    while (true) {
+      if (value < 0x80) {
+        this.writeByte(value);
+        break;
+      } else {
+        this.writeByte((value & 0x7f) | 0x80);
+        value = value >>> 7;
+      }
+    }
   }
 }

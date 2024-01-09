@@ -1,6 +1,9 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "include": ["./src/", "./tests/"],
-  "target": "esnext",
-  "lib": ["dom", "es2022", "esnext"]
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": true,
+    "module": "ESNext",
+    "esModuleInterop": true
+  }
 }

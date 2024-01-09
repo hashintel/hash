@@ -1,16 +1,43 @@
+import { noise } from "@chainsafe/libp2p-noise";
+import { yamux } from "@chainsafe/libp2p-yamux";
 import * as S from "@effect/schema/Schema";
+import { identify } from "@libp2p/identify";
+import { webSockets } from "@libp2p/websockets";
+import { multiaddr } from "@multiformats/multiaddr";
+import { createLibp2p } from "libp2p";
+
 import { service } from "./client";
 import { ProcedureId, ServiceId, ServiceVersion } from "./transport/common";
-import { Multiaddr } from "@multiformats/multiaddr/multiaddr";
+import { defaultHandler } from "./transport/handler";
 
 const AccountService = service(ServiceId(0x00), ServiceVersion(0x00))
-  .procedure("createAccount", ProcedureId(0x00), S.struct({}), S.string)
+  .procedure("createAccount", ProcedureId(0x00), S.null, S.string)
   .build();
 
-async function main() {
-  const service = new AccountService(new Multiaddr("/ip4/0.0.0.0/ws"));
-  const result = await service.createAccount({});
-  console.log(result);
+function createTransport() {
+  return createLibp2p({
+    transports: [webSockets()],
+    streamMuxers: [yamux()],
+    connectionEncryption: [noise()],
+    services: { rpc: defaultHandler({}), identify: identify() },
+  });
 }
 
-main();
+export async function main() {
+  const transport = await createTransport();
+
+  const service = new AccountService(
+    multiaddr("/ip4/127.0.0.1/tcp/4088/ws/"),
+    "65a84123-7def-4304-945d-c9828fbf25b6",
+    transport.services.rpc,
+  );
+
+  console.time("request");
+  const result = await service.createAccount(null);
+  console.timeEnd("request");
+  console.log(result);
+
+  await transport.stop();
+}
+
+await main();
