@@ -31,7 +31,7 @@ export const InlineSelect = styled(
   [`.${selectClasses.select}.${inputBaseClasses.input}`]: {
     fontSize: 12,
     height: 12,
-    fontWeight: 600,
+    fontWeight: 500,
     color: theme.palette.gray[90],
     minHeight: "unset",
     paddingRight: 18,
