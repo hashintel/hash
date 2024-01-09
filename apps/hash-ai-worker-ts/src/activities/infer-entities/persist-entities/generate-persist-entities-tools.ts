@@ -12,7 +12,7 @@ import type { JSONSchema } from "openai/lib/jsonschema";
 import { DereferencedEntityType } from "../dereference-entity-type";
 
 export type FunctionName =
-  | "could_not_infer_entities"
+  | "abandon_entities"
   | "create_entities"
   | "update_entities";
 
@@ -175,6 +175,26 @@ export const generatePersistEntitiesTools = (
           },
           {},
         ),
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "abandon_entities" satisfies FunctionName,
+      description:
+        "Give up trying to create or update entity, following failures which you cannot correct",
+      parameters: {
+        type: "object",
+        properties: {
+          entityIds: {
+            type: "array",
+            title: "The entityIds of the entities to abandon",
+            items: {
+              type: "number",
+            },
+          },
+        },
       },
     },
   },

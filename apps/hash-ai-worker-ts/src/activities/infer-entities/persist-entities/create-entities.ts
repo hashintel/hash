@@ -4,6 +4,7 @@ import type { Entity, GraphApi } from "@local/hash-graph-client";
 import type {
   InferredEntityCreationFailure,
   InferredEntityCreationSuccess,
+  InferredEntityMatchesExisting,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
@@ -20,12 +21,13 @@ import {
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 import isMatch from "lodash.ismatch";
 
-import type { DereferencedEntityType } from "./dereference-entity-type";
+import type { DereferencedEntityType } from "../dereference-entity-type";
+import { InferenceState } from "../inference-types";
+import { extractErrorMessage } from "../shared/extract-validation-failure-details";
+import { getEntityByFilter } from "../shared/get-entity-by-filter";
+import { stringify } from "../stringify";
 import { ensureTrailingSlash } from "./ensure-trailing-slash";
-import type { ProposedEntityCreationsByType } from "./persist-entities/generate-persist-entities-tools";
-import { extractErrorMessage } from "./shared/extract-validation-failure-details";
-import { getEntityByFilter } from "./shared/get-entity-by-filter";
-import { stringify } from "./stringify";
+import type { ProposedEntityCreationsByType } from "./generate-persist-entities-tools";
 
 type UpdateCandidate = {
   existingEntity: Entity;
@@ -37,17 +39,16 @@ type StatusByTemporaryId<T> = Record<number, T>;
 type EntityStatusMap = {
   creationSuccesses: StatusByTemporaryId<InferredEntityCreationSuccess>;
   creationFailures: StatusByTemporaryId<InferredEntityCreationFailure>;
-  previousSuccesses: StatusByTemporaryId<{ entity: Entity }>;
   updateCandidates: StatusByTemporaryId<UpdateCandidate>;
-  unchangedEntities: StatusByTemporaryId<UpdateCandidate>;
+  unchangedEntities: StatusByTemporaryId<InferredEntityMatchesExisting>;
 };
 
 export const createEntities = async ({
   actorId,
   createAsDraft,
   graphApiClient,
+  inferenceState,
   log,
-  previousSuccesses,
   proposedEntitiesByType,
   requestedEntityTypes,
   ownedById,
@@ -55,8 +56,8 @@ export const createEntities = async ({
   actorId: AccountId;
   createAsDraft: boolean;
   graphApiClient: GraphApi;
+  inferenceState: InferenceState;
   log: (message: string) => void;
-  previousSuccesses: StatusByTemporaryId<{ entity: Entity }>;
   proposedEntitiesByType: ProposedEntityCreationsByType;
   requestedEntityTypes: Record<
     VersionedUrl,
@@ -71,13 +72,20 @@ export const createEntities = async ({
     ({ isLink }) => isLink,
   );
 
-  const entityStatusMap: EntityStatusMap = {
+  const internalEntityStatusMap: EntityStatusMap = {
     creationSuccesses: {},
     creationFailures: {},
-    previousSuccesses,
     updateCandidates: {},
     unchangedEntities: {},
   };
+
+  const findPersistedEntity = (
+    temporaryId: number,
+  ): Entity | null | undefined =>
+    internalEntityStatusMap.creationSuccesses[temporaryId]?.entity ??
+    internalEntityStatusMap.updateCandidates[temporaryId]?.existingEntity ??
+    internalEntityStatusMap.unchangedEntities[temporaryId]?.entity ??
+    inferenceState.resultsByTemporaryId[temporaryId]?.entity;
 
   await Promise.all(
     nonLinkEntityTypes.map(async (nonLinkType) => {
@@ -143,7 +151,9 @@ export const createEntities = async ({
                   proposedEntity.properties ?? {},
                 )
               ) {
-                entityStatusMap.updateCandidates[proposedEntity.entityId] = {
+                internalEntityStatusMap.updateCandidates[
+                  proposedEntity.entityId
+                ] = {
                   existingEntity,
                   proposedEntity,
                 };
@@ -151,9 +161,14 @@ export const createEntities = async ({
                 log(
                   `Proposed entity ${proposedEntity.entityId} exactly matches existing entity – continuing`,
                 );
-                entityStatusMap.unchangedEntities[proposedEntity.entityId] = {
-                  existingEntity,
+                internalEntityStatusMap.unchangedEntities[
+                  proposedEntity.entityId
+                ] = {
+                  entity: existingEntity,
+                  entityTypeId,
+                  operation: "already-exists-as-proposed",
                   proposedEntity,
+                  status: "success",
                 };
               }
               return;
@@ -197,16 +212,17 @@ export const createEntities = async ({
               createdEntityMetadata,
             );
 
-            entityStatusMap.creationSuccesses[proposedEntity.entityId] = {
-              entity: {
-                metadata,
-                properties,
-              },
-              entityTypeId,
-              proposedEntity,
-              operation: "create",
-              status: "success",
-            };
+            internalEntityStatusMap.creationSuccesses[proposedEntity.entityId] =
+              {
+                entity: {
+                  metadata,
+                  properties,
+                },
+                entityTypeId,
+                proposedEntity,
+                operation: "create",
+                status: "success",
+              };
           } catch (err) {
             log(
               `Creation of entity id ${
@@ -218,13 +234,14 @@ export const createEntities = async ({
               err,
             )}. The schema is ${JSON.stringify(nonLinkType.schema)}.`;
 
-            entityStatusMap.creationFailures[proposedEntity.entityId] = {
-              entityTypeId,
-              proposedEntity,
-              failureReason,
-              operation: "create",
-              status: "failure",
-            };
+            internalEntityStatusMap.creationFailures[proposedEntity.entityId] =
+              {
+                entityTypeId,
+                proposedEntity,
+                failureReason,
+                operation: "create",
+                status: "failure",
+              };
           }
         }),
       );
@@ -249,28 +266,25 @@ export const createEntities = async ({
               "targetEntityId" in proposedEntity
             )
           ) {
-            entityStatusMap.creationFailures[proposedEntity.entityId] = {
-              entityTypeId,
-              proposedEntity,
-              operation: "create",
-              status: "failure",
-              failureReason:
-                "Link entities must have both a sourceEntityId and a targetEntityId.",
-            };
+            internalEntityStatusMap.creationFailures[proposedEntity.entityId] =
+              {
+                entityTypeId,
+                proposedEntity,
+                operation: "create",
+                status: "failure",
+                failureReason:
+                  "Link entities must have both a sourceEntityId and a targetEntityId.",
+              };
             return;
           }
 
           const { sourceEntityId, targetEntityId } = proposedEntity;
 
-          const sourceEntity =
-            entityStatusMap.creationSuccesses[sourceEntityId]?.entity ??
-            entityStatusMap.updateCandidates[sourceEntityId]?.existingEntity ??
-            entityStatusMap.unchangedEntities[sourceEntityId]?.existingEntity ??
-            entityStatusMap.previousSuccesses[sourceEntityId]?.entity;
+          const sourceEntity = findPersistedEntity(sourceEntityId);
 
           if (!sourceEntity) {
             const sourceFailure =
-              entityStatusMap.creationFailures[sourceEntityId];
+              internalEntityStatusMap.creationFailures[sourceEntityId];
 
             if (!sourceFailure) {
               const sourceProposedEntity = Object.values(proposedEntitiesByType)
@@ -281,7 +295,9 @@ export const createEntities = async ({
                 ? `source with temporaryId ${sourceEntityId} was proposed but not created, and no creation error is recorded`
                 : `source with temporaryId ${sourceEntityId} not found in proposed entities`;
 
-              entityStatusMap.creationFailures[proposedEntity.entityId] = {
+              internalEntityStatusMap.creationFailures[
+                proposedEntity.entityId
+              ] = {
                 entityTypeId,
                 proposedEntity,
                 operation: "create",
@@ -291,26 +307,23 @@ export const createEntities = async ({
               return;
             }
 
-            entityStatusMap.creationFailures[proposedEntity.entityId] = {
-              entityTypeId,
-              proposedEntity,
-              operation: "create",
-              status: "failure",
-              failureReason: `Link entity could not be created – source with temporary id ${sourceEntityId} failed to be created with reason: ${sourceFailure.failureReason}`,
-            };
+            internalEntityStatusMap.creationFailures[proposedEntity.entityId] =
+              {
+                entityTypeId,
+                proposedEntity,
+                operation: "create",
+                status: "failure",
+                failureReason: `Link entity could not be created – source with temporary id ${sourceEntityId} failed to be created with reason: ${sourceFailure.failureReason}`,
+              };
 
             return;
           }
 
-          const targetEntity =
-            entityStatusMap.creationSuccesses[targetEntityId]?.entity ??
-            entityStatusMap.updateCandidates[targetEntityId]?.existingEntity ??
-            entityStatusMap.unchangedEntities[targetEntityId]?.existingEntity ??
-            entityStatusMap.previousSuccesses[sourceEntityId]?.entity;
+          const targetEntity = findPersistedEntity(targetEntityId);
 
           if (!targetEntity) {
             const targetFailure =
-              entityStatusMap.creationFailures[targetEntityId];
+              internalEntityStatusMap.creationFailures[targetEntityId];
 
             if (!targetFailure) {
               const targetProposedEntity = Object.values(proposedEntitiesByType)
@@ -321,7 +334,9 @@ export const createEntities = async ({
                 ? `target with temporaryId ${targetEntityId} was proposed but not created, and no creation error is recorded`
                 : `target with temporaryId ${targetEntityId} not found in proposed entities`;
 
-              entityStatusMap.creationFailures[proposedEntity.entityId] = {
+              internalEntityStatusMap.creationFailures[
+                proposedEntity.entityId
+              ] = {
                 entityTypeId,
                 proposedEntity,
                 operation: "create",
@@ -331,13 +346,14 @@ export const createEntities = async ({
               return;
             }
 
-            entityStatusMap.creationFailures[proposedEntity.entityId] = {
-              entityTypeId,
-              proposedEntity,
-              operation: "create",
-              status: "failure",
-              failureReason: `Link entity could not be created – target with temporary id ${targetEntityId} failed to be created with reason: ${targetFailure.failureReason}`,
-            };
+            internalEntityStatusMap.creationFailures[proposedEntity.entityId] =
+              {
+                entityTypeId,
+                proposedEntity,
+                operation: "create",
+                status: "failure",
+                failureReason: `Link entity could not be created – target with temporary id ${targetEntityId} failed to be created with reason: ${targetFailure.failureReason}`,
+              };
 
             return;
           }
@@ -419,7 +435,9 @@ export const createEntities = async ({
                * Otherwise, do nothing.
                */
               if (!isMatch(existingLinkEntity.properties, properties)) {
-                entityStatusMap.updateCandidates[proposedEntity.entityId] = {
+                internalEntityStatusMap.updateCandidates[
+                  proposedEntity.entityId
+                ] = {
                   existingEntity: existingLinkEntity,
                   proposedEntity,
                 };
@@ -458,13 +476,14 @@ export const createEntities = async ({
               createdEntityMetadata,
             );
 
-            entityStatusMap.creationSuccesses[proposedEntity.entityId] = {
-              entityTypeId,
-              entity: { linkData, metadata, properties },
-              operation: "create",
-              proposedEntity,
-              status: "success",
-            };
+            internalEntityStatusMap.creationSuccesses[proposedEntity.entityId] =
+              {
+                entityTypeId,
+                entity: { linkData, metadata, properties },
+                operation: "create",
+                proposedEntity,
+                status: "success",
+              };
           } catch (err) {
             log(
               `Creation of link entity id ${
@@ -476,18 +495,19 @@ export const createEntities = async ({
               err,
             )}. The schema is ${JSON.stringify(linkType.schema)}.`;
 
-            entityStatusMap.creationFailures[proposedEntity.entityId] = {
-              entityTypeId,
-              operation: "create",
-              proposedEntity,
-              status: "failure",
-              failureReason,
-            };
+            internalEntityStatusMap.creationFailures[proposedEntity.entityId] =
+              {
+                entityTypeId,
+                operation: "create",
+                proposedEntity,
+                status: "failure",
+                failureReason,
+              };
           }
         }),
       );
     }),
   );
 
-  return entityStatusMap;
+  return internalEntityStatusMap;
 };

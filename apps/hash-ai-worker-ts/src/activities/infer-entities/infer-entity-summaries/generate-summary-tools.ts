@@ -5,17 +5,13 @@ import OpenAI from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
 import { DereferencedEntityType } from "../dereference-entity-type";
+import { ProposedEntitySummary } from "../inference-types";
 
 type FunctionName = "could_not_infer_entities" | "register_entity_summaries";
 
-type ProposedEntitySummary = {
-  entityId: number;
-  summary: string;
-};
-
 export type ProposedEntitySummariesByType = Record<
   VersionedUrl,
-  ProposedEntitySummary[]
+  Omit<ProposedEntitySummary, "entityTypeId">[]
 >;
 
 const stringifyArray = (array: unknown[]): string =>
@@ -78,6 +74,15 @@ export const validateEntitySummariesByType = (
       }
 
       if (typeof maybeEntitySummary.summary !== "string") {
+        return true;
+      }
+
+      if (
+        ("sourceEntityId" in maybeEntitySummary &&
+          !("targetEntityId" in maybeEntitySummary)) ||
+        (!("sourceEntityId" in maybeEntitySummary) &&
+          "targetEntityId" in maybeEntitySummary)
+      ) {
         return true;
       }
 
@@ -144,7 +149,13 @@ export const generateSummaryTools = (
           (acc, { schema, isLink }) => {
             acc[schema.$id] = {
               type: "array",
-              title: `Summaries of entities of type ${schema.title} that can be inferred from the provided text`,
+              title: `Summaries of entities of type ${
+                schema.title
+              } that can be inferred from the provided text.${
+                isLink
+                  ? "This is a link type, which must link two other entities together by reference to their entityIds as source and target."
+                  : ""
+              }`,
               items: {
                 $id: schema.$id,
                 type: "object",
@@ -176,7 +187,11 @@ export const generateSummaryTools = (
                       }
                     : {}),
                 },
-                required: ["entityId", "summary"],
+                required: [
+                  "entityId",
+                  "summary",
+                  ...(isLink ? ["sourceEntityId", "targetEntityId"] : []),
+                ],
               },
             };
             return acc;

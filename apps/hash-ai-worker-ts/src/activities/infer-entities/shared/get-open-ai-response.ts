@@ -85,7 +85,7 @@ export const getOpenAiResponse = async (
     return {
       code: StatusCode.Internal,
       contents: [],
-      message: `Error from AI Model: ${(err as Error).message}`,
+      message: (err as Error).message,
     };
   }
 

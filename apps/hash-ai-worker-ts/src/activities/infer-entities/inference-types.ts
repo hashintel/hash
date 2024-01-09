@@ -22,24 +22,22 @@ export type DereferencedEntityTypesByTypeId = Record<
   { isLink: boolean; schema: DereferencedEntityType }
 >;
 
-export type ProposedEntitySummariesByTemporaryId = Record<
-  number,
-  {
-    entityTypeId: VersionedUrl;
-    summary: string;
-  }
->;
+export type ProposedEntitySummary = {
+  entityId: number;
+  entityTypeId: VersionedUrl;
+  sourceEntityId?: number;
+  targetEntityId?: number;
+  takenFromQueue?: boolean;
+  summary: string;
+};
 
 export type InferenceState = {
   /** Starting from 1, the current iteration number, where each iteration is a call to the LLM */
   iterationCount: number;
-  /** The entities which the AI is being asked to provide details for in this iteration */
-  iterationEntitiesByTemporaryId: Record<
-    number,
-    { attempt: number; status: InferredEntityChangeResult["status"] }
-  >;
-  /** A record of summaries of entities that can be inferred from the input */
-  proposedEntitySummaryByTemporaryId: ProposedEntitySummariesByTemporaryId;
+  /** The temporary ids for entities which the AI is being asked to provide details for */
+  inProgressEntityIds: number[];
+  /** A list of entities that can be inferred from the input, in summary form (no properties) */
+  proposedEntitySummaries: ProposedEntitySummary[];
   /** The results of attempting to persist entities inferred from the input */
   resultsByTemporaryId: Record<number, InferredEntityChangeResult>;
   /** The token usage for each iteration, in order */

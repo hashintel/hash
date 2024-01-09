@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/type-system/dist/cjs";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { Status, StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -221,11 +221,11 @@ export const inferEntitySummaries = async (params: {
           for (const [entityTypeId, proposedEntitySummaries] of typedEntries(
             proposedEntitySummariesByType,
           )) {
-            for (const { entityId, summary } of proposedEntitySummaries) {
-              inferenceState.proposedEntitySummaryByTemporaryId[entityId] = {
+            for (const summary of proposedEntitySummaries) {
+              inferenceState.proposedEntitySummaries.push({
+                ...summary,
                 entityTypeId,
-                summary,
-              };
+              });
             }
           }
 
@@ -233,13 +233,14 @@ export const inferEntitySummaries = async (params: {
             proposedEntitySummariesByType,
           );
 
-          const typesWithNoSuggestionsToRerequest =
-            modelProvidedEntityTypeIds.filter(
-              (entityTypeId) =>
-                !modelProvidedEntityTypeIds.includes(entityTypeId) &&
-                // We track which types we've already requested the model try again for – we won't ask again
-                !rerequestedEntityTypes.has(entityTypeId),
-            );
+          const typesWithNoSuggestionsToRerequest = typedKeys(
+            entityTypes,
+          ).filter(
+            (entityTypeId) =>
+              !modelProvidedEntityTypeIds.includes(entityTypeId) &&
+              // We track which types we've already requested the model try again for – we won't ask again
+              !rerequestedEntityTypes.has(entityTypeId),
+          );
 
           /**
            * If some types have been requested by the user but not inferred, ask the model to try again.
@@ -262,6 +263,11 @@ export const inferEntitySummaries = async (params: {
               tool_call_id: toolCallId,
             });
           }
+
+          return {
+            code: StatusCode.Ok,
+            contents: [inferenceState],
+          };
         }
       }
     }
