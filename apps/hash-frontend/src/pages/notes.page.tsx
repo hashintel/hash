@@ -34,7 +34,7 @@ import {
 } from "../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
 import { getFirstRevisionCreatedAt } from "../shared/entity-utils";
-import { QuickNoteIcon } from "../shared/icons/quick-note-icon";
+import { NoteIcon } from "../shared/icons/note-icon";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { NotesSection } from "./notes.page/notes-section";
 import { TodaySection } from "./notes.page/today-section";
@@ -280,7 +280,7 @@ const NotesPage: NextPageWithLayout = () => {
             title: "Notes",
             href: "/notes",
             id: "notes",
-            icon: <QuickNoteIcon />,
+            icon: <NoteIcon />,
           },
         ]}
         sx={{
