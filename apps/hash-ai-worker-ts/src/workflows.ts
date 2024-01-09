@@ -4,7 +4,7 @@ import { proxyActivities } from "@temporalio/workflow";
 import { createAiActivities } from "./activities";
 
 const aiActivities = proxyActivities<ReturnType<typeof createAiActivities>>({
-  startToCloseTimeout: "1800 second",
+  startToCloseTimeout: "3600 second", // 1 hour
   retry: {
     maximumAttempts: 1,
   },
