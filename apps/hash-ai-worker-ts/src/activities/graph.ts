@@ -1,9 +1,9 @@
-import {
+import type {
   EntityEmbedding,
   EntityTypeStructuralQuery,
   GraphApi,
 } from "@local/hash-graph-client";
-import {
+import type {
   AccountId,
   EntityTypeRootType,
   PropertyTypeWithMetadata,
