@@ -3,7 +3,7 @@ import type {
   InferEntitiesCallerParams,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import {
+import type {
   BaseUrl,
   EntityPropertiesObject,
   PropertyTypeWithMetadata,
