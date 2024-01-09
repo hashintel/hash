@@ -8,11 +8,17 @@ import {
   GridSelection,
   Rectangle,
 } from "@glideapps/glide-data-grid";
-import { ButtonBase } from "@mui/material";
+import { ButtonBase, useTheme } from "@mui/material";
 import produce from "immer";
 import debounce from "lodash.debounce";
 import isEqual from "lodash.isequal";
-import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  FunctionComponent,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { ColumnKey, RootKey } from "../../additional-types";
 import {
@@ -39,21 +45,17 @@ const columnTitleKey: ColumnKey =
 const columnIdKey: ColumnKey =
   "https://blockprotocol.org/@hash/types/property-type/table-local-column-id/";
 
-interface TableProps {
-  blockEntity: BlockEntity;
-  updateEntity: (newProperties: BlockEntity["properties"]) => Promise<void>;
-  readonly?: boolean;
-}
-
 const emptySelection = {
   columns: CompactSelection.empty(),
   rows: CompactSelection.empty(),
 };
 
-export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
+export const Table: FunctionComponent<{
+  blockEntity: BlockEntity;
+  updateEntity: (newProperties: BlockEntity["properties"]) => Promise<void>;
+  readonly?: boolean;
+}> = ({ blockEntity, updateEntity, readonly }) => {
   const updateEntityQueue = useRef<number[]>([]);
-  const isDebounceQueued = useRef(false);
-  const justClickedHeaderRef = useRef(false);
   const gridRef = useRef<DataEditorRef>(null);
 
   const {
@@ -76,20 +78,24 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
     bounds: Rectangle;
   }>();
 
-  const rows = localRows;
-
   /**
    * The table should always have at last 1 row, or be initialized
    * to 5 rows if there are no persisted rows yet.
    */
-  const numberOfRows = rows.length > 0 ? rows.length : 5;
+  const numberOfRows = localRows.length > 0 ? localRows.length : 5;
 
-  const columns: GridColumn[] = localColumns.map((col) => ({
-    id: col[columnIdKey],
-    title: col[columnTitleKey] ?? "",
-    width: 200,
-    hasMenu: !readonly,
-  }));
+  const columns: GridColumn[] = useMemo(
+    () =>
+      localColumns.map((col) => ({
+        id: col[columnIdKey],
+        title: col[columnTitleKey] ?? "",
+        width: 200,
+        hasMenu: !readonly,
+      })),
+    [localColumns, readonly],
+  );
+
+  const isDebounceQueued = useRef(false);
 
   const debouncedUpdateEntity = useMemo(
     () =>
@@ -106,22 +112,28 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
     [updateEntity],
   );
 
-  const updateStateAndEntity = ({
-    newLocalColumns,
-    newLocalRows,
-  }: {
-    newLocalColumns?: TableLocalColumnPropertyValue[];
-    newLocalRows?: Object[];
-  }) => {
-    if (newLocalColumns) setLocalColumns(newLocalColumns);
-    if (newLocalRows) setLocalRows(newLocalRows);
+  const updateStateAndEntity = useCallback(
+    ({
+      newLocalColumns,
+      newLocalRows,
+    }: {
+      newLocalColumns?: TableLocalColumnPropertyValue[];
+      newLocalRows?: Object[];
+    }) => {
+      if (newLocalColumns) setLocalColumns(newLocalColumns);
+      if (newLocalRows) setLocalRows(newLocalRows);
 
-    isDebounceQueued.current = true;
-    void debouncedUpdateEntity({
-      [localColumnsKey]: newLocalColumns ?? localColumns,
-      [localRowsKey]: newLocalRows ?? localRows,
-    });
-  };
+      isDebounceQueued.current = true;
+
+      void debouncedUpdateEntity({
+        [localColumnsKey]: newLocalColumns ?? localColumns,
+        [localRowsKey]: newLocalRows ?? localRows,
+      });
+    },
+    [debouncedUpdateEntity, localColumns, localRows],
+  );
+
+  const justClickedHeaderRef = useRef(false);
 
   const handleHeaderMenuClick = useCallback<
     NonNullable<DataEditorProps["onHeaderMenuClick"]>
@@ -130,9 +142,7 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
     setHeaderMenu({ col, bounds });
   }, []);
 
-  const selectedRowCount = selection.rows.length;
-
-  const addNewColumn = () => {
+  const handleAddNewColumnClick = useCallback(() => {
     updateStateAndEntity({
       newLocalColumns: [
         ...localColumns,
@@ -160,49 +170,104 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
         setHeaderMenu({ col, bounds });
       }, 100);
     });
-  };
+  }, [localColumns, updateStateAndEntity]);
 
-  const addNewRow = () => {
-    const newLocalRows = [...rows, {}];
+  const handleAddNewRow = useCallback(() => {
+    const newLocalRows = [...localRows, {}];
     updateStateAndEntity({ newLocalRows });
-  };
+  }, [localRows, updateStateAndEntity]);
 
-  const handleCellsEdited: DataEditorProps["onCellsEdited"] = (newValues) => {
-    const mergedLocalRows =
-      numberOfRows > rows.length
-        ? [
-            ...rows,
-            ...Array<Object>(numberOfRows - rows.length).fill({} as Object),
-          ]
-        : rows;
+  const handleCellsEdited = useCallback<
+    NonNullable<DataEditorProps["onCellsEdited"]>
+  >(
+    (newValues) => {
+      const mergedLocalRows =
+        numberOfRows > localRows.length
+          ? [
+              ...localRows,
+              ...Array<Object>(numberOfRows - localRows.length).fill(
+                {} as Object,
+              ),
+            ]
+          : localRows;
 
-    const newLocalRows = produce(mergedLocalRows, (draftRows) => {
-      for (const { value, location } of newValues) {
-        const [colIndex, rowIndex] = location;
+      const newLocalRows = produce(mergedLocalRows, (draftRows) => {
+        for (const { value, location } of newValues) {
+          const [colIndex, rowIndex] = location;
 
-        const columnId = columns[colIndex]?.id;
+          const columnId = columns[colIndex]?.id;
 
-        if (columnId) {
-          // @ts-expect-error -- type instantiation is deep and possibly infinite
-          draftRows[rowIndex][columnId] = value.data!;
+          if (columnId) {
+            // @ts-expect-error -- type instantiation is deep and possibly infinite
+            draftRows[rowIndex][columnId] = value.data!;
+          }
         }
-      }
-    });
+      });
+
+      updateStateAndEntity({ newLocalRows });
+
+      return true;
+    },
+    [columns, localRows, numberOfRows, updateStateAndEntity],
+  );
+
+  const handleDeleteSelectedRows = useCallback(() => {
+    const selectedRows = selection.rows.toArray();
+
+    const filteredRows = localRows.filter(
+      (_, index) => !selectedRows.includes(index),
+    );
+
+    const newLocalRows = filteredRows.length > 0 ? filteredRows : [{}];
 
     updateStateAndEntity({ newLocalRows });
 
-    return true;
-  };
+    setSelection(emptySelection);
+  }, [localRows, selection, updateStateAndEntity]);
 
-  const getRowThemeOverride: DataEditorProps["getRowThemeOverride"] = (row) => {
-    if (!isStriped) {
-      return undefined;
-    }
+  const getCellContent = useCallback<DataEditorProps["getCellContent"]>(
+    ([colIndex, rowIndex]) => {
+      const key = columns[colIndex]?.id;
 
-    return row % 2 ? { bgCell: "#f9f9f9" } : undefined;
-  };
+      if (!key) {
+        return {
+          kind: GridCellKind.Text,
+          displayData: "",
+          data: "",
+          allowOverlay: false,
+        };
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- todo fix this
+      const value = ((localRows[rowIndex] as any)?.[key] ?? "") as JsonValue;
+
+      return {
+        kind: GridCellKind.Text,
+        displayData: String(value),
+        data: String(value),
+        allowOverlay: !readonly,
+      };
+    },
+    [columns, localRows, readonly],
+  );
+
+  const muiTheme = useTheme();
+
+  const getRowThemeOverride = useCallback<
+    NonNullable<DataEditorProps["getRowThemeOverride"]>
+  >(
+    (row) => {
+      if (!isStriped) {
+        return undefined;
+      }
+
+      return row % 2 ? { bgCell: muiTheme.palette.gray[10] } : undefined;
+    },
+    [isStriped, muiTheme],
+  );
 
   const isUpdatingEntity = updateEntityQueue.current.length > 0;
+
   const shouldOverrideLocalState =
     !isDebounceQueued.current && !isUpdatingEntity;
 
@@ -220,24 +285,14 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
     }
   }
 
+  const selectedRowCount = selection.rows.length;
+
   return (
     <>
       {!!selectedRowCount && !readonly && (
         <RowActions
           selectedRowCount={selectedRowCount}
-          onDelete={() => {
-            const selectedRows = selection.rows.toArray();
-
-            const filteredRows = rows.filter(
-              (_, index) => !selectedRows.includes(index),
-            );
-
-            const newLocalRows = filteredRows.length > 0 ? filteredRows : [{}];
-
-            updateStateAndEntity({ newLocalRows });
-
-            setSelection(emptySelection);
-          }}
+          onDelete={handleDeleteSelectedRows}
         />
       )}
 
@@ -250,7 +305,7 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
           readonly || hideHeaderRow ? null : (
             <ButtonBase
               type="button"
-              onClick={addNewColumn}
+              onClick={handleAddNewColumnClick}
               sx={{
                 padding: ({ spacing }) => spacing(0, 1.25),
                 height: 40,
@@ -280,40 +335,13 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
           sticky: true,
           tint: true,
         }}
-        onRowAppended={
-          readonly
-            ? undefined
-            : () => {
-                addNewRow();
-              }
-        }
+        onRowAppended={readonly ? undefined : handleAddNewRow}
         headerHeight={hideHeaderRow ? 0 : ROW_HEIGHT}
         rowMarkers={hideRowNumbers ? "none" : readonly ? "number" : "both"}
         rowSelectionMode="multi"
-        getCellContent={([colIndex, rowIndex]) => {
-          const key = columns[colIndex]?.id;
-
-          if (!key) {
-            return {
-              kind: GridCellKind.Text,
-              displayData: "",
-              data: "",
-              allowOverlay: false,
-            };
-          }
-
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- todo fix this
-          const value = ((rows[rowIndex] as any)?.[key] ?? "") as JsonValue;
-
-          return {
-            kind: GridCellKind.Text,
-            displayData: String(value),
-            data: String(value),
-            allowOverlay: !readonly,
-          };
-        }}
+        getCellContent={getCellContent}
         gridSelection={selection}
-        onGridSelectionChange={(newSelection) => setSelection(newSelection)}
+        onGridSelectionChange={setSelection}
       />
       {!!headerMenu && (
         <HeaderMenu
