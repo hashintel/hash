@@ -197,7 +197,10 @@ const NotesPage: NextPageWithLayout = () => {
         !existingHeadings.includes("Over a month ago")
       ) {
         updated[key] = "Over a month ago";
-      } else if (!existingHeadings.includes("Over a year ago")) {
+      } else if (
+        differenceInMonths(today, currentDate) >= 12 &&
+        !existingHeadings.includes("Over a year ago")
+      ) {
         updated[key] = "Over a year ago";
       }
 
