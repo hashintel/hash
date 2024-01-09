@@ -833,7 +833,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateEntityRequest"
+                "$ref": "#/components/schemas/EntityEmbeddingUpdateRequest"
               }
             }
           },
@@ -3135,7 +3135,8 @@
       "EntityEmbeddingUpdateRequest": {
         "type": "object",
         "required": [
-          "embeddings"
+          "embeddings",
+          "reset"
         ],
         "properties": {
           "embeddings": {
@@ -3143,6 +3144,9 @@
             "items": {
               "$ref": "#/components/schemas/EntityEmbedding"
             }
+          },
+          "reset": {
+            "type": "boolean"
           }
         }
       },

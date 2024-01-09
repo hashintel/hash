@@ -179,5 +179,6 @@ pub trait EntityStore: crud::Read<Entity> {
         actor_id: AccountId,
         authorization_api: &mut A,
         embeddings: impl IntoIterator<Item = EntityEmbedding<'_>> + Send,
+        reset: bool,
     ) -> Result<(), UpdateError>;
 }
