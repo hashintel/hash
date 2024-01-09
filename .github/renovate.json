@@ -45,8 +45,10 @@
     {
       "packageRules": [
         {
-          "matchPackageNames": ["actions/download-artifact"],
-          "$comment": "Remove when https://github.com/orgs/community/discussions/81413 is fixed",
+          "matchPackageNames": [
+            "actions/download-artifact",
+            "actions/upload-artifact"
+          ],
           "dependencyDashboardApproval": true
         }
       ]
