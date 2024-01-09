@@ -3428,6 +3428,7 @@ dependencies = [
  "tokio",
  "type-system",
  "url",
+ "uuid",
 ]
 
 [[package]]

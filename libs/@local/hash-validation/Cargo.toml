@@ -18,6 +18,7 @@ serde_json.workspace = true
 thiserror = "1.0.56"
 iso8601-duration = "0.2.0"
 url.workspace = true
+uuid = { workspace = true, features = ["std"] }
 
 [dev-dependencies]
 graph-test-data.workspace = true
