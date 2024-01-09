@@ -293,7 +293,7 @@ export const DestinationEntityTypeSelector = ({
                 setEntityTypeSelectorPopupOpen(false);
               }
             }}
-            onBlur={() => {
+            onClickAway={() => {
               setEntityTypeSelectorPopupOpen(false);
             }}
           />
