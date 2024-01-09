@@ -3,9 +3,18 @@ import type {
   InferEntitiesCallerParams,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
+import {
+  BaseUrl,
+  EntityPropertiesObject,
+  PropertyTypeWithMetadata,
+} from "@local/hash-subgraph";
 import { ApplicationFailure } from "@temporalio/activity";
+import { CreateEmbeddingResponse } from "openai/resources";
 
+import { createEmbeddings } from "./activities/embeddings";
 import { inferEntities } from "./activities/infer-entities";
+
+export { createGraphActivities } from "./activities/graph";
 
 export const createAiActivities = ({
   graphApiClient,
@@ -21,5 +30,15 @@ export const createAiActivities = ({
     }
 
     return status;
+  },
+
+  async createEmbeddingsActivity(params: {
+    entityProperties: EntityPropertiesObject;
+    propertyTypes: PropertyTypeWithMetadata[];
+  }): Promise<{
+    embeddings: { property?: BaseUrl; embedding: number[] }[];
+    usage: CreateEmbeddingResponse.Usage;
+  }> {
+    return createEmbeddings(params);
   },
 });
