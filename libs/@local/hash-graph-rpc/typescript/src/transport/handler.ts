@@ -10,7 +10,7 @@ import {
   Startable,
 } from "@libp2p/interface";
 import { ConnectionManager } from "@libp2p/interface-internal";
-import { Registrar } from "@libp2p/interface-internal/src";
+import { Registrar } from "@libp2p/interface-internal";
 import { Multiaddr } from "@multiformats/multiaddr";
 import { Cause, Data, Duration, Effect, Exit } from "effect";
 import first from "it-first";
@@ -21,7 +21,14 @@ import {
   VariableIntegerOverflowError,
 } from "./reader";
 import { Request, writeRequest } from "./request";
-import { readResponse, Response, UnknownResponseError } from "./response";
+import {
+  readResponse,
+  Response,
+  UnknownResponseError,
+  UnsupportedTransportVersionError,
+} from "./response";
+import { Scope } from "effect/Scope";
+import { ParseError } from "@effect/schema/ParseResult";
 
 export class TimeoutError extends Data.TaggedError("Timeout") {}
 
@@ -51,24 +58,28 @@ const HandlerConfig = S.struct({
 interface IncompleteHandlerConfig extends S.Schema.From<typeof HandlerConfig> {}
 interface HandlerConfig extends S.Schema.To<typeof HandlerConfig> {}
 
-export interface Handler {
+export interface Handler<E> {
   send(
     peer: PeerId | Multiaddr | Multiaddr[],
     request: Request,
     options?: AbortOptions,
-  ): Effect.Effect<
-    never,
-    | TimeoutError
-    | UnknownResponseError
-    | Cause.UnknownException
-    | UnexpectedEndOfStreamError
-    | VariableIntegerOverflowError
-    | Cause.NoSuchElementException,
-    Response
-  >;
+  ): Effect.Effect<Scope, E, Response>;
 }
 
-export class WebSocketHandler implements Startable, Handler {
+export class WebSocketHandler
+  implements
+    Startable,
+    Handler<
+      | TimeoutError
+      | UnknownResponseError
+      | Cause.UnknownException
+      | UnexpectedEndOfStreamError
+      | VariableIntegerOverflowError
+      | UnsupportedTransportVersionError
+      | ParseError
+      | Cause.NoSuchElementException
+    >
+{
   private readonly log: Logger;
   private readonly config: HandlerConfig;
 
@@ -157,11 +168,11 @@ export class WebSocketHandler implements Startable, Handler {
         }),
       );
 
-      if (!rawResponse) {
+      if (rawResponse === undefined || rawResponse === null) {
         yield* _(new TimeoutError());
       }
 
-      const response = yield* _(readResponse(rawResponse.subarray()));
+      const response = yield* _(readResponse(rawResponse!.subarray()));
       return response;
     });
   }

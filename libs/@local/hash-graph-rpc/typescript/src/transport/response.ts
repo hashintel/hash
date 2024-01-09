@@ -1,4 +1,5 @@
 import { Cause, Data, Effect, Match } from "effect";
+import * as S from "@effect/schema/Schema";
 
 import { PayloadSize, TransportVersion } from "./common";
 import { Reader } from "./reader";
@@ -10,20 +11,18 @@ export class UnsupportedTransportVersionError extends Data.TaggedError(
   "UnsupportedTransportVersion",
 ) {}
 
-type ResponseError = Data.TaggedEnum<{
-  DeadlineExceeded: {};
-  ConnectionClosed: {};
-  UnknownServiceVersion: {};
-  UnknownService: {};
-  UnknownProcedure: {};
-  InvalidTransportVersion: {};
-  InvalidPayloadSize: {};
-  InvalidPayload: {};
-  EncodingError: {};
-  DecodingError: {};
-}>;
-
-const ResponseError = Data.taggedEnum<ResponseError>();
+enum ResponseError {
+  DeadlineExceeded,
+  ConnectionClosed,
+  UnknownServiceVersion,
+  UnknownService,
+  UnknownProcedure,
+  InvalidTransportVersion,
+  InvalidPayloadSize,
+  InvalidPayload,
+  EncodingError,
+  DecodingError,
+}
 
 function responseErrorFromErrorCode(
   value: number,
@@ -34,16 +33,16 @@ function responseErrorFromErrorCode(
 > {
   return Match.value(value)
     .pipe(
-      Match.when(0, () => ResponseError.DeadlineExceeded()),
-      Match.when(1, () => ResponseError.ConnectionClosed()),
-      Match.when(2, () => ResponseError.UnknownServiceVersion()),
-      Match.when(3, () => ResponseError.UnknownService()),
-      Match.when(4, () => ResponseError.UnknownProcedure()),
-      Match.when(5, () => ResponseError.InvalidTransportVersion()),
-      Match.when(6, () => ResponseError.InvalidPayloadSize()),
-      Match.when(7, () => ResponseError.InvalidPayload()),
-      Match.when(8, () => ResponseError.EncodingError()),
-      Match.when(9, () => ResponseError.DecodingError()),
+      Match.when(0, () => ResponseError.DeadlineExceeded),
+      Match.when(1, () => ResponseError.ConnectionClosed),
+      Match.when(2, () => ResponseError.UnknownServiceVersion),
+      Match.when(3, () => ResponseError.UnknownService),
+      Match.when(4, () => ResponseError.UnknownProcedure),
+      Match.when(5, () => ResponseError.InvalidTransportVersion),
+      Match.when(6, () => ResponseError.InvalidPayloadSize),
+      Match.when(7, () => ResponseError.InvalidPayload),
+      Match.when(8, () => ResponseError.EncodingError),
+      Match.when(9, () => ResponseError.DecodingError),
       Match.option,
     )
     .pipe(
@@ -53,29 +52,39 @@ function responseErrorFromErrorCode(
     );
 }
 
-export interface ResponseFlags {
-  endOfStream: boolean;
-  streaming: boolean;
-}
+export const ResponseFlags = S.struct({
+  endOfStream: S.boolean,
+  streaming: S.boolean,
+});
 
-export interface ResponseHeader {
-  version: TransportVersion;
-  flags: ResponseFlags;
-  size: PayloadSize;
-}
+export interface ResponseFlags extends S.Schema.To<typeof ResponseFlags> {}
 
-export type ResponseBody =
-  | {
-      body: Uint8Array;
-    }
-  | {
-      error: ResponseError;
-    };
+export const ResponseHeader = S.struct({
+  version: S.number.pipe(S.fromBrand(TransportVersion)),
+  flags: ResponseFlags,
+  size: S.number.pipe(S.fromBrand(PayloadSize)),
+});
 
-export interface Response {
-  header: ResponseHeader;
-  body: ResponseBody;
-}
+export interface ResponseHeader extends S.Schema.To<typeof ResponseHeader> {}
+
+export const ResponseBody = S.union(
+  S.struct({
+    body: S.Uint8ArrayFromSelf,
+  }),
+  S.struct({
+    error: S.enums(ResponseError),
+  }),
+);
+
+export interface ResponseBody extends S.Schema.To<typeof ResponseBody> {}
+
+export const Response = S.struct({
+  header: ResponseHeader,
+  body: ResponseBody,
+});
+
+export interface Response extends S.Schema.To<typeof Response> {}
+export interface ResponseFrom extends S.Schema.From<typeof Response> {}
 
 function readFlags(reader: Reader) {
   return Effect.gen(function* (_) {
@@ -87,7 +96,7 @@ function readFlags(reader: Reader) {
     return {
       endOfStream,
       streaming,
-    } as ResponseFlags;
+    } satisfies ResponseFlags;
   });
 }
 
@@ -124,7 +133,7 @@ export function readResponse(buffer: Uint8Array) {
         body: {
           body,
         },
-      } as Response;
+      } satisfies Response;
     } else {
       const error = yield* _(responseErrorFromErrorCode(status));
 
@@ -137,7 +146,7 @@ export function readResponse(buffer: Uint8Array) {
         body: {
           error,
         },
-      } as Response;
+      } satisfies Response;
     }
-  });
+  }).pipe(Effect.andThen((value) => S.parse(Response)(value)));
 }

@@ -1,4 +1,6 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-  "include": ["./src/", "./tests/"]
+  "include": ["./src/", "./tests/"],
+  "target": "esnext",
+  "lib": ["dom", "es2022", "esnext"]
 }

@@ -1,3 +1,4 @@
+import * as S from "@effect/schema/Schema";
 import { Writer } from "./writer";
 import {
   ActorId,
@@ -9,28 +10,35 @@ import {
 } from "./common";
 
 // currently unused
-export interface RequestFlags extends Record<string, never> {}
+export const RequestFlags = S.struct({});
+export interface RequestFlags extends S.Schema.To<typeof RequestFlags> {}
 
-export interface Version {
-  transport: TransportVersion;
-  service: ServiceVersion;
-}
+export const Version = S.struct({
+  transport: S.number.pipe(S.fromBrand(TransportVersion)),
+  service: S.number.pipe(S.fromBrand(ServiceVersion)),
+});
 
-export interface RequestHeader {
-  flags: RequestFlags;
-  version: Version;
+export interface Version extends S.Schema.To<typeof Version> {}
 
-  service: ServiceId;
-  procedure: ProcedureId;
+export const RequestHeader = S.struct({
+  flags: RequestFlags,
+  version: Version,
 
-  actor: ActorId;
-  size: PayloadSize;
-}
+  service: S.number.pipe(S.fromBrand(ServiceId)),
+  procedure: S.number.pipe(S.fromBrand(ProcedureId)),
 
-export interface Request {
-  header: RequestHeader;
-  body: Uint8Array;
-}
+  actor: S.Uint8ArrayFromSelf.pipe(S.fromBrand(ActorId)),
+  size: S.number.pipe(S.fromBrand(PayloadSize)),
+});
+
+export interface RequestHeader extends S.Schema.To<typeof RequestHeader> {}
+
+export const Request = S.struct({
+  header: RequestHeader,
+  body: S.Uint8ArrayFromSelf,
+});
+
+export interface Request extends S.Schema.To<typeof Request> {}
 
 function writeRequestHeader(writer: Writer, header: RequestHeader) {
   writer.writeByte(header.version.transport);
