@@ -43,6 +43,9 @@ impl DecodeBinary for ServiceId {
     }
 }
 
+// TODO: semver (major, minor, patch) ~> u8, u8, u8
+// TODO: service should have tag: availableSince, deprecatedSince
+// TODO: introspection for what services are available and which versions through a service
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
 )]
