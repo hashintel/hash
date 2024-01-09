@@ -35,6 +35,8 @@ const LeftOrRightEntityEndAdornment: FunctionComponent<{
         position: "relative",
         top: 1,
       },
+      textTransform: "uppercase",
+      flexShrink: 0,
     }}
   >
     {isDraft ? (
@@ -225,8 +227,17 @@ export const AcceptDraftEntityButton: FunctionComponent<
             </>
           }
           type="info"
+          contentStyle={{
+            width: {
+              sm: "90%",
+              md: 700,
+            },
+          }}
         >
           <LinkLabelWithSourceAndDestination
+            sx={{
+              maxWidth: "100%",
+            }}
             openInNew
             linkEntity={draftEntity as LinkEntity}
             subgraph={draftEntitySubgraph}

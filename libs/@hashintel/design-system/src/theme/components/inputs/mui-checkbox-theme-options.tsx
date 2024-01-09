@@ -1,7 +1,8 @@
 import { Components, svgIconClasses, Theme } from "@mui/material";
 
 import { CheckboxBlankIcon } from "./mui-checkbox-theme-options/checkbox-blank-icon";
-import { CheckboxIcon } from "./mui-checkbox-theme-options/checkbox-icon";
+import { CheckboxCheckedIcon } from "./mui-checkbox-theme-options/checkbox-checked-icon";
+import { CheckboxIndeterminateIcon } from "./mui-checkbox-theme-options/checkbox-indeterminate-icon";
 
 const focusBorderOffset = 4;
 const focusBorderWidth = 2;
@@ -13,7 +14,8 @@ export const MuiCheckboxThemeOptions: Components<Theme>["MuiCheckbox"] = {
     disableRipple: true,
     disableTouchRipple: true,
     icon: <CheckboxBlankIcon />,
-    checkedIcon: <CheckboxIcon />,
+    checkedIcon: <CheckboxCheckedIcon />,
+    indeterminateIcon: <CheckboxIndeterminateIcon />,
   },
   styleOverrides: {
     root: ({ theme }) => ({

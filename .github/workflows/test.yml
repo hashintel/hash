@@ -169,7 +169,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@56ab7930c591507f833cbaed864d201386d518a8 # v2.23.7
+        uses: taiki-e/install-action@da1493208a5b2c79ad2d7dff9fd50693851da51a # v2.24.1
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -290,7 +290,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@56ab7930c591507f833cbaed864d201386d518a8 # v2.23.7
+        uses: taiki-e/install-action@da1493208a5b2c79ad2d7dff9fd50693851da51a # v2.24.1
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -416,7 +416,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@56ab7930c591507f833cbaed864d201386d518a8 # v2.23.7
+        uses: taiki-e/install-action@da1493208a5b2c79ad2d7dff9fd50693851da51a # v2.24.1
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -541,7 +541,7 @@ jobs:
 
       - name: Install tools
         if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
-        uses: taiki-e/install-action@56ab7930c591507f833cbaed864d201386d518a8 # v2.23.7
+        uses: taiki-e/install-action@da1493208a5b2c79ad2d7dff9fd50693851da51a # v2.24.1
         with:
           tool: cargo-semver-checks
 
@@ -585,8 +585,7 @@ jobs:
           [[ ${{ needs.integration-tests.result }} =~ success|skipped ]]
       - name: Check system tests
         run: |
-          # TODO: Stop allowing failure of system tests
-          [[ ${{ needs.system-tests.result }} =~ success|skipped|failure ]]
+          [[ ${{ needs.system-tests.result }} =~ success|skipped ]]
       - name: Check publish results
         run: |
           [[ ${{ needs.publish.result }} =~ success|skipped ]]
