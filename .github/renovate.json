@@ -43,6 +43,15 @@
       ]
     },
     {
+      "packageRules": [
+        {
+          "matchPackageNames": ["actions/download-artifact"],
+          "$comment": "Remove when https://github.com/orgs/community/discussions/81413 is fixed",
+          "dependencyDashboardApproval": true
+        }
+      ]
+    },
+    {
       "matchManagers": ["docker-compose", "dockerfile"],
       "commitMessageTopic": "Docker tag `{{depName}}`",
       "additionalBranchPrefix": "docker/"
