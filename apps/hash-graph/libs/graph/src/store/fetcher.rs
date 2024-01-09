@@ -1215,9 +1215,10 @@ where
         actor_id: AccountId,
         authorization_api: &mut Au,
         embeddings: impl IntoIterator<Item = EntityEmbedding<'_>> + Send,
+        reset: bool,
     ) -> Result<(), UpdateError> {
         self.store
-            .update_entity_embeddings(actor_id, authorization_api, embeddings)
+            .update_entity_embeddings(actor_id, authorization_api, embeddings, reset)
             .await
     }
 }
