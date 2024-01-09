@@ -77,6 +77,13 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
   }>();
 
   const rows = localRows;
+
+  /**
+   * The table should always have at last 1 row, or be initialized
+   * to 5 rows if there are no persisted rows yet.
+   */
+  const numberOfRows = rows.length > 0 ? rows.length : 5;
+
   const columns: GridColumn[] = localColumns.map((col) => ({
     id: col[columnIdKey],
     title: col[columnTitleKey] ?? "",
@@ -156,12 +163,20 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
   };
 
   const addNewRow = () => {
-    const newLocalRows = [...rows, { rowId: `${rows.length}` }];
+    const newLocalRows = [...rows, {}];
     updateStateAndEntity({ newLocalRows });
   };
 
   const handleCellsEdited: DataEditorProps["onCellsEdited"] = (newValues) => {
-    const newLocalRows = produce(rows, (draftRows) => {
+    const mergedLocalRows =
+      numberOfRows > rows.length
+        ? [
+            ...rows,
+            ...Array<Object>(numberOfRows - rows.length).fill({} as Object),
+          ]
+        : rows;
+
+    const newLocalRows = produce(mergedLocalRows, (draftRows) => {
       for (const { value, location } of newValues) {
         const [colIndex, rowIndex] = location;
 
@@ -213,11 +228,13 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
           onDelete={() => {
             const selectedRows = selection.rows.toArray();
 
-            updateStateAndEntity({
-              newLocalRows: rows.filter(
-                (_, index) => !selectedRows.includes(index),
-              ),
-            });
+            const filteredRows = rows.filter(
+              (_, index) => !selectedRows.includes(index),
+            );
+
+            const newLocalRows = filteredRows.length > 0 ? filteredRows : [{}];
+
+            updateStateAndEntity({ newLocalRows });
 
             setSelection(emptySelection);
           }}
@@ -227,7 +244,7 @@ export const Table = ({ blockEntity, updateEntity, readonly }: TableProps) => {
       <Grid
         gridRef={gridRef}
         rowMarkerWidth={32}
-        rows={rows.length}
+        rows={numberOfRows}
         columns={columns}
         rightElement={
           readonly || hideHeaderRow ? null : (
