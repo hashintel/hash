@@ -5,8 +5,7 @@ import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/ai-infere
 import type { AccountId, Entity, OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
-import OpenAI from "openai/index";
-import { ChatCompletionMessageParam } from "openai/src/resources/chat/completions";
+import OpenAI from "openai";
 
 import {
   CompletionPayload,
@@ -33,7 +32,7 @@ export const persistEntities = async (params: {
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
   graphApiClient: GraphApi;
-  originalPromptMessages: ChatCompletionMessageParam[];
+  originalPromptMessages: OpenAI.ChatCompletionMessageParam[];
   ownedById: OwnedById;
   requestUuid: string;
   requestingUserAccountId: AccountId;
@@ -136,6 +135,7 @@ export const persistEntities = async (params: {
   const toolCalls = message.tool_calls;
 
   const latestUsage = [...usageFromLastIteration, usage];
+  inferenceState.usage = latestUsage;
 
   const retryWithMessages = ({
     retryMessages,
@@ -168,7 +168,6 @@ export const persistEntities = async (params: {
       inferenceState: {
         ...inferenceState,
         iterationCount: iterationCount + 1,
-        usage: latestUsage,
       },
       completionPayload: {
         ...completionPayload,

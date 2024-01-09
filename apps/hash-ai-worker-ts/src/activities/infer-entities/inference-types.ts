@@ -3,7 +3,7 @@ import {
   InferenceTokenUsage,
   InferredEntityChangeResult,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import OpenAI from "openai/index";
+import OpenAI from "openai";
 
 import { DereferencedEntityType } from "./dereference-entity-type";
 

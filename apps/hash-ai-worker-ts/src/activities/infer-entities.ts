@@ -327,7 +327,7 @@ export const inferEntities = async ({
     },
     entityTypes,
     inferenceState,
-    rerequestedEntityTypes: new Set(),
+    providedOrRerequestedEntityTypes: new Set(),
   });
 
   log(`Inference state after entity summaries: ${stringify(inferenceState)}`);

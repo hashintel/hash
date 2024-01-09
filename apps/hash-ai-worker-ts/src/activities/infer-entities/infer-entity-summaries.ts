@@ -25,16 +25,16 @@ export const inferEntitySummaries = async (params: {
   completionPayload: CompletionPayload;
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
-  rerequestedEntityTypes: Set<VersionedUrl>;
+  providedOrRerequestedEntityTypes: Set<VersionedUrl>;
 }): Promise<InferEntitySummariesReturn> => {
   const {
     completionPayload,
     entityTypes,
     inferenceState,
-    rerequestedEntityTypes,
+    providedOrRerequestedEntityTypes,
   } = params;
 
-  const { iterationCount, usage: usageFromLastIteration } = inferenceState;
+  const { iterationCount, usage: usageFromPreviousIterations } = inferenceState;
 
   log(`Iteration ${iterationCount} begun.`);
 
@@ -60,23 +60,27 @@ export const inferEntitySummaries = async (params: {
 
   const toolCalls = message.tool_calls;
 
-  const latestUsage = [...usageFromLastIteration, usage];
+  inferenceState.usage = [...usageFromPreviousIterations, usage];
 
-  const retryWithMessage = (
-    retryMessage:
+  const retryWithMessages = (
+    retryMessages: (
+      | OpenAI.ChatCompletionToolMessageParam
       | OpenAI.ChatCompletionUserMessageParam
-      | OpenAI.ChatCompletionToolMessageParam,
+    )[],
   ) => {
-    log(`Retrying with additional message: ${stringify(retryMessage)}`);
+    log(`Retrying with additional message: ${stringify(retryMessages)}`);
 
-    const newMessages = [...completionPayload.messages, message, retryMessage];
+    const newMessages = [
+      ...completionPayload.messages,
+      message,
+      ...retryMessages,
+    ];
 
     return inferEntitySummaries({
       ...params,
       inferenceState: {
         ...inferenceState,
         iterationCount: iterationCount + 1,
-        usage: latestUsage,
       },
       completionPayload: {
         ...completionPayload,
@@ -116,13 +120,15 @@ export const inferEntitySummaries = async (params: {
         };
       }
 
-      return retryWithMessage({
-        role: "tool",
-        content:
-          // @todo see if we can get the model to respond continuing off the previous JSON argument to the function call
-          "Your previous response was cut off for length – please respond again with a shorter function call.",
-        tool_call_id: toolCallId,
-      });
+      return retryWithMessages([
+        {
+          role: "tool",
+          content:
+            // @todo see if we can get the model to respond continuing off the previous JSON argument to the function call
+            "Your previous response was cut off for length – please respond again with a shorter function call.",
+          tool_call_id: toolCallId,
+        },
+      ]);
     }
 
     case "content_filter":
@@ -152,6 +158,11 @@ export const inferEntitySummaries = async (params: {
         };
       }
 
+      const retryMessages: (
+        | OpenAI.ChatCompletionToolMessageParam
+        | OpenAI.ChatCompletionUserMessageParam
+      )[] = [];
+
       for (const toolCall of toolCalls) {
         const toolCallId = toolCall.id;
 
@@ -169,12 +180,13 @@ export const inferEntitySummaries = async (params: {
             )}`,
           );
 
-          return retryWithMessage({
+          retryMessages.push({
             role: "tool",
             content:
               "Your previous response contained invalid JSON. Please try again.",
             tool_call_id: toolCallId,
           });
+          continue;
         }
 
         if (functionName === "could_not_infer_entities") {
@@ -210,12 +222,13 @@ export const inferEntitySummaries = async (params: {
               )}`,
             );
 
-            return retryWithMessage({
+            retryMessages.push({
               content:
                 "You provided an invalid argument to register_entity_summaries. Please try again",
               role: "tool",
               tool_call_id: toolCallId,
             });
+            continue;
           }
 
           for (const [entityTypeId, proposedEntitySummaries] of typedEntries(
@@ -226,50 +239,71 @@ export const inferEntitySummaries = async (params: {
                 ...summary,
                 entityTypeId,
               });
+
+              providedOrRerequestedEntityTypes.add(entityTypeId);
             }
           }
+        }
+      }
 
-          const modelProvidedEntityTypeIds = typedKeys(
-            proposedEntitySummariesByType,
-          );
+      const typesWithNoSuggestionsToRerequest = typedKeys(entityTypes).filter(
+        (entityTypeId) =>
+          // We track which types we've already requested the model try again for – we won't ask again
+          !providedOrRerequestedEntityTypes.has(entityTypeId),
+      );
 
-          const typesWithNoSuggestionsToRerequest = typedKeys(
-            entityTypes,
-          ).filter(
-            (entityTypeId) =>
-              !modelProvidedEntityTypeIds.includes(entityTypeId) &&
-              // We track which types we've already requested the model try again for – we won't ask again
-              !rerequestedEntityTypes.has(entityTypeId),
-          );
+      /**
+       * If some types have been requested by the user but not inferred, ask the model to try again.
+       * This is a common oversight of GPT-4 Turbo at least, as of Dec 2023.
+       */
+      if (typesWithNoSuggestionsToRerequest.length > 0) {
+        log(
+          `No suggestions for entity types: ${typesWithNoSuggestionsToRerequest.join(
+            ", ",
+          )}`,
+        );
 
-          /**
-           * If some types have been requested by the user but not inferred, ask the model to try again.
-           * This is a common oversight of GPT-4 Turbo at least, as of Dec 2023.
-           */
-          if (typesWithNoSuggestionsToRerequest.length > 0) {
-            log(
-              `No suggestions for entity types: ${typesWithNoSuggestionsToRerequest.join(
-                ", ",
-              )}`,
-            );
+        for (const entityTypeId of typesWithNoSuggestionsToRerequest) {
+          providedOrRerequestedEntityTypes.add(entityTypeId);
+        }
 
-            return retryWithMessage({
-              content: dedent(`
+        retryMessages.push({
+          content: dedent(`
                    You did not suggest any entities of the following entity types: ${typesWithNoSuggestionsToRerequest.join(
                      ", ",
                    )}. Please reconsider the input text to see if you can identify any entities of those types.
                 `),
-              role: "tool",
-              tool_call_id: toolCallId,
-            });
-          }
-
-          return {
-            code: StatusCode.Ok,
-            contents: [inferenceState],
-          };
-        }
+          role: "user",
+        });
       }
+
+      if (retryMessages.length === 0) {
+        return {
+          code: StatusCode.Ok,
+          contents: [inferenceState],
+        };
+      }
+
+      const toolCallsWithoutProblems = toolCalls.filter(
+        (toolCall) =>
+          !retryMessages.some(
+            (msg) => msg.role === "tool" && msg.tool_call_id === toolCall.id,
+          ),
+      );
+
+      /**
+       * We require exactly one response to each tool call for subsequent messages – this fallback ensures that.
+       * They must come before any other messages.
+       */
+      retryMessages.unshift(
+        ...toolCallsWithoutProblems.map((toolCall) => ({
+          role: "tool" as const,
+          tool_call_id: toolCall.id,
+          content: "No problems found with this tool call.",
+        })),
+      );
+
+      return retryWithMessages(retryMessages);
     }
   }
 
