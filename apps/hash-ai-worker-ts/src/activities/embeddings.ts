@@ -43,7 +43,13 @@ export const createEmbeddings = async (params: {
     a.metadata.recordId.baseUrl.localeCompare(b.metadata.recordId.baseUrl),
   );
 
-  const input = [""];
+  // We want to create embeddings for:
+  //   1. Each individual '[Property Title]: [Value]' pair, and
+  //   2. A list of all property key:value pairs
+  //
+  // We use the last item in the array to store the combined 'all properties' list.
+  const propertyEmbeddings = [];
+  let combinedEntityEmbedding = "";
   for (const propertyType of params.propertyTypes) {
     const property =
       params.entityProperties[propertyType.metadata.recordId.baseUrl];
@@ -53,22 +59,19 @@ export const createEmbeddings = async (params: {
       continue;
     }
     const embeddingInput = createEmbeddingInput({ propertyType, property });
-    input[0] += `${embeddingInput}\n`;
-    input.push(embeddingInput);
+    combinedEntityEmbedding += `${embeddingInput}\n`;
+    propertyEmbeddings.push(embeddingInput);
   }
 
   const response = await openai.embeddings.create({
-    input,
+    input: [...propertyEmbeddings, combinedEntityEmbedding],
     model: "text-embedding-ada-002",
   });
 
   return {
     usage: response.usage,
     embeddings: response.data.map((data, idx) => ({
-      property:
-        idx > 0
-          ? params.propertyTypes[idx - 1]!.metadata.recordId.baseUrl
-          : undefined,
+      property: params.propertyTypes[idx]?.metadata.recordId.baseUrl,
       embedding: data.embedding,
     })),
   };

@@ -1,5 +1,5 @@
 import type { InferEntitiesCallerParams } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { AccountId, Entity } from "@local/hash-subgraph";
+import type { AccountId, Entity } from "@local/hash-subgraph";
 import { proxyActivities } from "@temporalio/workflow";
 import { CreateEmbeddingResponse } from "openai/resources";
 

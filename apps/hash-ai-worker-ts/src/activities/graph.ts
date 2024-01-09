@@ -9,7 +9,10 @@ import type {
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getPropertyTypes } from "@local/hash-subgraph/stdlib";
+import {
+  getPropertyTypes,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 
 export const createGraphActivities = ({
   graphApiClient,
@@ -24,7 +27,7 @@ export const createGraphActivities = ({
   }): Promise<Subgraph<EntityTypeRootType>> {
     return graphApiClient
       .getEntityTypesByQuery(params.authentication.actorId, params.query)
-      .then((response) => response.data as Subgraph<EntityTypeRootType>);
+      .then((response) => mapGraphApiSubgraphToSubgraph(response.data));
   },
 
   async updateEntityEmbeddings(params: {
