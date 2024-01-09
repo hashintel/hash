@@ -7,7 +7,7 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
-import { createAiActivities } from "./activities";
+import { createAiActivities, createGraphActivities } from "./activities";
 
 export const monorepoRootDir = path.resolve(__dirname, "../../..");
 
@@ -59,9 +59,14 @@ async function run() {
 
   const worker = await Worker.create({
     ...workflowOption(),
-    activities: createAiActivities({
-      graphApiClient,
-    }),
+    activities: {
+      ...createAiActivities({
+        graphApiClient,
+      }),
+      ...createGraphActivities({
+        graphApiClient,
+      }),
+    },
     connection: await NativeConnection.connect({
       address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
     }),
