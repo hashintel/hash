@@ -27,7 +27,7 @@ const ModalButton = styled(ButtonBase)(({ theme }) => ({
   transition: theme.transitions.create("background"),
   "&:hover": {
     background: theme.palette.gray[15],
-    ".heading": {
+    ".heading, svg": {
       color: theme.palette.blue[70],
     },
   },
@@ -43,6 +43,7 @@ const ModalButton = styled(ButtonBase)(({ theme }) => ({
     color: theme.palette.gray[90],
     fontSize: 21,
     marginBottom: theme.spacing(1),
+    transition: theme.transitions.create("color"),
   },
 }));
 
