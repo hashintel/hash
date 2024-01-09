@@ -1,4 +1,5 @@
 pub mod client;
+mod codegen;
 pub(crate) mod procedure;
 pub mod server;
 pub(crate) mod service;

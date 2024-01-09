@@ -28,6 +28,7 @@ tokio-util = { version = "0.7.10", features = ["compat"] }
 tracing = "0.1.40"
 uuid = "1.6.1"
 paste = "1.0.14"
+async-recursion = "1.0.5"
 
 specta = { version = "2.0.0-rc.7", optional = true, features = ["functions", "serde"] }
 inventory = { version = "0.3.14", optional = true }
