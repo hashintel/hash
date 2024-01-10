@@ -9,41 +9,55 @@ use authorization::{
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
 };
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, ResultExt};
 use graph::store::{AccountStore, StorePool};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     provenance::OwnedById,
 };
 use hash_graph_rpc::{
-    harpc::{Context, RequestMeta},
-    specification::account::{
-        AccountService, AddAccountGroupMember, CheckAccountGroupPermission, CreateAccount,
-        CreateAccountGroup, RemoveAccountGroupMember,
+    harpc::RequestMeta,
+    specification::{
+        account::{
+            AccountService, AddAccountGroupMember, CheckAccountGroupPermission, CreateAccount,
+            CreateAccountGroup, RemoveAccountGroupMember,
+        },
+        common::{Error, JsonCodec, JsonContext},
     },
     Service, ServiceBuilder,
 };
+use hash_status::StatusCode;
 use uuid::Uuid;
 
 use crate::rpc::State;
 
-// TODO: associate error codes?!
 #[derive(Debug, Copy, Clone)]
-struct AccountServiceError;
+struct AccountDoesNotExistError;
 
-impl Display for AccountServiceError {
+impl Display for AccountDoesNotExistError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("account service error")
+        f.write_str("account does not exist")
     }
 }
 
-impl error_stack::Context for AccountServiceError {}
+impl std::error::Error for AccountDoesNotExistError {}
+
+#[derive(Debug, Copy, Clone)]
+struct MissingPermissionError;
+
+impl Display for MissingPermissionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("missing privilege")
+    }
+}
+
+impl std::error::Error for MissingPermissionError {}
 
 async fn create_account<S, A>(
-    _: CreateAccount,
+    _request: CreateAccount,
     meta: RequestMeta,
-    state: &State<S, A>,
-) -> Result<AccountId, AccountServiceError>
+    state: State<S, A>,
+) -> Result<AccountId, Error>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -54,28 +68,28 @@ where
         .store_pool
         .acquire()
         .await
-        .change_context(AccountServiceError)?;
+        .attach(StatusCode::InvalidArgument)?;
 
     let mut authorization_api = state
         .authorization_api_pool
         .acquire()
         .await
-        .change_context(AccountServiceError)?;
+        .attach(StatusCode::Internal)?;
 
     let account_id = AccountId::new(Uuid::new_v4());
     store
         .insert_account_id(actor_id, &mut authorization_api, account_id)
         .await
-        .change_context(AccountServiceError)?;
+        .attach(StatusCode::Internal)?;
 
     Ok(account_id)
 }
 
 async fn create_account_group<S, A>(
-    _: CreateAccountGroup,
+    _request: CreateAccountGroup,
     meta: RequestMeta,
-    state: &State<S, A>,
-) -> Result<AccountGroupId, AccountServiceError>
+    state: State<S, A>,
+) -> Result<AccountGroupId, Error>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -86,29 +100,30 @@ where
         .store_pool
         .acquire()
         .await
-        .change_context(AccountServiceError)?;
+        .attach(StatusCode::Internal)?;
 
     let account = store
         .identify_owned_by_id(OwnedById::from(actor_id))
         .await
-        .change_context(AccountServiceError)?;
+        .attach(StatusCode::Internal)?;
 
     if account != (WebOwnerSubject::Account { id: actor_id }) {
-        // TODO: proper context!
-        return Err(Report::new(AccountServiceError));
+        return Err(Report::new(AccountDoesNotExistError)
+            .attach(StatusCode::NotFound)
+            .into());
     }
 
     let mut authorization_api = state
         .authorization_api_pool
         .acquire()
         .await
-        .change_context(AccountServiceError)?;
+        .attach(StatusCode::Internal)?;
 
     let account_group_id = AccountGroupId::new(Uuid::new_v4());
     store
         .insert_account_group_id(actor_id, &mut authorization_api, account_group_id)
         .await
-        .change_context(AccountServiceError)?;
+        .attach(StatusCode::Internal)?;
 
     Ok(account_group_id)
 }
@@ -119,9 +134,10 @@ async fn check_account_group_permission<S, A>(
         permission,
     }: CheckAccountGroupPermission,
     meta: RequestMeta,
-    state: &State<S, A>,
-) -> Result<bool, AccountServiceError>
+    state: State<S, A>,
+) -> Result<bool, Error>
 where
+    S: Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
     let actor_id = AccountId::new(meta.actor.into());
@@ -130,7 +146,7 @@ where
         .authorization_api_pool
         .acquire()
         .await
-        .change_context(AccountServiceError)?;
+        .attach(StatusCode::Internal)?;
 
     let response = authorization_api
         .check_account_group_permission(
@@ -140,7 +156,7 @@ where
             Consistency::FullyConsistent,
         )
         .await
-        .change_context(AccountServiceError)?;
+        .attach(StatusCode::Internal)?;
 
     Ok(response.has_permission)
 }
@@ -151,9 +167,10 @@ async fn add_account_group_member<S, A>(
         account_id,
     }: AddAccountGroupMember,
     meta: RequestMeta,
-    state: &State<S, A>,
-) -> Result<(), AccountServiceError>
+    state: State<S, A>,
+) -> Result<(), Error>
 where
+    S: Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
     let actor_id = AccountId::new(meta.actor.into());
@@ -162,7 +179,7 @@ where
         .authorization_api_pool
         .acquire()
         .await
-        .change_context(AccountServiceError)?;
+        .attach(StatusCode::Internal)?;
 
     let has_permission = authorization_api
         .check_account_group_permission(
@@ -172,12 +189,13 @@ where
             Consistency::FullyConsistent,
         )
         .await
-        .change_context(AccountServiceError)?
+        .attach(StatusCode::Internal)?
         .has_permission;
 
     if !has_permission {
-        // TODO: proper context!
-        return Err(Report::new(AccountServiceError));
+        return Err(Report::new(MissingPermissionError)
+            .attach(StatusCode::PermissionDenied)
+            .into());
     }
 
     authorization_api
@@ -190,7 +208,7 @@ where
             },
         )])
         .await
-        .change_context(AccountServiceError)?;
+        .attach(StatusCode::Internal)?;
 
     Ok(())
 }
@@ -201,9 +219,10 @@ async fn remove_account_group_member<S, A>(
         account_id,
     }: RemoveAccountGroupMember,
     meta: RequestMeta,
-    state: &State<S, A>,
-) -> Result<(), AccountServiceError>
+    state: State<S, A>,
+) -> Result<(), Error>
 where
+    S: Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
     let actor_id = AccountId::new(meta.actor.into());
@@ -212,7 +231,7 @@ where
         .authorization_api_pool
         .acquire()
         .await
-        .change_context(AccountServiceError)?;
+        .attach(StatusCode::Internal)?;
 
     let has_permission = authorization_api
         .check_account_group_permission(
@@ -222,12 +241,13 @@ where
             Consistency::FullyConsistent,
         )
         .await
-        .change_context(AccountServiceError)?
+        .attach(StatusCode::Internal)?
         .has_permission;
 
     if !has_permission {
-        // TODO: proper context!
-        return Err(Report::new(AccountServiceError));
+        return Err(Report::new(MissingPermissionError)
+            .attach(StatusCode::PermissionDenied)
+            .into());
     }
 
     authorization_api
@@ -240,16 +260,15 @@ where
             },
         )])
         .await
-        .change_context(AccountServiceError)?;
+        .attach(StatusCode::Internal)?;
 
     Ok(())
 }
 
-pub(crate) fn service<C, S, A>() -> Service<AccountService, C>
+pub(crate) fn service<S, A>() -> Service<AccountService, JsonContext<State<S, A>>>
 where
-    C: Context<State = State<S, A>>,
-    S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
+    S: StorePool + Send + Sync + 'static,
+    A: AuthorizationApiPool + Send + Sync + 'static,
 {
     ServiceBuilder::new()
         .add_procedure(create_account::<S, A>)

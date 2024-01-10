@@ -16,9 +16,9 @@ pub use self::{
 use crate::harpc::transport::message::actor::ActorId;
 
 pub trait Stateful: Send + Sync {
-    type State: Send + Sync;
+    type State: Send;
 
-    fn state(&self) -> &Self::State;
+    fn state(&self) -> Self::State;
 }
 
 pub trait Encode<T>: Stateful {

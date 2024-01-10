@@ -1,5 +1,5 @@
 pub mod account;
-pub(crate) mod generic;
+pub mod common;
 #[cfg(any(target_arch = "wasm32", feature = "wasm"))]
 pub(crate) mod wasm;
 

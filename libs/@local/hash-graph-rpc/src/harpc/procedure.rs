@@ -129,9 +129,9 @@ where
     }
 }
 
-impl<F, P, C, Fut> Handler<(P, &C::State), C> for F
+impl<F, P, C, Fut> Handler<(P, C::State), C> for F
 where
-    F: FnOnce(P, &C::State) -> Fut + Clone + Send + 'static,
+    F: FnOnce(P, C::State) -> Fut + Clone + Send + 'static,
     Fut: Future<Output = P::Response> + Send,
     P: RemoteProcedure,
     C: Context + Encode<P::Response> + Decode<P>,
@@ -152,9 +152,9 @@ where
     }
 }
 
-impl<F, P, C, Fut> Handler<(P, RequestMeta, &C::State), C> for F
+impl<F, P, C, Fut> Handler<(P, RequestMeta, C::State), C> for F
 where
-    F: FnOnce(P, RequestMeta, &C::State) -> Fut + Clone + Send + 'static,
+    F: FnOnce(P, RequestMeta, C::State) -> Fut + Clone + Send + 'static,
     Fut: Future<Output = P::Response> + Send,
     P: RemoteProcedure,
     C: Context + Encode<P::Response> + Decode<P>,

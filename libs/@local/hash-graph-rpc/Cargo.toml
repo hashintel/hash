@@ -10,6 +10,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 graph-types = { workspace = true }
+hash-status = { workspace = true }
 # due to feature selection cannot use workspace
 authorization = { path = "../hash-authorization", default-features = false }
 
