@@ -4,19 +4,18 @@ import { type Multiaddr } from "@multiformats/multiaddr";
 import { Effect } from "effect";
 import { parse } from "uuid";
 
-import { TRANSPORT_VERSION } from "./transport/constants";
 import {
   ActorId,
   ProcedureId,
   ServiceId,
   ServiceVersion,
 } from "./transport/common";
+import { TRANSPORT_VERSION } from "./transport/constants";
 import { Handler } from "./transport/handler";
 import { Request, RequestHeader } from "./transport/request";
 import { Response, ResponseFrom } from "./transport/response";
 
 export const EncodingContext = RequestHeader.pipe(S.pick("actor"));
-export interface EncodingContext extends S.Schema.To<typeof EncodingContext> {}
 export interface EncodingContextFrom
   extends S.Schema.From<typeof EncodingContext> {}
 
@@ -26,7 +25,7 @@ type ServiceInstance<
   T extends Record<string, never>,
 > = {
   [key in keyof T]: T[key] extends Procedure<S, infer _P, infer Req, infer Res>
-    ? (request: Req) => Promise<Res>
+    ? (actor: string, request: Req) => Promise<Res>
     : never;
 };
 
@@ -35,11 +34,7 @@ interface Service<
   V extends ServiceVersion,
   T extends Record<string, never>,
 > {
-  new (
-    server: Multiaddr,
-    actor: string,
-    handler: Handler<unknown>,
-  ): ServiceInstance<S, V, T>;
+  new (server: Multiaddr, handler: Handler<unknown>): ServiceInstance<S, V, T>;
 }
 
 export interface Procedure<
@@ -144,21 +139,22 @@ class ServiceBuilder<
 
       constructor(
         public server: Multiaddr,
-        public actor: string,
         public handler: Handler<unknown>,
       ) {
-        const actorId = ActorId(parse(actor) as Uint8Array);
-        this.client = new Client(server, actorId, handler);
+        this.client = new Client(server, handler);
       }
     }
 
     for (const [name, procedure] of Object.entries(this.procedures)) {
       (ServiceImpl.prototype as any)[name] = function (
         this: ServiceImpl,
+        actor: string,
         request: any,
       ) {
+        const actorId = ActorId(parse(actor) as Uint8Array);
+
         return Effect.runPromise(
-          Effect.scoped(this.client.send(procedure, request)),
+          Effect.scoped(this.client.send(procedure, actorId, request)),
         );
       };
     }
@@ -177,17 +173,17 @@ export function service<
 export class Client<E> {
   constructor(
     public server: Multiaddr,
-    public actor: ActorId,
     public handler: Handler<E>,
   ) {}
 
   send<const S extends ServiceId, const P extends ProcedureId, Req, Res>(
     procedure: Procedure<S, P, Req, Res>,
+    actor: ActorId,
     request: Req,
   ) {
     return Effect.gen(this, function* (_) {
       const encodedRequest = yield* _(
-        S.parse(procedure.request)([{ actor: this.actor }, request]),
+        S.parse(procedure.request)([{ actor }, request]),
       );
 
       const response = yield* _(this.handler.send(this.server, encodedRequest));

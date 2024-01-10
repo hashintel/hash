@@ -12609,6 +12609,11 @@ effect@2.0.2:
   resolved "https://registry.yarnpkg.com/effect/-/effect-2.0.2.tgz#b68a625a79336bf76e42bb382a34286f8e8c1882"
   integrity sha512-YrB7AiBsvgWbA2paV0LB47Ux4SfK46v9hWwUFceN6zDgxpEzVyWfRX3tkFEGNV4t8OvPqlfyew+dmf7YzkbDYQ==
 
+effect@2.0.3:
+  version "2.0.3"
+  resolved "https://registry.yarnpkg.com/effect/-/effect-2.0.3.tgz#134358ffacba0c4a603a2b4dbd31e64829ab47b0"
+  integrity sha512-I/XvcbHypegNFWCr/arbfIR6pA+8JpSqv9wS4xOrgXypQMRj8H3wRorTcUiPmcQ0e6Ko67CdI2XZpjx7z0Ev/A==
+
 ejs@^3.1.8:
   version "3.1.8"
   resolved "https://registry.yarnpkg.com/ejs/-/ejs-3.1.8.tgz#758d32910c78047585c7ef1f92f9ee041c1c190b"

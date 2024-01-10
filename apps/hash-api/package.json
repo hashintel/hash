@@ -60,6 +60,7 @@
     "cors": "2.8.5",
     "cross-env": "7.0.3",
     "dedent": "0.7.0",
+    "effect": "2.0.3",
     "express": "4.17.3",
     "express-http-proxy": "2.0.0",
     "fractional-indexing": "2.1.0",

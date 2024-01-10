@@ -1,51 +1,56 @@
 import { WebOwnerSubject } from "@local/hash-graph-client";
 import { AccountGroupId, AccountId, OwnedById } from "@local/hash-subgraph";
+import { Either } from "effect";
 
 import { ImpureGraphFunction } from "./context-types";
 
 export const addAccountGroupMember: ImpureGraphFunction<
   { accountId: AccountId; accountGroupId: AccountGroupId },
-  Promise<boolean>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.addAccountGroupMember(
-    actorId,
-    params.accountGroupId,
-    params.accountId,
-  );
+  Promise<boolean>,
+  false,
+  true
+> = async ({ rpcClient }, { actorId }, params) => {
+  await rpcClient.accounts.addAccountGroupMember(actorId, params);
 
   return true;
 };
 
 export const removeAccountGroupMember: ImpureGraphFunction<
   { accountId: AccountId; accountGroupId: AccountGroupId },
-  Promise<boolean>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.removeAccountGroupMember(
-    actorId,
-    params.accountGroupId,
-    params.accountId,
-  );
+  Promise<boolean>,
+  false,
+  true
+> = async ({ rpcClient }, { actorId }, params) => {
+  await rpcClient.accounts.removeAccountGroupMember(actorId, params);
 
   return true;
 };
 
 export const createAccount: ImpureGraphFunction<
   {},
-  Promise<AccountId>
-> = async ({ graphApi }, { actorId }, _) =>
-  graphApi.createAccount(actorId).then(({ data }) => data as AccountId);
+  Promise<AccountId>,
+  false,
+  true
+> = async ({ rpcClient }, { actorId }, _) =>
+  rpcClient.accounts
+    .createAccount(actorId, null)
+    .then((data) => Either.getOrThrow(data) as AccountId);
 
 export const createAccountGroup: ImpureGraphFunction<
   {},
-  Promise<AccountGroupId>
-> = async ({ graphApi }, { actorId }, _) =>
-  graphApi
-    .createAccountGroup(actorId)
-    .then(({ data }) => data as AccountGroupId);
+  Promise<AccountGroupId>,
+  false,
+  true
+> = async ({ rpcClient }, { actorId }, _) =>
+  rpcClient.accounts
+    .createAccountGroup(actorId, null)
+    .then((data) => Either.getOrThrow(data) as AccountGroupId);
 
 export const createWeb: ImpureGraphFunction<
   { ownedById: OwnedById; owner: WebOwnerSubject },
-  Promise<void>
+  Promise<void>,
+  false,
+  true
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.createWeb(actorId, params);
 };

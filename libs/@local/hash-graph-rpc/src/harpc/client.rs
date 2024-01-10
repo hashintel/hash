@@ -96,6 +96,7 @@ impl From<ResponseError> for ClientError {
 
 pub struct Client<S, C> {
     _service: PhantomData<S>,
+    // TODO: move on per-request?
     actor: ActorId,
 
     context: C,

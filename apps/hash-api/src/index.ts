@@ -71,6 +71,7 @@ import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { createTemporalClient } from "./temporal";
 import { getRequiredEnv } from "./util";
 import { createVaultClient, VaultClient } from "./vault";
+import { createGraphRpcClient } from "@local/hash-backend-utils/create-graph-rpc-client";
 
 declare global {
   namespace Express {
@@ -146,10 +147,12 @@ const main = async () => {
 
   const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
   const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
+  const graphRpcPort = parseInt(getRequiredEnv("HASH_GRAPH_RPC_PORT"), 10);
 
   await Promise.all([
     waitOnResource(`tcp:${redisHost}:${redisPort}`, logger),
     waitOnResource(`tcp:${graphApiHost}:${graphApiPort}`, logger),
+    waitOnResource(`tcp:${graphApiHost}:${graphRpcPort}`, logger),
   ]);
 
   // Connect to Redis
@@ -165,6 +168,12 @@ const main = async () => {
     port: graphApiPort,
   });
 
+  const rpcClient = await createGraphRpcClient(logger, {
+    host: graphApiHost,
+    port: graphRpcPort,
+  });
+  shutdown.addCleanup("Graph RPC Client", async () => rpcClient.close());
+
   const FILE_UPLOAD_PROVIDER = getEnvStorageType();
   // Setup upload storage provider and express routes for local file uploads
   const uploadProvider = setupStorageProviders(app, FILE_UPLOAD_PROVIDER);
@@ -173,7 +182,7 @@ const main = async () => {
 
   const vaultClient = createVaultClient();
 
-  const context = { graphApi, uploadProvider };
+  const context = { graphApi, uploadProvider, rpcClient };
 
   await ensureSystemGraphIsInitialized({ logger, context });
 
