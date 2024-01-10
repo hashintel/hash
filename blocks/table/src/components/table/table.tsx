@@ -1,4 +1,3 @@
-import { JsonValue } from "@blockprotocol/graph";
 import {
   CompactSelection,
   DataEditorProps,
@@ -236,8 +235,9 @@ export const Table: FunctionComponent<{
         };
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- todo fix this
-      const value = ((localRows[rowIndex] as any)?.[key] ?? "") as JsonValue;
+      const row = localRows[rowIndex];
+
+      const value = row && key in row ? row[key as keyof typeof row] : "";
 
       return {
         kind: GridCellKind.Text,
