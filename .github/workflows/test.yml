@@ -331,7 +331,7 @@ jobs:
           fi
 
           echo "Running services: $SERVICES"
-          yarn workspace @apps/hash-external-services deploy:test up $SERVICES --detach
+          yarn workspace @apps/hash-external-services deploy:test up $SERVICES --wait
 
       - name: Show disk usage
         run: df -h
@@ -452,7 +452,7 @@ jobs:
       - name: Launch external services
         run: |
           turbo codegen --filter '@apps/hash-external-services'
-          yarn workspace @apps/hash-external-services deploy up --detach
+          yarn workspace @apps/hash-external-services deploy up --wait
 
       - name: Launch HASH-API
         run: |
