@@ -100,7 +100,7 @@ export const EntityTypeSelector: FunctionComponent<{
           onCancel();
         }
       }}
-      onBlur={() => {
+      onClickAway={() => {
         onCancel();
       }}
       sx={[{ maxWidth: 440 }, ...(Array.isArray(sx) ? sx : [sx])]}
