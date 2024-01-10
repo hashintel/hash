@@ -61,7 +61,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     const editorType = guessEditorTypeFromValue(value, expectedTypes);
     const relevantType = expectedTypes.find((type) => type.type === editorType);
 
-    const editorSpec = getEditorSpecs(editorType, relevantType?.title);
+    const editorSpec = getEditorSpecs(editorType, relevantType);
 
     if (isValueEmpty(value)) {
       // draw empty value

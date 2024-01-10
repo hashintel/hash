@@ -162,7 +162,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     const onlyOneExpectedType = expectedTypes.length === 1;
     const expectedType = expectedTypes[0]!;
     const editorType = guessEditorTypeFromExpectedType(expectedType);
-    const editorSpec = getEditorSpecs(editorType, expectedType.title);
+    const editorSpec = getEditorSpecs(editorType, expectedType);
     const noEditMode = editorSpec.arrayEditException === "no-edit-mode";
 
     // add the value on click instead of showing draftRow
