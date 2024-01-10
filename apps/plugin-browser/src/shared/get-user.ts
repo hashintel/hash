@@ -81,11 +81,19 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
       const orgLinksAndEntities = getOutgoingLinkAndTargetEntities(
         subgraph,
         user.metadata.recordId.entityId,
-        intervalForTimestamp(new Date().toISOString() as Timestamp),
       ).filter(
         ({ linkEntity }) =>
           linkEntity[0]?.metadata.entityTypeId ===
           systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
+      );
+
+      const userBrowserPreferences = getOutgoingLinkAndTargetEntities(
+        subgraph,
+        user.metadata.recordId.entityId,
+      ).filter(
+        ({ linkEntity }) =>
+          linkEntity[0]?.metadata.entityTypeId ===
+          systemLinkEntityTypes.hasPreferences.linkEntityTypeId,
       );
 
       const orgs = orgLinksAndEntities.map(({ rightEntity }) => {

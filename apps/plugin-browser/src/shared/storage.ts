@@ -70,11 +70,7 @@ type UserAndLinkedData = SimplifiedUser & {
   webOwnedById: OwnedById;
 };
 
-/**
- * Storage area cleared persisted when the browser is closed.
- * Cleared if the extension is loaded with no user present.
- */
-export type LocalStorage = {
+export type UserSettings = {
   automaticInferenceConfig: {
     createAs: "draft" | "live";
     displayGroupedBy: "type" | "location";
@@ -92,6 +88,13 @@ export type LocalStorage = {
     ownedById: OwnedById;
     targetEntityTypeIds: VersionedUrl[];
   };
+};
+
+/**
+ * Storage area cleared persisted when the browser is closed.
+ * Cleared if the extension is loaded with no user present.
+ */
+export type LocalStorage = UserSettings & {
   draftQuickNote: string;
   entityTypesSubgraph: Subgraph<EntityTypeRootType> | null;
   entityTypes: EntityTypeWithMetadata[];

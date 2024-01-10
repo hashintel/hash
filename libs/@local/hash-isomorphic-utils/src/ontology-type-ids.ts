@@ -13,17 +13,23 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/block-collection/",
   },
+  browserPluginSettings: {
+    entityTypeId:
+      "https://hash.ai/@hash/types/entity-type/browser-plugin-settings/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/browser-plugin-settings/",
+  },
   canvas: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/canvas/v/1",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/canvas/",
   },
   comment: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/2",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/3",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/comment/",
   },
   commentNotification: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/comment-notification/v/2",
+      "https://hash.ai/@hash/types/entity-type/comment-notification/v/3",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/comment-notification/",
   },
@@ -68,7 +74,7 @@ export const systemEntityTypes = {
   },
   linearIntegration: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/linear-integration/v/2",
+      "https://hash.ai/@hash/types/entity-type/linear-integration/v/3",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/linear-integration/",
   },
@@ -84,7 +90,7 @@ export const systemEntityTypes = {
   },
   mentionNotification: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/mention-notification/v/2",
+      "https://hash.ai/@hash/types/entity-type/mention-notification/v/3",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/mention-notification/",
   },
@@ -137,7 +143,7 @@ export const systemEntityTypes = {
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/usage-record/",
   },
   user: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/2",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/3",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/user/",
   },
   userSecret: {
@@ -155,6 +161,10 @@ export const systemLinkEntityTypes = {
   created: {
     linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/created/v/1",
     linkEntityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/created/",
+  },
+  has: {
+    linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/has/v/1",
+    linkEntityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/has/",
   },
   hasAvatar: {
     linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/has-avatar/v/1",
@@ -291,6 +301,12 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/archived/v/1",
     propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/archived/",
   },
+  automaticInferenceSettings: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/automatic-inference-settings/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/automatic-inference-settings/",
+  },
   componentId: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/component-id/v/1",
@@ -426,6 +442,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@hash/types/property-type/machine-identifier/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/machine-identifier/",
+  },
+  manualInferenceSettings: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/manual-inference-settings/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/manual-inference-settings/",
   },
   orgSelfRegistrationIsEnabled: {
     propertyTypeId:
@@ -614,6 +636,13 @@ export const systemDataTypes = {
     title: "Millimeters",
     description:
       "A unit of length in the International System of Units (SI), equal to one thousandth of a meter.",
+  },
+  time: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/time/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/time/",
+    title: "Time",
+    description:
+      "A reference to a particular clock time, formatted according to RFC 3339.",
   },
   uri: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/uri/v/1",
@@ -1084,22 +1113,10 @@ export const blockProtocolEntityTypes = {
     entityTypeBaseUrl:
       "https://blockprotocol.org/@blockprotocol/types/entity-type/link/",
   },
-  paragraphBlock: {
-    entityTypeId:
-      "https://blockprotocol.org/@hash/types/entity-type/paragraph-block/v/3",
-    entityTypeBaseUrl:
-      "https://blockprotocol.org/@hash/types/entity-type/paragraph-block/",
-  },
   query: {
     entityTypeId: "https://blockprotocol.org/@hash/types/entity-type/query/v/1",
     entityTypeBaseUrl:
       "https://blockprotocol.org/@hash/types/entity-type/query/",
-  },
-  tableBlock: {
-    entityTypeId:
-      "https://blockprotocol.org/@hash/types/entity-type/table-block/v/4",
-    entityTypeBaseUrl:
-      "https://blockprotocol.org/@hash/types/entity-type/table-block/",
   },
   thing: {
     entityTypeId:
@@ -1191,53 +1208,11 @@ export const blockProtocolPropertyTypes = {
     propertyTypeBaseUrl:
       "https://blockprotocol.org/@hash/types/property-type/query/",
   },
-  tableHeaderRowIsHidden: {
-    propertyTypeId:
-      "https://blockprotocol.org/@hash/types/property-type/table-header-row-is-hidden/v/1",
-    propertyTypeBaseUrl:
-      "https://blockprotocol.org/@hash/types/property-type/table-header-row-is-hidden/",
-  },
-  tableLocalColumn: {
-    propertyTypeId:
-      "https://blockprotocol.org/@hash/types/property-type/table-local-column/v/1",
-    propertyTypeBaseUrl:
-      "https://blockprotocol.org/@hash/types/property-type/table-local-column/",
-  },
-  tableLocalColumnId: {
-    propertyTypeId:
-      "https://blockprotocol.org/@hash/types/property-type/table-local-column-id/v/1",
-    propertyTypeBaseUrl:
-      "https://blockprotocol.org/@hash/types/property-type/table-local-column-id/",
-  },
-  tableLocalRow: {
-    propertyTypeId:
-      "https://blockprotocol.org/@hash/types/property-type/table-local-row/v/1",
-    propertyTypeBaseUrl:
-      "https://blockprotocol.org/@hash/types/property-type/table-local-row/",
-  },
-  tableRowNumbersAreHidden: {
-    propertyTypeId:
-      "https://blockprotocol.org/@hash/types/property-type/table-row-numbers-are-hidden/v/1",
-    propertyTypeBaseUrl:
-      "https://blockprotocol.org/@hash/types/property-type/table-row-numbers-are-hidden/",
-  },
-  tableRowsAreStriped: {
-    propertyTypeId:
-      "https://blockprotocol.org/@hash/types/property-type/table-rows-are-striped/v/1",
-    propertyTypeBaseUrl:
-      "https://blockprotocol.org/@hash/types/property-type/table-rows-are-striped/",
-  },
   textualContent: {
     propertyTypeId:
       "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/v/2",
     propertyTypeBaseUrl:
       "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/",
-  },
-  title: {
-    propertyTypeId:
-      "https://blockprotocol.org/@blockprotocol/types/property-type/title/v/1",
-    propertyTypeBaseUrl:
-      "https://blockprotocol.org/@blockprotocol/types/property-type/title/",
   },
 } as const;
 
