@@ -122,147 +122,46 @@ macro_rules! service {
         service!(@extract names; $($rest)*)
     };
 
-    (@wasm #client[$vis:vis $service:ident]) => {};
+    // (@wasm #types[$vis:vis $service:ident] $($tt:tt)*) => {
+    //     fn collect_functions(map: &mut specta::TypeMap) -> Vec<specta::functions::FunctionDataType> {
+    //         let mut types = vec![];
+    //
+    //         service!(@wasm #types[$vis $service map types] $($tt)*);
+    //
+    //         types
+    //     }
+    //
+    //     inventory::submit!($crate::specification::wasm::ClientImplementation {
+    //         name: paste::paste!(stringify!([< $service Client >])),
+    //         functions: collect_functions,
+    //     });
+    // };
+    //
+    // (@wasm #types[$vis:vis $service:ident $map:ident $types:ident]) => {};
 
-    (@wasm #client[$vis:vis $service:ident] rpc$([$($options:tt)*])? $name:ident($($($args:tt)+)?) $(-> $output:ty)?; $($rest:tt)*) => {
-        paste::paste! {
-            #[doc = "Call the `" $name "` procedure of the `" $service "` service."]
-            ///
-            /// # Errors
-            ///
-            /// Returns an error if the request cannot be encoded, the response cannot be decoded, or if the
-            /// remote encountered a transport error.
-            // TODO: in the future I'd like to remove the `call` prefix, but `:camel` returns `PascalCase`(?)
-            //     instead of `camelCase` which is what we want, and https://github.com/rustwasm/wasm-bindgen/issues/1818
-            //     is still open.
-            #[allow(unused_parens)]
-            #[wasm_bindgen::prelude::wasm_bindgen(js_name = [< call $name >], skip_typescript)]
-            pub async fn [< $name:snake >](client: & [<$service Client>], $(${ignore(args)} args: wasm_bindgen::JsValue)?)
-                -> Result<wasm_bindgen::JsValue, wasm_bindgen::JsValue>
-            {
-                $(${ignore(args)} let args = serde_wasm_bindgen::from_value(args)?;)?
-
-                let value = client.client
-                    .call($name { $(${ignore(args)} ..args)? })
-                    .await
-                    .map_err(|error| {
-                        match serde_wasm_bindgen::to_value(&error) {
-                            Ok(value) => value,
-                            Err(error) => error.into(),
-                        }
-                    })?;
-
-                serde_wasm_bindgen::to_value(&value).map_err(Into::into)
-            }
-        }
-
-        service!(@wasm #client[$vis $service] $($rest)*);
-    };
-
-    (@wasm #client[$vis:vis $service:ident] $_:tt $($rest:tt)*) => {
-        service!(@wasm #client[$vis $service] $($rest)*);
-    };
-
-    (@wasm #types[$vis:vis $service:ident] $($tt:tt)*) => {
-        fn collect_functions(map: &mut specta::TypeMap) -> Vec<specta::functions::FunctionDataType> {
-            let mut types = vec![];
-
-            service!(@wasm #types[$vis $service map types] $($tt)*);
-
-            types
-        }
-
-        inventory::submit!($crate::specification::wasm::ClientImplementation {
-            name: paste::paste!(stringify!([< $service Client >])),
-            functions: collect_functions,
-        });
-    };
-
-    (@wasm #types[$vis:vis $service:ident $map:ident $types:ident]) => {};
-
-    (@wasm #types[$vis:vis $service:ident $map:ident $types:ident] rpc$([$($options:tt)*])? $name:ident($($($args:tt)+)?) $(-> $output:ty)?; $($rest:tt)*) => {
-        let func = {
-            let client = <paste::paste!([< $service Client >]) as specta::Type>::reference($map, &[]).inner;
-            $(${ignore(args)} let args = <$name as specta::Type>::reference($map, &[]).inner;)?;
-            let result = <($($output)?) as specta::Type>::reference($map, &[]).inner;
-
-            specta::functions::FunctionDataType {
-                asyncness: true,
-                name: std::borrow::Cow::Borrowed(paste::paste!(stringify!([< call $name >]))),
-                args: vec![
-                    (std::borrow::Cow::Borrowed("client"), client),
-                    $(${ignore(args)} (std::borrow::Cow::Borrowed("args"), args))?
-                ],
-                result,
-                docs: std::borrow::Cow::Borrowed(concat!("Call the `", stringify!($name), "` procedure of the `", stringify!($service), "` service.")),
-                deprecated: None
-            }
-        };
-
-        $types.push(func);
-
-        service!(@wasm #types[$vis $service $map $types] $($rest)*);
-    };
-
-    (@wasm #types[$vis:vis $service:ident $map:ident $types:ident] $_:tt $($rest:tt)*) => {
-        service!(@wasm #types[$vis $service $map $types] $($rest)*);
-    };
-
-    (@wasm[$vis:vis $service:ident] $($tt:tt)*) => {
-        #[cfg(any(target_arch = "wasm32", feature = "wasm"))]
-        mod __wasm {
-            use super::*;
-
-            paste::paste! {
-                #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-                struct [< $service Client >] {
-                    client: $crate::harpc::client::Client<$service, $crate::specification::generic::DefaultEncoder>,
-                }
-
-                #[cfg(target_arch = "wasm32")]
-                #[wasm_bindgen::prelude::wasm_bindgen]
-                impl [< $service Client >] {
-                    #[doc = "Create a new " $service " client."]
-                    ///
-                    /// # Errors
-                    ///
-                    /// This function can fail if the underlying transport fails to connect.
-                    #[wasm_bindgen::prelude::wasm_bindgen(constructor)]
-                    pub fn new(
-                        remote: wasm_bindgen::JsValue,
-                        actor: wasm_bindgen::JsValue,
-                    ) -> Result<[< $service Client >], wasm_bindgen::JsValue> {
-                        let remote = serde_wasm_bindgen::from_value(remote)?;
-                        let actor = serde_wasm_bindgen::from_value(actor)?;
-
-                        let client = $crate::harpc::client::Client::new(
-                                $crate::specification::generic::DefaultEncoder,
-                                actor,
-                                remote,
-                                $crate::harpc::transport::TransportConfig::default()
-                            ).map_err(|error| {
-                                match serde_wasm_bindgen::to_value(&error) {
-                                    Ok(value) => value,
-                                    Err(error) => error.into(),
-                                }
-                            })?;
-
-                        Ok(Self { client })
-                    }
-                }
-            }
-
-
-            #[cfg(target_arch = "wasm32")]
-            service!(@wasm #client[$vis $service] $($tt)*);
-
-            #[cfg(feature = "wasm")]
-            service!(@wasm #types[$vis $service] $($tt)*);
-
-            #[cfg(any(target_arch = "wasm32", feature = "wasm"))]
-            paste::paste!($crate::specification::wasm::export_service!([<$service Client>]););
-        }
-    };
+    // (@wasm #types[$vis:vis $service:ident $map:ident $types:ident] rpc$([$($options:tt)*])? $name:ident($($($args:tt)+)?) $(-> $output:ty)?; $($rest:tt)*) => {
+    //     let func = {
+    //         let client = <paste::paste!([< $service Client >]) as specta::Type>::reference($map, &[]).inner;
+    //         $(${ignore(args)} let args = <$name as specta::Type>::reference($map, &[]).inner;)?;
+    //         let result = <($($output)?) as specta::Type>::reference($map, &[]).inner;
+    //
+    //         specta::functions::FunctionDataType {
+    //             asyncness: true,
+    //             name: std::borrow::Cow::Borrowed(paste::paste!(stringify!([< call $name >]))),
+    //             args: vec![
+    //                 (std::borrow::Cow::Borrowed("client"), client),
+    //                 $(${ignore(args)} (std::borrow::Cow::Borrowed("args"), args))?
+    //             ],
+    //             result,
+    //             docs: std::borrow::Cow::Borrowed(concat!("Call the `", stringify!($name), "` procedure of the `", stringify!($service), "` service.")),
+    //             deprecated: None
+    //         }
+    //     };
+    //
+    //     $types.push(func);
+    //
+    //     service!(@wasm #types[$vis $service $map $types] $($rest)*);
+    // };
 
     ($vis:vis service $name:ident {
         $($tt:tt)*
@@ -278,7 +177,6 @@ macro_rules! service {
 
         service!(@procedure[$vis] $($tt)*);
 
-        service!(@wasm[$vis $name] $($tt)*);
     };
 }
 
