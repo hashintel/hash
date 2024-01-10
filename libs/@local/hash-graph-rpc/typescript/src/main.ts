@@ -9,12 +9,52 @@ import { createLibp2p } from "libp2p";
 import { service } from "./client";
 import { ProcedureId, ServiceId, ServiceVersion } from "./transport/common";
 import { defaultHandler } from "./transport/handler";
+import { RpcResult } from "./status";
 
-const AccountService = service(ServiceId(0x00), ServiceVersion(0x00))
-  .procedure("createAccount", ProcedureId(0x00), S.null, S.string)
+export const AccountService = service(ServiceId(0x00), ServiceVersion(0x00))
+  .procedure(
+    "createAccount", //
+    ProcedureId(0x00),
+    S.null,
+    RpcResult(S.string),
+  )
+  .procedure(
+    "createAccountGroup",
+    ProcedureId(0x01),
+    S.null,
+    RpcResult(S.string),
+  )
+  .procedure(
+    "checkAccountGroupPermission",
+    ProcedureId(0x02),
+    // TODO: properly type...
+    S.struct({
+      accountGroupId: S.string,
+      permission: S.string,
+    }),
+    RpcResult(S.boolean),
+  )
+  .procedure(
+    "addAccountGroupMember",
+    ProcedureId(0x03),
+    S.struct({
+      accountGroupId: S.string,
+      accountId: S.string,
+    }),
+    RpcResult(S.null),
+  )
+  .procedure(
+    "removeAccountGroupMember",
+    ProcedureId(0x04),
+    S.struct({
+      accountGroupId: S.string,
+      accountId: S.string,
+    }),
+    RpcResult(S.null),
+  )
   .build();
 
-function createTransport() {
+export function createTransport() {
   return createLibp2p({
     transports: [webSockets()],
     streamMuxers: [yamux()],
@@ -23,21 +63,23 @@ function createTransport() {
   });
 }
 
-export async function main() {
-  const transport = await createTransport();
+export { multiaddr };
 
-  const service = new AccountService(
-    multiaddr("/ip4/127.0.0.1/tcp/4088/ws/"),
-    "65a84123-7def-4304-945d-c9828fbf25b6",
-    transport.services.rpc,
-  );
-
-  console.time("request");
-  const result = await service.createAccount(null);
-  console.timeEnd("request");
-  console.log(result);
-
-  await transport.stop();
-}
-
-await main();
+// export async function main() {
+//   const transport = await createTransport();
+//
+//   const service = new AccountService(
+//     multiaddr("/ip4/127.0.0.1/tcp/4088/ws/"),
+//     "65a84123-7def-4304-945d-c9828fbf25b6",
+//     transport.services.rpc,
+//   );
+//
+//   console.time("request");
+//   const result = await service.createAccount(null);
+//   console.timeEnd("request");
+//   console.log(result);
+//
+//   await transport.stop();
+// }
+//
+// await main();
