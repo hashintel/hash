@@ -318,12 +318,13 @@ jobs:
         run: |
           turbo codegen --filter '@apps/hash-external-services'
 
-          SERVICES="kratos mailslurper redis temporal temporal-setup spicedb"
+          SERVICES="kratos mailslurper redis temporal-ui spicedb"
 
           if [[ ${{ steps.tests.outputs.external-service-graph == 'true' }} == 'true' ]]; then
             SERVICES="$SERVICES graph"
           fi
           if [[ ${{ steps.tests.outputs.external-service-ai-worker-ts }} == 'true' ]]; then
+              echo 'OPENAI_API_KEY=dummy' >> .env.local
               SERVICES="$SERVICES hash-temporal-worker-ts"
           fi
           if [[ ${{ steps.tests.outputs.external-service-worker-integration }} == 'true' ]]; then
@@ -331,7 +332,7 @@ jobs:
           fi
 
           echo "Running services: $SERVICES"
-          yarn workspace @apps/hash-external-services deploy:test up $SERVICES --detach
+          yarn workspace @apps/hash-external-services deploy:test up $SERVICES --wait
 
       - name: Show disk usage
         run: df -h
@@ -452,7 +453,8 @@ jobs:
       - name: Launch external services
         run: |
           turbo codegen --filter '@apps/hash-external-services'
-          yarn workspace @apps/hash-external-services deploy up --detach
+          echo 'OPENAI_API_KEY=dummy' >> .env.local
+          yarn workspace @apps/hash-external-services deploy up --wait
 
       - name: Launch HASH-API
         run: |
