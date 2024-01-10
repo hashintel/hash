@@ -38,8 +38,6 @@ services:
         condition: service_healthy
       temporal-migrate:
         condition: service_completed_successfully
-      hash-dev-opensearch:
-        condition: service_started
     healthcheck:
       test:
         [
@@ -107,6 +105,8 @@ services:
     depends_on:
       temporal:
         condition: service_healthy
+      temporal-setup:
+        condition: service_completed_successfully
     environment:
       TEMPORAL_ADDRESS: temporal:7233
       TEMPORAL_CORS_ORIGINS: http://localhost:3000
@@ -114,6 +114,11 @@ services:
       - no-new-privileges:true
     ports:
       - "${HASH_TEMPORAL_UI_PORT}:8080"
+    healthcheck:
+      test: ["CMD", "/bin/sh", "-c", "nc -z $(hostname) 8080"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
 
   hash-temporal-worker-ts:
     image: hash-ai-worker-ts
@@ -121,6 +126,8 @@ services:
     depends_on:
       temporal:
         condition: service_healthy
+      temporal-setup:
+        condition: service_completed_successfully
     # Environment variables are to be set manually here.
     # We could load in the entirety of the `.env.local` file using `env_file`
     # but to prevent bloating the environment and spilling everything
@@ -142,6 +149,8 @@ services:
     depends_on:
       temporal:
         condition: service_healthy
+      temporal-setup:
+        condition: service_completed_successfully
     environment:
       HASH_TEMPORAL_HOST: "temporal"
       HASH_GRAPH_API_HOST: graph
