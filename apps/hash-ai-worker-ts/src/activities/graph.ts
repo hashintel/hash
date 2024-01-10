@@ -8,6 +8,7 @@ import type {
   EntityTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
+  Timestamp,
 } from "@local/hash-subgraph";
 import {
   getPropertyTypes,
@@ -35,11 +36,15 @@ export const createGraphActivities = ({
       actorId: AccountId;
     };
     embeddings: EntityEmbedding[];
+    updatedAtTransactionTime: Timestamp;
+    updatedAtDecisionTime: Timestamp;
   }): Promise<void> {
     await graphApiClient
       .updateEntityEmbeddings(params.authentication.actorId, {
         embeddings: params.embeddings,
-        reset: true,
+        reset: false,
+        updatedAtTransactionTime: params.updatedAtTransactionTime,
+        updatedAtDecisionTime: params.updatedAtDecisionTime,
       })
       .then((response) => response.data);
   },

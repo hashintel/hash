@@ -3136,6 +3136,8 @@
         "type": "object",
         "required": [
           "embeddings",
+          "updatedAtTransactionTime",
+          "updatedAtDecisionTime",
           "reset"
         ],
         "properties": {
@@ -3147,6 +3149,12 @@
           },
           "reset": {
             "type": "boolean"
+          },
+          "updatedAtDecisionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "updatedAtTransactionTime": {
+            "$ref": "#/components/schemas/Timestamp"
           }
         }
       },

@@ -31,7 +31,7 @@ use graph_types::{
 };
 use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
-use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp};
+use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use tokio_postgres::GenericClient;
 use type_system::{url::VersionedUrl, EntityType};
 use uuid::Uuid;
@@ -1160,6 +1160,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         actor_id: AccountId,
         authorization_api: &mut A,
         embeddings: impl IntoIterator<Item = EntityEmbedding<'_>> + Send,
+        updated_at_transaction_time: Timestamp<TransactionTime>,
+        updated_at_decision_time: Timestamp<DecisionTime>,
         reset: bool,
     ) -> Result<(), UpdateError> {
         #[derive(Debug, ToSql)]
@@ -1169,6 +1171,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             entity_uuid: EntityUuid,
             property: Option<String>,
             embedding: Embedding<'a>,
+            updated_at_transaction_time: Timestamp<TransactionTime>,
+            updated_at_decision_time: Timestamp<DecisionTime>,
         }
         let (entity_ids, entity_embeddings): (HashSet<_>, Vec<_>) = embeddings
             .into_iter()
@@ -1180,6 +1184,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         entity_uuid: embedding.entity_id.entity_uuid,
                         property: embedding.property.as_ref().map(ToString::to_string),
                         embedding: embedding.embedding,
+                        updated_at_transaction_time,
+                        updated_at_decision_time,
                     },
                 )
             })
@@ -1216,9 +1222,16 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         WHERE (web_id, entity_uuid) IN (
                             SELECT *
                             FROM UNNEST($1::UUID[], $2::UUID[])
-                        );
+                        )
+                        AND updated_at_transaction_time <= $3
+                        AND updated_at_decision_time <= $4;
                     ",
-                    &[&owned_by_id, &entity_uuids],
+                    &[
+                        &owned_by_id,
+                        &entity_uuids,
+                        &updated_at_transaction_time,
+                        &updated_at_decision_time,
+                    ],
                 )
                 .await
                 .change_context(UpdateError)?;
@@ -1229,7 +1242,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     INSERT INTO entity_embeddings
                     SELECT * FROM UNNEST($1::entity_embeddings[])
                     ON CONFLICT (web_id, entity_uuid, property) DO UPDATE
-                    SET embedding = EXCLUDED.embedding;
+                    SET
+                        embedding = EXCLUDED.embedding,
+                        updated_at_transaction_time = EXCLUDED.updated_at_transaction_time,
+                        updated_at_decision_time = EXCLUDED.updated_at_decision_time
+                    WHERE entity_embeddings.updated_at_transaction_time <= \
+                 EXCLUDED.updated_at_transaction_time
+                    AND entity_embeddings.updated_at_decision_time <= \
+                 EXCLUDED.updated_at_decision_time;
                 ",
                 &[&entity_embeddings],
             )

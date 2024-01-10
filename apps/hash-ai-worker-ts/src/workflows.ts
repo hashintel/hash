@@ -81,6 +81,10 @@ export const updateEntityEmbeddings = async (params: {
         ...embedding,
         entityId: params.entity.metadata.recordId.entityId,
       })),
+      updatedAtTransactionTime:
+        params.entity.metadata.temporalVersioning.transactionTime.start.limit,
+      updatedAtDecisionTime:
+        params.entity.metadata.temporalVersioning.decisionTime.start.limit,
     });
   }
 
