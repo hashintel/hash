@@ -1,4 +1,8 @@
-import { EntityRootType, MultiFilter, Subgraph } from "@blockprotocol/graph";
+import type {
+  EntityRootType,
+  MultiFilter,
+  Subgraph,
+} from "@blockprotocol/graph";
 import {
   type BlockComponent,
   useEntitySubgraph,

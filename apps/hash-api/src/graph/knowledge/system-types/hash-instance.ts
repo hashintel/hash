@@ -8,23 +8,25 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  SimpleProperties,
-  simplifyProperties,
-} from "@local/hash-isomorphic-utils/simplify-properties";
-import { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import { Entity, EntityRootType, OwnedById } from "@local/hash-subgraph";
+import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
+import type { Entity, OwnedById } from "@local/hash-subgraph";
+import { EntityRootType } from "@local/hash-subgraph";
 import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
 import { createAccountGroup } from "../../account-permission-management";
-import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
 import { modifyEntityTypeAuthorizationRelationships } from "../../ontology/primitive/entity-type";
 import { createEntity } from "../primitive/entity";
 import { getOrgByShortname } from "./org";
-import { User } from "./user";
+import type { User } from "./user";
 
 export type HashInstance = {
   entity: Entity;

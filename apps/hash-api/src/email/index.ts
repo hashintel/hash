@@ -7,7 +7,7 @@ import { URLSearchParams } from "node:url";
 
 import dedent from "dedent";
 
-import { EmailTransporter } from "./transporters";
+import type { EmailTransporter } from "./transporters";
 
 const { FRONTEND_URL } = require("../lib/config");
 

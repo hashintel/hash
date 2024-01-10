@@ -7,7 +7,7 @@
  */
 
 import { MessageCallback, MessageReturn } from "@blockprotocol/core";
-import {
+import type {
   CreateResourceError,
   QueryOperationInput,
   ReadOrModifyResourceError,

@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 
-import { AsyncRedisClient } from "../redis";
+import type { AsyncRedisClient } from "../redis";
 import { sleep } from "../utils";
-import { QueueExclusiveConsumer, QueueProducer } from "./adapter";
+import type { QueueExclusiveConsumer, QueueProducer } from "./adapter";
 
 // The interval on which a consumer which owns the queue will re-affirm their ownership.
 const QUEUE_CONSUMER_OWNERSHIP_HEARTBEAT_MS = 3_000;

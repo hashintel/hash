@@ -1,7 +1,7 @@
-import { Entity as BpEntity } from "@blockprotocol/graph";
+import type { Entity as BpEntity } from "@blockprotocol/graph";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
-import { camelCase } from "lodash";
+import type { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
+import camelCase from "lodash/fp/camelCase";
 
 /** @see https://stackoverflow.com/a/65015868/17217717 */
 type CamelCase<S extends string> = S extends

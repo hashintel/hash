@@ -11,24 +11,14 @@ import {
   type OntologyOutwardEdge as OntologyOutwardEdgeBp,
   type PropertiesConstrainedByEdge as PropertiesConstrainedByEdgeBp,
   type ValuesConstrainedByEdge as ValuesConstrainedByEdgeBp,
-  isConstrainsLinkDestinationsOnEdge as isConstrainsLinkDestinationsOnEdgeBp,
-  isConstrainsLinksOnEdge as isConstrainsLinksOnEdgeBp,
-  isConstrainsPropertiesOnEdge as isConstrainsPropertiesOnEdgeBp,
-  isConstrainsValuesOnEdge as isConstrainsValuesOnEdgeBp,
-  isInheritsFromEdge as isInheritsFromEdgeBp,
-  isIsInheritedByEdge as isIsInheritedByEdgeBp,
-  isIsTypeOfEdge as isIsTypeOfEdgeBp,
-  isLinkDestinationsConstrainedByEdge as isLinkDestinationsConstrainedByEdgeBp,
-  isLinksConstrainedByEdge as isLinksConstrainedByEdgeBp,
-  isPropertiesConstrainedByEdge as isPropertiesConstrainedByEdgeBp,
-  isValuesConstrainedByEdge as isValuesConstrainedByEdgeBp,
 } from "@blockprotocol/graph/temporal";
-import { Subtype } from "@local/advanced-types/subtype";
+import * as temporal from "@blockprotocol/graph/temporal";
+import type { Subtype } from "@local/advanced-types/subtype";
 
-import { OntologyTypeVertexId } from "../../vertices";
-import { GenericOutwardEdge } from "../generic-outward-edge";
-import { OntologyEdgeKind, SharedEdgeKind } from "../kind";
-import { EntityIdWithInterval, OutwardEdge } from "../outward-edge";
+import type { OntologyTypeVertexId } from "../../vertices";
+import type { GenericOutwardEdge } from "../generic-outward-edge";
+import type { OntologyEdgeKind, SharedEdgeKind } from "../kind";
+import type { EntityIdWithInterval, OutwardEdge } from "../outward-edge";
 
 export type InheritsFromEdge = Subtype<
   InheritsFromEdgeBp,
@@ -44,7 +34,7 @@ export type InheritsFromEdge = Subtype<
 
 export const isInheritsFromEdge = (
   outwardEdge: OutwardEdge,
-): outwardEdge is InheritsFromEdge => isInheritsFromEdgeBp(outwardEdge);
+): outwardEdge is InheritsFromEdge => temporal.isInheritsFromEdge(outwardEdge);
 
 export type IsInheritedByEdge = Subtype<
   IsInheritedByEdgeBp,
@@ -60,7 +50,8 @@ export type IsInheritedByEdge = Subtype<
 
 export const isIsInheritedByEdge = (
   outwardEdge: OutwardEdge,
-): outwardEdge is IsInheritedByEdge => isIsInheritedByEdgeBp(outwardEdge);
+): outwardEdge is IsInheritedByEdge =>
+  temporal.isIsInheritedByEdge(outwardEdge);
 
 export type ConstrainsValuesOnEdge = Subtype<
   ConstrainsValuesOnEdgeBp,
@@ -77,7 +68,7 @@ export type ConstrainsValuesOnEdge = Subtype<
 export const isConstrainsValuesOnEdge = (
   outwardEdge: OutwardEdge,
 ): outwardEdge is ConstrainsValuesOnEdge =>
-  isConstrainsValuesOnEdgeBp(outwardEdge);
+  temporal.isConstrainsValuesOnEdge(outwardEdge);
 
 export type ValuesConstrainedByEdge = Subtype<
   ValuesConstrainedByEdgeBp,
@@ -94,7 +85,7 @@ export type ValuesConstrainedByEdge = Subtype<
 export const isValuesConstrainedByEdge = (
   outwardEdge: OutwardEdge,
 ): outwardEdge is ValuesConstrainedByEdge =>
-  isValuesConstrainedByEdgeBp(outwardEdge);
+  temporal.isValuesConstrainedByEdge(outwardEdge);
 
 export type ConstrainsPropertiesOnEdge = Subtype<
   ConstrainsPropertiesOnEdgeBp,
@@ -111,7 +102,7 @@ export type ConstrainsPropertiesOnEdge = Subtype<
 export const isConstrainsPropertiesOnEdge = (
   outwardEdge: OutwardEdge,
 ): outwardEdge is ConstrainsPropertiesOnEdge =>
-  isConstrainsPropertiesOnEdgeBp(outwardEdge);
+  temporal.isConstrainsPropertiesOnEdge(outwardEdge);
 
 export type PropertiesConstrainedByEdge = Subtype<
   PropertiesConstrainedByEdgeBp,
@@ -128,7 +119,7 @@ export type PropertiesConstrainedByEdge = Subtype<
 export const isPropertiesConstrainedByEdge = (
   outwardEdge: OutwardEdge,
 ): outwardEdge is PropertiesConstrainedByEdge =>
-  isPropertiesConstrainedByEdgeBp(outwardEdge);
+  temporal.isPropertiesConstrainedByEdge(outwardEdge);
 
 export type ConstrainsLinksOnEdge = Subtype<
   ConstrainsLinksOnEdgeBp,
@@ -145,7 +136,7 @@ export type ConstrainsLinksOnEdge = Subtype<
 export const isConstrainsLinksOnEdge = (
   outwardEdge: OutwardEdge,
 ): outwardEdge is ConstrainsLinksOnEdge =>
-  isConstrainsLinksOnEdgeBp(outwardEdge);
+  temporal.isConstrainsLinksOnEdge(outwardEdge);
 
 export type LinksConstrainedByEdge = Subtype<
   LinksConstrainedByEdgeBp,
@@ -162,7 +153,7 @@ export type LinksConstrainedByEdge = Subtype<
 export const isLinksConstrainedByEdge = (
   outwardEdge: OutwardEdge,
 ): outwardEdge is LinksConstrainedByEdge =>
-  isLinksConstrainedByEdgeBp(outwardEdge);
+  temporal.isLinksConstrainedByEdge(outwardEdge);
 
 export type ConstrainsLinkDestinationsOnEdge = Subtype<
   ConstrainsLinkDestinationsOnEdgeBp,
@@ -179,7 +170,7 @@ export type ConstrainsLinkDestinationsOnEdge = Subtype<
 export const isConstrainsLinkDestinationsOnEdge = (
   outwardEdge: OutwardEdge,
 ): outwardEdge is ConstrainsLinkDestinationsOnEdge =>
-  isConstrainsLinkDestinationsOnEdgeBp(outwardEdge);
+  temporal.isConstrainsLinkDestinationsOnEdge(outwardEdge);
 
 export type LinkDestinationsConstrainedByEdge = Subtype<
   LinkDestinationsConstrainedByEdgeBp,
@@ -196,7 +187,7 @@ export type LinkDestinationsConstrainedByEdge = Subtype<
 export const isLinkDestinationsConstrainedByEdge = (
   outwardEdge: OutwardEdge,
 ): outwardEdge is LinkDestinationsConstrainedByEdge =>
-  isLinkDestinationsConstrainedByEdgeBp(outwardEdge);
+  temporal.isLinkDestinationsConstrainedByEdge(outwardEdge);
 
 export type IsTypeOfEdge = Subtype<
   IsTypeOfEdgeBp,
@@ -212,7 +203,7 @@ export type IsTypeOfEdge = Subtype<
 
 export const isIsTypeOfEdge = (
   outwardEdge: OutwardEdge,
-): outwardEdge is IsTypeOfEdge => isIsTypeOfEdgeBp(outwardEdge);
+): outwardEdge is IsTypeOfEdge => temporal.isIsTypeOfEdge(outwardEdge);
 
 export type OntologyOutwardEdge = Subtype<
   OntologyOutwardEdgeBp,

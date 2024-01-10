@@ -1,14 +1,14 @@
-import { OntologyTemporalMetadata } from "@local/hash-graph-client";
+import type { OntologyTemporalMetadata } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import {
+import type {
   OwnedById,
-  PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
+import { PropertyTypeRootType } from "@local/hash-subgraph";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 
 import {
@@ -18,7 +18,7 @@ import {
   unarchivePropertyType,
   updatePropertyType,
 } from "../../../graph/ontology/primitive/property-type";
-import {
+import type {
   MutationArchivePropertyTypeArgs,
   MutationCreatePropertyTypeArgs,
   MutationUnarchivePropertyTypeArgs,
@@ -27,7 +27,7 @@ import {
   QueryQueryPropertyTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
-import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
+import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import { dataSourcesToImpureGraphContext } from "../util";
 
 export const createPropertyTypeResolver: ResolverFn<

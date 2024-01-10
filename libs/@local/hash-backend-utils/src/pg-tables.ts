@@ -2,10 +2,10 @@
  * This module contains type definitions for tables in the Postgres database. Column
  * names are converted from snake_case to camelCase for consistency.
  */
-import { JsonObject } from "@blockprotocol/core";
-import { Uuid } from "@local/hash-subgraph";
+import type { JsonObject } from "@blockprotocol/core";
+import type { Uuid } from "@local/hash-subgraph";
 
-import { Wal2JsonMsg } from "./wal2json";
+import type { Wal2JsonMsg } from "./wal2json";
 
 type EntityEditionRecord = {
   archived: boolean;

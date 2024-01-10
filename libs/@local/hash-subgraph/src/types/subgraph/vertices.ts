@@ -13,16 +13,11 @@ import {
   type Vertex as VertexBp,
   type VertexId as VertexIdBp,
   type Vertices as VerticesBp,
-  isDataTypeVertex as isDataTypeVertexBp,
-  isEntityTypeVertex as isEntityTypeVertexBp,
-  isEntityVertex as isEntityVertexBp,
-  isEntityVertexId as isEntityVertexIdBp,
-  isOntologyTypeVertexId as isOntologyTypeVertexIdBp,
-  isPropertyTypeVertex as isPropertyTypeVertexBp,
 } from "@blockprotocol/graph/temporal";
-import { Subtype } from "@local/advanced-types/subtype";
+import * as temporal from "@blockprotocol/graph/temporal";
+import type { Subtype } from "@local/advanced-types/subtype";
 
-import {
+import type {
   DataTypeWithMetadata,
   Entity,
   EntityPropertiesObject,
@@ -32,7 +27,7 @@ import {
   OntologyTypeRevisionId,
   PropertyTypeWithMetadata,
 } from "../element";
-import { BaseUrl, EntityId } from "../shared";
+import type { BaseUrl, EntityId } from "../shared";
 
 export type DataTypeVertex = Subtype<
   DataTypeVertexBp,
@@ -91,18 +86,18 @@ export type Vertex<
 >;
 
 export const isDataTypeVertex = (vertex: Vertex): vertex is DataTypeVertex =>
-  isDataTypeVertexBp(vertex);
+  temporal.isDataTypeVertex(vertex);
 
 export const isPropertyTypeVertex = (
   vertex: Vertex,
-): vertex is PropertyTypeVertex => isPropertyTypeVertexBp(vertex);
+): vertex is PropertyTypeVertex => temporal.isPropertyTypeVertex(vertex);
 
 export const isEntityTypeVertex = (
   vertex: Vertex,
-): vertex is EntityTypeVertex => isEntityTypeVertexBp(vertex);
+): vertex is EntityTypeVertex => temporal.isEntityTypeVertex(vertex);
 
 export const isEntityVertex = (vertex: Vertex): vertex is EntityVertex =>
-  isEntityVertexBp(vertex);
+  temporal.isEntityVertex(vertex);
 
 export type VertexId<BaseId, RevisionId> = VertexIdBp<BaseId, RevisionId>;
 export type EntityVertexId = Subtype<
@@ -120,11 +115,12 @@ export type GraphElementVertexId = Subtype<
 
 export const isOntologyTypeVertexId = (
   vertexId: unknown,
-): vertexId is OntologyTypeVertexId => isOntologyTypeVertexIdBp(vertexId);
+): vertexId is OntologyTypeVertexId =>
+  temporal.isOntologyTypeVertexId(vertexId);
 
 export const isEntityVertexId = (
   vertexId: unknown,
-): vertexId is EntityVertexId => isEntityVertexIdBp(isEntityVertexIdBp);
+): vertexId is EntityVertexId => temporal.isEntityVertexId(vertexId);
 
 export type OntologyVertices = Subtype<
   OntologyVerticesBp,

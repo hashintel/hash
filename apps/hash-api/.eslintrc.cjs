@@ -15,6 +15,7 @@ module.exports = {
       /* 2022-11-29:  35 */ "@typescript-eslint/restrict-template-expressions",
       "canonical/filename-no-index",
     ]),
+    "@typescript-eslint/consistent-type-imports": "error",
   },
   ignorePatterns: require("@local/eslint-config/generate-ignore-patterns.cjs")(
     __dirname,

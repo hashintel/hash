@@ -10,17 +10,16 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
+import type { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
   AccountGroupEntityId,
   AccountGroupId,
   Entity,
   EntityId,
-  EntityRootType,
   EntityUuid,
-  extractAccountGroupId,
   OwnedById,
 } from "@local/hash-subgraph";
+import { EntityRootType, extractAccountGroupId } from "@local/hash-subgraph";
 import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
@@ -31,7 +30,10 @@ import {
   createAccountGroup,
   createWeb,
 } from "../../account-permission-management";
-import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
 import {
   createEntity,
   getLatestEntityById,

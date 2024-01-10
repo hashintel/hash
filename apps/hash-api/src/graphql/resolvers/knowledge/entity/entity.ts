@@ -1,19 +1,22 @@
-import { Filter, QueryTemporalAxesUnresolved } from "@local/hash-graph-client";
+import type {
+  Filter,
+  QueryTemporalAxesUnresolved,
+} from "@local/hash-graph-client";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
   AccountGroupId,
   AccountId,
   Entity,
   OwnedById,
-  splitEntityId,
 } from "@local/hash-subgraph";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import { splitEntityId } from "@local/hash-subgraph";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import {
   ApolloError,
   ForbiddenError,
@@ -43,11 +46,8 @@ import {
 } from "../../../../graph/knowledge/primitive/link-entity";
 import { modifyWebAuthorizationRelationships } from "../../../../graph/ontology/primitive/util";
 import { systemAccountId } from "../../../../graph/system-account";
-import {
-  AccountGroupAuthorizationSubjectRelation,
-  AuthorizationSubjectKind,
+import type {
   AuthorizationViewerInput,
-  EntityAuthorizationRelation,
   EntityAuthorizationRelationship,
   MutationAddEntityEditorArgs,
   MutationAddEntityOwnerArgs,
@@ -65,7 +65,12 @@ import {
   QueryStructuralQueryEntitiesArgs,
   ResolverFn,
 } from "../../../api-types.gen";
-import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
+import {
+  AccountGroupAuthorizationSubjectRelation,
+  AuthorizationSubjectKind,
+  EntityAuthorizationRelation,
+} from "../../../api-types.gen";
+import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL } from "../graphql-mapping";
 import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";

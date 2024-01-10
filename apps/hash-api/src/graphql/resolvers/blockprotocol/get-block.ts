@@ -2,8 +2,8 @@ import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
 import { ApolloError, ForbiddenError } from "apollo-server-express";
 import fetch from "node-fetch";
 
-import { BlockProtocolBlock, ResolverFn } from "../../api-types.gen";
-import { GraphQLContext } from "../../context";
+import type { BlockProtocolBlock, ResolverFn } from "../../api-types.gen";
+import type { GraphQLContext } from "../../context";
 
 export const getBlockProtocolBlocksResolver: ResolverFn<
   BlockProtocolBlock[],

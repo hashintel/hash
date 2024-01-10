@@ -1,4 +1,4 @@
-import { MultiFilter } from "@blockprotocol/graph";
+import type { MultiFilter } from "@blockprotocol/graph";
 import { IconButton, Modal, ModalProps } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import {

@@ -1,4 +1,4 @@
-import { EntityType } from "@blockprotocol/graph";
+import type { EntityType } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { EntityTypeEditor } from "@hashintel/type-editor";
 import { OwnedById, PropertyTypeWithMetadata } from "@local/hash-subgraph";

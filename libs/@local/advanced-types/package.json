@@ -4,6 +4,7 @@
   "private": true,
   "description": "A collection of helper types",
   "license": "(MIT OR Apache-2.0)",
+  "type": "module",
   "exports": {
     "./*": "./src/*.ts"
   },

@@ -1,20 +1,20 @@
-import {
-  type OntologyElementMetadata as OntologyElementMetadataBp,
+import type {
   DataTypeWithMetadata as DataTypeWithMetadataBp,
   EntityTypeWithMetadata as EntityTypeWithMetadataBp,
+  OntologyElementMetadata as OntologyElementMetadataBp,
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
 } from "@blockprotocol/graph/temporal";
-import {
+import type {
   DataType,
   EntityType,
   PropertyType,
-  validateBaseUrl,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
-import { Brand } from "@local/advanced-types/brand";
-import { Subtype } from "@local/advanced-types/subtype";
+import { validateBaseUrl } from "@blockprotocol/type-system/slim";
+import type { Brand } from "@local/advanced-types/brand";
+import type { Subtype } from "@local/advanced-types/subtype";
 
-import {
+import type {
   BaseUrl,
   ExclusiveLimitedTemporalBound,
   InclusiveLimitedTemporalBound,

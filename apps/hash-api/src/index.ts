@@ -5,7 +5,6 @@ import {
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
 
-// eslint-disable-next-line import/order
 import { initSentry } from "./sentry";
 
 initSentry();
@@ -16,33 +15,34 @@ import { promisify } from "node:util";
 
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
+import { createGraphRpcClient } from "@local/hash-backend-utils/create-graph-rpc-client";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { oryKratosPublicUrl } from "@local/hash-isomorphic-utils/environment";
-import { Session } from "@ory/client";
+import type { Session } from "@ory/client";
 import * as Sentry from "@sentry/node";
 import type { Client as TemporalClient } from "@temporalio/client";
-import { json } from "body-parser";
+import * as bodyParser from "body-parser";
 import cors from "cors";
 import express, { raw } from "express";
 import proxy from "express-http-proxy";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
-import { createHttpTerminator } from "http-terminator";
+import * as httpTerminator from "http-terminator";
 import { customAlphabet } from "nanoid";
 
 import { inferEntitiesController } from "./ai/infer-entities";
 import setupAuth from "./auth";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { RedisCache } from "./cache";
+import type { EmailTransporter } from "./email/transporters";
 import {
   AwsSesEmailTransporter,
   DummyEmailTransporter,
-  EmailTransporter,
 } from "./email/transporters";
-import { ImpureGraphContext } from "./graph/context-types";
+import type { ImpureGraphContext } from "./graph/context-types";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
-import { User } from "./graph/knowledge/system-types/user";
+import type { User } from "./graph/knowledge/system-types/user";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
@@ -70,8 +70,11 @@ import {
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { createTemporalClient } from "./temporal";
 import { getRequiredEnv } from "./util";
-import { createVaultClient, VaultClient } from "./vault";
-import { createGraphRpcClient } from "@local/hash-backend-utils/create-graph-rpc-client";
+import type { VaultClient } from "./vault";
+import { createVaultClient } from "./vault";
+
+const { createHttpTerminator } = httpTerminator;
+const { json } = bodyParser;
 
 declare global {
   namespace Express {

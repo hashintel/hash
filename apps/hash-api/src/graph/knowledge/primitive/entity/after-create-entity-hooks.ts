@@ -3,11 +3,8 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import {
-  entityIdFromOwnedByIdAndEntityUuid,
-  EntityUuid,
-  OwnedById,
-} from "@local/hash-subgraph";
+import type { EntityUuid, OwnedById } from "@local/hash-subgraph";
+import { entityIdFromOwnedByIdAndEntityUuid } from "@local/hash-subgraph";
 
 import {
   getBlockCollectionByBlock,
@@ -31,7 +28,7 @@ import {
 } from "../../system-types/text";
 import { getUserById } from "../../system-types/user";
 import { checkPermissionsOnEntity } from "../entity";
-import {
+import type {
   CreateEntityHook,
   CreateEntityHookCallback,
 } from "./create-entity-hooks";

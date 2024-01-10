@@ -1,5 +1,5 @@
-import { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
-import {
+import type { Subgraph as SubgraphGraphApi } from "@local/hash-graph-client";
+import type {
   EntityRevisionId,
   OntologyTypeRevisionId,
   Subgraph,

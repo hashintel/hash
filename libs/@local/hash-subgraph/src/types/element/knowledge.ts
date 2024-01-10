@@ -6,26 +6,26 @@ import {
   type EntityRecordId as EntityRecordIdBp,
   type EntityRevisionId as EntityRevisionIdBp,
   type EntityTemporalVersioningMetadata as EntityTemporalVersioningMetadataBp,
+  type isEntityRecordId as isEntityRecordIdBp,
   type LinkData as LinkDataBp,
   type LinkEntityAndRightEntity as LinkEntityAndRightEntityBp,
-  isEntityRecordId as isEntityRecordIdBp,
 } from "@blockprotocol/graph/temporal";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { Brand } from "@local/advanced-types/brand";
-import { Subtype } from "@local/advanced-types/subtype";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { Brand } from "@local/advanced-types/brand";
+import type { Subtype } from "@local/advanced-types/subtype";
 
-import {
+import type {
   BaseUrl,
   EntityId,
   ExclusiveLimitedTemporalBound,
   InclusiveLimitedTemporalBound,
-  isEntityId,
   ProvenanceMetadata,
   TemporalAxis,
   TimeInterval,
   Timestamp,
   Unbounded,
 } from "../shared";
+import { isEntityId } from "../shared";
 
 // This isn't necessary, it just _could_ provide greater clarity that this corresponds to an exact vertex and can be
 // used in a direct lookup and not a search in the vertices

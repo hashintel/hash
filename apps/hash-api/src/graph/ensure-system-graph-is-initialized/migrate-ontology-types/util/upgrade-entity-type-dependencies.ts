@@ -1,8 +1,8 @@
-import {
-  EntityType,
+import type {
   EntityTypeReference,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import { EntityType } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 

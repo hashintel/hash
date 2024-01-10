@@ -7,14 +7,14 @@ import {
   getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
-import {
+import type { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
+import type {
   AccountGroupId,
   AccountId,
-  extractOwnedByIdFromEntityId,
   OwnedById,
 } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { enabledIntegrations } from "../../integrations/enabled-integrations";
 import { logger } from "../../logger";
@@ -23,7 +23,7 @@ import {
   createAccountGroup,
   createWeb,
 } from "../account-permission-management";
-import { ImpureGraphContext } from "../context-types";
+import type { ImpureGraphContext } from "../context-types";
 import {
   createHashInstance,
   getHashInstance,

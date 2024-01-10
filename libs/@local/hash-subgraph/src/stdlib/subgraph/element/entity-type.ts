@@ -5,9 +5,9 @@ import {
   getEntityTypes as getEntityTypesBp,
   getEntityTypesByBaseUrl as getEntityTypesByBaseUrlBp,
 } from "@blockprotocol/graph/temporal/stdlib";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 
-import {
+import type {
   BaseUrl,
   EntityTypeWithMetadata,
   OntologyTypeVertexId,

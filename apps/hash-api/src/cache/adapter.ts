@@ -1,4 +1,4 @@
-import { DataSource } from "apollo-datasource";
+import type { DataSource } from "apollo-datasource";
 
 export interface CacheAdapter extends DataSource {
   /**

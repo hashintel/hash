@@ -1,9 +1,9 @@
-import {
+import type {
   DataType,
   EntityType,
   PropertyType,
 } from "@blockprotocol/type-system/slim";
-import { BaseUrl, EntityId } from "@local/hash-subgraph";
+import type { BaseUrl, EntityId } from "@local/hash-subgraph";
 
 export type TextToken =
   | {

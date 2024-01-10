@@ -1,7 +1,7 @@
-import { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
-import { getLatestInstantIntervalForSubgraph as getLatestInstantIntervalForSubgraphBp } from "@blockprotocol/graph/temporal/stdlib";
+import type { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
+import * as temporal from "@blockprotocol/graph/temporal/stdlib";
 
-import { BoundedTimeInterval, Subgraph } from "../../main";
+import type { BoundedTimeInterval, Subgraph } from "../../main";
 
 /**
  * For a given {@link Subgraph} that supports temporal versioning, this returns a {@link TimeInterval} that spans
@@ -14,6 +14,6 @@ import { BoundedTimeInterval, Subgraph } from "../../main";
 export const getLatestInstantIntervalForSubgraph = (
   subgraph: Subgraph,
 ): BoundedTimeInterval =>
-  getLatestInstantIntervalForSubgraphBp(
+  temporal.getLatestInstantIntervalForSubgraph(
     subgraph as unknown as SubgraphBp,
   ) as BoundedTimeInterval;

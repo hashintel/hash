@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 export class EntityTypeMismatchError extends Error {
   entityId: string;

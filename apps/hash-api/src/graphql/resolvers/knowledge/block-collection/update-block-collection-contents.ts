@@ -1,4 +1,4 @@
-import { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 import { UserInputError } from "apollo-server-errors";
 
 import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
@@ -8,12 +8,12 @@ import {
   removeBlockFromBlockCollection,
 } from "../../../../graph/knowledge/system-types/block-collection";
 import { exactlyOne } from "../../../../util";
-import {
+import type {
   MutationUpdateBlockCollectionContentsArgs,
   ResolverFn,
   UpdateBlockCollectionContentsResult,
 } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
+import type { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import {
   createEntityWithPlaceholdersFn,

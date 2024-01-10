@@ -17,38 +17,41 @@ import {
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
-import {
+import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
+import type {
   HasDataProperties,
   HasIndexedContentProperties,
   PageProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
+import type {
   Entity,
   EntityId,
-  entityIdFromOwnedByIdAndEntityUuid,
-  EntityRootType,
   EntityUuid,
-  extractEntityUuidFromEntityId,
   OwnedById,
   Uuid,
+} from "@local/hash-subgraph";
+import {
+  entityIdFromOwnedByIdAndEntityUuid,
+  EntityRootType,
+  extractEntityUuidFromEntityId,
 } from "@local/hash-subgraph";
 import {
   getEntities as getEntitiesFromSubgraph,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
-import {
-  extractBaseUrl,
-  LinkEntity,
-} from "@local/hash-subgraph/type-system-patch";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
-import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
+import type { CreateEntityParams } from "../primitive/entity";
 import {
   archiveEntity,
   createEntity,
-  CreateEntityParams,
   getEntities,
   getEntityOutgoingLinks,
   getLatestEntityById,
@@ -58,10 +61,12 @@ import {
   createLinkEntity,
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
-import { Block, getBlockComments, getBlockFromEntity } from "./block";
+import type { Block } from "./block";
+import { getBlockComments, getBlockFromEntity } from "./block";
 import { addBlockToBlockCollection } from "./block-collection";
-import { Comment } from "./comment";
-import { getUserById, User } from "./user";
+import type { Comment } from "./comment";
+import type { User } from "./user";
+import { getUserById } from "./user";
 
 export type Page = {
   title: string;

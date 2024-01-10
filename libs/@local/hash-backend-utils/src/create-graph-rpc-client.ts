@@ -1,4 +1,4 @@
-import { Logger } from "@local/hash-backend-utils/logger";
+import type { Logger } from "@local/hash-backend-utils/logger";
 import {
   AccountService,
   createTransport,
@@ -15,6 +15,7 @@ export const createGraphRpcClient = async (
   _logger: Logger,
   { host, port }: { host: string; port: number },
 ): Promise<RpcClient> => {
+  console.log(host, port);
   const remote = multiaddr(`/ip4/${host}/tcp/${port}/ws/`);
   const transport = await createTransport();
 
@@ -24,6 +25,7 @@ export const createGraphRpcClient = async (
     accounts,
 
     async close() {
+      console.log("BYE BYE");
       await transport.stop();
     },
   };

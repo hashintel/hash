@@ -1,4 +1,4 @@
-import { MultiFilter } from "@blockprotocol/graph";
+import type { MultiFilter } from "@blockprotocol/graph";
 import { OntologyChip } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";

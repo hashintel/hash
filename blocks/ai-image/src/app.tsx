@@ -1,4 +1,4 @@
-import { RemoteFileEntity } from "@blockprotocol/graph";
+import type { RemoteFileEntity } from "@blockprotocol/graph";
 import {
   type BlockComponent,
   useEntitySubgraph,

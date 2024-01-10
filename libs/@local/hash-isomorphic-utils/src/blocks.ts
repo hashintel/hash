@@ -1,9 +1,6 @@
-import { BlockMetadata, BlockVariant } from "@blockprotocol/core";
-import { EntityType, VersionedUrl } from "@blockprotocol/type-system";
-
-/** @todo: might need refactor: https://github.com/hashintel/dev/pull/206#discussion_r723210329 */
-// eslint-disable-next-line global-require
-const fetch = (globalThis as any).fetch ?? require("node-fetch");
+import type { BlockMetadata, BlockVariant } from "@blockprotocol/core";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
+import fetch from "cross-fetch";
 
 export interface HashBlockMeta extends BlockMetadata {
   componentId: string;
@@ -55,7 +52,6 @@ const configureAppReloadWhenBlockChanges = (
             window.location.reload();
           }
         } catch {
-          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need improvement
           reportProblem(`Could not parse socket message: ${data}`);
         }
       });

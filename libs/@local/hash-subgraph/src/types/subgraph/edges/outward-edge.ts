@@ -2,19 +2,21 @@ import {
   type EntityIdWithInterval as EntityIdWithIntervalBp,
   type EntityIdWithTimestamp as EntityIdWithTimestampBp,
   type OutwardEdge as OutwardEdgeBp,
-  isKnowledgeGraphOutwardEdge as isKnowledgeGraphOutwardEdgeBp,
-  isOntologyOutwardEdge as isOntologyOutwardEdgeBp,
 } from "@blockprotocol/graph/temporal";
-import { Subtype } from "@local/advanced-types/subtype";
+import * as temporal from "@blockprotocol/graph/temporal";
+import type { Subtype } from "@local/advanced-types/subtype";
 
-import {
+import type {
   EntityId,
   LimitedTemporalBound,
   TemporalBound,
   TimeInterval,
   Timestamp,
 } from "../../shared";
-import { KnowledgeGraphOutwardEdge, OntologyOutwardEdge } from "./variants";
+import type {
+  KnowledgeGraphOutwardEdge,
+  OntologyOutwardEdge,
+} from "./variants";
 
 /**
  * A simple tuple type which identifies an {@link Entity} by its {@link EntityId}, at a given {@link Timestamp}.
@@ -53,8 +55,9 @@ export type OutwardEdge = Subtype<
 
 export const isOntologyOutwardEdge = (
   edge: OutwardEdge,
-): edge is OntologyOutwardEdge => isOntologyOutwardEdgeBp(edge);
+): edge is OntologyOutwardEdge => temporal.isOntologyOutwardEdge(edge);
 
 export const isKnowledgeGraphOutwardEdge = (
   edge: OutwardEdge,
-): edge is KnowledgeGraphOutwardEdge => isKnowledgeGraphOutwardEdgeBp(edge);
+): edge is KnowledgeGraphOutwardEdge =>
+  temporal.isKnowledgeGraphOutwardEdge(edge);

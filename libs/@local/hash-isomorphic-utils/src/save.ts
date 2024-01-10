@@ -1,14 +1,9 @@
-import { ApolloClient } from "@apollo/client";
-import { VersionedUrl } from "@blockprotocol/type-system";
+import type { ApolloClient } from "@apollo/client";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import {
-  Entity,
-  EntityId,
-  EntityRootType,
-  OwnedById,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { EntityId, OwnedById, Subgraph } from "@local/hash-subgraph";
+import { Entity, EntityRootType } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -16,18 +11,18 @@ import {
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { generateNKeysBetween } from "fractional-indexing";
 import { isEqual } from "lodash";
-import { Node } from "prosemirror-model";
+import type { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 
 import {
   getBlockCollectionResolveDepth,
   sortBlockCollectionLinks,
 } from "./block-collection";
-import { ComponentIdHashBlockMap } from "./blocks";
+import type { ComponentIdHashBlockMap } from "./blocks";
 import { BlockEntity } from "./entity";
+import type { EntityStore } from "./entity-store";
 import {
   DraftEntity,
-  EntityStore,
   getDraftEntityByEntityId,
   isDraftBlockEntity,
 } from "./entity-store";
@@ -36,14 +31,16 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "./graph-queries";
-import {
+import type {
   Block as GqlBlock,
+  UpdateBlockCollectionAction,
+  UpdateBlockCollectionContentsResultPlaceholder,
+} from "./graphql/api-types.gen";
+import {
   GetEntityQuery,
   GetEntityQueryVariables,
-  UpdateBlockCollectionAction,
   UpdateBlockCollectionContentsMutation,
   UpdateBlockCollectionContentsMutationVariables,
-  UpdateBlockCollectionContentsResultPlaceholder,
 } from "./graphql/api-types.gen";
 import { systemEntityTypes, systemLinkEntityTypes } from "./ontology-type-ids";
 import { isEntityNode } from "./prosemirror";

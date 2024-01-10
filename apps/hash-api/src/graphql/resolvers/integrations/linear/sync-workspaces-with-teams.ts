@@ -1,13 +1,15 @@
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
+import type {
   AccountGroupEntityId,
   AccountId,
   Entity,
+  OwnedById,
+  Uuid,
+} from "@local/hash-subgraph";
+import {
   extractAccountGroupId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-  OwnedById,
-  Uuid,
 } from "@local/hash-subgraph";
 
 import { addAccountGroupMember } from "../../../../graph/account-permission-management";
@@ -24,11 +26,11 @@ import {
 import { getLinearUserSecretByLinearOrgId } from "../../../../graph/knowledge/system-types/linear-user-secret";
 import { systemAccountId } from "../../../../graph/system-account";
 import { Linear } from "../../../../integrations/linear";
-import {
+import type {
   MutationSyncLinearIntegrationWithWorkspacesArgs,
   ResolverFn,
 } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
+import type { LoggedInGraphQLContext } from "../../../context";
 
 export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
   Promise<Entity>,

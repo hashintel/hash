@@ -239,7 +239,7 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
         server
             .serve(
                 ListenOn {
-                    ip: Ipv4Addr::new(0, 0, 0, 0),
+                    ip: Ipv4Addr::LOCALHOST,
                     tcp: args.rpc_tcp_port,
                     ws: args.rpc_ws_port,
                 },

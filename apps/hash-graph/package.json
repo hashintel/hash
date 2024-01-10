@@ -19,7 +19,7 @@
     "codegen:generate-openapi-specs": "just generate-openapi-specs",
     "dev": "RUST_LOG=info cargo run --bin hash-graph --all-features -- server",
     "dev:test-server": "RUST_LOG=info cargo run --bin hash-graph --all-features -- test-server --api-port 4001",
-    "exe": "ts-node",
+    "exe": "tsx",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
     "reset-database": "httpyac send --all tests/reset-database.http",

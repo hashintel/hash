@@ -1,4 +1,7 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-  "include": ["./src/"]
+  "include": ["./src/"],
+  "compilerOptions": {
+    "module": "ESNext"
+  }
 }

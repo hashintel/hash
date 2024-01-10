@@ -1,17 +1,11 @@
-import { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
-import {
-  getRoots as getRootsBp,
-  isDataTypeRootedSubgraph as isDataTypeRootedSubgraphBp,
-  isEntityRootedSubgraph as isEntityRootedSubgraphBp,
-  isEntityTypeRootedSubgraph as isEntityTypeRootedSubgraphBp,
-  isPropertyTypeRootedSubgraph as isPropertyTypeRootedSubgraphBp,
-} from "@blockprotocol/graph/temporal/stdlib";
-import {
+import type { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
+import * as temporal from "@blockprotocol/graph/temporal/stdlib";
+import type {
   EntityMetadata as GraphApiEntityMetadata,
   Subgraph as GraphApiSubgraph,
 } from "@local/hash-graph-client";
 
-import {
+import type {
   DataTypeRootType,
   EntityMetadata,
   EntityRootType,
@@ -35,7 +29,7 @@ import {
 export const getRoots = <RootType extends SubgraphRootType>(
   subgraph: Subgraph<RootType>,
 ): RootType["element"][] =>
-  getRootsBp(subgraph as unknown as SubgraphBp<RootType>);
+  temporal.getRoots(subgraph as unknown as SubgraphBp<RootType>);
 
 /**
  * A type-guard that can be used to constrain the generic parameter of `Subgraph` to `DataTypeWithMetadata`.
@@ -48,7 +42,7 @@ export const getRoots = <RootType extends SubgraphRootType>(
 export const isDataTypeRootedSubgraph = (
   subgraph: Subgraph,
 ): subgraph is Subgraph<DataTypeRootType> =>
-  isDataTypeRootedSubgraphBp(subgraph as unknown as SubgraphBp);
+  temporal.isDataTypeRootedSubgraph(subgraph as unknown as SubgraphBp);
 
 /**
  * A type assertion that can be used to assert the generic of `Subgraph` to `DataTypeWithMetadata`.
@@ -74,7 +68,7 @@ export const assertDataTypeRootedSubgraph: (
 export const isPropertyTypeRootedSubgraph = (
   subgraph: Subgraph,
 ): subgraph is Subgraph<PropertyTypeRootType> =>
-  isPropertyTypeRootedSubgraphBp(subgraph as unknown as SubgraphBp);
+  temporal.isPropertyTypeRootedSubgraph(subgraph as unknown as SubgraphBp);
 
 /**
  * A type assertion that can be used to assert the generic of `Subgraph` to `PropertyTypeWithMetadata`.
@@ -100,7 +94,7 @@ export const assertPropertyTypeRootedSubgraph: (
 export const isEntityTypeRootedSubgraph = (
   subgraph: Subgraph,
 ): subgraph is Subgraph<EntityTypeRootType> =>
-  isEntityTypeRootedSubgraphBp(subgraph as unknown as SubgraphBp);
+  temporal.isEntityTypeRootedSubgraph(subgraph as unknown as SubgraphBp);
 
 /**
  * A type assertion that can be used to assert the generic of `Subgraph` to `EntityTypeWithMetadata`.
@@ -126,7 +120,7 @@ export const assertEntityTypeRootedSubgraph: (
 export const isEntityRootedSubgraph = (
   subgraph: Subgraph,
 ): subgraph is Subgraph<EntityRootType> =>
-  isEntityRootedSubgraphBp(subgraph as unknown as SubgraphBp);
+  temporal.isEntityRootedSubgraph(subgraph as unknown as SubgraphBp);
 
 /**
  * A type assertion that can be used to assert the generic of `Subgraph` to `Entity`.

@@ -1,8 +1,8 @@
-import { Entity } from "@local/hash-subgraph";
+import type { Entity } from "@local/hash-subgraph";
 
 import { getHashInstance } from "../../../../graph/knowledge/system-types/hash-instance";
-import { ResolverFn } from "../../../api-types.gen";
-import { GraphQLContext } from "../../../context";
+import type { ResolverFn } from "../../../api-types.gen";
+import type { GraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 
 export const hashInstanceEntityResolver: ResolverFn<

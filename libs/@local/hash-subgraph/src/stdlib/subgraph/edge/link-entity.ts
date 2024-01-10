@@ -1,13 +1,7 @@
-import { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
-import {
-  getIncomingLinksForEntity as getIncomingLinksForEntityBp,
-  getLeftEntityForLinkEntity as getLeftEntityForLinkEntityBp,
-  getOutgoingLinkAndTargetEntities as getOutgoingLinkAndTargetEntitiesBp,
-  getOutgoingLinksForEntity as getOutgoingLinksForEntityBp,
-  getRightEntityForLinkEntity as getRightEntityForLinkEntityBp,
-} from "@blockprotocol/graph/temporal/stdlib";
+import type { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
+import * as temporal from "@blockprotocol/graph/temporal/stdlib";
 
-import {
+import type {
   Entity,
   EntityId,
   LinkEntityAndRightEntity,
@@ -34,7 +28,7 @@ export const getOutgoingLinksForEntity = (
   entityId: EntityId,
   interval?: TimeInterval,
 ): Entity[] =>
-  getOutgoingLinksForEntityBp(
+  temporal.getOutgoingLinksForEntity(
     subgraph as unknown as SubgraphBp,
     entityId,
     interval,
@@ -59,7 +53,7 @@ export const getIncomingLinksForEntity = (
   entityId: EntityId,
   interval?: TimeInterval,
 ): Entity[] =>
-  getIncomingLinksForEntityBp(
+  temporal.getIncomingLinksForEntity(
     subgraph as unknown as SubgraphBp,
     entityId,
     interval,
@@ -84,7 +78,7 @@ export const getLeftEntityForLinkEntity = (
   entityId: EntityId,
   interval?: TimeInterval,
 ): Entity[] | undefined =>
-  getLeftEntityForLinkEntityBp(
+  temporal.getLeftEntityForLinkEntity(
     subgraph as unknown as SubgraphBp,
     entityId,
     interval,
@@ -109,7 +103,7 @@ export const getRightEntityForLinkEntity = (
   entityId: EntityId,
   interval?: TimeInterval,
 ): Entity[] | undefined =>
-  getRightEntityForLinkEntityBp(
+  temporal.getRightEntityForLinkEntity(
     subgraph as unknown as SubgraphBp,
     entityId,
     interval,
@@ -133,7 +127,7 @@ export const getOutgoingLinkAndTargetEntities = <
   entityId: EntityId,
   interval?: TimeInterval,
 ): LinkAndRightEntities =>
-  getOutgoingLinkAndTargetEntitiesBp(
+  temporal.getOutgoingLinkAndTargetEntities(
     subgraph as unknown as SubgraphBp,
     entityId,
     interval,

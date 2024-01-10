@@ -1,4 +1,4 @@
-import { MigrationFunction } from "../types";
+import type { MigrationFunction } from "../types";
 import { loadExternalEntityTypeIfNotExists } from "../util";
 
 const migrate: MigrationFunction = async ({

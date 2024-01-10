@@ -1,4 +1,4 @@
-import { RecordArchivedById, RecordCreatedById } from "./shared/branded";
+import type { RecordArchivedById, RecordCreatedById } from "./shared/branded";
 
 export * from "./shared/branded";
 export * from "./shared/temporal-versioning";

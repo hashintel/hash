@@ -10,6 +10,7 @@ module.exports = {
       /* 2022-11-29:   7 */ "@typescript-eslint/no-unsafe-return",
     ]),
     "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
+    "@typescript-eslint/consistent-type-imports": "error",
   },
   overrides: [
     {

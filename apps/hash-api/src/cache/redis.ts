@@ -1,8 +1,9 @@
-import { Logger } from "@local/hash-backend-utils/logger";
-import { AsyncRedisClient, RedisConfig } from "@local/hash-backend-utils/redis";
+import type { Logger } from "@local/hash-backend-utils/logger";
+import type { RedisConfig } from "@local/hash-backend-utils/redis";
+import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
 import { DataSource } from "apollo-datasource";
 
-import { CacheAdapter } from "./adapter";
+import type { CacheAdapter } from "./adapter";
 
 export class RedisCache extends DataSource implements CacheAdapter {
   private client: AsyncRedisClient;

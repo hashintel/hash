@@ -1,4 +1,4 @@
-import { Subgraph } from "@blockprotocol/graph";
+import type { Subgraph } from "@blockprotocol/graph";
 import {
   type BlockComponent,
   useEntitySubgraph,

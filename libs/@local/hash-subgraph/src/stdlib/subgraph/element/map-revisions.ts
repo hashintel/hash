@@ -1,6 +1,6 @@
-import { mapElementsIntoRevisions as mapElementsIntoRevisionsBp } from "@blockprotocol/graph/temporal/stdlib";
+import * as temporal from "@blockprotocol/graph/temporal/stdlib";
 
-import { Vertex } from "../../../main";
+import type { Vertex } from "../../../main";
 
 type BaseIdToRevisions<GraphElementType extends Vertex["inner"]> = Record<
   /*
@@ -22,4 +22,5 @@ export const mapElementsIntoRevisions = <
   GraphElementType extends Vertex["inner"],
 >(
   elements: GraphElementType[],
-): BaseIdToRevisions<GraphElementType> => mapElementsIntoRevisionsBp(elements);
+): BaseIdToRevisions<GraphElementType> =>
+  temporal.mapElementsIntoRevisions(elements);

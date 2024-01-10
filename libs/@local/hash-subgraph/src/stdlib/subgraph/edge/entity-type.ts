@@ -1,8 +1,8 @@
-import { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
-import { getPropertyTypesReferencedByEntityType as getPropertyTypesReferencedByEntityTypeBp } from "@blockprotocol/graph/temporal/stdlib";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
+import * as temporal from "@blockprotocol/graph/temporal/stdlib";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 
-import { OntologyTypeVertexId, Subgraph } from "../../../main";
+import type { OntologyTypeVertexId, Subgraph } from "../../../main";
 
 /**
  * Gets identifiers for all `PropertyType`s referenced within a given `EntityType` schema by searching for
@@ -16,7 +16,7 @@ export const getPropertyTypesReferencedByEntityType = (
   subgraph: Subgraph,
   entityTypeId: OntologyTypeVertexId | VersionedUrl,
 ): OntologyTypeVertexId[] =>
-  getPropertyTypesReferencedByEntityTypeBp(
+  temporal.getPropertyTypesReferencedByEntityType(
     subgraph as unknown as SubgraphBp,
     entityTypeId,
   ) as OntologyTypeVertexId[];

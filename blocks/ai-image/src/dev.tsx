@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
 

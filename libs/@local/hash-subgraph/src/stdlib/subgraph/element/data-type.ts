@@ -1,13 +1,8 @@
 import { type Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
-import {
-  getDataTypeById as getDataTypeByIdBp,
-  getDataTypeByVertexId as getDataTypeByVertexIdBp,
-  getDataTypes as getDataTypesBp,
-  getDataTypesByBaseUrl as getDataTypesByBaseUrlBp,
-} from "@blockprotocol/graph/temporal/stdlib";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import * as temporal from "@blockprotocol/graph/temporal/stdlib";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 
-import {
+import type {
   BaseUrl,
   DataTypeWithMetadata,
   OntologyTypeVertexId,
@@ -20,7 +15,9 @@ import {
  * @param subgraph
  */
 export const getDataTypes = (subgraph: Subgraph): DataTypeWithMetadata[] =>
-  getDataTypesBp(subgraph as unknown as SubgraphBp) as DataTypeWithMetadata[];
+  temporal.getDataTypes(
+    subgraph as unknown as SubgraphBp,
+  ) as DataTypeWithMetadata[];
 
 /**
  * Gets a `DataTypeWithMetadata` by its `VersionedUrl` from within the vertices of the subgraph. Returns `undefined` if
@@ -34,7 +31,7 @@ export const getDataTypeById = (
   subgraph: Subgraph,
   dataTypeId: VersionedUrl,
 ): DataTypeWithMetadata | undefined =>
-  getDataTypeByIdBp(subgraph as unknown as SubgraphBp, dataTypeId) as
+  temporal.getDataTypeById(subgraph as unknown as SubgraphBp, dataTypeId) as
     | DataTypeWithMetadata
     | undefined;
 
@@ -50,9 +47,10 @@ export const getDataTypeByVertexId = (
   subgraph: Subgraph,
   vertexId: OntologyTypeVertexId,
 ): DataTypeWithMetadata | undefined =>
-  getDataTypeByVertexIdBp(subgraph as unknown as SubgraphBp, vertexId) as
-    | DataTypeWithMetadata
-    | undefined;
+  temporal.getDataTypeByVertexId(
+    subgraph as unknown as SubgraphBp,
+    vertexId,
+  ) as DataTypeWithMetadata | undefined;
 
 /**
  * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`
@@ -64,7 +62,7 @@ export const getDataTypesByBaseUrl = (
   subgraph: Subgraph,
   baseUrl: BaseUrl,
 ): DataTypeWithMetadata[] =>
-  getDataTypesByBaseUrlBp(
+  temporal.getDataTypesByBaseUrl(
     subgraph as unknown as SubgraphBp,
     baseUrl,
   ) as DataTypeWithMetadata[];

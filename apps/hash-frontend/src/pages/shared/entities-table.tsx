@@ -1,4 +1,4 @@
-import {
+import type {
   Entity as BpEntity,
   EntityRootType as BpEntityRootType,
   Subgraph as BpSubgraph,

@@ -5,18 +5,14 @@ import {
   type IsOfTypeEdge as IsOfTypeEdgeBp,
   type KnowledgeGraphOutwardEdge as KnowledgeGraphOutwardEdgeBp,
   type OutgoingLinkEdge as OutgoingLinkEdgeBp,
-  isHasLeftEntityEdge as isHasLeftEntityEdgeBp,
-  isHasRightEntityEdge as isHasRightEntityEdgeBp,
-  isIncomingLinkEdge as isIncomingLinkEdgeBp,
-  isIsOfTypeEdge as isIsOfTypeEdgeBp,
-  isOutgoingLinkEdge as isOutgoingLinkEdgeBp,
 } from "@blockprotocol/graph/temporal";
-import { Subtype } from "@local/advanced-types/subtype";
+import * as temporal from "@blockprotocol/graph/temporal";
+import type { Subtype } from "@local/advanced-types/subtype";
 
-import { OntologyTypeVertexId } from "../../vertices";
-import { GenericOutwardEdge } from "../generic-outward-edge";
-import { KnowledgeGraphEdgeKind, SharedEdgeKind } from "../kind";
-import { EntityIdWithInterval, OutwardEdge } from "../outward-edge";
+import type { OntologyTypeVertexId } from "../../vertices";
+import type { GenericOutwardEdge } from "../generic-outward-edge";
+import type { KnowledgeGraphEdgeKind, SharedEdgeKind } from "../kind";
+import type { EntityIdWithInterval, OutwardEdge } from "../outward-edge";
 
 export type OutgoingLinkEdge = Subtype<
   OutgoingLinkEdgeBp,
@@ -32,7 +28,7 @@ export type OutgoingLinkEdge = Subtype<
 
 export const isOutgoingLinkEdge = (
   outwardEdge: OutwardEdge,
-): outwardEdge is OutgoingLinkEdge => isOutgoingLinkEdgeBp(outwardEdge);
+): outwardEdge is OutgoingLinkEdge => temporal.isOutgoingLinkEdge(outwardEdge);
 
 export type HasLeftEntityEdge = Subtype<
   HasLeftEntityEdgeBp,
@@ -48,7 +44,8 @@ export type HasLeftEntityEdge = Subtype<
 
 export const isHasLeftEntityEdge = (
   outwardEdge: OutwardEdge,
-): outwardEdge is HasLeftEntityEdge => isHasLeftEntityEdgeBp(outwardEdge);
+): outwardEdge is HasLeftEntityEdge =>
+  temporal.isHasLeftEntityEdge(outwardEdge);
 
 export type HasRightEntityEdge = Subtype<
   HasRightEntityEdgeBp,
@@ -64,7 +61,8 @@ export type HasRightEntityEdge = Subtype<
 
 export const isHasRightEntityEdge = (
   outwardEdge: OutwardEdge,
-): outwardEdge is HasRightEntityEdge => isHasRightEntityEdgeBp(outwardEdge);
+): outwardEdge is HasRightEntityEdge =>
+  temporal.isHasRightEntityEdge(outwardEdge);
 
 export type IncomingLinkEdge = Subtype<
   IncomingLinkEdgeBp,
@@ -80,7 +78,7 @@ export type IncomingLinkEdge = Subtype<
 
 export const isIncomingLinkEdge = (
   outwardEdge: OutwardEdge,
-): outwardEdge is IncomingLinkEdge => isIncomingLinkEdgeBp(outwardEdge);
+): outwardEdge is IncomingLinkEdge => temporal.isIncomingLinkEdge(outwardEdge);
 
 export type IsOfTypeEdge = Subtype<
   IsOfTypeEdgeBp,
@@ -96,7 +94,7 @@ export type IsOfTypeEdge = Subtype<
 
 export const isIsOfTypeEdge = (
   outwardEdge: OutwardEdge,
-): outwardEdge is IsOfTypeEdge => isIsOfTypeEdgeBp(outwardEdge);
+): outwardEdge is IsOfTypeEdge => temporal.isIsOfTypeEdge(outwardEdge);
 
 export type KnowledgeGraphOutwardEdge = Subtype<
   KnowledgeGraphOutwardEdgeBp,

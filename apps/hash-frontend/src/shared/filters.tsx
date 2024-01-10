@@ -1,4 +1,4 @@
-import { MultiFilter } from "@blockprotocol/graph";
+import type { MultiFilter } from "@blockprotocol/graph";
 import { extractBaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 
 type Filter = NonNullable<MultiFilter["filters"]>[number];

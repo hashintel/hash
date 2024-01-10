@@ -4,6 +4,7 @@
   "private": true,
   "description": "API and data store for HASH",
   "license": "AGPL-3.0",
+  "type": "module",
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch ./src/index.ts",

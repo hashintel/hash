@@ -3,7 +3,7 @@ import { promisify } from "node:util";
 import { DataSource } from "apollo-datasource";
 import { createClient } from "redis";
 
-import { Logger } from "./logger";
+import type { Logger } from "./logger";
 
 export type RedisConfig = {
   host: string;

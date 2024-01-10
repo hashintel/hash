@@ -1,5 +1,5 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import {
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
   EntityPermission,
   EntityStructuralQuery,
   Filter,
@@ -11,11 +11,11 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
+import type {
   UserPermissions,
   UserPermissionsOnEntities,
 } from "@local/hash-isomorphic-utils/types";
-import {
+import type {
   AccountGroupId,
   AccountId,
   BaseUrl,
@@ -23,22 +23,24 @@ import {
   EntityAuthorizationRelationship,
   EntityId,
   EntityMetadata,
-  EntityPropertiesObject,
   EntityRelationAndSubject,
-  EntityRootType,
   EntityUuid,
+  OwnedById,
+  Subgraph,
+} from "@local/hash-subgraph";
+import {
+  EntityPropertiesObject,
+  EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   isEntityVertex,
-  OwnedById,
   splitEntityId,
-  Subgraph,
 } from "@local/hash-subgraph";
 import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 
 import { publicUserAccountId } from "../../../auth/public-user-account-id";
@@ -47,15 +49,12 @@ import {
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
 import { linkedTreeFlatten } from "../../../util";
-import { ImpureGraphFunction } from "../../context-types";
+import type { ImpureGraphFunction } from "../../context-types";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
 import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
-import {
-  createLinkEntity,
-  CreateLinkEntityParams,
-  isEntityLinkEntity,
-} from "./link-entity";
+import type { CreateLinkEntityParams } from "./link-entity";
+import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
 
 export type CreateEntityParams = {
   ownedById: OwnedById;

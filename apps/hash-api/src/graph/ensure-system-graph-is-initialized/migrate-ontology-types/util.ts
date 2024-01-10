@@ -1,24 +1,27 @@
 /* eslint-disable no-param-reassign */
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-import {
+import type {
   Array,
   DataTypeReference,
-  ENTITY_TYPE_META_SCHEMA,
   EntityType,
-  extractVersion,
   Object as ObjectSchema,
   OneOf,
-  PROPERTY_TYPE_META_SCHEMA,
   PropertyType,
   PropertyTypeReference,
   PropertyValues,
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import {
+  ENTITY_TYPE_META_SCHEMA,
+  extractVersion,
+  PROPERTY_TYPE_META_SCHEMA,
+} from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
-import { UpdatePropertyType } from "@local/hash-graph-client";
+import type { UpdatePropertyType } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -30,13 +33,15 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  generateLinkMapWithConsistentSelfReferences,
-  generateTypeBaseUrl,
+import type {
   SchemaKind,
   SystemTypeWebShortname,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import {
+  generateLinkMapWithConsistentSelfReferences,
+  generateTypeBaseUrl,
+} from "@local/hash-isomorphic-utils/ontology-types";
+import type {
   BaseUrl,
   DataTypeWithMetadata,
   Entity,
@@ -63,7 +68,7 @@ import {
   CACHED_ENTITY_TYPE_SCHEMAS,
   CACHED_PROPERTY_TYPE_SCHEMAS,
 } from "../../../seed-data";
-import { ImpureGraphFunction } from "../../context-types";
+import type { ImpureGraphFunction } from "../../context-types";
 import { getDataTypeById } from "../../ontology/primitive/data-type";
 import {
   createEntityType,
@@ -73,13 +78,16 @@ import {
   createPropertyType,
   getPropertyTypeById,
 } from "../../ontology/primitive/property-type";
+import type { PrimitiveDataTypeKey } from "../system-webs-and-entities";
 import {
   getOrCreateOwningAccountGroupId,
   isSelfHostedInstance,
-  PrimitiveDataTypeKey,
 } from "../system-webs-and-entities";
-import { MigrationState } from "./types";
+import type { MigrationState } from "./types";
 import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-dependencies";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const systemTypeDomain = "https://hash.ai";
 

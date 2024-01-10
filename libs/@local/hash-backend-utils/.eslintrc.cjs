@@ -6,5 +6,6 @@ module.exports = {
       /* 2022-11-29:  15 */ "@typescript-eslint/no-unsafe-member-access",
       /* 2022-11-29:  11 */ "@typescript-eslint/unbound-method",
     ]),
+    "@typescript-eslint/consistent-type-imports": "error",
   },
 };

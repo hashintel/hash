@@ -6,7 +6,7 @@ import {
 } from "@local/hash-subgraph";
 
 import { systemAccountId } from "../../../system-account";
-import { MigrationFunction } from "../types";
+import type { MigrationFunction } from "../types";
 import {
   anyUserInstantiator,
   createSystemEntityTypeIfNotExists,

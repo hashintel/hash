@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/graph";
 import { Button, ButtonProps, PlusIcon } from "@hashintel/design-system";
 import {
   Box,

@@ -1,8 +1,12 @@
-import { WebOwnerSubject } from "@local/hash-graph-client";
-import { AccountGroupId, AccountId, OwnedById } from "@local/hash-subgraph";
+import type { WebOwnerSubject } from "@local/hash-graph-client";
+import type {
+  AccountGroupId,
+  AccountId,
+  OwnedById,
+} from "@local/hash-subgraph";
 import { Either } from "effect";
 
-import { ImpureGraphFunction } from "./context-types";
+import type { ImpureGraphFunction } from "./context-types";
 
 export const addAccountGroupMember: ImpureGraphFunction<
   { accountId: AccountId; accountGroupId: AccountGroupId },
@@ -34,7 +38,7 @@ export const createAccount: ImpureGraphFunction<
 > = async ({ rpcClient }, { actorId }, _) =>
   rpcClient.accounts
     .createAccount(actorId, null)
-    .then((data) => Either.getOrThrow(data) as AccountId);
+    .then((data) => Either.getOrThrow(data));
 
 export const createAccountGroup: ImpureGraphFunction<
   {},
@@ -44,7 +48,7 @@ export const createAccountGroup: ImpureGraphFunction<
 > = async ({ rpcClient }, { actorId }, _) =>
   rpcClient.accounts
     .createAccountGroup(actorId, null)
-    .then((data) => Either.getOrThrow(data) as AccountGroupId);
+    .then((data) => Either.getOrThrow(data));
 
 export const createWeb: ImpureGraphFunction<
   { ownedById: OwnedById; owner: WebOwnerSubject },

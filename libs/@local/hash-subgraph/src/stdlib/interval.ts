@@ -1,20 +1,6 @@
-import {
-  intervalCompareWithInterval as intervalCompareWithIntervalBp,
-  intervalContainsInterval as intervalContainsIntervalBp,
-  intervalContainsTimestamp as intervalContainsTimestampBp,
-  intervalForTimestamp as intervalForTimestampBp,
-  intervalIntersectionWithInterval as intervalIntersectionWithIntervalBp,
-  intervalIsAdjacentToInterval as intervalIsAdjacentToIntervalBp,
-  intervalIsStrictlyAfterInterval as intervalIsStrictlyAfterIntervalBp,
-  intervalIsStrictlyBeforeInterval as intervalIsStrictlyBeforeIntervalBp,
-  intervalMergeWithInterval as intervalMergeWithIntervalBp,
-  intervalOverlapsInterval as intervalOverlapsIntervalBp,
-  intervalUnionWithInterval as intervalUnionWithIntervalBp,
-  sortIntervals as sortIntervalsBp,
-  unionOfIntervals as unionOfIntervalsBp,
-} from "@blockprotocol/graph/temporal/stdlib";
+import * as temporal from "@blockprotocol/graph/temporal/stdlib";
 
-import {
+import type {
   BoundedTimeInterval,
   LimitedTemporalBound,
   TemporalBound,
@@ -32,7 +18,7 @@ import {
 export const intervalCompareWithInterval = (
   intervalA: TimeInterval,
   intervalB: TimeInterval,
-): number => intervalCompareWithIntervalBp(intervalA, intervalB);
+): number => temporal.intervalCompareWithInterval(intervalA, intervalB);
 
 /**
  * Sorts a given collection of {@link TimeInterval} in place, sorted first from earliest to latest start bounds, and
@@ -41,7 +27,7 @@ export const intervalCompareWithInterval = (
  * @param {TimeInterval[]} intervals
  */
 export const sortIntervals = (intervals: TimeInterval[]) =>
-  sortIntervalsBp(intervals);
+  temporal.sortIntervals(intervals);
 
 /**
  * Creates a {@link BoundedTimeInterval} that represents the instant of time identified by the given {@link Timestamp}.
@@ -54,7 +40,7 @@ export const sortIntervals = (intervals: TimeInterval[]) =>
 export const intervalForTimestamp = (
   timestamp: Timestamp,
 ): BoundedTimeInterval =>
-  intervalForTimestampBp(timestamp) as BoundedTimeInterval;
+  temporal.intervalForTimestamp(timestamp) as BoundedTimeInterval;
 
 /**
  * Checks whether two given {@link TimeInterval}s are adjacent to one another, where adjacency is defined as
@@ -67,7 +53,7 @@ export const intervalForTimestamp = (
 export const intervalIsAdjacentToInterval = (
   left: TimeInterval,
   right: TimeInterval,
-): boolean => intervalIsAdjacentToIntervalBp(left, right);
+): boolean => temporal.intervalIsAdjacentToInterval(left, right);
 
 /**
  * Returns whether or not the `right` {@link TimeInterval} is *completely contained* within the `left`
@@ -79,7 +65,7 @@ export const intervalIsAdjacentToInterval = (
 export const intervalContainsInterval = (
   left: TimeInterval,
   right: TimeInterval,
-): boolean => intervalContainsIntervalBp(left, right);
+): boolean => temporal.intervalContainsInterval(left, right);
 
 /**
  * Returns whether or not the given {@link Timestamp} falls within the span of a given {@link TimeInterval}.
@@ -90,7 +76,7 @@ export const intervalContainsInterval = (
 export const intervalContainsTimestamp = (
   interval: TimeInterval,
   timestamp: Timestamp,
-): boolean => intervalContainsTimestampBp(interval, timestamp);
+): boolean => temporal.intervalContainsTimestamp(interval, timestamp);
 
 /**
  * Checks whether there is *any* overlap between two {@link TimeInterval}
@@ -101,7 +87,7 @@ export const intervalContainsTimestamp = (
 export const intervalOverlapsInterval = (
   left: TimeInterval,
   right: TimeInterval,
-): boolean => intervalOverlapsIntervalBp(left, right);
+): boolean => temporal.intervalOverlapsInterval(left, right);
 
 /**
  * Advanced type to provide stronger type information when using {@link intervalIntersectionWithInterval}.
@@ -239,7 +225,7 @@ export const intervalUnionWithInterval = <
 export const unionOfIntervals = <IntervalsType extends TimeInterval>(
   ...intervals: IntervalsType[]
 ): UnionReturn<IntervalsType, IntervalsType>[number][] =>
-  unionOfIntervalsBp(...intervals) as UnionReturn<
+  temporal.unionOfIntervals(...intervals) as UnionReturn<
     IntervalsType,
     IntervalsType
   >[number][];
@@ -255,7 +241,7 @@ export const unionOfIntervals = <IntervalsType extends TimeInterval>(
 export const intervalIsStrictlyBeforeInterval = (
   left: TimeInterval,
   right: TimeInterval,
-): boolean => intervalIsStrictlyBeforeIntervalBp(left, right);
+): boolean => temporal.intervalIsStrictlyBeforeInterval(left, right);
 
 /**
  * Given two {@link TimeInterval}s, `left` and `right`, this returns `true` if the `left` interval spans a time
@@ -268,4 +254,4 @@ export const intervalIsStrictlyBeforeInterval = (
 export const intervalIsStrictlyAfterInterval = (
   left: TimeInterval,
   right: TimeInterval,
-): boolean => intervalIsStrictlyAfterIntervalBp(left, right);
+): boolean => temporal.intervalIsStrictlyAfterInterval(left, right);

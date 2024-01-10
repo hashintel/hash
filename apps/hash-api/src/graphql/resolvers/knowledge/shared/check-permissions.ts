@@ -1,12 +1,12 @@
-import { UserPermissions } from "@local/hash-isomorphic-utils/types";
-import { Entity } from "@local/hash-subgraph";
+import type { UserPermissions } from "@local/hash-isomorphic-utils/types";
+import type { Entity } from "@local/hash-subgraph";
 
 import {
   checkEntityPermission,
   checkPermissionsOnEntity,
 } from "../../../../graph/knowledge/primitive/entity";
-import { ResolverFn } from "../../../api-types.gen";
-import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
+import type { ResolverFn } from "../../../api-types.gen";
+import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 
 export const checkUserPermissionsOnEntity: ResolverFn<
   UserPermissions,

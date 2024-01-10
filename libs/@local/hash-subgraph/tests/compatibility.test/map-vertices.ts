@@ -1,14 +1,16 @@
-import {
+import type {
   DataType,
   EntityType,
   OneOf,
   PropertyType,
   PropertyValues,
-  validateBaseUrl,
-  validateVersionedUrl,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
+  validateBaseUrl,
+  validateVersionedUrl,
+} from "@blockprotocol/type-system";
+import type {
   DataType as DataTypeGraphApi,
   EntityMetadata as EntityMetadataGraphApi,
   EntityRecordId as EntityRecordIdGraphApi,
@@ -23,7 +25,7 @@ import {
   ProvenanceMetadata as ProvenanceMetadataGraphApi,
   Vertices as VerticesGraphApi,
 } from "@local/hash-graph-client";
-import {
+import type {
   BaseUrl,
   EntityId,
   EntityMetadata,
@@ -31,7 +33,6 @@ import {
   EntityRecordId,
   EntityTemporalVersioningMetadata,
   EntityTypeMetadata,
-  isEntityId,
   KnowledgeGraphVertex,
   LinkData,
   OntologyElementMetadata,
@@ -43,6 +44,7 @@ import {
   Timestamp,
   Vertices,
 } from "@local/hash-subgraph";
+import { isEntityId } from "@local/hash-subgraph";
 
 const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const idResult = validateVersionedUrl(dataType.$id);

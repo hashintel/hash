@@ -7,7 +7,7 @@
  */
 
 import { MessageCallback, MessageReturn } from "@blockprotocol/core";
-import {
+import type {
   CreateResourceError,
   ReadOrModifyResourceError,
 } from "@blockprotocol/graph";

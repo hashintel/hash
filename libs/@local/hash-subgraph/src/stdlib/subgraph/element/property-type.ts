@@ -1,13 +1,8 @@
-import { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
-import {
-  getPropertyTypeById as getPropertyTypeByIdBp,
-  getPropertyTypeByVertexId as getPropertyTypeByVertexIdBp,
-  getPropertyTypes as getPropertyTypesBp,
-  getPropertyTypesByBaseUrl as getPropertyTypesByBaseUrlBp,
-} from "@blockprotocol/graph/temporal/stdlib";
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
+import * as temporal from "@blockprotocol/graph/temporal/stdlib";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 
-import {
+import type {
   BaseUrl,
   OntologyTypeVertexId,
   PropertyTypeWithMetadata,
@@ -22,7 +17,7 @@ import {
 export const getPropertyTypes = (
   subgraph: Subgraph,
 ): PropertyTypeWithMetadata[] =>
-  getPropertyTypesBp(
+  temporal.getPropertyTypes(
     subgraph as unknown as SubgraphBp,
   ) as PropertyTypeWithMetadata[];
 
@@ -38,9 +33,10 @@ export const getPropertyTypeById = (
   subgraph: Subgraph,
   propertyTypeId: VersionedUrl,
 ): PropertyTypeWithMetadata | undefined =>
-  getPropertyTypeByIdBp(subgraph as unknown as SubgraphBp, propertyTypeId) as
-    | PropertyTypeWithMetadata
-    | undefined;
+  temporal.getPropertyTypeById(
+    subgraph as unknown as SubgraphBp,
+    propertyTypeId,
+  ) as PropertyTypeWithMetadata | undefined;
 
 /**
  * Gets a `PropertyTypeWithMetadata` by its `OntologyTypeVertexId` from within the vertices of the subgraph. Returns
@@ -54,9 +50,10 @@ export const getPropertyTypeByVertexId = (
   subgraph: Subgraph,
   vertexId: OntologyTypeVertexId,
 ): PropertyTypeWithMetadata | undefined =>
-  getPropertyTypeByVertexIdBp(subgraph as unknown as SubgraphBp, vertexId) as
-    | PropertyTypeWithMetadata
-    | undefined;
+  temporal.getPropertyTypeByVertexId(
+    subgraph as unknown as SubgraphBp,
+    vertexId,
+  ) as PropertyTypeWithMetadata | undefined;
 
 /**
  * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph that match a given `BaseUrl`
@@ -68,7 +65,7 @@ export const getPropertyTypesByBaseUrl = (
   subgraph: Subgraph,
   baseUrl: BaseUrl,
 ): PropertyTypeWithMetadata[] =>
-  getPropertyTypesByBaseUrlBp(
+  temporal.getPropertyTypesByBaseUrl(
     subgraph as unknown as SubgraphBp,
     baseUrl,
   ) as PropertyTypeWithMetadata[];

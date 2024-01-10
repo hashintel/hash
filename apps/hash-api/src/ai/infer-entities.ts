@@ -1,14 +1,16 @@
-import {
-  inferenceModelNames,
+import type {
   InferEntitiesCallerParams,
-  InferEntitiesReturn,
-  inferEntitiesUserArgumentKeys,
   InferEntitiesUserArguments,
 } from "@local/hash-isomorphic-utils/temporal-types";
+import {
+  inferenceModelNames,
+  InferEntitiesReturn,
+  inferEntitiesUserArgumentKeys,
+} from "@local/hash-isomorphic-utils/temporal-types";
 import { StatusCode } from "@local/status";
-import { ApplicationFailure } from "@temporalio/client";
-import { WorkflowFailedError } from "@temporalio/client/src/errors";
-import { RequestHandler } from "express";
+import type { ApplicationFailure } from "@temporalio/client";
+import type { WorkflowFailedError } from "@temporalio/client/src/errors";
+import type { RequestHandler } from "express";
 
 import { genId } from "../util";
 

@@ -1,10 +1,10 @@
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { AccountId } from "@local/hash-subgraph";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { AccountId } from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
-import { ImpureGraphContext } from "../../../context-types";
+import type { ImpureGraphContext } from "../../../context-types";
 import {
   shortnameContainsInvalidCharacter,
   shortnameIsRestricted,
@@ -16,7 +16,7 @@ import {
   getUserFromEntity,
   updateUserKratosIdentityTraits,
 } from "../../system-types/user";
-import {
+import type {
   UpdateEntityHook,
   UpdateEntityHookCallback,
 } from "./update-entity-hooks";

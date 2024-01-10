@@ -1,14 +1,13 @@
+import type { DefaultOptions, NormalizedCacheObject } from "@apollo/client";
 import {
   ApolloClient,
   ApolloLink,
-  DefaultOptions,
   HttpLink,
   InMemoryCache,
-  NormalizedCacheObject,
 } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
 import * as Sentry from "@sentry/browser";
-import {
+import type {
   RequestInfo as RequestInfoFromNodeFetch,
   RequestInit as RequestInitFromNodeFetch,
 } from "node-fetch";

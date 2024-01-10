@@ -1,4 +1,4 @@
-import { EntityId } from "@blockprotocol/graph";
+import type { EntityId } from "@blockprotocol/graph";
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
 import { Box, Collapse } from "@mui/material";

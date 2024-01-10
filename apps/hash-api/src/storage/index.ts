@@ -9,10 +9,9 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { Entity, EntityId } from "@local/hash-subgraph";
 import {
-  Entity,
-  EntityId,
   EntityRootType,
   isEntityId,
   splitEntityId,
@@ -21,23 +20,23 @@ import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
-import { Express } from "express";
+import type { Express } from "express";
 
 import { getActorIdFromRequest } from "../auth/get-actor-id";
-import { CacheAdapter } from "../cache";
-import { ImpureGraphContext } from "../graph/context-types";
-import { AuthenticationContext } from "../graphql/authentication-context";
+import type { CacheAdapter } from "../cache";
+import type { ImpureGraphContext } from "../graph/context-types";
+import type { AuthenticationContext } from "../graphql/authentication-context";
 import { getAwsS3Config } from "../lib/aws-config";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
 import { logger } from "../logger";
 import { AwsS3StorageProvider } from "./aws-s3-storage-provider";
 import { LocalFileSystemStorageProvider } from "./local-file-storage";
-import {
+import type {
   StorageProvider,
   StorageType,
-  storageTypes,
   UploadableStorageProvider,
 } from "./storage-provider";
+import { storageTypes } from "./storage-provider";
 
 export * from "./aws-s3-storage-provider";
 export * from "./storage-provider";

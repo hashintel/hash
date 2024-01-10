@@ -1,9 +1,9 @@
-import { RpcClient } from "@local/hash-backend-utils/create-graph-rpc-client";
-import { GraphApi as GraphApiClient } from "@local/hash-graph-client";
-import { DataSource } from "apollo-datasource";
+import type { RpcClient } from "@local/hash-backend-utils/create-graph-rpc-client";
+import type { GraphApi as GraphApiClient } from "@local/hash-graph-client";
+import type { DataSource } from "apollo-datasource";
 
-import { AuthenticationContext } from "../graphql/authentication-context";
-import { UploadableStorageProvider } from "../storage/storage-provider";
+import type { AuthenticationContext } from "../graphql/authentication-context";
+import type { UploadableStorageProvider } from "../storage/storage-provider";
 
 export type GraphApi = GraphApiClient & DataSource;
 

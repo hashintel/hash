@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/graph";
 import { InferenceModelName } from "@local/hash-isomorphic-utils/temporal-types";
 import { OwnedById } from "@local/hash-subgraph";
 

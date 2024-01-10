@@ -1,11 +1,10 @@
 /* eslint-disable no-param-reassign */
-import { VersionedUrl } from "@blockprotocol/type-system";
-import { Issue, Organization, User } from "@linear/sdk";
-import {
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { Issue, Organization, User } from "@linear/sdk";
+import type {
   IssueUpdateInput,
   UpdateOrganizationInput,
   UpdateUserInput,
-  // eslint-disable-next-line import/no-unresolved
 } from "@linear/sdk/dist/_generated_documents";
 import {
   blockProtocolPropertyTypes,
@@ -14,8 +13,12 @@ import {
   linearPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { BaseUrl, Entity, EntityPropertyValue } from "@local/hash-subgraph";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import type {
+  BaseUrl,
+  Entity,
+  EntityPropertyValue,
+} from "@local/hash-subgraph";
+import type { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 const mapLinearDateToIsoString = (date: string | Date): string => {
   if (typeof date === "string") {

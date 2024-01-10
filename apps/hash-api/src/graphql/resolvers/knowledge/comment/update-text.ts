@@ -2,13 +2,14 @@ import {
   getCommentById,
   updateCommentText,
 } from "../../../../graph/knowledge/system-types/comment";
-import {
+import type {
   MutationUpdateCommentTextArgs,
   ResolverFn,
 } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
+import type { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
-import { mapCommentToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
+import type { UnresolvedCommentGQL } from "../graphql-mapping";
+import { mapCommentToGQL } from "../graphql-mapping";
 
 export const updateCommentTextResolver: ResolverFn<
   Promise<UnresolvedCommentGQL>,

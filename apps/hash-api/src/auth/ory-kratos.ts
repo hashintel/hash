@@ -1,9 +1,7 @@
-import { Configuration, Identity } from "@ory/client";
-import {
-  CreateIdentityBody,
-  FrontendApi,
-  IdentityApi,
-} from "@ory/kratos-client";
+import type { Identity } from "@ory/client";
+import { Configuration } from "@ory/client";
+import type { CreateIdentityBody } from "@ory/kratos-client";
+import { FrontendApi, IdentityApi } from "@ory/kratos-client";
 
 import { getRequiredEnv } from "../util";
 

@@ -4,7 +4,7 @@ import {
   addAccountGroupMember,
   removeAccountGroupMember,
 } from "../../graph/account-permission-management";
-import {
+import type {
   EntityAuthorizationSubject,
   MutationResolvers,
   QueryResolvers,

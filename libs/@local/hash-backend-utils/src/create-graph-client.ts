@@ -1,15 +1,17 @@
 import { inspect } from "node:util";
 
-import { Logger } from "@local/hash-backend-utils/logger";
+import type { Logger } from "@local/hash-backend-utils/logger";
 import {
   Configuration,
   GraphApi as GraphApiClient,
 } from "@local/hash-graph-client";
-import { convertHttpCodeToStatusCode, isStatus, Status } from "@local/status";
-import { ErrorInfo } from "@local/status/type-defs/status-payloads/error-info";
+import type { Status } from "@local/status";
+import { convertHttpCodeToStatusCode, isStatus } from "@local/status";
+import type { ErrorInfo } from "@local/status/type-defs/status-payloads/error-info";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
-import { DataSource } from "apollo-datasource";
-import axios, { AxiosError } from "axios";
+import type { DataSource } from "apollo-datasource";
+import type { AxiosError } from "axios";
+import axios from "axios";
 
 type GraphApi = GraphApiClient & DataSource;
 

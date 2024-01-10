@@ -1,4 +1,8 @@
-import { EntityRootType, Subgraph, VersionedUrl } from "@blockprotocol/graph";
+import type {
+  EntityRootType,
+  Subgraph,
+  VersionedUrl,
+} from "@blockprotocol/graph";
 import { getEntityTypeById, getRoots } from "@blockprotocol/graph/stdlib";
 import {
   Box,

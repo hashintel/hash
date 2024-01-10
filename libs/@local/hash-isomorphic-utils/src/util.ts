@@ -1,5 +1,5 @@
 // @todo this should be defined elsewhere
-import { uniq } from "lodash";
+import uniq from "lodash/fp/uniq";
 
 /**
  * This behaves differently from the type `{}`, and will error if you set more properties on it.
@@ -180,7 +180,6 @@ export const treeFromParentReferences = <
      *  }
      * */
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (existingParent[recursive]) {
       existingParent[recursive].push(current);
     } else {

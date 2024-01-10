@@ -6,12 +6,9 @@ import {
   supportedLinearTypes,
   WorkflowTypeMap,
 } from "@local/hash-backend-utils/temporal-workflow-types";
-import {
-  extractEntityUuidFromEntityId,
-  OwnedById,
-  Uuid,
-} from "@local/hash-subgraph";
-import { RequestHandler } from "express";
+import type { OwnedById, Uuid } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type { RequestHandler } from "express";
 
 import {
   getAllLinearIntegrationsWithLinearOrgId,

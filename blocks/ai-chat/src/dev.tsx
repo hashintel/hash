@@ -1,4 +1,4 @@
-import { Entity, EntityId } from "@blockprotocol/graph";
+import type { Entity, EntityId } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
 
