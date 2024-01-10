@@ -34,7 +34,7 @@ import {
 } from "../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
 import { getFirstRevisionCreatedAt } from "../shared/entity-utils";
-import { QuickNoteIcon } from "../shared/icons/quick-note-icon";
+import { NoteIcon } from "../shared/icons/note-icon";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { NotesSection } from "./notes.page/notes-section";
 import { TodaySection } from "./notes.page/today-section";
@@ -197,7 +197,10 @@ const NotesPage: NextPageWithLayout = () => {
         !existingHeadings.includes("Over a month ago")
       ) {
         updated[key] = "Over a month ago";
-      } else if (!existingHeadings.includes("Over a year ago")) {
+      } else if (
+        differenceInMonths(today, currentDate) >= 12 &&
+        !existingHeadings.includes("Over a year ago")
+      ) {
         updated[key] = "Over a year ago";
       }
 
@@ -280,7 +283,7 @@ const NotesPage: NextPageWithLayout = () => {
             title: "Notes",
             href: "/notes",
             id: "notes",
-            icon: <QuickNoteIcon />,
+            icon: <NoteIcon />,
           },
         ]}
         sx={{

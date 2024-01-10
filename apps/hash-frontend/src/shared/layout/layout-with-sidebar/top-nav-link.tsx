@@ -44,7 +44,7 @@ export const TopNavLink: FunctionComponent<NavLinkProps> = ({
           },
 
           "& svg": {
-            color: palette.gray[40],
+            color: palette.gray[50],
           },
 
           [`& > .${typographyClasses.root}`]: {
