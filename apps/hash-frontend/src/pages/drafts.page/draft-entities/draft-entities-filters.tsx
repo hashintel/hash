@@ -235,6 +235,45 @@ export const generateDefaultFilterState = (params: {
   };
 };
 
+export const isFilerStateDefaultFilterState =
+  (params: {
+    draftEntitiesWithCreatedAtAndCreators: {
+      entity: Entity;
+      createdAt: Date;
+      creator: MinimalActor;
+    }[];
+    draftEntitiesSubgraph: Subgraph<EntityRootType>;
+  }) =>
+  (filterState: DraftEntityFilterState): boolean => {
+    const { draftEntitiesWithCreatedAtAndCreators, draftEntitiesSubgraph } =
+      params;
+
+    if (filterState.lastEditedTimeRange !== "anytime") {
+      return false;
+    }
+
+    const entityTypes = getDraftEntityTypes({
+      draftEntities: draftEntitiesWithCreatedAtAndCreators.map(
+        ({ entity }) => entity,
+      ),
+      draftEntitiesSubgraph,
+    });
+
+    if (filterState.entityTypeBaseUrls.length !== entityTypes.length) {
+      return false;
+    }
+
+    const sources = getDraftEntitySources({
+      draftEntitiesWithCreatedAtAndCreators,
+    });
+
+    if (filterState.sourceAccountIds.length !== sources.length) {
+      return false;
+    }
+
+    return true;
+  };
+
 export const FilterSectionHeading = styled(Typography)(({ theme }) => ({
   color: theme.palette.gray[70],
   fontSize: 12,

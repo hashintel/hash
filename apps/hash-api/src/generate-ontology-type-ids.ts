@@ -209,6 +209,7 @@ const generateOntologyIds = async () => {
   const [
     hashEntityTypes,
     hashPropertyTypes,
+    hashDataTypes,
     linearEntityTypes,
     linearPropertyTypes,
     blockProtocolEntityTypes,
@@ -220,6 +221,9 @@ const generateOntologyIds = async () => {
       query: getLatestTypesInOrganizationQuery({ organization: hashOrg }),
     }).then((subgraph) => getRoots(subgraph)),
     getPropertyTypes(graphContext, authentication, {
+      query: getLatestTypesInOrganizationQuery({ organization: hashOrg }),
+    }).then((subgraph) => getRoots(subgraph)),
+    getDataTypes(graphContext, authentication, {
       query: getLatestTypesInOrganizationQuery({ organization: hashOrg }),
     }).then((subgraph) => getRoots(subgraph)),
     // Linear types
@@ -252,6 +256,7 @@ const generateOntologyIds = async () => {
       serializeTypes({ graphApi }, authentication, {
         entityTypes: hashEntityTypes,
         propertyTypes: hashPropertyTypes,
+        dataTypes: hashDataTypes,
         /** @todo: change this to "hash"? */
         prefix: "system",
       }),

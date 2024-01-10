@@ -10,7 +10,7 @@ import { useDraftEntities } from "../../draft-entities-context";
 import { SidebarToggleIcon } from "../../icons";
 import { FeatherLightIcon } from "../../icons/feather-light-icon";
 import { InboxIcon } from "../../icons/inbox-icon";
-import { QuickNoteIcon } from "../../icons/quick-note-icon";
+import { NoteIcon } from "../../icons/note-icon";
 import { useNotificationEntities } from "../../notification-entities-context";
 import { useRoutePageInfo } from "../../routing";
 import { HEADER_HEIGHT } from "../layout-with-header/page-header";
@@ -99,8 +99,8 @@ export const PageSidebar: FunctionComponent = () => {
         active={router.pathname === "/drafts"}
       />
       <TopNavLink
-        icon={<QuickNoteIcon sx={{ fontSize: 16 }} />}
-        title="Quick Note"
+        icon={<NoteIcon sx={{ fontSize: 16 }} />}
+        title="Notes"
         href="/notes"
         tooltipTitle=""
         active={router.pathname === "/notes"}
