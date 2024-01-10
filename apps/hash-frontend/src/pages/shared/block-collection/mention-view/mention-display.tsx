@@ -36,6 +36,8 @@ interface MentionDisplayProps {
   mention: Mention;
 }
 
+const inaccessibleTargetEntityLabel = "inaccessible-target-entity-label";
+
 export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   mention,
 }) => {
@@ -45,6 +47,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     graphResolveDepths: {
       ...zeroedGraphResolveDepths,
       isOfType: { outgoing: 1 },
+      inheritsFrom: { outgoing: 255 },
       hasLeftEntity: { incoming: 1, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 1 },
     },
@@ -94,7 +97,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     }
   }, [entity, entityOwnerShortname]);
 
-  const title = useMemo(() => {
+  const rawTitle = useMemo(() => {
     if (!entitySubgraph) {
       return undefined;
     }
@@ -118,10 +121,9 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
 
       const targetEntity = outgoingLinkAndTargetEntities?.rightEntity[0];
 
-      const targetEntityLabel = generateEntityLabel(
-        entitySubgraph,
-        targetEntity,
-      );
+      const targetEntityLabel = targetEntity
+        ? generateEntityLabel(entitySubgraph, targetEntity)
+        : inaccessibleTargetEntityLabel;
 
       return targetEntityLabel;
     } else {
@@ -132,6 +134,9 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
       return propertyValue?.toString();
     }
   }, [mention, entityId, entitySubgraph, entity, entityLabel]);
+
+  const title =
+    rawTitle === inaccessibleTargetEntityLabel ? "Unknown" : rawTitle;
 
   const href = useMemo(() => {
     if (entity) {
@@ -246,6 +251,22 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     </Box>
   );
 
+  const tooltip =
+    mention.kind === "property-value" ? (
+      <>
+        The value for <strong>{propertyType?.schema.title}</strong> of{" "}
+        <strong>{entityLabel}</strong>
+      </>
+    ) : (
+      <>
+        The target of a <strong>{outgoingLinkType?.schema.title}</strong> link
+        from <strong>{entityLabel}</strong>
+        {rawTitle === inaccessibleTargetEntityLabel
+          ? ", which is in draft, archived, or you do not have permission to view."
+          : ""}
+      </>
+    );
+
   const content = (
     <>
       {hasTooltip ? (
@@ -260,14 +281,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
               },
             ],
           }}
-          title={
-            <>
-              {mention.kind === "property-value"
-                ? propertyType?.schema.title
-                : outgoingLinkType?.schema.title}{" "}
-              of {entityLabel}
-            </>
-          }
+          title={tooltip}
           placement="bottom-start"
         >
           {chip}
@@ -337,7 +351,9 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
                 fontSize: 16,
               }}
             >
-              {entityLabel}
+              {title === inaccessibleTargetEntityLabel
+                ? "Unknown"
+                : entityLabel}
               <LinkIcon />
             </Typography>
           </Link>

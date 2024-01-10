@@ -1,7 +1,10 @@
 use core::{borrow::Borrow, fmt};
-use std::str::FromStr;
+use std::{
+    net::{Ipv4Addr, Ipv6Addr},
+    str::FromStr,
+    sync::OnceLock,
+};
 
-use chrono::{DateTime, NaiveDate};
 use email_address::EmailAddress;
 use error_stack::{bail, ensure, Report, ResultExt};
 use iso8601_duration::Duration;
@@ -10,6 +13,7 @@ use serde_json::Value as JsonValue;
 use thiserror::Error;
 use type_system::{url::VersionedUrl, DataType, DataTypeReference};
 use url::Url;
+use uuid::Uuid;
 
 use crate::{
     error::{Actual, Expected},
@@ -244,13 +248,41 @@ where
     Ok(())
 }
 
+#[expect(clippy::too_many_lines)]
 fn check_format(value: &str, format: &str) -> Result<(), Report<DataValidationError>> {
+    // Only the simplest date format are supported in all three, RFC-3331, ISO-8601 and HTML
+    const DATE_REGEX_STRING: &str = r"(?P<Y>\d{4})-(?P<M>\d{2})-(?P<D>\d{2})";
+    static DATE_REGEX: OnceLock<Regex> = OnceLock::new();
+
+    // Only the simplest time format are supported in all three, RFC-3331, ISO-8601 and HTML
+    const TIME_REGEX_STRING: &str =
+        r"(?P<h>\d{2}):(?P<m>\d{2}):(?P<s>\d{2}(?:\.\d+)?)(?:(?P<Z>[+-]\d{2}):(?P<z>\d{2})|Z)";
+    static TIME_REGEX: OnceLock<Regex> = OnceLock::new();
+
+    static DATE_TIME_REGEX: OnceLock<Regex> = OnceLock::new();
+
     match format {
         "uri" => {
             Url::parse(value)
                 .change_context_lazy(|| DataTypeConstraint::Format {
                     actual: value.to_owned(),
                     format: "uri",
+                })
+                .change_context(DataValidationError::ConstraintUnfulfilled)?;
+        }
+        "uuid" => {
+            Uuid::parse_str(value)
+                .change_context_lazy(|| DataTypeConstraint::Format {
+                    actual: value.to_owned(),
+                    format: "uuid",
+                })
+                .change_context(DataValidationError::ConstraintUnfulfilled)?;
+        }
+        "regex" => {
+            Regex::new(value)
+                .change_context_lazy(|| DataTypeConstraint::Format {
+                    actual: value.to_owned(),
+                    format: "regex",
                 })
                 .change_context(DataValidationError::ConstraintUnfulfilled)?;
         }
@@ -262,21 +294,79 @@ fn check_format(value: &str, format: &str) -> Result<(), Report<DataValidationEr
                 })
                 .change_context(DataValidationError::ConstraintUnfulfilled)?;
         }
-        "date-time" => {
-            DateTime::parse_from_rfc3339(value)
+        "ipv4" => {
+            value
+                .parse::<Ipv4Addr>()
                 .change_context_lazy(|| DataTypeConstraint::Format {
                     actual: value.to_owned(),
-                    format: "date-time",
+                    format: "ipv4",
                 })
                 .change_context(DataValidationError::ConstraintUnfulfilled)?;
         }
-        "date" => {
-            NaiveDate::from_str(value)
+        "ipv6" => {
+            value
+                .parse::<Ipv6Addr>()
                 .change_context_lazy(|| DataTypeConstraint::Format {
                     actual: value.to_owned(),
-                    format: "date",
+                    format: "ipv6",
                 })
                 .change_context(DataValidationError::ConstraintUnfulfilled)?;
+        }
+        "hostname" => {
+            url::Host::parse(value)
+                .change_context_lazy(|| DataTypeConstraint::Format {
+                    actual: value.to_owned(),
+                    format: "hostname",
+                })
+                .change_context(DataValidationError::ConstraintUnfulfilled)?;
+        }
+        "date-time" => {
+            DATE_TIME_REGEX
+                .get_or_init(|| {
+                    Regex::new(&format!("^{DATE_REGEX_STRING}T{TIME_REGEX_STRING}$"))
+                        .expect("failed to compile date-time regex")
+                })
+                .is_match(value)
+                .then_some(())
+                .ok_or_else(|| {
+                    Report::new(DataTypeConstraint::Format {
+                        actual: value.to_owned(),
+                        format: "date-time",
+                    })
+                    .change_context(DataValidationError::ConstraintUnfulfilled)
+                })?;
+        }
+        "date" => {
+            DATE_REGEX
+                .get_or_init(|| {
+                    Regex::new(&format!("^{DATE_REGEX_STRING}$"))
+                        .expect("failed to compile date regex")
+                })
+                .is_match(value)
+                .then_some(())
+                .ok_or_else(|| {
+                    Report::new(DataTypeConstraint::Format {
+                        actual: value.to_owned(),
+                        format: "date",
+                    })
+                    .change_context(DataValidationError::ConstraintUnfulfilled)
+                })?;
+        }
+        "time" => {
+            TIME_REGEX
+                .get_or_init(|| {
+                    Regex::new(&format!("^{TIME_REGEX_STRING}$"))
+                        .expect("failed to compile time regex")
+                })
+                .is_match(value)
+                .then_some(())
+                .ok_or_else(|| {
+                    Report::new(DataTypeConstraint::Format {
+                        actual: value.to_owned(),
+                        format: "time",
+                    })
+                    .change_context(DataValidationError::ConstraintUnfulfilled)
+                })?;
         }
         "duration" => {
             value
@@ -540,6 +630,7 @@ where
 #[cfg(test)]
 mod tests {
     use serde_json::json;
+    use uuid::Uuid;
 
     use crate::{tests::validate_data, ValidationProfile};
 
@@ -574,6 +665,42 @@ mod tests {
         )
         .await
         .expect("validation failed");
+    }
+
+    #[tokio::test]
+    async fn integer() {
+        let integer_type = serde_json::to_string(&json!({
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            "kind": "dataType",
+            "$id": "https://localhost:4000/@alice/types/data-type/integer/v/1",
+            "title": "Integer",
+            "type": "integer"
+        }))
+        .expect("failed to serialize temperature unit type");
+
+        validate_data(json!(10), &integer_type, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        validate_data(json!(-10), &integer_type, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        _ = validate_data(json!(1.0), &integer_type, ValidationProfile::Full)
+            .await
+            .expect_err("validation succeeded");
+
+        _ = validate_data(
+            json!(std::f64::consts::PI),
+            &integer_type,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect_err("validation succeeded");
+
+        _ = validate_data(json!("foo"), &integer_type, ValidationProfile::Full)
+            .await
+            .expect_err("validation succeeded");
     }
 
     #[tokio::test]
@@ -680,7 +807,7 @@ mod tests {
             "type": "string",
             "format": "uri",
         }))
-        .expect("failed to serialize meter type");
+        .expect("failed to serialize uri type");
 
         validate_data(json!("localhost:3000"), &url_type, ValidationProfile::Full)
             .await
@@ -700,6 +827,59 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn uuid() {
+        let uuid_type = serde_json::to_string(&json!({
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            "kind": "dataType",
+            "$id": "https://localhost:4000/@alice/types/data-type/uuid/v/1",
+            "title": "UUID",
+            "type": "string",
+            "format": "uuid",
+        }))
+        .expect("failed to serialize uuid type");
+
+        validate_data(json!(Uuid::nil()), &uuid_type, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        validate_data(
+            json!("00000000-0000-0000-0000-000000000000"),
+            &uuid_type,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect("validation failed");
+
+        validate_data(
+            json!("AC8E0011-84C3-4A7E-872D-1B9F86DB0479"),
+            &uuid_type,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect("validation failed");
+
+        validate_data(
+            json!("urn:uuid:cc2c0477-2fe7-4eb4-af7b-45bfe7d7bb26"),
+            &uuid_type,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect("validation failed");
+
+        validate_data(
+            json!("9544f491598e4c238f6bbb8c1f7d05c9"),
+            &uuid_type,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect("validation failed");
+
+        _ = validate_data(json!("10"), &uuid_type, ValidationProfile::Full)
+            .await
+            .expect_err("validation succeeded");
+    }
+
+    #[tokio::test]
     async fn email() {
         let mail_type = serde_json::to_string(&json!({
             "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -709,7 +889,7 @@ mod tests {
             "type": "string",
             "format": "email",
         }))
-        .expect("failed to serialize meter type");
+        .expect("failed to serialize email type");
 
         validate_data(
             json!("bob@example.com"),
@@ -758,6 +938,174 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn ipv4() {
+        let ipv4_type = serde_json::to_string(&json!({
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            "kind": "dataType",
+            "$id": "https://localhost:4000/@alice/types/data-type/ipv4/v/1",
+            "title": "IPv4",
+            "type": "string",
+            "format": "ipv4",
+        }))
+        .expect("failed to serialize ipv4 type");
+
+        validate_data(json!("127.0.0.1"), &ipv4_type, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        validate_data(json!("0.0.0.0"), &ipv4_type, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        validate_data(
+            json!("255.255.255.255"),
+            &ipv4_type,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect("validation failed");
+
+        _ = validate_data(
+            json!("255.255.255.256"),
+            &ipv4_type,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect_err("validation succeeded");
+
+        _ = validate_data(json!("localhost"), &ipv4_type, ValidationProfile::Full)
+            .await
+            .expect_err("validation succeeded");
+    }
+
+    #[tokio::test]
+    async fn ipv6() {
+        let ipv6_type = serde_json::to_string(&json!({
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            "kind": "dataType",
+            "$id": "https://localhost:4000/@alice/types/data-type/ipv6/v/1",
+            "title": "IPv6",
+            "type": "string",
+            "format": "ipv6",
+        }))
+        .expect("failed to serialize ipv6 type");
+
+        validate_data(json!("::1"), &ipv6_type, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        validate_data(json!("::"), &ipv6_type, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        validate_data(
+            json!("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
+            &ipv6_type,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect("validation failed");
+
+        _ = validate_data(
+            json!("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
+            &ipv6_type,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect_err("validation succeeded");
+
+        _ = validate_data(json!("localhost"), &ipv6_type, ValidationProfile::Full)
+            .await
+            .expect_err("validation succeeded");
+    }
+
+    #[tokio::test]
+    async fn hostname() {
+        let hostname_type = serde_json::to_string(&json!({
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            "kind": "dataType",
+            "$id": "https://localhost:4000/@alice/types/data-type/hostname/v/1",
+            "title": "Hostname",
+            "type": "string",
+            "format": "hostname",
+        }))
+        .expect("failed to serialize hostname type");
+
+        validate_data(json!("localhost"), &hostname_type, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        validate_data(json!("[::1]"), &hostname_type, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        validate_data(json!("127.0.0.1"), &hostname_type, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        validate_data(
+            json!("example.com"),
+            &hostname_type,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect("validation failed");
+
+        validate_data(
+            json!("subdomain.example.com"),
+            &hostname_type,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect("validation failed");
+
+        validate_data(
+            json!("subdomain.example.com."),
+            &hostname_type,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect("validation failed");
+
+        _ = validate_data(
+            json!("localhost:3000"),
+            &hostname_type,
+            ValidationProfile::Full,
+        )
+        .await
+        .expect_err("validation succeeded");
+
+        _ = validate_data(json!("::1"), &hostname_type, ValidationProfile::Full)
+            .await
+            .expect_err("validation succeeded");
+    }
+
+    #[tokio::test]
+    async fn regex() {
+        let regex_type = serde_json::to_string(&json!({
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            "kind": "dataType",
+            "$id": "https://localhost:4000/@alice/types/data-type/regex/v/1",
+            "title": "Regex",
+            "type": "string",
+            "format": "regex",
+        }))
+        .expect("failed to serialize regex type");
+
+        validate_data(json!("^a*$"), &regex_type, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        validate_data(json!("^a+$"), &regex_type, ValidationProfile::Full)
+            .await
+            .expect("validation failed");
+
+        _ = validate_data(json!("("), &regex_type, ValidationProfile::Full)
+            .await
+            .expect_err("validation succeeded");
+    }
+
+    #[tokio::test]
     async fn short_string() {
         let url_type = serde_json::to_string(&json!({
             "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -786,377 +1134,375 @@ mod tests {
     #[tokio::test]
     #[expect(clippy::too_many_lines, reason = "Most lines are just test data")]
     async fn date_time() {
-        // TODO: Allow dates which are allowed in RFC3339
         const VALID_FORMATS: &[&str] = &[
-            "2023-12-22T12:15:01Z",
-            "2023-12-22T12:15:01.1Z",
-            "2023-12-22T12:15:01.18Z",
-            "2023-12-22T12:15:01.187Z",
-            "2023-12-22T12:15:01.187226Z",
-            "2023-12-22T13:15:01+01:00",
-            "2023-12-22T13:15:01.187+01:00",
-            "2023-12-22T13:15:01.187226+01:00",
-            "2023-12-22T12:15:01-00:00",
-            "2023-12-22T12:15:01.187-00:00",
-            "2023-12-22T21:00:01+08:45",
-            "2023-12-22T12:15:01+00:00",
-            "2023-12-22T12:15:01.187+00:00",
-            "2023-12-22t12:15:01z",
-            "2023-12-22t12:15:01.187z",
-            "2023-12-22 13:15:01+01:00",
-            "2023-12-22 13:15:01.1+01:00",
-            "2023-12-22 13:15:01.18+01:00",
-            "2023-12-22 13:15:01.187+01:00",
-            "2023-12-22 13:15:01.187226+01:00",
-            "2023-12-22 12:15:01Z",
-            "2023-12-22 12:15:01z",
-            "2023-12-22 12:15:01.1Z",
-            "2023-12-22 12:15:01.18Z",
-            "2023-12-22 12:15:01.187Z",
-            "2023-12-22 12:15:01.187226Z",
-            "2023-12-22 12:15:01.187z",
-            "2023-12-22 12:15:01.187226z",
-            "2023-12-22 12:15:01-00:00",
-            "2023-12-22 12:15:01.187-00:00",
-            // "2023-12-22_12:15:01Z",
-            // "2023-12-22_12:15:01z",
-            // "2023-12-22_12:15:01.187Z",
-            // "2023-12-22_12:15:01.187226Z",
-            // "2023-12-22_12:15:01.187z",
-            // "2023-12-22_12:15:01.187226z",
+            "2023-12-22T17:48:15Z",             // %Y-%M-%DT%h:%m:%sZ
+            "2023-12-22T17:48:15.0Z",           // %Y-%M-%DT%h:%m:%.1sZ
+            "2023-12-22T17:48:15.08Z",          // %Y-%M-%DT%h:%m:%.2sZ
+            "2023-12-22T17:48:15.083Z",         // %Y-%M-%DT%h:%m:%.3sZ
+            "2023-12-22T17:48:15.083212Z",      // %Y-%M-%DT%h:%m:%s.%uZ
+            "2023-12-22T18:48:15.083212+01:00", // %Y-%M-%DT%h:%m:%s.%u%Z:%z
+            "2023-12-22T18:48:15+01:00",        // %Y-%M-%DT%h:%m:%s%Z:%z
+            "2023-12-22T18:48:15.083+01:00",    // %Y-%M-%DT%h:%m:%.3s%Z:%z
+            "2023-12-23T02:33:15+08:45",        // %Y-%M-%DT%h:%m:%s+08:45
+            "2023-12-22T17:48:15+00:00",        // %Y-%M-%DT%h:%m:%s+00:00
+            "2023-12-22T18:48:15.0+01:00",      // %Y-%M-%DT%h:%m:%.1s%Z:%z
+            "2023-12-22T18:48:15.08+01:00",     // %Y-%M-%DT%h:%m:%.2s%Z:%z
+            "2023-12-22T17:48:15.083+00:00",    // %Y-%M-%DT%h:%m:%.3s+00:00
+            "2023-12-22T17:48:15-00:00",        // %Y-%M-%DT%h:%m:%s-00:00
+            "2023-12-22T17:48:15.083-00:00",    // %Y-%M-%DT%h:%m:%.3s-00:00
         ];
 
-        // TODO: A few formats were validated as valid but are not valid according to RFC3339:
-        //       - "2023-12-22T13:58:26.9+01:00" (%Y-%M-%DT%h:%m:%.1s%Z:%z)
-        //       - "2023-12-22T13:58:26.95+01:00" (%Y-%M-%DT%h:%m:%.2s%Z:%z)
         const INVALID_FORMATS: &[&str] = &[
-            "2023-12-22T13",                    // %Y-%M-%DT%h
-            "2023-12-22T13,9",                  // %Y-%M-%DT%,1h
-            "2023-12-22T13.9",                  // %Y-%M-%DT%.1h
-            "2023-12-22T13:58",                 // %Y-%M-%DT%h:%m
-            "2023-12-22T13:58,4",               // %Y-%M-%DT%h:%,1m
-            "2023-12-22T13:58.4",               // %Y-%M-%DT%h:%.1m
-            "2023-12-22T13:58:26",              // %Y-%M-%DT%h:%m:%s
-            "2023-12-22T13:58:26.9",            // %Y-%M-%DT%h:%m:%.1s
-            "2023-12-22T13:58:26.95",           // %Y-%M-%DT%h:%m:%.2s
-            "2023-12-22T13:58:26,950",          // %Y-%M-%DT%h:%m:%,3s
-            "2023-12-22T13:58:26.950",          // %Y-%M-%DT%h:%m:%.3s
-            "2023-12-22T13:58:26,950086",       // %Y-%M-%DT%h:%m:%s,%u
-            "2023-12-22T13:58:26.950086",       // %Y-%M-%DT%h:%m:%s.%u
-            "2023-12-22T12Z",                   // %Y-%M-%DT%hZ
-            "2023-12-22T12,9Z",                 // %Y-%M-%DT%,1hZ
-            "2023-12-22T12.9Z",                 // %Y-%M-%DT%.1hZ
-            "2023-12-22T12:58Z",                // %Y-%M-%DT%h:%mZ
-            "2023-12-22T12:58,4Z",              // %Y-%M-%DT%h:%,1mZ
-            "2023-12-22T12:58.4Z",              // %Y-%M-%DT%h:%.1mZ
-            "2023-12-22T12:58:26,950Z",         // %Y-%M-%DT%h:%m:%,3sZ
-            "2023-12-22T12:58:26,950086Z",      // %Y-%M-%DT%h:%m:%s,%uZ
-            "2023-12-22T13+01",                 // %Y-%M-%DT%h%Z
-            "2023-12-22T13,9+01",               // %Y-%M-%DT%,1h%Z
-            "2023-12-22T13.9+01",               // %Y-%M-%DT%.1h%Z
-            "2023-12-22T13:58+01",              // %Y-%M-%DT%h:%m%Z
-            "2023-12-22T13:58,4+01",            // %Y-%M-%DT%h:%,1m%Z
-            "2023-12-22T13:58.4+01",            // %Y-%M-%DT%h:%.1m%Z
-            "2023-12-22T13:58:26+01",           // %Y-%M-%DT%h:%m:%s%Z
-            "2023-12-22T13:58:26.9+01",         // %Y-%M-%DT%h:%m:%.1s%Z
-            "2023-12-22T13:58:26.95+01",        // %Y-%M-%DT%h:%m:%.2s%Z
-            "2023-12-22T13:58:26,950+01",       // %Y-%M-%DT%h:%m:%,3s%Z
-            "2023-12-22T13:58:26.950+01",       // %Y-%M-%DT%h:%m:%.3s%Z
-            "2023-12-22T13:58:26,950086+01",    // %Y-%M-%DT%h:%m:%s,%u%Z
-            "2023-12-22T13:58:26.950086+01",    // %Y-%M-%DT%h:%m:%s.%u%Z
-            "2023-12-22T13+01:00",              // %Y-%M-%DT%h%Z:%z
-            "2023-12-22T13,9+01:00",            // %Y-%M-%DT%,1h%Z:%z
-            "2023-12-22T13.9+01:00",            // %Y-%M-%DT%.1h%Z:%z
-            "2023-12-22T13:58+01:00",           // %Y-%M-%DT%h:%m%Z:%z
-            "2023-12-22T13:58,4+01:00",         // %Y-%M-%DT%h:%,1m%Z:%z
-            "2023-12-22T13:58.4+01:00",         // %Y-%M-%DT%h:%.1m%Z:%z
-            "2023-12-22T13:58:26,950+01:00",    // %Y-%M-%DT%h:%m:%,3s%Z:%z
-            "2023-12-22T13:58:26,950086+01:00", // %Y-%M-%DT%h:%m:%s,%u%Z:%z
-            "2023-W51-5T13",                    // %V-W%W-%wT%h
-            "2023-W51-5T13,9",                  // %V-W%W-%wT%,1h
-            "2023-W51-5T13.9",                  // %V-W%W-%wT%.1h
-            "2023-W51-5T13:58",                 // %V-W%W-%wT%h:%m
-            "2023-W51-5T13:58,4",               // %V-W%W-%wT%h:%,1m
-            "2023-W51-5T13:58.4",               // %V-W%W-%wT%h:%.1m
-            "2023-W51-5T13:58:26",              // %V-W%W-%wT%h:%m:%s
-            "2023-W51-5T13:58:26.9",            // %V-W%W-%wT%h:%m:%.1s
-            "2023-W51-5T13:58:26.95",           // %V-W%W-%wT%h:%m:%.2s
-            "2023-W51-5T13:58:26,950",          // %V-W%W-%wT%h:%m:%,3s
-            "2023-W51-5T13:58:26.950",          // %V-W%W-%wT%h:%m:%.3s
-            "2023-W51-5T13:58:26,950086",       // %V-W%W-%wT%h:%m:%s,%u
-            "2023-W51-5T13:58:26.950086",       // %V-W%W-%wT%h:%m:%s.%u
-            "2023-W51-5T12Z",                   // %V-W%W-%wT%hZ
-            "2023-W51-5T12,9Z",                 // %V-W%W-%wT%,1hZ
-            "2023-W51-5T12.9Z",                 // %V-W%W-%wT%.1hZ
-            "2023-W51-5T12:58Z",                // %V-W%W-%wT%h:%mZ
-            "2023-W51-5T12:58,4Z",              // %V-W%W-%wT%h:%,1mZ
-            "2023-W51-5T12:58.4Z",              // %V-W%W-%wT%h:%.1mZ
-            "2023-W51-5T12:58:26Z",             // %V-W%W-%wT%h:%m:%sZ
-            "2023-W51-5T12:58:26.9Z",           // %V-W%W-%wT%h:%m:%.1sZ
-            "2023-W51-5T12:58:26.95Z",          // %V-W%W-%wT%h:%m:%.2sZ
-            "2023-W51-5T12:58:26,950Z",         // %V-W%W-%wT%h:%m:%,3sZ
-            "2023-W51-5T12:58:26.950Z",         // %V-W%W-%wT%h:%m:%.3sZ
-            "2023-W51-5T12:58:26,950086Z",      // %V-W%W-%wT%h:%m:%s,%uZ
-            "2023-W51-5T12:58:26.950086Z",      // %V-W%W-%wT%h:%m:%s.%uZ
-            "2023-W51-5T13+01",                 // %V-W%W-%wT%h%Z
-            "2023-W51-5T13,9+01",               // %V-W%W-%wT%,1h%Z
-            "2023-W51-5T13.9+01",               // %V-W%W-%wT%.1h%Z
-            "2023-W51-5T13:58+01",              // %V-W%W-%wT%h:%m%Z
-            "2023-W51-5T13:58,4+01",            // %V-W%W-%wT%h:%,1m%Z
-            "2023-W51-5T13:58.4+01",            // %V-W%W-%wT%h:%.1m%Z
-            "2023-W51-5T13:58:26+01",           // %V-W%W-%wT%h:%m:%s%Z
-            "2023-W51-5T13:58:26.9+01",         // %V-W%W-%wT%h:%m:%.1s%Z
-            "2023-W51-5T13:58:26.95+01",        // %V-W%W-%wT%h:%m:%.2s%Z
-            "2023-W51-5T13:58:26,950+01",       // %V-W%W-%wT%h:%m:%,3s%Z
-            "2023-W51-5T13:58:26.950+01",       // %V-W%W-%wT%h:%m:%.3s%Z
-            "2023-W51-5T13:58:26,950086+01",    // %V-W%W-%wT%h:%m:%s,%u%Z
-            "2023-W51-5T13:58:26.950086+01",    // %V-W%W-%wT%h:%m:%s.%u%Z
-            "2023-W51-5T13+01:00",              // %V-W%W-%wT%h%Z:%z
-            "2023-W51-5T13,9+01:00",            // %V-W%W-%wT%,1h%Z:%z
-            "2023-W51-5T13.9+01:00",            // %V-W%W-%wT%.1h%Z:%z
-            "2023-W51-5T13:58+01:00",           // %V-W%W-%wT%h:%m%Z:%z
-            "2023-W51-5T13:58,4+01:00",         // %V-W%W-%wT%h:%,1m%Z:%z
-            "2023-W51-5T13:58.4+01:00",         // %V-W%W-%wT%h:%.1m%Z:%z
-            "2023-W51-5T13:58:26+01:00",        // %V-W%W-%wT%h:%m:%s%Z:%z
-            "2023-W51-5T13:58:26.9+01:00",      // %V-W%W-%wT%h:%m:%.1s%Z:%z
-            "2023-W51-5T13:58:26.95+01:00",     // %V-W%W-%wT%h:%m:%.2s%Z:%z
-            "2023-W51-5T13:58:26,950+01:00",    // %V-W%W-%wT%h:%m:%,3s%Z:%z
-            "2023-W51-5T13:58:26.950+01:00",    // %V-W%W-%wT%h:%m:%.3s%Z:%z
-            "2023-W51-5T13:58:26,950086+01:00", // %V-W%W-%wT%h:%m:%s,%u%Z:%z
-            "2023-W51-5T13:58:26.950086+01:00", // %V-W%W-%wT%h:%m:%s.%u%Z:%z
-            "2023-356T13",                      // %Y-%OT%h
-            "2023-356T13,9",                    // %Y-%OT%,1h
-            "2023-356T13.9",                    // %Y-%OT%.1h
-            "2023-356T13:58",                   // %Y-%OT%h:%m
-            "2023-356T13:58,4",                 // %Y-%OT%h:%,1m
-            "2023-356T13:58.4",                 // %Y-%OT%h:%.1m
-            "2023-356T13:58:26",                // %Y-%OT%h:%m:%s
-            "2023-356T13:58:26.9",              // %Y-%OT%h:%m:%.1s
-            "2023-356T13:58:26.95",             // %Y-%OT%h:%m:%.2s
-            "2023-356T13:58:26,950",            // %Y-%OT%h:%m:%,3s
-            "2023-356T13:58:26.950",            // %Y-%OT%h:%m:%.3s
-            "2023-356T13:58:26,950086",         // %Y-%OT%h:%m:%s,%u
-            "2023-356T13:58:26.950086",         // %Y-%OT%h:%m:%s.%u
-            "2023-356T12Z",                     // %Y-%OT%hZ
-            "2023-356T12,9Z",                   // %Y-%OT%,1hZ
-            "2023-356T12.9Z",                   // %Y-%OT%.1hZ
-            "2023-356T12:58Z",                  // %Y-%OT%h:%mZ
-            "2023-356T12:58,4Z",                // %Y-%OT%h:%,1mZ
-            "2023-356T12:58.4Z",                // %Y-%OT%h:%.1mZ
-            "2023-356T12:58:26Z",               // %Y-%OT%h:%m:%sZ
-            "2023-356T12:58:26.9Z",             // %Y-%OT%h:%m:%.1sZ
-            "2023-356T12:58:26.95Z",            // %Y-%OT%h:%m:%.2sZ
-            "2023-356T12:58:26,950Z",           // %Y-%OT%h:%m:%,3sZ
-            "2023-356T12:58:26.950Z",           // %Y-%OT%h:%m:%.3sZ
-            "2023-356T12:58:26,950086Z",        // %Y-%OT%h:%m:%s,%uZ
-            "2023-356T12:58:26.950086Z",        // %Y-%OT%h:%m:%s.%uZ
-            "2023-356T13+01",                   // %Y-%OT%h%Z
-            "2023-356T13,9+01",                 // %Y-%OT%,1h%Z
-            "2023-356T13.9+01",                 // %Y-%OT%.1h%Z
-            "2023-356T13:58+01",                // %Y-%OT%h:%m%Z
-            "2023-356T13:58,4+01",              // %Y-%OT%h:%,1m%Z
-            "2023-356T13:58.4+01",              // %Y-%OT%h:%.1m%Z
-            "2023-356T13:58:26+01",             // %Y-%OT%h:%m:%s%Z
-            "2023-356T13:58:26.9+01",           // %Y-%OT%h:%m:%.1s%Z
-            "2023-356T13:58:26.95+01",          // %Y-%OT%h:%m:%.2s%Z
-            "2023-356T13:58:26,950+01",         // %Y-%OT%h:%m:%,3s%Z
-            "2023-356T13:58:26.950+01",         // %Y-%OT%h:%m:%.3s%Z
-            "2023-356T13:58:26,950086+01",      // %Y-%OT%h:%m:%s,%u%Z
-            "2023-356T13:58:26.950086+01",      // %Y-%OT%h:%m:%s.%u%Z
-            "2023-356T13+01:00",                // %Y-%OT%h%Z:%z
-            "2023-356T13,9+01:00",              // %Y-%OT%,1h%Z:%z
-            "2023-356T13.9+01:00",              // %Y-%OT%.1h%Z:%z
-            "2023-356T13:58+01:00",             // %Y-%OT%h:%m%Z:%z
-            "2023-356T13:58,4+01:00",           // %Y-%OT%h:%,1m%Z:%z
-            "2023-356T13:58.4+01:00",           // %Y-%OT%h:%.1m%Z:%z
-            "2023-356T13:58:26+01:00",          // %Y-%OT%h:%m:%s%Z:%z
-            "2023-356T13:58:26.9+01:00",        // %Y-%OT%h:%m:%.1s%Z:%z
-            "2023-356T13:58:26.95+01:00",       // %Y-%OT%h:%m:%.2s%Z:%z
-            "2023-356T13:58:26,950+01:00",      // %Y-%OT%h:%m:%,3s%Z:%z
-            "2023-356T13:58:26.950+01:00",      // %Y-%OT%h:%m:%.3s%Z:%z
-            "2023-356T13:58:26,950086+01:00",   // %Y-%OT%h:%m:%s,%u%Z:%z
-            "2023-356T13:58:26.950086+01:00",   // %Y-%OT%h:%m:%s.%u%Z:%z
-            "20231222T13",                      // %Y%M%DT%h
-            "20231222T13,9",                    // %Y%M%DT%,1h
-            "20231222T13.9",                    // %Y%M%DT%.1h
-            "20231222T1358",                    // %Y%M%DT%h%m
-            "20231222T1358,4",                  // %Y%M%DT%h%,1m
-            "20231222T1358.4",                  // %Y%M%DT%h%.1m
-            "20231222T135826",                  // %Y%M%DT%h%m%s
-            "20231222T135826.9",                // %Y%M%DT%h%m%.1s
-            "20231222T135826.95",               // %Y%M%DT%h%m%.2s
-            "20231222T135826,950",              // %Y%M%DT%h%m%,3s
-            "20231222T135826.950",              // %Y%M%DT%h%m%.3s
-            "20231222T135826,950086",           // %Y%M%DT%h%m%s,%u
-            "20231222T135826.950086",           // %Y%M%DT%h%m%s.%u
-            "20231222T12Z",                     // %Y%M%DT%hZ
-            "20231222T12,9Z",                   // %Y%M%DT%,1hZ
-            "20231222T12.9Z",                   // %Y%M%DT%.1hZ
-            "20231222T1258Z",                   // %Y%M%DT%h%mZ
-            "20231222T1258,4Z",                 // %Y%M%DT%h%,1mZ
-            "20231222T1258.4Z",                 // %Y%M%DT%h%.1mZ
-            "20231222T125826Z",                 // %Y%M%DT%h%m%sZ
-            "20231222T125826.9Z",               // %Y%M%DT%h%m%.1sZ
-            "20231222T125826.95Z",              // %Y%M%DT%h%m%.2sZ
-            "20231222T125826,950Z",             // %Y%M%DT%h%m%,3sZ
-            "20231222T125826.950Z",             // %Y%M%DT%h%m%.3sZ
-            "20231222T125826,950086Z",          // %Y%M%DT%h%m%s,%uZ
-            "20231222T125826.950086Z",          // %Y%M%DT%h%m%s.%uZ
-            "20231222T13+01",                   // %Y%M%DT%h%Z
-            "20231222T13,9+01",                 // %Y%M%DT%,1h%Z
-            "20231222T13.9+01",                 // %Y%M%DT%.1h%Z
-            "20231222T1358+01",                 // %Y%M%DT%h%m%Z
-            "20231222T1358,4+01",               // %Y%M%DT%h%,1m%Z
-            "20231222T1358.4+01",               // %Y%M%DT%h%.1m%Z
-            "20231222T135826+01",               // %Y%M%DT%h%m%s%Z
-            "20231222T135826.9+01",             // %Y%M%DT%h%m%.1s%Z
-            "20231222T135826.95+01",            // %Y%M%DT%h%m%.2s%Z
-            "20231222T135826,950+01",           // %Y%M%DT%h%m%,3s%Z
-            "20231222T135826.950+01",           // %Y%M%DT%h%m%.3s%Z
-            "20231222T135826,950086+01",        // %Y%M%DT%h%m%s,%u%Z
-            "20231222T135826.950086+01",        // %Y%M%DT%h%m%s.%u%Z
-            "20231222T13+0100",                 // %Y%M%DT%h%Z%z
-            "20231222T13,9+0100",               // %Y%M%DT%,1h%Z%z
-            "20231222T13.9+0100",               // %Y%M%DT%.1h%Z%z
-            "20231222T1358+0100",               // %Y%M%DT%h%m%Z%z
-            "20231222T1358,4+0100",             // %Y%M%DT%h%,1m%Z%z
-            "20231222T1358.4+0100",             // %Y%M%DT%h%.1m%Z%z
-            "20231222T135826+0100",             // %Y%M%DT%h%m%s%Z%z
-            "20231222T135826.9+0100",           // %Y%M%DT%h%m%.1s%Z%z
-            "20231222T135826.95+0100",          // %Y%M%DT%h%m%.2s%Z%z
-            "20231222T135826,950+0100",         // %Y%M%DT%h%m%,3s%Z%z
-            "20231222T135826.950+0100",         // %Y%M%DT%h%m%.3s%Z%z
-            "20231222T135826,950086+0100",      // %Y%M%DT%h%m%s,%u%Z%z
-            "20231222T135826.950086+0100",      // %Y%M%DT%h%m%s.%u%Z%z
-            "2023W515T13",                      // %VW%W%wT%h
-            "2023W515T13,9",                    // %VW%W%wT%,1h
-            "2023W515T13.9",                    // %VW%W%wT%.1h
-            "2023W515T1358",                    // %VW%W%wT%h%m
-            "2023W515T1358,4",                  // %VW%W%wT%h%,1m
-            "2023W515T1358.4",                  // %VW%W%wT%h%.1m
-            "2023W515T135826",                  // %VW%W%wT%h%m%s
-            "2023W515T135826.9",                // %VW%W%wT%h%m%.1s
-            "2023W515T135826.95",               // %VW%W%wT%h%m%.2s
-            "2023W515T135826,950",              // %VW%W%wT%h%m%,3s
-            "2023W515T135826.950",              // %VW%W%wT%h%m%.3s
-            "2023W515T135826,950086",           // %VW%W%wT%h%m%s,%u
-            "2023W515T135826.950086",           // %VW%W%wT%h%m%s.%u
-            "2023W515T12Z",                     // %VW%W%wT%hZ
-            "2023W515T12,9Z",                   // %VW%W%wT%,1hZ
-            "2023W515T12.9Z",                   // %VW%W%wT%.1hZ
-            "2023W515T1258Z",                   // %VW%W%wT%h%mZ
-            "2023W515T1258,4Z",                 // %VW%W%wT%h%,1mZ
-            "2023W515T1258.4Z",                 // %VW%W%wT%h%.1mZ
-            "2023W515T125826Z",                 // %VW%W%wT%h%m%sZ
-            "2023W515T125826.9Z",               // %VW%W%wT%h%m%.1sZ
-            "2023W515T125826.95Z",              // %VW%W%wT%h%m%.2sZ
-            "2023W515T125826,950Z",             // %VW%W%wT%h%m%,3sZ
-            "2023W515T125826.950Z",             // %VW%W%wT%h%m%.3sZ
-            "2023W515T125826,950086Z",          // %VW%W%wT%h%m%s,%uZ
-            "2023W515T125826.950086Z",          // %VW%W%wT%h%m%s.%uZ
-            "2023W515T13+01",                   // %VW%W%wT%h%Z
-            "2023W515T13,9+01",                 // %VW%W%wT%,1h%Z
-            "2023W515T13.9+01",                 // %VW%W%wT%.1h%Z
-            "2023W515T1358+01",                 // %VW%W%wT%h%m%Z
-            "2023W515T1358,4+01",               // %VW%W%wT%h%,1m%Z
-            "2023W515T1358.4+01",               // %VW%W%wT%h%.1m%Z
-            "2023W515T135826+01",               // %VW%W%wT%h%m%s%Z
-            "2023W515T135826.9+01",             // %VW%W%wT%h%m%.1s%Z
-            "2023W515T135826.95+01",            // %VW%W%wT%h%m%.2s%Z
-            "2023W515T135826,950+01",           // %VW%W%wT%h%m%,3s%Z
-            "2023W515T135826.950+01",           // %VW%W%wT%h%m%.3s%Z
-            "2023W515T135826,950086+01",        // %VW%W%wT%h%m%s,%u%Z
-            "2023W515T135826.950086+01",        // %VW%W%wT%h%m%s.%u%Z
-            "2023W515T13+0100",                 // %VW%W%wT%h%Z%z
-            "2023W515T13,9+0100",               // %VW%W%wT%,1h%Z%z
-            "2023W515T13.9+0100",               // %VW%W%wT%.1h%Z%z
-            "2023W515T1358+0100",               // %VW%W%wT%h%m%Z%z
-            "2023W515T1358,4+0100",             // %VW%W%wT%h%,1m%Z%z
-            "2023W515T1358.4+0100",             // %VW%W%wT%h%.1m%Z%z
-            "2023W515T135826+0100",             // %VW%W%wT%h%m%s%Z%z
-            "2023W515T135826.9+0100",           // %VW%W%wT%h%m%.1s%Z%z
-            "2023W515T135826.95+0100",          // %VW%W%wT%h%m%.2s%Z%z
-            "2023W515T135826,950+0100",         // %VW%W%wT%h%m%,3s%Z%z
-            "2023W515T135826.950+0100",         // %VW%W%wT%h%m%.3s%Z%z
-            "2023W515T135826,950086+0100",      // %VW%W%wT%h%m%s,%u%Z%z
-            "2023W515T135826.950086+0100",      // %VW%W%wT%h%m%s.%u%Z%z
-            "2023356T13",                       // %Y%OT%h
-            "2023356T13,9",                     // %Y%OT%,1h
-            "2023356T13.9",                     // %Y%OT%.1h
-            "2023356T1358",                     // %Y%OT%h%m
-            "2023356T1358,4",                   // %Y%OT%h%,1m
-            "2023356T1358.4",                   // %Y%OT%h%.1m
-            "2023356T135826",                   // %Y%OT%h%m%s
-            "2023356T135826.9",                 // %Y%OT%h%m%.1s
-            "2023356T135826.95",                // %Y%OT%h%m%.2s
-            "2023356T135826,950",               // %Y%OT%h%m%,3s
-            "2023356T135826.950",               // %Y%OT%h%m%.3s
-            "2023356T135826,950086",            // %Y%OT%h%m%s,%u
-            "2023356T135826.950086",            // %Y%OT%h%m%s.%u
-            "2023356T12Z",                      // %Y%OT%hZ
-            "2023356T12,9Z",                    // %Y%OT%,1hZ
-            "2023356T12.9Z",                    // %Y%OT%.1hZ
-            "2023356T1258Z",                    // %Y%OT%h%mZ
-            "2023356T1258,4Z",                  // %Y%OT%h%,1mZ
-            "2023356T1258.4Z",                  // %Y%OT%h%.1mZ
-            "2023356T125826Z",                  // %Y%OT%h%m%sZ
-            "2023356T125826.9Z",                // %Y%OT%h%m%.1sZ
-            "2023356T125826.95Z",               // %Y%OT%h%m%.2sZ
-            "2023356T125826,950Z",              // %Y%OT%h%m%,3sZ
-            "2023356T125826.950Z",              // %Y%OT%h%m%.3sZ
-            "2023356T125826,950086Z",           // %Y%OT%h%m%s,%uZ
-            "2023356T125826.950086Z",           // %Y%OT%h%m%s.%uZ
-            "2023356T13+01",                    // %Y%OT%h%Z
-            "2023356T13,9+01",                  // %Y%OT%,1h%Z
-            "2023356T13.9+01",                  // %Y%OT%.1h%Z
-            "2023356T1358+01",                  // %Y%OT%h%m%Z
-            "2023356T1358,4+01",                // %Y%OT%h%,1m%Z
-            "2023356T1358.4+01",                // %Y%OT%h%.1m%Z
-            "2023356T135826+01",                // %Y%OT%h%m%s%Z
-            "2023356T135826.9+01",              // %Y%OT%h%m%.1s%Z
-            "2023356T135826.95+01",             // %Y%OT%h%m%.2s%Z
-            "2023356T135826,950+01",            // %Y%OT%h%m%,3s%Z
-            "2023356T135826.950+01",            // %Y%OT%h%m%.3s%Z
-            "2023356T135826,950086+01",         // %Y%OT%h%m%s,%u%Z
-            "2023356T135826.950086+01",         // %Y%OT%h%m%s.%u%Z
-            "2023356T13+0100",                  // %Y%OT%h%Z%z
-            "2023356T13,9+0100",                // %Y%OT%,1h%Z%z
-            "2023356T13.9+0100",                // %Y%OT%.1h%Z%z
-            "2023356T1358+0100",                // %Y%OT%h%m%Z%z
-            "2023356T1358,4+0100",              // %Y%OT%h%,1m%Z%z
-            "2023356T1358.4+0100",              // %Y%OT%h%.1m%Z%z
-            "2023356T135826+0100",              // %Y%OT%h%m%s%Z%z
-            "2023356T135826.9+0100",            // %Y%OT%h%m%.1s%Z%z
-            "2023356T135826.95+0100",           // %Y%OT%h%m%.2s%Z%z
-            "2023356T135826,950+0100",          // %Y%OT%h%m%,3s%Z%z
-            "2023356T135826.950+0100",          // %Y%OT%h%m%.3s%Z%z
-            "2023356T135826,950086+0100",       // %Y%OT%h%m%s,%u%Z%z
-            "2023356T135826.950086+0100",       // %Y%OT%h%m%s.%u%Z%z
-            "2023-12-22T20:58:26+08",           // %Y-%M-%DT%h:%m:%s+08
-            "2023-12-22T00-12",                 // %Y-%M-%DT%h-12
-            "2023-12-22T00-12:00",              // %Y-%M-%DT%h-12:00
-            "2023-12-22T00:58-12",              // %Y-%M-%DT%h:%m-12
-            "2023-12-22T00:58-12:00",           // %Y-%M-%DT%h:%m-12:00
-            "2023-12-22 13:58",                 // %Y-%M-%D %h:%m
-            "2023-12-22 13:58:26",              // %Y-%M-%D %h:%m:%s
-            "2023-12-22 13:58:26.9",            // %Y-%M-%D %h:%m:%.1s
-            "2023-12-22 13:58:26.95",           // %Y-%M-%D %h:%m:%.2s
-            "2023-12-22 13:58:26.950",          // %Y-%M-%D %h:%m:%.3s
-            "2023-12-22 12:58Z",                // %Y-%M-%D %h:%mZ
-            "2023-12-22 13:58+01:00",           // %Y-%M-%D %h:%m%Z:%z
-            "2023-12-22T13:58+0100",            // %Y-%M-%DT%h:%m%Z%z
-            "2023-12-22T13:58:26+0100",         // %Y-%M-%DT%h:%m:%s%Z%z
-            "2023-12-22T13:58:26.9+0100",       // %Y-%M-%DT%h:%m:%.1s%Z%z
-            "2023-12-22T13:58:26.95+0100",      // %Y-%M-%DT%h:%m:%.2s%Z%z
-            "2023-12-22T13:58:26.950+0100",     // %Y-%M-%DT%h:%m:%.3s%Z%z
-            "2023-12-22 13:58+0100",            // %Y-%M-%D %h:%m%Z%z
-            "2023-12-22 13:58:26+0100",         // %Y-%M-%D %h:%m:%s%Z%z
-            "2023-12-22 13:58:26.9+0100",       // %Y-%M-%D %h:%m:%.1s%Z%z
-            "2023-12-22 13:58:26.95+0100",      // %Y-%M-%D %h:%m:%.2s%Z%z
-            "2023-12-22 13:58:26.950+0100",     // %Y-%M-%D %h:%m:%.3s%Z%z
-            "2023-12-22T21:43:26+0845",         // %Y-%M-%DT%h:%m:%s+0845
-            "2023-12-22T12:58:26+0000",         // %Y-%M-%DT%h:%m:%s+0000
-            "2023-12-22T13:00:58.950+0000",     // %Y-%M-%DT%h:%m:%.3s+0000
+            "2023-12-22t17:48:15z",             // %Y-%M-%Dt%h:%m:%sz
+            "2023-12-22t17:48:15.083z",         // %Y-%M-%Dt%h:%m:%.3sz
+            "2023-12-22 18:48:15+01:00",        // %Y-%M-%D %h:%m:%s%Z:%z
+            "2023-12-22 18:48:15.0+01:00",      // %Y-%M-%D %h:%m:%.1s%Z:%z
+            "2023-12-22 18:48:15.08+01:00",     // %Y-%M-%D %h:%m:%.2s%Z:%z
+            "2023-12-22 18:48:15.083+01:00",    // %Y-%M-%D %h:%m:%.3s%Z:%z
+            "2023-12-22 18:48:15.083212+01:00", // %Y-%M-%D %h:%m:%s.%u%Z:%z
+            "2023-12-22 17:48:15Z",             // %Y-%M-%D %h:%m:%sZ
+            "2023-12-22 17:48:15z",             // %Y-%M-%D %h:%m:%sz
+            "2023-12-22 17:48:15.0Z",           // %Y-%M-%D %h:%m:%.1sZ
+            "2023-12-22 17:48:15.08Z",          // %Y-%M-%D %h:%m:%.2sZ
+            "2023-12-22 17:48:15.083Z",         // %Y-%M-%D %h:%m:%.3sZ
+            "2023-12-22 17:48:15.083212Z",      // %Y-%M-%D %h:%m:%s.%uZ
+            "2023-12-22 17:48:15.083z",         // %Y-%M-%D %h:%m:%.3sz
+            "2023-12-22 17:48:15.083212z",      // %Y-%M-%D %h:%m:%s.%uz
+            "2023-12-22 17:48:15-00:00",        // %Y-%M-%D %h:%m:%s-00:00
+            "2023-12-22 17:48:15.083-00:00",    // %Y-%M-%D %h:%m:%.3s-00:00
+            "2023-12-22_17:48:15Z",             // %Y-%M-%D_%h:%m:%sZ
+            "2023-12-22_17:48:15z",             // %Y-%M-%D_%h:%m:%sz
+            "2023-12-22_17:48:15.083Z",         // %Y-%M-%D_%h:%m:%.3sZ
+            "2023-12-22_17:48:15.083212Z",      // %Y-%M-%D_%h:%m:%s.%uZ
+            "2023-12-22_17:48:15.083z",         // %Y-%M-%D_%h:%m:%.3sz
+            "2023-12-22_17:48:15.083212z",      // %Y-%M-%D_%h:%m:%s.%uz
+            "2023-12-22T18",                    // %Y-%M-%DT%h
+            "2023-12-22T18,8",                  // %Y-%M-%DT%,1h
+            "2023-12-22T18.8",                  // %Y-%M-%DT%.1h
+            "2023-12-22T18:48",                 // %Y-%M-%DT%h:%m
+            "2023-12-22T18:48,2",               // %Y-%M-%DT%h:%,1m
+            "2023-12-22T18:48.2",               // %Y-%M-%DT%h:%.1m
+            "2023-12-22T18:48:15",              // %Y-%M-%DT%h:%m:%s
+            "2023-12-22T18:48:15.0",            // %Y-%M-%DT%h:%m:%.1s
+            "2023-12-22T18:48:15.08",           // %Y-%M-%DT%h:%m:%.2s
+            "2023-12-22T18:48:15,083",          // %Y-%M-%DT%h:%m:%,3s
+            "2023-12-22T18:48:15.083",          // %Y-%M-%DT%h:%m:%.3s
+            "2023-12-22T18:48:15,083212",       // %Y-%M-%DT%h:%m:%s,%u
+            "2023-12-22T18:48:15.083212",       // %Y-%M-%DT%h:%m:%s.%u
+            "2023-12-22T17Z",                   // %Y-%M-%DT%hZ
+            "2023-12-22T17,8Z",                 // %Y-%M-%DT%,1hZ
+            "2023-12-22T17.8Z",                 // %Y-%M-%DT%.1hZ
+            "2023-12-22T17:48Z",                // %Y-%M-%DT%h:%mZ
+            "2023-12-22T17:48,2Z",              // %Y-%M-%DT%h:%,1mZ
+            "2023-12-22T17:48.2Z",              // %Y-%M-%DT%h:%.1mZ
+            "2023-12-22T17:48:15,083Z",         // %Y-%M-%DT%h:%m:%,3sZ
+            "2023-12-22T17:48:15,083212Z",      // %Y-%M-%DT%h:%m:%s,%uZ
+            "2023-12-22T18+01",                 // %Y-%M-%DT%h%Z
+            "2023-12-22T18,8+01",               // %Y-%M-%DT%,1h%Z
+            "2023-12-22T18.8+01",               // %Y-%M-%DT%.1h%Z
+            "2023-12-22T18:48+01",              // %Y-%M-%DT%h:%m%Z
+            "2023-12-22T18:48,2+01",            // %Y-%M-%DT%h:%,1m%Z
+            "2023-12-22T18:48.2+01",            // %Y-%M-%DT%h:%.1m%Z
+            "2023-12-22T18:48:15+01",           // %Y-%M-%DT%h:%m:%s%Z
+            "2023-12-22T18:48:15.0+01",         // %Y-%M-%DT%h:%m:%.1s%Z
+            "2023-12-22T18:48:15.08+01",        // %Y-%M-%DT%h:%m:%.2s%Z
+            "2023-12-22T18:48:15,083+01",       // %Y-%M-%DT%h:%m:%,3s%Z
+            "2023-12-22T18:48:15.083+01",       // %Y-%M-%DT%h:%m:%.3s%Z
+            "2023-12-22T18:48:15,083212+01",    // %Y-%M-%DT%h:%m:%s,%u%Z
+            "2023-12-22T18:48:15.083212+01",    // %Y-%M-%DT%h:%m:%s.%u%Z
+            "2023-12-22T18+01:00",              // %Y-%M-%DT%h%Z:%z
+            "2023-12-22T18,8+01:00",            // %Y-%M-%DT%,1h%Z:%z
+            "2023-12-22T18.8+01:00",            // %Y-%M-%DT%.1h%Z:%z
+            "2023-12-22T18:48+01:00",           // %Y-%M-%DT%h:%m%Z:%z
+            "2023-12-22T18:48,2+01:00",         // %Y-%M-%DT%h:%,1m%Z:%z
+            "2023-12-22T18:48.2+01:00",         // %Y-%M-%DT%h:%.1m%Z:%z
+            "2023-12-22T18:48:15,083+01:00",    // %Y-%M-%DT%h:%m:%,3s%Z:%z
+            "2023-12-22T18:48:15,083212+01:00", // %Y-%M-%DT%h:%m:%s,%u%Z:%z
+            "2023-W51-5T18",                    // %V-W%W-%wT%h
+            "2023-W51-5T18,8",                  // %V-W%W-%wT%,1h
+            "2023-W51-5T18.8",                  // %V-W%W-%wT%.1h
+            "2023-W51-5T18:48",                 // %V-W%W-%wT%h:%m
+            "2023-W51-5T18:48,2",               // %V-W%W-%wT%h:%,1m
+            "2023-W51-5T18:48.2",               // %V-W%W-%wT%h:%.1m
+            "2023-W51-5T18:48:15",              // %V-W%W-%wT%h:%m:%s
+            "2023-W51-5T18:48:15.0",            // %V-W%W-%wT%h:%m:%.1s
+            "2023-W51-5T18:48:15.08",           // %V-W%W-%wT%h:%m:%.2s
+            "2023-W51-5T18:48:15,083",          // %V-W%W-%wT%h:%m:%,3s
+            "2023-W51-5T18:48:15.083",          // %V-W%W-%wT%h:%m:%.3s
+            "2023-W51-5T18:48:15,083212",       // %V-W%W-%wT%h:%m:%s,%u
+            "2023-W51-5T18:48:15.083212",       // %V-W%W-%wT%h:%m:%s.%u
+            "2023-W51-5T17Z",                   // %V-W%W-%wT%hZ
+            "2023-W51-5T17,8Z",                 // %V-W%W-%wT%,1hZ
+            "2023-W51-5T17.8Z",                 // %V-W%W-%wT%.1hZ
+            "2023-W51-5T17:48Z",                // %V-W%W-%wT%h:%mZ
+            "2023-W51-5T17:48,2Z",              // %V-W%W-%wT%h:%,1mZ
+            "2023-W51-5T17:48.2Z",              // %V-W%W-%wT%h:%.1mZ
+            "2023-W51-5T17:48:15Z",             // %V-W%W-%wT%h:%m:%sZ
+            "2023-W51-5T17:48:15.0Z",           // %V-W%W-%wT%h:%m:%.1sZ
+            "2023-W51-5T17:48:15.08Z",          // %V-W%W-%wT%h:%m:%.2sZ
+            "2023-W51-5T17:48:15,083Z",         // %V-W%W-%wT%h:%m:%,3sZ
+            "2023-W51-5T17:48:15.083Z",         // %V-W%W-%wT%h:%m:%.3sZ
+            "2023-W51-5T17:48:15,083212Z",      // %V-W%W-%wT%h:%m:%s,%uZ
+            "2023-W51-5T17:48:15.083212Z",      // %V-W%W-%wT%h:%m:%s.%uZ
+            "2023-W51-5T18+01",                 // %V-W%W-%wT%h%Z
+            "2023-W51-5T18,8+01",               // %V-W%W-%wT%,1h%Z
+            "2023-W51-5T18.8+01",               // %V-W%W-%wT%.1h%Z
+            "2023-W51-5T18:48+01",              // %V-W%W-%wT%h:%m%Z
+            "2023-W51-5T18:48,2+01",            // %V-W%W-%wT%h:%,1m%Z
+            "2023-W51-5T18:48.2+01",            // %V-W%W-%wT%h:%.1m%Z
+            "2023-W51-5T18:48:15+01",           // %V-W%W-%wT%h:%m:%s%Z
+            "2023-W51-5T18:48:15.0+01",         // %V-W%W-%wT%h:%m:%.1s%Z
+            "2023-W51-5T18:48:15.08+01",        // %V-W%W-%wT%h:%m:%.2s%Z
+            "2023-W51-5T18:48:15,083+01",       // %V-W%W-%wT%h:%m:%,3s%Z
+            "2023-W51-5T18:48:15.083+01",       // %V-W%W-%wT%h:%m:%.3s%Z
+            "2023-W51-5T18:48:15,083212+01",    // %V-W%W-%wT%h:%m:%s,%u%Z
+            "2023-W51-5T18:48:15.083212+01",    // %V-W%W-%wT%h:%m:%s.%u%Z
+            "2023-W51-5T18+01:00",              // %V-W%W-%wT%h%Z:%z
+            "2023-W51-5T18,8+01:00",            // %V-W%W-%wT%,1h%Z:%z
+            "2023-W51-5T18.8+01:00",            // %V-W%W-%wT%.1h%Z:%z
+            "2023-W51-5T18:48+01:00",           // %V-W%W-%wT%h:%m%Z:%z
+            "2023-W51-5T18:48,2+01:00",         // %V-W%W-%wT%h:%,1m%Z:%z
+            "2023-W51-5T18:48.2+01:00",         // %V-W%W-%wT%h:%.1m%Z:%z
+            "2023-W51-5T18:48:15+01:00",        // %V-W%W-%wT%h:%m:%s%Z:%z
+            "2023-W51-5T18:48:15.0+01:00",      // %V-W%W-%wT%h:%m:%.1s%Z:%z
+            "2023-W51-5T18:48:15.08+01:00",     // %V-W%W-%wT%h:%m:%.2s%Z:%z
+            "2023-W51-5T18:48:15,083+01:00",    // %V-W%W-%wT%h:%m:%,3s%Z:%z
+            "2023-W51-5T18:48:15.083+01:00",    // %V-W%W-%wT%h:%m:%.3s%Z:%z
+            "2023-W51-5T18:48:15,083212+01:00", // %V-W%W-%wT%h:%m:%s,%u%Z:%z
+            "2023-W51-5T18:48:15.083212+01:00", // %V-W%W-%wT%h:%m:%s.%u%Z:%z
+            "2023-356T18",                      // %Y-%OT%h
+            "2023-356T18,8",                    // %Y-%OT%,1h
+            "2023-356T18.8",                    // %Y-%OT%.1h
+            "2023-356T18:48",                   // %Y-%OT%h:%m
+            "2023-356T18:48,2",                 // %Y-%OT%h:%,1m
+            "2023-356T18:48.2",                 // %Y-%OT%h:%.1m
+            "2023-356T18:48:15",                // %Y-%OT%h:%m:%s
+            "2023-356T18:48:15.0",              // %Y-%OT%h:%m:%.1s
+            "2023-356T18:48:15.08",             // %Y-%OT%h:%m:%.2s
+            "2023-356T18:48:15,083",            // %Y-%OT%h:%m:%,3s
+            "2023-356T18:48:15.083",            // %Y-%OT%h:%m:%.3s
+            "2023-356T18:48:15,083212",         // %Y-%OT%h:%m:%s,%u
+            "2023-356T18:48:15.083212",         // %Y-%OT%h:%m:%s.%u
+            "2023-356T17Z",                     // %Y-%OT%hZ
+            "2023-356T17,8Z",                   // %Y-%OT%,1hZ
+            "2023-356T17.8Z",                   // %Y-%OT%.1hZ
+            "2023-356T17:48Z",                  // %Y-%OT%h:%mZ
+            "2023-356T17:48,2Z",                // %Y-%OT%h:%,1mZ
+            "2023-356T17:48.2Z",                // %Y-%OT%h:%.1mZ
+            "2023-356T17:48:15Z",               // %Y-%OT%h:%m:%sZ
+            "2023-356T17:48:15.0Z",             // %Y-%OT%h:%m:%.1sZ
+            "2023-356T17:48:15.08Z",            // %Y-%OT%h:%m:%.2sZ
+            "2023-356T17:48:15,083Z",           // %Y-%OT%h:%m:%,3sZ
+            "2023-356T17:48:15.083Z",           // %Y-%OT%h:%m:%.3sZ
+            "2023-356T17:48:15,083212Z",        // %Y-%OT%h:%m:%s,%uZ
+            "2023-356T17:48:15.083212Z",        // %Y-%OT%h:%m:%s.%uZ
+            "2023-356T18+01",                   // %Y-%OT%h%Z
+            "2023-356T18,8+01",                 // %Y-%OT%,1h%Z
+            "2023-356T18.8+01",                 // %Y-%OT%.1h%Z
+            "2023-356T18:48+01",                // %Y-%OT%h:%m%Z
+            "2023-356T18:48,2+01",              // %Y-%OT%h:%,1m%Z
+            "2023-356T18:48.2+01",              // %Y-%OT%h:%.1m%Z
+            "2023-356T18:48:15+01",             // %Y-%OT%h:%m:%s%Z
+            "2023-356T18:48:15.0+01",           // %Y-%OT%h:%m:%.1s%Z
+            "2023-356T18:48:15.08+01",          // %Y-%OT%h:%m:%.2s%Z
+            "2023-356T18:48:15,083+01",         // %Y-%OT%h:%m:%,3s%Z
+            "2023-356T18:48:15.083+01",         // %Y-%OT%h:%m:%.3s%Z
+            "2023-356T18:48:15,083212+01",      // %Y-%OT%h:%m:%s,%u%Z
+            "2023-356T18:48:15.083212+01",      // %Y-%OT%h:%m:%s.%u%Z
+            "2023-356T18+01:00",                // %Y-%OT%h%Z:%z
+            "2023-356T18,8+01:00",              // %Y-%OT%,1h%Z:%z
+            "2023-356T18.8+01:00",              // %Y-%OT%.1h%Z:%z
+            "2023-356T18:48+01:00",             // %Y-%OT%h:%m%Z:%z
+            "2023-356T18:48,2+01:00",           // %Y-%OT%h:%,1m%Z:%z
+            "2023-356T18:48.2+01:00",           // %Y-%OT%h:%.1m%Z:%z
+            "2023-356T18:48:15+01:00",          // %Y-%OT%h:%m:%s%Z:%z
+            "2023-356T18:48:15.0+01:00",        // %Y-%OT%h:%m:%.1s%Z:%z
+            "2023-356T18:48:15.08+01:00",       // %Y-%OT%h:%m:%.2s%Z:%z
+            "2023-356T18:48:15,083+01:00",      // %Y-%OT%h:%m:%,3s%Z:%z
+            "2023-356T18:48:15.083+01:00",      // %Y-%OT%h:%m:%.3s%Z:%z
+            "2023-356T18:48:15,083212+01:00",   // %Y-%OT%h:%m:%s,%u%Z:%z
+            "2023-356T18:48:15.083212+01:00",   // %Y-%OT%h:%m:%s.%u%Z:%z
+            "20231222T18",                      // %Y%M%DT%h
+            "20231222T18,8",                    // %Y%M%DT%,1h
+            "20231222T18.8",                    // %Y%M%DT%.1h
+            "20231222T1848",                    // %Y%M%DT%h%m
+            "20231222T1848,2",                  // %Y%M%DT%h%,1m
+            "20231222T1848.2",                  // %Y%M%DT%h%.1m
+            "20231222T184815",                  // %Y%M%DT%h%m%s
+            "20231222T184815.0",                // %Y%M%DT%h%m%.1s
+            "20231222T184815.08",               // %Y%M%DT%h%m%.2s
+            "20231222T184815,083",              // %Y%M%DT%h%m%,3s
+            "20231222T184815.083",              // %Y%M%DT%h%m%.3s
+            "20231222T184815,083212",           // %Y%M%DT%h%m%s,%u
+            "20231222T184815.083212",           // %Y%M%DT%h%m%s.%u
+            "20231222T17Z",                     // %Y%M%DT%hZ
+            "20231222T17,8Z",                   // %Y%M%DT%,1hZ
+            "20231222T17.8Z",                   // %Y%M%DT%.1hZ
+            "20231222T1748Z",                   // %Y%M%DT%h%mZ
+            "20231222T1748,2Z",                 // %Y%M%DT%h%,1mZ
+            "20231222T1748.2Z",                 // %Y%M%DT%h%.1mZ
+            "20231222T174815Z",                 // %Y%M%DT%h%m%sZ
+            "20231222T174815.0Z",               // %Y%M%DT%h%m%.1sZ
+            "20231222T174815.08Z",              // %Y%M%DT%h%m%.2sZ
+            "20231222T174815,083Z",             // %Y%M%DT%h%m%,3sZ
+            "20231222T174815.083Z",             // %Y%M%DT%h%m%.3sZ
+            "20231222T174815,083212Z",          // %Y%M%DT%h%m%s,%uZ
+            "20231222T174815.083212Z",          // %Y%M%DT%h%m%s.%uZ
+            "20231222T18+01",                   // %Y%M%DT%h%Z
+            "20231222T18,8+01",                 // %Y%M%DT%,1h%Z
+            "20231222T18.8+01",                 // %Y%M%DT%.1h%Z
+            "20231222T1848+01",                 // %Y%M%DT%h%m%Z
+            "20231222T1848,2+01",               // %Y%M%DT%h%,1m%Z
+            "20231222T1848.2+01",               // %Y%M%DT%h%.1m%Z
+            "20231222T184815+01",               // %Y%M%DT%h%m%s%Z
+            "20231222T184815.0+01",             // %Y%M%DT%h%m%.1s%Z
+            "20231222T184815.08+01",            // %Y%M%DT%h%m%.2s%Z
+            "20231222T184815,083+01",           // %Y%M%DT%h%m%,3s%Z
+            "20231222T184815.083+01",           // %Y%M%DT%h%m%.3s%Z
+            "20231222T184815,083212+01",        // %Y%M%DT%h%m%s,%u%Z
+            "20231222T184815.083212+01",        // %Y%M%DT%h%m%s.%u%Z
+            "20231222T18+0100",                 // %Y%M%DT%h%Z%z
+            "20231222T18,8+0100",               // %Y%M%DT%,1h%Z%z
+            "20231222T18.8+0100",               // %Y%M%DT%.1h%Z%z
+            "20231222T1848+0100",               // %Y%M%DT%h%m%Z%z
+            "20231222T1848,2+0100",             // %Y%M%DT%h%,1m%Z%z
+            "20231222T1848.2+0100",             // %Y%M%DT%h%.1m%Z%z
+            "20231222T184815+0100",             // %Y%M%DT%h%m%s%Z%z
+            "20231222T184815.0+0100",           // %Y%M%DT%h%m%.1s%Z%z
+            "20231222T184815.08+0100",          // %Y%M%DT%h%m%.2s%Z%z
+            "20231222T184815,083+0100",         // %Y%M%DT%h%m%,3s%Z%z
+            "20231222T184815.083+0100",         // %Y%M%DT%h%m%.3s%Z%z
+            "20231222T184815,083212+0100",      // %Y%M%DT%h%m%s,%u%Z%z
+            "20231222T184815.083212+0100",      // %Y%M%DT%h%m%s.%u%Z%z
+            "2023W515T18",                      // %VW%W%wT%h
+            "2023W515T18,8",                    // %VW%W%wT%,1h
+            "2023W515T18.8",                    // %VW%W%wT%.1h
+            "2023W515T1848",                    // %VW%W%wT%h%m
+            "2023W515T1848,2",                  // %VW%W%wT%h%,1m
+            "2023W515T1848.2",                  // %VW%W%wT%h%.1m
+            "2023W515T184815",                  // %VW%W%wT%h%m%s
+            "2023W515T184815.0",                // %VW%W%wT%h%m%.1s
+            "2023W515T184815.08",               // %VW%W%wT%h%m%.2s
+            "2023W515T184815,083",              // %VW%W%wT%h%m%,3s
+            "2023W515T184815.083",              // %VW%W%wT%h%m%.3s
+            "2023W515T184815,083212",           // %VW%W%wT%h%m%s,%u
+            "2023W515T184815.083212",           // %VW%W%wT%h%m%s.%u
+            "2023W515T17Z",                     // %VW%W%wT%hZ
+            "2023W515T17,8Z",                   // %VW%W%wT%,1hZ
+            "2023W515T17.8Z",                   // %VW%W%wT%.1hZ
+            "2023W515T1748Z",                   // %VW%W%wT%h%mZ
+            "2023W515T1748,2Z",                 // %VW%W%wT%h%,1mZ
+            "2023W515T1748.2Z",                 // %VW%W%wT%h%.1mZ
+            "2023W515T174815Z",                 // %VW%W%wT%h%m%sZ
+            "2023W515T174815.0Z",               // %VW%W%wT%h%m%.1sZ
+            "2023W515T174815.08Z",              // %VW%W%wT%h%m%.2sZ
+            "2023W515T174815,083Z",             // %VW%W%wT%h%m%,3sZ
+            "2023W515T174815.083Z",             // %VW%W%wT%h%m%.3sZ
+            "2023W515T174815,083212Z",          // %VW%W%wT%h%m%s,%uZ
+            "2023W515T174815.083212Z",          // %VW%W%wT%h%m%s.%uZ
+            "2023W515T18+01",                   // %VW%W%wT%h%Z
+            "2023W515T18,8+01",                 // %VW%W%wT%,1h%Z
+            "2023W515T18.8+01",                 // %VW%W%wT%.1h%Z
+            "2023W515T1848+01",                 // %VW%W%wT%h%m%Z
+            "2023W515T1848,2+01",               // %VW%W%wT%h%,1m%Z
+            "2023W515T1848.2+01",               // %VW%W%wT%h%.1m%Z
+            "2023W515T184815+01",               // %VW%W%wT%h%m%s%Z
+            "2023W515T184815.0+01",             // %VW%W%wT%h%m%.1s%Z
+            "2023W515T184815.08+01",            // %VW%W%wT%h%m%.2s%Z
+            "2023W515T184815,083+01",           // %VW%W%wT%h%m%,3s%Z
+            "2023W515T184815.083+01",           // %VW%W%wT%h%m%.3s%Z
+            "2023W515T184815,083212+01",        // %VW%W%wT%h%m%s,%u%Z
+            "2023W515T184815.083212+01",        // %VW%W%wT%h%m%s.%u%Z
+            "2023W515T18+0100",                 // %VW%W%wT%h%Z%z
+            "2023W515T18,8+0100",               // %VW%W%wT%,1h%Z%z
+            "2023W515T18.8+0100",               // %VW%W%wT%.1h%Z%z
+            "2023W515T1848+0100",               // %VW%W%wT%h%m%Z%z
+            "2023W515T1848,2+0100",             // %VW%W%wT%h%,1m%Z%z
+            "2023W515T1848.2+0100",             // %VW%W%wT%h%.1m%Z%z
+            "2023W515T184815+0100",             // %VW%W%wT%h%m%s%Z%z
+            "2023W515T184815.0+0100",           // %VW%W%wT%h%m%.1s%Z%z
+            "2023W515T184815.08+0100",          // %VW%W%wT%h%m%.2s%Z%z
+            "2023W515T184815,083+0100",         // %VW%W%wT%h%m%,3s%Z%z
+            "2023W515T184815.083+0100",         // %VW%W%wT%h%m%.3s%Z%z
+            "2023W515T184815,083212+0100",      // %VW%W%wT%h%m%s,%u%Z%z
+            "2023W515T184815.083212+0100",      // %VW%W%wT%h%m%s.%u%Z%z
+            "2023356T18",                       // %Y%OT%h
+            "2023356T18,8",                     // %Y%OT%,1h
+            "2023356T18.8",                     // %Y%OT%.1h
+            "2023356T1848",                     // %Y%OT%h%m
+            "2023356T1848,2",                   // %Y%OT%h%,1m
+            "2023356T1848.2",                   // %Y%OT%h%.1m
+            "2023356T184815",                   // %Y%OT%h%m%s
+            "2023356T184815.0",                 // %Y%OT%h%m%.1s
+            "2023356T184815.08",                // %Y%OT%h%m%.2s
+            "2023356T184815,083",               // %Y%OT%h%m%,3s
+            "2023356T184815.083",               // %Y%OT%h%m%.3s
+            "2023356T184815,083212",            // %Y%OT%h%m%s,%u
+            "2023356T184815.083212",            // %Y%OT%h%m%s.%u
+            "2023356T17Z",                      // %Y%OT%hZ
+            "2023356T17,8Z",                    // %Y%OT%,1hZ
+            "2023356T17.8Z",                    // %Y%OT%.1hZ
+            "2023356T1748Z",                    // %Y%OT%h%mZ
+            "2023356T1748,2Z",                  // %Y%OT%h%,1mZ
+            "2023356T1748.2Z",                  // %Y%OT%h%.1mZ
+            "2023356T174815Z",                  // %Y%OT%h%m%sZ
+            "2023356T174815.0Z",                // %Y%OT%h%m%.1sZ
+            "2023356T174815.08Z",               // %Y%OT%h%m%.2sZ
+            "2023356T174815,083Z",              // %Y%OT%h%m%,3sZ
+            "2023356T174815.083Z",              // %Y%OT%h%m%.3sZ
+            "2023356T174815,083212Z",           // %Y%OT%h%m%s,%uZ
+            "2023356T174815.083212Z",           // %Y%OT%h%m%s.%uZ
+            "2023356T18+01",                    // %Y%OT%h%Z
+            "2023356T18,8+01",                  // %Y%OT%,1h%Z
+            "2023356T18.8+01",                  // %Y%OT%.1h%Z
+            "2023356T1848+01",                  // %Y%OT%h%m%Z
+            "2023356T1848,2+01",                // %Y%OT%h%,1m%Z
+            "2023356T1848.2+01",                // %Y%OT%h%.1m%Z
+            "2023356T184815+01",                // %Y%OT%h%m%s%Z
+            "2023356T184815.0+01",              // %Y%OT%h%m%.1s%Z
+            "2023356T184815.08+01",             // %Y%OT%h%m%.2s%Z
+            "2023356T184815,083+01",            // %Y%OT%h%m%,3s%Z
+            "2023356T184815.083+01",            // %Y%OT%h%m%.3s%Z
+            "2023356T184815,083212+01",         // %Y%OT%h%m%s,%u%Z
+            "2023356T184815.083212+01",         // %Y%OT%h%m%s.%u%Z
+            "2023356T18+0100",                  // %Y%OT%h%Z%z
+            "2023356T18,8+0100",                // %Y%OT%,1h%Z%z
+            "2023356T18.8+0100",                // %Y%OT%.1h%Z%z
+            "2023356T1848+0100",                // %Y%OT%h%m%Z%z
+            "2023356T1848,2+0100",              // %Y%OT%h%,1m%Z%z
+            "2023356T1848.2+0100",              // %Y%OT%h%.1m%Z%z
+            "2023356T184815+0100",              // %Y%OT%h%m%s%Z%z
+            "2023356T184815.0+0100",            // %Y%OT%h%m%.1s%Z%z
+            "2023356T184815.08+0100",           // %Y%OT%h%m%.2s%Z%z
+            "2023356T184815,083+0100",          // %Y%OT%h%m%,3s%Z%z
+            "2023356T184815.083+0100",          // %Y%OT%h%m%.3s%Z%z
+            "2023356T184815,083212+0100",       // %Y%OT%h%m%s,%u%Z%z
+            "2023356T184815.083212+0100",       // %Y%OT%h%m%s.%u%Z%z
+            "2023-12-23T01:48:15+08",           // %Y-%M-%DT%h:%m:%s+08
+            "2023-12-22T05-12",                 // %Y-%M-%DT%h-12
+            "2023-12-22T05-12:00",              // %Y-%M-%DT%h-12:00
+            "2023-12-22T05:48-12",              // %Y-%M-%DT%h:%m-12
+            "2023-12-22T05:48-12:00",           // %Y-%M-%DT%h:%m-12:00
+            "2023-12-22 18:48",                 // %Y-%M-%D %h:%m
+            "2023-12-22 18:48:15",              // %Y-%M-%D %h:%m:%s
+            "2023-12-22 18:48:15.0",            // %Y-%M-%D %h:%m:%.1s
+            "2023-12-22 18:48:15.08",           // %Y-%M-%D %h:%m:%.2s
+            "2023-12-22 18:48:15.083",          // %Y-%M-%D %h:%m:%.3s
+            "2023-12-22 17:48Z",                // %Y-%M-%D %h:%mZ
+            "2023-12-22 18:48+01:00",           // %Y-%M-%D %h:%m%Z:%z
+            "2023-12-22T18:48+0100",            // %Y-%M-%DT%h:%m%Z%z
+            "2023-12-22T18:48:15+0100",         // %Y-%M-%DT%h:%m:%s%Z%z
+            "2023-12-22T18:48:15.0+0100",       // %Y-%M-%DT%h:%m:%.1s%Z%z
+            "2023-12-22T18:48:15.08+0100",      // %Y-%M-%DT%h:%m:%.2s%Z%z
+            "2023-12-22T18:48:15.083+0100",     // %Y-%M-%DT%h:%m:%.3s%Z%z
+            "2023-12-22 18:48+0100",            // %Y-%M-%D %h:%m%Z%z
+            "2023-12-22 18:48:15+0100",         // %Y-%M-%D %h:%m:%s%Z%z
+            "2023-12-22 18:48:15.0+0100",       // %Y-%M-%D %h:%m:%.1s%Z%z
+            "2023-12-22 18:48:15.08+0100",      // %Y-%M-%D %h:%m:%.2s%Z%z
+            "2023-12-22 18:48:15.083+0100",     // %Y-%M-%D %h:%m:%.3s%Z%z
+            "2023-12-23T02:33:15+0845",         // %Y-%M-%DT%h:%m:%s+0845
+            "2023-12-22T17:48:15+0000",         // %Y-%M-%DT%h:%m:%s+0000
+            "2023-12-22T17:48:15.083+0000",     // %Y-%M-%DT%h:%m:%.3s+0000
         ];
 
         let url_type = serde_json::to_string(&json!({
@@ -1268,7 +1614,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore]
     #[expect(clippy::too_many_lines, reason = "Most lines are just test data")]
     async fn time() {
         const VALID_FORMATS: &[&str] = &[

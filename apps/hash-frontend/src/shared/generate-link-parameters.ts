@@ -50,8 +50,8 @@ export const generateLinkParameters = (
     sanitizedHref.split("?")[0]!.match(typeUrlRegExp) ?? [];
 
   if (typeBaseUrl) {
-    if (isExternal) {
-      // If it's an external type, use the type route for loading external types
+    if (isExternal && typeBaseUrl.includes("/entity-type/")) {
+      // If it's an external entity type, use the type route for loading external types
       const base64EncodedBaseUrl = btoa(typeBaseUrl);
       return {
         isExternal: false, // it's an external type but we're using an internal route
@@ -72,7 +72,9 @@ export const generateLinkParameters = (
          * The exceptions are the /contact and /discord routes which actually reside at https://hash.ai
          * @todo when implementing H-1172, just use the href here
          */
-        pathname.startsWith("/discord") || pathname.startsWith("/contact")
+        isExternal ||
+        pathname.startsWith("/discord") ||
+        pathname.startsWith("/contact")
           ? href
           : `${pathname}${paramsString ? `?${paramsString}` : ""}`,
     };

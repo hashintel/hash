@@ -559,6 +559,70 @@ export const systemPropertyTypes = {
   },
 } as const;
 
+export const systemDataTypes = {
+  centimeters: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/centimeters/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/centimeters/",
+    title: "Centimeters",
+    description:
+      "A unit of length in the International System of Units (SI), equal to one hundredth of a meter.",
+  },
+  date: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/date/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/date/",
+    title: "Date",
+    description:
+      "A reference to a particular day represented within a calendar system, in the format YYYY-MM-DD.",
+  },
+  datetime: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/datetime/",
+    title: "DateTime",
+    description: "A reference to a particular date and time.",
+  },
+  email: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/email/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/email/",
+    title: "Email",
+    description:
+      "An identifier for an email box to which messages are delivered.",
+  },
+  kilometers: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/kilometers/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/kilometers/",
+    title: "Kilometers",
+    description:
+      "A unit of length in the International System of Units (SI), equal to one thousand meters.",
+  },
+  meters: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/meters/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/meters/",
+    title: "Meters",
+    description:
+      "The base unit of length in the International System of Units (SI).",
+  },
+  miles: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/miles/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/miles/",
+    title: "Miles",
+    description:
+      "An imperial unit of length, equivalent to 1,609.344 meters in the International System of Units (SI).",
+  },
+  millimeters: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/millimeters/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/millimeters/",
+    title: "Millimeters",
+    description:
+      "A unit of length in the International System of Units (SI), equal to one thousandth of a meter.",
+  },
+  uri: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/uri/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/uri/",
+    title: "URI",
+    description: "A unique identifier for a resource (e.g. a URL, or URN).",
+  },
+} as const;
+
 export const linearEntityTypes = {
   attachment: {
     entityTypeId: "https://hash.ai/@linear/types/entity-type/attachment/v/1",
@@ -1020,10 +1084,22 @@ export const blockProtocolEntityTypes = {
     entityTypeBaseUrl:
       "https://blockprotocol.org/@blockprotocol/types/entity-type/link/",
   },
+  paragraphBlock: {
+    entityTypeId:
+      "https://blockprotocol.org/@hash/types/entity-type/paragraph-block/v/3",
+    entityTypeBaseUrl:
+      "https://blockprotocol.org/@hash/types/entity-type/paragraph-block/",
+  },
   query: {
     entityTypeId: "https://blockprotocol.org/@hash/types/entity-type/query/v/1",
     entityTypeBaseUrl:
       "https://blockprotocol.org/@hash/types/entity-type/query/",
+  },
+  tableBlock: {
+    entityTypeId:
+      "https://blockprotocol.org/@hash/types/entity-type/table-block/v/4",
+    entityTypeBaseUrl:
+      "https://blockprotocol.org/@hash/types/entity-type/table-block/",
   },
   thing: {
     entityTypeId:
@@ -1115,11 +1191,53 @@ export const blockProtocolPropertyTypes = {
     propertyTypeBaseUrl:
       "https://blockprotocol.org/@hash/types/property-type/query/",
   },
+  tableHeaderRowIsHidden: {
+    propertyTypeId:
+      "https://blockprotocol.org/@hash/types/property-type/table-header-row-is-hidden/v/1",
+    propertyTypeBaseUrl:
+      "https://blockprotocol.org/@hash/types/property-type/table-header-row-is-hidden/",
+  },
+  tableLocalColumn: {
+    propertyTypeId:
+      "https://blockprotocol.org/@hash/types/property-type/table-local-column/v/1",
+    propertyTypeBaseUrl:
+      "https://blockprotocol.org/@hash/types/property-type/table-local-column/",
+  },
+  tableLocalColumnId: {
+    propertyTypeId:
+      "https://blockprotocol.org/@hash/types/property-type/table-local-column-id/v/1",
+    propertyTypeBaseUrl:
+      "https://blockprotocol.org/@hash/types/property-type/table-local-column-id/",
+  },
+  tableLocalRow: {
+    propertyTypeId:
+      "https://blockprotocol.org/@hash/types/property-type/table-local-row/v/1",
+    propertyTypeBaseUrl:
+      "https://blockprotocol.org/@hash/types/property-type/table-local-row/",
+  },
+  tableRowNumbersAreHidden: {
+    propertyTypeId:
+      "https://blockprotocol.org/@hash/types/property-type/table-row-numbers-are-hidden/v/1",
+    propertyTypeBaseUrl:
+      "https://blockprotocol.org/@hash/types/property-type/table-row-numbers-are-hidden/",
+  },
+  tableRowsAreStriped: {
+    propertyTypeId:
+      "https://blockprotocol.org/@hash/types/property-type/table-rows-are-striped/v/1",
+    propertyTypeBaseUrl:
+      "https://blockprotocol.org/@hash/types/property-type/table-rows-are-striped/",
+  },
   textualContent: {
     propertyTypeId:
       "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/v/2",
     propertyTypeBaseUrl:
       "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/",
+  },
+  title: {
+    propertyTypeId:
+      "https://blockprotocol.org/@blockprotocol/types/property-type/title/v/1",
+    propertyTypeBaseUrl:
+      "https://blockprotocol.org/@blockprotocol/types/property-type/title/",
   },
 } as const;
 

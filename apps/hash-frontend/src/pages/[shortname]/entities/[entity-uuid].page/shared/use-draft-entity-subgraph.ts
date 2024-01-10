@@ -1,5 +1,10 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
+  CreatedAtDecisionTime,
+  CreatedAtTransactionTime,
+  CreatedById,
+  EditionCreatedById,
+  Entity,
   EntityId,
   EntityRevisionId,
   EntityRootType,
@@ -66,7 +71,15 @@ export const useDraftEntitySubgraph = (
                       editionId: now,
                     },
                     entityTypeId,
-                    provenance: { createdById: "" },
+                    provenance: {
+                      createdById: "" as CreatedById,
+                      createdAtDecisionTime: now as CreatedAtDecisionTime,
+                      createdAtTransactionTime: now as CreatedAtTransactionTime,
+                      edition: {
+                        createdById: "" as EditionCreatedById,
+                      },
+                    },
+                    draft: false,
                     archived: false,
                     temporalVersioning: {
                       decisionTime: {
@@ -89,7 +102,7 @@ export const useDraftEntitySubgraph = (
                       },
                     },
                   },
-                },
+                } satisfies Entity,
               },
             },
           },

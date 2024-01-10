@@ -67,7 +67,7 @@ where
     }
 }
 
-pub struct BoundReflection<T: ?Sized>(fn() -> *const T);
+pub struct BoundReflection<T: ?Sized>(#[allow(dead_code)] fn() -> *const T);
 
 impl<T> Reflection for BoundReflection<T>
 where
@@ -261,7 +261,10 @@ where
     }
 }
 
-pub struct RangeReflection<T: ?Sized, U: ?Sized>(fn() -> *const T, fn() -> *const U);
+pub struct RangeReflection<T: ?Sized, U: ?Sized>(
+    #[allow(dead_code)] fn() -> *const T,
+    #[allow(dead_code)] fn() -> *const U,
+);
 
 impl<T, U> Reflection for RangeReflection<T, U>
 where

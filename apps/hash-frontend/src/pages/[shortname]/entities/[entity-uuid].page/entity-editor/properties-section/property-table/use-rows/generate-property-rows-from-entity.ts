@@ -23,9 +23,10 @@ export const generatePropertyRowsFromEntity = (
 
   return entityTypeAndAncestors.flatMap((entityType) =>
     Object.keys(entityType.schema.properties).map((propertyTypeBaseUrl) => {
-      const propertyRef = entityType.schema.properties[propertyTypeBaseUrl];
+      const propertyRefSchema =
+        entityType.schema.properties[propertyTypeBaseUrl];
 
-      if (!propertyRef) {
+      if (!propertyRefSchema) {
         throw new Error("Property not found");
       }
 
@@ -35,7 +36,7 @@ export const generatePropertyRowsFromEntity = (
         entity,
         entitySubgraph,
         requiredPropertyTypes,
-        propertyOnEntityTypeSchema: propertyRef,
+        propertyRefSchema,
       });
     }),
   );

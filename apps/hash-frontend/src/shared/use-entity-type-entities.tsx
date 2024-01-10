@@ -21,6 +21,50 @@ import { queryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries"
 import { apolloClient } from "../lib/apollo-client";
 import { EntityTypeEntitiesContextValue } from "./entity-type-entities-context";
 
+export const generateUseEntityTypeEntitiesQueryVariables = (params: {
+  ownedById?: OwnedById;
+  entityTypeBaseUrl?: BaseUrl;
+  entityTypeId?: VersionedUrl;
+  graphResolveDepths?: Partial<GraphResolveDepths>;
+}): QueryEntitiesQueryVariables => ({
+  operation: {
+    multiFilter: {
+      filters: [
+        ...(params.ownedById
+          ? [
+              {
+                field: ["ownedById"],
+                operator: "EQUALS" as const,
+                value: params.ownedById,
+              },
+            ]
+          : []),
+        ...(params.entityTypeBaseUrl
+          ? [
+              {
+                field: ["metadata", "entityTypeBaseUrl"],
+                operator: "EQUALS" as const,
+                value: params.entityTypeBaseUrl,
+              },
+            ]
+          : params.entityTypeId
+            ? [
+                {
+                  field: ["metadata", "entityTypeId"],
+                  operator: "EQUALS" as const,
+                  value: params.entityTypeId,
+                },
+              ]
+            : []),
+      ],
+      operator: "AND",
+    },
+  },
+  ...zeroedGraphResolveDepths,
+  ...params.graphResolveDepths,
+  includePermissions: false,
+});
+
 export const useEntityTypeEntities = (params: {
   entityTypeBaseUrl?: BaseUrl;
   entityTypeId?: VersionedUrl;
@@ -31,44 +75,13 @@ export const useEntityTypeEntities = (params: {
     params;
 
   const variables = useMemo<QueryEntitiesQueryVariables>(
-    () => ({
-      operation: {
-        multiFilter: {
-          filters: [
-            ...(ownedById
-              ? [
-                  {
-                    field: ["ownedById"],
-                    operator: "EQUALS" as const,
-                    value: ownedById,
-                  },
-                ]
-              : []),
-            ...(entityTypeBaseUrl
-              ? [
-                  {
-                    field: ["metadata", "entityTypeBaseUrl"],
-                    operator: "EQUALS" as const,
-                    value: entityTypeBaseUrl,
-                  },
-                ]
-              : entityTypeId
-                ? [
-                    {
-                      field: ["metadata", "entityTypeId"],
-                      operator: "EQUALS" as const,
-                      value: entityTypeId,
-                    },
-                  ]
-                : []),
-          ],
-          operator: "AND",
-        },
-      },
-      ...zeroedGraphResolveDepths,
-      ...graphResolveDepths,
-      includePermissions: false,
-    }),
+    () =>
+      generateUseEntityTypeEntitiesQueryVariables({
+        entityTypeBaseUrl,
+        entityTypeId,
+        ownedById,
+        graphResolveDepths,
+      }),
     [entityTypeBaseUrl, graphResolveDepths, entityTypeId, ownedById],
   );
 
