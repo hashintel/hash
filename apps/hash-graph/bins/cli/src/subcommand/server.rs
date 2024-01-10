@@ -1,6 +1,6 @@
 use std::{
     fmt, fs,
-    net::{AddrParseError, SocketAddr},
+    net::{AddrParseError, Ipv4Addr, SocketAddr},
     sync::Arc,
     time::Duration,
 };
@@ -12,12 +12,17 @@ use authorization::{
 };
 use clap::Parser;
 use error_stack::{Report, Result, ResultExt};
+use futures::future::select;
 use graph::{
     logging::{init_logger, LoggingArgs},
     ontology::domain_validator::DomainValidator,
     store::{DatabaseConnectionInfo, FetchingPool, PostgresStorePool, StorePool},
 };
-use graph_api::rest::{rest_api_router, OpenApiDocumentation, RestRouterDependencies};
+use graph_api::{
+    rest::{rest_api_router, OpenApiDocumentation, RestRouterDependencies},
+    rpc::State,
+};
+use hash_graph_rpc::{harpc::server::ListenOn, TransportConfig};
 use regex::Regex;
 use reqwest::Client;
 use tokio::{net::TcpListener, time::timeout};
@@ -28,7 +33,7 @@ use crate::{
     subcommand::type_fetcher::TypeFetcherAddress,
 };
 
-#[derive(Debug, Parser)]
+#[derive(Debug, Clone, Parser)]
 pub struct ApiAddress {
     /// The host the REST client is listening at.
     #[clap(long, default_value = "127.0.0.1", env = "HASH_GRAPH_API_HOST")]
@@ -67,6 +72,14 @@ pub struct ServerArgs {
     /// The address the REST client is listening at.
     #[clap(flatten)]
     pub api_address: ApiAddress,
+
+    /// The host the RPC tcp server is listening at.
+    #[clap(long, default_value_t = 4001, env = "HASH_GRAPH_RPC_TCP_PORT")]
+    pub rpc_tcp_port: u16,
+
+    /// The host the RPC websocket server is listening at.
+    #[clap(long, default_value_t = 4002, env = "HASH_GRAPH_RPC_WEBSOCKET_PORT")]
+    pub rpc_ws_port: u16,
 
     /// The address for the type fetcher RPC server is listening at.
     #[clap(flatten)]
@@ -117,6 +130,7 @@ pub struct ServerArgs {
     pub spicedb_grpc_preshared_key: Option<String>,
 }
 
+#[allow(clippy::too_many_lines)]
 pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
     let _log_guard = init_logger(&args.log_config);
 
@@ -193,22 +207,49 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
     let mut zanzibar_client = ZanzibarClient::new(spicedb_client);
     zanzibar_client.seed().await.change_context(GraphError)?;
 
+    let pool = Arc::new(pool);
+    let zanzibar_client = Arc::new(zanzibar_client);
+
     let router = rest_api_router(RestRouterDependencies {
-        store: Arc::new(pool),
-        authorization_api: Arc::new(zanzibar_client),
+        store: Arc::clone(&pool),
+        authorization_api: Arc::clone(&zanzibar_client),
         domain_regex: DomainValidator::new(args.allowed_url_domain),
     });
 
-    tracing::info!("Listening on {}", args.api_address);
-    axum::serve(
-        TcpListener::bind((args.api_address.api_host, args.api_address.api_port))
-            .await
-            .change_context(GraphError)?,
-        router.into_make_service_with_connect_info::<SocketAddr>(),
-    )
-    .await
-    .expect("failed to start server");
+    let api_address = args.api_address.clone();
+    let listener = TcpListener::bind((args.api_address.api_host, args.api_address.api_port))
+        .await
+        .change_context(GraphError)?;
 
+    let handle1 = tokio::spawn(async move {
+        tracing::info!("Listening on {api_address}");
+        axum::serve(
+            listener,
+            router.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .await
+        .expect("failed to start server");
+    });
+
+    let server = graph_api::rpc::server(State::new(pool, zanzibar_client));
+
+    let handle2 = tokio::spawn(async move {
+        tracing::info!("Listening on {}/{}", args.rpc_tcp_port, args.rpc_ws_port);
+
+        server
+            .serve(
+                ListenOn {
+                    ip: Ipv4Addr::new(0, 0, 0, 0),
+                    tcp: args.rpc_tcp_port,
+                    ws: args.rpc_ws_port,
+                },
+                TransportConfig::default(),
+            )
+            .expect("failed to start server")
+            .await;
+    });
+
+    select(handle1, handle2).await;
     Ok(())
 }
 

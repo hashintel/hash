@@ -6,33 +6,26 @@ use hash_graph_rpc::{specification::common::JsonContext, Server, ServerBuilder};
 
 mod account;
 
-pub struct StateData<S, A> {
-    authorization_api_pool: A,
-    store_pool: S,
+pub struct State<S, A> {
+    store_pool: Arc<S>,
+    authorization_api_pool: Arc<A>,
 }
 
-pub struct State<S, A>(Arc<StateData<S, A>>);
-
 impl<S, A> State<S, A> {
-    pub fn new(authorization_api_pool: A, store_pool: S) -> Self {
-        Self(Arc::new(StateData {
-            authorization_api_pool,
+    pub fn new(store_pool: Arc<S>, authorization_api_pool: Arc<A>) -> Self {
+        Self {
             store_pool,
-        }))
+            authorization_api_pool,
+        }
     }
 }
 
 impl<S, A> Clone for State<S, A> {
     fn clone(&self) -> Self {
-        Self(Arc::clone(&self.0))
-    }
-}
-
-impl<S, A> Deref for State<S, A> {
-    type Target = StateData<S, A>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+        Self {
+            authorization_api_pool: Arc::clone(&self.authorization_api_pool),
+            store_pool: Arc::clone(&self.store_pool),
+        }
     }
 }
 

@@ -1624,6 +1624,7 @@ dependencies = [
  "graph",
  "graph-api",
  "graph-types",
+ "hash-graph-rpc",
  "regex",
  "reqwest",
  "semver",

@@ -14,6 +14,7 @@ graph-types = { workspace = true }
 validation = { workspace = true }
 type-fetcher = { workspace = true }
 authorization = { workspace = true }
+hash-graph-rpc = { workspace = true }
 codec = { workspace = true }
 
 error-stack = { workspace = true }
