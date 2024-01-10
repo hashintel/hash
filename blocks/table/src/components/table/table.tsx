@@ -185,9 +185,7 @@ export const Table: FunctionComponent<{
         numberOfRows > localRows.length
           ? [
               ...localRows,
-              ...Array<Object>(numberOfRows - localRows.length).fill(
-                {} as Object,
-              ),
+              ...Array<{}>(numberOfRows - localRows.length).fill({}),
             ]
           : localRows;
 
