@@ -22,13 +22,13 @@ import { oryKratosPublicUrl } from "@local/hash-isomorphic-utils/environment";
 import type { Session } from "@ory/client";
 import * as Sentry from "@sentry/node";
 import type { Client as TemporalClient } from "@temporalio/client";
-import * as bodyParser from "body-parser";
+import BodyParser from "body-parser";
 import cors from "cors";
 import express, { raw } from "express";
 import proxy from "express-http-proxy";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
-import * as httpTerminator from "http-terminator";
+import HTTPTerminator from "http-terminator";
 import { customAlphabet } from "nanoid";
 
 import { inferEntitiesController } from "./ai/infer-entities";
@@ -72,9 +72,6 @@ import { createTemporalClient } from "./temporal";
 import { getRequiredEnv } from "./util";
 import type { VaultClient } from "./vault";
 import { createVaultClient } from "./vault";
-
-const { createHttpTerminator } = httpTerminator;
-const { json } = bodyParser;
 
 declare global {
   namespace Express {
@@ -199,7 +196,7 @@ const main = async () => {
   // Potentially only in development mode
   app.use(helmet({ contentSecurityPolicy: false }));
 
-  const jsonParser = json({
+  const jsonParser = BodyParser.json({
     // default is 100kb
     limit: "16mb",
   });
@@ -393,7 +390,9 @@ const main = async () => {
   // close active connections. This can result in the server hanging indefinitely. We
   // use the `http-terminator` library to shut down the server properly.
   const httpServer = http.createServer(app);
-  const httpTerminator = createHttpTerminator({ server: httpServer });
+  const httpTerminator = HTTPTerminator.createHttpTerminator({
+    server: httpServer,
+  });
   shutdown.addCleanup("HTTP Server", async () => httpTerminator.terminate());
 
   // Start the Apollo GraphQL server.
