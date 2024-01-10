@@ -270,6 +270,8 @@ async fn inline_tuple(
 //  concrete.
 //  The problem: can we safely hoist? How would that look like without polluting the namespace?
 // TODO: we'd need some sort of scope to keep track of the generics and their types
+//  Generic structs are just functions with their generics as key that we instantiate :O
+// TODO: add docs
 #[async_recursion::async_recursion]
 async fn inline(
     ast: &DataType,

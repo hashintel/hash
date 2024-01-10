@@ -1477,6 +1477,7 @@ dependencies = [
  "futures",
  "graph",
  "graph-types",
+ "hash-graph-rpc",
  "hash-status",
  "http-body-util",
  "hyper 1.1.0",

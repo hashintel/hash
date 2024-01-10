@@ -9,8 +9,9 @@ members = [
     "libs/@local/hash-graph-types/rust",
     "libs/@local/hash-validation",
     "libs/@local/temporal-versioning",
+    "libs/@local/hash-graph-rpc",
     "tests/hash-graph-integration",
-    "tests/hash-graph-test-data/rust", "libs/@local/hash-graph-rpc",
+    "tests/hash-graph-test-data/rust",
 ]
 exclude = [
     "libs/antsi",
@@ -40,6 +41,7 @@ type-fetcher.path = "apps/hash-graph/libs/type-fetcher"
 graph.path = "apps/hash-graph/libs/graph"
 graph-api.path = "apps/hash-graph/libs/api"
 validation.path = "libs/@local/hash-validation"
+hash-graph-rpc.path = "libs/@local/hash-graph-rpc"
 
 # External dependencies owned by HASH
 error-stack = { version = "0.4.1", default-features = false }

@@ -23,6 +23,12 @@ impl From<Uuid> for ActorId {
     }
 }
 
+impl From<ActorId> for Uuid {
+    fn from(value: ActorId) -> Self {
+        value.0
+    }
+}
+
 impl EncodeBinary for ActorId {
     async fn encode_binary<T>(&self, io: &mut T) -> std::io::Result<()>
     where

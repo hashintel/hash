@@ -15,6 +15,7 @@ authorization = { workspace = true }
 type-system = { workspace = true }
 validation = { workspace = true }
 codec = { workspace = true, optional = true }
+hash-graph-rpc = { workspace = true }
 
 async-trait = "0.1.74"
 axum = "0.7.2"
