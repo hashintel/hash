@@ -12,5 +12,3 @@ RUN apk add --no-cache --virtual .build-deps gcc clang15 llvm15 git make musl-de
     && rm -rf wal2json ppgvector \
     && apk del .build-deps \
     && mkdir -p /etc/postgresql/
-
-COPY postgresql.conf /etc/postgresql
