@@ -324,6 +324,7 @@ jobs:
             SERVICES="$SERVICES graph"
           fi
           if [[ ${{ steps.tests.outputs.external-service-ai-worker-ts }} == 'true' ]]; then
+              echo 'OPENAI_API_KEY=dummy' >> .env.local
               SERVICES="$SERVICES hash-temporal-worker-ts"
           fi
           if [[ ${{ steps.tests.outputs.external-service-worker-integration }} == 'true' ]]; then
@@ -452,6 +453,7 @@ jobs:
       - name: Launch external services
         run: |
           turbo codegen --filter '@apps/hash-external-services'
+          echo 'OPENAI_API_KEY=dummy' >> .env.local
           yarn workspace @apps/hash-external-services deploy up --wait
 
       - name: Launch HASH-API
