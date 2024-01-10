@@ -519,6 +519,7 @@ where
 #[serde(rename_all = "camelCase")]
 struct EntityEmbeddingUpdateRequest {
     embeddings: Vec<EntityEmbedding<'static>>,
+    reset: bool,
 }
 
 #[utoipa::path(
@@ -534,7 +535,7 @@ struct EntityEmbeddingUpdateRequest {
         (status = 403, description = "Insufficient permissions to update the entity"),
         (status = 500, description = "Store error occurred"),
     ),
-    request_body = UpdateEntityRequest,
+    request_body = EntityEmbeddingUpdateRequest,
 )]
 #[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
 async fn update_entity_embeddings<S, A>(
@@ -547,7 +548,7 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let Json(EntityEmbeddingUpdateRequest { embeddings }) = body;
+    let Json(EntityEmbeddingUpdateRequest { embeddings, reset }) = body;
 
     let mut store = store_pool.acquire().await.map_err(report_to_response)?;
     let mut authorization_api = authorization_api_pool
@@ -556,7 +557,7 @@ where
         .map_err(report_to_response)?;
 
     store
-        .update_entity_embeddings(actor_id, &mut authorization_api, embeddings)
+        .update_entity_embeddings(actor_id, &mut authorization_api, embeddings, reset)
         .await
         .map_err(report_to_response)
 }

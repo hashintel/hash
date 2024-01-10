@@ -1160,6 +1160,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         actor_id: AccountId,
         authorization_api: &mut A,
         embeddings: impl IntoIterator<Item = EntityEmbedding<'_>> + Send,
+        reset: bool,
     ) -> Result<(), UpdateError> {
         #[derive(Debug, ToSql)]
         #[postgres(name = "entity_embeddings")]
@@ -1187,7 +1188,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .check_entities_permission(
                 actor_id,
                 EntityPermission::Update,
-                entity_ids,
+                entity_ids.iter().copied(),
                 Consistency::FullyConsistent,
             )
             .await
@@ -1202,6 +1203,25 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 status = status.attach(format!("Permission denied for entity {entity_id}"));
             }
             return Err(status.change_context(UpdateError));
+        }
+        if reset {
+            let (owned_by_id, entity_uuids): (Vec<_>, Vec<_>) = entity_ids
+                .into_iter()
+                .map(|entity_id| (entity_id.owned_by_id, entity_id.entity_uuid))
+                .unzip();
+            self.as_client()
+                .query(
+                    "
+                        DELETE FROM entity_embeddings
+                        WHERE (web_id, entity_uuid) IN (
+                            SELECT *
+                            FROM UNNEST($1::UUID[], $2::UUID[])
+                        );
+                    ",
+                    &[&owned_by_id, &entity_uuids],
+                )
+                .await
+                .change_context(UpdateError)?;
         }
         self.as_client()
             .query(

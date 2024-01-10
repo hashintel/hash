@@ -38,6 +38,7 @@
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
+    "@local/hash-subgraph": "0.0.0-private",
     "@local/status": "0.0.0-private",
     "@temporalio/activity": "1.8.1",
     "@temporalio/worker": "1.8.1",
@@ -53,7 +54,6 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
-    "@local/hash-subgraph": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/dedent": "0.7.0",
     "@types/dotenv-flow": "3.2.0",
