@@ -126,6 +126,8 @@ services:
     depends_on:
       temporal:
         condition: service_healthy
+      temporal-setup:
+        condition: service_completed_successfully
     # Environment variables are to be set manually here.
     # We could load in the entirety of the `.env.local` file using `env_file`
     # but to prevent bloating the environment and spilling everything
@@ -147,6 +149,8 @@ services:
     depends_on:
       temporal:
         condition: service_healthy
+      temporal-setup:
+        condition: service_completed_successfully
     environment:
       HASH_TEMPORAL_HOST: "temporal"
       HASH_GRAPH_API_HOST: graph

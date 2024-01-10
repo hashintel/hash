@@ -318,7 +318,7 @@ jobs:
         run: |
           turbo codegen --filter '@apps/hash-external-services'
 
-          SERVICES="kratos mailslurper redis temporal temporal-setup spicedb"
+          SERVICES="kratos mailslurper redis temporal-ui spicedb"
 
           if [[ ${{ steps.tests.outputs.external-service-graph == 'true' }} == 'true' ]]; then
             SERVICES="$SERVICES graph"
