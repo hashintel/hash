@@ -13,6 +13,7 @@ graph-api = { workspace = true }
 graph-types = { workspace = true }
 validation = { workspace = true }
 type-fetcher = { workspace = true }
+temporal-client = { workspace = true }
 authorization = { workspace = true }
 codec = { workspace = true }
 

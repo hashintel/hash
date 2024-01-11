@@ -32,6 +32,7 @@
     "@local/hash-graph-types-rs": "0.0.0-private",
     "@local/hash-validation-rs": "0.0.0-private",
     "@local/status-rust": "0.0.0-private",
+    "@local/temporal-client-rs": "0.0.0-private",
     "@local/temporal-versioning-rs": "0.0.0-private",
     "ts-node": "10.9.1"
   },
