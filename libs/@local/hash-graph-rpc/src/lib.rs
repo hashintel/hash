@@ -6,6 +6,7 @@
 #![feature(macro_metavar_expr)]
 extern crate core;
 
+pub mod codegen;
 pub mod harpc;
 pub mod specification;
 mod types;
