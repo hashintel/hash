@@ -42,7 +42,7 @@ export const createGraphActivities = ({
     await graphApiClient
       .updateEntityEmbeddings(params.authentication.actorId, {
         embeddings: params.embeddings,
-        reset: false,
+        reset: true,
         updatedAtTransactionTime: params.updatedAtTransactionTime,
         updatedAtDecisionTime: params.updatedAtDecisionTime,
       })
