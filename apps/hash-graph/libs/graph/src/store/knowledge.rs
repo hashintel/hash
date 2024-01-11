@@ -11,6 +11,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use type_system::{url::VersionedUrl, EntityType};
 use validation::ValidationProfile;
@@ -62,6 +63,7 @@ pub trait EntityStore: crud::Read<Entity> {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
+        temporal_client: Option<&TemporalClient>,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
@@ -165,6 +167,7 @@ pub trait EntityStore: crud::Read<Entity> {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
+        temporal_client: Option<&TemporalClient>,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,

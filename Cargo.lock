@@ -1078,6 +1078,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tarpc",
+ "temporal-client 0.0.0",
  "temporal-versioning",
  "time",
  "tokio",

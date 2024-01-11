@@ -28,16 +28,6 @@ export const createEmbeddings = async (params: {
   embeddings: { property?: BaseUrl; embedding: number[] }[];
   usage: Usage;
 }> => {
-  if (params.propertyTypes.length === 0) {
-    return {
-      embeddings: [],
-      usage: {
-        prompt_tokens: 0,
-        total_tokens: 0,
-      },
-    };
-  }
-
   // sort property types by their base url
   params.propertyTypes.sort((a, b) =>
     a.metadata.recordId.baseUrl.localeCompare(b.metadata.recordId.baseUrl),
@@ -48,7 +38,8 @@ export const createEmbeddings = async (params: {
   //   2. A list of all property key:value pairs
   //
   // We use the last item in the array to store the combined 'all properties' list.
-  const propertyEmbeddings = [];
+  const propertyEmbeddings: string[] = [];
+  const usedPropertyTypes: PropertyTypeWithMetadata[] = [];
   let combinedEntityEmbedding = "";
   for (const propertyType of params.propertyTypes) {
     const property =
@@ -61,6 +52,17 @@ export const createEmbeddings = async (params: {
     const embeddingInput = createEmbeddingInput({ propertyType, property });
     combinedEntityEmbedding += `${embeddingInput}\n`;
     propertyEmbeddings.push(embeddingInput);
+    usedPropertyTypes.push(propertyType);
+  }
+
+  if (usedPropertyTypes.length === 0) {
+    return {
+      embeddings: [],
+      usage: {
+        prompt_tokens: 0,
+        total_tokens: 0,
+      },
+    };
   }
 
   const response = await openai.embeddings.create({
@@ -71,7 +73,7 @@ export const createEmbeddings = async (params: {
   return {
     usage: response.usage,
     embeddings: response.data.map((data, idx) => ({
-      property: params.propertyTypes[idx]?.metadata.recordId.baseUrl,
+      property: usedPropertyTypes[idx]?.metadata.recordId.baseUrl,
       embedding: data.embedding,
     })),
   };
