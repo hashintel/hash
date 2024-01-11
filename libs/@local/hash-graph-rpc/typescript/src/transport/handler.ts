@@ -1,6 +1,5 @@
-import { ParseError } from "@effect/schema/ParseResult";
 import * as S from "@effect/schema/Schema";
-import { AbortOptions, type Libp2p, PeerId } from "@libp2p/interface";
+import { type Libp2p, AbortOptions, PeerId } from "@libp2p/interface";
 import { type Multiaddr } from "@multiformats/multiaddr";
 import {
   Cause,
@@ -25,6 +24,7 @@ import {
   UnknownResponseError,
   UnsupportedTransportVersionError,
 } from "./response";
+import { ParseResult } from "@effect/schema";
 
 export class TimeoutError extends Data.TaggedError("Timeout") {}
 
@@ -51,9 +51,9 @@ const HandlerConfig = S.struct({
   negotiateFully: S.optional(S.boolean, { default: () => true }),
 });
 
+interface HandlerConfig extends S.Schema.To<typeof HandlerConfig> {}
 export interface HandlerConfigFrom
   extends S.Schema.From<typeof HandlerConfig> {}
-interface HandlerConfig extends S.Schema.To<typeof HandlerConfig> {}
 
 export type HandlerError =
   | TimeoutError
@@ -62,7 +62,7 @@ export type HandlerError =
   | UnexpectedEndOfStreamError
   | VariableIntegerOverflowError
   | UnsupportedTransportVersionError
-  | ParseError
+  | ParseResult.ParseError
   | AbortedError
   | Cause.NoSuchElementException;
 

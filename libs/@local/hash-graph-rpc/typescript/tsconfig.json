@@ -3,7 +3,6 @@
   "include": ["./src/", "./tests/"],
   "compilerOptions": {
     "exactOptionalPropertyTypes": true,
-    "module": "ESNext",
-    "esModuleInterop": true
+    "target": "ESNext"
   }
 }
