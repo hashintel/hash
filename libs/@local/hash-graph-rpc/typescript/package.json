@@ -4,13 +4,17 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/main.ts"
+    ".": "./src/main.ts",
+    "./Client": "./src/Client.ts"
   },
   "types": "./src/main.ts",
   "typesVersions": {
     "*": {
       ".": [
         "./src/main.ts"
+      ],
+      "Client": [
+        "./src/Client.ts"
       ]
     }
   },

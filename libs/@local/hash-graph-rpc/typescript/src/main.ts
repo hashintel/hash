@@ -6,9 +6,8 @@ import { webSockets } from "@libp2p/websockets";
 import { multiaddr } from "@multiformats/multiaddr";
 import { createLibp2p } from "libp2p";
 
-import { service } from "./client";
+import { service } from "./Client";
 import { ProcedureId, ServiceId, ServiceVersion } from "./transport/common";
-import { defaultHandler } from "./transport/handler";
 import { RpcResult } from "./status";
 
 export const AccountService = service(ServiceId(0x00), ServiceVersion(0x00))
@@ -59,7 +58,7 @@ export function createTransport() {
     transports: [webSockets()],
     streamMuxers: [yamux()],
     connectionEncryption: [noise()],
-    services: { rpc: defaultHandler({}), identify: identify() },
+    services: { identify: identify() },
   });
 }
 

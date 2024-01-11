@@ -1,7 +1,7 @@
 import { ParseResult } from "@effect/schema";
 import * as S from "@effect/schema/Schema";
 import { type Multiaddr } from "@multiformats/multiaddr";
-import { Effect } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { parse } from "uuid";
 
 import {
@@ -11,9 +11,64 @@ import {
   ServiceVersion,
 } from "./transport/common";
 import { TRANSPORT_VERSION } from "./transport/constants";
-import { Handler } from "./transport/handler";
+import {
+  Handler,
+  HandlerConfigFrom,
+  HandlerError,
+  HandlerLive,
+  TransportContext,
+} from "./transport/handler";
 import { Request, RequestHeader } from "./transport/request";
 import { Response, ResponseFrom } from "./transport/response";
+import { Libp2p } from "@libp2p/interface";
+
+export interface Client {
+  readonly send: <
+    const S extends ServiceId,
+    const P extends ProcedureId,
+    Req,
+    Res,
+  >(
+    procedure: Procedure<S, P, Req, Res>,
+    actor: ActorId,
+    request: Req,
+  ) => Effect.Effect<never, HandlerError, Res>;
+}
+
+export const Client = Context.Tag<Client>();
+
+const ClientLive = (server: Multiaddr) =>
+  Layer.effect(
+    Client,
+    Effect.gen(function* (_) {
+      const handler = yield* _(Handler);
+
+      return Client.of({
+        send: <
+          const S extends ServiceId,
+          const P extends ProcedureId,
+          Req,
+          Res,
+        >(
+          procedure: Procedure<S, P, Req, Res>,
+          actor: ActorId,
+          request: Req,
+        ) =>
+          Effect.gen(function* (_) {
+            const encodedRequest = yield* _(
+              S.parse(procedure.request)([{ actor }, request]),
+            );
+
+            const response = yield* _(handler.send(server, encodedRequest));
+            const decodedResponse = yield* _(
+              S.parse(procedure.response)(response),
+            );
+
+            return decodedResponse;
+          }),
+      });
+    }),
+  );
 
 export const EncodingContext = RequestHeader.pipe(S.pick("actor"));
 export interface EncodingContextFrom
@@ -34,7 +89,7 @@ interface Service<
   V extends ServiceVersion,
   T extends Record<string, never>,
 > {
-  new (server: Multiaddr, handler: Handler<unknown>): ServiceInstance<S, V, T>;
+  new (state: ReturnType<typeof create>): ServiceInstance<S, V, T>;
 }
 
 export interface Procedure<
@@ -135,14 +190,7 @@ class ServiceBuilder<
 
   build(): Service<S, V, T> {
     class ServiceImpl {
-      client: Client<unknown>;
-
-      constructor(
-        public server: Multiaddr,
-        public handler: Handler<unknown>,
-      ) {
-        this.client = new Client(server, handler);
-      }
+      constructor(public state: ReturnType<typeof create>) {}
     }
 
     for (const [name, procedure] of Object.entries(this.procedures)) {
@@ -153,9 +201,13 @@ class ServiceBuilder<
       ) {
         const actorId = ActorId(parse(actor) as Uint8Array);
 
-        return Effect.runPromise(
-          Effect.scoped(this.client.send(procedure, actorId, request)),
-        );
+        const effect = Effect.gen(function* (_) {
+          const client = yield* _(Client);
+
+          return yield* _(client.send(procedure, actorId, request));
+        }).pipe(Effect.provide(this.state));
+
+        return Effect.runPromise(effect);
       };
     }
 
@@ -163,34 +215,21 @@ class ServiceBuilder<
   }
 }
 
+export const create = (
+  transport: Libp2p,
+  server: Multiaddr,
+  config: HandlerConfigFrom,
+) => {
+  const transportLayer = Layer.succeed(TransportContext, transport);
+  const handler = HandlerLive(config);
+  const client = ClientLive(server);
+
+  return client.pipe(Layer.provide(handler), Layer.provide(transportLayer));
+};
+
 export function service<
   const S extends ServiceId,
   const V extends ServiceVersion,
 >(service: S, version: V) {
   return new ServiceBuilder(service, version, {});
-}
-
-export class Client<E> {
-  constructor(
-    public server: Multiaddr,
-    public handler: Handler<E>,
-  ) {}
-
-  send<const S extends ServiceId, const P extends ProcedureId, Req, Res>(
-    procedure: Procedure<S, P, Req, Res>,
-    actor: ActorId,
-    request: Req,
-  ) {
-    return Effect.gen(this, function* (_) {
-      const encodedRequest = yield* _(
-        S.parse(procedure.request)([{ actor }, request]),
-      );
-
-      const response = yield* _(this.handler.send(this.server, encodedRequest));
-
-      const decodedResponse = yield* _(S.parse(procedure.response)(response));
-
-      return decodedResponse;
-    });
-  }
 }

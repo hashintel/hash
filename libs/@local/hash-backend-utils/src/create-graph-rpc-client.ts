@@ -4,6 +4,7 @@ import {
   createTransport,
   multiaddr,
 } from "@local/hash-graph-rpc-ts-client";
+import * as Client from "@local/hash-graph-rpc-ts-client/Client";
 
 export interface RpcClient {
   accounts: InstanceType<typeof AccountService>;
@@ -15,17 +16,16 @@ export const createGraphRpcClient = async (
   _logger: Logger,
   { host, port }: { host: string; port: number },
 ): Promise<RpcClient> => {
-  console.log(host, port);
   const remote = multiaddr(`/ip4/${host}/tcp/${port}/ws/`);
   const transport = await createTransport();
 
-  const accounts = new AccountService(remote, transport.services.rpc);
+  const client = Client.create(transport, remote, {});
+  const accounts = new AccountService(client);
 
   return {
     accounts,
 
     async close() {
-      console.log("BYE BYE");
       await transport.stop();
     },
   };

@@ -1,18 +1,18 @@
 import { ParseError } from "@effect/schema/ParseResult";
 import * as S from "@effect/schema/Schema";
-import {
-  AbortOptions,
-  CodeError,
-  ComponentLogger,
-  ERR_TIMEOUT,
-  Logger,
-  PeerId,
-  Startable,
-} from "@libp2p/interface";
-import { ConnectionManager } from "@libp2p/interface-internal";
+import { AbortOptions, type Libp2p, PeerId } from "@libp2p/interface";
 import { type Multiaddr } from "@multiformats/multiaddr";
-import { Cause, Chunk, Data, Duration, Effect, Exit, Stream } from "effect";
-import { Scope } from "effect/Scope";
+import {
+  Cause,
+  Chunk,
+  Context,
+  Data,
+  Duration,
+  Effect,
+  Exit,
+  Layer,
+  Stream,
+} from "effect";
 
 import {
   UnexpectedEndOfStreamError,
@@ -32,10 +32,7 @@ export class AbortedError extends Data.TaggedError("Aborted")<{
   message: string;
 }> {}
 
-export interface HandlerComponents {
-  connectionManager: ConnectionManager;
-  logger: ComponentLogger;
-}
+export const TransportContext = Context.Tag<Libp2p>();
 
 const HandlerConfig = S.struct({
   timeout: S.optional(
@@ -47,152 +44,154 @@ const HandlerConfig = S.struct({
       default: () => Duration.millis(10000),
     },
   ),
-  maxInboundStreams: S.optional(S.Positive.pipe(S.int()), { default: () => 2 }),
   maxOutboundStreams: S.optional(S.Positive.pipe(S.int()), {
     default: () => 1,
   }),
   runOnTransientConnection: S.optional(S.boolean, { default: () => true }),
+  negotiateFully: S.optional(S.boolean, { default: () => true }),
 });
 
-interface IncompleteHandlerConfig extends S.Schema.From<typeof HandlerConfig> {}
+export interface HandlerConfigFrom
+  extends S.Schema.From<typeof HandlerConfig> {}
 interface HandlerConfig extends S.Schema.To<typeof HandlerConfig> {}
 
-export interface Handler<E> {
-  send(
+export type HandlerError =
+  | TimeoutError
+  | UnknownResponseError
+  | Cause.UnknownException
+  | UnexpectedEndOfStreamError
+  | VariableIntegerOverflowError
+  | UnsupportedTransportVersionError
+  | ParseError
+  | AbortedError
+  | Cause.NoSuchElementException;
+
+export interface Handler {
+  readonly send: (
     peer: PeerId | Multiaddr | Multiaddr[],
     request: Request,
     options?: AbortOptions,
-  ): Effect.Effect<Scope, E, Response>;
+  ) => Effect.Effect<never, HandlerError, Response>;
 }
 
-export class DefaultHandler
-  implements
-    Startable,
-    Handler<
-      | TimeoutError
-      | UnknownResponseError
-      | Cause.UnknownException
-      | UnexpectedEndOfStreamError
-      | VariableIntegerOverflowError
-      | UnsupportedTransportVersionError
-      | ParseError
-      | AbortedError
-      | Cause.NoSuchElementException
-    >
-{
-  private readonly log: Logger;
-  private readonly config: HandlerConfig;
+export const Handler = Context.Tag<Handler>();
 
-  public readonly protocol = "/hash/rpc/1";
+const timeout = (
+  duration: Duration.Duration,
+  byPromise: AbortSignal,
+  byConfig?: AbortSignal,
+) => {
+  const byTimeout = AbortSignal.timeout(Duration.toMillis(duration));
+  const allSignals = [byPromise, byTimeout];
 
-  constructor(
-    private readonly components: HandlerComponents,
-    config: IncompleteHandlerConfig,
-  ) {
-    this.config = S.parseSync(HandlerConfig)(config);
-    this.log = components.logger.forComponent("handler:websocket");
+  if (byConfig) {
+    allSignals.push(byConfig);
   }
 
-  async start() {}
+  const controller = new AbortController();
 
-  async stop() {}
+  const listener = () => {
+    controller.abort();
 
-  send(
-    peer: PeerId | Multiaddr | Multiaddr[],
-    request: Request,
-    options: AbortOptions = {},
-  ) {
-    return Effect.gen(this, function* (_) {
-      const data = writeRequest(request);
-
-      const connection = yield* _(
-        Effect.tryPromise(() =>
-          this.components.connectionManager.openConnection(peer, options),
-        ),
-      );
-
-      const stream = yield* _(
-        Effect.tryPromise((promiseSignal) => {
-          const timeoutSignal = AbortSignal.timeout(
-            Duration.toMillis(this.config.timeout),
-          );
-
-          timeoutSignal.addEventListener(
-            "abort",
-            () => {
-              stream.abort(new CodeError("request timeout", ERR_TIMEOUT));
-            },
-            { once: true },
-          );
-
-          const allSignals = [promiseSignal, timeoutSignal];
-          if (options.signal) {
-            allSignals.push(options.signal);
-          }
-
-          const abortController = new AbortController();
-
-          for (const signal of allSignals) {
-            signal.addEventListener(
-              "abort",
-              () => {
-                this.log("aborting stream");
-                abortController.abort();
-              },
-              { once: true },
-            );
-          }
-
-          return connection.newStream(this.protocol, {});
-        }),
-      );
-
-      yield* _(
-        Effect.addFinalizer((exit) => {
-          if (Exit.isFailure(exit)) {
-            stream.abort(new Error(Cause.pretty(exit.cause)));
-          }
-
-          return Effect.promise((signal) => stream.close({ signal }));
-        }),
-      );
-
-      yield* _(Effect.promise(() => stream.sink([data])));
-
-      const incomingStream = Stream.fromAsyncIterable(
-        stream.source,
-        (error) => new AbortedError({ message: String(error) }),
-      );
-
-      const chunks = yield* _(Stream.runCollect(incomingStream));
-      const chunkArray = Chunk.toReadonlyArray(chunks);
-
-      const bufferLength = chunkArray.reduce(
-        (acc, chunk) => acc + chunk.length,
-        0,
-      );
-
-      const buffer = new Uint8Array(bufferLength);
-
-      let offset = 0;
-      for (const chunk of chunkArray) {
-        const view = chunk.subarray();
-        buffer.set(view, offset);
-        offset += view.length;
-      }
-
-      if (chunkArray.length === 0) {
-        yield* _(new TimeoutError());
-      }
-
-      const response = yield* _(readResponse(buffer));
-      return response;
-    });
-  }
-}
-
-export function defaultHandler(config: IncompleteHandlerConfig) {
-  return (components: HandlerComponents): Handler<unknown> => {
-    return new DefaultHandler(components, config);
+    // remove all event listeners
+    for (const signal of allSignals) {
+      signal.removeEventListener("abort", listener);
+    }
   };
-}
+
+  for (const signal of allSignals) {
+    signal.addEventListener("abort", listener, { once: true });
+  }
+
+  return controller.signal;
+};
+const connect = (
+  {
+    transport,
+    peer,
+  }: { transport: Libp2p; peer: PeerId | Multiaddr | Multiaddr[] },
+  config: HandlerConfig,
+  external?: AbortOptions,
+) =>
+  Effect.acquireRelease(
+    Effect.tryPromise((abort) => {
+      const signal = timeout(config.timeout, abort, external?.signal);
+
+      return transport.dialProtocol(peer, "/hash/rpc/1", {
+        signal,
+        maxOutboundStreams: config.maxOutboundStreams,
+        runOnTransientConnection: config.runOnTransientConnection,
+        negotiateFully: config.negotiateFully,
+      });
+    }),
+    (connection, exit) => {
+      if (Exit.isFailure(exit)) {
+        connection.abort(new Error(Cause.pretty(exit.cause)));
+
+        return Effect.unit;
+      }
+
+      return Effect.promise((signal) => connection.close({ signal }));
+    },
+  );
+
+const collect = <I extends Iterable<Uint8Array>>(
+  stream: Stream.Stream<never, AbortedError, I>,
+) =>
+  Effect.gen(function* (_) {
+    const chunks = yield* _(
+      Stream.runCollect(stream),
+      Effect.map(Chunk.flatMap(Chunk.fromIterable)),
+    );
+
+    const totalLength = Chunk.reduce(
+      chunks,
+      0,
+      (length, chunk) => length + chunk.length,
+    );
+
+    const { buffer } = Chunk.reduce(
+      chunks,
+      { buffer: new Uint8Array(totalLength), offset: 0 },
+      ({ buffer, offset }, chunk) => {
+        buffer.set(chunk, offset);
+
+        return { buffer, offset: offset + chunk.length };
+      },
+    );
+
+    return buffer;
+  });
+
+export const HandlerLive = (config: HandlerConfigFrom) =>
+  Layer.effect(
+    Handler,
+    Effect.gen(function* (_) {
+      const validatedConfig = yield* _(S.parseEither(HandlerConfig)(config));
+      const transport = yield* _(TransportContext);
+
+      return Handler.of({
+        send: (peer, request, options) =>
+          Effect.gen(function* (_) {
+            const connection = yield* _(
+              connect({ transport, peer }, validatedConfig, options),
+            );
+
+            yield* _(
+              Effect.promise(() => connection.sink([writeRequest(request)])),
+            );
+
+            const responseStream = Stream.fromAsyncIterable(
+              connection.source,
+              (error) => new AbortedError({ message: String(error) }),
+            );
+
+            const responseBytes = yield* _(collect(responseStream));
+
+            const response = yield* _(readResponse(responseBytes));
+
+            return response;
+          }).pipe(Effect.scoped),
+      });
+    }),
+  );
