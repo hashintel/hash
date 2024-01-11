@@ -1,34 +1,17 @@
 import type { JsonObject } from "@blockprotocol/core";
 import { validateVersionedUrl, VersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import {
-  ProposedEntity,
-  ProposedEntitySchemaOrData,
-} from "@local/hash-isomorphic-utils/ai-inference-types";
-import { Entity } from "@local/hash-subgraph";
-import dedent from "dedent";
 import OpenAI from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
-import { DereferencedEntityType } from "./dereference-entity-type";
+import { DereferencedEntityType } from "../dereference-entity-type";
+import { ProposedEntitySummary } from "../inference-types";
 
-export type FunctionName =
-  | "could_not_infer_entities"
-  | "create_entities"
-  | "update_entities";
+type FunctionName = "could_not_infer_entities" | "register_entity_summaries";
 
-export type ProposedEntityCreationsByType = Record<
+export type ProposedEntitySummariesByType = Record<
   VersionedUrl,
-  ProposedEntity[]
->;
-
-export type ProposedEntityUpdatesByType = Record<
-  VersionedUrl,
-  {
-    entityId: number;
-    updateEntityId: string;
-    properties: Entity["properties"];
-  }[]
+  Omit<ProposedEntitySummary, "entityTypeId">[]
 >;
 
 const stringifyArray = (array: unknown[]): string =>
@@ -38,14 +21,9 @@ const stringifyArray = (array: unknown[]): string =>
  * Validates that the provided object is a valid ProposedEntitiesByType object.
  * @throws Error if the provided object does not match ProposedEntitiesByType
  */
-export const validateProposedEntitiesByType = <
-  EntityUpdate extends boolean = false,
->(
+export const validateEntitySummariesByType = (
   parsedJson: JsonObject,
-  update: EntityUpdate,
-): parsedJson is EntityUpdate extends true
-  ? ProposedEntityUpdatesByType
-  : ProposedEntityCreationsByType => {
+): parsedJson is ProposedEntitySummariesByType => {
   const maybeVersionedUrls = Object.keys(parsedJson);
 
   const invalidVersionedUrls = maybeVersionedUrls.filter(
@@ -55,6 +33,7 @@ export const validateProposedEntitiesByType = <
       return result.type !== "Ok";
     },
   );
+
   if (invalidVersionedUrls.length > 0) {
     throw new Error(
       `Invalid versionedUrls in AI-provided response: ${invalidVersionedUrls.join(
@@ -63,11 +42,13 @@ export const validateProposedEntitiesByType = <
     );
   }
 
-  const maybeEntitiesArrays = Object.values(parsedJson);
+  const maybeEntitySummariesArrays = Object.values(parsedJson);
 
-  const invalidArrays = maybeEntitiesArrays.filter((maybeEntitiesArray) => {
-    return !Array.isArray(maybeEntitiesArray);
-  });
+  const invalidArrays = maybeEntitySummariesArrays.filter(
+    (maybeEntitySummariesArray) => {
+      return !Array.isArray(maybeEntitySummariesArray);
+    },
+  );
 
   if (invalidArrays.length > 0) {
     throw new Error(
@@ -77,30 +58,31 @@ export const validateProposedEntitiesByType = <
     );
   }
 
-  const invalidEntities = maybeEntitiesArrays
+  const invalidEntities = maybeEntitySummariesArrays
     .flat()
-    .filter((maybeEntity): maybeEntity is ProposedEntity => {
+    .filter((maybeEntitySummary) => {
       if (
-        maybeEntity === null ||
-        typeof maybeEntity !== "object" ||
-        Array.isArray(maybeEntity)
+        maybeEntitySummary === null ||
+        typeof maybeEntitySummary !== "object" ||
+        Array.isArray(maybeEntitySummary)
       ) {
         return true;
       }
 
-      if (!("entityId" in maybeEntity)) {
+      if (typeof maybeEntitySummary.entityId !== "number") {
+        return true;
+      }
+
+      if (typeof maybeEntitySummary.summary !== "string") {
         return true;
       }
 
       if (
-        ("sourceEntityId" in maybeEntity &&
-          !("targetEntityId" in maybeEntity)) ||
-        (!("sourceEntityId" in maybeEntity) && "targetEntityId" in maybeEntity)
+        ("sourceEntityId" in maybeEntitySummary &&
+          !("targetEntityId" in maybeEntitySummary)) ||
+        (!("sourceEntityId" in maybeEntitySummary) &&
+          "targetEntityId" in maybeEntitySummary)
       ) {
-        return true;
-      }
-
-      if (update && !("updateEntityId" in maybeEntity)) {
         return true;
       }
 
@@ -123,6 +105,7 @@ type CouldNotInferEntitiesSchemaOrObject = Record<
   CouldNotInferEntitiesReturnKey,
   unknown
 >;
+
 export type CouldNotInferEntitiesReturn = Subtype<
   CouldNotInferEntitiesSchemaOrObject,
   {
@@ -130,7 +113,7 @@ export type CouldNotInferEntitiesReturn = Subtype<
   }
 >;
 
-export const generateTools = (
+export const generateSummaryTools = (
   entityTypes: {
     schema: DereferencedEntityType;
     isLink: boolean;
@@ -157,15 +140,22 @@ export const generateTools = (
   {
     type: "function",
     function: {
-      name: "create_entities" satisfies FunctionName,
-      description: "Create entities inferred from the provided text",
+      name: "register_entity_summaries" satisfies FunctionName,
+      description:
+        "Register a short summary for each entity that can be inferred from the providing text",
       parameters: {
         type: "object",
         properties: entityTypes.reduce<Record<VersionedUrl, JSONSchema>>(
           (acc, { schema, isLink }) => {
             acc[schema.$id] = {
               type: "array",
-              title: `${schema.title} entities to create`,
+              title: `Summaries of entities of type ${
+                schema.title
+              } that can be inferred from the provided text.${
+                isLink
+                  ? "This is a link type, which must link two other entities together by reference to their entityIds as source and target."
+                  : ""
+              }`,
               items: {
                 $id: schema.$id,
                 type: "object",
@@ -176,6 +166,11 @@ export const generateTools = (
                     description:
                       "Your numerical identifier for the entity, unique among the inferred entities in this conversation",
                     type: "number",
+                  },
+                  summary: {
+                    description:
+                      "A short summary of the entity that can be used to uniquely identify it in the provided text. It need not be human-readable or user-friendly, it is only for use by AI Assistants.",
+                    type: "string",
                   },
                   ...(isLink
                     ? {
@@ -191,68 +186,12 @@ export const generateTools = (
                         },
                       }
                     : {}),
-                  properties: {
-                    description: "The properties to set on the entity",
-                    default: {},
-                    type: "object",
-                    properties: schema.properties,
-                  },
-                } satisfies ProposedEntitySchemaOrData,
+                },
                 required: [
                   "entityId",
-                  "properties",
+                  "summary",
                   ...(isLink ? ["sourceEntityId", "targetEntityId"] : []),
                 ],
-              },
-            };
-            return acc;
-          },
-          {},
-        ),
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "update_entities" satisfies FunctionName,
-      description: dedent(`
-            Update entities inferred from the provided text where you have been advised the entity already exists, 
-            using the entityId provided. If you have additional information about properties that already exist,
-            you should provide an updated property value that appropriately merges the existing and new information,
-            e.g. by updating an entity's 'description' property to incorporate new information.
-        `),
-      parameters: {
-        type: "object",
-        properties: entityTypes.reduce<Record<VersionedUrl, JSONSchema>>(
-          (acc, { schema }) => {
-            acc[schema.$id] = {
-              type: "array",
-              title: `${schema.title} entities to update`,
-              items: {
-                $id: schema.$id,
-                type: "object",
-                title: schema.title,
-                description: schema.description,
-                properties: {
-                  entityId: {
-                    description:
-                      "Your numerical identifier for the entity, unique among the inferred entities in this conversation",
-                    type: "number",
-                  },
-                  updateEntityId: {
-                    description:
-                      "The existing string identifier for the entity, provided to you by the user.",
-                    type: "string",
-                  },
-                  properties: {
-                    description: "The properties to update on the entity",
-                    default: {},
-                    type: "object",
-                    properties: schema.properties,
-                  },
-                } satisfies ProposedEntitySchemaOrData,
-                required: ["entityId", "properties"],
               },
             };
             return acc;

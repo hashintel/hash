@@ -1,3 +1,4 @@
+import { DangerButton } from "../shared/danger-button";
 import styles from "./table.module.scss";
 
 export const RowActions = ({
@@ -12,9 +13,16 @@ export const RowActions = ({
       <div>{`${selectedRowCount} ${
         selectedRowCount > 1 ? "rows" : "row"
       } selected`}</div>
-      <button type="button" onClick={onDelete} className={styles.danger}>
+      <DangerButton
+        onClick={onDelete}
+        sx={{
+          padding: ({ spacing }) => spacing(0, 1),
+          height: "100%",
+          alignItems: "center",
+        }}
+      >
         Delete
-      </button>
+      </DangerButton>
     </div>
   );
 };

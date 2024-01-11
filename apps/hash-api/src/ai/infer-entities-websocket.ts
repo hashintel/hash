@@ -17,7 +17,6 @@ import { WebSocket, WebSocketServer } from "ws";
 import { getUserAndSession } from "../auth/create-auth-handlers";
 import { ImpureGraphContext } from "../graph/context-types";
 import { User } from "../graph/knowledge/system-types/user";
-import { genId } from "../util";
 
 const inferEntitiesMessageHandler = async ({
   socket,
@@ -71,10 +70,11 @@ const inferEntitiesMessageHandler = async ({
       args: [
         {
           authentication: { actorId: user.accountId },
+          requestUuid,
           userArguments,
         },
       ],
-      workflowId: `inferEntities-${genId()}`,
+      workflowId: requestUuid,
       retry: {
         maximumAttempts: 1,
       },

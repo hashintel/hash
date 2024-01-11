@@ -48,6 +48,7 @@ export type InferEntitiesCallerParams = {
   authentication: {
     actorId: AccountId;
   };
+  requestUuid: string;
   userArguments: InferEntitiesUserArguments;
 };
 
@@ -84,7 +85,7 @@ export type InferenceTokenUsage = {
 type InferredEntityResultBase = {
   entity?: Entity | null;
   entityTypeId: VersionedUrl;
-  operation: "create" | "update";
+  operation: "create" | "update" | "already-exists-as-proposed";
   proposedEntity: ProposedEntity;
   status: "success" | "failure";
 };
@@ -100,6 +101,12 @@ export type InferredEntityCreationFailure = InferredEntityResultBase & {
   failureReason: string;
   operation: "create";
   status: "failure";
+};
+
+export type InferredEntityMatchesExisting = InferredEntityResultBase & {
+  entity: Entity;
+  operation: "already-exists-as-proposed";
+  status: "success";
 };
 
 export type InferredEntityUpdateSuccess = InferredEntityResultBase & {
@@ -118,6 +125,7 @@ export type InferredEntityUpdateFailure = InferredEntityResultBase & {
 export type InferredEntityChangeResult =
   | InferredEntityCreationSuccess
   | InferredEntityCreationFailure
+  | InferredEntityMatchesExisting
   | InferredEntityUpdateSuccess
   | InferredEntityUpdateFailure;
 

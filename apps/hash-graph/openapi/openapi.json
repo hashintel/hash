@@ -2496,7 +2496,8 @@
           "typeToArchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ArchiveEntityTypeRequest": {
         "type": "object",
@@ -2507,7 +2508,8 @@
           "typeToArchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ArchivePropertyTypeRequest": {
         "type": "object",
@@ -2518,7 +2520,8 @@
           "typeToArchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ClosedTemporalBound": {
         "oneOf": [
@@ -2576,7 +2579,8 @@
               }
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreateEntityRequest": {
         "type": "object",
@@ -2659,7 +2663,8 @@
               }
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreatePropertyTypeRequest": {
         "type": "object",
@@ -2691,7 +2696,8 @@
               }
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreateWebRequest": {
         "type": "object",
@@ -2706,7 +2712,8 @@
           "owner": {
             "$ref": "#/components/schemas/WebOwnerSubject"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreatedById": {
         "type": "string",
@@ -2949,7 +2956,8 @@
             "format": "int32",
             "minimum": 0
           }
-        }
+        },
+        "additionalProperties": false
       },
       "Edges": {
         "type": "object",
@@ -3064,7 +3072,8 @@
           "createdById": {
             "$ref": "#/components/schemas/EditionCreatedById"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "EntityEditorSubject": {
         "oneOf": [
@@ -3193,7 +3202,8 @@
               }
             ]
           }
-        }
+        },
+        "additionalProperties": false
       },
       "EntityMetadata": {
         "type": "object",
@@ -3225,7 +3235,8 @@
           "temporalVersioning": {
             "$ref": "#/components/schemas/EntityTemporalMetadata"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "EntityOwnerSubject": {
         "oneOf": [
@@ -3285,7 +3296,8 @@
           "edition": {
             "$ref": "#/components/schemas/EntityEditionProvenanceMetadata"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "EntityQueryToken": {
         "type": "string",
@@ -3492,7 +3504,8 @@
           "transactionTime": {
             "$ref": "#/components/schemas/LeftClosedTemporalInterval"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "EntityTypeEditorSubject": {
         "oneOf": [
@@ -4241,7 +4254,8 @@
           "isOfType": {
             "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "KnowledgeGraphEdgeKind": {
         "type": "string",
@@ -4697,7 +4711,8 @@
           "createdById": {
             "$ref": "#/components/schemas/EditionCreatedById"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "OntologyOutwardEdge": {
         "oneOf": [
@@ -4752,7 +4767,8 @@
           "edition": {
             "$ref": "#/components/schemas/OntologyEditionProvenanceMetadata"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "OntologyTemporalMetadata": {
         "type": "object",
@@ -4763,7 +4779,8 @@
           "transactionTime": {
             "$ref": "#/components/schemas/LeftClosedTemporalInterval"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "OntologyTypeRecordId": {
         "type": "object",
@@ -4925,7 +4942,8 @@
             "format": "int32",
             "minimum": 0
           }
-        }
+        },
+        "additionalProperties": false
       },
       "OwnedById": {
         "type": "string",
@@ -5598,7 +5616,8 @@
           "typeToUnarchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UnarchiveEntityTypeRequest": {
         "type": "object",
@@ -5609,7 +5628,8 @@
           "typeToUnarchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UnarchivePropertyTypeRequest": {
         "type": "object",
@@ -5620,7 +5640,8 @@
           "typeToUnarchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UnresolvedRightBoundedTemporalInterval": {
         "type": "object",
@@ -5667,7 +5688,8 @@
           "typeToUpdate": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UpdateEntityRequest": {
         "allOf": [
@@ -5730,7 +5752,8 @@
           "typeToUpdate": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UpdatePropertyTypeRequest": {
         "type": "object",
@@ -5752,7 +5775,8 @@
           "typeToUpdate": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ValidateEntityRequest": {
         "type": "object",
@@ -5786,7 +5810,8 @@
           "properties": {
             "$ref": "#/components/schemas/EntityProperties"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "ValidationOperation": {
         "type": "string",
