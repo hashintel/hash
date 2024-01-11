@@ -20,6 +20,10 @@ impl ServiceId {
     pub const fn derive(value: &str) -> Self {
         Self(fnv1a_hash_str_64(value))
     }
+
+    pub(crate) const fn value(self) -> u64 {
+        self.0
+    }
 }
 
 impl EncodeBinary for ServiceId {
@@ -52,8 +56,12 @@ impl DecodeBinary for ServiceId {
 pub struct ServiceVersion(u8);
 
 impl ServiceVersion {
-    pub(crate) const fn new(value: u8) -> Self {
+    pub const fn new(value: u8) -> Self {
         Self(value)
+    }
+
+    pub(crate) const fn value(self) -> u8 {
+        self.0
     }
 }
 
@@ -82,6 +90,7 @@ pub trait Service: Send + Sync {
     type Procedures;
 
     const ID: ServiceId;
+    const NAME: &'static str;
     const VERSION: ServiceVersion;
 }
 

@@ -36,6 +36,10 @@ impl ProcedureId {
     pub const fn derive(value: &str) -> Self {
         Self(fnv1a_hash_str_64(value))
     }
+
+    pub(crate) const fn value(self) -> u64 {
+        self.0
+    }
 }
 
 impl From<u64> for ProcedureId {
@@ -223,6 +227,7 @@ pub trait RemoteProcedure: Send + Sync {
     type Response;
 
     const ID: ProcedureId;
+    const NAME: &'static str;
 }
 
 #[cfg(test)]

@@ -5,13 +5,19 @@ use error_stack::{Report, Result, ResultExt};
 use specta::TypeMap;
 use thiserror::Error;
 
-use crate::codegen::{
-    context::{GlobalContext, Statement},
-    statement::StatementBuilder,
+use crate::{
+    codegen::{
+        context::{GlobalContext, Statement},
+        service::OutputServices,
+        statement::StatementBuilder,
+    },
+    harpc::service::Service,
+    types::{Empty, Stack},
 };
 
 mod context;
 mod inline;
+mod service;
 mod statement;
 
 #[derive(Debug, Copy, Clone, Error)]
@@ -26,7 +32,7 @@ pub enum Error {
     OrderingIncomplete,
 }
 
-fn imports(buffer: &mut BytesMut) -> std::fmt::Result {
+fn render_imports(buffer: &mut BytesMut) -> std::fmt::Result {
     buffer.write_str(r#"import * as S from "@effect/schema/Schema";"#)?;
     buffer.write_char('\n')?;
 
@@ -39,7 +45,7 @@ fn imports(buffer: &mut BytesMut) -> std::fmt::Result {
 }
 
 // TODO: flatten should work properly, although that is a lot more complicated.
-pub fn render(map: TypeMap) -> Result<Bytes, Error> {
+fn render_type_map(map: TypeMap) -> Result<BytesMut, Error> {
     let mut context = GlobalContext::new(map);
 
     while let Some(ast) = context.queue.pop() {
@@ -51,7 +57,7 @@ pub fn render(map: TypeMap) -> Result<Bytes, Error> {
     }
 
     let mut buffer = BytesMut::new();
-    imports(&mut buffer).change_context(Error::Buffer)?;
+    render_imports(&mut buffer).change_context(Error::Buffer)?;
 
     for id in context.ordering.iter() {
         let statement = context
@@ -65,6 +71,18 @@ pub fn render(map: TypeMap) -> Result<Bytes, Error> {
     if !context.statements.is_empty() {
         return Err(Report::new(Error::OrderingIncomplete));
     }
+
+    Ok(buffer)
+}
+
+pub fn render<S>(map: TypeMap) -> Result<Bytes, Error>
+where
+    S: OutputServices,
+{
+    let mut buffer = render_type_map(map)?;
+
+    buffer.write_str("\n\n").change_context(Error::Buffer)?;
+    S::output(&mut buffer).change_context(Error::Buffer)?;
 
     Ok(buffer.freeze())
 }

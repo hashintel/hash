@@ -6,6 +6,7 @@ import { webSockets } from "@libp2p/websockets";
 import { multiaddr } from "@multiformats/multiaddr";
 import { createLibp2p } from "libp2p";
 
+// TODO: service into own value!
 import { service } from "./Client";
 import { ProcedureId, ServiceId, ServiceVersion } from "./transport/common";
 import { RpcResult } from "./status";
