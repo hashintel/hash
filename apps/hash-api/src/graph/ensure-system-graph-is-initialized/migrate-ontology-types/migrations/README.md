@@ -9,7 +9,7 @@
 
 ## Idempotency
 
-- Assume that migration files will be run multiple times. They should not
+- Assume that migration files will be run multiple times. They must leave the database in the same state every time.
 - The helper functions in `util` handle this, e.g.
   - `createXTypeIfNotExists` will not create the type if it already exists
   - `updateSystemEntityType` will only update the type if the new version to assign does not exist
@@ -23,8 +23,8 @@ Avoid writing database mutations directly in migration files. Add or adapt an ex
 
 If you update an entity type, you must update the types that depend on it, i.e.
 
-- if you have updated a link type, any other type which has it as a potential link
-- if you have updated an entity type, any other type which refers to it as a possible destination of a link
+- if you have updated a link type, update any other type which has it as a link in its schema
+- if you have updated an entity type, update any other type which refers to it as a possible destination of a link
 
 `upgradeDependenciesInHashEntityType` currently requires that you provide the dependencies,
 having figured them out from looking at existing types. This is obviously (a) error prone and (b) time consuming
