@@ -107,3 +107,13 @@ pub struct Service<S, C> {
     _service: core::marker::PhantomData<S>,
     pub(crate) procedures: HashMap<ProcedureId, BoxedProcedureCall<C>>,
 }
+
+impl<S, C> Service<S, C> {
+    pub fn builder() -> ServiceBuilder<S, C, Empty>
+    where
+        S: service::Service,
+        C: Context,
+    {
+        ServiceBuilder::new()
+    }
+}

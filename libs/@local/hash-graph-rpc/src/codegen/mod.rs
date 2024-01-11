@@ -5,14 +5,8 @@ use error_stack::{Report, Result, ResultExt};
 use specta::TypeMap;
 use thiserror::Error;
 
-use crate::{
-    codegen::{
-        context::{GlobalContext, Statement},
-        service::OutputServices,
-        statement::StatementBuilder,
-    },
-    harpc::service::Service,
-    types::{Empty, Stack},
+use crate::codegen::{
+    context::GlobalContext, service::OutputServices, statement::StatementBuilder,
 };
 
 mod context;
@@ -41,13 +35,20 @@ fn render_imports(buffer: &mut BytesMut) -> std::fmt::Result {
 
     // TODO: name?!
     buffer.write_str(r#"import * as E from "@local/schema/Extra";"#)?;
+    buffer.write_char('\n')?;
+
+    // TODO: rename package
+    buffer.write_str(r#"import * as Service from "@local/hash-graph-rpc-ts-client/Service";"#)?;
+    buffer.write_char('\n')?;
+
+    buffer
+        .write_str(r#"import * as Procedure from "@local/hash-graph-rpc-ts-client/Procedure";"#)?;
     buffer.write_char('\n')
 }
 
 // TODO: flatten should work properly, although that is a lot more complicated.
-fn render_type_map(map: TypeMap) -> Result<BytesMut, Error> {
-    let mut context = GlobalContext::new(map);
-
+// takes ownership of context to prevent that we accidentally add something to the queue later
+fn render_types(mut context: GlobalContext) -> Result<BytesMut, Error> {
     while let Some(ast) = context.queue.pop() {
         let statement = StatementBuilder::new(&mut context, &ast);
 
@@ -79,10 +80,16 @@ pub fn render<S>(map: TypeMap) -> Result<Bytes, Error>
 where
     S: OutputServices,
 {
-    let mut buffer = render_type_map(map)?;
+    let mut trailer = BytesMut::new();
+    let mut context = GlobalContext::new(map);
+
+    S::output(&mut trailer, &mut context).change_context(Error::Buffer)?;
+
+    let mut buffer = render_types(context)?;
 
     buffer.write_str("\n\n").change_context(Error::Buffer)?;
-    S::output(&mut buffer).change_context(Error::Buffer)?;
+
+    buffer.extend_from_slice(&trailer);
 
     Ok(buffer.freeze())
 }

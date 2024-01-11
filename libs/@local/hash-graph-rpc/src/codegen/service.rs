@@ -1,15 +1,16 @@
 use std::fmt::Write;
 
-use error_stack::Result;
-use heck::{AsLowerCamelCase, ToLowerCamelCase};
-use specta::{DataTypeReference, NamedDataType, NamedType, TypeMap};
+use bytes::BytesMut;
+use heck::AsLowerCamelCase;
+use specta::{NamedType, Type};
 use thiserror::Error;
 
 use crate::{
-    harpc::{
-        procedure::{ProcedureCall, RemoteProcedure},
-        service::Service,
+    codegen::{
+        context::{GlobalContext, Statement},
+        inline::Inline,
     },
+    harpc::{procedure::RemoteProcedure, service::Service},
     types::{Empty, Stack},
 };
 
@@ -21,54 +22,14 @@ pub enum ServiceError {
     Buffer,
 }
 
-fn prepare_procedure<P>(
-    types: &mut TypeMap,
-) -> Result<(&NamedDataType, &NamedDataType), ServiceError>
+fn render_procedure<P>(buffer: &mut BytesMut, context: &mut GlobalContext) -> std::fmt::Result
 where
     P: RemoteProcedure + NamedType,
     P::Response: NamedType,
 {
-    let request = types
-        .get(P::SID)
-        .ok_or(ServiceError::RenderCalledBeforeCollect)?;
-    let response = types
-        .get(P::Response::SID)
-        .ok_or(ServiceError::RenderCalledBeforeCollect)?;
+    let request = P::reference(&mut context.types, &[]);
+    let response = P::Response::reference(&mut context.types, &[]);
 
-    // TODO: DataTypeReference instead!
-
-    Ok((request, response))
-}
-
-fn render_reference(buffer: &mut impl Write, reference: &DataTypeReference) -> std::fmt::Result {
-    buffer.write_str(reference.name())?;
-
-    if reference.generics().is_empty() {
-        return Ok(());
-    }
-
-    buffer.write_char('(')?;
-
-    for (index, (_, generic)) in reference.generics().iter().enumerate() {
-        if index > 0 {
-            buffer.write_char(',')?;
-        }
-
-        // make the data type concrete through inline (needs the scope tho!)
-    }
-
-    buffer.write_char(')')
-}
-
-fn render_procedure<P>(
-    buffer: &mut impl Write,
-    request: &DataTypeReference,
-    response: &DataTypeReference,
-) -> std::fmt::Result
-where
-    P: RemoteProcedure + NamedType,
-    P::Response: NamedType,
-{
     buffer.write_str(".procedure(")?;
 
     buffer.write_fmt(format_args!(r#""{}""#, AsLowerCamelCase(P::NAME)))?;
@@ -76,12 +37,44 @@ where
     buffer.write_fmt(format_args!("Procedure.Id({:#x})", P::ID.value()))?;
     buffer.write_char(',')?;
 
+    let mut inline = Inline::new(&mut context.scoped(Statement(P::SID)), buffer);
+    inline.process(&request.inner)?;
+
+    buffer.write_char(',')?;
+
+    let mut inline = Inline::new(&mut context.scoped(Statement(P::SID)), buffer);
+    inline.process(&response.inner)?;
+
     buffer.write_str(")")
 }
 
-fn render_service<S>(buffer: &mut impl Write) -> std::fmt::Result
+trait OutputProcedures {
+    fn output(buffer: &mut BytesMut, context: &mut GlobalContext) -> std::fmt::Result;
+}
+
+impl OutputProcedures for Empty {
+    fn output(_: &mut BytesMut, _: &mut GlobalContext) -> std::fmt::Result {
+        Ok(())
+    }
+}
+
+impl<P, Next> OutputProcedures for Stack<P, Next>
+where
+    P: RemoteProcedure + NamedType,
+    P::Response: NamedType,
+    Next: OutputProcedures,
+{
+    fn output(buffer: &mut BytesMut, context: &mut GlobalContext) -> std::fmt::Result {
+        render_procedure::<P>(buffer, context)?;
+
+        Next::output(buffer, context)
+    }
+}
+
+fn render_service<S>(buffer: &mut BytesMut, context: &mut GlobalContext) -> std::fmt::Result
 where
     S: Service,
+    S::Procedures: OutputProcedures,
 {
     buffer.write_fmt(format_args!("export const {} = Service.create(", S::NAME))?;
     buffer.write_fmt(format_args!("Service.Id({:#x})", S::ID.value()))?;
@@ -89,15 +82,17 @@ where
     buffer.write_fmt(format_args!("Service.Version({:#x})", S::VERSION.value()))?;
     buffer.write_char(')')?;
 
-    todo!()
+    S::Procedures::output(buffer, context)?;
+
+    buffer.write_str(";\n")
 }
 
 pub(crate) trait OutputServices {
-    fn output<B: Write>(buffer: &mut B) -> std::fmt::Result;
+    fn output(buffer: &mut BytesMut, context: &mut GlobalContext) -> std::fmt::Result;
 }
 
 impl OutputServices for Empty {
-    fn output<B: Write>(_: &mut B) -> std::fmt::Result {
+    fn output(_: &mut BytesMut, _: &mut GlobalContext) -> std::fmt::Result {
         Ok(())
     }
 }
@@ -105,11 +100,12 @@ impl OutputServices for Empty {
 impl<S, Next> OutputServices for Stack<S, Next>
 where
     S: Service,
+    S::Procedures: OutputProcedures,
     Next: OutputServices,
 {
-    fn output<B: Write>(buffer: &mut B) -> std::fmt::Result {
-        render_service::<S>(buffer)?;
+    fn output(buffer: &mut BytesMut, context: &mut GlobalContext) -> std::fmt::Result {
+        render_service::<S>(buffer, context)?;
 
-        Next::output(buffer)
+        Next::output(buffer, context)
     }
 }

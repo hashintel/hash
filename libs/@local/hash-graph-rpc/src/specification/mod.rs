@@ -77,6 +77,8 @@ macro_rules! service {
             type Response = ($($output)?);
 
             const ID: $crate::harpc::ProcedureId = [$($crate::harpc::ProcedureId::new($id) ,)? $crate::harpc::ProcedureId::derive(stringify!($name))][0];
+
+            const NAME: &'static str = stringify!($name);
         }
 
         service!(@procedure[$vis] $($rest)*);
@@ -122,47 +124,6 @@ macro_rules! service {
         service!(@extract names; $($rest)*)
     };
 
-    // (@wasm #types[$vis:vis $service:ident] $($tt:tt)*) => {
-    //     fn collect_functions(map: &mut specta::TypeMap) -> Vec<specta::functions::FunctionDataType> {
-    //         let mut types = vec![];
-    //
-    //         service!(@wasm #types[$vis $service map types] $($tt)*);
-    //
-    //         types
-    //     }
-    //
-    //     inventory::submit!($crate::specification::wasm::ClientImplementation {
-    //         name: paste::paste!(stringify!([< $service Client >])),
-    //         functions: collect_functions,
-    //     });
-    // };
-    //
-    // (@wasm #types[$vis:vis $service:ident $map:ident $types:ident]) => {};
-
-    // (@wasm #types[$vis:vis $service:ident $map:ident $types:ident] rpc$([$($options:tt)*])? $name:ident($($($args:tt)+)?) $(-> $output:ty)?; $($rest:tt)*) => {
-    //     let func = {
-    //         let client = <paste::paste!([< $service Client >]) as specta::Type>::reference($map, &[]).inner;
-    //         $(${ignore(args)} let args = <$name as specta::Type>::reference($map, &[]).inner;)?;
-    //         let result = <($($output)?) as specta::Type>::reference($map, &[]).inner;
-    //
-    //         specta::functions::FunctionDataType {
-    //             asyncness: true,
-    //             name: std::borrow::Cow::Borrowed(paste::paste!(stringify!([< call $name >]))),
-    //             args: vec![
-    //                 (std::borrow::Cow::Borrowed("client"), client),
-    //                 $(${ignore(args)} (std::borrow::Cow::Borrowed("args"), args))?
-    //             ],
-    //             result,
-    //             docs: std::borrow::Cow::Borrowed(concat!("Call the `", stringify!($name), "` procedure of the `", stringify!($service), "` service.")),
-    //             deprecated: None
-    //         }
-    //     };
-    //
-    //     $types.push(func);
-    //
-    //     service!(@wasm #types[$vis $service $map $types] $($rest)*);
-    // };
-
     ($vis:vis service $name:ident {
         $($tt:tt)*
     }) => {
@@ -170,6 +131,8 @@ macro_rules! service {
 
         impl $crate::harpc::service::Service for $name {
             type Procedures = service!(@extract names; $($tt)*);
+
+            const NAME: &'static str = stringify!($name);
 
             service!(@extract[$name] id; $($tt)*);
             service!(@extract version; $($tt)*);

@@ -83,10 +83,10 @@ impl GlobalContext {
         }
     }
 
-    pub(crate) fn scoped(&mut self, ast: &NamedDataTypeExt) -> ScopedContext {
+    pub(crate) fn scoped(&mut self, id: Statement) -> ScopedContext {
         ScopedContext {
             parents: vec![],
-            current: Statement(*ast.sid()),
+            current: id,
 
             global: self,
         }
