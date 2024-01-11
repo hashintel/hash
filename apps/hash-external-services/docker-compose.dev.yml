@@ -138,7 +138,7 @@ services:
     ports:
       - "${HASH_VAULT_PORT}:8200"
     volumes:
-      - hash-postgres-data:/vault/file:rw
+      - hash-vault-data:/vault/file:rw
       # - ./vault/config:/vault/config:rw - for when we need a config file
     cap_add:
       - IPC_LOCK
