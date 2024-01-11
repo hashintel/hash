@@ -173,14 +173,17 @@ export const HandlerLive = (config: HandlerConfigFrom) =>
       return Handler.of({
         send: (peer, request, options) =>
           Effect.gen(function* (_) {
+            yield* _(Effect.logTrace("Establishing connection"));
             const connection = yield* _(
               connect({ transport, peer }, validatedConfig, options),
             );
 
+            yield* _(Effect.logTrace("Sending transport packet"));
             yield* _(
               Effect.promise(() => connection.sink([writeRequest(request)])),
             );
 
+            yield* _(Effect.logTrace("Receiving transport packet"));
             const responseStream = Stream.fromAsyncIterable(
               connection.source,
               (error) => new AbortedError({ message: String(error) }),
@@ -188,6 +191,7 @@ export const HandlerLive = (config: HandlerConfigFrom) =>
 
             const responseBytes = yield* _(collect(responseStream));
 
+            yield* _(Effect.logTrace("Decoding transport packet response"));
             const response = yield* _(readResponse(responseBytes));
 
             return response;

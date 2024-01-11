@@ -63,22 +63,3 @@ export function createTransport() {
 }
 
 export { multiaddr };
-
-// export async function main() {
-//   const transport = await createTransport();
-//
-//   const service = new AccountService(
-//     multiaddr("/ip4/127.0.0.1/tcp/4088/ws/"),
-//     "65a84123-7def-4304-945d-c9828fbf25b6",
-//     transport.services.rpc,
-//   );
-//
-//   console.time("request");
-//   const result = await service.createAccount(null);
-//   console.timeEnd("request");
-//   console.log(result);
-//
-//   await transport.stop();
-// }
-//
-// await main();

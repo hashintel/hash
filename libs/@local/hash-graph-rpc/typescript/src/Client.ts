@@ -55,11 +55,15 @@ const ClientLive = (server: Multiaddr) =>
           request: Req,
         ) =>
           Effect.gen(function* (_) {
+            yield* _(Effect.logTrace("Encoding request"));
             const encodedRequest = yield* _(
               S.parse(procedure.request)([{ actor }, request]),
             );
 
+            yield* _(Effect.logTrace("Sending request"));
             const response = yield* _(handler.send(server, encodedRequest));
+
+            yield* _(Effect.logTrace("Decoding response"));
             const decodedResponse = yield* _(
               S.parse(procedure.response)(response),
             );
