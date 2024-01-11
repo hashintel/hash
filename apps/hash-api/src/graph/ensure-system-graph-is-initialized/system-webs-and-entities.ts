@@ -1,11 +1,8 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { NotFoundError } from "@local/hash-backend-utils/error";
-import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
   createMachineActorEntity,
-  createWebMachineActor,
   getMachineActorId,
-  getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -25,10 +22,8 @@ import {
   createWeb,
 } from "../account-permission-management";
 import { ImpureGraphContext } from "../context-types";
-import { createHashInstance } from "../knowledge/system-types/hash-instance";
 import { createOrg, getOrgByShortname } from "../knowledge/system-types/org";
 import { systemAccountId } from "../system-account";
-import { getEntitiesByType } from "./migrate-ontology-types/util";
 
 // Whether this is a self-hosted instance, rather than the central HASH hosted instance
 export const isSelfHostedInstance =
@@ -37,7 +32,7 @@ export const isSelfHostedInstance =
     frontendUrl,
   );
 
-const owningWebs: Record<
+export const owningWebs: Record<
   SystemTypeWebShortname,
   {
     machineActorAccountId?: AccountId;
@@ -77,7 +72,9 @@ export const getOrCreateOwningAccountGroupId = async (
   }
 
   try {
-    // If this function is used again after the initial seeding, it's possible that we've created the org in the past
+    /**
+     *  If this function is used again after the initial seeding, it's possible that we've created the org in the past.
+     */
     const foundOrg = await getOrgByShortname(
       context,
       { actorId: systemAccountId },
@@ -137,20 +134,95 @@ export const getOrCreateOwningAccountGroupId = async (
   };
 };
 
+export const createSystemWebEntities = async ({
+  context,
+  name,
+  webShortname,
+  websiteUrl,
+}: {
+  context: ImpureGraphContext;
+  name: string;
+  webShortname: SystemTypeWebShortname;
+  websiteUrl: string;
+}) => {
+  const { accountGroupId, machineActorId: machineActorAccountId } =
+    await getOrCreateOwningAccountGroupId(context, webShortname);
+
+  const authentication = { actorId: machineActorAccountId };
+
+  /**
+   * Create a machine entity associated with each machine actorId that created system types.
+   * These machines may also be added to other webs as needed (e.g. for integration workflows).
+   *
+   * Note: these are different from the web-scoped machine actors that EVERY org (system or not) has associated with.
+   *   - the web-scoped machine actors are for taking action in the web, e.g. to grant other bots permissions in it
+   *   - _these_ machine actors are for performing actions across the system related to the types they create, e.g. Linear actions
+   */
+  try {
+    await getMachineActorId(context, authentication, {
+      identifier: webShortname,
+    });
+  } catch (error) {
+    let preferredName;
+    if (webShortname === "hash") {
+      preferredName = "HASH";
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    } else if (webShortname === "linear") {
+      preferredName = "Linear Integration";
+    } else {
+      throw new Error(
+        `Unhandled web shortname ${webShortname} requires a display name for the machine actor specified`,
+      );
+    }
+
+    if (error instanceof NotFoundError) {
+      await createMachineActorEntity(context, {
+        machineAccountId: machineActorAccountId,
+        identifier: webShortname,
+        ownedById: accountGroupId as OwnedById,
+        displayName: preferredName,
+        shouldBeAbleToCreateMoreMachineEntities: false,
+        systemAccountId,
+      });
+
+      logger.info(
+        `Created machine actor entity for '${webShortname}'-related functionality, using accountId ${machineActorAccountId} in accountGroupId '${accountGroupId}`,
+      );
+    } else {
+      throw error;
+    }
+
+    /**
+     * Check that an Organization entity exists associated with the web.
+     * This step must occur after creating machine actor entities, because:
+     * 1. {@link createWebMachineActor} is called as part of {@link createOrg}
+     * 2. createWebMachineActor internally depends on the 'hash' machine actor entity existing
+     */
+    const foundOrg = await getOrgByShortname(context, authentication, {
+      shortname: webShortname,
+    });
+
+    if (!foundOrg) {
+      await createOrg(context, authentication, {
+        orgAccountGroupId: accountGroupId,
+        shortname: webShortname,
+        name,
+        websiteUrl,
+      });
+    }
+  }
+};
+
 /**
  * Ensures that there are entities associated with each:
  * - system web (create an Organization associated with it)
  * - machine actor that creates the web (create a Machine associated with it)
  *
- * Also creates other required system entities, such as the hashInstance entity and HASH AI Assistant.
+ * Also creates other required system entities, such as the HASH AI Assistant.
  */
 export const ensureSystemEntitiesExist = async (params: {
   context: ImpureGraphContext;
 }) => {
-  if (isSelfHostedInstance) {
-    return;
-  }
-
   const { context } = params;
 
   logger.debug(
@@ -164,80 +236,18 @@ export const ensureSystemEntitiesExist = async (params: {
       continue;
     }
 
-    const { accountGroupId, machineActorId: machineActorAccountId } =
-      await getOrCreateOwningAccountGroupId(context, webShortname);
-
-    const authentication = { actorId: machineActorAccountId };
-    const foundOrg = await getOrgByShortname(context, authentication, {
-      shortname: webShortname,
-    });
-
-    if (!foundOrg) {
-      await createOrg(context, authentication, {
-        orgAccountGroupId: accountGroupId,
-        shortname: webShortname,
-        name,
-        websiteUrl,
-      });
-    }
-
     /**
-     * Create a machine entity associated with each actor that created system types.
-     * These machines may also be added to other webs as needed (e.g. for integration workflows).
+     *  This should have already been called for 'hash' as part of migration 005.
+     *
+     *  For other system webs, this may have an effect if it the first migration run the web has been seen/enabled in.
      */
-    try {
-      await getMachineActorId(context, authentication, {
-        identifier: webShortname,
-      });
-    } catch (error) {
-      let preferredName;
-      if (webShortname === "hash") {
-        preferredName = "HASH";
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      } else if (webShortname === "linear") {
-        preferredName = "Linear Integration";
-      } else {
-        throw new Error(
-          `Unhandled web shortname ${webShortname} requires a display name for the machine actor specified`,
-        );
-      }
-
-      if (error instanceof NotFoundError) {
-        await createMachineActorEntity(context, {
-          machineAccountId: machineActorAccountId,
-          identifier: webShortname,
-          ownedById: accountGroupId as OwnedById,
-          displayName: preferredName,
-          shouldBeAbleToCreateMoreMachineEntities: false,
-          systemAccountId,
-        });
-
-        logger.info(
-          `Created machine actor entity for '${webShortname}' machine types, using accountId ${machineActorAccountId} in accountGroupId '${accountGroupId}`,
-        );
-      } else {
-        throw error;
-      }
-    }
+    await createSystemWebEntities({ context, name, webShortname, websiteUrl });
   }
 
-  /**
-   * Create the HASH Instance entity, which stores configuration settings for the instance
-   */
   const authentication = { actorId: systemAccountId };
-  try {
-    await getHashInstance(context, authentication);
-  } catch (error) {
-    if (error instanceof NotFoundError) {
-      await createHashInstance(context, authentication, {});
-      logger.info("Created hashInstance entity");
-    } else {
-      throw error;
-    }
-  }
 
   /**
-   * Create the HASH AI Machine actor and entity, which is added as needed to webs to run AI-related workflows.
+   * Create the HASH _AI_ Machine actor and entity, which is added as needed to webs to run AI-related workflows.
    */
   try {
     await getMachineActorId(context, authentication, {
@@ -300,77 +310,6 @@ export const ensureSystemEntitiesExist = async (params: {
       throw error;
     }
   }
-
-  /**
-   * Mop up step: create web machine actors for existing webs – bots with permissions to add other bots to each existing web,
-   * and to create notifications that aren't tied to specific integrations (e.g. related to comments and @mentions).
-   *
-   * This step is only required to transition existing instances in Dec 2023, and can be deleted once they have been migrated.
-   */
-  const users = await getEntitiesByType(context, authentication, {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/1", // @todo this may need to change depending on migration strategy
-  });
-
-  for (const user of users) {
-    const userAccountId = extractOwnedByIdFromEntityId(
-      user.metadata.recordId.entityId,
-    );
-    try {
-      await getWebMachineActorId(context, authentication, {
-        ownedById: userAccountId,
-      });
-    } catch (err) {
-      if (err instanceof NotFoundError) {
-        await createWebMachineActor(
-          context,
-          // We have to use the user's authority to add the machine to their web
-          { actorId: userAccountId as AccountId },
-          {
-            ownedById: userAccountId,
-          },
-        );
-        logger.info(`Created web machine actor for user ${userAccountId}`);
-      } else {
-        throw new Error(
-          `Unexpected error attempting to retrieve machine web actor for user ${user.metadata.recordId.entityId}`,
-        );
-      }
-    }
-  }
-
-  const orgs = await getEntitiesByType(context, authentication, {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/organization/v/1",
-  });
-
-  for (const org of orgs) {
-    const orgAccountGroupId = extractOwnedByIdFromEntityId(
-      org.metadata.recordId.entityId,
-    );
-    try {
-      await getWebMachineActorId(context, authentication, {
-        ownedById: orgAccountGroupId,
-      });
-    } catch (err) {
-      if (err instanceof NotFoundError) {
-        const orgAdminAccountId = org.metadata.provenance.edition.createdById;
-
-        await createWebMachineActor(
-          context,
-          // We have to use an org admin's authority to add the machine to their web
-          { actorId: orgAdminAccountId },
-          {
-            ownedById: orgAccountGroupId,
-          },
-        );
-        logger.info(`Created web machine actor for org ${orgAccountGroupId}`);
-      } else {
-        throw new Error(
-          `Unexpected error attempting to retrieve machine web actor for organization ${org.metadata.recordId.entityId}`,
-        );
-      }
-    }
-  }
-  /** End mop-up step, which can be deleted once all existing instances have been migrated */
 };
 
 export type PrimitiveDataTypeKey = keyof typeof blockProtocolDataTypes;

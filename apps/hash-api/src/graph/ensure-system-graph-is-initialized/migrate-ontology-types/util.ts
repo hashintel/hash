@@ -50,6 +50,7 @@ import {
   EntityTypeInstantiatorSubject,
   EntityTypeRelationAndSubject,
   EntityTypeWithMetadata,
+  extractOwnedByIdFromEntityId,
   OwnedById,
   PropertyTypeRelationAndSubject,
   PropertyTypeWithMetadata,
@@ -70,6 +71,7 @@ import {
   CACHED_PROPERTY_TYPE_SCHEMAS,
 } from "../../../seed-data";
 import { ImpureGraphFunction } from "../../context-types";
+import { getEntities, updateEntity } from "../../knowledge/primitive/entity";
 import {
   createDataType,
   getDataTypeById,
@@ -1127,4 +1129,137 @@ export const getEntitiesByType: ImpureGraphFunction<
 
 export const anyUserInstantiator: EntityTypeInstantiatorSubject = {
   kind: "public",
+};
+
+export const getExistingUsersAndOrgs: ImpureGraphFunction<
+  {},
+  Promise<{ users: Entity[]; orgs: Entity[] }>
+> = async (context, authentication) => {
+  const users = await getEntities(context, authentication, {
+    query: {
+      filter: {
+        all: [
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              { parameter: systemEntityTypes.user.entityTypeBaseUrl },
+            ],
+          },
+        ],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      includeDrafts: true,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  }).then((subgraph) => getRoots(subgraph));
+
+  const orgs = await getEntities(context, authentication, {
+    query: {
+      filter: {
+        all: [
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              { parameter: systemEntityTypes.organization.entityTypeBaseUrl },
+            ],
+          },
+        ],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      includeDrafts: true,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  }).then((subgraph) => getRoots(subgraph));
+
+  return { users, orgs };
+};
+
+export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
+  {
+    entityTypeBaseUrls: BaseUrl[];
+    migrationState: MigrationState;
+  },
+  Promise<void>
+> = async (context, authentication, { entityTypeBaseUrls, migrationState }) => {
+  /**
+   *  We have to do this web-by-web because we don't have a single actor that can see all entities in all webs
+   *
+   *  @todo figure out what to do about entities which the web machine bot can't view, if we ever create any such entities
+   */
+  const { users, orgs } = await getExistingUsersAndOrgs(
+    context,
+    authentication,
+    {},
+  );
+
+  for (const web of [...users, ...orgs]) {
+    const existingEntities = await getEntities(context, authentication, {
+      query: {
+        filter: {
+          all: [
+            {
+              any: entityTypeBaseUrls.map((baseUrl) => ({
+                equal: [{ path: ["type", "baseUrl"] }, { parameter: baseUrl }],
+              })),
+            },
+            {
+              equal: [
+                { path: ["ownedById"] },
+                {
+                  parameter: extractOwnedByIdFromEntityId(
+                    web.metadata.recordId.entityId,
+                  ),
+                },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        includeDrafts: true,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    }).then((subgraph) => getRoots(subgraph));
+
+    for (const entity of existingEntities) {
+      let newVersion: number;
+      const baseUrl = extractBaseUrl(entity.metadata.entityTypeId);
+      switch (baseUrl) {
+        case systemEntityTypes.user.entityTypeBaseUrl:
+          newVersion = migrationState.entityTypeVersions[baseUrl]!;
+          break;
+        case systemEntityTypes.comment.entityTypeBaseUrl:
+          newVersion = migrationState.entityTypeVersions[baseUrl]!;
+          break;
+        case systemEntityTypes.commentNotification.entityTypeBaseUrl:
+          newVersion =
+            migrationState.entityTypeVersions[
+              systemEntityTypes.commentNotification.entityTypeBaseUrl as BaseUrl
+            ]!;
+          break;
+        case systemEntityTypes.linearIntegration.entityTypeBaseUrl:
+          newVersion =
+            migrationState.entityTypeVersions[
+              systemEntityTypes.linearIntegration.entityTypeBaseUrl as BaseUrl
+            ]!;
+          break;
+        case systemEntityTypes.mentionNotification.entityTypeBaseUrl:
+          newVersion =
+            migrationState.entityTypeVersions[
+              systemEntityTypes.mentionNotification.entityTypeBaseUrl as BaseUrl
+            ]!;
+          break;
+        default:
+          throw new Error(`Unexpected entity type baseUrl: ${baseUrl}`);
+      }
+      const newEntityTypeId = versionedUrlFromComponents(baseUrl, newVersion);
+
+      if (entity.metadata.entityTypeId !== newEntityTypeId) {
+        await updateEntity(context, authentication, {
+          entity,
+          entityTypeId: newEntityTypeId,
+          properties: entity.properties,
+        });
+      }
+    }
+  }
 };
