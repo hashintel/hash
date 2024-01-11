@@ -15,6 +15,7 @@ mod http_compat;
 /// [`StatusCode::NotFound`] or [`StatusCode::AlreadyExists`] over
 /// [`StatusCode::FailedPrecondition`].
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum StatusCode {
     /// Not an error; returned on success.

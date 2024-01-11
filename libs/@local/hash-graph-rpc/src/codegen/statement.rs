@@ -1,10 +1,13 @@
 use std::{borrow::Borrow, fmt::Write};
 
 use bytes::BytesMut;
-use specta::{DataType, EnumType, GenericType, NamedDataType, SpectaID, StructFields, StructType};
+use specta::{
+    DataType, EnumType, GenericType, NamedDataType, PrimitiveType, SpectaID, StructFields,
+    StructType,
+};
 
 use crate::codegen::{
-    context::{GlobalContext, ScopedContext, Statement},
+    context::{GlobalContext, ScopedContext, StatementId},
     inline::Inline,
 };
 
@@ -23,7 +26,7 @@ impl<'a> StatementBuilder<'a> {
         let id = *ext.sid();
 
         Self {
-            context: context.scoped(Statement(id)),
+            context: context.scoped(StatementId::local(id)),
             id,
             buffer: BytesMut::new(),
         }
@@ -147,6 +150,26 @@ impl<'a> StatementBuilder<'a> {
         self.enum_concrete(ast, false)
     }
 
+    fn branded(&mut self, name: &str, ast: &DataType) -> std::fmt::Result {
+        // this is only possible if we have a branded type
+        self.buffer
+            .write_fmt(format_args!("export const {name} = "))?;
+
+        let mut inline = Inline::new(&mut self.context, &mut self.buffer);
+        inline.process(ast)?;
+
+        self.buffer.write_str(".pipe(S.brand('")?;
+        self.buffer.write_str(name)?;
+        self.buffer.write_str("'));")?;
+
+        self.buffer.write_fmt(format_args!(
+            "export interface {name} extends S.Schema.To<typeof {name}> {{}}\n"
+        ))?;
+        self.buffer.write_fmt(format_args!(
+            "export interface {name}From extends S.Schema.From<typeof {name}> {{}}\n"
+        ))
+    }
+
     // This is not perfect! We should be able to do this without taking ast or doing it in a single
     // step!
     #[allow(clippy::panic_in_result_fn)]
@@ -157,13 +180,13 @@ impl<'a> StatementBuilder<'a> {
         match &ast.inner {
             DataType::Struct(struct_) => self.struct_(struct_)?,
             DataType::Enum(enum_) => self.enum_(enum_)?,
-            _ => unreachable!("Only Struct and Enum can be named"),
+            other => self.branded(ast.name(), other)?,
         };
 
         self.context
             .global
             .statements
-            .insert(Statement(id), self.buffer.freeze());
+            .insert(StatementId::local(id), self.buffer.freeze());
 
         Ok(())
     }

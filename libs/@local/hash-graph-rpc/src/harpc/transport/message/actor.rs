@@ -6,7 +6,7 @@ use crate::harpc::transport::codec::{decode::DecodeBinary, encode::EncodeBinary}
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
 )]
-#[cfg_attr(any(target_arch = "wasm32", feature = "wasm"), derive(specta::Type))]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[serde(transparent)]
 pub struct ActorId(Uuid);
 

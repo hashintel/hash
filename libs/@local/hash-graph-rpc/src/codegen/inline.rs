@@ -1,6 +1,7 @@
 use std::{
     borrow::{Borrow, Cow},
     fmt::{Display, Write},
+    iter::TrustedLen,
 };
 
 use bytes::BytesMut;
@@ -10,10 +11,11 @@ use specta::{
     UnnamedFields,
 };
 
-use crate::codegen::context::{HoistAction, ScopedContext, Statement};
+use crate::codegen::context::{HoistAction, ScopedContext, StatementId};
 
-fn struct_id(id: &StructType) -> Option<SpectaID> {
-    todo!()
+fn struct_statement_id(_type: &StructType) -> StatementId {
+    // cannot get sid yet, therefore global escape
+    StatementId::global()
 }
 
 pub(crate) struct Inline<'a, 'b: 'a> {
@@ -26,7 +28,7 @@ impl<'a, 'b: 'a> Inline<'a, 'b> {
         Self { context, buffer }
     }
 
-    fn primitive(&mut self, ast: &PrimitiveType) -> std::fmt::Result {
+    pub(crate) fn primitive(&mut self, ast: &PrimitiveType) -> std::fmt::Result {
         let value = match ast {
             PrimitiveType::i8 => "R.i8",
             PrimitiveType::i16 => "R.i16",
@@ -73,8 +75,16 @@ impl<'a, 'b: 'a> Inline<'a, 'b> {
 
     fn tuple_iter<'item>(
         &mut self,
-        elements: impl Iterator<Item = &'item DataType>,
+        mut elements: impl Iterator<Item = &'item DataType> + TrustedLen,
     ) -> std::fmt::Result {
+        if elements.size_hint().0 == 0 {
+            return self.buffer.write_str("S.null");
+        }
+
+        if elements.size_hint().0 == 1 {
+            return self.process(elements.next().expect("infallible"));
+        }
+
         self.buffer.write_str("S.tuple(")?;
 
         for (index, element) in elements.enumerate() {
@@ -119,7 +129,13 @@ impl<'a, 'b: 'a> Inline<'a, 'b> {
             unimplemented!("Flattened unnamed fields are not supported");
         }
 
-        self.tuple_iter(fields.fields().iter().filter_map(|field| field.ty()))
+        let fields: Vec<_> = fields
+            .fields()
+            .iter()
+            .filter_map(|field| field.ty())
+            .collect();
+
+        self.tuple_iter(fields.iter().copied())
     }
 
     fn named_fields(&mut self, fields: &NamedFields) -> std::fmt::Result {
@@ -152,12 +168,13 @@ impl<'a, 'b: 'a> Inline<'a, 'b> {
 
     #[allow(clippy::panic_in_result_fn)]
     fn struct_(&mut self, ast: &StructType) -> std::fmt::Result {
-        let Some(id) = struct_id(ast) else {
+        let id = struct_statement_id(ast);
+        let Some(specta_id) = id.specta_id() else {
             // anonymous struct
             return self.anonymous_struct(ast);
         };
 
-        let Some(named) = self.context.global.types.get(id) else {
+        let Some(named) = self.context.global.types.get(specta_id) else {
             // anonymous struct
             // panic if generics
             assert_eq!(
@@ -169,7 +186,7 @@ impl<'a, 'b: 'a> Inline<'a, 'b> {
         };
 
         let named = named.clone();
-        let action = self.context.hoist(Statement(id), named.clone());
+        let action = self.context.hoist(id, named.clone());
 
         match action {
             HoistAction::Hoisted => {

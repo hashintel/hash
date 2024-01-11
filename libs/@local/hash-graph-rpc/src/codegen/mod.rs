@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use bytes::{Bytes, BytesMut};
+use bytes::{BufMut, Bytes, BytesMut};
 use error_stack::{Report, Result, ResultExt};
 use specta::TypeMap;
 use thiserror::Error;
@@ -29,7 +29,7 @@ fn export_imports(buffer: &mut BytesMut) -> std::fmt::Result {
     buffer.write_str(r#"import * as S from "@effect/schema/Schema";"#)?;
     buffer.write_char('\n')?;
 
-    buffer.write_str(r#"import * as R from "@local/schema/Rust;"#)?;
+    buffer.write_str(r#"import * as R from "@local/schema/Rust";"#)?;
     buffer.write_char('\n')?;
 
     // TODO: name?!
@@ -65,7 +65,7 @@ fn export_types(mut context: GlobalContext) -> Result<BytesMut, ExportError> {
             .remove(id)
             .ok_or(ExportError::StatementNotFound)?;
 
-        buffer.extend_from_slice(&statement);
+        buffer.put(statement);
     }
 
     if !context.statements.is_empty() {
@@ -85,13 +85,15 @@ where
 
     S::output(&mut trailer, &mut context).change_context(ExportError::Buffer)?;
 
+    context.rebuild();
+
     let mut buffer = export_types(context)?;
 
     buffer
         .write_str("\n\n")
         .change_context(ExportError::Buffer)?;
 
-    buffer.extend_from_slice(&trailer);
+    buffer.put(trailer);
 
     Ok(buffer.freeze())
 }

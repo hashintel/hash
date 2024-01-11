@@ -55,35 +55,59 @@ where
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Statement(pub(crate) SpectaID);
+pub(crate) struct StatementId(Option<SpectaID>);
+
+impl StatementId {
+    pub(crate) fn local(id: SpectaID) -> Self {
+        Self(Some(id))
+    }
+
+    pub(crate) fn global() -> Self {
+        Self(None)
+    }
+
+    pub(crate) fn is_global(&self) -> bool {
+        self.0.is_none()
+    }
+
+    pub(crate) fn specta_id(&self) -> Option<SpectaID> {
+        self.0
+    }
+}
 
 pub struct GlobalContext {
-    pub ordering: OrderedVec<Statement>,
+    pub ordering: OrderedVec<StatementId>,
     pub queue: Vec<NamedDataType>,
-    pub statements: HashMap<Statement, Bytes>,
+    pub statements: HashMap<StatementId, Bytes>,
     pub types: TypeMap,
 }
 
 impl GlobalContext {
     pub(crate) fn new(types: TypeMap) -> Self {
-        let mut ordering = OrderedVec::new();
-        let mut queue = vec![];
-
-        queue.extend(types.iter().map(|(_, ast)| ast.clone()));
-
-        for (id, _) in types.iter() {
-            ordering.push(Statement(id));
-        }
-
-        Self {
-            ordering,
-            queue,
+        let mut this = Self {
+            ordering: OrderedVec::new(),
+            queue: vec![],
             statements: HashMap::new(),
             types,
+        };
+
+        this.rebuild();
+
+        this
+    }
+
+    pub(crate) fn rebuild(&mut self) {
+        self.queue.clear();
+        self.queue
+            .extend(self.types.iter().map(|(_, ast)| ast.clone()));
+
+        self.ordering.inner.clear();
+        for (id, _) in self.types.iter() {
+            self.ordering.push(StatementId::local(id));
         }
     }
 
-    pub(crate) fn scoped(&mut self, id: Statement) -> ScopedContext {
+    pub(crate) fn scoped(&mut self, id: StatementId) -> ScopedContext {
         ScopedContext {
             parents: vec![],
             current: id,
@@ -94,8 +118,8 @@ impl GlobalContext {
 }
 
 pub struct ScopedContext<'a> {
-    pub parents: Vec<Statement>,
-    pub current: Statement,
+    pub parents: Vec<StatementId>,
+    pub current: StatementId,
 
     pub global: &'a mut GlobalContext,
 }
@@ -107,7 +131,7 @@ pub(crate) enum HoistAction {
 }
 
 impl ScopedContext<'_> {
-    pub fn hoist(&mut self, id: Statement, ast: NamedDataType) -> HoistAction {
+    pub fn hoist(&mut self, id: StatementId, ast: NamedDataType) -> HoistAction {
         if id == self.current {
             return HoistAction::DirectRecursion;
         }

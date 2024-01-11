@@ -26,4 +26,4 @@ graph-test-data = { path = "../../../../tests/hash-graph-test-data/rust" }
 [features]
 postgres = ["dep:postgres-types", "temporal-versioning/postgres"]
 utoipa = ["dep:utoipa", "temporal-versioning/utoipa"]
-wasm = ["dep:specta"]
+specta = ["dep:specta"]

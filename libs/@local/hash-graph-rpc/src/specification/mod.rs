@@ -1,10 +1,5 @@
 pub mod account;
 pub mod common;
-#[cfg(any(target_arch = "wasm32", feature = "wasm"))]
-pub(crate) mod wasm;
-
-#[cfg(feature = "wasm")]
-pub use self::wasm::ClientImplementation;
 
 /// Convenience macro for defining a service.
 ///
@@ -54,13 +49,13 @@ pub use self::wasm::ClientImplementation;
 macro_rules! service {
     (@type[$vis:vis] procedure $name:ident()) => {
         #[derive(serde::Serialize, serde::Deserialize)]
-        #[cfg_attr(any(target_arch = "wasm32", feature = "wasm"), derive(specta::Type))]
+        #[cfg_attr(feature = "specta", derive(specta::Type))]
         $vis struct $name;
     };
 
     (@type[$vis:vis] procedure $name:ident($($fields:tt)+)) => {
         #[derive(serde::Serialize, serde::Deserialize)]
-        #[cfg_attr(any(target_arch = "wasm32", feature = "wasm"), derive(specta::Type))]
+        #[cfg_attr(feature = "specta", derive(specta::Type))]
         #[serde(rename_all = "camelCase")]
         $vis struct $name {
             $($fields)+

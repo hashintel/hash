@@ -2,21 +2,26 @@ use std::fmt::Write;
 
 use bytes::BytesMut;
 use heck::AsLowerCamelCase;
-use specta::{NamedType, Type};
+use specta::{reference::Reference, NamedType, Type};
 
 use crate::{
     codegen::{
-        context::{GlobalContext, Statement},
+        context::{GlobalContext, StatementId},
         inline::Inline,
     },
     harpc::{procedure::RemoteProcedure, service::Service},
     types::{Empty, Stack},
 };
 
+fn statement_id(_reference: &Reference) -> StatementId {
+    // TODO: try to get id via sid
+    StatementId::global()
+}
+
 fn render_procedure<P>(buffer: &mut BytesMut, context: &mut GlobalContext) -> std::fmt::Result
 where
-    P: RemoteProcedure + NamedType,
-    P::Response: NamedType,
+    P: RemoteProcedure + Type,
+    P::Response: Type,
 {
     let request = P::reference(&mut context.types, &[]);
     let response = P::Response::reference(&mut context.types, &[]);
@@ -28,13 +33,13 @@ where
     buffer.write_fmt(format_args!("Procedure.Id({:#x})", P::ID.value()))?;
     buffer.write_char(',')?;
 
-    let mut scope = context.scoped(Statement(P::SID));
+    let mut scope = context.scoped(statement_id(&request));
     let mut inline = Inline::new(&mut scope, buffer);
     inline.process(&request.inner)?;
 
     buffer.write_char(',')?;
 
-    let mut scope = context.scoped(Statement(P::Response::SID));
+    let mut scope = context.scoped(statement_id(&response));
     let mut inline = Inline::new(&mut scope, buffer);
     inline.process(&response.inner)?;
 
@@ -53,8 +58,8 @@ impl ExportProcedures for Empty {
 
 impl<P, Tail> ExportProcedures for Stack<P, Tail>
 where
-    P: RemoteProcedure + NamedType,
-    P::Response: NamedType,
+    P: RemoteProcedure + Type,
+    P::Response: Type,
     Tail: ExportProcedures,
 {
     fn output(buffer: &mut BytesMut, context: &mut GlobalContext) -> std::fmt::Result {

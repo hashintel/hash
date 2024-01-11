@@ -1,9 +1,6 @@
 use std::net::SocketAddrV4;
 
-use hash_graph_rpc::{
-    specification::{account::AccountService, ClientImplementation},
-    stack, ActorId,
-};
+use hash_graph_rpc::{specification::account::AccountService, stack, ActorId};
 use specta::{Type, TypeMap};
 
 #[allow(clippy::print_stdout)]

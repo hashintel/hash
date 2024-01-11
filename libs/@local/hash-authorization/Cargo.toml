@@ -34,4 +34,4 @@ tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 default = ["spicedb"]
 utoipa = ["dep:utoipa"]
 spicedb = ["dep:reqwest"]
-wasm = ["dep:specta"]
+specta = ["dep:specta"]

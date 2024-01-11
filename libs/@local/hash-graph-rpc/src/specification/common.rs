@@ -8,6 +8,8 @@ use thiserror::Error;
 use crate::harpc::{Decode, Encode, Stateful};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[cfg_attr(feature = "specta", specta(transparent))]
 pub struct Error(hash_status::Status<serde_json::Value>);
 
 impl<C> From<Report<C>> for Error

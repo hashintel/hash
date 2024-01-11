@@ -4,9 +4,12 @@
 #![feature(associated_type_bounds)]
 #![feature(type_alias_impl_trait)]
 #![feature(macro_metavar_expr)]
+#![feature(trusted_len)]
 extern crate core;
 
+#[cfg(feature = "specta")]
 pub mod codegen;
+
 pub mod harpc;
 pub mod specification;
 pub mod types;

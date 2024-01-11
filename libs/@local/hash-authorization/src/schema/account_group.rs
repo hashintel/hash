@@ -44,7 +44,7 @@ impl Relation<AccountGroupId> for AccountGroupResourceRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(feature = "wasm", derive(specta::Type))]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[serde(rename_all = "snake_case")]
 pub enum AccountGroupPermission {
     AddMember,

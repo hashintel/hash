@@ -8,7 +8,7 @@ use uuid::Uuid;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(feature = "wasm", derive(specta::Type))]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[repr(transparent)]
 pub struct AccountId(Uuid);
 
@@ -38,7 +38,7 @@ impl fmt::Display for AccountId {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(feature = "wasm", derive(specta::Type))]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[repr(transparent)]
 pub struct AccountGroupId(Uuid);
 

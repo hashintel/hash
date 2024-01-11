@@ -13,6 +13,7 @@ pub use status_code::StatusCode;
 
 /// The canonical shape of a response object describing the status of a request between services.
 #[derive(Clone, Eq, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct Status<D>
 where
     D: Send + Sync + Debug,
