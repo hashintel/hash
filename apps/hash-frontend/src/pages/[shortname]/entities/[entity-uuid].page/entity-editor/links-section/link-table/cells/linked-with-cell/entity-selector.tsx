@@ -296,7 +296,7 @@ export const EntitySelector = ({
             onFinishedEditing();
           }
         }}
-        onBlur={() => {
+        onClickAway={() => {
           if (!showUploadFileMenu) {
             onFinishedEditing();
           }

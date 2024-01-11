@@ -11,7 +11,4 @@ RUN apk add --no-cache --virtual .build-deps gcc clang15 llvm15 git make musl-de
     && (cd /pgvector && make && make install) \
     && rm -rf wal2json ppgvector \
     && apk del .build-deps \
-    && echo "local  postgres  postgres  trust" >> /var/lib/postgresql/data/pg_hba.conf \
     && mkdir -p /etc/postgresql/
-
-COPY postgresql.conf /etc/postgresql

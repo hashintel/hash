@@ -4,33 +4,6 @@ volumes:
   logs:
 
 services:
-  hash-dev-opensearch:
-    deploy:
-      restart_policy:
-        condition: on-failure
-    environment:
-      HASH_OPENSEARCH_ENABLED: "${HASH_OPENSEARCH_ENABLED}"
-      ## Tell OpenSearch that it's operating in single-node mode
-      discovery.type: single-node
-      ## Disable the security module for development so we can connect over plain HTTP
-      plugins.security.disabled: true
-      ## Docker volumes are ~10GB by default which is typically much smaller than the
-      ## host's drive size. This can cause OpenSearch to shutdown if it thinks disk
-      ## space is running low. Set the disk high watermark to 100% to ignore this.
-      cluster.routing.allocation.disk.watermark.high: 100%
-      cluster.routing.allocation.disk.watermark.flood_stage: 100%
-    build:
-      context: ./opensearch
-    ulimits:
-      nofile:
-        soft: 65536
-        hard: 65536
-    ## Mounting open search data to a local directory may lead to java.nio.file.AccessDeniedException.
-    ## Details: https://github.com/opensearch-project/OpenSearch/issues/1579.
-    ## We can revisit the setup after upgrading base image or by fixing permissions in a custom image.
-    # volumes:
-    #   - ../../var/hash-external-service/opensearch/data:/usr/share/opensearch/data
-
   postgres:
     build:
       context: ./postgres
@@ -38,7 +11,6 @@ services:
       restart_policy:
         condition: on-failure
     environment:
-      PGDATA: /data/pgdata
       POSTGRES_USER: "${POSTGRES_USER}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
       HASH_KRATOS_PG_USER: "${HASH_KRATOS_PG_USER}"
@@ -54,7 +26,7 @@ services:
       HASH_GRAPH_REALTIME_PG_USER: "${HASH_GRAPH_REALTIME_PG_USER}"
       HASH_GRAPH_REALTIME_PG_PASSWORD: "${HASH_GRAPH_REALTIME_PG_PASSWORD}"
     volumes:
-      - hash-postgres-data:/data/pgdata
+      - hash-postgres-data:/var/lib/postgresql/data
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh:ro
     healthcheck:

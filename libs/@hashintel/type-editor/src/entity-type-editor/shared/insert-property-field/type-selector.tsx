@@ -81,7 +81,7 @@ export const TypeSelector = <T extends TypeSelectorType>({
           onCancel();
         }
       }}
-      onBlur={() => {
+      onClickAway={() => {
         if (!createModalPopupState?.isOpen) {
           onCancel();
         }
