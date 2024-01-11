@@ -21,15 +21,8 @@ pub fn render(map: TypeMap) -> Bytes {
     }
 
     while let Some(ast) = context.queue.pop() {
-        let id = *ast
-            .ext()
-            .expect("NamedDataType must be gathered by TypeMap")
-            .sid();
-
         let statement = StatementBuilder::new(&mut context, &ast);
-        let buffer = statement.process(&ast).expect("Statement must be valid");
-
-        context.statements.insert(Statement(id), buffer);
+        statement.process(&ast).expect("Statement must be valid");
     }
 
     let mut buffer = BytesMut::new();

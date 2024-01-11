@@ -6,7 +6,7 @@ use specta::{
 };
 
 use crate::codegen::{
-    context::{GlobalContext, ScopedContext},
+    context::{GlobalContext, ScopedContext, Statement},
     inline::Inline,
 };
 
@@ -158,13 +158,21 @@ impl<'a> StatementBuilder<'a> {
         self.enum_concrete(ast, false)
     }
 
-    pub(crate) fn process(self, ast: &NamedDataType) -> Result<Bytes, std::fmt::Error> {
+    // This is not perfect! We should be able to do this without taking ast or doing it in a single
+    // step!
+    pub(crate) fn process(self, ast: &NamedDataType) -> std::fmt::Result {
         assert_eq!(self.id, *ast.ext().unwrap().sid());
 
-        match &ast.inner {
-            DataType::Struct(struct_) => self.struct_(struct_),
-            DataType::Enum(enum_) => self.enum_(enum_),
+        let data = match &ast.inner {
+            DataType::Struct(struct_) => self.struct_(struct_)?,
+            DataType::Enum(enum_) => self.enum_(enum_)?,
             _ => unreachable!("Only Struct and Enum can be named"),
-        }
+        };
+
+        self.context
+            .global
+            .statements
+            .insert(Statement(self.id), data);
+        Ok(())
     }
 }
