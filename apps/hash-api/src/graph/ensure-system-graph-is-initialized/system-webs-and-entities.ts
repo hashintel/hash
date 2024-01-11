@@ -189,9 +189,8 @@ export const createSystemWebEntities = async ({
 
     /**
      * Check that an Organization entity exists associated with the web.
-     * This step must occur after creating machine actor entities, because:
-     * 1. {@link createWebMachineActor} is called as part of {@link createOrg}
-     * 2. createWebMachineActor internally depends on the 'hash' machine actor entity existing
+     * This step must occur after creating machine actor entities, because {@link createWebMachineActor},
+     * which is called as part of {@link createOrg}, depends on the 'hash' machine actor entity existing.
      */
     const foundOrg = await getOrgByShortname(context, authentication, {
       shortname: webShortname,

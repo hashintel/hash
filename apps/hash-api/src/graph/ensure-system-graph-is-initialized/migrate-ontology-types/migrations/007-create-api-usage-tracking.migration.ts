@@ -3,6 +3,7 @@ import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-pat
 
 import { logger } from "../../../../logger";
 import { createEntity } from "../../../knowledge/primitive/entity";
+import { getOrgByShortname } from "../../../knowledge/system-types/org";
 import { getEntityTypeAuthorizationRelationships } from "../../../ontology/primitive/entity-type";
 import { MigrationFunction } from "../types";
 import {
@@ -307,25 +308,15 @@ const migrate: MigrationFunction = async ({
     },
   ];
 
-  // Retrieve the HASH org ownedById from an entity type (the org entity itself may not have been created by this point)
-  const permissionsOnEntityType = await getEntityTypeAuthorizationRelationships(
-    context,
-    authentication,
-    {
-      entityTypeId: serviceFeatureEntityType.schema.$id,
-    },
-  );
-  const webRelationship = permissionsOnEntityType.find(
-    (permission) => permission.subject.kind === "web",
-  );
-
-  if (!webRelationship || !("subjectId" in webRelationship.subject)) {
+  const hashOrg = await getOrgByShortname(context, authentication, {
+    shortname: "hash",
+  });
+  if (!hashOrg) {
     throw new Error(
-      `Cannot find webId from permissions on entity type ${serviceFeatureEntityType.schema.$id}}`,
+      "Org with shortname 'hash' does not exist by migration 007, but it should.",
     );
   }
-
-  const hashOwnedById = webRelationship.subject.subjectId as OwnedById;
+  const hashOwnedById = hashOrg.accountGroupId;
 
   const existingServiceFeatureEntities = await getEntitiesByType(
     context,
@@ -380,7 +371,7 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      ownedById: hashOwnedById,
+      ownedById: hashOwnedById as OwnedById,
       relationships: [
         {
           // Let the system account administer the service entities

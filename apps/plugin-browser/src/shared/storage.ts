@@ -157,7 +157,7 @@ export const setInLocalStorage = async <Key extends keyof LocalStorage>(
   }
 
   /**
-   * Persist local storage state to the database where we want to preserve them across devices/browsers/log-outs
+   * Persist local storage state to the database where we want to preserve state across devices/browsers/log-outs
    */
   if (!skipDbPersist && isDbPersistedSetting(key)) {
     const user = await getFromLocalStorage("user");

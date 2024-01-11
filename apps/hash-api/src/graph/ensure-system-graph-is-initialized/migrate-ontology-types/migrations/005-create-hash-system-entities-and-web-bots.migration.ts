@@ -22,10 +22,11 @@ const migrate: MigrationFunction = async ({
   migrationState,
 }) => {
   /**
-   * This migration creates entities that are required in later migration steps exist.
+   * This migration creates entities that are required in later migration scripts.
    * Other system entities (belonging to non-hash webs) are created in {@link ensureSystemEntitiesExist}
    *
-   * It also creates web-scoped machine actors for existing users and orgs.
+   * It also creates web-scoped machine actors for existing users and orgs,
+   * which are required to be able to retrieve and update entities in later migration scripts.
    */
 
   const { name, websiteUrl } = owningWebs.hash;
@@ -33,7 +34,7 @@ const migrate: MigrationFunction = async ({
   /**
    * Step 1: Create the system entities associated with the 'hash' web:
    * 1. The HASH org entity is required to create the HASH Instance entity in Step 2
-   * 2. The 'hash' web machine actor is used createWebMachineActor, required in Step 3
+   * 2. The 'hash' web machine actor is used in createWebMachineActor, required in Step 3
    */
   await createSystemWebEntities({
     context,
