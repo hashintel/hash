@@ -99,6 +99,10 @@ services:
         condition: service_healthy
       telemetry-collector:
         condition: service_healthy
+      temporal:
+        condition: service_healthy
+      temporal-setup:
+        condition: service_completed_successfully
     environment:
       HASH_SPICEDB_HOST: http://spicedb
       HASH_SPICEDB_HTTP_PORT: "${HASH_SPICEDB_HTTP_PORT}"

@@ -27,7 +27,7 @@ ENV RUSTUP_HOME=/usr/local/rustup \
     PATH=:$PATH:/usr/local/cargo/bin
 
 COPY rust-toolchain.toml .
-RUN apk add --no-cache gcc musl-dev bash && \
+RUN apk add --no-cache gcc musl-dev bash protobuf-dev && \
     wget -q -O- https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal && \
     rustup show
 

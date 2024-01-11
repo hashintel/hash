@@ -119,6 +119,8 @@ pub struct ServerArgs {
     pub spicedb_grpc_preshared_key: Option<String>,
 
     /// The URL of the Temporal server.
+    ///
+    /// If not set, the service will not trigger workflows.
     #[clap(long, env = "HASH_TEMPORAL_SERVER_HOST")]
     pub temporal_host: Option<String>,
 
