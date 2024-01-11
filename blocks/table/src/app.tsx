@@ -80,7 +80,7 @@ export const App: BlockComponent<BlockEntity> = ({
 
   /**
    * The table block entity may have been populated with data elsewhere
-   * after the component is first mounted, in which we know the table
+   * after the component is first mounted, in which case we know the table
    * is using local data rather than a linked query.
    */
   if (!isUsingLocalTable && !isLocalTableEmpty) {
