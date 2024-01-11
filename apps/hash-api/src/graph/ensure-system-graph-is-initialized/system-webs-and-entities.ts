@@ -7,12 +7,7 @@ import {
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  AccountGroupId,
-  AccountId,
-  extractOwnedByIdFromEntityId,
-  OwnedById,
-} from "@local/hash-subgraph";
+import { AccountGroupId, AccountId, OwnedById } from "@local/hash-subgraph";
 
 import { enabledIntegrations } from "../../integrations/enabled-integrations";
 import { logger } from "../../logger";

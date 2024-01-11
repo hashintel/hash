@@ -46,9 +46,9 @@ export type AuthoredByProperties1 = LinkProperties;
 export type AuthoredByProperties2 = {};
 
 /**
- * Settings for an automatic or passive entity inference feature
+ * Configuration for an automatic or passive entity inference feature
  */
-export type AutomaticInferenceSettingsPropertyValue = ObjectDataType;
+export type AutomaticInferenceConfigurationPropertyValue = ObjectDataType;
 
 export type Block = Entity<BlockProperties>;
 
@@ -93,9 +93,16 @@ export type BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId = {};
  * Settings for the HASH browser plugin
  */
 export type BrowserPluginSettingsProperties = {
-  "https://hash.ai/@hash/types/property-type/automatic-inference-settings/"?: AutomaticInferenceSettingsPropertyValue;
-  "https://hash.ai/@hash/types/property-type/manual-inference-settings/"?: ManualInferenceSettingsPropertyValue;
+  "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/": AutomaticInferenceConfigurationPropertyValue;
+  "https://hash.ai/@hash/types/property-type/browser-plugin-tab/": BrowserPluginTabPropertyValue;
+  "https://hash.ai/@hash/types/property-type/draft-note/"?: DraftNotePropertyValue;
+  "https://hash.ai/@hash/types/property-type/manual-inference-configuration/": ManualInferenceConfigurationPropertyValue;
 };
+
+/**
+ * A tab in the HASH browser plugin
+ */
+export type BrowserPluginTabPropertyValue = TextDataType;
 
 export type Comment = Entity<CommentProperties>;
 
@@ -159,6 +166,11 @@ export type DescriptionPropertyValue = TextDataType;
  * A human-friendly display name for something
  */
 export type DisplayNamePropertyValue = TextDataType;
+
+/**
+ * A working draft of a text note
+ */
+export type DraftNotePropertyValue = TextDataType;
 
 /**
  * An email address
@@ -465,9 +477,9 @@ export type LocationPropertyValue = TextDataType;
 export type MIMETypePropertyValue = TextDataType;
 
 /**
- * Settings for a manual entity inference feature
+ * Configuration for a manual entity inference feature
  */
-export type ManualInferenceSettingsPropertyValue = ObjectDataType;
+export type ManualInferenceConfigurationPropertyValue = ObjectDataType;
 
 export type Notification = Entity<NotificationProperties>;
 

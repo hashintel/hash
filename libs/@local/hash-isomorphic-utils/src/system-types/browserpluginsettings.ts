@@ -3,21 +3,27 @@
  */
 
 import {
-  AutomaticInferenceSettingsPropertyValue,
+  AutomaticInferenceConfigurationPropertyValue,
   BrowserPluginSettings,
   BrowserPluginSettingsOutgoingLinkAndTarget,
   BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId,
   BrowserPluginSettingsProperties,
-  ManualInferenceSettingsPropertyValue,
+  BrowserPluginTabPropertyValue,
+  DraftNotePropertyValue,
+  ManualInferenceConfigurationPropertyValue,
   ObjectDataType,
+  TextDataType,
 } from "./shared";
 
 export type {
-  AutomaticInferenceSettingsPropertyValue,
+  AutomaticInferenceConfigurationPropertyValue,
   BrowserPluginSettings,
   BrowserPluginSettingsOutgoingLinkAndTarget,
   BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId,
   BrowserPluginSettingsProperties,
-  ManualInferenceSettingsPropertyValue,
+  BrowserPluginTabPropertyValue,
+  DraftNotePropertyValue,
+  ManualInferenceConfigurationPropertyValue,
   ObjectDataType,
+  TextDataType,
 };

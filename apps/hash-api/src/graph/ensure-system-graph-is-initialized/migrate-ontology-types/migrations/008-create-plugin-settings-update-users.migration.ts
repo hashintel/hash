@@ -22,28 +22,56 @@ const migrate: MigrationFunction = async ({
   /**
    * Step 1. Create the Browser Plugin Settings entity type
    */
-  const manualInferenceSettingsPropertyType =
+  const manualInferenceConfigurationPropertyType =
     await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
-        title: "Manual Inference Settings",
-        description: "Settings for a manual entity inference feature",
+        title: "Manual Inference Configuration",
+        description: "Configuration for a manual entity inference feature",
         possibleValues: [{ primitiveDataType: "object" }],
       },
       webShortname: "hash",
       migrationState,
     });
 
-  const automaticInferenceSettingsPropertyType =
+  const automaticInferenceConfigurationPropertyType =
     await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
-        title: "Automatic Inference Settings",
+        title: "Automatic Inference Configuration",
         description:
-          "Settings for an automatic or passive entity inference feature",
+          "Configuration for an automatic or passive entity inference feature",
         possibleValues: [{ primitiveDataType: "object" }],
       },
       webShortname: "hash",
       migrationState,
     });
+
+  const popupTabPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Browser Plugin Tab",
+        description: "A tab in the HASH browser plugin",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      webShortname: "hash",
+      migrationState,
+    },
+  );
+
+  const draftNotePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Draft Note",
+        description: "A working draft of a text note",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      webShortname: "hash",
+      migrationState,
+    },
+  );
 
   const browserPluginSettingsEntityType =
     await createSystemEntityTypeIfNotExists(context, authentication, {
@@ -52,10 +80,19 @@ const migrate: MigrationFunction = async ({
         description: "Settings for the HASH browser plugin",
         properties: [
           {
-            propertyType: manualInferenceSettingsPropertyType,
+            propertyType: manualInferenceConfigurationPropertyType,
+            required: true,
           },
           {
-            propertyType: automaticInferenceSettingsPropertyType,
+            propertyType: automaticInferenceConfigurationPropertyType,
+            required: true,
+          },
+          {
+            propertyType: popupTabPropertyType,
+            required: true,
+          },
+          {
+            propertyType: draftNotePropertyType,
           },
         ],
       },

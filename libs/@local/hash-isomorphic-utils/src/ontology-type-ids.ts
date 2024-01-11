@@ -301,11 +301,17 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/archived/v/1",
     propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/archived/",
   },
-  automaticInferenceSettings: {
+  automaticInferenceConfiguration: {
     propertyTypeId:
-      "https://hash.ai/@hash/types/property-type/automatic-inference-settings/v/1",
+      "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/automatic-inference-settings/",
+      "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/",
+  },
+  browserPluginTab: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/browser-plugin-tab/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/browser-plugin-tab/",
   },
   componentId: {
     propertyTypeId:
@@ -323,6 +329,11 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/deleted-at/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/deleted-at/",
+  },
+  draftNote: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/draft-note/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/draft-note/",
   },
   email: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/email/v/1",
@@ -443,11 +454,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/machine-identifier/",
   },
-  manualInferenceSettings: {
+  manualInferenceConfiguration: {
     propertyTypeId:
-      "https://hash.ai/@hash/types/property-type/manual-inference-settings/v/1",
+      "https://hash.ai/@hash/types/property-type/manual-inference-configuration/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/manual-inference-settings/",
+      "https://hash.ai/@hash/types/property-type/manual-inference-configuration/",
   },
   orgSelfRegistrationIsEnabled: {
     propertyTypeId:
@@ -636,13 +647,6 @@ export const systemDataTypes = {
     title: "Millimeters",
     description:
       "A unit of length in the International System of Units (SI), equal to one thousandth of a meter.",
-  },
-  time: {
-    dataTypeId: "https://hash.ai/@hash/types/data-type/time/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/time/",
-    title: "Time",
-    description:
-      "A reference to a particular clock time, formatted according to RFC 3339.",
   },
   uri: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/uri/v/1",

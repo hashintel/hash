@@ -1,27 +1,33 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
+import { Subtype } from "@local/advanced-types/subtype";
 import type {
   InferenceModelName,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   SimpleProperties,
   Simplified,
 } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
+  BrowserPluginSettingsProperties,
   ImageProperties,
   OrganizationProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
+  EntityId,
   EntityTypeRootType,
   EntityTypeWithMetadata,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
+import debounce from "lodash.debounce";
 import browser from "webextension-polyfill";
 
 import { setDisabledBadge, setEnabledBadge } from "./badge";
+import { updateEntity } from "./storage/update-entity";
 
 type InferenceErrorStatus = {
   errorMessage: string;
@@ -67,41 +73,59 @@ type UserAndLinkedData = SimplifiedUser & {
     avatar?: Entity<ImageProperties>;
     webOwnedById: OwnedById;
   })[];
+  settingsEntityId: EntityId;
   webOwnedById: OwnedById;
 };
 
-export type UserSettings = {
-  automaticInferenceConfig: {
-    createAs: "draft" | "live";
-    displayGroupedBy: "type" | "location";
-    enabled: boolean;
-    model: InferenceModelName;
-    ownedById: OwnedById;
-    rules: {
-      restrictToDomains: string[];
-      entityTypeId: VersionedUrl;
-    }[];
-  };
-  manualInferenceConfig: {
-    createAs: "draft" | "live";
-    model: InferenceModelName;
-    ownedById: OwnedById;
-    targetEntityTypeIds: VersionedUrl[];
-  };
-};
+const persistedUserSettingKeys = [
+  "automaticInferenceConfig",
+  "draftQuickNote",
+  "manualInferenceConfig",
+  "popupTab",
+] as const;
+
+type PersistedUserSettingsKey = (typeof persistedUserSettingKeys)[number];
+
+export type PersistedUserSettings = Subtype<
+  Record<PersistedUserSettingsKey, unknown>,
+  {
+    automaticInferenceConfig: {
+      createAs: "draft" | "live";
+      displayGroupedBy: "type" | "location";
+      enabled: boolean;
+      model: InferenceModelName;
+      ownedById: OwnedById;
+      rules: {
+        restrictToDomains: string[];
+        entityTypeId: VersionedUrl;
+      }[];
+    };
+    draftQuickNote: string;
+    manualInferenceConfig: {
+      createAs: "draft" | "live";
+      model: InferenceModelName;
+      ownedById: OwnedById;
+      targetEntityTypeIds: VersionedUrl[];
+    };
+    popupTab: "one-off" | "automated" | "log";
+  }
+>;
 
 /**
- * Storage area cleared persisted when the browser is closed.
+ * LocalStorage area cleared persisted when the browser is closed.
  * Cleared if the extension is loaded with no user present.
  */
-export type LocalStorage = UserSettings & {
-  draftQuickNote: string;
+export type LocalStorage = PersistedUserSettings & {
   entityTypesSubgraph: Subgraph<EntityTypeRootType> | null;
   entityTypes: EntityTypeWithMetadata[];
   inferenceRequests: PageEntityInference[];
-  popupTab: "one-off" | "automated" | "log";
   user: UserAndLinkedData | null;
 };
+
+const isDbPersistedSetting = (
+  key: keyof LocalStorage,
+): key is PersistedUserSettingsKey =>
+  persistedUserSettingKeys.includes(key as PersistedUserSettingsKey);
 
 export const getFromLocalStorage = async <Key extends keyof LocalStorage>(
   key: Key,
@@ -111,12 +135,16 @@ export const getFromLocalStorage = async <Key extends keyof LocalStorage>(
     .then((result) => result[key] as LocalStorage[Key]);
 };
 
+// Avoid spamming the db with updates if the user is editing settings quickly or writing a quick note
+const debouncedEntityUpdate = debounce(updateEntity, 1_000);
+
 /**
  * Set a value in local storage.
  */
-export const setInLocalStorage = async (
-  key: keyof LocalStorage,
-  value: LocalStorage[keyof LocalStorage],
+export const setInLocalStorage = async <Key extends keyof LocalStorage>(
+  key: Key,
+  value: LocalStorage[Key],
+  skipDbPersist = false,
 ) => {
   await browser.storage.local.set({ [key]: value });
 
@@ -126,6 +154,64 @@ export const setInLocalStorage = async (
     } else {
       setDisabledBadge();
     }
+  }
+
+  /**
+   * Persist local storage state to the database where we want to preserve them across devices/browsers/log-outs
+   */
+  if (!skipDbPersist && isDbPersistedSetting(key)) {
+    const user = await getFromLocalStorage("user");
+    const settingsEntityId = user?.settingsEntityId;
+    if (!settingsEntityId) {
+      throw new Error("User somehow has no browser plugin settings entity");
+    }
+
+    const currentAutomaticConfig = await getFromLocalStorage(
+      "automaticInferenceConfig",
+    );
+    const currentManualConfig = await getFromLocalStorage(
+      "manualInferenceConfig",
+    );
+    const currentPopupTab = await getFromLocalStorage("popupTab");
+    const currentDraftNote = await getFromLocalStorage("draftQuickNote");
+    if (!currentAutomaticConfig) {
+      throw new Error(
+        "User has no automatic inference config set in local storage",
+      );
+    }
+    if (!currentManualConfig) {
+      throw new Error(
+        "User has no manual inference config set in local storage",
+      );
+    }
+    if (!currentPopupTab) {
+      throw new Error("User has no popup tab set in local storage");
+    }
+
+    const newProperties: BrowserPluginSettingsProperties = {
+      "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/":
+        key === "automaticInferenceConfig"
+          ? (value as LocalStorage["automaticInferenceConfig"])
+          : currentAutomaticConfig,
+      "https://hash.ai/@hash/types/property-type/manual-inference-configuration/":
+        key === "manualInferenceConfig"
+          ? (value as LocalStorage["manualInferenceConfig"])
+          : currentManualConfig,
+      "https://hash.ai/@hash/types/property-type/browser-plugin-tab/":
+        key === "popupTab" && typeof value === "string"
+          ? value
+          : currentPopupTab,
+      "https://hash.ai/@hash/types/property-type/draft-note/":
+        key === "draftQuickNote" && typeof value === "string"
+          ? value
+          : currentDraftNote,
+    };
+
+    await debouncedEntityUpdate({
+      entityId: settingsEntityId,
+      entityTypeId: systemEntityTypes.browserPluginSettings.entityTypeId,
+      updatedProperties: newProperties,
+    });
   }
 };
 

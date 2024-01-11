@@ -4,16 +4,9 @@ import {
   createWebMachineActor,
   getWebMachineActorId,
 } from "@local/hash-backend-utils/machine-actors";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { AccountId, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/subgraph/roots";
 
 import { logger } from "../../../../logger";
-import { getEntities } from "../../../knowledge/primitive/entity";
 import { createHashInstance } from "../../../knowledge/system-types/hash-instance";
 import { systemAccountId } from "../../../system-account";
 import {
