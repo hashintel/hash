@@ -46,7 +46,6 @@ import {
 } from "./email/transporters";
 import { ImpureGraphContext } from "./graph/context-types";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
-import { isSelfHostedInstance } from "./graph/ensure-system-graph-is-initialized/system-webs-and-entities";
 import { User } from "./graph/knowledge/system-types/user";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
@@ -409,7 +408,7 @@ const main = async () => {
   const httpTerminator = createHttpTerminator({ server: httpServer });
   shutdown.addCleanup("HTTP Server", async () => httpTerminator.terminate());
 
-  if (!isSelfHostedInstance && temporalClient) {
+  if (temporalClient) {
     openInferEntitiesWebSocket({
       context,
       httpServer,

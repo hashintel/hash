@@ -26,7 +26,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.1-canary-20231207113055",
+    "@blockprotocol/graph": "0.3.1-canary-20240108132503",
     "date-fns": "2.28.0",
     "react-datepicker": "4.7.0"
   },
