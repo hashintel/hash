@@ -1,16 +1,14 @@
 use std::{borrow::Borrow, fmt::Write};
 
-use bytes::{Bytes, BytesMut};
-use specta::{
-    DataType, EnumType, Field, GenericType, NamedDataType, SpectaID, StructFields, StructType,
-};
+use bytes::BytesMut;
+use specta::{DataType, EnumType, GenericType, NamedDataType, SpectaID, StructFields, StructType};
 
 use crate::codegen::{
     context::{GlobalContext, ScopedContext, Statement},
     inline::Inline,
 };
 
-pub struct StatementBuilder<'a> {
+pub(crate) struct StatementBuilder<'a> {
     pub(crate) context: ScopedContext<'a>,
     pub(crate) id: SpectaID,
     pub(crate) buffer: BytesMut,
@@ -25,7 +23,7 @@ impl<'a> StatementBuilder<'a> {
         let id = *ext.sid();
 
         Self {
-            context: context.scoped(ext),
+            context: context.scoped(Statement(id)),
             id,
             buffer: BytesMut::new(),
         }
@@ -33,13 +31,11 @@ impl<'a> StatementBuilder<'a> {
 
     fn export_interface(&mut self, name: &str) -> std::fmt::Result {
         self.buffer.write_fmt(format_args!(
-            "export interface {0} extends S.Schema.To<typeof {0}> {{}}\n",
-            name
+            "export interface {name} extends S.Schema.To<typeof {name}> {{}}\n",
         ))?;
 
         self.buffer.write_fmt(format_args!(
-            "export interface {0}From extends S.Schema.From<typeof {0}> {{}}\n",
-            name
+            "export interface {name}From extends S.Schema.From<typeof {name}> {{}}\n",
         ))
     }
 
@@ -78,11 +74,7 @@ impl<'a> StatementBuilder<'a> {
         self.buffer.write_str(") => ")
     }
 
-    fn struct_concrete(
-        mut self,
-        ast: &StructType,
-        export_interface: bool,
-    ) -> Result<Bytes, std::fmt::Error> {
+    fn struct_concrete(&mut self, ast: &StructType, export_interface: bool) -> std::fmt::Result {
         // we have a concrete type
         let mut inline = Inline::new(&mut self.context, &mut self.buffer);
         // we don't need to hoist or create a reference
@@ -95,10 +87,10 @@ impl<'a> StatementBuilder<'a> {
             self.export_interface(ast.name())?;
         }
 
-        Ok(self.buffer.freeze())
+        Ok(())
     }
 
-    fn struct_brand(mut self, name: &str, inner: &DataType) -> Result<Bytes, std::fmt::Error> {
+    fn struct_brand(&mut self, name: &str, inner: &DataType) -> std::fmt::Result {
         let mut inline = Inline::new(&mut self.context, &mut self.buffer);
         inline.process(inner)?;
 
@@ -106,10 +98,10 @@ impl<'a> StatementBuilder<'a> {
         self.buffer.write_str(name)?;
         self.buffer.write_str("'))")?;
 
-        Ok(self.buffer.freeze())
+        Ok(())
     }
 
-    fn struct_(mut self, ast: &StructType) -> Result<Bytes, std::fmt::Error> {
+    fn struct_(&mut self, ast: &StructType) -> std::fmt::Result {
         self.buffer
             .write_fmt(format_args!("export const {} = ", ast.name()))?;
 
@@ -131,11 +123,7 @@ impl<'a> StatementBuilder<'a> {
         self.struct_concrete(ast, false)
     }
 
-    fn enum_concrete(
-        mut self,
-        ast: &EnumType,
-        export_interface: bool,
-    ) -> Result<Bytes, std::fmt::Error> {
+    fn enum_concrete(&mut self, ast: &EnumType, export_interface: bool) -> std::fmt::Result {
         let mut inline = Inline::new(&mut self.context, &mut self.buffer);
         inline.enum_(ast)?;
 
@@ -145,10 +133,10 @@ impl<'a> StatementBuilder<'a> {
             self.export_interface(ast.name())?;
         }
 
-        Ok(self.buffer.freeze())
+        Ok(())
     }
 
-    fn enum_(mut self, ast: &EnumType) -> Result<Bytes, std::fmt::Error> {
+    fn enum_(&mut self, ast: &EnumType) -> std::fmt::Result {
         self.buffer
             .write_fmt(format_args!("export const {} = ", ast.name()))?;
 
@@ -161,10 +149,12 @@ impl<'a> StatementBuilder<'a> {
 
     // This is not perfect! We should be able to do this without taking ast or doing it in a single
     // step!
-    pub(crate) fn process(self, ast: &NamedDataType) -> std::fmt::Result {
-        assert_eq!(self.id, *ast.ext().unwrap().sid());
+    #[allow(clippy::panic_in_result_fn)]
+    pub(crate) fn process(mut self, ast: &NamedDataType) -> std::fmt::Result {
+        assert_eq!(self.id, *ast.ext().expect("from typemap").sid());
+        let id = self.id;
 
-        let data = match &ast.inner {
+        match &ast.inner {
             DataType::Struct(struct_) => self.struct_(struct_)?,
             DataType::Enum(enum_) => self.enum_(enum_)?,
             _ => unreachable!("Only Struct and Enum can be named"),
@@ -173,7 +163,8 @@ impl<'a> StatementBuilder<'a> {
         self.context
             .global
             .statements
-            .insert(Statement(self.id), data);
+            .insert(Statement(id), self.buffer.freeze());
+
         Ok(())
     }
 }

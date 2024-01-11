@@ -3,7 +3,6 @@ use std::fmt::Write;
 use bytes::BytesMut;
 use heck::AsLowerCamelCase;
 use specta::{NamedType, Type};
-use thiserror::Error;
 
 use crate::{
     codegen::{
@@ -13,14 +12,6 @@ use crate::{
     harpc::{procedure::RemoteProcedure, service::Service},
     types::{Empty, Stack},
 };
-
-#[derive(Debug, Copy, Clone, Error)]
-pub enum ServiceError {
-    #[error("collect() must be called before render()")]
-    RenderCalledBeforeCollect,
-    #[error("Buffer error")]
-    Buffer,
-}
 
 fn render_procedure<P>(buffer: &mut BytesMut, context: &mut GlobalContext) -> std::fmt::Result
 where
@@ -37,44 +28,46 @@ where
     buffer.write_fmt(format_args!("Procedure.Id({:#x})", P::ID.value()))?;
     buffer.write_char(',')?;
 
-    let mut inline = Inline::new(&mut context.scoped(Statement(P::SID)), buffer);
+    let mut scope = context.scoped(Statement(P::SID));
+    let mut inline = Inline::new(&mut scope, buffer);
     inline.process(&request.inner)?;
 
     buffer.write_char(',')?;
 
-    let mut inline = Inline::new(&mut context.scoped(Statement(P::SID)), buffer);
+    let mut scope = context.scoped(Statement(P::Response::SID));
+    let mut inline = Inline::new(&mut scope, buffer);
     inline.process(&response.inner)?;
 
     buffer.write_str(")")
 }
 
-trait OutputProcedures {
+trait ExportProcedures {
     fn output(buffer: &mut BytesMut, context: &mut GlobalContext) -> std::fmt::Result;
 }
 
-impl OutputProcedures for Empty {
+impl ExportProcedures for Empty {
     fn output(_: &mut BytesMut, _: &mut GlobalContext) -> std::fmt::Result {
         Ok(())
     }
 }
 
-impl<P, Next> OutputProcedures for Stack<P, Next>
+impl<P, Tail> ExportProcedures for Stack<P, Tail>
 where
     P: RemoteProcedure + NamedType,
     P::Response: NamedType,
-    Next: OutputProcedures,
+    Tail: ExportProcedures,
 {
     fn output(buffer: &mut BytesMut, context: &mut GlobalContext) -> std::fmt::Result {
         render_procedure::<P>(buffer, context)?;
 
-        Next::output(buffer, context)
+        Tail::output(buffer, context)
     }
 }
 
 fn render_service<S>(buffer: &mut BytesMut, context: &mut GlobalContext) -> std::fmt::Result
 where
     S: Service,
-    S::Procedures: OutputProcedures,
+    S::Procedures: ExportProcedures,
 {
     buffer.write_fmt(format_args!("export const {} = Service.create(", S::NAME))?;
     buffer.write_fmt(format_args!("Service.Id({:#x})", S::ID.value()))?;
@@ -87,25 +80,25 @@ where
     buffer.write_str(";\n")
 }
 
-pub(crate) trait OutputServices {
+pub trait ExportServices {
     fn output(buffer: &mut BytesMut, context: &mut GlobalContext) -> std::fmt::Result;
 }
 
-impl OutputServices for Empty {
+impl ExportServices for Empty {
     fn output(_: &mut BytesMut, _: &mut GlobalContext) -> std::fmt::Result {
         Ok(())
     }
 }
 
-impl<S, Next> OutputServices for Stack<S, Next>
+impl<S, Tail> ExportServices for Stack<S, Tail>
 where
     S: Service,
-    S::Procedures: OutputProcedures,
-    Next: OutputServices,
+    S::Procedures: ExportProcedures,
+    Tail: ExportServices,
 {
     fn output(buffer: &mut BytesMut, context: &mut GlobalContext) -> std::fmt::Result {
         render_service::<S>(buffer, context)?;
 
-        Next::output(buffer, context)
+        Tail::output(buffer, context)
     }
 }

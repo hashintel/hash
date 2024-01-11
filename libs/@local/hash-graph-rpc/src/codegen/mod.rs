@@ -5,9 +5,8 @@ use error_stack::{Report, Result, ResultExt};
 use specta::TypeMap;
 use thiserror::Error;
 
-use crate::codegen::{
-    context::GlobalContext, service::OutputServices, statement::StatementBuilder,
-};
+pub(crate) use self::service::ExportServices;
+use crate::codegen::{context::GlobalContext, statement::StatementBuilder};
 
 mod context;
 mod inline;
@@ -15,7 +14,7 @@ mod service;
 mod statement;
 
 #[derive(Debug, Copy, Clone, Error)]
-pub enum Error {
+pub enum ExportError {
     #[error("Invalid statement")]
     InvalidStatement,
     #[error("Statement not found")]
@@ -26,7 +25,7 @@ pub enum Error {
     OrderingIncomplete,
 }
 
-fn render_imports(buffer: &mut BytesMut) -> std::fmt::Result {
+fn export_imports(buffer: &mut BytesMut) -> std::fmt::Result {
     buffer.write_str(r#"import * as S from "@effect/schema/Schema";"#)?;
     buffer.write_char('\n')?;
 
@@ -48,46 +47,49 @@ fn render_imports(buffer: &mut BytesMut) -> std::fmt::Result {
 
 // TODO: flatten should work properly, although that is a lot more complicated.
 // takes ownership of context to prevent that we accidentally add something to the queue later
-fn render_types(mut context: GlobalContext) -> Result<BytesMut, Error> {
+fn export_types(mut context: GlobalContext) -> Result<BytesMut, ExportError> {
     while let Some(ast) = context.queue.pop() {
         let statement = StatementBuilder::new(&mut context, &ast);
 
         statement
             .process(&ast)
-            .change_context(Error::InvalidStatement)?;
+            .change_context(ExportError::InvalidStatement)?;
     }
 
     let mut buffer = BytesMut::new();
-    render_imports(&mut buffer).change_context(Error::Buffer)?;
+    export_imports(&mut buffer).change_context(ExportError::Buffer)?;
 
     for id in context.ordering.iter() {
         let statement = context
             .statements
             .remove(id)
-            .ok_or(Error::StatementNotFound)?;
+            .ok_or(ExportError::StatementNotFound)?;
 
         buffer.extend_from_slice(&statement);
     }
 
     if !context.statements.is_empty() {
-        return Err(Report::new(Error::OrderingIncomplete));
+        return Err(Report::new(ExportError::OrderingIncomplete));
     }
 
     Ok(buffer)
 }
 
-pub fn render<S>(map: TypeMap) -> Result<Bytes, Error>
+#[allow(clippy::missing_errors_doc)]
+pub fn export<S>(map: TypeMap) -> Result<Bytes, ExportError>
 where
-    S: OutputServices,
+    S: ExportServices,
 {
     let mut trailer = BytesMut::new();
     let mut context = GlobalContext::new(map);
 
-    S::output(&mut trailer, &mut context).change_context(Error::Buffer)?;
+    S::output(&mut trailer, &mut context).change_context(ExportError::Buffer)?;
 
-    let mut buffer = render_types(context)?;
+    let mut buffer = export_types(context)?;
 
-    buffer.write_str("\n\n").change_context(Error::Buffer)?;
+    buffer
+        .write_str("\n\n")
+        .change_context(ExportError::Buffer)?;
 
     buffer.extend_from_slice(&trailer);
 

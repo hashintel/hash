@@ -9,7 +9,7 @@ extern crate core;
 pub mod codegen;
 pub mod harpc;
 pub mod specification;
-mod types;
+pub mod types;
 
 pub use harpc::{
     client::{Client, ClientError},

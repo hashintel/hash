@@ -35,6 +35,7 @@ impl<T, Next, Tail> SupersetOf<Stack<Next, Tail>> for T where Self: Includes<Nex
 
 impl<T> SupersetOf<Empty> for T {}
 
+#[macro_export]
 macro_rules! stack {
     () => {
         $crate::types::Empty
@@ -47,7 +48,7 @@ macro_rules! stack {
     };
 }
 
-pub(crate) use stack;
+pub use stack;
 
 #[cfg(test)]
 mod tests {

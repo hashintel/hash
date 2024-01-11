@@ -11,6 +11,7 @@ impl RemoteProcedure for ErasedRemoteProcedure {
     type Response = Response;
 
     const ID: ProcedureId = ProcedureId::erased();
+    const NAME: &'static str = "[erased]";
 }
 
 #[derive(Clone)]

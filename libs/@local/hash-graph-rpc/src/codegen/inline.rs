@@ -3,7 +3,7 @@ use std::{
     fmt::{Display, Write},
 };
 
-use bytes::{Bytes, BytesMut};
+use bytes::BytesMut;
 use specta::{
     DataType, DataTypeReference, EnumRepr, EnumType, EnumVariant, EnumVariants, Field, GenericType,
     List, LiteralType, NamedFields, PrimitiveType, SpectaID, StructFields, StructType, TupleType,
@@ -16,13 +16,13 @@ fn struct_id(id: &StructType) -> Option<SpectaID> {
     todo!()
 }
 
-pub(crate) struct Inline<'a> {
-    context: &'a mut ScopedContext<'a>,
+pub(crate) struct Inline<'a, 'b: 'a> {
+    context: &'a mut ScopedContext<'b>,
     buffer: &'a mut BytesMut,
 }
 
-impl<'a> Inline<'a> {
-    pub(crate) fn new(context: &'a mut ScopedContext<'a>, buffer: &'a mut BytesMut) -> Self {
+impl<'a, 'b: 'a> Inline<'a, 'b> {
+    pub(crate) fn new(context: &'a mut ScopedContext<'b>, buffer: &'a mut BytesMut) -> Self {
         Self { context, buffer }
     }
 
@@ -115,7 +115,7 @@ impl<'a> Inline<'a> {
     }
 
     fn unnamed_fields(&mut self, fields: &UnnamedFields) -> std::fmt::Result {
-        if fields.fields().iter().any(|field| field.flatten()) {
+        if fields.fields().iter().any(Field::flatten) {
             unimplemented!("Flattened unnamed fields are not supported");
         }
 

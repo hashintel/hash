@@ -109,7 +109,7 @@ pub struct Service<S, C> {
 }
 
 impl<S, C> Service<S, C> {
-    pub fn builder() -> ServiceBuilder<S, C, Empty>
+    pub const fn builder() -> ServiceBuilder<S, C, Empty>
     where
         S: service::Service,
         C: Context,
