@@ -2365,6 +2365,13 @@
   dependencies:
     "@blockprotocol/core" "0.1.2"
 
+"@blockprotocol/service@0.1.4":
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/service/-/service-0.1.4.tgz#1d17227682cc8ab68c5651c1ee4abb7ded9ce52d"
+  integrity sha512-5B+NNIsH1sahTM7FpDT1VQPePfzPmLqydvWKGGPlg6mL9Owziogglc398hXlB91yoJjLTCDDvXQ3ESpyKyWUow==
+  dependencies:
+    "@blockprotocol/core" "0.1.2"
+
 "@blockprotocol/type-system@0.1.1":
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/@blockprotocol/type-system/-/type-system-0.1.1.tgz#8c63fd642d25409e112e8660948825c07d83b672"
