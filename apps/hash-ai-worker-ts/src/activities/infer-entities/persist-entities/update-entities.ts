@@ -16,12 +16,12 @@ import {
 } from "@local/hash-subgraph";
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 
-import type { DereferencedEntityType } from "./dereference-entity-type";
+import type { DereferencedEntityType } from "../dereference-entity-type";
+import { extractErrorMessage } from "../shared/extract-validation-failure-details";
+import { getEntityByFilter } from "../shared/get-entity-by-filter";
+import { stringify } from "../stringify";
 import { ensureTrailingSlash } from "./ensure-trailing-slash";
-import { ProposedEntityUpdatesByType } from "./generate-tools";
-import { extractErrorMessage } from "./shared/extract-validation-failure-details";
-import { getEntityByFilter } from "./shared/get-entity-by-filter";
-import { stringify } from "./stringify";
+import { ProposedEntityUpdatesByType } from "./generate-persist-entities-tools";
 
 type StatusByTemporaryId<T> = Record<string, T>;
 
