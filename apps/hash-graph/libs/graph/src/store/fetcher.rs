@@ -27,7 +27,7 @@ use graph_types::{
     owned_by_id::OwnedById,
 };
 use tarpc::context;
-use temporal_versioning::{DecisionTime, Timestamp};
+use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use tokio::net::ToSocketAddrs;
 use tokio_serde::formats::Json;
 use type_fetcher::fetcher::{FetchedOntologyType, FetcherClient};
@@ -1215,10 +1215,19 @@ where
         actor_id: AccountId,
         authorization_api: &mut Au,
         embeddings: impl IntoIterator<Item = EntityEmbedding<'_>> + Send,
+        updated_at_transaction_time: Timestamp<TransactionTime>,
+        updated_at_decision_time: Timestamp<DecisionTime>,
         reset: bool,
     ) -> Result<(), UpdateError> {
         self.store
-            .update_entity_embeddings(actor_id, authorization_api, embeddings, reset)
+            .update_entity_embeddings(
+                actor_id,
+                authorization_api,
+                embeddings,
+                updated_at_transaction_time,
+                updated_at_decision_time,
+                reset,
+            )
             .await
     }
 }

@@ -46,6 +46,7 @@ use graph_types::{
     Embedding,
 };
 use serde::Deserialize;
+use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
 use validation::ValidationProfile;
@@ -519,6 +520,8 @@ where
 #[serde(rename_all = "camelCase")]
 struct EntityEmbeddingUpdateRequest {
     embeddings: Vec<EntityEmbedding<'static>>,
+    updated_at_transaction_time: Timestamp<TransactionTime>,
+    updated_at_decision_time: Timestamp<DecisionTime>,
     reset: bool,
 }
 
@@ -548,7 +551,12 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let Json(EntityEmbeddingUpdateRequest { embeddings, reset }) = body;
+    let Json(EntityEmbeddingUpdateRequest {
+        embeddings,
+        updated_at_transaction_time,
+        updated_at_decision_time,
+        reset,
+    }) = body;
 
     let mut store = store_pool.acquire().await.map_err(report_to_response)?;
     let mut authorization_api = authorization_api_pool
@@ -557,7 +565,14 @@ where
         .map_err(report_to_response)?;
 
     store
-        .update_entity_embeddings(actor_id, &mut authorization_api, embeddings, reset)
+        .update_entity_embeddings(
+            actor_id,
+            &mut authorization_api,
+            embeddings,
+            updated_at_transaction_time,
+            updated_at_decision_time,
+            reset,
+        )
         .await
         .map_err(report_to_response)
 }
