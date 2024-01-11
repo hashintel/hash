@@ -1,7 +1,7 @@
-use std::{collections::HashMap, ops::Index};
+use std::collections::HashMap;
 
 use bytes::Bytes;
-use specta::{DataType, NamedDataType, NamedDataTypeExt, SpectaID, TypeMap};
+use specta::{NamedDataType, NamedDataTypeExt, SpectaID, TypeMap};
 
 pub struct OrderedVec<T> {
     pub inner: Vec<T>,
@@ -11,6 +11,10 @@ impl<T> OrderedVec<T>
 where
     T: PartialEq,
 {
+    fn new() -> Self {
+        Self { inner: vec![] }
+    }
+
     pub(crate) fn push(&mut self, item: T) -> usize {
         if let Some(position) = self.inner.iter().position(|i| i == &item) {
             return position;
@@ -62,9 +66,18 @@ pub struct GlobalContext {
 
 impl GlobalContext {
     pub(crate) fn new(types: TypeMap) -> Self {
+        let mut ordering = OrderedVec::new();
+        let mut queue = vec![];
+
+        queue.extend(types.iter().map(|(_, ast)| ast.clone()));
+
+        for (id, _) in types.iter() {
+            ordering.push(Statement(id));
+        }
+
         Self {
-            ordering: OrderedVec { inner: vec![] },
-            queue: vec![],
+            ordering,
+            queue,
             statements: HashMap::new(),
             types,
         }

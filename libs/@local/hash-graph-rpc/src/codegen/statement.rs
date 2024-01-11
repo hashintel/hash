@@ -85,7 +85,8 @@ impl<'a> StatementBuilder<'a> {
     ) -> Result<Bytes, std::fmt::Error> {
         // we have a concrete type
         let mut inline = Inline::new(&mut self.context, &mut self.buffer);
-        inline.struct_(ast)?;
+        // we don't need to hoist or create a reference
+        inline.anonymous_struct(ast)?;
 
         self.buffer.write_str(";\n")?;
 

@@ -28,19 +28,19 @@ impl<'a> Inline<'a> {
 
     fn primitive(&mut self, ast: &PrimitiveType) -> std::fmt::Result {
         let value = match ast {
-            PrimitiveType::i8 => "B.i8",
-            PrimitiveType::i16 => "B.i16",
-            PrimitiveType::i32 => "B.i32",
-            PrimitiveType::i64 | PrimitiveType::isize => "B.i64",
-            PrimitiveType::i128 => "B.i128",
-            PrimitiveType::u8 => "B.u8",
-            PrimitiveType::u16 => "B.u16",
-            PrimitiveType::u32 => "B.u32",
-            PrimitiveType::u64 | PrimitiveType::usize => "B.u64",
-            PrimitiveType::u128 => "B.u128",
+            PrimitiveType::i8 => "R.i8",
+            PrimitiveType::i16 => "R.i16",
+            PrimitiveType::i32 => "R.i32",
+            PrimitiveType::i64 | PrimitiveType::isize => "R.i64",
+            PrimitiveType::i128 => "R.i128",
+            PrimitiveType::u8 => "R.u8",
+            PrimitiveType::u16 => "R.u16",
+            PrimitiveType::u32 => "R.u32",
+            PrimitiveType::u64 | PrimitiveType::usize => "R.u64",
+            PrimitiveType::u128 => "R.u128",
             PrimitiveType::f32 | PrimitiveType::f64 => "S.number",
             PrimitiveType::bool => "S.boolean",
-            PrimitiveType::char => "B.char",
+            PrimitiveType::char => "R.char",
             PrimitiveType::String => "S.string",
         };
 
@@ -115,18 +115,24 @@ impl<'a> Inline<'a> {
     }
 
     fn unnamed_fields(&mut self, fields: &UnnamedFields) -> std::fmt::Result {
-        // TODO: flatten?!
+        if fields.fields().iter().any(|field| field.flatten()) {
+            unimplemented!("Flattened unnamed fields are not supported");
+        }
+
         self.tuple_iter(fields.fields().iter().filter_map(|field| field.ty()))
     }
 
     fn named_fields(&mut self, fields: &NamedFields) -> std::fmt::Result {
-        // TODO: flatten?!
         self.buffer.write_str("S.struct({")?;
 
         for (name, field) in fields.fields() {
             let Some(ty) = field.ty() else {
                 continue;
             };
+
+            if field.flatten() {
+                unimplemented!("Flattened named fields are not supported");
+            }
 
             self.buffer.write_fmt(format_args!(r#""{name}": "#))?;
             self.process(ty)?;
@@ -136,7 +142,7 @@ impl<'a> Inline<'a> {
         self.buffer.write_str("})")
     }
 
-    fn anonymous_struct(&mut self, ast: &StructType) -> std::fmt::Result {
+    pub(crate) fn anonymous_struct(&mut self, ast: &StructType) -> std::fmt::Result {
         match ast.fields() {
             StructFields::Unit => self.buffer.write_str("S.null"),
             StructFields::Unnamed(fields) => self.unnamed_fields(fields),
@@ -145,7 +151,7 @@ impl<'a> Inline<'a> {
     }
 
     #[allow(clippy::panic_in_result_fn)]
-    pub(crate) fn struct_(&mut self, ast: &StructType) -> std::fmt::Result {
+    fn struct_(&mut self, ast: &StructType) -> std::fmt::Result {
         let Some(id) = struct_id(ast) else {
             // anonymous struct
             return self.anonymous_struct(ast);
@@ -342,7 +348,7 @@ impl<'a> Inline<'a> {
     }
 
     fn result(&mut self, ok: &DataType, err: &DataType) -> std::fmt::Result {
-        self.buffer.write_str("B.result(")?;
+        self.buffer.write_str("R.result(")?;
         self.process(ok)?;
         self.buffer.write_str(", ")?;
         self.process(err)?;
