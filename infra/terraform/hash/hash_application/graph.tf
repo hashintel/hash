@@ -207,7 +207,7 @@ locals {
         { name = "HASH_GRAPH_TYPE_FETCHER_PORT", value = tostring(local.type_fetcher_container_port) },
         { name = "HASH_SPICEDB_HOST", value = "http://${local.spicedb_container_http_port_dns}" },
         { name = "HASH_SPICEDB_HTTP_PORT", value = tostring(local.spicedb_container_http_port) },
-        { name = "HASH_TEMPORAL_SERVER_HOST", value = "http://${var.temporal_host}" },
+        { name = "HASH_TEMPORAL_SERVER_HOST", value = var.temporal_host },
         { name = "HASH_TEMPORAL_SERVER_PORT", value = var.temporal_port },
       ]
     )

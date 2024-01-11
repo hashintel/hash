@@ -252,7 +252,7 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["graph_sentry_dsn"])
     },
     { name = "HASH_GRAPH_SENTRY_ENVIRONMENT", secret = false, value = "production" },
-    { name = "HASH_TEMPORAL_SERVER_HOST", secret = false, value = "http://${module.temporal.host_dns}" },
+    { name = "HASH_TEMPORAL_SERVER_HOST", secret = false, value = module.temporal.host },
     { name = "HASH_TEMPORAL_SERVER_PORT", secret = false, value = module.temporal.port },
   ])
   # The type fetcher uses the same image as the graph right now
@@ -341,7 +341,7 @@ module "application" {
     },
   ]
   temporal_worker_integration_image = module.temporal_worker_integration_ecr
-  temporal_host                     = module.temporal.host_dns
+  temporal_host                     = module.temporal.host
   temporal_port                     = module.temporal.port
   spicedb_image                     = {
     name    = "authzed/spicedb"

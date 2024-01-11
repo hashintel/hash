@@ -25,7 +25,9 @@ export const logger = new Logger({
   serviceName: "api",
 });
 
-const TEMPORAL_HOST = process.env.HASH_TEMPORAL_SERVER_HOST ?? "localhost";
+const TEMPORAL_HOST = new URL(
+  process.env.HASH_TEMPORAL_SERVER_HOST ?? "http://localhost",
+).hostname;
 const TEMPORAL_PORT = process.env.HASH_TEMPORAL_SERVER_PORT
   ? parseInt(process.env.HASH_TEMPORAL_SERVER_PORT, 10)
   : 7233;
