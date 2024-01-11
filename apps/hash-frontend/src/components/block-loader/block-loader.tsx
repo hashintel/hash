@@ -50,7 +50,7 @@ import { useBlockProtocolFileUpload } from "../hooks/block-protocol-functions/kn
 import { useBlockProtocolGetEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { useBlockProtocolQueryEntities } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { useBlockProtocolUpdateEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
-import { RemoteBlock } from "../remote-block/remote-block";
+import { RemoteBlock, RemoteBlockProps } from "../remote-block/remote-block";
 import { fetchEmbedCode } from "./fetch-embed-code";
 
 export type BlockLoaderProps = {
@@ -140,6 +140,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     blockSubgraph: possiblyStaleSubgraph,
     userPermissions: permissionsFromContext,
     setUserPermissions,
+    setBlockSelectDataModalIsOpen,
   } = useBlockContext();
 
   const fetchBlockSubgraph = useFetchBlockSubgraph();
@@ -395,7 +396,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     setUserPermissions,
   ]);
 
-  const functions = useMemo(
+  const functions = useMemo<RemoteBlockProps["graphCallbacks"]>(
     () => ({
       queryEntities,
       /**
@@ -437,9 +438,13 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
         return res;
       },
-      updateEntity: async (
-        ...args: Parameters<GraphEmbedderMessageCallbacks["updateEntity"]>
-      ) => {
+      // eslint-disable-next-line @typescript-eslint/require-await
+      requestLinkedQuery: async () => {
+        setBlockSelectDataModalIsOpen(true);
+
+        return { data: null };
+      },
+      updateEntity: async (...args) => {
         const res = await updateEntity(
           args[0] as Parameters<UpdateEntityMessageCallback>[0],
         );
@@ -457,6 +462,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       updateEntity,
       uploadFile,
       refetchSubgraph,
+      setBlockSelectDataModalIsOpen,
     ],
   );
 

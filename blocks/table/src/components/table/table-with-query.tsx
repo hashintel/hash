@@ -134,20 +134,24 @@ export const TableWithQuery = ({
     }, []);
   }, [subgraph]);
 
-  const columns = useMemo<GridColumn[]>(() => {
-    return uniquePropertyTypeBaseUrls.map((propertyTypeBaseUrl) => ({
-      id: propertyTypeBaseUrl,
-      /** @todo: fetch property type in query */
-      title:
-        propertyTypes.find(
-          (propertyType) =>
-            extractBaseUrl(propertyType.$id) === propertyTypeBaseUrl,
-        )?.title ??
-        propertyTypeBaseUrl.split("/").slice(-2)[0] ??
-        propertyTypeBaseUrl,
-      width: 200,
-    }));
-  }, [uniquePropertyTypeBaseUrls, propertyTypes]);
+  const columns = useMemo<GridColumn[]>(
+    () =>
+      uniquePropertyTypeBaseUrls
+        .map((propertyTypeBaseUrl) => ({
+          id: propertyTypeBaseUrl,
+          /** @todo: fetch property type in query */
+          title:
+            propertyTypes.find(
+              (propertyType) =>
+                extractBaseUrl(propertyType.$id) === propertyTypeBaseUrl,
+            )?.title ??
+            propertyTypeBaseUrl.split("/").slice(-2)[0] ??
+            propertyTypeBaseUrl,
+          width: 200,
+        }))
+        .sort((a, b) => a.title.localeCompare(b.title)),
+    [uniquePropertyTypeBaseUrls, propertyTypes],
+  );
 
   const handleCellEdited: DataEditorProps["onCellEdited"] = (
     [colIndex, rowIndex],
