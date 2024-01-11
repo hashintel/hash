@@ -114,24 +114,8 @@ impl<'a> Inline<'a> {
         self.buffer.write_str(")")
     }
 
-    fn branded_type(&mut self, name: &str) -> std::fmt::Result {
-        // TODO: register branded type
-
-        self.buffer.write_str("S.fromBrand(")?;
-        self.buffer.write_str(name)?;
-        self.buffer.write_str(")")
-    }
-
-    fn unnamed_fields(&mut self, name: Option<&str>, fields: &UnnamedFields) -> std::fmt::Result {
+    fn unnamed_fields(&mut self, fields: &UnnamedFields) -> std::fmt::Result {
         // TODO: flatten?!
-        if let [_] = fields.fields().as_slice() {
-            if let Some(name) = name {
-                return self.branded_type(name);
-            }
-
-            tracing::info!("Unable to convert single field to branded type");
-        }
-
         self.tuple_iter(fields.fields().iter().filter_map(|field| field.ty()))
     }
 
@@ -153,17 +137,15 @@ impl<'a> Inline<'a> {
     }
 
     fn anonymous_struct(&mut self, ast: &StructType) -> std::fmt::Result {
-        let name = ast.name();
-
         match ast.fields() {
             StructFields::Unit => self.buffer.write_str("S.null"),
-            StructFields::Unnamed(fields) => self.unnamed_fields(Some(name.as_ref()), fields),
+            StructFields::Unnamed(fields) => self.unnamed_fields(fields),
             StructFields::Named(fields) => self.named_fields(fields),
         }
     }
 
     #[allow(clippy::panic_in_result_fn)]
-    fn struct_(&mut self, ast: &StructType) -> std::fmt::Result {
+    pub(crate) fn struct_(&mut self, ast: &StructType) -> std::fmt::Result {
         let Some(id) = struct_id(ast) else {
             // anonymous struct
             return self.anonymous_struct(ast);
@@ -211,7 +193,7 @@ impl<'a> Inline<'a> {
         match variant {
             EnumVariants::Unit => self.buffer.write_str("S.null"),
             EnumVariants::Named(named) => self.named_fields(named),
-            EnumVariants::Unnamed(unnamed) => self.unnamed_fields(None, unnamed),
+            EnumVariants::Unnamed(unnamed) => self.unnamed_fields(unnamed),
         }
     }
 
@@ -344,7 +326,7 @@ impl<'a> Inline<'a> {
         self.buffer.write_str(")")
     }
 
-    fn enum_(&mut self, ast: &EnumType) -> std::fmt::Result {
+    pub(crate) fn enum_(&mut self, ast: &EnumType) -> std::fmt::Result {
         match ast.repr() {
             EnumRepr::Untagged => self.enum_untagged(ast.variants().iter()),
             EnumRepr::External => self.enum_external(ast.variants().iter()),
