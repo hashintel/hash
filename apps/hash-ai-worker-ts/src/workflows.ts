@@ -1,8 +1,4 @@
-import {
-  EntityStructuralQuery,
-  Filter,
-  FilterExpression,
-} from "@local/hash-graph-client";
+import type { Filter } from "@local/hash-graph-client";
 import type { InferEntitiesCallerParams } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { AccountId, Entity } from "@local/hash-subgraph";
 import { proxyActivities } from "@temporalio/workflow";
