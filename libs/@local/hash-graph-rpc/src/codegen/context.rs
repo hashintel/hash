@@ -27,7 +27,7 @@ where
     fn order_before(&mut self, position: usize, before: T) -> usize {
         let before_position = self.push(before);
 
-        if position >= before_position {
+        if position > before_position {
             let item = self.inner.remove(position);
             self.inner.insert(before_position, item);
 
@@ -62,6 +62,10 @@ impl StatementId {
         Self(None)
     }
 
+    pub(crate) const fn is_global(&self) -> bool {
+        self.0.is_none()
+    }
+
     pub(crate) const fn specta_id(&self) -> Option<SpectaID> {
         self.0
     }
@@ -93,7 +97,6 @@ impl GlobalContext {
         self.queue
             .extend(self.types.iter().map(|(_, ast)| ast.clone()));
 
-        self.ordering.inner.clear();
         for (id, _) in self.types.iter() {
             self.ordering.push(StatementId::local(id));
         }

@@ -60,7 +60,11 @@ fn export_types(mut context: GlobalContext) -> Result<BytesMut, ExportError> {
     let mut buffer = BytesMut::new();
     export_imports(&mut buffer).change_context(ExportError::Buffer)?;
 
-    for id in context.ordering.iter() {
+    for id in context.ordering.iter().rev() {
+        if id.is_global() {
+            continue;
+        }
+
         let statement = context
             .statements
             .remove(id)

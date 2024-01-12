@@ -347,6 +347,14 @@ impl<'a, 'b: 'a> Inline<'a, 'b> {
             self.buffer.write_fmt(format_args!(r#""{tag}": "#))?;
             self.buffer
                 .write_fmt(format_args!(r#"S.literal("{name}")"#))?;
+
+            // content is optional, but (`c` would be `null` in that case)
+            // but we can also just ignore it
+            if variant.inner() == &EnumVariants::Unit {
+                self.buffer.write_str("})")?;
+                continue;
+            }
+
             self.buffer.write_str(", ")?;
             self.buffer.write_fmt(format_args!(r#""{content}": "#))?;
             self.enum_variant(variant.inner())?;
