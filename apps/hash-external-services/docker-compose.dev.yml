@@ -107,6 +107,8 @@ services:
       HASH_SPICEDB_HOST: http://spicedb
       HASH_SPICEDB_HTTP_PORT: "${HASH_SPICEDB_HTTP_PORT}"
       HASH_SPICEDB_GRPC_PRESHARED_KEY: "${HASH_SPICEDB_GRPC_PRESHARED_KEY}"
+      HASH_TEMPORAL_SERVER_HOST: "http://temporal"
+      HASH_TEMPORAL_SERVER_PORT: "${HASH_TEMPORAL_SERVER_PORT}"
     # When an error happens on the graph, OTLP will run into a data race
     # and crash the graph. For now, we've disabled traces.
     # environment:
