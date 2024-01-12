@@ -30,7 +30,7 @@ export const uuidFromSelf: S.Schema<Uuid.Uuid> = S.declare(
 );
 
 export const uuid = S.transformOrFail(
-  S.string,
+  S.string.pipe(S.length(36)),
   uuidFromSelf,
   (value, _, ast) =>
     Either.match(Uuid.decodeEither(value), {
