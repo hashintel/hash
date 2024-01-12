@@ -596,11 +596,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 temporal_client
                     .start_update_entity_embeddings_workflow(
                         actor_id,
-                        Entity {
+                        &[Entity {
                             properties,
                             link_data,
                             metadata: entity_metadata.clone(),
-                        },
+                        }],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -1174,7 +1174,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             temporal_client
                 .start_update_entity_embeddings_workflow(
                     actor_id,
-                    Entity {
+                    &[Entity {
                         properties,
                         link_data: previous_entity
                             .link_data
@@ -1184,7 +1184,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                                 order: link_order,
                             }),
                         metadata: entity_metadata.clone(),
-                    },
+                    }],
                 )
                 .await
                 .change_context(UpdateError)?;
