@@ -1,4 +1,4 @@
-use std::{borrow::Cow, mem::swap, str::FromStr};
+use std::{borrow::Cow, convert::identity, mem::swap, str::FromStr};
 
 use async_trait::async_trait;
 use error_stack::{Report, Result, ResultExt};
@@ -28,8 +28,8 @@ use crate::{
         postgres::{
             ontology::OntologyId,
             query::{
-                Condition, Distinctness, Expression, ForeignKeyReference, Function, Ordering,
-                ReferenceTable, SelectCompiler, Table, Transpile,
+                Distinctness, Expression, ForeignKeyReference, Function, Ordering, ReferenceTable,
+                SelectCompiler, Table, Transpile,
             },
         },
         query::{Filter, Parameter},
@@ -107,25 +107,23 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                 (
                     compiler.add_cursor_selection(
                         &EntityQueryPath::OwnedById,
+                        identity,
+                        owned_by_id_expression,
                         Ordering::Ascending,
-                        |column| Condition::GreaterOrEqual(column, owned_by_id_expression),
                     ),
                     compiler.add_cursor_selection(
                         &EntityQueryPath::Uuid,
+                        identity,
+                        entity_uuid_expression,
                         Ordering::Ascending,
-                        |column| Condition::GreaterOrEqual(column, entity_uuid_expression),
                     ),
                     match temporal_axes.map(QueryTemporalAxes::variable_time_axis) {
                         Some(TimeAxis::TransactionTime) => (
                             compiler.add_cursor_selection(
                                 &EntityQueryPath::TransactionTime,
+                                |column| Expression::Function(Function::Lower(Box::new(column))),
+                                revision_id_expression,
                                 Ordering::Descending,
-                                |column| {
-                                    Condition::Less(
-                                        Expression::Function(Function::Lower(Box::new(column))),
-                                        revision_id_expression,
-                                    )
-                                },
                             ),
                             compiler.add_selection_path(&EntityQueryPath::DecisionTime),
                         ),
@@ -133,13 +131,9 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                             compiler.add_selection_path(&EntityQueryPath::TransactionTime),
                             compiler.add_cursor_selection(
                                 &EntityQueryPath::DecisionTime,
+                                |column| Expression::Function(Function::Lower(Box::new(column))),
+                                revision_id_expression,
                                 Ordering::Descending,
-                                |column| {
-                                    Condition::Less(
-                                        Expression::Function(Function::Lower(Box::new(column))),
-                                        revision_id_expression,
-                                    )
-                                },
                             ),
                         ),
                         None => {

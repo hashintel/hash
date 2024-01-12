@@ -869,7 +869,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         query: &StructuralQuery<Entity>,
         after: Option<&EntityVertexId>,
         limit: Option<usize>,
-    ) -> Result<Subgraph, QueryError> {
+    ) -> Result<(Subgraph, Option<EntityVertexId>), QueryError> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
@@ -880,43 +880,75 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let mut entities = Read::<Entity>::read_vec(
-            self,
-            filter,
-            Some(&temporal_axes),
-            after,
-            limit,
-            include_drafts,
-        )
-        .await?
-        .into_iter()
-        .map(|entity| (entity.vertex_id(time_axis), entity))
-        .collect::<Vec<_>>();
-        // TODO: The subgraph structure differs from the API interface. At the API the vertices
-        //       are stored in a nested `HashMap` and here it's flattened. We need to adjust the
-        //       the subgraph anyway so instead of refactoring this now this will just copy the ids.
-        //   see https://linear.app/hash/issue/H-297/revisit-subgraph-layout-to-allow-temporal-ontology-types
-        let filtered_ids = entities
-            .iter()
-            .map(|(vertex_id, _)| vertex_id.base_id)
-            .collect::<HashSet<_>>();
+        let mut root_entities = Vec::new();
+        let mut after = after.copied();
 
-        let (permissions, zookie) = authorization_api
-            .check_entities_permission(
-                actor_id,
-                EntityPermission::View,
-                filtered_ids,
-                Consistency::FullyConsistent,
+        let (latest_zookie, last) = loop {
+            // We query one more than requested to determine if there are more entities to return.
+            let entities = Read::<Entity>::read(
+                self,
+                filter,
+                Some(&temporal_axes),
+                after.as_ref(),
+                limit,
+                include_drafts,
             )
-            .await
-            .change_context(QueryError)?;
+            .await?
+            .map_ok(|entity| (entity.vertex_id(time_axis), entity))
+            .try_collect::<Vec<_>>()
+            .await?;
+            after = entities.last().map(|(vertex_id, _)| *vertex_id);
+            let num_returned_entities = entities.len();
 
-        let permitted_ids = permissions
-            .into_iter()
-            .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
-            .collect::<HashSet<_>>();
+            // TODO: The subgraph structure differs from the API interface. At the API the vertices
+            //       are stored in a nested `HashMap` and here it's flattened. We need to adjust the
+            //       subgraph anyway so instead of refactoring this now this will just copy the ids.
+            //   see https://linear.app/hash/issue/H-297/revisit-subgraph-layout-to-allow-temporal-ontology-types
+            let filtered_ids = entities
+                .iter()
+                .map(|(vertex_id, _)| vertex_id.base_id)
+                .collect::<HashSet<_>>();
 
-        entities.retain(|(vertex_id, _)| permitted_ids.contains(&vertex_id.base_id.entity_uuid));
+            let (permissions, zookie) = authorization_api
+                .check_entities_permission(
+                    actor_id,
+                    EntityPermission::View,
+                    filtered_ids,
+                    Consistency::FullyConsistent,
+                )
+                .await
+                .change_context(QueryError)?;
+
+            let permitted_ids = permissions
+                .into_iter()
+                .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
+                .collect::<HashSet<_>>();
+
+            root_entities.extend(
+                entities
+                    .into_iter()
+                    .filter(|(vertex_id, _)| permitted_ids.contains(&vertex_id.base_id.entity_uuid))
+                    .take(limit.unwrap_or(usize::MAX) - root_entities.len()),
+            );
+
+            if let Some(limit) = limit {
+                if num_returned_entities < limit {
+                    // When the returned entities are less than the requested amount we know
+                    // that there are no more entities to return.
+                    break (zookie, None);
+                }
+                if root_entities.len() == limit {
+                    // The requested limit is reached, so we can stop here.
+                    break (
+                        zookie,
+                        root_entities.last().map(|(vertex_id, _)| *vertex_id),
+                    );
+                }
+            } else {
+                // Without a limit all entities are returned.
+                break (zookie, None);
+            }
+        };
 
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
@@ -925,11 +957,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         );
 
         subgraph.roots.extend(
-            entities
+            root_entities
                 .iter()
                 .map(|(vertex_id, _)| GraphElementVertexId::from(*vertex_id)),
         );
-        subgraph.vertices.entities = entities.into_iter().collect();
+        subgraph.vertices.entities = root_entities.into_iter().collect();
 
         let mut traversal_context = TraversalContext::default();
 
@@ -951,7 +983,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             &mut traversal_context,
             actor_id,
             authorization_api,
-            &zookie,
+            &latest_zookie,
             &mut subgraph,
         )
         .await?;
@@ -960,7 +992,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .read_traversed_vertices(self, &mut subgraph, include_drafts)
             .await?;
 
-        Ok(subgraph)
+        Ok((subgraph, last))
     }
 
     #[tracing::instrument(level = "info", skip(self, properties, authorization_api))]

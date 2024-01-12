@@ -415,7 +415,7 @@ where
         .filter
         .convert_parameters()
         .map_err(report_to_response)?;
-    let subgraph = store
+    let (subgraph, last) = store
         .get_entity(
             actor_id,
             &authorization_api,
@@ -426,10 +426,9 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let cursor = subgraph.roots.iter().last().map(Cursor);
     let mut headers = HeaderMap::new();
-    if let (Some(cursor), Some(limit)) = (cursor, pagination.limit) {
-        headers.insert(LINK, cursor.link_header("next", uri, limit)?);
+    if let (Some(last), Some(limit)) = (last, pagination.limit) {
+        headers.insert(LINK, Cursor(last).link_header("next", uri, limit)?);
     }
     Ok((headers, Json(Subgraph::from(subgraph))))
 }

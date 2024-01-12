@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, convert::identity};
 
 use async_trait::async_trait;
 use authorization::schema::EntityTypeId;
@@ -31,7 +31,7 @@ use crate::{
         postgres::{
             ontology::OntologyId,
             query::{
-                Column, Condition, Distinctness, ForeignKeyReference, Ordering, ReferenceTable,
+                Column, Distinctness, ForeignKeyReference, Ordering, ReferenceTable,
                 SelectCompiler, Table, Transpile,
             },
         },
@@ -106,13 +106,15 @@ impl<C: AsClient> Read<DataTypeWithMetadata> for PostgresStore<C> {
             (
                 compiler.add_cursor_selection(
                     &DataTypeQueryPath::BaseUrl,
+                    identity,
+                    base_url_expression,
                     Ordering::Ascending,
-                    |column| Condition::GreaterOrEqual(column, base_url_expression),
                 ),
                 compiler.add_cursor_selection(
                     &DataTypeQueryPath::Version,
+                    identity,
+                    version_expression,
                     Ordering::Descending,
-                    |column| Condition::Less(column, version_expression),
                 ),
             )
         } else {
@@ -223,13 +225,15 @@ impl<C: AsClient> Read<PropertyTypeWithMetadata> for PostgresStore<C> {
             (
                 compiler.add_cursor_selection(
                     &PropertyTypeQueryPath::BaseUrl,
+                    identity,
+                    base_url_expression,
                     Ordering::Ascending,
-                    |column| Condition::GreaterOrEqual(column, base_url_expression),
                 ),
                 compiler.add_cursor_selection(
                     &PropertyTypeQueryPath::Version,
+                    identity,
+                    version_expression,
                     Ordering::Descending,
-                    |column| Condition::Less(column, version_expression),
                 ),
             )
         } else {
@@ -339,13 +343,15 @@ impl<C: AsClient> Read<EntityTypeWithMetadata> for PostgresStore<C> {
             (
                 compiler.add_cursor_selection(
                     &EntityTypeQueryPath::BaseUrl,
+                    identity,
+                    base_url_expression,
                     Ordering::Ascending,
-                    |column| Condition::GreaterOrEqual(column, base_url_expression),
                 ),
                 compiler.add_cursor_selection(
                     &EntityTypeQueryPath::Version,
+                    identity,
+                    version_expression,
                     Ordering::Descending,
-                    |column| Condition::Less(column, version_expression),
                 ),
             )
         } else {
