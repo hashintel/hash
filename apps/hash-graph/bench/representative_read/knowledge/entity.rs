@@ -63,7 +63,7 @@ pub fn bench_get_entity_by_id(
                 )
                 .await
                 .expect("failed to read entity from store");
-            assert_eq!(subgraph.roots.len(), 1);
+            assert_eq!(subgraph.0.roots.len(), 1);
         },
         SmallInput,
     );
@@ -111,7 +111,7 @@ pub fn bench_get_entities_by_property(
             )
             .await
             .expect("failed to read entity from store");
-        assert_eq!(subgraph.roots.len(), 100);
+        assert_eq!(subgraph.0.roots.len(), 100);
     });
 }
 
@@ -161,6 +161,6 @@ pub fn bench_get_link_by_target_by_property(
             )
             .await
             .expect("failed to read entity from store");
-        assert_eq!(subgraph.roots.len(), 100);
+        assert_eq!(subgraph.0.roots.len(), 100);
     });
 }
