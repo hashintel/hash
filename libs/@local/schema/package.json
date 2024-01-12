@@ -28,7 +28,8 @@
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "@effect/schema": "0.57.2"
+    "@effect/schema": "0.57.2",
+    "effect": "2.0.2"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",

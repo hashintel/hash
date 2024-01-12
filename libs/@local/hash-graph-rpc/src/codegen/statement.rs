@@ -33,6 +33,7 @@ impl<'a> StatementBuilder<'a> {
     }
 
     fn export_interface(&mut self, name: &str) -> std::fmt::Result {
+        // we cannot use interface here because the type may have dynamic members
         self.buffer.write_fmt(format_args!(
             "export type {name} extends S.Schema.To<typeof {name}>;\n",
         ))?;
@@ -162,6 +163,7 @@ impl<'a> StatementBuilder<'a> {
         self.buffer.write_str(name)?;
         self.buffer.write_str("'));")?;
 
+        // we cannot use interface here because the type has dynamic members
         self.buffer.write_fmt(format_args!(
             "export type {name} = S.Schema.To<typeof {name}>;\n"
         ))?;
