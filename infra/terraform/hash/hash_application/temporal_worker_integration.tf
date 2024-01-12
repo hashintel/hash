@@ -29,8 +29,8 @@ locals {
     }
     Environment = concat(
       [
-        { name = "HASH_TEMPORAL_HOST", value = var.temporal_host },
-        { name = "HASH_TEMPORAL_PORT", value = var.temporal_port },
+        { name = "HASH_TEMPORAL_SERVER_HOST", value = var.temporal_host },
+        { name = "HASH_TEMPORAL_SERVER_PORT", value = var.temporal_port },
         { name = "HASH_GRAPH_API_HOST", value = local.graph_container_port_dns },
         { name = "HASH_GRAPH_API_PORT", value = tostring(local.graph_container_port) },
       ],

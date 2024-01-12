@@ -27,7 +27,8 @@ use graph_types::{
     owned_by_id::OwnedById,
 };
 use tarpc::context;
-use temporal_versioning::{DecisionTime, Timestamp};
+use temporal_client::TemporalClient;
+use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use tokio::net::ToSocketAddrs;
 use tokio_serde::formats::Json;
 use type_fetcher::fetcher::{FetchedOntologyType, FetcherClient};
@@ -1065,6 +1066,7 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
+        temporal_client: Option<&TemporalClient>,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
@@ -1090,6 +1092,7 @@ where
             .create_entity(
                 actor_id,
                 authorization_api,
+                temporal_client,
                 owned_by_id,
                 entity_uuid,
                 decision_time,
@@ -1175,6 +1178,7 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
+        temporal_client: Option<&TemporalClient>,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
@@ -1199,6 +1203,7 @@ where
             .update_entity(
                 actor_id,
                 authorization_api,
+                temporal_client,
                 entity_id,
                 decision_time,
                 archived,
@@ -1215,10 +1220,19 @@ where
         actor_id: AccountId,
         authorization_api: &mut Au,
         embeddings: impl IntoIterator<Item = EntityEmbedding<'_>> + Send,
+        updated_at_transaction_time: Timestamp<TransactionTime>,
+        updated_at_decision_time: Timestamp<DecisionTime>,
         reset: bool,
     ) -> Result<(), UpdateError> {
         self.store
-            .update_entity_embeddings(actor_id, authorization_api, embeddings, reset)
+            .update_entity_embeddings(
+                actor_id,
+                authorization_api,
+                embeddings,
+                updated_at_transaction_time,
+                updated_at_decision_time,
+                reset,
+            )
             .await
     }
 }
