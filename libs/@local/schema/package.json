@@ -1,0 +1,38 @@
+{
+  "name": "@local/schema",
+  "version": "0.0.0-private",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/main.ts",
+    "./Rust": "./src/Rust.ts",
+    "./Extra": "./src/Extra.ts"
+  },
+  "types": "./src/main.ts",
+  "typesVersions": {
+    "*": {
+      ".": [
+        "./src/main.ts"
+      ],
+      "Rust": [
+        "./src/Rust.ts"
+      ],
+      "Extra": [
+        "./src/Extra.ts"
+      ]
+    }
+  },
+  "scripts": {
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@effect/schema": "0.57.2"
+  },
+  "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@types/node": "20.10.7",
+    "typescript": "5.1.6"
+  }
+}

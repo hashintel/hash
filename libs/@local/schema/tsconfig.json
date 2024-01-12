@@ -1,0 +1,8 @@
+{
+  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "include": ["./src/", "./tests/"],
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": true,
+    "target": "ESNext"
+  }
+}
