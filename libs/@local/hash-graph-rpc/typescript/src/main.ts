@@ -6,27 +6,30 @@ import { webSockets } from "@libp2p/websockets";
 import { multiaddr } from "@multiformats/multiaddr";
 import { createLibp2p } from "libp2p";
 
-// TODO: service into own value!
-import { service } from "./Client";
-import { ProcedureId, ServiceId, ServiceVersion } from "./transport/common";
+import * as Client from "./Client";
+import * as Procedure from "./Procedure";
+import * as Service from "./Service";
 import { RpcResult } from "./status";
 
-export const AccountService = service(ServiceId(0x00), ServiceVersion(0x00))
+export const AccountService = Service.create(
+  Service.Id(0x00),
+  Service.Version(0x00),
+)
   .procedure(
     "createAccount", //
-    ProcedureId(0x00),
+    Procedure.Id(0x00),
     S.null,
     RpcResult(S.string),
   )
   .procedure(
     "createAccountGroup",
-    ProcedureId(0x01),
+    Procedure.Id(0x01),
     S.null,
     RpcResult(S.string),
   )
   .procedure(
     "checkAccountGroupPermission",
-    ProcedureId(0x02),
+    Procedure.Id(0x02),
     // TODO: properly type...
     S.struct({
       accountGroupId: S.string,
@@ -36,7 +39,7 @@ export const AccountService = service(ServiceId(0x00), ServiceVersion(0x00))
   )
   .procedure(
     "addAccountGroupMember",
-    ProcedureId(0x03),
+    Procedure.Id(0x03),
     S.struct({
       accountGroupId: S.string,
       accountId: S.string,
@@ -45,7 +48,7 @@ export const AccountService = service(ServiceId(0x00), ServiceVersion(0x00))
   )
   .procedure(
     "removeAccountGroupMember",
-    ProcedureId(0x04),
+    Procedure.Id(0x04),
     S.struct({
       accountGroupId: S.string,
       accountId: S.string,
@@ -64,3 +67,4 @@ export function createTransport() {
 }
 
 export { multiaddr };
+export { Client, Procedure, Service };

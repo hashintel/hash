@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     ".": "./src/main.ts",
-    "./Client": "./src/Client.ts"
+    "./Client": "./src/Client.ts",
+    "./Procedure": "./src/Procedure.ts",
+    "./Service": "./src/Service.ts"
   },
   "types": "./src/main.ts",
   "typesVersions": {
@@ -15,6 +17,12 @@
       ],
       "Client": [
         "./src/Client.ts"
+      ],
+      "Procedure": [
+        "./src/Procedure.ts"
+      ],
+      "Service": [
+        "./src/Service.ts"
       ]
     }
   },
