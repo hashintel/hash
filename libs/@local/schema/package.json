@@ -29,11 +29,13 @@
   },
   "dependencies": {
     "@effect/schema": "0.57.2",
-    "effect": "2.0.2"
+    "effect": "2.0.2",
+    "uuid": "9.0.1"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@types/node": "20.10.7",
+    "@types/uuid": "9.0.7",
     "typescript": "5.1.6"
   }
 }

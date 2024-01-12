@@ -8636,6 +8636,11 @@
   resolved "https://registry.yarnpkg.com/@types/uuid/-/uuid-8.3.0.tgz#215c231dff736d5ba92410e6d602050cce7e273f"
   integrity "sha1-IVwjHf9zbVupJBDm1gIFDM5+Jz8= sha512-eQ9qFW/fhfGJF8WKHGEHZEyVWfZxrT+6CLIJGBcZPfxUh/+BnEj+UCGYMlr9qZuX/2AltsvwrGqp0LhEW8D0zQ=="
 
+"@types/uuid@9.0.7":
+  version "9.0.7"
+  resolved "https://registry.yarnpkg.com/@types/uuid/-/uuid-9.0.7.tgz#b14cebc75455eeeb160d5fe23c2fcc0c64f724d8"
+  integrity sha512-WUtIVRUZ9i5dYXefDEAI7sh9/O7jGvHg7Df/5O/gtH3Yabe5odI3UWopVR1qbPXQtvOxWu3mM4XxlYeZtMWF4g==
+
 "@types/wait-on@5.3.1":
   version "5.3.1"
   resolved "https://registry.yarnpkg.com/@types/wait-on/-/wait-on-5.3.1.tgz#bc5520d1d8b90b9caab1bef23315685ded73320d"
