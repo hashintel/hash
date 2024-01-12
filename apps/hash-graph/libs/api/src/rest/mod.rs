@@ -63,6 +63,7 @@ use hyper::Uri;
 use include_dir::{include_dir, Dir};
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use temporal_client::TemporalClient;
 use temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
@@ -263,6 +264,7 @@ where
 {
     pub store: Arc<S>,
     pub authorization_api: Arc<A>,
+    pub temporal_client: Option<TemporalClient>,
     pub domain_regex: DomainValidator,
 }
 
@@ -299,6 +301,7 @@ where
         .layer(SentryHttpLayer::with_transaction())
         .layer(Extension(dependencies.store))
         .layer(Extension(dependencies.authorization_api))
+        .layer(Extension(dependencies.temporal_client.map(Arc::new)))
         .layer(Extension(dependencies.domain_regex))
         .layer(axum::middleware::from_fn(log_request_and_response))
         .layer(span_trace_layer())
