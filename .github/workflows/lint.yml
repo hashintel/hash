@@ -92,6 +92,10 @@ jobs:
         with:
           scope: ${{ matrix.package }}
 
+      - name: Install Protobuf
+        if: always() && steps.lints.outputs.has-rust == 'true'
+        run: sudo apt install protobuf-compiler
+
       - name: Install yarn dependencies
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
         env:

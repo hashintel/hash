@@ -80,32 +80,6 @@ export const GenerateText = ({ blockEntity }: { blockEntity: BlockEntity }) => {
     [serviceModule],
   );
 
-  const completeText = useCallback(
-    (prompt: string) => {
-      const promptWithFormatting = `${prompt} (${codeBlockFormattingPrompt})`;
-
-      /**
-       * This estimate is inaccurate, as character length does not equal
-       * token length for a given string. A browser-compatible implementation
-       * of the `gpt-3-encoder` package would be required to accurately determine
-       * the number of tokens in the string.
-       *
-       * @see https://www.npmjs.com/package/gpt-3-encoder
-       *
-       * @todo consider using a WASM, endpoint or other solution to accurately
-       * determine the number of tokens in the string.
-       */
-      const maxTokens =
-        (model === "text-davinci-003" ? 4000 : 2000) -
-        promptWithFormatting.length;
-
-      return serviceModule.openaiCompleteText({
-        data: { max_tokens: maxTokens, model, prompt: promptWithFormatting },
-      });
-    },
-    [serviceModule, model],
-  );
-
   const onSubmit = useCallback(async () => {
     if (loading || !promptText.trim()) {
       return;
@@ -114,21 +88,11 @@ export const GenerateText = ({ blockEntity }: { blockEntity: BlockEntity }) => {
     setError(false);
     setLoading(true);
 
-    const isTurbo = model === "gpt-3.5-turbo";
-    const { data, errors } = await (isTurbo
-      ? completeChat(promptText)
-      : completeText(promptText));
+    const { data, errors } = await completeChat(promptText);
 
     const choice = data?.choices[0];
 
-    let textResponse: string | undefined;
-    if (choice) {
-      if ("message" in choice) {
-        textResponse = choice.message?.content;
-      } else if ("text" in choice) {
-        textResponse = choice.text;
-      }
-    }
+    const textResponse = choice?.message?.content;
 
     if (errors || !textResponse) {
       setError(true);
@@ -141,7 +105,7 @@ export const GenerateText = ({ blockEntity }: { blockEntity: BlockEntity }) => {
 
     setLoading(false);
     inputRef.current?.blur();
-  }, [loading, model, promptText, completeChat, completeText]);
+  }, [loading, promptText, completeChat]);
 
   const handleDiscard = () => {
     setAnimatingOut(true);

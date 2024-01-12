@@ -52,6 +52,7 @@ The following list is a non-exhaustive list of packages in `@local`:
 | [@local/hash-authorization-rs](@local/hash-authorization)       | Rust        | Not hosted    | Provides the authorization interface and logic used in the Graph       |
 | [@local/hash-graph-client](@local/hash-graph-client/typescript) | TypeScript  | To be written | A generator to create a TypeScript/JavaScript client for the Graph API |
 | [@local/hash-graph-types-rs](@local/hash-graph-types/rust)      | Rust        | Not hosted    | Types used inside of the Graph API                                     |
+| [@local/temporal-client-rs](@local/temporal-client)             | Rust        | Not hosted    | Client implementation to connect to our Temporal.io service            |
 | [@local/temporal-versioning-rs](@local/temporal-versioning)     | Rust        | Not hosted    | Implementation of temporal versioning                                  |
 
 ## Contributing

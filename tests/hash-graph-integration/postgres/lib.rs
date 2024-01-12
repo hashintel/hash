@@ -514,6 +514,7 @@ impl DatabaseApi<'_> {
             .create_entity(
                 self.account_id,
                 &mut NoAuthorization,
+                None,
                 OwnedById::new(self.account_id.into_uuid()),
                 entity_uuid,
                 Some(generate_decision_time()),
@@ -627,6 +628,7 @@ impl DatabaseApi<'_> {
             .update_entity(
                 self.account_id,
                 &mut NoAuthorization,
+                None,
                 entity_id,
                 Some(generate_decision_time()),
                 false,
@@ -650,6 +652,7 @@ impl DatabaseApi<'_> {
             .create_entity(
                 self.account_id,
                 &mut NoAuthorization,
+                None,
                 OwnedById::new(self.account_id.into_uuid()),
                 entity_uuid,
                 None,
@@ -830,6 +833,7 @@ impl DatabaseApi<'_> {
             .update_entity(
                 self.account_id,
                 &mut NoAuthorization,
+                None,
                 entity_id,
                 None,
                 true,

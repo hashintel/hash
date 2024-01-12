@@ -6,7 +6,7 @@ import { CreateEmbeddingResponse } from "openai/resources";
 import { createAiActivities, createGraphActivities } from "./activities";
 
 const aiActivities = proxyActivities<ReturnType<typeof createAiActivities>>({
-  startToCloseTimeout: "1800 second",
+  startToCloseTimeout: "3600 second", // 1 hour
   retry: {
     maximumAttempts: 1,
   },
@@ -81,6 +81,10 @@ export const updateEntityEmbeddings = async (params: {
         ...embedding,
         entityId: params.entity.metadata.recordId.entityId,
       })),
+      updatedAtTransactionTime:
+        params.entity.metadata.temporalVersioning.transactionTime.start.limit,
+      updatedAtDecisionTime:
+        params.entity.metadata.temporalVersioning.decisionTime.start.limit,
     });
   }
 

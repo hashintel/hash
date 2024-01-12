@@ -8,6 +8,7 @@ members = [
     "libs/@local/hash-authorization",
     "libs/@local/hash-graph-types/rust",
     "libs/@local/hash-validation",
+    "libs/@local/temporal-client",
     "libs/@local/temporal-versioning",
     "tests/hash-graph-integration",
     "tests/hash-graph-test-data/rust",
@@ -35,6 +36,7 @@ codec.path = "libs/@local/codec"
 graph-test-data.path = "tests/hash-graph-test-data/rust"
 graph-types.path = "libs/@local/hash-graph-types/rust"
 hash-status.path = "libs/@local/status/rust"
+temporal-client.path = "libs/@local/temporal-client"
 temporal-versioning.path = "libs/@local/temporal-versioning"
 type-fetcher.path = "apps/hash-graph/libs/type-fetcher"
 graph.path = "apps/hash-graph/libs/graph"

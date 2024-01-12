@@ -150,6 +150,10 @@ jobs:
         with:
           scope: ${{ matrix.package }}
 
+      - name: Install Protobuf
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        run: sudo apt install protobuf-compiler
+
       - name: Install yarn dependencies
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
         env:
@@ -281,6 +285,10 @@ jobs:
           echo "external-service-ai-worker-ts=$REQUIRES_AI_WORKER_TS" >> $GITHUB_OUTPUT
           echo "external-service-worker-integration=$REQUIRES_INTEGRATION_WORKER" >> $GITHUB_OUTPUT
 
+      - name: Install Protobuf
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        run: sudo apt install protobuf-compiler
+
       - name: Install Rust toolchain
         if: always() && steps.tests.outputs.has-rust == 'true'
         uses: ./.github/actions/install-rust-toolchain
@@ -318,7 +326,7 @@ jobs:
         run: |
           turbo codegen --filter '@apps/hash-external-services'
 
-          SERVICES="kratos mailslurper redis temporal-ui spicedb"
+          SERVICES="kratos redis spicedb"
 
           if [[ ${{ steps.tests.outputs.external-service-graph == 'true' }} == 'true' ]]; then
             SERVICES="$SERVICES graph"
@@ -397,6 +405,10 @@ jobs:
           scope: |
             ${{ matrix.package }}
             @apps/hash-external-services
+
+      - name: Install Protobuf
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        run: sudo apt install protobuf-compiler
 
       - name: Install yarn dependencies
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
