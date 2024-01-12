@@ -45,6 +45,7 @@ fn export_imports(buffer: &mut BytesMut) -> std::fmt::Result {
     buffer.write_char('\n')
 }
 
+// TODO: overrides
 // TODO: flatten should work properly, although that is a lot more complicated.
 // takes ownership of context to prevent that we accidentally add something to the queue later
 fn export_types(mut context: GlobalContext) -> Result<BytesMut, ExportError> {

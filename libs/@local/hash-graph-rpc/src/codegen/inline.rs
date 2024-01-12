@@ -11,7 +11,7 @@ use specta::{
     UnnamedFields,
 };
 
-use crate::codegen::context::{HoistAction, ScopedContext, StatementId};
+use crate::codegen::context::{HoistAction, ReferenceAction, ScopedContext, StatementId};
 
 fn struct_statement_id(_type: &StructType) -> StatementId {
     // cannot get sid yet, therefore global escape
@@ -76,12 +76,13 @@ impl<'a, 'b: 'a> Inline<'a, 'b> {
     fn tuple_iter<'item>(
         &mut self,
         mut elements: impl Iterator<Item = &'item DataType> + TrustedLen,
+        flatten: bool,
     ) -> std::fmt::Result {
-        if elements.size_hint().0 == 0 {
+        if flatten && elements.size_hint().0 == 0 {
             return self.buffer.write_str("S.null");
         }
 
-        if elements.size_hint().0 == 1 {
+        if flatten && elements.size_hint().0 == 1 {
             return self.process(elements.next().expect("infallible"));
         }
 
@@ -102,7 +103,7 @@ impl<'a, 'b: 'a> Inline<'a, 'b> {
         let item = ast.ty();
 
         if let Some(length) = ast.length() {
-            self.tuple_iter(std::iter::repeat(item).take(length))
+            self.tuple_iter(std::iter::repeat(item).take(length), false)
         } else {
             self.buffer.write_str("S.array(")?;
             self.process(item)?;
@@ -135,7 +136,7 @@ impl<'a, 'b: 'a> Inline<'a, 'b> {
             .filter_map(|field| field.ty())
             .collect();
 
-        self.tuple_iter(fields.iter().copied())
+        self.tuple_iter(fields.iter().copied(), true)
     }
 
     fn named_fields(&mut self, fields: &NamedFields) -> std::fmt::Result {
@@ -262,6 +263,12 @@ impl<'a, 'b: 'a> Inline<'a, 'b> {
                 self.buffer.write_str(", ")?;
             }
 
+            if variant.inner() == &EnumVariants::Unit {
+                self.buffer
+                    .write_fmt(format_args!(r#"S.literal("{name}")"#))?;
+                continue;
+            }
+
             self.buffer.write_str("S.struct({")?;
             self.buffer.write_fmt(format_args!(r#""{name}": "#))?;
             self.enum_variant(variant.inner())?;
@@ -361,7 +368,7 @@ impl<'a, 'b: 'a> Inline<'a, 'b> {
     }
 
     fn tuple(&mut self, ast: &TupleType) -> std::fmt::Result {
-        self.tuple_iter(ast.elements().iter())
+        self.tuple_iter(ast.elements().iter(), false)
     }
 
     fn result(&mut self, ok: &DataType, err: &DataType) -> std::fmt::Result {
@@ -373,9 +380,19 @@ impl<'a, 'b: 'a> Inline<'a, 'b> {
     }
 
     fn reference(&mut self, ast: &DataTypeReference) -> std::fmt::Result {
+        let action = self.context.references(ast);
+
+        if action == ReferenceAction::Suspend {
+            self.buffer.write_str("S.suspend(() => ")?;
+        }
+
         self.buffer.write_str(ast.name())?;
 
         if ast.generics().is_empty() {
+            if action == ReferenceAction::Suspend {
+                self.buffer.write_str(")")?;
+            }
+
             return Ok(());
         }
 
@@ -389,7 +406,13 @@ impl<'a, 'b: 'a> Inline<'a, 'b> {
             self.process(generic)?;
         }
 
-        self.buffer.write_str(")")
+        self.buffer.write_str(")")?;
+
+        if action == ReferenceAction::Suspend {
+            self.buffer.write_str(")")?;
+        }
+
+        Ok(())
     }
 
     fn generic(&mut self, ast: &GenericType) -> std::fmt::Result {

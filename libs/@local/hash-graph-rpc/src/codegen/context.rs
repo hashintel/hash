@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use bytes::Bytes;
-use specta::{NamedDataType, SpectaID, TypeMap};
+use specta::{DataTypeReference, NamedDataType, SpectaID, TypeMap};
 
 pub(crate) struct OrderedVec<T> {
     inner: Vec<T>,
@@ -116,13 +116,33 @@ pub(crate) struct ScopedContext<'a> {
     pub(crate) global: &'a mut GlobalContext,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum HoistAction {
     Hoisted,
     DirectRecursion,
     ParentRecursion,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub(crate) enum ReferenceAction {
+    Suspend,
+    Direct,
+}
+
 impl ScopedContext<'_> {
+    pub(crate) fn references(&mut self, reference: &DataTypeReference) -> ReferenceAction {
+        let sid = reference.sid();
+        let id = StatementId::local(sid);
+
+        self.global.ordering.needs(self.current, vec![id]);
+
+        if self.parents.contains(&id) || self.current == id {
+            return ReferenceAction::Suspend;
+        }
+
+        ReferenceAction::Direct
+    }
+
     pub(crate) fn hoist(&mut self, id: StatementId, ast: NamedDataType) -> HoistAction {
         if id == self.current {
             return HoistAction::DirectRecursion;
