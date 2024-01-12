@@ -1,3 +1,4 @@
 import * as Rust from "./Rust";
+import * as Uuid from "./Uuid";
 
-export { Rust };
+export { Rust, Uuid };

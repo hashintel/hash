@@ -30,6 +30,7 @@
   "dependencies": {
     "@effect/schema": "0.57.2",
     "effect": "2.0.2",
+    "fast-check": "^3.15.0",
     "uuid": "9.0.1"
   },
   "devDependencies": {
