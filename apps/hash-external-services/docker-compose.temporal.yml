@@ -133,7 +133,8 @@ services:
     # but to prevent bloating the environment and spilling everything
     # into the process, it is constrained here.
     environment:
-      HASH_TEMPORAL_HOST: "temporal"
+      HASH_TEMPORAL_SERVER_HOST: "temporal"
+      HASH_TEMPORAL_SERVER_PORT: "${HASH_TEMPORAL_SERVER_PORT}"
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
       HASH_GRAPH_API_HOST: graph
       HASH_GRAPH_API_PORT: "${HASH_GRAPH_API_PORT}"
@@ -152,7 +153,8 @@ services:
       temporal-setup:
         condition: service_completed_successfully
     environment:
-      HASH_TEMPORAL_HOST: "temporal"
+      HASH_TEMPORAL_SERVER_HOST: "temporal"
+      HASH_TEMPORAL_SERVER_PORT: "${HASH_TEMPORAL_SERVER_PORT}"
       HASH_GRAPH_API_HOST: graph
       HASH_GRAPH_API_PORT: "${HASH_GRAPH_API_PORT}"
     tmpfs:

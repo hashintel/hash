@@ -73,6 +73,14 @@ resource "aws_security_group" "graph" {
     cidr_blocks = [var.vpc.cidr_block]
   }
 
+  egress {
+    from_port   = var.temporal_port
+    to_port     = var.temporal_port
+    protocol    = "tcp"
+    description = "Allow outbound gRPC connections to Temporal"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   ingress {
     from_port   = local.graph_container_port
     to_port     = local.graph_container_port
@@ -199,6 +207,8 @@ locals {
         { name = "HASH_GRAPH_TYPE_FETCHER_PORT", value = tostring(local.type_fetcher_container_port) },
         { name = "HASH_SPICEDB_HOST", value = "http://${local.spicedb_container_http_port_dns}" },
         { name = "HASH_SPICEDB_HTTP_PORT", value = tostring(local.spicedb_container_http_port) },
+        { name = "HASH_TEMPORAL_SERVER_HOST", value = "http://${var.temporal_host}" },
+        { name = "HASH_TEMPORAL_SERVER_PORT", value = var.temporal_port },
       ]
     )
 
