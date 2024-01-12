@@ -1,6 +1,9 @@
-#![feature(lint_reasons, impl_trait_in_assoc_type)]
+#![feature(impl_trait_in_assoc_type)]
 
-pub mod error;
+pub use self::error::{ConfigError, ConnectionError, WorkflowError};
+
+mod ai;
+mod error;
 
 use std::future::{Future, IntoFuture};
 
@@ -8,11 +11,8 @@ use error_stack::{Report, ResultExt};
 use temporal_io_client::{Client, ClientOptions, ClientOptionsBuilder, RetryClient};
 use url::Url;
 
-use self::error::{ConfigError, ConnectionError};
-
 #[derive(Debug)]
 pub struct TemporalClient {
-    #[expect(dead_code)]
     client: RetryClient<Client>,
 }
 

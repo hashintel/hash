@@ -46,6 +46,7 @@ use graph_types::{
     Embedding,
 };
 use serde::Deserialize;
+use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
@@ -201,6 +202,7 @@ async fn create_entity<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<CreateEntityRequest>,
 ) -> Result<Json<EntityMetadata>, Response>
 where
@@ -227,6 +229,7 @@ where
         .create_entity(
             actor_id,
             &mut authorization_api,
+            temporal_client.as_deref(),
             owned_by_id,
             entity_uuid,
             None,
@@ -469,6 +472,7 @@ async fn update_entity<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<UpdateEntityRequest>,
 ) -> Result<Json<EntityMetadata>, Response>
 where
@@ -494,6 +498,7 @@ where
         .update_entity(
             actor_id,
             &mut authorization_api,
+            temporal_client.as_deref(),
             entity_id,
             None,
             archived,
