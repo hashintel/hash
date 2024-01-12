@@ -94,10 +94,7 @@ jobs:
 
       - name: Install Protobuf
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: arduino/setup-protoc@a8b67ba40b37d35169e222f3bb352603327985b6 # v2.1.0
-        with:
-          version: "25.x"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+        run: sudo apt install protobuf-compiler
 
       - name: Install yarn dependencies
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
