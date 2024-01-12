@@ -34,11 +34,11 @@ impl<'a> StatementBuilder<'a> {
 
     fn export_interface(&mut self, name: &str) -> std::fmt::Result {
         self.buffer.write_fmt(format_args!(
-            "export interface {name} extends S.Schema.To<typeof {name}> {{}}\n",
+            "export type {name} extends S.Schema.To<typeof {name}>;\n",
         ))?;
 
         self.buffer.write_fmt(format_args!(
-            "export interface {name}From extends S.Schema.From<typeof {name}> {{}}\n",
+            "export type {name}From extends S.Schema.From<typeof {name}>;\n",
         ))
     }
 
@@ -163,10 +163,10 @@ impl<'a> StatementBuilder<'a> {
         self.buffer.write_str("'));")?;
 
         self.buffer.write_fmt(format_args!(
-            "export interface {name} extends S.Schema.To<typeof {name}> {{}}\n"
+            "export type {name} = S.Schema.To<typeof {name}>;\n"
         ))?;
         self.buffer.write_fmt(format_args!(
-            "export interface {name}From extends S.Schema.From<typeof {name}> {{}}\n"
+            "export type {name}From = S.Schema.From<typeof {name}>;\n"
         ))
     }
 
