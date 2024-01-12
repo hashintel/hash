@@ -10,6 +10,7 @@ import {
   GridColumn,
   GridMouseEventArgs,
   GridSelection,
+  HeaderClickedEventArgs,
   Item,
   SizedGridColumn,
   TextCell,
@@ -21,14 +22,12 @@ import { Ref, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getCellHorizontalPadding } from "./utils";
 import { customGridIcons } from "./utils/custom-grid-icons";
+import { ColumnFilter } from "./utils/filtering";
 import { InteractableManager } from "./utils/interactable-manager";
+import { ColumnHeaderPath } from "./utils/interactable-manager/types";
 import { overrideCustomRenderers } from "./utils/override-custom-renderers";
 import { Row } from "./utils/rows";
-import {
-  ColumnSort,
-  createHandleHeaderClicked,
-  defaultSortRows,
-} from "./utils/sorting";
+import { ColumnSort, defaultSortRows } from "./utils/sorting";
 import { useDrawHeader } from "./utils/use-draw-header";
 import { useRenderGridPortal } from "./utils/use-render-grid-portal";
 
@@ -43,6 +42,7 @@ export type GridProps<T extends Row & { rowId: string }> = Omit<
   | "onCellEdited"
 > & {
   columns: SizedGridColumn[];
+  columnFilters?: ColumnFilter<string>[];
   enableCheckboxSelection?: boolean;
   selectedRows?: T[];
   onSelectedRowsChange?: (selectedRows: T[]) => void;
@@ -75,6 +75,7 @@ export const Grid = <T extends Row & { rowId: string }>({
   enableCheckboxSelection = false,
   resizable = true,
   sortable = true,
+  columnFilters,
   initialColumnSort,
   createGetCellContent,
   sortRows,
@@ -103,33 +104,95 @@ export const Grid = <T extends Row & { rowId: string }>({
     return () => InteractableManager.deleteInteractables(tableId);
   }, []);
 
-  const [columnSort, setColumnSort] = useState<ColumnSort<string>>(
-    initialColumnSort ?? {
-      key: columns[0]?.id ?? "",
-      dir: "asc",
-    },
+  const [sorts, setSorts] = useState<ColumnSort<string>[]>(
+    columns.map((column) => ({
+      columnKey: column.id,
+      direction: "asc",
+    })),
   );
 
-  const defaultDrawHeader = useDrawHeader(
-    sortable ? columnSort : undefined,
+  const [currentSortedColumnKey, setCurrentSortedColumnKey] =
+    useState<string>();
+
+  useEffect(() => {
+    /** @todo: set initial column sort */
+  }, [initialColumnSort]);
+
+  const [openFilterColumnKey, setOpenFilterColumnKey] = useState<string>();
+
+  const handleSortClick = useCallback(
+    (columnKey: string) => {
+      if (currentSortedColumnKey === columnKey) {
+        // Toggle the direction of the sort if it's already the currently sorted column
+        setSorts((prevSorts) => {
+          const previousSortIndex = prevSorts.findIndex(
+            (sort) => sort.columnKey === columnKey,
+          );
+
+          const previousSort = prevSorts[previousSortIndex]!;
+
+          return [
+            ...prevSorts.slice(0, previousSortIndex),
+            {
+              ...previousSort,
+              direction: previousSort.direction === "asc" ? "desc" : "asc",
+            },
+            ...prevSorts.slice(previousSortIndex + 1),
+          ];
+        });
+      }
+
+      setCurrentSortedColumnKey(columnKey);
+    },
+    [currentSortedColumnKey],
+  );
+
+  const defaultDrawHeader = useDrawHeader({
+    tableId: tableIdRef.current,
+    sorts,
+    activeSortColumnKey: currentSortedColumnKey,
+    onSortClick: handleSortClick,
+    filters: columnFilters,
+    onFilterClick: (columnKey) => setOpenFilterColumnKey(columnKey),
     columns,
     firstColumnLeftPadding,
-  );
+  });
 
-  const handleHeaderClicked = sortable
-    ? createHandleHeaderClicked(columns, columnSort, setColumnSort)
-    : undefined;
+  const handleHeaderClicked = useCallback(
+    (colIndex: number, event: HeaderClickedEventArgs) => {
+      const columnHeaderPath: ColumnHeaderPath = `${tableIdRef.current}-${colIndex}`;
+
+      /**
+       * When the header is clicked, we need to notify the interactable manager
+       * so that the relevant interactables can be notified of the click.
+       */
+      InteractableManager.handleClick(columnHeaderPath, {
+        posX: event.localEventX,
+        posY: event.localEventY,
+      });
+    },
+    [],
+  );
 
   const sortedRows = useMemo<T[] | undefined>(() => {
     if (rows) {
       if (!sortable) {
         return rows;
       }
+
+      const sortedColumn = currentSortedColumnKey
+        ? sorts.find((sort) => sort.columnKey === currentSortedColumnKey)
+        : undefined;
+
+      if (!sortedColumn) {
+        return rows;
+      }
+
       const sortRowFn = sortRows ?? defaultSortRows;
 
-      return sortRowFn(rows, columnSort);
+      return sortRowFn(rows, sortedColumn);
     }
-  }, [sortable, rows, columnSort, sortRows]);
+  }, [sortable, rows, sortRows, currentSortedColumnKey, sorts]);
 
   const gridSelection = useMemo(() => {
     if (sortedRows && selectedRows) {
@@ -264,6 +327,16 @@ export const Grid = <T extends Row & { rowId: string }>({
       style: "faded",
     }),
     [],
+  );
+
+  const _openFilterColumn = useMemo(
+    () =>
+      openFilterColumnKey
+        ? columnFilters?.find(
+            ({ columnKey }) => columnKey === openFilterColumnKey,
+          )
+        : undefined,
+    [openFilterColumnKey, columnFilters],
   );
 
   return (
