@@ -68,7 +68,7 @@ export const drawInteractableTooltipIcons = (
 
     const actualTooltipX = tooltipX - rect.x;
 
-    const interactable = InteractableManager.create(args, {
+    const interactable = InteractableManager.createCellInteractable(args, {
       id: `tooltip-${i}`,
       pos: {
         left: tooltipX,
