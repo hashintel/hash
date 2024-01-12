@@ -60,14 +60,14 @@ fn export_types(mut context: GlobalContext) -> Result<BytesMut, ExportError> {
     let mut buffer = BytesMut::new();
     export_imports(&mut buffer).change_context(ExportError::Buffer)?;
 
-    for id in context.ordering.iter().rev() {
+    for id in context.graph.topo_sort() {
         if id.is_global() {
             continue;
         }
 
         let statement = context
             .statements
-            .remove(id)
+            .remove(&id)
             .ok_or(ExportError::StatementNotFound)?;
 
         buffer.put(statement);

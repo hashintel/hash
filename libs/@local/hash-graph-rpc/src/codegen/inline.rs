@@ -200,7 +200,7 @@ impl<'a, 'b: 'a> Inline<'a, 'b> {
 
                 self.buffer.write_str(name)
             }
-            HoistAction::DirectRecursion | HoistAction::ParentRecursion => {
+            HoistAction::DirectRecursion | HoistAction::ParentRecursion | HoistAction::Suspend => {
                 assert!(
                     ast.generics().is_empty(),
                     "Cannot define generics on an inlined struct"

@@ -1,52 +1,158 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use bytes::Bytes;
 use specta::{DataTypeReference, NamedDataType, SpectaID, TypeMap};
 
-pub(crate) struct OrderedVec<T> {
-    inner: Vec<T>,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum EdgeKind {
+    Direct,
+    Suspended,
 }
 
-impl<T> OrderedVec<T>
-where
-    T: PartialEq,
-{
-    const fn new() -> Self {
-        Self { inner: vec![] }
-    }
+struct Edge {
+    kind: EdgeKind,
+    to: StatementId,
+}
 
-    pub(crate) fn push(&mut self, item: T) -> usize {
-        if let Some(position) = self.inner.iter().position(|i| i == &item) {
-            return position;
-        }
+pub(crate) struct DependencyGraph {
+    edges: HashMap<StatementId, Vec<Edge>>,
+}
 
-        self.inner.push(item);
-        self.inner.len() - 1
-    }
-
-    fn order_before(&mut self, position: usize, before: T) -> usize {
-        let before_position = self.push(before);
-
-        if position > before_position {
-            let item = self.inner.remove(position);
-            self.inner.insert(before_position, item);
-
-            return before_position;
-        }
-
-        position
-    }
-
-    pub(crate) fn needs(&mut self, item: T, requirements: Vec<T>) {
-        let mut position = self.push(item);
-
-        for requirement in requirements {
-            position = self.order_before(position, requirement);
+impl DependencyGraph {
+    pub(crate) fn new() -> Self {
+        Self {
+            edges: HashMap::new(),
         }
     }
 
-    pub(crate) fn iter(&self) -> std::slice::Iter<T> {
-        self.inner.iter()
+    fn has_cycle_visit(
+        &self,
+        statement: StatementId,
+        discovered: &mut HashSet<StatementId>,
+        finished: &mut HashSet<StatementId>,
+    ) -> bool {
+        discovered.insert(statement);
+
+        if let Some(edges) = self.edges.get(&statement) {
+            for edge in edges {
+                if edge.kind == EdgeKind::Suspended {
+                    continue;
+                }
+
+                if discovered.contains(&edge.to) {
+                    return true;
+                }
+
+                if !finished.contains(&edge.to)
+                    && self.has_cycle_visit(edge.to, discovered, finished)
+                {
+                    return true;
+                }
+            }
+        }
+
+        discovered.remove(&statement);
+        finished.insert(statement);
+
+        false
+    }
+
+    // Implementation of DFS for cycle detection based on https://stackoverflow.com/a/53995651/9077988
+    fn has_cycle(&self) -> bool {
+        let mut discovered = HashSet::new();
+        let mut finished = HashSet::new();
+
+        for &statement in self.edges.keys() {
+            if discovered.contains(&statement) || finished.contains(&statement) {
+                continue;
+            }
+
+            if self.has_cycle_visit(statement, &mut discovered, &mut finished) {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn add(&mut self, statement: StatementId, depends_on: StatementId) -> EdgeKind {
+        // ensure that the statement exists
+        self.edges.entry(depends_on).or_default();
+
+        let vec = self.edges.entry(statement).or_default();
+
+        // does the edge already exist?
+        if let Some(edge) = vec.iter().find(|edge| edge.to == depends_on) {
+            return edge.kind;
+        }
+
+        // would adding the edge create a cycle?
+        vec.push(Edge {
+            kind: EdgeKind::Direct,
+            to: depends_on,
+        });
+
+        if !self.has_cycle() {
+            return EdgeKind::Direct;
+        }
+
+        // cycle detected, add a suspended edge instead
+        let vec = self.edges.entry(statement).or_default();
+        vec.pop();
+        vec.push(Edge {
+            kind: EdgeKind::Suspended,
+            to: depends_on,
+        });
+        assert!(!self.has_cycle());
+
+        EdgeKind::Suspended
+    }
+
+    fn visit(
+        &self,
+        statement: &StatementId,
+        sorted: &mut Vec<StatementId>,
+        visited: &mut HashMap<StatementId, bool>,
+    ) {
+        if let Some(&visited_statement) = visited.get(statement) {
+            if visited_statement {
+                return;
+            }
+
+            panic!("cyclic dependency");
+        }
+
+        visited.insert(*statement, false);
+
+        if let Some(edges) = self.edges.get(statement) {
+            for edge in edges {
+                if edge.kind == EdgeKind::Suspended {
+                    continue;
+                }
+
+                self.visit(&edge.to, sorted, visited);
+            }
+        }
+
+        visited.insert(*statement, true);
+        sorted.push(*statement);
+    }
+
+    pub(crate) fn topo_sort(&self) -> Vec<StatementId> {
+        let mut sorted = vec![];
+        let mut visited = HashMap::new();
+
+        for statement in self.edges.keys() {
+            self.visit(statement, &mut sorted, &mut visited);
+        }
+
+        sorted
+    }
+
+    pub(crate) fn rebuild(&mut self, queue: impl Iterator<Item = StatementId>) {
+        for statement in queue {
+            self.edges.entry(statement).or_default();
+        }
     }
 }
 
@@ -72,7 +178,7 @@ impl StatementId {
 }
 
 pub(crate) struct GlobalContext {
-    pub(crate) ordering: OrderedVec<StatementId>,
+    pub(crate) graph: DependencyGraph,
     pub(crate) queue: Vec<NamedDataType>,
     pub(crate) statements: HashMap<StatementId, Bytes>,
     pub(crate) types: TypeMap,
@@ -81,7 +187,7 @@ pub(crate) struct GlobalContext {
 impl GlobalContext {
     pub(crate) fn new(types: TypeMap) -> Self {
         let mut this = Self {
-            ordering: OrderedVec::new(),
+            graph: DependencyGraph::new(),
             queue: vec![],
             statements: HashMap::new(),
             types,
@@ -97,9 +203,12 @@ impl GlobalContext {
         self.queue
             .extend(self.types.iter().map(|(_, ast)| ast.clone()));
 
-        for (id, _) in self.types.iter() {
-            self.ordering.push(StatementId::local(id));
-        }
+        self.graph.rebuild(
+            self.types
+                .iter()
+                .map(|(key, _)| key)
+                .map(StatementId::local),
+        );
     }
 
     pub(crate) fn scoped(&mut self, id: StatementId) -> ScopedContext {
@@ -124,6 +233,7 @@ pub(crate) enum HoistAction {
     Hoisted,
     DirectRecursion,
     ParentRecursion,
+    Suspend,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -137,7 +247,9 @@ impl ScopedContext<'_> {
         let sid = reference.sid();
         let id = StatementId::local(sid);
 
-        self.global.ordering.needs(self.current, vec![id]);
+        if self.global.graph.add(self.current, id) == EdgeKind::Suspended {
+            return ReferenceAction::Suspend;
+        }
 
         if self.parents.contains(&id) || self.current == id {
             return ReferenceAction::Suspend;
@@ -155,7 +267,9 @@ impl ScopedContext<'_> {
             return HoistAction::ParentRecursion;
         }
 
-        self.global.ordering.needs(self.current, vec![id]);
+        if self.global.graph.add(self.current, id) == EdgeKind::Suspended {
+            return HoistAction::Suspend;
+        }
 
         if !self.global.queue.contains(&ast) || !self.global.statements.contains_key(&id) {
             self.global.queue.push(ast);
