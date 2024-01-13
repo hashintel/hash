@@ -18,7 +18,7 @@ validation = { workspace = true }
 codec = { workspace = true, optional = true }
 
 async-trait = "0.1.77"
-axum = "0.7.3"
+axum = "0.7.4"
 base64 = "0.21.7"
 bytes = "1.5.0"
 error-stack = { workspace = true }
