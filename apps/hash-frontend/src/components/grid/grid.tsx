@@ -16,15 +16,20 @@ import {
   TextCell,
   Theme,
 } from "@glideapps/glide-data-grid";
-import { Box, useTheme } from "@mui/material";
+import { Box, PopperProps, useTheme } from "@mui/material";
+import type { Instance as PopperInstance } from "@popperjs/core";
 import { uniqueId } from "lodash";
 import { Ref, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getCellHorizontalPadding } from "./utils";
+import { ColumnFilterMenu } from "./utils/column-filter-menu";
 import { customGridIcons } from "./utils/custom-grid-icons";
 import { ColumnFilter } from "./utils/filtering";
 import { InteractableManager } from "./utils/interactable-manager";
-import { ColumnHeaderPath } from "./utils/interactable-manager/types";
+import {
+  ColumnHeaderPath,
+  InteractablePosition,
+} from "./utils/interactable-manager/types";
 import { overrideCustomRenderers } from "./utils/override-custom-renderers";
 import { Row } from "./utils/rows";
 import { ColumnSort, defaultSortRows } from "./utils/sorting";
@@ -119,6 +124,8 @@ export const Grid = <T extends Row & { rowId: string }>({
   }, [initialColumnSort]);
 
   const [openFilterColumnKey, setOpenFilterColumnKey] = useState<string>();
+  const [openFilterIconPosition, setOpenFilterIconPosition] =
+    useState<InteractablePosition>();
 
   const handleSortClick = useCallback(
     (columnKey: string) => {
@@ -147,13 +154,21 @@ export const Grid = <T extends Row & { rowId: string }>({
     [currentSortedColumnKey],
   );
 
+  const handleFilterClick = useCallback(
+    (columnKey: string, position: InteractablePosition) => {
+      setOpenFilterColumnKey(columnKey);
+      setOpenFilterIconPosition(position);
+    },
+    [],
+  );
+
   const defaultDrawHeader = useDrawHeader({
     tableId: tableIdRef.current,
     sorts,
     activeSortColumnKey: currentSortedColumnKey,
     onSortClick: handleSortClick,
     filters: columnFilters,
-    onFilterClick: (columnKey) => setOpenFilterColumnKey(columnKey),
+    onFilterClick: handleFilterClick,
     columns,
     firstColumnLeftPadding,
   });
@@ -329,7 +344,33 @@ export const Grid = <T extends Row & { rowId: string }>({
     [],
   );
 
-  const _openFilterColumn = useMemo(
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const scrollWrapperRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!scrollWrapperRef.current) {
+      const setScrollWrapperState = () => {
+        if (wrapperRef.current) {
+          const mountedScrollWrapper =
+            wrapperRef.current.querySelector(".dvn-scroller");
+
+          if (mountedScrollWrapper) {
+            scrollWrapperRef.current = mountedScrollWrapper as HTMLDivElement;
+          } else if (!scrollWrapperRef.current) {
+            setTimeout(() => {
+              setScrollWrapperState();
+            }, 50);
+          }
+        }
+      };
+
+      setScrollWrapperState();
+    }
+  }, []);
+
+  const popperRef = useRef<PopperInstance>(null);
+
+  const openFilterColumn = useMemo(
     () =>
       openFilterColumnKey
         ? columnFilters?.find(
@@ -339,8 +380,51 @@ export const Grid = <T extends Row & { rowId: string }>({
     [openFilterColumnKey, columnFilters],
   );
 
+  const filterIconVirtualElement = useMemo<PopperProps["anchorEl"]>(
+    () => ({
+      getBoundingClientRect: () => {
+        if (!openFilterIconPosition) {
+          return {
+            width: 0,
+            height: 0,
+            top: 0,
+            left: 0,
+            bottom: 0,
+            right: 0,
+            x: 0,
+            y: 0,
+            toJSON: () => "",
+          };
+        }
+
+        const leftScroll = scrollWrapperRef.current?.scrollLeft ?? 0;
+
+        const { y: wrapperYPosition, x: wrapperXPosition } =
+          wrapperRef.current!.getBoundingClientRect();
+
+        const left =
+          wrapperXPosition + openFilterIconPosition.left - leftScroll;
+
+        const top = openFilterIconPosition.top + wrapperYPosition;
+
+        return {
+          width: 0,
+          height: 0,
+          ...openFilterIconPosition,
+          left,
+          top,
+          x: left,
+          y: top,
+          toJSON: () => "",
+        };
+      },
+    }),
+    [openFilterIconPosition],
+  );
+
   return (
     <Box
+      ref={wrapperRef}
       sx={{
         position: "relative",
         borderBottomLeftRadius: "6px",
@@ -349,6 +433,14 @@ export const Grid = <T extends Row & { rowId: string }>({
         boxShadow: "0px 1px 5px 0px rgba(27, 33, 40, 0.07)",
       }}
     >
+      <ColumnFilterMenu
+        open={!!openFilterColumn}
+        onClose={() => setOpenFilterColumnKey(undefined)}
+        anchorEl={filterIconVirtualElement}
+        popperRef={popperRef}
+        transition
+        placement="bottom-start"
+      />
       <DataEditor
         ref={gridRef}
         theme={gridTheme}

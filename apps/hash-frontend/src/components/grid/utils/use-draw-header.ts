@@ -5,7 +5,10 @@ import { useCallback } from "react";
 import { getCellHorizontalPadding, getYCenter } from "../utils";
 import { ColumnFilter } from "./filtering";
 import { InteractableManager } from "./interactable-manager";
-import { Interactable } from "./interactable-manager/types";
+import {
+  Interactable,
+  InteractablePosition,
+} from "./interactable-manager/types";
 import { ColumnSort } from "./sorting";
 
 export const useDrawHeader = <T extends string>(props: {
@@ -14,7 +17,10 @@ export const useDrawHeader = <T extends string>(props: {
   onSortClick?: (columnKey: T) => void;
   activeSortColumnKey?: T;
   filters?: ColumnFilter<T>[];
-  onFilterClick?: (columnKey: T) => void;
+  onFilterClick?: (
+    columnKey: T,
+    interactablePosition: InteractablePosition,
+  ) => void;
   columns: GridColumn[];
   firstColumnLeftPadding?: number;
 }): DrawHeaderCallback => {
@@ -146,7 +152,8 @@ export const useDrawHeader = <T extends string>(props: {
                 top: centerY - filterIconSize / 2,
                 bottom: centerY + filterIconSize / 2,
               },
-              onClick: () => onFilterClick?.(columnKey),
+              onClick: (interactable) =>
+                onFilterClick?.(columnKey, interactable.pos),
             },
           ),
         );

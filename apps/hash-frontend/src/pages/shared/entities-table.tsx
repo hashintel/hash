@@ -45,6 +45,7 @@ import {
   gridRowHeight,
 } from "../../components/grid/grid";
 import { BlankCell, blankCell } from "../../components/grid/utils";
+import { ColumnFilter } from "../../components/grid/utils/filtering";
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { useEntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
 import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
@@ -295,6 +296,122 @@ export const EntitiesTable: FunctionComponent<{
     [router, getOwnerForEntity],
   );
 
+  const namespaces = useMemo(
+    () =>
+      rows
+        ?.map(({ namespace }) => namespace)
+        .filter((namespace, index, all) => all.indexOf(namespace) === index) ??
+      [],
+    [rows],
+  );
+
+  const [selectedNamespaces, setSelectedNamespaces] =
+    useState<string[]>(namespaces);
+
+  useEffect(() => {
+    setSelectedNamespaces(namespaces);
+  }, [namespaces]);
+
+  const entityTypeVersions = useMemo(
+    () =>
+      rows
+        ?.map(({ entityTypeVersion }) => entityTypeVersion)
+        .filter(
+          (entityTypeVersion, index, all) =>
+            all.indexOf(entityTypeVersion) === index,
+        ) ?? [],
+    [rows],
+  );
+
+  const [selectedEntityTypeVersions, setSelectedEntityTypeVersions] =
+    useState<string[]>(entityTypeVersions);
+
+  useEffect(() => {
+    setSelectedEntityTypeVersions(entityTypeVersions);
+  }, [entityTypeVersions]);
+
+  const [selectedArchivedStatus, setSelectedArchivedStatus] = useState<
+    ("archived" | "not-archived")[]
+  >(["archived", "not-archived"]);
+
+  const lastEditedByUsers = useMemo(
+    () =>
+      rows
+        ?.map(({ lastEditedBy }) => lastEditedBy ?? [])
+        .flat()
+        .filter(
+          (user, index, all) =>
+            all.findIndex(({ accountId }) => accountId === user.accountId) ===
+            index,
+        ) ?? [],
+    [rows],
+  );
+
+  const [selectedLastEditedByAccountIds, setSelectedLastEditedByAccountIds] =
+    useState<string[]>(lastEditedByUsers.map(({ accountId }) => accountId));
+
+  useEffect(() => {
+    setSelectedLastEditedByAccountIds(
+      lastEditedByUsers.map(({ accountId }) => accountId),
+    );
+  }, [lastEditedByUsers]);
+
+  const columnFilters = useMemo<ColumnFilter<string>[]>(
+    () => [
+      {
+        columnKey: "namespace",
+        filterItems: namespaces.map((namespace) => ({
+          id: namespace,
+          label: namespace,
+        })),
+        selectedFilterItemIds: selectedNamespaces,
+        setSelectedFilterItemIds: setSelectedNamespaces,
+      },
+      {
+        columnKey: "entityTypeVersion",
+        filterItems: entityTypeVersions.map((entityTypeVersion) => ({
+          id: entityTypeVersion,
+          label: entityTypeVersion,
+        })),
+        selectedFilterItemIds: selectedEntityTypeVersions,
+        setSelectedFilterItemIds: setSelectedEntityTypeVersions,
+      },
+      {
+        columnKey: "archived",
+        filterItems: [
+          {
+            id: "archived",
+            label: "Archived",
+          },
+          {
+            id: "not-archived",
+            label: "Not Archived",
+          },
+        ],
+        selectedFilterItemIds: selectedArchivedStatus,
+        setSelectedFilterItemIds: setSelectedArchivedStatus,
+      },
+      {
+        columnKey: "lastEditedBy",
+        filterItems: lastEditedByUsers.map(({ accountId, preferredName }) => ({
+          id: accountId,
+          label: preferredName ?? "Unknown User",
+        })),
+        selectedFilterItemIds: selectedLastEditedByAccountIds,
+        setSelectedFilterItemIds: setSelectedLastEditedByAccountIds,
+      },
+    ],
+    [
+      namespaces,
+      selectedNamespaces,
+      entityTypeVersions,
+      selectedEntityTypeVersions,
+      lastEditedByUsers,
+      selectedLastEditedByAccountIds,
+      selectedArchivedStatus,
+    ],
+  );
+
   return (
     <Box>
       <TableHeader
@@ -403,6 +520,7 @@ export const EntitiesTable: FunctionComponent<{
           showSearch={showSearch}
           onSearchClose={() => setShowSearch(false)}
           columns={columns}
+          columnFilters={columnFilters}
           rows={rows}
           enableCheckboxSelection
           selectedRows={selectedRows}
