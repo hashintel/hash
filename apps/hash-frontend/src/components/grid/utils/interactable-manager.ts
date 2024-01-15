@@ -33,6 +33,12 @@ class InteractableManagerClass {
     Record<string, Interactable>
   > = {};
 
+  getInteractable(path: CellPath | ColumnHeaderPath, id: string) {
+    return Object.values(this.interactableStore[path] ?? {}).find(
+      (interactable) => interactable.id === id,
+    );
+  }
+
   /**
    * @param args Draw args of cell
    * @param props Properties which will will be used to create the `Interactable`

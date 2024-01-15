@@ -28,7 +28,7 @@ import { ColumnFilter } from "./utils/filtering";
 import { InteractableManager } from "./utils/interactable-manager";
 import {
   ColumnHeaderPath,
-  InteractablePosition,
+  Interactable,
 } from "./utils/interactable-manager/types";
 import { overrideCustomRenderers } from "./utils/override-custom-renderers";
 import { Row } from "./utils/rows";
@@ -125,8 +125,6 @@ export const Grid = <T extends Row & { rowId: string }>({
   }, [initialColumnSort]);
 
   const [openFilterColumnKey, setOpenFilterColumnKey] = useState<string>();
-  const [openFilterIconPosition, setOpenFilterIconPosition] =
-    useState<InteractablePosition>();
 
   const handleSortClick = useCallback(
     (columnKey: string) => {
@@ -155,13 +153,9 @@ export const Grid = <T extends Row & { rowId: string }>({
     [currentSortedColumnKey],
   );
 
-  const handleFilterClick = useCallback(
-    (columnKey: string, position: InteractablePosition) => {
-      setOpenFilterColumnKey(columnKey);
-      setOpenFilterIconPosition(position);
-    },
-    [],
-  );
+  const handleFilterClick = useCallback((columnKey: string) => {
+    setOpenFilterColumnKey(columnKey);
+  }, []);
 
   const defaultDrawHeader = useDrawHeader({
     tableId: tableIdRef.current,
@@ -398,10 +392,37 @@ export const Grid = <T extends Row & { rowId: string }>({
     [openFilterColumnKey, columnFilters],
   );
 
+  const previousInteractableRef = useRef<Interactable | null>(null);
+
   const filterIconVirtualElement = useMemo<PopperProps["anchorEl"]>(
     () => ({
       getBoundingClientRect: () => {
-        if (!openFilterIconPosition) {
+        const columnIndex = columns.findIndex(
+          ({ id }) => id === openFilterColumnKey,
+        );
+
+        /**
+         * We need to obtain the most recent version of the interactable,
+         * as the user might have scrolled horizontally since the last
+         * call to `getBoundingClientRect`.
+         */
+        const interactable =
+          InteractableManager.getInteractable(
+            `${tableIdRef.current}-${columnIndex}`,
+            `column-filter-${openFilterColumnKey}`,
+          ) ?? previousInteractableRef.current;
+
+        /**
+         * When the user clicks away from the popover, briefly the `interactable`
+         * is set to `undefined` causing the popover to jump position. This is
+         * a quick fix for this.
+         *
+         * @todo: figure out why the `interactable` is briefly `undefined` in the
+         * first place.
+         */
+        previousInteractableRef.current = interactable;
+
+        if (!interactable) {
           return {
             width: 0,
             height: 0,
@@ -415,20 +436,17 @@ export const Grid = <T extends Row & { rowId: string }>({
           };
         }
 
-        const leftScroll = scrollWrapperRef.current?.scrollLeft ?? 0;
-
         const { y: wrapperYPosition, x: wrapperXPosition } =
           wrapperRef.current!.getBoundingClientRect();
 
-        const left =
-          wrapperXPosition + openFilterIconPosition.left - leftScroll;
+        const left = wrapperXPosition + interactable.pos.left;
 
-        const top = openFilterIconPosition.top + wrapperYPosition;
+        const top = interactable.pos.top + wrapperYPosition;
 
         return {
           width: 0,
           height: 0,
-          ...openFilterIconPosition,
+          ...interactable.pos,
           left,
           top,
           x: left,
@@ -437,7 +455,7 @@ export const Grid = <T extends Row & { rowId: string }>({
         };
       },
     }),
-    [openFilterIconPosition],
+    [columns, openFilterColumnKey],
   );
 
   return (
