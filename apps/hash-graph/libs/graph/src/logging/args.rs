@@ -91,7 +91,7 @@ pub struct LoggingArgs {
     )]
     pub log_format: LogFormat,
 
-    /// Logging verbosity to use. If not set `RUST_LOG` will be used.
+    /// Logging verbosity to use. If not set `HASH_GRAPH_LOG_LEVEL` will be used.
     #[cfg_attr(feature = "clap", clap(long, value_enum, global = true))]
     pub log_level: Option<LogLevel>,
 

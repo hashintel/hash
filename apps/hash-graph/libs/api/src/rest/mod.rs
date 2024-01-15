@@ -79,7 +79,7 @@ use uuid::Uuid;
 
 use self::{
     api_resource::RoutedResource,
-    middleware::{log_request_and_response, span_trace_layer},
+    middleware::span_trace_layer,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{
         subgraph::{
@@ -303,7 +303,6 @@ where
         .layer(Extension(dependencies.authorization_api))
         .layer(Extension(dependencies.temporal_client.map(Arc::new)))
         .layer(Extension(dependencies.domain_regex))
-        .layer(axum::middleware::from_fn(log_request_and_response))
         .layer(span_trace_layer())
         .merge(openapi_only_router())
 }

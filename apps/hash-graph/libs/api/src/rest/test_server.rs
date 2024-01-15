@@ -30,10 +30,7 @@ use uuid::Uuid;
 
 use crate::{
     error::{ErrorInfo, StatusPayloads},
-    rest::{
-        middleware::{log_request_and_response, span_trace_layer},
-        status::status_to_response,
-    },
+    rest::{middleware::span_trace_layer, status::status_to_response},
 };
 
 /// Create routes for interacting with entities.
@@ -50,7 +47,6 @@ where
         .route("/entities", delete(delete_entities::<A>))
         .layer(Extension(Arc::new(store_pool)))
         .layer(Extension(Arc::new(authorization_api)))
-        .layer(axum::middleware::from_fn(log_request_and_response))
         .layer(span_trace_layer())
 }
 

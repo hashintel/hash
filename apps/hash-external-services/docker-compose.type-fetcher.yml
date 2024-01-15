@@ -16,7 +16,7 @@ services:
       HASH_GRAPH_TYPE_FETCHER_HOST: "0.0.0.0"
       HASH_GRAPH_TYPE_FETCHER_PORT: "${HASH_GRAPH_TYPE_FETCHER_PORT}"
       HASH_GRAPH_SENTRY_DSN: "${HASH_TYPE_FETCHER_SENTRY_DSN-}"
-      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info,type_fetcher=trace,hash_graph=trace,reqwest=debug}"
+      HASH_GRAPH_LOG_LEVEL: "${HASH_GRAPH_LOG_LEVEL}"
       RUST_BACKTRACE: 1
     healthcheck:
       test: ["CMD", "/hash-graph", "type-fetcher", "--healthcheck"]
