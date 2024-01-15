@@ -33,28 +33,34 @@ import { useEntityTypeValue } from "../use-entity-type-value";
 const CopyableOntologyChip: FunctionComponent<{
   entityType: EntityTypeWithMetadata;
 }> = ({ entityType }) => {
+  const [tooltipTitle, setTooltipTitle] = useState("Copy type URL");
+
   const [copyTooltipIsOpen, setCopyTooltipIsOpen] = useState(false);
-  const [copiedEntityTypeUrl, setCopiedEntityTypeUrl] = useState(false);
 
   const ontology = parseUrlForOntologyChip(entityType.schema.$id);
 
-  const handleCopyEntityTypeUrl = useCallback(() => {
-    void navigator.clipboard.writeText(entityType.schema.$id);
-    setCopiedEntityTypeUrl(true);
-    setTimeout(() => {
-      setCopyTooltipIsOpen(false);
-
+  const handleCopyEntityTypeUrl = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(entityType.schema.$id);
+      setTooltipTitle("Copied type URL!");
+    } catch {
+      setTooltipTitle("Not allowed to copy to clipboard");
+    } finally {
       setTimeout(() => {
-        setCopiedEntityTypeUrl(false);
-      }, 300);
-    }, 500);
+        setCopyTooltipIsOpen(false);
+
+        setTimeout(() => {
+          setTooltipTitle("Copy type URL");
+        }, 300);
+      }, 500);
+    }
   }, [entityType]);
 
   return (
     <Box display="flex" alignItems="center" columnGap={1}>
       <Tooltip
         open={copyTooltipIsOpen}
-        title={copiedEntityTypeUrl ? "Copied type URL!" : "Copy type URL"}
+        title={tooltipTitle}
         placement="top"
         slotProps={{
           tooltip: {
