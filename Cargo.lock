@@ -1284,6 +1284,7 @@ name = "hash-tracing"
 version = "0.0.0"
 dependencies = [
  "clap",
+ "error-stack",
  "opentelemetry 0.21.0",
  "opentelemetry-otlp",
  "opentelemetry_sdk 0.21.2",

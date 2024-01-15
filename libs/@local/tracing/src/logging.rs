@@ -1,12 +1,13 @@
 use std::{
     fmt::{Display, Formatter},
     io,
-    io::{IsTerminal, Stderr},
+    io::Stderr,
     path::{Path, PathBuf},
 };
 
 #[cfg(feature = "clap")]
 use clap::Parser;
+use error_stack::{fmt::ColorMode, Report};
 use tracing::{Event, Level, Subscriber};
 use tracing_appender::non_blocking::NonBlocking;
 use tracing_subscriber::{
@@ -200,6 +201,11 @@ where
         LogFormat::Compact => OutputFormatter::Compact(formatter.compact()),
     };
 
+    let ansi_output = log_format != LogFormat::Json;
+    if !ansi_output {
+        Report::set_color_mode(ColorMode::None);
+    }
+
     // Because of how the Registry and Layer interface is designed, we can't just have one
     // layer, as they have different types. We also can't box them as it requires Sized.
     // However, Option<Layer> implements the Layer trait so we can just provide None for
@@ -213,7 +219,7 @@ where
                 fmt::layer()
                     .event_format(output_format)
                     .fmt_fields(JsonFields::new())
-                    .with_ansi(io::stderr().is_terminal())
+                    .with_ansi(ansi_output)
                     .with_writer(io::stderr),
             ),
         ),
@@ -221,7 +227,7 @@ where
             Some(
                 fmt::layer()
                     .event_format(output_format)
-                    .with_ansi(io::stderr().is_terminal())
+                    .with_ansi(ansi_output)
                     .with_writer(io::stderr),
             ),
             None,

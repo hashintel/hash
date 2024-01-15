@@ -66,7 +66,7 @@ pub fn init_tracing(config: TracingConfig) -> Result<impl Drop + 'static, TryIni
     let (output_layer, json_output_layer) = logging::console_logger(log_format);
     let (json_file_layer, json_file_guard) = logging::file_logger(log_folder, &log_file_prefix);
     let opentelemetry_layer = config.otlp.otlp_endpoint.map(opentelemetry::layer);
-    let sentry_layer = ::sentry::integrations::tracing::layer();
+    let sentry_layer = sentry::layer();
 
     tracing_subscriber::registry()
         .with(filter)

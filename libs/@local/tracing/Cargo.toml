@@ -6,6 +6,8 @@ version = "0.0.0"
 publish = false
 
 [dependencies]
+error-stack = { workspace = true }
+
 opentelemetry_sdk = { version = "0.21.2", features = ["rt-tokio"] }
 opentelemetry = "0.21.0"
 opentelemetry-otlp = "0.14.0"

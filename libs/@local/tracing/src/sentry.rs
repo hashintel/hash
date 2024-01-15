@@ -4,6 +4,7 @@ use std::{borrow::Cow, fmt, str::FromStr, sync::Arc};
 
 #[cfg(feature = "clap")]
 use clap::{builder::TypedValueParser, error::ErrorKind, Arg, Command, Error, Parser};
+pub use sentry::{integrations::tracing::layer, release_name};
 use sentry::{types::Dsn, ClientInitGuard};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -68,13 +69,16 @@ pub struct SentryConfig {
     pub sentry_environment: SentryEnvironment,
 }
 
-pub fn init_sentry(config: &SentryConfig) -> ClientInitGuard {
+pub fn init_sentry(
+    config: &SentryConfig,
+    release: impl Into<Option<Cow<'static, str>>>,
+) -> ClientInitGuard {
     // Initialize Sentry
     // When initializing Sentry, a `Drop` guard is returned, once dropped any remaining events are
     // flushed. This means we need to keep the guard around for the entire lifetime of the program.
     sentry::init(sentry::ClientOptions {
         dsn: config.sentry_dsn.clone(),
-        release: sentry::release_name!(),
+        release: release.into(),
         session_mode: sentry::SessionMode::Request,
         traces_sampler: Some(Arc::new(|ctx| {
             if Some(true) == ctx.sampled() {

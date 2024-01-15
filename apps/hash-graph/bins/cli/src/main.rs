@@ -12,7 +12,7 @@ mod subcommand;
 
 use error_stack::Result;
 use graph::load_env;
-use hash_tracing::sentry::init_sentry;
+use hash_tracing::sentry::{init_sentry, release_name};
 
 use self::{args::Args, error::GraphError};
 
@@ -28,7 +28,7 @@ fn main() -> Result<(), GraphError> {
         tracing_config,
     } = Args::parse_args();
 
-    let _sentry_guard = init_sentry(&tracing_config.sentry);
+    let _sentry_guard = init_sentry(&tracing_config.sentry, release_name!());
 
     subcommand.execute(tracing_config)
 }
