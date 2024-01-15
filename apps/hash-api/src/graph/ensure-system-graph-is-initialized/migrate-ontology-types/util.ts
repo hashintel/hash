@@ -1135,41 +1135,42 @@ export const getExistingUsersAndOrgs: ImpureGraphFunction<
   {},
   Promise<{ users: Entity[]; orgs: Entity[] }>
 > = async (context, authentication) => {
-  const users = await getEntities(context, authentication, {
-    query: {
-      filter: {
-        all: [
-          {
-            equal: [
-              { path: ["type", "baseUrl"] },
-              { parameter: systemEntityTypes.user.entityTypeBaseUrl },
-            ],
-          },
-        ],
+  const [users, orgs] = await Promise.all([
+    getEntities(context, authentication, {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [
+                { path: ["type", "baseUrl"] },
+                { parameter: systemEntityTypes.user.entityTypeBaseUrl },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        includeDrafts: true,
+        temporalAxes: currentTimeInstantTemporalAxes,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      includeDrafts: true,
-      temporalAxes: currentTimeInstantTemporalAxes,
-    },
-  }).then((subgraph) => getRoots(subgraph));
-
-  const orgs = await getEntities(context, authentication, {
-    query: {
-      filter: {
-        all: [
-          {
-            equal: [
-              { path: ["type", "baseUrl"] },
-              { parameter: systemEntityTypes.organization.entityTypeBaseUrl },
-            ],
-          },
-        ],
+    }).then((subgraph) => getRoots(subgraph)),
+    getEntities(context, authentication, {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [
+                { path: ["type", "baseUrl"] },
+                { parameter: systemEntityTypes.organization.entityTypeBaseUrl },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        includeDrafts: true,
+        temporalAxes: currentTimeInstantTemporalAxes,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      includeDrafts: true,
-      temporalAxes: currentTimeInstantTemporalAxes,
-    },
-  }).then((subgraph) => getRoots(subgraph));
+    }).then((subgraph) => getRoots(subgraph)),
+  ]);
 
   return { users, orgs };
 };
