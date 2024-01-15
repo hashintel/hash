@@ -47,7 +47,7 @@ export type GridProps<T extends Row & { rowId: string }> = Omit<
   | "onCellEdited"
 > & {
   columns: SizedGridColumn[];
-  columnFilters?: ColumnFilter<string>[];
+  columnFilters?: ColumnFilter<string, T>[];
   enableCheckboxSelection?: boolean;
   selectedRows?: T[];
   onSelectedRowsChange?: (selectedRows: T[]) => void;
@@ -116,8 +116,9 @@ export const Grid = <T extends Row & { rowId: string }>({
     })),
   );
 
-  const [currentSortedColumnKey, setCurrentSortedColumnKey] =
-    useState<string>();
+  const [currentSortedColumnKey, setCurrentSortedColumnKey] = useState<
+    string | undefined
+  >(columns[0]?.id);
 
   useEffect(() => {
     /** @todo: set initial column sort */
@@ -189,10 +190,27 @@ export const Grid = <T extends Row & { rowId: string }>({
     [],
   );
 
-  const sortedRows = useMemo<T[] | undefined>(() => {
+  const filteredRows = useMemo<T[] | undefined>(() => {
     if (rows) {
-      if (!sortable) {
+      if (!columnFilters) {
         return rows;
+      }
+
+      return rows.filter((row) => {
+        for (const columnFilter of columnFilters) {
+          if (columnFilter.isRowFiltered(row)) {
+            return false;
+          }
+        }
+        return true;
+      });
+    }
+  }, [rows, columnFilters]);
+
+  const sortedRows = useMemo<T[] | undefined>(() => {
+    if (filteredRows) {
+      if (!sortable) {
+        return filteredRows;
       }
 
       const sortedColumn = currentSortedColumnKey
@@ -200,14 +218,14 @@ export const Grid = <T extends Row & { rowId: string }>({
         : undefined;
 
       if (!sortedColumn) {
-        return rows;
+        return filteredRows;
       }
 
       const sortRowFn = sortRows ?? defaultSortRows;
 
-      return sortRowFn(rows, sortedColumn);
+      return sortRowFn(filteredRows, sortedColumn);
     }
-  }, [sortable, rows, sortRows, currentSortedColumnKey, sorts]);
+  }, [sortable, filteredRows, sortRows, currentSortedColumnKey, sorts]);
 
   const gridSelection = useMemo(() => {
     if (sortedRows && selectedRows) {
@@ -435,6 +453,7 @@ export const Grid = <T extends Row & { rowId: string }>({
     >
       <ColumnFilterMenu
         open={!!openFilterColumn}
+        columnFilter={openFilterColumn}
         onClose={() => setOpenFilterColumnKey(undefined)}
         anchorEl={filterIconVirtualElement}
         popperRef={popperRef}

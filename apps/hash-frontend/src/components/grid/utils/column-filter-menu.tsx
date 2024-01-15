@@ -1,22 +1,40 @@
 import {
   Box,
+  Checkbox,
   ClickAwayListener,
   Fade,
+  ListItemIcon,
+  ListItemText,
   Paper,
   Popper,
   PopperProps,
   Typography,
 } from "@mui/material";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useState } from "react";
 
+import { MenuItem } from "../../../shared/ui";
 import { ColumnFilter } from "./filtering";
 
 export const ColumnFilterMenu: FunctionComponent<
   {
-    columnFilter?: ColumnFilter<string>;
+    columnFilter?: ColumnFilter<string, any>;
     onClose: () => void;
   } & PopperProps
-> = ({ onClose, open, ...popoverProps }) => {
+> = ({ columnFilter, onClose, open, ...popoverProps }) => {
+  const [previousColumnFilter, setPreviousColumnFilter] =
+    useState<ColumnFilter<string, any>>();
+
+  if (
+    columnFilter &&
+    (!previousColumnFilter ||
+      previousColumnFilter.columnKey !== columnFilter.columnKey)
+  ) {
+    setPreviousColumnFilter(columnFilter);
+  }
+
+  const { filterItems, selectedFilterItemIds, setSelectedFilterItemIds } =
+    columnFilter ?? previousColumnFilter ?? {};
+
   return (
     <Popper open={open} {...popoverProps}>
       {({ TransitionProps }) => (
@@ -34,10 +52,50 @@ export const ColumnFilterMenu: FunctionComponent<
                 }
               }}
             >
-              <Paper>
-                <Typography sx={{ p: 2 }}>
-                  The content of the Popper.
+              <Paper sx={{ padding: 0.25 }}>
+                <Typography
+                  sx={{
+                    marginTop: 1,
+                    marginX: 1.5,
+                    color: ({ palette }) => palette.gray[50],
+                    fontSize: 12,
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Filter
                 </Typography>
+                {filterItems?.map(({ id, label }) => {
+                  const checked = selectedFilterItemIds?.includes(id);
+
+                  return (
+                    <MenuItem
+                      key={id}
+                      onClick={() =>
+                        setSelectedFilterItemIds?.(
+                          checked
+                            ? selectedFilterItemIds?.filter(
+                                (selectedId) => selectedId !== id,
+                              ) ?? []
+                            : [...(selectedFilterItemIds ?? []), id],
+                        )
+                      }
+                    >
+                      <ListItemIcon>
+                        <Checkbox
+                          sx={{
+                            svg: {
+                              width: 18,
+                              height: 18,
+                            },
+                          }}
+                          checked={checked}
+                        />
+                      </ListItemIcon>
+                      <ListItemText primary={label} />
+                    </MenuItem>
+                  );
+                })}
               </Paper>
             </ClickAwayListener>
           </Box>

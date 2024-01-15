@@ -16,7 +16,7 @@ export const useDrawHeader = <T extends string>(props: {
   sorts?: ColumnSort<T>[];
   onSortClick?: (columnKey: T) => void;
   activeSortColumnKey?: T;
-  filters?: ColumnFilter<T>[];
+  filters?: ColumnFilter<T, any>[];
   onFilterClick?: (
     columnKey: T,
     interactablePosition: InteractablePosition,
@@ -130,6 +130,10 @@ export const useDrawHeader = <T extends string>(props: {
             (sort ? sortIconSize + iconSpacing : 0) -
             filterIconSize);
 
+        const isFilterModified =
+          columnFilter.selectedFilterItemIds.length !==
+          columnFilter.filterItems.length;
+
         args.spriteManager.drawSprite(
           "filterLight",
           "normal",
@@ -139,7 +143,9 @@ export const useDrawHeader = <T extends string>(props: {
           filterIconSize,
           {
             ...theme,
-            fgIconHeader: muiTheme.palette.gray[50],
+            fgIconHeader: isFilterModified
+              ? muiTheme.palette.blue[70]
+              : muiTheme.palette.gray[50],
           },
           1,
         );
