@@ -190,6 +190,7 @@ pub fn init_logger(log_args: &LoggingArgs) -> Result<impl Drop, TryInitError> {
         .with(error_layer)
         .try_init()?;
 
+    // We have to wait until logging is initialized before we can print the warning.
     if std::env::var("RUST_LOG").is_ok() {
         if std::env::var("HASH_GRAPH_LOG_LEVEL").is_ok() {
             warn!(
