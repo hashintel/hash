@@ -136,10 +136,52 @@ export const getFromLocalStorage = async <Key extends keyof LocalStorage>(
 };
 
 // Avoid spamming the db with updates if the user is editing settings quickly or writing a quick note
-const debouncedEntityUpdate = debounce(updateEntity, 1_000);
+const debouncedEntityUpdate = debounce(async () => {
+  const user = await getFromLocalStorage("user");
+  const settingsEntityId = user?.settingsEntityId;
+  if (!settingsEntityId) {
+    throw new Error("User somehow has no browser plugin settings entity");
+  }
+
+  const currentAutomaticConfig = await getFromLocalStorage(
+    "automaticInferenceConfig",
+  );
+  const currentManualConfig = await getFromLocalStorage(
+    "manualInferenceConfig",
+  );
+  const currentPopupTab = await getFromLocalStorage("popupTab");
+  const currentDraftNote = await getFromLocalStorage("draftQuickNote");
+  if (!currentAutomaticConfig) {
+    throw new Error(
+      "User has no automatic inference config set in local storage",
+    );
+  }
+  if (!currentManualConfig) {
+    throw new Error("User has no manual inference config set in local storage");
+  }
+  if (!currentPopupTab) {
+    throw new Error("User has no popup tab set in local storage");
+  }
+
+  const updatedProperties: BrowserPluginSettingsProperties = {
+    "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/":
+      currentAutomaticConfig,
+    "https://hash.ai/@hash/types/property-type/manual-inference-configuration/":
+      currentManualConfig,
+    "https://hash.ai/@hash/types/property-type/browser-plugin-tab/":
+      currentPopupTab,
+    "https://hash.ai/@hash/types/property-type/draft-note/": currentDraftNote,
+  };
+
+  await updateEntity({
+    entityId: settingsEntityId,
+    entityTypeId: systemEntityTypes.browserPluginSettings.entityTypeId,
+    updatedProperties,
+  });
+}, 1_000);
 
 /**
- * Set a value in local storage.
+ * Set a value in local storage. Also syncs some values to the database.
  */
 export const setInLocalStorage = async <Key extends keyof LocalStorage>(
   key: Key,
@@ -160,58 +202,7 @@ export const setInLocalStorage = async <Key extends keyof LocalStorage>(
    * Persist local storage state to the database where we want to preserve state across devices/browsers/log-outs
    */
   if (!skipDbPersist && isDbPersistedSetting(key)) {
-    const user = await getFromLocalStorage("user");
-    const settingsEntityId = user?.settingsEntityId;
-    if (!settingsEntityId) {
-      throw new Error("User somehow has no browser plugin settings entity");
-    }
-
-    const currentAutomaticConfig = await getFromLocalStorage(
-      "automaticInferenceConfig",
-    );
-    const currentManualConfig = await getFromLocalStorage(
-      "manualInferenceConfig",
-    );
-    const currentPopupTab = await getFromLocalStorage("popupTab");
-    const currentDraftNote = await getFromLocalStorage("draftQuickNote");
-    if (!currentAutomaticConfig) {
-      throw new Error(
-        "User has no automatic inference config set in local storage",
-      );
-    }
-    if (!currentManualConfig) {
-      throw new Error(
-        "User has no manual inference config set in local storage",
-      );
-    }
-    if (!currentPopupTab) {
-      throw new Error("User has no popup tab set in local storage");
-    }
-
-    const newProperties: BrowserPluginSettingsProperties = {
-      "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/":
-        key === "automaticInferenceConfig"
-          ? (value as LocalStorage["automaticInferenceConfig"])
-          : currentAutomaticConfig,
-      "https://hash.ai/@hash/types/property-type/manual-inference-configuration/":
-        key === "manualInferenceConfig"
-          ? (value as LocalStorage["manualInferenceConfig"])
-          : currentManualConfig,
-      "https://hash.ai/@hash/types/property-type/browser-plugin-tab/":
-        key === "popupTab" && typeof value === "string"
-          ? value
-          : currentPopupTab,
-      "https://hash.ai/@hash/types/property-type/draft-note/":
-        key === "draftQuickNote" && typeof value === "string"
-          ? value
-          : currentDraftNote,
-    };
-
-    await debouncedEntityUpdate({
-      entityId: settingsEntityId,
-      entityTypeId: systemEntityTypes.browserPluginSettings.entityTypeId,
-      updatedProperties: newProperties,
-    });
+    await debouncedEntityUpdate();
   }
 };
 
