@@ -75,7 +75,7 @@ export const updateEntityEmbeddings = async (
           hasRightEntity: { incoming: 0, outgoing: 0 },
         },
         temporalAxes,
-        includeDrafts: false,
+        includeDrafts: true,
       },
     });
 
