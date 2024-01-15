@@ -160,6 +160,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     textInputFormRef.current.requestSubmit();
     if (textInputFormRef.current.checkValidity()) {
       document.body.classList.remove(GRID_CLICK_IGNORE_CLASS);
+      onFinishedEditing(latestValueCellRef.current);
       document.removeEventListener("click", validationHandler);
     }
   };
