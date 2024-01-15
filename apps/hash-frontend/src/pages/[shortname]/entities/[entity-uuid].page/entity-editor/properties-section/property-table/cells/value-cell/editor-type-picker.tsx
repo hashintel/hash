@@ -15,7 +15,7 @@ const ExpectedTypeButton = ({
 }) => {
   const editorSpec = getEditorSpecs(
     guessEditorTypeFromExpectedType(expectedType),
-    expectedType.title,
+    expectedType,
   );
 
   const { description, title } = expectedType;
