@@ -131,13 +131,16 @@ export const useDrawHeader = <T extends string>(props: {
             filterIconSize);
 
         args.spriteManager.drawSprite(
-          "bpCheck",
+          "filterLight",
           "normal",
           ctx,
           columnFilterX,
           centerY - filterIconSize / 2,
           filterIconSize,
-          theme,
+          {
+            ...theme,
+            fgIconHeader: muiTheme.palette.gray[50],
+          },
           1,
         );
 
