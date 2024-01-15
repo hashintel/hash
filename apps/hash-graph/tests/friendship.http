@@ -2347,7 +2347,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     });
 %}
 
-### Get all entities by eEmbedding "My name is Bob"
+### Get all entities by embedding "My name is Bob"
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}

@@ -113,12 +113,12 @@ pub fn init_logger(log_args: &LoggingArgs) -> Result<impl Drop, TryInitError> {
 
     let filter = log_level.map_or_else(
         || {
-            std::env::var("RUST_LOG").map_or_else(
+            std::env::var("HASH_GRAPH_LOG_LEVEL").map_or_else(
                 |_| {
                     if cfg!(debug_assertions) {
                         EnvFilter::default().add_directive(Directive::from(LevelFilter::DEBUG))
                     } else {
-                        EnvFilter::default().add_directive(Directive::from(LevelFilter::WARN))
+                        EnvFilter::default().add_directive(Directive::from(LevelFilter::INFO))
                     }
                 },
                 EnvFilter::new,
