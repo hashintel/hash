@@ -6,7 +6,6 @@ use authorization::{
 use clap::Parser;
 use error_stack::{Result, ResultExt};
 use graph::{
-    logging::{init_logger, LoggingArgs},
     snapshot::{SnapshotEntry, SnapshotStore},
     store::{DatabaseConnectionInfo, PostgresStorePool, StorePool},
 };
@@ -39,9 +38,6 @@ pub struct SnapshotArgs {
     pub command: SnapshotCommand,
 
     #[clap(flatten)]
-    pub log_config: LoggingArgs,
-
-    #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
 
     /// The host the Spice DB server is listening at.
@@ -58,7 +54,6 @@ pub struct SnapshotArgs {
 }
 
 pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
-    let _log_guard = init_logger(&args.log_config);
     SnapshotEntry::install_error_stack_hook();
 
     let pool = PostgresStorePool::new(&args.db_info, NoTls)

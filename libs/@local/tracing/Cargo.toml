@@ -1,0 +1,22 @@
+[package]
+name = "hash-tracing"
+authors.workspace = true
+edition.workspace = true
+version = "0.0.0"
+publish = false
+
+[dependencies]
+opentelemetry_sdk = { version = "0.21.2", features = ["rt-tokio"] }
+opentelemetry = "0.21.0"
+opentelemetry-otlp = "0.14.0"
+sentry = { version = "0.32.1", features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls"], default-features = false }
+tracing = { workspace = true }
+tracing-appender = "0.2.3"
+tracing-error = "0.2.0"
+tracing-opentelemetry = "0.22.0"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
+
+clap = { version = "4.4.17", default-features = false, optional = true }
+
+[features]
+clap = ["dep:clap"]

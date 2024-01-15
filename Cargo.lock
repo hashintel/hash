@@ -421,9 +421,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.4.16"
+version = "4.4.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58e54881c004cec7895b0068a0a954cd5d62da01aef83fa35b1e594497bf5445"
+checksum = "80932e03c33999b9235edb8655bc9df3204adc9887c2f95b50cb1deb9fd54253"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -431,9 +431,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.4.16"
+version = "4.4.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59cb82d7f531603d2fd1f507441cdd35184fa81beff7bd489570de7f773460bb"
+checksum = "d6c0db58c659eef1c73e444d298c27322a1b52f6927d2ad470c0c0f96fa7b8fa"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1067,9 +1067,6 @@ dependencies = [
  "graph-types",
  "hash-status",
  "mime",
- "opentelemetry 0.21.0",
- "opentelemetry-otlp",
- "opentelemetry_sdk 0.21.2",
  "postgres-types",
  "refinery",
  "regex",
@@ -1086,10 +1083,6 @@ dependencies = [
  "tokio-serde",
  "tokio-util",
  "tracing",
- "tracing-appender",
- "tracing-error",
- "tracing-opentelemetry 0.22.0",
- "tracing-subscriber",
  "type-fetcher",
  "type-system",
  "utoipa",
@@ -1257,11 +1250,11 @@ dependencies = [
  "graph",
  "graph-api",
  "graph-types",
+ "hash-tracing",
  "mimalloc",
  "regex",
  "reqwest",
  "semver",
- "sentry",
  "serde_json",
  "tarpc",
  "temporal-client 0.0.0",
@@ -1284,6 +1277,22 @@ dependencies = [
  "error-stack",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "hash-tracing"
+version = "0.0.0"
+dependencies = [
+ "clap",
+ "opentelemetry 0.21.0",
+ "opentelemetry-otlp",
+ "opentelemetry_sdk 0.21.2",
+ "sentry",
+ "tracing",
+ "tracing-appender",
+ "tracing-error",
+ "tracing-opentelemetry 0.22.0",
+ "tracing-subscriber",
 ]
 
 [[package]]
