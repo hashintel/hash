@@ -10,7 +10,7 @@ import {
   PopperProps,
   Typography,
 } from "@mui/material";
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent, useEffect, useRef, useState } from "react";
 
 import { MenuItem } from "../../../shared/ui";
 import { ColumnFilter } from "./filtering";
@@ -21,6 +21,24 @@ export const ColumnFilterMenu: FunctionComponent<
     onClose: () => void;
   } & PopperProps
 > = ({ columnFilter, onClose, open, ...popoverProps }) => {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+
+    if (wrapper) {
+      const onMouseMove = (event: MouseEvent) => {
+        event.stopPropagation();
+      };
+
+      wrapper.addEventListener("mousemove", onMouseMove);
+
+      return () => {
+        wrapper.removeEventListener("mousemove", onMouseMove);
+      };
+    }
+  }, [wrapperRef]);
+
   const [previousColumnFilter, setPreviousColumnFilter] =
     useState<ColumnFilter<string, any>>();
 
@@ -52,7 +70,7 @@ export const ColumnFilterMenu: FunctionComponent<
                 }
               }}
             >
-              <Paper sx={{ padding: 0.25 }}>
+              <Paper ref={wrapperRef} sx={{ padding: 0.25 }}>
                 <Typography
                   sx={{
                     marginTop: 1,
