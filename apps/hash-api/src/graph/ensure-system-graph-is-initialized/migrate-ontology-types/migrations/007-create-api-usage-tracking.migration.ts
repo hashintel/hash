@@ -4,7 +4,6 @@ import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-pat
 import { logger } from "../../../../logger";
 import { createEntity } from "../../../knowledge/primitive/entity";
 import { getOrgByShortname } from "../../../knowledge/system-types/org";
-import { getEntityTypeAuthorizationRelationships } from "../../../ontology/primitive/entity-type";
 import { MigrationFunction } from "../types";
 import {
   anyUserInstantiator,

@@ -39,8 +39,8 @@ This is handled by `upgradeEntitiesToNewTypeVersion`. Things to note about this:
 1. It retrieves all users and orgs, and then cycles through them, using the web-scoped machine bot for each to retrieve
    and update the entities of that type in that user or org's web. **This may break** if we ever create – or allow users to create –
    entities of system types which the web-scoped machine bot cannot see.
-2. If property changes are also required, you must update the `upgradeEntitiesToNewTypeVersion` function to handle them.
-3. The entities to update are matched on the type's base URL. It is assumed that all entities of system types are on the same version,
+1. If property changes are also required, you must update the `upgradeEntitiesToNewTypeVersion` function to handle them.
+1. The entities to update are matched on the type's base URL. It is assumed that all entities of system types are on the same version,
    and all should be updated to the latest version.
 
 ## Migration state
@@ -64,7 +64,7 @@ It is used to be able to retrieve type ids of system types, e.g. to create entit
 To update it following a migration:
 
 1. The Graph must be running
-2. Run `yarn generate-ontology-type-ids`
+1. Run `yarn generate-ontology-type-ids`
 
 ### `system-types/*`
 
@@ -74,5 +74,5 @@ when creating or reading them.
 To update them following a migration:
 
 1. You must have updated `ontology-type-ids.ts`, which is where the system types to generate are taken from
-2. All of (a) the Graph, (b) the Node API, and (c) the frontend must be running
-3. Run `yarn generate-system-types`
+1. All of (a) the Graph, (b) the Node API, and (c) the frontend must be running
+1. Run `yarn generate-system-types`
