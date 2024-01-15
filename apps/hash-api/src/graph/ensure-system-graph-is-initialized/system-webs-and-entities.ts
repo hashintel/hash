@@ -129,7 +129,7 @@ export const getOrCreateOwningAccountGroupId = async (
   };
 };
 
-export const createSystemWebEntities = async ({
+export const ensureSystemWebEntitiesExist = async ({
   context,
   name,
   webShortname,
@@ -235,7 +235,12 @@ export const ensureSystemEntitiesExist = async (params: {
      *
      *  For other system webs, this may have an effect if it the first migration run the web has been seen/enabled in.
      */
-    await createSystemWebEntities({ context, name, webShortname, websiteUrl });
+    await ensureSystemWebEntitiesExist({
+      context,
+      name,
+      webShortname,
+      websiteUrl,
+    });
   }
 
   const authentication = { actorId: systemAccountId };

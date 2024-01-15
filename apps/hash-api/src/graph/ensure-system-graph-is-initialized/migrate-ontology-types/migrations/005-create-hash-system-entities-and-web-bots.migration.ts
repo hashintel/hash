@@ -10,7 +10,7 @@ import { logger } from "../../../../logger";
 import { createHashInstance } from "../../../knowledge/system-types/hash-instance";
 import { systemAccountId } from "../../../system-account";
 import {
-  createSystemWebEntities,
+  ensureSystemWebEntitiesExist,
   owningWebs,
 } from "../../system-webs-and-entities";
 import { MigrationFunction } from "../types";
@@ -36,7 +36,7 @@ const migrate: MigrationFunction = async ({
    * 1. The HASH org entity is required to create the HASH Instance entity in Step 2
    * 2. The 'hash' web machine actor is used in createWebMachineActor, required in Step 3
    */
-  await createSystemWebEntities({
+  await ensureSystemWebEntitiesExist({
     context,
     name,
     websiteUrl,
