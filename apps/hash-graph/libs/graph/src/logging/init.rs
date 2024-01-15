@@ -113,6 +113,8 @@ pub fn init_logger(log_args: &LoggingArgs) -> Result<impl Drop, TryInitError> {
 
     let filter = log_level.map_or_else(
         || {
+            // Both environment variables are supported but `HASH_GRAPH_LOG_LEVEL` takes precedence
+            // over `RUST_LOG`. If `RUST_LOG` is set we emit a warning at the end of this function.
             std::env::var("HASH_GRAPH_LOG_LEVEL")
                 .or_else(|_| std::env::var("RUST_LOG"))
                 .map_or_else(
