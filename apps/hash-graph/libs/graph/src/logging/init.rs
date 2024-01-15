@@ -7,7 +7,7 @@ use opentelemetry_sdk::{
     trace::{RandomIdGenerator, Sampler, Tracer},
     Resource,
 };
-use tracing::{Event, Subscriber};
+use tracing::{warn, Event, Subscriber};
 use tracing_opentelemetry::OpenTelemetryLayer;
 use tracing_subscriber::{
     filter::{Directive, LevelFilter},
@@ -113,16 +113,20 @@ pub fn init_logger(log_args: &LoggingArgs) -> Result<impl Drop, TryInitError> {
 
     let filter = log_level.map_or_else(
         || {
-            std::env::var("RUST_LOG").map_or_else(
-                |_| {
-                    if cfg!(debug_assertions) {
-                        EnvFilter::default().add_directive(Directive::from(LevelFilter::DEBUG))
-                    } else {
-                        EnvFilter::default().add_directive(Directive::from(LevelFilter::WARN))
-                    }
-                },
-                EnvFilter::new,
-            )
+            // Both environment variables are supported but `HASH_GRAPH_LOG_LEVEL` takes precedence
+            // over `RUST_LOG`. If `RUST_LOG` is set we emit a warning at the end of this function.
+            std::env::var("HASH_GRAPH_LOG_LEVEL")
+                .or_else(|_| std::env::var("RUST_LOG"))
+                .map_or_else(
+                    |_| {
+                        if cfg!(debug_assertions) {
+                            EnvFilter::default().add_directive(Directive::from(LevelFilter::DEBUG))
+                        } else {
+                            EnvFilter::default().add_directive(Directive::from(LevelFilter::INFO))
+                        }
+                    },
+                    EnvFilter::new,
+                )
         },
         |log_level| EnvFilter::default().add_directive(Directive::from(log_level)),
     );
@@ -187,6 +191,18 @@ pub fn init_logger(log_args: &LoggingArgs) -> Result<impl Drop, TryInitError> {
         .with(json_file_layer)
         .with(error_layer)
         .try_init()?;
+
+    // We have to wait until logging is initialized before we can print the warning.
+    if std::env::var("RUST_LOG").is_ok() {
+        if std::env::var("HASH_GRAPH_LOG_LEVEL").is_ok() {
+            warn!(
+                "`HASH_GRAPH_LOG_LEVEL` and `RUST_LOG` are set, `HASH_GRAPH_LOG_LEVEL` has been \
+                 used to determine the logging level."
+            );
+        } else {
+            warn!("`RUST_LOG` is set, please use `HASH_GRAPH_LOG_LEVEL` instead");
+        }
+    }
 
     Ok(json_file_guard)
 }

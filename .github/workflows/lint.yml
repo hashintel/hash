@@ -115,13 +115,13 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@da1493208a5b2c79ad2d7dff9fd50693851da51a # v2.24.1
+        uses: taiki-e/install-action@98cdbf3892eb5b31fc9b26666699439be4d9d88a # v2.25.1
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
       - name: Cache Rust dependencies
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: Swatinem/rust-cache@a22603398250b864f7190077025cf752307154dc # v2.7.2
+        uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}

@@ -1,15 +1,20 @@
-use std::fmt;
+use std::{fmt, fmt::Write};
 
-use crate::store::postgres::query::{Condition, Transpile};
+use crate::store::postgres::query::{Condition, Expression, Ordering, Transpile};
 
 #[derive(Debug, Default, PartialEq, Eq, Hash)]
 pub struct WhereExpression {
     conditions: Vec<Condition>,
+    cursor: Vec<(Expression, Expression, Ordering)>,
 }
 
 impl WhereExpression {
     pub fn add_condition(&mut self, condition: Condition) {
         self.conditions.push(condition);
+    }
+
+    pub fn add_cursor(&mut self, lhs: Expression, rhs: Expression, ordering: Ordering) {
+        self.cursor.push((lhs, rhs, ordering));
     }
 
     pub fn len(&self) -> usize {
@@ -23,16 +28,47 @@ impl WhereExpression {
 
 impl Transpile for WhereExpression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        if self.conditions.is_empty() {
+        if self.conditions.is_empty() && self.cursor.is_empty() {
             return Ok(());
         }
-
         fmt.write_str("WHERE ")?;
+
         for (idx, condition) in self.conditions.iter().enumerate() {
             if idx > 0 {
                 fmt.write_str(" AND ")?;
             }
             condition.transpile(fmt)?;
+        }
+
+        if !self.cursor.is_empty() {
+            fmt.write_str(" AND (")?;
+        }
+        for current in (0..self.cursor.len()).rev() {
+            for (idx, (lhs, rhs, ordering)) in self.cursor.iter().enumerate() {
+                if idx > 0 {
+                    fmt.write_str(" AND ")?;
+                }
+                if idx == current {
+                    lhs.transpile(fmt)?;
+                    match ordering {
+                        Ordering::Ascending => fmt.write_str(" > ")?,
+                        Ordering::Descending => fmt.write_str(" < ")?,
+                    }
+                    rhs.transpile(fmt)?;
+                    break;
+                }
+
+                lhs.transpile(fmt)?;
+                fmt.write_str(" = ")?;
+                rhs.transpile(fmt)?;
+            }
+
+            if current > 0 {
+                fmt.write_str(" OR ")?;
+            }
+        }
+        if !self.cursor.is_empty() {
+            fmt.write_char(')')?;
         }
 
         Ok(())

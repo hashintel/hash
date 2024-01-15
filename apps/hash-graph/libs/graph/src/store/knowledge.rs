@@ -143,7 +143,7 @@ pub trait EntityStore: crud::Read<Entity> {
         query: &StructuralQuery<Entity>,
         after: Option<&EntityVertexId>,
         limit: Option<usize>,
-    ) -> Result<Subgraph, QueryError>;
+    ) -> Result<(Subgraph, Option<EntityVertexId>), QueryError>;
 
     /// Update an existing [`Entity`].
     ///

@@ -22,7 +22,7 @@ impl TemporalClient {
     pub async fn start_update_entity_embeddings_workflow(
         &self,
         actor_id: AccountId,
-        entity: Entity,
+        entities: &[Entity],
     ) -> Result<String, Report<WorkflowError>> {
         #[derive(Serialize)]
         #[serde(rename_all = "camelCase")]
@@ -32,9 +32,9 @@ impl TemporalClient {
 
         #[derive(Serialize)]
         #[serde(rename_all = "camelCase")]
-        struct UpdateEntityEmbeddingsParams {
+        struct UpdateEntityEmbeddingsParams<'a> {
             authentication: AuthenticationContext,
-            entity: Entity,
+            entities: &'a [Entity],
         }
 
         Ok(self
@@ -47,7 +47,7 @@ impl TemporalClient {
                     )]),
                     data: serde_json::to_vec(&UpdateEntityEmbeddingsParams {
                         authentication: AuthenticationContext { actor_id },
-                        entity,
+                        entities,
                     })
                     .change_context(WorkflowError("updateEntityEmbeddings"))?,
                 }],

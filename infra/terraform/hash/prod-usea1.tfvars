@@ -10,14 +10,16 @@ kratos_env_vars = [
   { name = "COOKIES_DOMAIN", secret = false, value = "hash.ai" },
   { name = "COOKIES_SAME_SITE", secret = false, value = "Lax" },
   { name = "SERVE_PUBLIC_BASE_URL", secret = false, value = "https://kratos.hash.ai" },
-  { name  = "SERVE_PUBLIC_CORS_ALLOWED_HEADERS", secret = false,
+  {
+    name  = "SERVE_PUBLIC_CORS_ALLOWED_HEADERS", secret = false,
     value = "Authorization,Content-Type,X-Session-Token,X-CSRF-Token"
   },
   { name = "SERVE_PUBLIC_CORS_ALLOWED_ORIGINS", secret = false, value = "https://app.hash.ai" },
   { name = "SELFSERVICE_DEFAULT_BROWSER_RETURN_URL", secret = false, value = "https://app.hash.ai/" },
   { name = "SELFSERVICE_ALLOWED_RETURN_URLS", secret = false, value = "https://app.hash.ai" },
   { name = "SELFSERVICE_FLOWS_ERROR_UI_URL", secret = false, value = "https://app.hash.ai/error" },
-  { name  = "SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL", secret = false,
+  {
+    name  = "SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL", secret = false,
     value = "https://app.hash.ai/login"
   },
   { name = "SELFSERVICE_FLOWS_LOGIN_UI_URL", secret = false, value = "https://app.hash.ai/login" },
@@ -32,12 +34,12 @@ kratos_env_vars = [
 ]
 
 hash_graph_env_vars = [
-  { name  = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN", secret = false,
+  {
+    name  = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN", secret = false,
     value = "(?:https://hash\\.ai|https://app\\.hash\\.ai)/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type))/[\\w\\-_%]+/"
   },
-  { name = "HASH_GRAPH_LOG_FORMAT", secret = false, value = "pretty" },
-  { name  = "RUST_LOG", secret = false, value = "graph=info,hash-graph=info,tokio_postgres=info,hash_type_fetcher=info"
-  },
+  { name = "HASH_GRAPH_LOG_FORMAT", secret = false, value = "json" },
+  { name = "HASH_GRAPH_LOG_LEVEL", secret = false, value = "info" },
   { name = "RUST_BACKTRACE", secret = false, value = "1" }
 ]
 

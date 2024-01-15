@@ -1155,7 +1155,8 @@ impl<'p> Column<'p> {
             Self::PropertyTypes(column) => column.nullable(),
             Self::EntityTypes(column) => column.nullable(),
             Self::EntityEditions(column) => column.nullable(),
-            Self::EntityHasLeftEntity(_)
+            Self::EntityEmbeddings(_)
+            | Self::EntityHasLeftEntity(_)
             | Self::EntityHasRightEntity(_)
             | Self::OntologyOwnedMetadata(_)
             | Self::OntologyExternalMetadata(_) => true,
