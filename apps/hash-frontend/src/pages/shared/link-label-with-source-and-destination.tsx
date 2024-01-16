@@ -1,6 +1,7 @@
 import { extractVersion } from "@blockprotocol/type-system";
 import {
   AsteriskRegularIcon,
+  Chip,
   EyeSlashIconRegular,
 } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
@@ -8,12 +9,14 @@ import {
   Entity,
   EntityPropertyValue,
   EntityRootType,
+  EntityTypeWithMetadata,
   extractEntityUuidFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
 import {
   getEntityRevision,
   getEntityTypeById,
+  getOutgoingLinkAndTargetEntities,
   getPropertyTypeById,
 } from "@local/hash-subgraph/stdlib";
 import {
@@ -23,6 +26,7 @@ import {
 import {
   Box,
   BoxProps,
+  chipClasses,
   styled,
   Tooltip,
   Typography,
@@ -181,20 +185,126 @@ const LeftOrRightEntity: FunctionComponent<{
       .flat();
   }, [entity, subgraph, entityType]);
 
+  const outgoingLinksByLinkEntityType = useMemo(() => {
+    if (!entity) {
+      return undefined;
+    }
+
+    return getOutgoingLinkAndTargetEntities(
+      subgraph,
+      entity.metadata.recordId.entityId,
+    ).reduce<
+      {
+        linkEntityType: EntityTypeWithMetadata;
+        rightEntities: Entity[];
+      }[]
+    >(
+      (
+        prev,
+        { linkEntity: linkEntityRevisions, rightEntity: rightEntityRevisions },
+      ) => {
+        const linkEntity = linkEntityRevisions[0]!;
+        const rightEntity = rightEntityRevisions[0]!;
+
+        const linkEntityTypeId = linkEntity.metadata.entityTypeId;
+        const linkEntityType = getEntityTypeById(subgraph, linkEntityTypeId);
+
+        if (!linkEntityType) {
+          return prev;
+        }
+
+        const linkEntityTypeIndex = prev.findIndex(
+          (grouping) =>
+            grouping.linkEntityType.schema.$id === linkEntityType.schema.$id,
+        );
+
+        return linkEntityTypeIndex < 0
+          ? [
+              ...prev,
+              {
+                linkEntityType,
+                rightEntities: [rightEntity],
+              },
+            ]
+          : [
+              ...prev.slice(0, linkEntityTypeIndex),
+              {
+                linkEntityType,
+                rightEntities: [
+                  ...prev[linkEntityTypeIndex]!.rightEntities,
+                  rightEntity,
+                ],
+              },
+              ...prev.slice(linkEntityTypeIndex + 1),
+            ];
+      },
+      [],
+    );
+  }, [entity, subgraph]);
+
   const tooltipContent =
-    entityProperties && entityProperties.length > 0 ? (
+    (entityProperties && entityProperties.length > 0) ||
+    (outgoingLinksByLinkEntityType &&
+      outgoingLinksByLinkEntityType.length > 0) ? (
       <Box>
-        {entityProperties.map(({ propertyType, stringifiedPropertyValue }) => (
-          <Typography
-            key={propertyType.schema.$id}
-            sx={{
-              color: ({ palette }) => palette.common.white,
-            }}
-          >
-            <strong>{propertyType.schema.title}:</strong>{" "}
-            {stringifiedPropertyValue}
-          </Typography>
-        ))}
+        {[...(entityProperties ?? []), ...(outgoingLinksByLinkEntityType ?? [])]
+          .sort((a, b) => {
+            const aTitle =
+              "propertyType" in a
+                ? a.propertyType.schema.title
+                : a.linkEntityType.schema.title;
+
+            const bTitle =
+              "propertyType" in b
+                ? b.propertyType.schema.title
+                : b.linkEntityType.schema.title;
+
+            return aTitle.localeCompare(bTitle);
+          })
+          .map((propertyOrOutgoingLink) => (
+            <Typography
+              key={
+                "propertyType" in propertyOrOutgoingLink
+                  ? propertyOrOutgoingLink.propertyType.schema.$id
+                  : propertyOrOutgoingLink.linkEntityType.schema.$id
+              }
+              sx={{
+                color: ({ palette }) => palette.common.white,
+                marginBottom: 0.5,
+              }}
+            >
+              <strong>
+                {"propertyType" in propertyOrOutgoingLink
+                  ? propertyOrOutgoingLink.propertyType.schema.title
+                  : propertyOrOutgoingLink.linkEntityType.schema.title}
+                :
+              </strong>{" "}
+              {"propertyType" in propertyOrOutgoingLink
+                ? propertyOrOutgoingLink.stringifiedPropertyValue
+                : propertyOrOutgoingLink.rightEntities.map((rightEntity) => {
+                    const rightEntityLabel = generateEntityLabel(
+                      subgraph,
+                      rightEntity,
+                    );
+
+                    return (
+                      <Chip
+                        key={rightEntity.metadata.recordId.entityId}
+                        label={rightEntityLabel}
+                        sx={{
+                          borderColor: ({ palette }) => palette.gray[30],
+                          [`.${chipClasses.label}`]: {
+                            paddingY: 0.25,
+                          },
+                          "&:not(:last-of-type)": {
+                            marginRight: 1,
+                          },
+                        }}
+                      />
+                    );
+                  })}
+            </Typography>
+          ))}
       </Box>
     ) : null;
 
