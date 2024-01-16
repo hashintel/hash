@@ -71,7 +71,7 @@ export const entityTypedef = gql`
   }
 
   union EntityAuthorizationSubject =
-      AccountGroupAuthorizationSubject
+    | AccountGroupAuthorizationSubject
     | AccountAuthorizationSubject
     | PublicAuthorizationSubject
 

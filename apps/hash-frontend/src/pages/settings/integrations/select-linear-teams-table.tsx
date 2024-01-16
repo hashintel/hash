@@ -317,11 +317,10 @@ export const SelectLinearTeamsTable: FunctionComponent<{
                     <SelectWorkspaces
                       selectedWorkspaceEntityIds={possibleWorkspaces
                         .map(({ entity }) => entity.metadata.recordId.entityId)
-                        .filter(
-                          (entityId) =>
-                            linearOrganization.teams
-                              .find(({ id }) => id === linearTeamId)
-                              ?.workspaceEntityIds.includes(entityId),
+                        .filter((entityId) =>
+                          linearOrganization.teams
+                            .find(({ id }) => id === linearTeamId)
+                            ?.workspaceEntityIds.includes(entityId),
                         )}
                       possibleWorkspaces={possibleWorkspaces}
                       setSelectedWorkspaceEntityIds={handleSelectWorkspaceChange(

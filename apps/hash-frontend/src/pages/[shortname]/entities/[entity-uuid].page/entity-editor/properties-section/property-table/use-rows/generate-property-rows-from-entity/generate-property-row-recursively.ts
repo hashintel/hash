@@ -73,8 +73,10 @@ export const generatePropertyRowRecursively = ({
       ? propertyRefSchema.$ref
       : propertyRefSchema.items.$ref;
 
-  const propertyType = getPropertyTypeById(entitySubgraph, propertyTypeId)
-    ?.schema;
+  const propertyType = getPropertyTypeById(
+    entitySubgraph,
+    propertyTypeId,
+  )?.schema;
   if (!propertyType) {
     throw new Error(`Property type ${propertyTypeId} not found in subgraph`);
   }

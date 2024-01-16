@@ -34,8 +34,8 @@ export const useActors = (params: {
 
   const { users, loading: usersLoading } = useUsers();
 
-  const userActors = users?.filter(
-    (user) => accountIds?.includes(user.accountId),
+  const userActors = users?.filter((user) =>
+    accountIds?.includes(user.accountId),
   );
 
   const { data: machineActorsData, loading: machinesLoading } = useQuery<
