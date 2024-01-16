@@ -121,24 +121,6 @@ export const createMachineActorEntity = async (
     systemAccountId: AccountId;
   },
 ): Promise<EntityMetadata> => {
-  // Give the machine actor permissions to generate graph change notifications
-  await context.graphApi.modifyEntityTypeAuthorizationRelationships(
-    systemAccountId,
-    [
-      {
-        operation: "touch",
-        resource: systemEntityTypes.graphChangeNotification.entityTypeId,
-        relationAndSubject: {
-          subject: {
-            kind: "account",
-            subjectId: machineAccountId,
-          },
-          relation: "instantiator",
-        },
-      },
-    ],
-  );
-
   // Give the machine actor permissions to instantiate its own entity (entities of type Machine)
   await context.graphApi.modifyEntityTypeAuthorizationRelationships(
     systemAccountId,
@@ -208,11 +190,6 @@ export const createMachineActorEntity = async (
   return metadata;
 };
 
-const entityTypeIdsWebMachinesCanInstantiate = [
-  systemEntityTypes.commentNotification.entityTypeId,
-  systemEntityTypes.mentionNotification.entityTypeId,
-];
-
 /**
  * 1. Creates an account for a machine and grants it ownership permissions for the specified web
  * 2. Grants it the permissions to create some special system types
@@ -250,22 +227,6 @@ export const createWebMachineActor = async (
   const systemAccountId = await getMachineActorId(context, authentication, {
     identifier: "hash",
   });
-
-  /** Grant permissions to the web machine actor to create entities that normal users cannot */
-  await graphApi.modifyEntityTypeAuthorizationRelationships(
-    systemAccountId,
-    entityTypeIdsWebMachinesCanInstantiate.map((entityTypeId) => ({
-      operation: "create",
-      resource: entityTypeId,
-      relationAndSubject: {
-        subject: {
-          kind: "account",
-          subjectId: machineAccountId,
-        },
-        relation: "instantiator",
-      },
-    })),
-  );
 
   await createMachineActorEntity(context, {
     identifier: `system-${ownedById}`,
