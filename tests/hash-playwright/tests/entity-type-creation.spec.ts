@@ -75,7 +75,13 @@ test("user can create entity type", async ({ page }) => {
 
   await expect(page.locator('[data-testid="type-selector"]')).not.toBeVisible();
 
-  // Publish an update to the entity type
+  // Publish the entity type
 
   await page.click('[data-testid="editbar-confirm"]');
+
+  const ontologyChipPath = await page
+    .locator('[data-testid="ontology-chip-path"]')
+    .innerText();
+
+  expect(ontologyChipPath.endsWith("v/1")).toBeTruthy();
 });
