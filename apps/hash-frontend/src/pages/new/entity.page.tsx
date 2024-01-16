@@ -65,7 +65,10 @@ const Page: NextPageWithLayout = () => {
   const { activeWorkspace } = useContext(WorkspaceContext);
   const shouldBeCreatingEntity = entityTypeId?.type === "Ok";
 
-  if (!activeWorkspace || typeof isLinkEntity === "undefined") {
+  if (
+    !activeWorkspace ||
+    (entityTypeId?.type === "Ok" && typeof isLinkEntity === "undefined")
+  ) {
     return <EntityPageLoadingState />;
   }
 
