@@ -264,15 +264,21 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     }
                 };
 
+                let entity_id = EntityId {
+                    owned_by_id: row.get(owned_by_id_index),
+                    entity_uuid: row.get(entity_uuid_index),
+                };
+
+                if let Ok(distance) = row.try_get::<_, f64>("distance") {
+                    tracing::trace!(%entity_id, %distance, "Entity embedding was calculated");
+                }
+
                 Ok(Entity {
                     properties: row.get(properties_index),
                     link_data,
                     metadata: EntityMetadata {
                         record_id: EntityRecordId {
-                            entity_id: EntityId {
-                                owned_by_id: row.get(owned_by_id_index),
-                                entity_uuid: row.get(entity_uuid_index),
-                            },
+                            entity_id,
                             edition_id: row.get(edition_id_index),
                         },
                         temporal_versioning: EntityTemporalMetadata {

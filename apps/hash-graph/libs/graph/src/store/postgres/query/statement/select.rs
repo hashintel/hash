@@ -1,8 +1,9 @@
 use std::fmt::{self, Write};
 
 use crate::store::postgres::query::{
-    expression::OrderByExpression, AliasedColumn, AliasedTable, JoinExpression, SelectExpression,
-    Transpile, WhereExpression, WithExpression,
+    expression::{GroupByExpression, OrderByExpression},
+    AliasedColumn, AliasedTable, JoinExpression, SelectExpression, Transpile, WhereExpression,
+    WithExpression,
 };
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -14,6 +15,7 @@ pub struct SelectStatement {
     pub joins: Vec<JoinExpression>,
     pub where_expression: WhereExpression,
     pub order_by_expression: OrderByExpression,
+    pub group_by_expression: GroupByExpression,
     pub limit: Option<usize>,
 }
 
@@ -68,6 +70,11 @@ impl Transpile for SelectStatement {
         if !self.order_by_expression.is_empty() {
             fmt.write_char('\n')?;
             self.order_by_expression.transpile(fmt)?;
+        }
+
+        if !self.group_by_expression.columns.is_empty() {
+            fmt.write_char('\n')?;
+            self.group_by_expression.transpile(fmt)?;
         }
 
         if let Some(limit) = self.limit {
@@ -1011,7 +1018,13 @@ mod tests {
                 *,
                 "entity_embeddings_0_1_0"."distance"
               FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-              LEFT OUTER JOIN (SELECT *, "entity_embeddings_0_0_0"."embedding" <=> $1 AS "distance" FROM "entity_embeddings" AS "entity_embeddings_0_0_0")
+              LEFT OUTER JOIN
+                (SELECT
+                    "entity_embeddings_0_0_0"."web_id",
+                    "entity_embeddings_0_0_0"."entity_uuid",
+                    MIN("entity_embeddings_0_0_0"."embedding" <=> $1) AS "distance"
+                  FROM "entity_embeddings" AS "entity_embeddings_0_0_0"
+                  GROUP BY "entity_embeddings_0_0_0"."web_id", "entity_embeddings_0_0_0"."entity_uuid")
                  AS "entity_embeddings_0_1_0"
                  ON "entity_embeddings_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
                 AND "entity_embeddings_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
