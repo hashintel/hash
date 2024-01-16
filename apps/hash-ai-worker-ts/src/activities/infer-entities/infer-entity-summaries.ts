@@ -190,7 +190,7 @@ export const inferEntitySummaries = async (params: {
         }
 
         if (functionName === "could_not_infer_entities") {
-          if (Object.keys(inferenceState.resultsByTemporaryId).length > 0) {
+          if (Object.keys(inferenceState.proposedEntitySummaries).length > 0) {
             return {
               code: StatusCode.Ok,
               contents: [inferenceState],
