@@ -55,7 +55,7 @@ export const createRenderChangeTypeCell = (
 
       const editorSpec = getEditorSpecs(
         guessEditorTypeFromExpectedType(currentType),
-        currentType.title,
+        currentType,
       );
 
       const drawTheLeftChip = () =>

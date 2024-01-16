@@ -159,7 +159,7 @@ export const useCreateGetCellContent = (
                 chips: row.expectedTypes.map((type) => {
                   const editorSpec = getEditorSpecs(
                     guessEditorTypeFromExpectedType(type),
-                    type.title,
+                    type,
                   );
 
                   return {
