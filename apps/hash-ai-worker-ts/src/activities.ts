@@ -1,5 +1,7 @@
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
+  CreateEmbeddingsParams,
+  CreateEmbeddingsReturn,
   InferEntitiesCallerParams,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
@@ -12,7 +14,10 @@ import { StatusCode } from "@local/status";
 import { ApplicationFailure } from "@temporalio/activity";
 import { CreateEmbeddingResponse } from "openai/resources";
 
-import { createEmbeddings } from "./activities/embeddings";
+import {
+  createEmbeddings,
+  createEntityEmbeddings,
+} from "./activities/embeddings";
 import { inferEntities } from "./activities/infer-entities";
 
 export { createGraphActivities } from "./activities/graph";
@@ -33,13 +38,19 @@ export const createAiActivities = ({
     return status;
   },
 
-  async createEmbeddingsActivity(params: {
+  async createEmbeddingsActivity(
+    params: CreateEmbeddingsParams,
+  ): Promise<CreateEmbeddingsReturn> {
+    return createEmbeddings(params);
+  },
+
+  async createEntityEmbeddingsActivity(params: {
     entityProperties: EntityPropertiesObject;
     propertyTypes: PropertyTypeWithMetadata[];
   }): Promise<{
     embeddings: { property?: BaseUrl; embedding: number[] }[];
     usage: CreateEmbeddingResponse.Usage;
   }> {
-    return createEmbeddings(params);
+    return createEntityEmbeddings(params);
   },
 });

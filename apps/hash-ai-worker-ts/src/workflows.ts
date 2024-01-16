@@ -1,5 +1,9 @@
 import type { Filter } from "@local/hash-graph-client";
-import type { InferEntitiesCallerParams } from "@local/hash-isomorphic-utils/ai-inference-types";
+import type {
+  CreateEmbeddingsParams,
+  CreateEmbeddingsReturn,
+  InferEntitiesCallerParams,
+} from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { AccountId, Entity } from "@local/hash-subgraph";
 import { proxyActivities } from "@temporalio/workflow";
 import { CreateEmbeddingResponse } from "openai/resources";
@@ -37,6 +41,15 @@ type UpdateEntityEmbeddingsParams = {
       filter: Filter;
     }
 );
+
+export const createEmbeddings = async (
+  params: CreateEmbeddingsParams,
+): Promise<{
+  embeddings: number[][];
+  usage: CreateEmbeddingsReturn;
+}> => {
+  return await aiActivities.createEmbeddingsActivity(params);
+};
 
 export const updateEntityEmbeddings = async (
   params: UpdateEntityEmbeddingsParams,
@@ -121,10 +134,11 @@ export const updateEntityEmbeddings = async (
       subgraph,
     });
 
-    const generatedEmbeddings = await aiActivities.createEmbeddingsActivity({
-      entityProperties: entity.properties,
-      propertyTypes,
-    });
+    const generatedEmbeddings =
+      await aiActivities.createEntityEmbeddingsActivity({
+        entityProperties: entity.properties,
+        propertyTypes,
+      });
 
     if (generatedEmbeddings.embeddings.length > 0) {
       await graphActivities.updateEntityEmbeddings({

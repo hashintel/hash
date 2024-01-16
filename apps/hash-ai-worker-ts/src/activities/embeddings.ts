@@ -12,7 +12,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const createEmbeddingInput = (params: {
+const createPropertyEmbeddingInput = (params: {
   propertyType: PropertyTypeWithMetadata;
   property: EntityPropertyValue;
 }): string => {
@@ -21,7 +21,19 @@ const createEmbeddingInput = (params: {
   )}`;
 };
 
-export const createEmbeddings = async (params: {
+export const createEmbeddings = async (params: { input: string[] }) => {
+  const response = await openai.embeddings.create({
+    input: params.input,
+    model: "text-embedding-ada-002",
+  });
+
+  return {
+    usage: response.usage,
+    embeddings: response.data.map((data) => data.embedding),
+  };
+};
+
+export const createEntityEmbeddings = async (params: {
   entityProperties: EntityPropertiesObject;
   propertyTypes: PropertyTypeWithMetadata[];
 }): Promise<{
@@ -49,7 +61,10 @@ export const createEmbeddings = async (params: {
       // and should be included in the embedding.
       continue;
     }
-    const embeddingInput = createEmbeddingInput({ propertyType, property });
+    const embeddingInput = createPropertyEmbeddingInput({
+      propertyType,
+      property,
+    });
     combinedEntityEmbedding += `${embeddingInput}\n`;
     propertyEmbeddings.push(embeddingInput);
     usedPropertyTypes.push(propertyType);
@@ -65,16 +80,15 @@ export const createEmbeddings = async (params: {
     };
   }
 
-  const response = await openai.embeddings.create({
+  const { embeddings, usage } = await createEmbeddings({
     input: [...propertyEmbeddings, combinedEntityEmbedding],
-    model: "text-embedding-ada-002",
   });
 
   return {
-    usage: response.usage,
-    embeddings: response.data.map((data, idx) => ({
+    usage,
+    embeddings: embeddings.map((embedding, idx) => ({
       property: usedPropertyTypes[idx]?.metadata.recordId.baseUrl,
-      embedding: data.embedding,
+      embedding,
     })),
   };
 };

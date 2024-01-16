@@ -157,7 +157,7 @@ export const queryEntitiesResolver: NonNullable<
     hasRightEntity,
     includeDrafts,
   },
-  { logger, dataSources, authentication },
+  { logger, dataSources, authentication, temporal },
   info,
 ) => {
   if (operation.multiSort !== undefined && operation.multiSort !== null) {
@@ -212,6 +212,7 @@ export const structuralQueryEntitiesResolver: ResolverFn<
     context.dataSources,
     context.authentication,
     {
+      temporalClient: context.temporal,
       query,
     },
   );
