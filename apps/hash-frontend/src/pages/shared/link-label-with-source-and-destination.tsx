@@ -6,6 +6,7 @@ import {
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   Entity,
+  EntityPropertyValue,
   EntityRootType,
   extractEntityUuidFromEntityId,
   Subgraph,
@@ -13,12 +14,17 @@ import {
 import {
   getEntityRevision,
   getEntityTypeById,
+  getPropertyTypeById,
 } from "@local/hash-subgraph/stdlib";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import {
+  extractBaseUrl,
+  LinkEntity,
+} from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   BoxProps,
   styled,
+  Tooltip,
   Typography,
   typographyClasses,
 } from "@mui/material";
@@ -38,6 +44,18 @@ const ContentTypography = styled(Typography)(({ theme }) => ({
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
 }));
+
+const stringifyEntityPropertyValue = (value: EntityPropertyValue): string => {
+  if (Array.isArray(value)) {
+    return value.map(stringifyEntityPropertyValue).join(", ");
+  } else if (typeof value === "boolean") {
+    return value ? "True" : "False";
+  } else if (typeof value === "undefined") {
+    return "Undefined";
+  } else {
+    return String(value);
+  }
+};
 
 const LeftOrRightEntity: FunctionComponent<{
   entity?: Entity;
@@ -112,6 +130,82 @@ const LeftOrRightEntity: FunctionComponent<{
     </Box>
   );
 
+  const contentWithLink = href ? (
+    <Link
+      openInNew={openInNew}
+      href={href}
+      noLinkStyle
+      sx={{
+        "&:hover": {
+          [`.${typographyClasses.root}, svg`]: {
+            color: ({ palette }) => palette.blue[70],
+          },
+        },
+      }}
+    >
+      {content}
+    </Link>
+  ) : (
+    content
+  );
+
+  const entityProperties = useMemo(() => {
+    if (!entity || !entityType) {
+      return undefined;
+    }
+
+    return Object.entries(entity.properties)
+      .map(([baseUrl, propertyValue]) => {
+        const propertyTypeId = Object.values(entityType.schema.properties)
+          .map((value) => ("items" in value ? value.items.$ref : value.$ref))
+          .find((id) => extractBaseUrl(id) === baseUrl);
+
+        if (!propertyTypeId) {
+          return [];
+        }
+
+        const propertyType = getPropertyTypeById(subgraph, propertyTypeId);
+
+        if (!propertyType) {
+          return [];
+        }
+
+        const stringifiedPropertyValue =
+          stringifyEntityPropertyValue(propertyValue);
+
+        return {
+          propertyType,
+          stringifiedPropertyValue,
+        };
+      })
+      .flat();
+  }, [entity, subgraph, entityType]);
+
+  const tooltipContent =
+    entityProperties && entityProperties.length > 0 ? (
+      <Box>
+        {entityProperties.map(({ propertyType, stringifiedPropertyValue }) => (
+          <Typography
+            key={propertyType.schema.$id}
+            sx={{
+              color: ({ palette }) => palette.common.white,
+            }}
+          >
+            <strong>{propertyType.schema.title}:</strong>{" "}
+            {stringifiedPropertyValue}
+          </Typography>
+        ))}
+      </Box>
+    ) : null;
+
+  const contentWithLinkAndTooltip = tooltipContent ? (
+    <Tooltip title={tooltipContent} placement="bottom-start">
+      {contentWithLink}
+    </Tooltip>
+  ) : (
+    contentWithLink
+  );
+
   return (
     <Box
       display="flex"
@@ -141,24 +235,7 @@ const LeftOrRightEntity: FunctionComponent<{
           {label}
         </Typography>
       ) : null}
-      {href ? (
-        <Link
-          openInNew={openInNew}
-          href={href}
-          noLinkStyle
-          sx={{
-            "&:hover": {
-              [`.${typographyClasses.root}, svg`]: {
-                color: ({ palette }) => palette.blue[70],
-              },
-            },
-          }}
-        >
-          {content}
-        </Link>
-      ) : (
-        content
-      )}
+      {contentWithLinkAndTooltip}
     </Box>
   );
 };
