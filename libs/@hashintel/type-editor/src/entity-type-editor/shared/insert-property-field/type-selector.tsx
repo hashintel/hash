@@ -42,6 +42,7 @@ export const TypeSelector = <T extends TypeSelectorType>({
 
   return (
     <SelectorAutocomplete
+      data-testid="type-selector"
       noOptionsText="No results"
       dropdownProps={dropdownProps}
       inputPlaceholder={`Search for ${
