@@ -45,6 +45,11 @@ export type AuthoredByProperties1 = LinkProperties;
 
 export type AuthoredByProperties2 = {};
 
+/**
+ * Configuration for an automatic or passive entity inference feature
+ */
+export type AutomaticInferenceConfigurationPropertyValue = ObjectDataType;
+
 export type Block = Entity<BlockProperties>;
 
 export type BlockCollection = Entity<BlockCollectionProperties>;
@@ -77,6 +82,27 @@ export type BlockProperties = {
  * A True or False value
  */
 export type BooleanDataType = boolean;
+
+export type BrowserPluginSettings = Entity<BrowserPluginSettingsProperties>;
+
+export type BrowserPluginSettingsOutgoingLinkAndTarget = never;
+
+export type BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Settings for the HASH browser plugin
+ */
+export type BrowserPluginSettingsProperties = {
+  "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/": AutomaticInferenceConfigurationPropertyValue;
+  "https://hash.ai/@hash/types/property-type/browser-plugin-tab/": BrowserPluginTabPropertyValue;
+  "https://hash.ai/@hash/types/property-type/draft-note/"?: DraftNotePropertyValue;
+  "https://hash.ai/@hash/types/property-type/manual-inference-configuration/": ManualInferenceConfigurationPropertyValue;
+};
+
+/**
+ * A tab in the HASH browser plugin
+ */
+export type BrowserPluginTabPropertyValue = TextDataType;
 
 export type Comment = Entity<CommentProperties>;
 
@@ -140,6 +166,11 @@ export type DescriptionPropertyValue = TextDataType;
  * A human-friendly display name for something
  */
 export type DisplayNamePropertyValue = TextDataType;
+
+/**
+ * A working draft of a text note
+ */
+export type DraftNotePropertyValue = TextDataType;
 
 /**
  * An email address
@@ -244,6 +275,8 @@ export type FileURLPropertyValue = TextDataType;
  */
 export type FractionalIndexPropertyValue = TextDataType;
 
+export type Has = Entity<HasProperties> & { linkData: LinkData };
+
 export type HasAvatar = Entity<HasAvatarProperties> & { linkData: LinkData };
 
 export type HasAvatarOutgoingLinkAndTarget = never;
@@ -322,6 +355,10 @@ export type HasIndexedContentProperties2 = {
   "https://hash.ai/@hash/types/property-type/fractional-index/": FractionalIndexPropertyValue;
 };
 
+export type HasOutgoingLinkAndTarget = never;
+
+export type HasOutgoingLinksByLinkEntityTypeId = {};
+
 export type HasParent = Entity<HasParentProperties> & { linkData: LinkData };
 
 export type HasParentOutgoingLinkAndTarget = never;
@@ -335,6 +372,14 @@ export type HasParentProperties = HasParentProperties1 & HasParentProperties2;
 export type HasParentProperties1 = LinkProperties;
 
 export type HasParentProperties2 = {};
+
+/**
+ * Something that something has
+ */
+export type HasProperties = HasProperties1 & HasProperties2;
+export type HasProperties1 = LinkProperties;
+
+export type HasProperties2 = {};
 
 export type HasServiceAccount = Entity<HasServiceAccountProperties> & {
   linkData: LinkData;
@@ -430,6 +475,11 @@ export type LocationPropertyValue = TextDataType;
  * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
  */
 export type MIMETypePropertyValue = TextDataType;
+
+/**
+ * Configuration for a manual entity inference feature
+ */
+export type ManualInferenceConfigurationPropertyValue = ObjectDataType;
 
 export type Notification = Entity<NotificationProperties>;
 
@@ -763,6 +813,11 @@ export type UserHasAvatarLink = { linkEntity: HasAvatar; rightEntity: Image };
 
 export type UserHasBioLink = { linkEntity: HasBio; rightEntity: ProfileBio };
 
+export type UserHasLink = {
+  linkEntity: Has;
+  rightEntity: BrowserPluginSettings;
+};
+
 export type UserHasServiceAccountLink = {
   linkEntity: HasServiceAccount;
   rightEntity: ServiceAccount;
@@ -777,12 +832,14 @@ export type UserOutgoingLinkAndTarget =
   | UserHasAvatarLink
   | UserHasBioLink
   | UserHasServiceAccountLink
+  | UserHasLink
   | UserIsMemberOfLink;
 
 export type UserOutgoingLinksByLinkEntityTypeId = {
   "https://hash.ai/@hash/types/entity-type/has-avatar/v/1": UserHasAvatarLink;
   "https://hash.ai/@hash/types/entity-type/has-bio/v/1": UserHasBioLink;
   "https://hash.ai/@hash/types/entity-type/has-service-account/v/1": UserHasServiceAccountLink;
+  "https://hash.ai/@hash/types/entity-type/has/v/1": UserHasLink;
   "https://hash.ai/@hash/types/entity-type/is-member-of/v/1": UserIsMemberOfLink;
 };
 
