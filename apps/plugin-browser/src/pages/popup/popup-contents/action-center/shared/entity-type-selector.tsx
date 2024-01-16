@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import { Autocomplete, Chip, MenuItem } from "@hashintel/design-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import { BaseUrl, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { outlinedInputClasses, Typography } from "@mui/material";
 import { useMemo } from "react";
@@ -27,7 +28,10 @@ const getChipLabelFromId = (id: VersionedUrl) => {
 type SelectTypesAndInferProps = {
   inputHeight: number | string;
   multiple: boolean;
-  setTargetEntityTypeIds: (typeIds: VersionedUrl[]) => void;
+  setTargetEntityTypeIds: (params: {
+    selectedEntityTypeIds: VersionedUrl[];
+    linkedEntityTypeIds: VersionedUrl[];
+  }) => void;
   targetEntityTypeIds: VersionedUrl[] | null;
 };
 
@@ -80,6 +84,42 @@ export const EntityTypeSelector = ({
       ...selectedEntityTypes,
     ].sort((a, b) => a.schema.title.localeCompare(b.schema.title));
   }, [allEntityTypes, selectedEntityTypes]);
+
+  const getLinkedEntityTypeIds = (entityTypes: EntityTypeWithMetadata[]) => {
+    const linkedEntityTypeIds: Set<VersionedUrl> = new Set();
+
+    /**
+     * We only want to add linked types for newly added entity types,
+     * because otherwise users may remove a linked type, make another unrelated change
+     * and have the linked type added back in (because another selected type links to it).
+     *
+     * This also means that if a user explicitly removes a linked type, this function does nothing.
+     */
+    const addedEntityTypes = entityTypes.filter(
+      (type) =>
+        !selectedEntityTypes.some(
+          (selectedType) => selectedType.schema.$id === type.schema.$id,
+        ),
+    );
+
+    for (const type of addedEntityTypes) {
+      for (const [linkEntityTypeId, linkConstraints] of typedEntries(
+        type.schema.links ?? {},
+      )) {
+        linkedEntityTypeIds.add(linkEntityTypeId);
+
+        const destinationEntityTypeRefs =
+          "oneOf" in linkConstraints.items ? linkConstraints.items.oneOf : [];
+
+        // Add the target entity types
+        for (const destinationEntityTypeRef of destinationEntityTypeRefs) {
+          linkedEntityTypeIds.add(destinationEntityTypeRef.$ref);
+        }
+      }
+    }
+
+    return [...linkedEntityTypeIds];
+  };
 
   return (
     <Autocomplete
@@ -146,11 +186,17 @@ export const EntityTypeSelector = ({
       ]}
       multiple={multiple}
       onChange={(_event, value) => {
-        setTargetEntityTypeIds(
-          Array.isArray(value)
-            ? value.map((type) => type.schema.$id)
-            : [value.schema.$id],
-        );
+        const newTargetEntityTypes = Array.isArray(value) ? value : [value];
+
+        const linkedEntityTypeIds =
+          getLinkedEntityTypeIds(newTargetEntityTypes);
+
+        setTargetEntityTypeIds({
+          selectedEntityTypeIds: newTargetEntityTypes.map(
+            (type) => type.schema.$id,
+          ),
+          linkedEntityTypeIds,
+        });
       }}
       options={optionsInDropdown}
       renderOption={(props, type) => (

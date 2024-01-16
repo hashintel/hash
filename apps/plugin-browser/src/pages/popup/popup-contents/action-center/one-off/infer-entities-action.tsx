@@ -112,10 +112,16 @@ export const InferEntitiesAction = ({
           <EntityTypeSelector
             inputHeight="auto"
             multiple
-            setTargetEntityTypeIds={(newTargetIds) =>
+            setTargetEntityTypeIds={({
+              selectedEntityTypeIds,
+              linkedEntityTypeIds,
+            }) =>
               setManualInferenceConfig({
                 ...manualInferenceConfig,
-                targetEntityTypeIds: newTargetIds,
+                targetEntityTypeIds: [
+                  ...selectedEntityTypeIds,
+                  ...linkedEntityTypeIds,
+                ],
               })
             }
             targetEntityTypeIds={targetEntityTypeIds}
