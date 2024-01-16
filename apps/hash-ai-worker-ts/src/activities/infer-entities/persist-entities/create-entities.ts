@@ -119,6 +119,7 @@ export const createEntities = async ({
               graphApiClient,
               filter: {
                 all: [
+                  { equal: [{ path: ["archived"] }, { parameter: false }] },
                   {
                     any: propertyKeysToMatchOn.map((key) => ({
                       equal: [
@@ -230,9 +231,7 @@ export const createEntities = async ({
               } failed with err: ${stringify(err)}`,
             );
 
-            const failureReason = `${extractErrorMessage(
-              err,
-            )}. The schema is ${JSON.stringify(nonLinkType.schema)}.`;
+            const failureReason = `${extractErrorMessage(err)}.`;
 
             internalEntityStatusMap.creationFailures[proposedEntity.entityId] =
               {
@@ -377,6 +376,7 @@ export const createEntities = async ({
               graphApiClient,
               filter: {
                 all: [
+                  { equal: [{ path: ["archived"] }, { parameter: false }] },
                   {
                     equal: [
                       {
@@ -491,9 +491,7 @@ export const createEntities = async ({
               } failed with err: ${stringify(err)}`,
             );
 
-            const failureReason = `${extractErrorMessage(
-              err,
-            )}. The schema is ${JSON.stringify(linkType.schema)}.`;
+            const failureReason = `${extractErrorMessage(err)}.`;
 
             internalEntityStatusMap.creationFailures[proposedEntity.entityId] =
               {

@@ -75,6 +75,7 @@ export const updateEntities = async ({
               graphApiClient,
               filter: {
                 all: [
+                  { equal: [{ path: ["archived"] }, { parameter: false }] },
                   {
                     equal: [
                       { path: ["uuid"] },
@@ -118,7 +119,7 @@ export const updateEntities = async ({
 
             const { data: updateEntityMetadata } =
               await graphApiClient.updateEntity(actorId, {
-                archived: false,
+                archived: existingEntity.metadata.archived,
                 draft: existingEntity.metadata.draft,
                 entityTypeId,
                 entityId: updateEntityId,
@@ -150,9 +151,7 @@ export const updateEntities = async ({
               } failed with err: ${stringify(err)}}`,
             );
 
-            const failureReason = `${extractErrorMessage(
-              err,
-            )}. The schema is ${JSON.stringify(entityType.schema)}.`;
+            const failureReason = `${extractErrorMessage(err)}.`;
 
             entityStatusMap.updateFailures[proposedEntity.entityId] = {
               entityTypeId,
