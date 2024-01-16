@@ -252,8 +252,6 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["graph_sentry_dsn"])
     },
     { name = "HASH_GRAPH_SENTRY_ENVIRONMENT", secret = false, value = "production" },
-    { name = "HASH_TEMPORAL_SERVER_HOST", secret = false, value = module.temporal.host },
-    { name = "HASH_TEMPORAL_SERVER_PORT", secret = false, value = module.temporal.port },
   ])
   # The type fetcher uses the same image as the graph right now
   type_fetcher_image = module.graph_ecr
