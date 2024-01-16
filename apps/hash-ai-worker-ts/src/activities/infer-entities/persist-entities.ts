@@ -66,7 +66,12 @@ export const persistEntities = async (params: {
 
     return {
       code: StatusCode.ResourceExhausted,
-      contents: [],
+      contents: [
+        {
+          results: Object.values(inferenceState.resultsByTemporaryId),
+          usage: inferenceState.usage,
+        },
+      ],
       message: `Maximum number of iterations reached.`,
     };
   }
@@ -394,7 +399,6 @@ export const persistEntities = async (params: {
           let requiresOriginalContextForRetry = false;
 
           if (notRequestedTypes.length > 0) {
-            requiresOriginalContextForRetry = true;
             retryMessageContent += `You provided entities of types ${notRequestedTypes.join(
               ", ",
             )}, which were not requested. Please try again without them\n`;
@@ -459,6 +463,7 @@ export const persistEntities = async (params: {
                   )
                   .join("\n")}
               `);
+              requiresOriginalContextForRetry = true;
             }
 
             const updates = Object.values(updateCandidates);
@@ -606,7 +611,7 @@ export const persistEntities = async (params: {
                     )
                     .join("\n")}
                 `),
-                requiresOriginalContext: false,
+                requiresOriginalContext: true,
               });
             }
           } catch (err) {
