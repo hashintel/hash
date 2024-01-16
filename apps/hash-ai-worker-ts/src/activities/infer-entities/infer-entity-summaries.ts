@@ -214,7 +214,10 @@ export const inferEntitySummaries = async (params: {
             proposedEntitySummariesByType = JSON.parse(
               modelProvidedArgument,
             ) as ProposedEntitySummariesByType;
-            validateEntitySummariesByType(proposedEntitySummariesByType);
+            validateEntitySummariesByType(
+              proposedEntitySummariesByType,
+              entityTypes,
+            );
           } catch (err) {
             log(
               `Model provided invalid argument to register_entity_summaries function. Argument provided: ${stringify(
@@ -223,8 +226,9 @@ export const inferEntitySummaries = async (params: {
             );
 
             retryMessages.push({
-              content:
-                "You provided an invalid argument to register_entity_summaries. Please try again",
+              content: `There were problems with your response. Please correct these and try again: ${
+                (err as Error).message
+              }`,
               role: "tool",
               tool_call_id: toolCallId,
             });
