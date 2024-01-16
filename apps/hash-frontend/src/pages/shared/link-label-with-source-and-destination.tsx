@@ -201,10 +201,21 @@ const LeftOrRightEntity: FunctionComponent<{
     >(
       (
         prev,
-        { linkEntity: linkEntityRevisions, rightEntity: rightEntityRevisions },
+        {
+          linkEntity: linkEntityRevisions,
+          /**
+           * @todo: figure out why this is typed as non-nullable when
+           * it can be nullable.
+           */
+          rightEntity: rightEntityRevisions = [],
+        },
       ) => {
-        const linkEntity = linkEntityRevisions[0]!;
-        const rightEntity = rightEntityRevisions[0]!;
+        const linkEntity = linkEntityRevisions[0];
+        const rightEntity = rightEntityRevisions[0];
+
+        if (!linkEntity || !rightEntity) {
+          return prev;
+        }
 
         const linkEntityTypeId = linkEntity.metadata.entityTypeId;
         const linkEntityType = getEntityTypeById(subgraph, linkEntityTypeId);
