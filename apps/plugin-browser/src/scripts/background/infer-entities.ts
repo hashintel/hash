@@ -63,7 +63,10 @@ const getWebSocket = async () => {
 
       const { payload: inferredEntitiesReturn, requestUuid } = message;
 
-      if (inferredEntitiesReturn.code !== "OK") {
+      if (
+        inferredEntitiesReturn.code !== "OK" &&
+        inferredEntitiesReturn.contents.length === 0
+      ) {
         const errorMessage = inferredEntitiesReturn.message;
 
         await setInferenceRequestValue((currentValue) =>
