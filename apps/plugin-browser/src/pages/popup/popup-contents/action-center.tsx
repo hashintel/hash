@@ -15,14 +15,14 @@ import {
 import { FunctionComponent } from "react";
 import type { Tabs } from "webextension-polyfill";
 
+import { createDefaultSettings } from "../../../shared/create-default-settings";
 import { LocalStorage } from "../../../shared/storage";
 import {
   darkModeBorderColor,
   lightModeBorderColor,
 } from "../../shared/style-values";
-import { useLocalStorage } from "../../shared/use-local-storage";
+import { useStorageSync } from "../../shared/use-storage-sync";
 import { Automated } from "./action-center/automated";
-import { defaultProductionRules } from "./action-center/default-production-rules";
 import { Log } from "./action-center/log";
 import { OneOff } from "./action-center/one-off";
 import { Avatar } from "./shared/avatar";
@@ -70,17 +70,13 @@ export const ActionCenter = ({
   user: NonNullable<LocalStorage["user"]>;
 }) => {
   const [automaticInferenceConfig, setAutomaticInferenceConfig] =
-    useLocalStorage("automaticInferenceConfig", {
-      createAs: "draft",
-      displayGroupedBy: "type",
-      enabled: false,
-      model: "gpt-4-turbo",
-      ownedById: user.webOwnedById,
-      rules:
-        FRONTEND_ORIGIN === "https://app.hash.ai" ? defaultProductionRules : [],
-    });
+    useStorageSync(
+      "automaticInferenceConfig",
+      createDefaultSettings({ userWebOwnedById: user.webOwnedById })
+        .automaticInferenceConfig,
+    );
 
-  const [inferenceRequests] = useLocalStorage("inferenceRequests", []);
+  const [inferenceRequests] = useStorageSync("inferenceRequests", []);
 
   return (
     <Box sx={{ maxWidth: "100%", width: popupWidth }}>

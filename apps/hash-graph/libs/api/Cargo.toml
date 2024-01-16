@@ -18,7 +18,7 @@ validation = { workspace = true }
 codec = { workspace = true, optional = true }
 
 async-trait = "0.1.77"
-axum = "0.7.3"
+axum = "0.7.4"
 base64 = "0.21.7"
 bytes = "1.5.0"
 error-stack = { workspace = true }
@@ -37,7 +37,7 @@ tokio = { workspace = true, features = ["macros"], optional = true }
 tokio-postgres = { version = "0.7.10", default-features = false, optional = true }
 tokio-util = { workspace = true, features = ["io"], optional = true }
 tower = "0.4.13"
-tower-http = { version = "0.5.0", features = ["trace"] }
+tower-http = { version = "0.5.1", features = ["trace"] }
 tracing = "0.1.40"
 tracing-opentelemetry = "0.22.0"
 utoipa = "4.2.0"

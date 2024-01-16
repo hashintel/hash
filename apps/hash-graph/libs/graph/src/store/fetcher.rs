@@ -1168,7 +1168,7 @@ where
         query: &StructuralQuery<Entity>,
         after: Option<&EntityVertexId>,
         limit: Option<usize>,
-    ) -> Result<Subgraph, QueryError> {
+    ) -> Result<(Subgraph, Option<EntityVertexId>), QueryError> {
         self.store
             .get_entity(actor_id, authorization_api, query, after, limit)
             .await

@@ -1011,7 +1011,7 @@ mod tests {
                 *,
                 "entity_embeddings_0_1_0"."distance"
               FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-              INNER JOIN (SELECT *, "entity_embeddings_0_0_0"."embedding" <=> $1 AS "distance" FROM "entity_embeddings" AS "entity_embeddings_0_0_0")
+              LEFT OUTER JOIN (SELECT *, "entity_embeddings_0_0_0"."embedding" <=> $1 AS "distance" FROM "entity_embeddings" AS "entity_embeddings_0_0_0")
                  AS "entity_embeddings_0_1_0"
                  ON "entity_embeddings_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
                 AND "entity_embeddings_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"

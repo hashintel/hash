@@ -11,3 +11,17 @@ export const createEntityMutation = /* GraphQL */ `
     )
   }
 `;
+
+export const updateEntityMutation = /* GraphQL */ `
+  mutation updateEntity(
+    $entityId: EntityId!
+    $entityTypeId: VersionedUrl!
+    $updatedProperties: EntityPropertiesObject!
+  ) {
+    updateEntity(
+      entityId: $entityId
+      entityTypeId: $entityTypeId
+      updatedProperties: $updatedProperties
+    )
+  }
+`;

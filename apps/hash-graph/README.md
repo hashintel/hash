@@ -33,7 +33,7 @@ just run server
 ### Logging configuration
 
 Some of the libraries used are very talkative in `trace` logging configurations, especially `mio`, `hyper`, and `tokio_util`.
-If you're interested in just increasing the logs for the Graph, we recommend specifically targeting the crates with `RUST_LOG=graph=trace,hash-graph=trace`.
+If you're interested in just increasing the logs for the Graph, we recommend specifically targeting the crates with `HASH_GRAPH_LOG_LEVEL=graph=trace,hash-graph=trace`.
 
 ## Development
 

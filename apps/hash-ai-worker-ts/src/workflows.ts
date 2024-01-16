@@ -1,3 +1,4 @@
+import type { Filter } from "@local/hash-graph-client";
 import type { InferEntitiesCallerParams } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { AccountId, Entity } from "@local/hash-subgraph";
 import { proxyActivities } from "@temporalio/workflow";
@@ -24,69 +25,124 @@ const graphActivities = proxyActivities<
 export const inferEntities = (params: InferEntitiesCallerParams) =>
   aiActivities.inferEntitiesActivity(params);
 
-export const updateEntityEmbeddings = async (params: {
+type UpdateEntityEmbeddingsParams = {
   authentication: {
     actorId: AccountId;
   };
-  entity: Entity;
-}): Promise<CreateEmbeddingResponse.Usage> => {
-  const subgraph = await graphActivities.getEntityTypesByQuery({
-    authentication: params.authentication,
-    query: {
-      filter: {
-        equal: [
-          { path: ["versionedUrl"] },
-          { parameter: params.entity.metadata.entityTypeId },
-        ],
-      },
-      graphResolveDepths: {
-        inheritsFrom: { outgoing: 255 },
-        constrainsValuesOn: { outgoing: 0 },
-        constrainsPropertiesOn: { outgoing: 1 },
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        isOfType: { outgoing: 0 },
-        hasLeftEntity: { incoming: 0, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 0 },
-      },
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
-      includeDrafts: false,
+} & (
+  | {
+      entities: Entity[];
+    }
+  | {
+      filter: Filter;
+    }
+);
+
+export const updateEntityEmbeddings = async (
+  params: UpdateEntityEmbeddingsParams,
+): Promise<CreateEmbeddingResponse.Usage> => {
+  const temporalAxes = {
+    pinned: {
+      axis: "transactionTime",
+      timestamp: null,
     },
-  });
-  const propertyTypes = await graphActivities.getSubgraphPropertyTypes({
-    subgraph,
-  });
+    variable: {
+      axis: "decisionTime",
+      interval: {
+        start: null,
+        end: null,
+      },
+    },
+  } as const;
 
-  const generatedEmbeddings = await aiActivities.createEmbeddingsActivity({
-    entityProperties: params.entity.properties,
-    propertyTypes,
-  });
+  let entities: Entity[];
 
-  if (generatedEmbeddings.embeddings.length > 0) {
-    await graphActivities.updateEntityEmbeddings({
+  if ("entities" in params) {
+    entities = params.entities;
+  } else {
+    const subgraph = await graphActivities.getEntitiesByQuery({
       authentication: params.authentication,
-      embeddings: generatedEmbeddings.embeddings.map((embedding) => ({
-        ...embedding,
-        entityId: params.entity.metadata.recordId.entityId,
-      })),
-      updatedAtTransactionTime:
-        params.entity.metadata.temporalVersioning.transactionTime.start.limit,
-      updatedAtDecisionTime:
-        params.entity.metadata.temporalVersioning.decisionTime.start.limit,
+      query: {
+        filter: params.filter,
+        graphResolveDepths: {
+          inheritsFrom: { outgoing: 0 },
+          constrainsValuesOn: { outgoing: 0 },
+          constrainsPropertiesOn: { outgoing: 0 },
+          constrainsLinksOn: { outgoing: 0 },
+          constrainsLinkDestinationsOn: { outgoing: 0 },
+          isOfType: { outgoing: 0 },
+          hasLeftEntity: { incoming: 0, outgoing: 0 },
+          hasRightEntity: { incoming: 0, outgoing: 0 },
+        },
+        temporalAxes,
+        includeDrafts: true,
+      },
+    });
+
+    entities = await graphActivities.getSubgraphEntities({
+      subgraph,
     });
   }
 
-  return generatedEmbeddings.usage;
+  const usage: CreateEmbeddingResponse.Usage = {
+    prompt_tokens: 0,
+    total_tokens: 0,
+  };
+
+  for (const entity of entities) {
+    // TODO: The subgraph library does not have the required methods to do this client side so for simplicity we're
+    //       just making another request here. We should add the required methods to the library and do this client
+    //       side.
+    const subgraph = await graphActivities.getEntityTypesByQuery({
+      authentication: params.authentication,
+      query: {
+        filter: {
+          equal: [
+            { path: ["versionedUrl"] },
+            { parameter: entity.metadata.entityTypeId },
+          ],
+        },
+        graphResolveDepths: {
+          inheritsFrom: { outgoing: 255 },
+          constrainsValuesOn: { outgoing: 0 },
+          constrainsPropertiesOn: { outgoing: 1 },
+          constrainsLinksOn: { outgoing: 0 },
+          constrainsLinkDestinationsOn: { outgoing: 0 },
+          isOfType: { outgoing: 0 },
+          hasLeftEntity: { incoming: 0, outgoing: 0 },
+          hasRightEntity: { incoming: 0, outgoing: 0 },
+        },
+        temporalAxes,
+        includeDrafts: false,
+      },
+    });
+
+    const propertyTypes = await graphActivities.getSubgraphPropertyTypes({
+      subgraph,
+    });
+
+    const generatedEmbeddings = await aiActivities.createEmbeddingsActivity({
+      entityProperties: entity.properties,
+      propertyTypes,
+    });
+
+    if (generatedEmbeddings.embeddings.length > 0) {
+      await graphActivities.updateEntityEmbeddings({
+        authentication: params.authentication,
+        embeddings: generatedEmbeddings.embeddings.map((embedding) => ({
+          ...embedding,
+          entityId: entity.metadata.recordId.entityId,
+        })),
+        updatedAtTransactionTime:
+          entity.metadata.temporalVersioning.transactionTime.start.limit,
+        updatedAtDecisionTime:
+          entity.metadata.temporalVersioning.decisionTime.start.limit,
+      });
+    }
+
+    usage.prompt_tokens += generatedEmbeddings.usage.prompt_tokens;
+    usage.total_tokens += generatedEmbeddings.usage.total_tokens;
+  }
+
+  return usage;
 };

@@ -295,8 +295,9 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
     pub fn add_cursor_selection<'q: 'p>(
         &mut self,
         path: &'p R::QueryPath<'q>,
+        lhs: impl FnOnce(Expression) -> Expression,
+        rhs: Expression,
         ordering: Ordering,
-        condition: impl FnOnce(Expression) -> Condition,
     ) -> usize
     where
         R::QueryPath<'q>: PostgresQueryPath,
@@ -306,7 +307,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
         self.statement.order_by_expression.push(column, ordering);
         self.statement
             .where_expression
-            .add_condition(condition(Expression::Column(column)));
+            .add_cursor(lhs(Expression::Column(column)), rhs, ordering);
         self.statement
             .selects
             .push(SelectExpression::from_column(column, None));

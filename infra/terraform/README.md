@@ -140,7 +140,7 @@ $ docker run --rm \
   -e HASH_GRAPH_PG_HOST=localhost \
   -e HASH_GRAPH_PG_PORT=5554 \
   -e HASH_GRAPH_PG_DATABASE=graph \
-  -e RUST_LOG=debug \
+  -e HASH_GRAPH_LOG_LEVEL=debug \
   000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-graphecr:latest \
   migrate
 ..
@@ -319,7 +319,7 @@ $ docker run --rm \
   -e HASH_GRAPH_PG_HOST=$HASH_PG_HOST \
   -e HASH_GRAPH_PG_PORT=$HASH_PG_PORT \
   -e HASH_GRAPH_PG_DATABASE \
-  -e RUST_LOG=info \
+  -e HASH_GRAPH_LOG_LEVEL=info \
   hash-graph \
   migrate
 ..

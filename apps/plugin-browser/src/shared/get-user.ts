@@ -1,7 +1,11 @@
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
+  BrowserPluginSettingsProperties,
   ImageProperties,
   OrganizationProperties,
   UserProperties,
@@ -22,8 +26,14 @@ import {
 
 import { MeQuery, MeQueryVariables } from "../graphql/api-types.gen";
 import { meQuery } from "../graphql/queries/user.queries";
+import { createDefaultSettings } from "./create-default-settings";
+import { createEntity } from "./create-entity";
 import { queryGraphQlApi } from "./query-graphql-api";
-import { LocalStorage } from "./storage";
+import {
+  getFromLocalStorage,
+  LocalStorage,
+  setInLocalStorage,
+} from "./storage";
 
 const getAvatarForEntity = (
   subgraph: Subgraph<EntityRootType>,
@@ -57,7 +67,7 @@ export const getOwnedByIdFromEntityId = (entityId: EntityId) =>
 
 export const getUser = (): Promise<LocalStorage["user"] | null> => {
   return queryGraphQlApi<MeQuery, MeQueryVariables>(meQuery)
-    .then(({ data }) => {
+    .then(async ({ data }) => {
       const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
         data.me.subgraph,
       );
@@ -81,12 +91,111 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
       const orgLinksAndEntities = getOutgoingLinkAndTargetEntities(
         subgraph,
         user.metadata.recordId.entityId,
-        intervalForTimestamp(new Date().toISOString() as Timestamp),
       ).filter(
         ({ linkEntity }) =>
           linkEntity[0]?.metadata.entityTypeId ===
           systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
       );
+
+      const userBrowserPreferences = getOutgoingLinkAndTargetEntities(
+        subgraph,
+        user.metadata.recordId.entityId,
+      ).filter(
+        ({ linkEntity, rightEntity }) =>
+          linkEntity[0]?.metadata.entityTypeId ===
+            systemLinkEntityTypes.has.linkEntityTypeId &&
+          rightEntity[0].metadata.entityTypeId ===
+            systemEntityTypes.browserPluginSettings.entityTypeId,
+      )[0]?.rightEntity[0];
+
+      let settingsEntityId: EntityId;
+
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive
+      if (userBrowserPreferences) {
+        settingsEntityId = userBrowserPreferences.metadata.recordId.entityId;
+
+        const {
+          automaticInferenceConfiguration,
+          manualInferenceConfiguration,
+          draftNote,
+          browserPluginTab,
+        } = simplifyProperties(
+          userBrowserPreferences.properties as BrowserPluginSettingsProperties,
+        );
+
+        await Promise.all([
+          setInLocalStorage(
+            "automaticInferenceConfig",
+            automaticInferenceConfiguration as LocalStorage["automaticInferenceConfig"],
+            true,
+          ),
+          setInLocalStorage(
+            "manualInferenceConfig",
+            manualInferenceConfiguration as LocalStorage["manualInferenceConfig"],
+            true,
+          ),
+          setInLocalStorage(
+            "popupTab",
+            browserPluginTab as LocalStorage["popupTab"],
+            true,
+          ),
+        ]);
+
+        if (draftNote) {
+          await setInLocalStorage("draftQuickNote", draftNote, true);
+        }
+      } else {
+        /**
+         * Create the user's browser settings entity
+         */
+        const userWebOwnedById = getOwnedByIdFromEntityId(
+          user.metadata.recordId.entityId,
+        );
+
+        const defaultSettings = createDefaultSettings({
+          userWebOwnedById,
+        });
+
+        const automaticInferenceConfig =
+          (await getFromLocalStorage("automaticInferenceConfig")) ??
+          defaultSettings.automaticInferenceConfig;
+
+        const manualInferenceConfig =
+          (await getFromLocalStorage("manualInferenceConfig")) ??
+          defaultSettings.manualInferenceConfig;
+
+        const popupTab =
+          (await getFromLocalStorage("popupTab")) ?? defaultSettings.popupTab;
+
+        const draftQuickNote = await getFromLocalStorage("draftQuickNote");
+
+        const properties: BrowserPluginSettingsProperties = {
+          "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/":
+            automaticInferenceConfig,
+          "https://hash.ai/@hash/types/property-type/manual-inference-configuration/":
+            manualInferenceConfig,
+          "https://hash.ai/@hash/types/property-type/browser-plugin-tab/":
+            popupTab,
+          "https://hash.ai/@hash/types/property-type/draft-note/":
+            draftQuickNote,
+        };
+
+        const settingsEntityMetadata = await createEntity({
+          entityTypeId: systemEntityTypes.browserPluginSettings.entityTypeId,
+          properties,
+        });
+
+        settingsEntityId = settingsEntityMetadata.metadata.recordId.entityId;
+
+        await createEntity({
+          entityTypeId: systemLinkEntityTypes.has.linkEntityTypeId,
+          properties: {},
+          linkData: {
+            leftEntityId: user.metadata.recordId.entityId,
+            rightEntityId: settingsEntityId,
+          },
+        });
+      }
 
       const orgs = orgLinksAndEntities.map(({ rightEntity }) => {
         const org = rightEntity[0];
@@ -115,6 +224,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
           preferredName,
           shortname,
         },
+        settingsEntityId,
         webOwnedById: getOwnedByIdFromEntityId(user.metadata.recordId.entityId),
       };
     })
