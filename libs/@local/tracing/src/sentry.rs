@@ -1,6 +1,6 @@
+use std::{borrow::Cow, fmt, sync::Arc};
 #[cfg(feature = "clap")]
-use std::ffi::OsStr;
-use std::{borrow::Cow, fmt, str::FromStr, sync::Arc};
+use std::{ffi::OsStr, str::FromStr};
 
 #[cfg(feature = "clap")]
 use clap::{builder::TypedValueParser, error::ErrorKind, Arg, Command, Error, Parser};
