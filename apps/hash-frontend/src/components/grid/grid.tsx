@@ -54,7 +54,7 @@ export type GridProps<T extends Row & { rowId: string }> = Omit<
   rows?: T[];
   resizable?: boolean;
   sortable?: boolean;
-  initialColumnSort?: ColumnSort<string>;
+  initialSortedColumnKey?: string;
   firstColumnLeftPadding?: number;
   gridRef?: Ref<DataEditorRef>;
   createGetCellContent: (rows: T[]) => (cell: Item) => GridCell;
@@ -81,7 +81,7 @@ export const Grid = <T extends Row & { rowId: string }>({
   resizable = true,
   sortable = true,
   columnFilters,
-  initialColumnSort,
+  initialSortedColumnKey,
   createGetCellContent,
   sortRows,
   gridRef,
@@ -118,11 +118,7 @@ export const Grid = <T extends Row & { rowId: string }>({
 
   const [currentSortedColumnKey, setCurrentSortedColumnKey] = useState<
     string | undefined
-  >(columns[0]?.id);
-
-  useEffect(() => {
-    /** @todo: set initial column sort */
-  }, [initialColumnSort]);
+  >(initialSortedColumnKey ?? columns[0]?.id);
 
   const [openFilterColumnKey, setOpenFilterColumnKey] = useState<string>();
 
