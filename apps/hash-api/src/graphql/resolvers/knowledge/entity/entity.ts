@@ -4,10 +4,12 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { MutationArchiveEntitiesArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import {
   AccountGroupId,
   AccountId,
   Entity,
+  EntityId,
   OwnedById,
   splitEntityId,
 } from "@local/hash-subgraph";
@@ -31,6 +33,7 @@ import {
   modifyEntityAuthorizationRelationships,
   removeEntityAdministrator,
   removeEntityEditor,
+  unarchiveEntity,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
 import { bpMultiFilterToGraphFilter } from "../../../../graph/knowledge/primitive/entity/query";
@@ -361,6 +364,48 @@ export const archiveEntityResolver: ResolverFn<
   });
 
   await archiveEntity(context, authentication, { entity });
+
+  return true;
+};
+
+export const archiveEntitiesResolver: ResolverFn<
+  Promise<boolean>,
+  {},
+  LoggedInGraphQLContext,
+  MutationArchiveEntitiesArgs
+> = async (_, { entityIds }, { dataSources: context, authentication }) => {
+  const archivedEntities: Entity[] = [];
+
+  const entitiesThatCouldNotBeArchived: EntityId[] = [];
+
+  await Promise.all(
+    entityIds.map(async (entityId) => {
+      try {
+        const entity = await getLatestEntityById(context, authentication, {
+          entityId,
+          includeDrafts: true,
+        });
+
+        await archiveEntity(context, authentication, { entity });
+
+        archivedEntities.push(entity);
+      } catch (error) {
+        entitiesThatCouldNotBeArchived.push(entityId);
+      }
+    }),
+  );
+
+  if (entitiesThatCouldNotBeArchived.length > 0) {
+    await Promise.all(
+      archivedEntities.map((entity) =>
+        unarchiveEntity(context, authentication, { entity }),
+      ),
+    );
+
+    throw new ApolloError(
+      `Couldn't archive entities with IDs ${entityIds.join(", ")}`,
+    );
+  }
 
   return true;
 };

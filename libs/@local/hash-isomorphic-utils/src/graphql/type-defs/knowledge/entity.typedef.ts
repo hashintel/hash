@@ -214,9 +214,20 @@ export const entityTypedef = gql`
     """
     archiveEntity(
       """
-      The id of the entity that will be archived.
+      The ID of the entity that will be archived.
       """
       entityId: EntityId!
+    ): Boolean!
+
+    """
+    Archive multiple entities. If archiving any entity fails, any successfully archived
+    entities will be un-archived.
+    """
+    archiveEntities(
+      """
+      The IDs of the entities that will be archived.
+      """
+      entityIds: [EntityId!]!
     ): Boolean!
 
     addEntityOwner(
