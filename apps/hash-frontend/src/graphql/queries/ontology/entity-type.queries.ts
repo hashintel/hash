@@ -9,6 +9,7 @@ export const getEntityTypeQuery = gql`
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
     $inheritsFrom: OutgoingEdgeResolveDepthInput!
+    $includeArchived: Boolean = false
   ) {
     getEntityType(
       entityTypeId: $entityTypeId
@@ -17,6 +18,7 @@ export const getEntityTypeQuery = gql`
       constrainsLinksOn: $constrainsLinksOn
       constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
       inheritsFrom: $inheritsFrom
+      includeArchived: $includeArchived
     ) {
       ...SubgraphFields
     }

@@ -5,10 +5,12 @@ export const getDataTypeQuery = gql`
   query getDataType(
     $dataTypeId: VersionedUrl!
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+    $includeArchived: Boolean = false
   ) {
     getDataType(
       dataTypeId: $dataTypeId
       constrainsValuesOn: $constrainsValuesOn
+      includeArchived: $includeArchived
     ) {
       ...SubgraphFields
     }
@@ -17,8 +19,14 @@ export const getDataTypeQuery = gql`
 `;
 
 export const queryDataTypesQuery = gql`
-  query queryDataTypes($constrainsValuesOn: OutgoingEdgeResolveDepthInput!) {
-    queryDataTypes(constrainsValuesOn: $constrainsValuesOn) {
+  query queryDataTypes(
+    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+    $includeArchived: Boolean = false
+  ) {
+    queryDataTypes(
+      constrainsValuesOn: $constrainsValuesOn
+      includeArchived: $includeArchived
+    ) {
       ...SubgraphFields
     }
   }
