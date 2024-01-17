@@ -298,12 +298,14 @@ export const updateEntityResolver: ResolverFn<
 > = async (
   _,
   {
-    draft,
-    entityId,
-    updatedProperties,
-    leftToRightOrder,
-    rightToLeftOrder,
-    entityTypeId,
+    entityUpdate: {
+      draft,
+      entityId,
+      updatedProperties,
+      leftToRightOrder,
+      rightToLeftOrder,
+      entityTypeId,
+    },
   },
   { dataSources, authentication, user },
 ) => {
@@ -358,14 +360,14 @@ export const updateEntitiesResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdateEntitiesArgs
-> = async (_, { updateEntities }, context, info) => {
+> = async (_, { entityUpdates }, context, info) => {
   /**
    * @todo: use bulk `updateEntities` endpoint in the Graph API
    * when it has been implemented.
    */
   const updatedEntities = await Promise.all(
-    updateEntities.map(async (args) =>
-      updateEntityResolver({}, args, context, info),
+    entityUpdates.map(async (entityUpdate) =>
+      updateEntityResolver({}, { entityUpdate }, context, info),
     ),
   );
 

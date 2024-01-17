@@ -168,7 +168,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
 
       await updateEntities({
         variables: {
-          updateEntities: params.notificationEntities.map(
+          entityUpdates: params.notificationEntities.map(
             (notificationEntity) => ({
               entityId: notificationEntity.metadata.recordId.entityId,
               entityTypeId: notificationEntity.metadata.entityTypeId,
@@ -213,7 +213,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
     async (params: { notificationEntities: Entity[] }) => {
       await updateEntities({
         variables: {
-          updateEntities: params.notificationEntities.map(
+          entityUpdates: params.notificationEntities.map(
             (notificationEntity) => ({
               entityId: notificationEntity.metadata.recordId.entityId,
               entityTypeId: notificationEntity.metadata.entityTypeId,

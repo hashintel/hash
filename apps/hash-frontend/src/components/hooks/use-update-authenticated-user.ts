@@ -84,44 +84,46 @@ export const useUpdateAuthenticatedUser = () => {
 
         const { errors } = await updateEntity({
           variables: {
-            entityId: latestUserEntity.metadata.recordId.entityId,
-            updatedProperties: {
-              ...currentProperties,
-              ...(params.shortname
-                ? {
-                    [extractBaseUrl(
-                      systemPropertyTypes.shortname.propertyTypeId,
-                    )]: params.shortname,
-                  }
-                : {}),
-              ...(params.preferredName
-                ? {
-                    [extractBaseUrl(
-                      systemPropertyTypes.preferredName.propertyTypeId,
-                    )]: params.preferredName,
-                  }
-                : {}),
-              ...(typeof params.location !== "undefined"
-                ? {
-                    [extractBaseUrl(
-                      systemPropertyTypes.location.propertyTypeId,
-                    )]: params.location,
-                  }
-                : {}),
-              ...(typeof params.websiteUrl !== "undefined"
-                ? {
-                    [extractBaseUrl(
-                      systemPropertyTypes.websiteUrl.propertyTypeId,
-                    )]: params.websiteUrl,
-                  }
-                : {}),
-              ...(typeof params.preferredPronouns !== "undefined"
-                ? {
-                    [extractBaseUrl(
-                      systemPropertyTypes.preferredPronouns.propertyTypeId,
-                    )]: params.preferredPronouns,
-                  }
-                : {}),
+            entityUpdate: {
+              entityId: latestUserEntity.metadata.recordId.entityId,
+              updatedProperties: {
+                ...currentProperties,
+                ...(params.shortname
+                  ? {
+                      [extractBaseUrl(
+                        systemPropertyTypes.shortname.propertyTypeId,
+                      )]: params.shortname,
+                    }
+                  : {}),
+                ...(params.preferredName
+                  ? {
+                      [extractBaseUrl(
+                        systemPropertyTypes.preferredName.propertyTypeId,
+                      )]: params.preferredName,
+                    }
+                  : {}),
+                ...(typeof params.location !== "undefined"
+                  ? {
+                      [extractBaseUrl(
+                        systemPropertyTypes.location.propertyTypeId,
+                      )]: params.location,
+                    }
+                  : {}),
+                ...(typeof params.websiteUrl !== "undefined"
+                  ? {
+                      [extractBaseUrl(
+                        systemPropertyTypes.websiteUrl.propertyTypeId,
+                      )]: params.websiteUrl,
+                    }
+                  : {}),
+                ...(typeof params.preferredPronouns !== "undefined"
+                  ? {
+                      [extractBaseUrl(
+                        systemPropertyTypes.preferredPronouns.propertyTypeId,
+                      )]: params.preferredPronouns,
+                    }
+                  : {}),
+              },
             },
           },
         });

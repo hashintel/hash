@@ -209,37 +209,12 @@ export const entityTypedef = gql`
     """
     Update an entity.
     """
-    updateEntity(
-      """
-      The id of the entity.
-      """
-      entityId: EntityId!
-      """
-      The updated properties of the entity.
-      """
-      updatedProperties: EntityPropertiesObject!
-      """
-      The updated left to right order of the link entity (if updating a link entity).
-      """
-      leftToRightOrder: Int
-      """
-      The updated right to left order of the link entity (if updating a link entity).
-      """
-      rightToLeftOrder: Int
-      """
-      The new type of the updated entity
-      """
-      entityTypeId: VersionedUrl
-      """
-      Whether the updated entity should be a draft
-      """
-      draft: Boolean
-    ): Entity!
+    updateEntity(entityUpdate: EntityUpdateDefinition!): Entity!
 
     """
     Update multiple entities.
     """
-    updateEntities(updateEntities: [EntityUpdateDefinition!]!): Entity!
+    updateEntities(entityUpdates: [EntityUpdateDefinition!]!): Entity!
 
     """
     Archive an entity.

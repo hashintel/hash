@@ -145,9 +145,11 @@ export const AcceptDraftEntityButton: FunctionComponent<
 
       const response = await updateEntity({
         variables: {
-          entityId: params.draftEntity.metadata.recordId.entityId,
-          updatedProperties: params.draftEntity.properties,
-          draft: false,
+          entityUpdate: {
+            entityId: params.draftEntity.metadata.recordId.entityId,
+            updatedProperties: params.draftEntity.properties,
+            draft: false,
+          },
         },
       });
 

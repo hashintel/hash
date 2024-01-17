@@ -215,7 +215,7 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
 
     await updateEntities({
       variables: {
-        updateEntities: [
+        entityUpdates: [
           ...selectedDraftEntities,
           ...(leftOrRightDraftEntitiesToAccept ?? []),
         ].map((draftEntity) => ({
