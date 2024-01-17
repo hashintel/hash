@@ -48,6 +48,7 @@ export const createApolloServer = ({
     resolvers,
     inheritResolversFromInterfaces: true,
   });
+
   const getDataSources = () => {
     const sources: GraphQLContext["dataSources"] = {
       graphApi,
@@ -79,16 +80,40 @@ export const createApolloServer = ({
     // @todo: we may want to disable introspection at some point for production
     introspection: true,
     debug: true, // required for stack traces to be captured
+    // See https://www.apollographql.com/docs/apollo-server/integrations/plugins/#request-lifecycle-event-flow
     plugins: [
       {
         requestDidStart: async (ctx) => {
           ctx.logger = ctx.context.logger as Logger;
-          const startedAt = performance.now();
+
+          const startTimestamp = performance.now();
 
           return {
-            async didEncounterErrors(errorContext) {
-              const user: Express.Request["user"] = errorContext.context.user;
+            didResolveOperation: async (didResolveOperationCtx) => {
+              const operationName = didResolveOperationCtx.operationName;
+              if (operationName) {
+                // transaction.setName(operationName, "route");
+                statsd?.increment(operationName, ["graphql"]);
+              }
+            },
 
+            executionDidStart: async ({ request }) => {
+              const scope = Sentry.getCurrentScope();
+
+              const user: Express.Request["user"] = ctx.context.user;
+              scope.setUser({
+                id: ctx.context.authentication.actorId,
+                email: user?.emails[0],
+                username: user?.shortname ?? "public",
+              });
+
+              scope.setExtras({
+                query: request.query,
+                variables: request.variables,
+              });
+            },
+
+            didEncounterErrors: async (errorContext) => {
               for (const err of errorContext.errors) {
                 // Don't send ForbiddenErrors to Sentry – we can add more here as needed
                 // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this may be undefined
@@ -96,38 +121,14 @@ export const createApolloServer = ({
                   continue;
                 }
 
-                Sentry.withScope((scope) => {
-                  // Annotate whether failing operation was query/mutation/subscription
-                  scope.setTag("kind", errorContext.operation?.operation);
+                if (err.path) {
+                  Sentry.getCurrentScope().addBreadcrumb({
+                    category: "query-path",
+                    message: err.path.join(" > "),
+                  });
+                }
 
-                  scope.setExtra("query", errorContext.request.query);
-                  scope.setExtra("variables", errorContext.request.variables);
-
-                  if (user) {
-                    scope.setUser({
-                      id: user.entity.metadata.recordId.entityId,
-                      email: user.emails[0],
-                      shortname: user.shortname,
-                    });
-                  }
-
-                  if (err.path) {
-                    scope.addBreadcrumb({
-                      category: "query-path",
-                      message: err.path.join(" > "),
-                    });
-                  }
-
-                  Sentry.captureException(err);
-                });
-              }
-            },
-
-            didResolveOperation: async (didResolveOperationCtx) => {
-              if (didResolveOperationCtx.operationName) {
-                statsd?.increment(didResolveOperationCtx.operationName, [
-                  "graphql",
-                ]);
+                Sentry.captureException(err);
               }
             },
 
@@ -136,7 +137,7 @@ export const createApolloServer = ({
                 // Ignore introspection queries from graphiql
                 return;
               }
-              const elapsed = performance.now() - startedAt;
+              const elapsed = performance.now() - startTimestamp;
 
               // take the first part of the UA to help identify browser vs server requests
               const userAgent =
@@ -171,6 +172,8 @@ export const createApolloServer = ({
                   );
                 }
               }
+
+              // span?.finish();
             },
           };
         },
