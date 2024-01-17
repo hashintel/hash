@@ -5,6 +5,7 @@
     "build": {
       "dependsOn": ["^build", "codegen"]
     },
+    "build:test": {},
     "test:unit": {
       "dependsOn": ["^build", "codegen"],
       "env": ["TEST_COVERAGE"]
