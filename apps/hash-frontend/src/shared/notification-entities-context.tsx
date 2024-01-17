@@ -41,6 +41,9 @@ export type NotificationEntitiesContextValues = {
   markNotificationAsRead: (params: {
     notificationEntity: Entity;
   }) => Promise<void>;
+  markNotificationsAsRead: (params: {
+    notificationEntities: Entity[];
+  }) => Promise<void>;
   archiveNotification: (params: {
     notificationEntity: Entity;
   }) => Promise<void>;
@@ -154,6 +157,36 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
     [updateEntity, refetch],
   );
 
+  const [updateEntities] = useMutation<
+    UpdateEntitiesMutation,
+    UpdateEntitiesMutationVariables
+  >(updateEntitiesMutation);
+
+  const markNotificationsAsRead = useCallback(
+    async (params: { notificationEntities: Entity[] }) => {
+      const now = new Date();
+
+      await updateEntities({
+        variables: {
+          updateEntities: params.notificationEntities.map(
+            (notificationEntity) => ({
+              entityId: notificationEntity.metadata.recordId.entityId,
+              entityTypeId: notificationEntity.metadata.entityTypeId,
+              updatedProperties: {
+                ...notificationEntity.properties,
+                "https://hash.ai/@hash/types/property-type/read-at/":
+                  now.toISOString(),
+              } as NotificationProperties,
+            }),
+          ),
+        },
+      });
+
+      await refetch();
+    },
+    [updateEntities, refetch],
+  );
+
   const archiveNotification = useCallback(
     async (params: { notificationEntity: Entity; shouldRefetch?: boolean }) => {
       const { notificationEntity, shouldRefetch = true } = params;
@@ -175,11 +208,6 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
     },
     [updateEntity, refetch],
   );
-
-  const [updateEntities] = useMutation<
-    UpdateEntitiesMutation,
-    UpdateEntitiesMutationVariables
-  >(updateEntitiesMutation);
 
   const archiveNotifications = useCallback(
     async (params: { notificationEntities: Entity[] }) => {
@@ -220,6 +248,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
       archiveNotifications,
       refetch,
       markNotificationAsRead,
+      markNotificationsAsRead,
       archiveNotification,
     }),
     [
@@ -229,6 +258,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
       loadingNotificationEntities,
       refetch,
       markNotificationAsRead,
+      markNotificationsAsRead,
       archiveNotification,
     ],
   );

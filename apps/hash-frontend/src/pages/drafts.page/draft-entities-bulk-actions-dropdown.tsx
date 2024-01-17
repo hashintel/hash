@@ -18,12 +18,12 @@ import { FunctionComponent, useCallback, useMemo, useState } from "react";
 import {
   ArchiveEntitiesMutation,
   ArchiveEntitiesMutationVariables,
-  UpdateEntityMutation,
-  UpdateEntityMutationVariables,
+  UpdateEntitiesMutation,
+  UpdateEntitiesMutationVariables,
 } from "../../graphql/api-types.gen";
 import {
   archiveEntitiesMutation,
-  updateEntityMutation,
+  updateEntitiesMutation,
 } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { LayerGroupLightIcon } from "../../shared/icons/layer-group-light-icon";
@@ -42,7 +42,7 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
 }) => {
   const { draftEntities, refetch: refetchDraftEntities } = useDraftEntities();
   const { notifications } = useNotificationsWithLinks();
-  const { archiveNotifications, markNotificationAsRead } =
+  const { archiveNotifications, markNotificationsAsRead } =
     useNotificationEntities();
 
   const popupState = usePopupState({
@@ -198,10 +198,10 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
       .flat();
   }, [draftEntitiesWithLinkedDataSubgraph, selectedDraftEntities]);
 
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation);
+  const [updateEntities] = useMutation<
+    UpdateEntitiesMutation,
+    UpdateEntitiesMutationVariables
+  >(updateEntitiesMutation);
 
   const acceptAllSelectedDraftEntities = useCallback(async () => {
     const relatedGraphChangeNotifications =
@@ -213,34 +213,35 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
           ),
       ) ?? [];
 
-    await Promise.all([
-      ...relatedGraphChangeNotifications.map((notification) =>
-        markNotificationAsRead({ notificationEntity: notification.entity }),
+    await markNotificationsAsRead({
+      notificationEntities: relatedGraphChangeNotifications.map(
+        ({ entity }) => entity,
       ),
-      ...[
-        ...selectedDraftEntities,
-        ...(leftOrRightDraftEntitiesToAccept ?? []),
-      ].map((draftEntity) =>
-        updateEntity({
-          variables: {
-            entityId: draftEntity.metadata.recordId.entityId,
-            updatedProperties: draftEntity.properties,
-            draft: false,
-          },
-        }),
-      ),
-    ]);
+    });
+
+    await updateEntities({
+      variables: {
+        updateEntities: [
+          ...selectedDraftEntities,
+          ...(leftOrRightDraftEntitiesToAccept ?? []),
+        ].map((draftEntity) => ({
+          entityId: draftEntity.metadata.recordId.entityId,
+          updatedProperties: draftEntity.properties,
+          draft: false,
+        })),
+      },
+    });
 
     await refetchDraftEntities();
 
     deselectAllDraftEntities();
   }, [
     notifications,
-    markNotificationAsRead,
+    markNotificationsAsRead,
     selectedDraftEntityIds,
     selectedDraftEntities,
     leftOrRightDraftEntitiesToAccept,
-    updateEntity,
+    updateEntities,
     refetchDraftEntities,
     deselectAllDraftEntities,
   ]);
