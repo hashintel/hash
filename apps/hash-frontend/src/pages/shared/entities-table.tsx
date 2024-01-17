@@ -185,7 +185,7 @@ export const EntitiesTable: FunctionComponent<{
 
           if (!row) {
             /**
-             * This can occur when `createGetCellContent is called
+             * This can occur when `createGetCellContent` is called
              * for a row that has just been filtered out, so we handle
              * this by briefly not displaying anything in the cell.
              */
