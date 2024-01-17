@@ -4,6 +4,7 @@ members = [
     "apps/hash-graph/bins/cli",
     "apps/hash-graph/libs/*",
     "libs/@local/codec",
+    "libs/@local/tracing",
     "libs/@local/status/rust",
     "libs/@local/hash-authorization",
     "libs/@local/hash-graph-types/rust",
@@ -42,6 +43,7 @@ type-fetcher.path = "apps/hash-graph/libs/type-fetcher"
 graph.path = "apps/hash-graph/libs/graph"
 graph-api.path = "apps/hash-graph/libs/api"
 validation.path = "libs/@local/hash-validation"
+hash-tracing.path = "libs/@local/tracing"
 
 # External dependencies owned by HASH
 error-stack = { version = "0.4.1", default-features = false }
@@ -49,6 +51,7 @@ type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "b
 
 # Shared third-party dependencies
 bytes = "1.5.0"
+clap = { version = "4.4.17", default-features = false, features = ["std"] }
 email_address = { version = "0.2.4", default-features = false }
 futures = { version = "0.3.30", default-features = false }
 postgres-types = { version = "0.2.6", default-features = false }

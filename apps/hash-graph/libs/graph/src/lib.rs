@@ -30,8 +30,6 @@ pub mod store;
 
 pub mod snapshot;
 
-pub mod logging;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Environment {
     Development,

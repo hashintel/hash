@@ -27,14 +27,11 @@ async-trait = "0.1.77"
 async-scoped = { version = "0.8.0", features = ["use-tokio"] }
 bb8-postgres = "0.8.1"
 bytes = { workspace = true }
-clap = { version = "4.4.18", features = ["derive", "env"], optional = true }
+clap = { workspace = true, features = ["derive", "env"], optional = true }
 derivative = "2.2.0"
 dotenv-flow = "0.16.2"
 futures = { workspace = true }
 mime = "0.3.17"
-opentelemetry_sdk = { version = "0.21.2", features = ["rt-tokio"] }
-opentelemetry = "0.21.0"
-opentelemetry-otlp = "0.14.0"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 regex = "1.10.2"
 semver = { version = "1.0.21", default-features = false, features = ["serde"] }
@@ -46,10 +43,6 @@ tokio = { workspace = true, features = ["macros"] }
 tokio-postgres = { version = "0.7.10", default-features = false }
 tokio-serde = { version = "0.8", features = ["json"] }
 tokio-util = { workspace = true, features = ["io"] }
-tracing-appender = "0.2.3"
-tracing-error = "0.2.0"
-tracing-opentelemetry = "0.22.0"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
 uuid = { workspace = true, features = ["v4", "v5", "serde"] }
 
 [dev-dependencies]
