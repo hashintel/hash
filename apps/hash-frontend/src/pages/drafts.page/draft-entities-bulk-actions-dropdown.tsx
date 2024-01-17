@@ -16,13 +16,13 @@ import {
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
 import {
-  ArchiveEntityMutation,
-  ArchiveEntityMutationVariables,
+  ArchiveEntitiesMutation,
+  ArchiveEntitiesMutationVariables,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/api-types.gen";
 import {
-  archiveEntityMutation,
+  archiveEntitiesMutation,
   updateEntityMutation,
 } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../shared/draft-entities-context";
@@ -89,10 +89,10 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
       .flat();
   }, [draftEntitiesWithLinkedDataSubgraph, selectedDraftEntities]);
 
-  const [archiveEntity] = useMutation<
-    ArchiveEntityMutation,
-    ArchiveEntityMutationVariables
-  >(archiveEntityMutation);
+  const [archiveEntities] = useMutation<
+    ArchiveEntitiesMutation,
+    ArchiveEntitiesMutationVariables
+  >(archiveEntitiesMutation);
 
   const ignoreAllSelectedDraftEntities = useCallback(async () => {
     if (!notifications) {
@@ -105,23 +105,22 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
       ),
     );
 
-    await Promise.all([
-      ...relatedNotifications.map((notification) =>
+    await Promise.all(
+      relatedNotifications.map((notification) =>
         archiveNotification({
           notificationEntity: notification.entity,
         }),
       ),
-      ...[
-        ...selectedDraftEntities,
-        ...(incomingOrOutgoingDraftLinksToIgnore ?? []),
-      ].map((selectedDraftEntity) =>
-        archiveEntity({
-          variables: {
-            entityId: selectedDraftEntity.metadata.recordId.entityId,
-          },
-        }),
-      ),
-    ]);
+    );
+
+    await archiveEntities({
+      variables: {
+        entityIds: [
+          ...selectedDraftEntities,
+          ...(incomingOrOutgoingDraftLinksToIgnore ?? []),
+        ].map(({ metadata }) => metadata.recordId.entityId),
+      },
+    });
 
     await refetchDraftEntities();
 
@@ -129,7 +128,7 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
   }, [
     notifications,
     archiveNotification,
-    archiveEntity,
+    archiveEntities,
     selectedDraftEntityIds,
     selectedDraftEntities,
     refetchDraftEntities,

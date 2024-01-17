@@ -95,6 +95,12 @@ export const archiveEntityMutation = gql`
   }
 `;
 
+export const archiveEntitiesMutation = gql`
+  mutation archiveEntities($entityIds: [EntityId!]!) {
+    archiveEntities(entityIds: $entityIds)
+  }
+`;
+
 export const addEntityOwnerMutation = gql`
   mutation addEntityOwner(
     $entityId: EntityId!
