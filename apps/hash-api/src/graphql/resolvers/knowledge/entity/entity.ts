@@ -56,6 +56,7 @@ import {
   MutationRemoveEntityEditorArgs,
   MutationRemoveEntityOwnerArgs,
   MutationRemoveEntityViewerArgs,
+  MutationUpdateEntitiesArgs,
   MutationUpdateEntityArgs,
   Query,
   QueryGetEntityArgs,
@@ -350,6 +351,25 @@ export const updateEntityResolver: ResolverFn<
   }
 
   return mapEntityToGQL(updatedEntity);
+};
+
+export const updateEntitiesResolver: ResolverFn<
+  Promise<Entity[]>,
+  {},
+  LoggedInGraphQLContext,
+  MutationUpdateEntitiesArgs
+> = async (_, { updateEntities }, context, info) => {
+  /**
+   * @todo: use bulk `updateEntities` endpoint in the Graph API
+   * when it has been implemented.
+   */
+  const updatedEntities = await Promise.all(
+    updateEntities.map(async (args) =>
+      updateEntityResolver({}, args, context, info),
+    ),
+  );
+
+  return updatedEntities;
 };
 
 export const archiveEntityResolver: ResolverFn<

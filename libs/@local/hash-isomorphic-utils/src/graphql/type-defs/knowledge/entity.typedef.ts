@@ -148,6 +148,33 @@ export const entityTypedef = gql`
     kind: AuthorizationSubjectKind!
   }
 
+  input EntityUpdateDefinition {
+    """
+    The id of the entity.
+    """
+    entityId: EntityId!
+    """
+    The updated properties of the entity.
+    """
+    updatedProperties: EntityPropertiesObject!
+    """
+    The updated left to right order of the link entity (if updating a link entity).
+    """
+    leftToRightOrder: Int
+    """
+    The updated right to left order of the link entity (if updating a link entity).
+    """
+    rightToLeftOrder: Int
+    """
+    The new type of the updated entity
+    """
+    entityTypeId: VersionedUrl
+    """
+    Whether the updated entity should be a draft
+    """
+    draft: Boolean
+  }
+
   extend type Mutation {
     """
     Create an entity.
@@ -208,6 +235,11 @@ export const entityTypedef = gql`
       """
       draft: Boolean
     ): Entity!
+
+    """
+    Update multiple entities.
+    """
+    updateEntities(updateEntities: [EntityUpdateDefinition!]!): Entity!
 
     """
     Archive an entity.
