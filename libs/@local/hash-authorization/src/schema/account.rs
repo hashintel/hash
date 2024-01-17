@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::zanzibar::types::{Resource, Subject};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AccountNamespace {
     #[serde(rename = "graph/account")]
     Account,
@@ -47,7 +47,7 @@ impl Subject for AccountId {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PublicAccess {
     #[serde(rename = "*")]
     Public,

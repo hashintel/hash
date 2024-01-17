@@ -97,14 +97,14 @@ pub enum EntityTypePermission {
 
 impl Permission<EntityTypeId> for EntityTypePermission {}
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum EntityTypeSetting {
     UpdateFromWeb,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum EntityTypeSubject {
     Web(OwnedById),
@@ -114,7 +114,7 @@ pub enum EntityTypeSubject {
     AccountGroup(AccountGroupId),
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EntityTypeSubjectSet {
     #[default]
@@ -207,7 +207,7 @@ impl Resource for EntityTypeSubject {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum EntityTypeOwnerSubject {
@@ -217,7 +217,7 @@ pub enum EntityTypeOwnerSubject {
     },
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum EntityTypeSettingSubject {
@@ -227,7 +227,7 @@ pub enum EntityTypeSettingSubject {
     },
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum EntityTypeEditorSubject {
@@ -243,14 +243,14 @@ pub enum EntityTypeEditorSubject {
     },
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum EntityTypeViewerSubject {
     Public,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum EntityTypeInstantiatorSubject {
@@ -267,7 +267,7 @@ pub enum EntityTypeInstantiatorSubject {
     },
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation")]
 pub enum EntityTypeRelationAndSubject {
