@@ -6,11 +6,13 @@ export const getPropertyTypeQuery = gql`
     $propertyTypeId: VersionedUrl!
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+    $includeArchived: Boolean = false
   ) {
     getPropertyType(
       propertyTypeId: $propertyTypeId
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
+      includeArchived: $includeArchived
     ) {
       ...SubgraphFields
     }

@@ -1,6 +1,7 @@
 import { OntologyTemporalMetadata } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
+  fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -108,21 +109,7 @@ export const queryEntityTypesResolver: ResolverFn<
         inheritsFrom,
       },
       temporalAxes: includeArchived
-        ? {
-            pinned: {
-              axis: "decisionTime",
-              timestamp: null,
-            },
-            variable: {
-              axis: "transactionTime",
-              interval: {
-                start: {
-                  kind: "unbounded",
-                },
-                end: null,
-              },
-            },
-          }
+        ? fullTransactionTimeAxis
         : currentTimeInstantTemporalAxes,
       includeDrafts: false,
     },
@@ -147,6 +134,7 @@ export const getEntityTypeResolver: ResolverFn<
     constrainsLinksOn,
     constrainsLinkDestinationsOn,
     inheritsFrom,
+    includeArchived,
   },
   { dataSources, authentication },
   __,
@@ -164,7 +152,9 @@ export const getEntityTypeResolver: ResolverFn<
         constrainsLinkDestinationsOn,
         inheritsFrom,
       },
-      temporalAxes: currentTimeInstantTemporalAxes,
+      temporalAxes: includeArchived
+        ? fullTransactionTimeAxis
+        : currentTimeInstantTemporalAxes,
     },
   );
 

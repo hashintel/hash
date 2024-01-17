@@ -3,6 +3,7 @@ import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { useMemo, useState } from "react";
 import browser, { Tabs } from "webextension-polyfill";
 
+import { createDefaultSettings } from "../../../../../shared/create-default-settings";
 import {
   GetSiteContentRequest,
   GetSiteContentReturn,
@@ -10,7 +11,7 @@ import {
 import { LocalStorage } from "../../../../../shared/storage";
 import { sendMessageToBackground } from "../../../../shared/messages";
 import { borderColors } from "../../../../shared/style-values";
-import { useLocalStorage } from "../../../../shared/use-local-storage";
+import { useStorageSync } from "../../../../shared/use-storage-sync";
 import { EntityTypeSelector } from "../shared/entity-type-selector";
 import { ModelSelector } from "../shared/model-selector";
 import { Section } from "../shared/section";
@@ -25,14 +26,10 @@ export const InferEntitiesAction = ({
   activeTab?: Tabs.Tab | null;
   user: NonNullable<LocalStorage["user"]>;
 }) => {
-  const [manualInferenceConfig, setManualInferenceConfig] = useLocalStorage(
+  const [manualInferenceConfig, setManualInferenceConfig] = useStorageSync(
     "manualInferenceConfig",
-    {
-      createAs: "draft",
-      model: "gpt-4-turbo",
-      ownedById: user.webOwnedById,
-      targetEntityTypeIds: [],
-    },
+    createDefaultSettings({ userWebOwnedById: user.webOwnedById })
+      .manualInferenceConfig,
   );
 
   const [showAdditionalConfig, setShowAdditionalConfig] = useState(false);
@@ -40,7 +37,7 @@ export const InferEntitiesAction = ({
   const { createAs, model, ownedById, targetEntityTypeIds } =
     manualInferenceConfig;
 
-  const [inferenceRequests] = useLocalStorage("inferenceRequests", []);
+  const [inferenceRequests] = useStorageSync("inferenceRequests", []);
 
   const pendingInferenceRequest = useMemo(
     () =>

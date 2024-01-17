@@ -165,6 +165,11 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     }
   };
 
+  /**
+   * Glide Grid will close the editing interface when it is clicked outside.
+   * We need to prevent that behavior by adding the GRID_CLICK_IGNORE_CLASS to the body,
+   * and only permitting it when the form is valid.
+   */
   const ensureFormValidation = () => {
     if (document.body.classList.contains(GRID_CLICK_IGNORE_CLASS)) {
       return;
@@ -187,7 +192,20 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
           isNumber={editorType === "number"}
           value={(value as number | string | undefined) ?? ""}
           onChange={(newValue) => {
-            ensureFormValidation();
+            if (
+              !(
+                "format" in expectedType &&
+                expectedType.format &&
+                ["date", "date-time", "time"].includes(expectedType.format)
+              )
+            ) {
+              /**
+               * We use the native browser date/time inputs which handle validation for us,
+               * and the validation click handler assumes there will be a click outside after a change
+               * - which there won't for those inputs, because clicking to select a value closes the input.
+               */
+              ensureFormValidation();
+            }
 
             const newCell = produce(cell, (draftCell) => {
               draftCell.data.propertyRow.value = newValue;

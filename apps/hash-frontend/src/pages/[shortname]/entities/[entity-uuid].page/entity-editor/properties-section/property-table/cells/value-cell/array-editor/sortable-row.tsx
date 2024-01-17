@@ -67,7 +67,7 @@ export const SortableRow = ({
     overriddenEditorType ?? guessEditorTypeFromValue(value, expectedTypes);
   const expectedType = expectedTypes.find((type) => type.type === editorType);
 
-  const editorSpec = getEditorSpecs(editorType, expectedType?.title);
+  const editorSpec = getEditorSpecs(editorType, expectedType);
 
   const { arrayEditException } = editorSpec;
 

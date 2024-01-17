@@ -24,7 +24,6 @@ export const NotificationsDropdown: FunctionComponent = () => {
     <Link noLinkStyle href="/inbox">
       <HeaderIconButton
         sx={{
-          fontSize: theme.spacing(2),
           width: hasNotifications ? "auto" : "32px",
           px: hasNotifications ? 1.5 : "unset",
           height: "32px",
@@ -74,6 +73,7 @@ export const NotificationsDropdown: FunctionComponent = () => {
           <>
             <Typography
               sx={{
+                fontSize: 14,
                 fontWeight: 600,
                 lineHeight: theme.spacing(2),
                 color: "purple",

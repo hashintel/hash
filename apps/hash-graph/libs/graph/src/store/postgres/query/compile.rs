@@ -6,6 +6,7 @@ use temporal_versioning::TimeAxis;
 use crate::{
     store::{
         postgres::query::{
+            expression::GroupByExpression,
             table::{
                 EntityEditions, EntityEmbeddings, EntityTemporalMetadata, OntologyIds,
                 OntologyTemporalMetadata,
@@ -75,6 +76,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                 joins: Vec::new(),
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
+                group_by_expression: GroupByExpression::default(),
                 limit: None,
             },
             artifacts: CompilerArtifacts {
@@ -411,12 +413,27 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                             with: WithExpression::default(),
                             distinct: vec![],
                             selects: vec![
-                                SelectExpression::new(Expression::Asterisk, None),
                                 SelectExpression::new(
-                                    Expression::CosineDistance(
-                                        Box::new(Expression::Column(embeddings_column)),
-                                        Box::new(parameter_expression),
+                                    Expression::Column(
+                                        Column::EntityEmbeddings(EntityEmbeddings::WebId)
+                                            .aliased(table.alias),
                                     ),
+                                    None,
+                                ),
+                                SelectExpression::new(
+                                    Expression::Column(
+                                        Column::EntityEmbeddings(EntityEmbeddings::EntityUuid)
+                                            .aliased(table.alias),
+                                    ),
+                                    None,
+                                ),
+                                SelectExpression::new(
+                                    Expression::Function(Function::Min(Box::new(
+                                        Expression::CosineDistance(
+                                            Box::new(Expression::Column(embeddings_column)),
+                                            Box::new(parameter_expression),
+                                        ),
+                                    ))),
                                     Some("distance"),
                                 ),
                             ],
@@ -424,6 +441,14 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                             joins: vec![],
                             where_expression: WhereExpression::default(),
                             order_by_expression: OrderByExpression::default(),
+                            group_by_expression: GroupByExpression {
+                                columns: vec![
+                                    Column::EntityEmbeddings(EntityEmbeddings::WebId)
+                                        .aliased(table.alias),
+                                    Column::EntityEmbeddings(EntityEmbeddings::EntityUuid)
+                                        .aliased(table.alias),
+                                ],
+                            },
                             limit: None,
                         });
                     }
@@ -554,6 +579,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                 joins: vec![],
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
+                group_by_expression: GroupByExpression::default(),
                 limit: None,
             },
         );
