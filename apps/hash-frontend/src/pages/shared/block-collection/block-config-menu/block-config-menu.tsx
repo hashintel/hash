@@ -26,8 +26,8 @@ import { MenuItem } from "../../../../shared/ui";
 const extractConfigPropertySchemas = (
   blockSchema: JsonSchema,
 ): [string, JsonSchema][] =>
-  Object.entries(blockSchema.properties ?? {}).filter(
-    ([name]) => blockSchema.configProperties?.includes(name),
+  Object.entries(blockSchema.properties ?? {}).filter(([name]) =>
+    blockSchema.configProperties?.includes(name),
   );
 
 const resolvePropertySchema = (

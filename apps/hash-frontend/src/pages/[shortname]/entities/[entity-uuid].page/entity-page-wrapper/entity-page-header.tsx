@@ -50,6 +50,7 @@ export const EntityPageHeader = ({
           {
             title: "Entities",
             id: "entities",
+            href: "/entities",
           },
           {
             title: entityLabel,

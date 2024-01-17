@@ -11,18 +11,19 @@ type NonUndefined<T> = T extends undefined ? never : T;
 
 /**
  * A hook to keep React state synced with local storage shared across the extension.
+ * Some of this state will also be persisted to the database, as part of {@link setInLocalStorage}
  *
  * NOTE:
- * 1. Storage access is asynchronous, and therefore the first value returned will always be the initialValue.
+ * 1. LocalStorage access is asynchronous, and therefore the first value returned will always be the initialValue.
  *      if you need to know when the storage has been checked, use the third value returned from the hook.
  * 2. Because values are repeatedly serialized to and from storage, do not check by identity (e.g. array.includes(object))
  *
  * @param initialValue the value to initialise the state with
- * @param key the key for the value in local storage
+ * @param key the key for the value in storage
  *
  * @see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage
  */
-export const useLocalStorage = <Key extends keyof LocalStorage>(
+export const useStorageSync = <Key extends keyof LocalStorage>(
   key: Key,
   initialValue: NonUndefined<LocalStorage[Key]>,
 ) => {
@@ -33,6 +34,7 @@ export const useLocalStorage = <Key extends keyof LocalStorage>(
     if (storageChecked) {
       return;
     }
+
     const getStorageValue = async () => {
       const storageValue = await getFromLocalStorage(key);
 

@@ -3,11 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import { getUser } from "../../shared/get-user";
 import { clearLocalStorage } from "../../shared/storage";
 import { setSentryUser } from "./sentry";
-import { useLocalStorage } from "./use-local-storage";
+import { useStorageSync } from "./use-storage-sync";
 
 export const useUser = () => {
   const [apiChecked, setApiChecked] = useState(false);
-  const [user, setUser, storageChecked] = useLocalStorage("user", null);
+  const [user, setUser, storageChecked] = useStorageSync("user", null);
 
   useEffect(() => {
     const init = async () => {

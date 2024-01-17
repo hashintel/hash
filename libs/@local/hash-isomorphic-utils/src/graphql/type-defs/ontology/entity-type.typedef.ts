@@ -29,6 +29,7 @@ export const entityTypeTypedef = gql`
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
       constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
       inheritsFrom: OutgoingEdgeResolveDepthInput!
+      includeArchived: Boolean = false
     ): Subgraph!
   }
 

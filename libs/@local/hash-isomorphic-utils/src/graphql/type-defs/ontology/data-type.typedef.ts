@@ -11,6 +11,7 @@ export const dataTypeTypedef = gql`
     """
     queryDataTypes(
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+      includeArchived: Boolean = false
     ): Subgraph!
 
     """
@@ -19,6 +20,7 @@ export const dataTypeTypedef = gql`
     getDataType(
       dataTypeId: VersionedUrl!
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+      includeArchived: Boolean = false
     ): Subgraph!
   }
 

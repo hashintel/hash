@@ -251,8 +251,14 @@ const RowByLocation = (
         <EntityTypeSelector
           inputHeight="auto"
           multiple
-          setTargetEntityTypeIds={(newTargetIds) => {
-            updateEntityTypeIds(newTargetIds);
+          setTargetEntityTypeIds={({
+            selectedEntityTypeIds,
+            linkedEntityTypeIds,
+          }) => {
+            updateEntityTypeIds([
+              ...selectedEntityTypeIds,
+              ...linkedEntityTypeIds,
+            ]);
           }}
           targetEntityTypeIds={entityTypeIds}
         />

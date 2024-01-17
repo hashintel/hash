@@ -1,4 +1,3 @@
-import type { VersionedUrl } from "@blockprotocol/graph";
 import { Button } from "@hashintel/design-system";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
@@ -11,36 +10,14 @@ import {
   TextProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import { TextToken } from "@local/hash-isomorphic-utils/types";
-import { Entity, EntityPropertiesObject, LinkData } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 import { generateKeyBetween } from "fractional-indexing";
 
-import {
-  CreateEntityMutation,
-  CreateEntityMutationVariables,
-} from "../../../../../graphql/api-types.gen";
-import { createEntityMutation } from "../../../../../graphql/queries/entity.queries";
-import { queryGraphQlApi } from "../../../../../shared/query-graphql-api";
-import { useLocalStorage } from "../../../../shared/use-local-storage";
+import { createEntity } from "../../../../../shared/create-entity";
+import { useStorageSync } from "../../../../shared/use-storage-sync";
 import { Section } from "../shared/section";
 import { TextFieldWithDarkMode } from "../text-field-with-dark-mode";
 import { QuickNoteIcon } from "./quick-note-action/quick-note-icon";
-
-const createEntity = (params: {
-  entityTypeId: VersionedUrl;
-  properties: EntityPropertiesObject;
-  linkData?: LinkData;
-}): Promise<Entity> =>
-  queryGraphQlApi<CreateEntityMutation, CreateEntityMutationVariables>(
-    createEntityMutation,
-    {
-      entityTypeId: params.entityTypeId,
-      properties: params.properties,
-      linkData: params.linkData,
-    },
-  ).then(({ data }) => {
-    return data.createEntity;
-  });
 
 const createQuickNote = async (text: string) => {
   const paragraphs = text
@@ -115,7 +92,7 @@ const createQuickNote = async (text: string) => {
 };
 
 export const QuickNoteAction = () => {
-  const [draftQuickNote, setDraftQuickNote] = useLocalStorage(
+  const [draftQuickNote, setDraftQuickNote] = useStorageSync(
     "draftQuickNote",
     "",
   );

@@ -250,11 +250,11 @@ where
 
 #[expect(clippy::too_many_lines)]
 fn check_format(value: &str, format: &str) -> Result<(), Report<DataValidationError>> {
-    // Only the simplest date format are supported in all three, RFC-3331, ISO-8601 and HTML
+    // Only the simplest date format are supported in all three, RFC-3339, ISO-8601 and HTML
     const DATE_REGEX_STRING: &str = r"(?P<Y>\d{4})-(?P<M>\d{2})-(?P<D>\d{2})";
     static DATE_REGEX: OnceLock<Regex> = OnceLock::new();
 
-    // Only the simplest time format are supported in all three, RFC-3331, ISO-8601 and HTML
+    // Only the simplest time format are supported in all three, RFC-3339, ISO-8601 and HTML
     const TIME_REGEX_STRING: &str =
         r"(?P<h>\d{2}):(?P<m>\d{2}):(?P<s>\d{2}(?:\.\d+)?)(?:(?P<Z>[+-]\d{2}):(?P<z>\d{2})|Z)";
     static TIME_REGEX: OnceLock<Regex> = OnceLock::new();

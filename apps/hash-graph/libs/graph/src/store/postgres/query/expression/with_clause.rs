@@ -55,7 +55,7 @@ impl Transpile for WithExpression {
 mod tests {
     use super::*;
     use crate::store::postgres::query::{
-        expression::OrderByExpression,
+        expression::{GroupByExpression, OrderByExpression},
         test_helper::{max_version_expression, trim_whitespace},
         Alias, Expression, SelectExpression, SelectStatement, Table, WhereExpression,
     };
@@ -82,6 +82,7 @@ mod tests {
                 joins: vec![],
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
+                group_by_expression: GroupByExpression::default(),
                 limit: None,
             },
         );
@@ -108,6 +109,7 @@ mod tests {
                 joins: vec![],
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
+                group_by_expression: GroupByExpression::default(),
                 limit: None,
             },
         );

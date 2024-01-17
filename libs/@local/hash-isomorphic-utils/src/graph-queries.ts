@@ -100,6 +100,29 @@ export const fullDecisionTimeAxis: QueryTemporalAxesUnresolved = {
 };
 
 /**
+ * Return the full history of records according to their transaction time
+ *
+ * This is specifically useful for:
+ * 1. Returning archived types – types currently are archived by setting an upper bound on their transaction time
+ * 2. [Future] audit purposes, to check the transaction history of records
+ */
+export const fullTransactionTimeAxis: QueryTemporalAxesUnresolved = {
+  pinned: {
+    axis: "decisionTime",
+    timestamp: null,
+  },
+  variable: {
+    axis: "transactionTime",
+    interval: {
+      start: {
+        kind: "unbounded",
+      },
+      end: null,
+    },
+  },
+};
+
+/**
  * Generates a query filter to match a type, given its versionedUrl.
  *
  * @param versionedUrl

@@ -130,8 +130,8 @@ export const getProjection = (
     const newParent = newItems
       .slice(0, overItemIndex)
       .reverse()
-      .find((item) => item.depth === depth)?.page.parentPage?.metadata.recordId
-      .entityId;
+      .find((item) => item.depth === depth)?.page.parentPage?.metadata
+      .recordId.entityId;
 
     return newParent ?? null;
   };

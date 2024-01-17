@@ -103,7 +103,7 @@ const migrate: MigrationFunction = async ({
     dataTypeDefinition: {
       title: "Date",
       description:
-        "A reference to a particular day represented within a calendar system, in the format YYYY-MM-DD.",
+        "A reference to a particular day represented within a calendar system, formatted according to RFC 3339.",
       type: "string",
       format: "date",
     },
@@ -114,9 +114,22 @@ const migrate: MigrationFunction = async ({
   await createSystemDataTypeIfNotExists(context, authentication, {
     dataTypeDefinition: {
       title: "DateTime",
-      description: "A reference to a particular date and time.",
+      description:
+        "A reference to a particular date and time, formatted according to RFC 3339.",
       type: "string",
       format: "date-time",
+    },
+    webShortname: "hash",
+    migrationState,
+  });
+
+  await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      title: "Time",
+      description:
+        "A reference to a particular clock time, formatted according to RFC 3339.",
+      type: "string",
+      format: "time",
     },
     webShortname: "hash",
     migrationState,
