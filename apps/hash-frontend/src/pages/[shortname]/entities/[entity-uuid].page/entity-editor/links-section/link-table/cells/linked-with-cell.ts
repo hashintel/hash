@@ -94,7 +94,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       });
 
       entityChipInteractables.push(
-        InteractableManager.create(args, {
+        InteractableManager.createCellInteractable(args, {
           id: rightEntity.metadata.recordId.entityId,
           pos: {
             left: accumulatedLeft,
@@ -144,7 +144,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
 
     drawCellFadeOutGradient(args, iconSize + cellPadding);
 
-    const deleteButton = InteractableManager.create(args, {
+    const deleteButton = InteractableManager.createCellInteractable(args, {
       id: "delete",
       pos: {
         left: buttonRight - iconSize,

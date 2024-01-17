@@ -437,7 +437,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             },
         };
 
-        let mut relationships = Vec::new();
+        let mut relationships = HashSet::new();
 
         let mut inserted_entity_types = Vec::new();
         let mut inserted_entity_type_metadata =
@@ -466,7 +466,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                     .assert_permission()
                     .change_context(InsertionError)?;
 
-                relationships.push((
+                relationships.insert((
                     entity_type_id,
                     EntityTypeRelationAndSubject::Owner {
                         subject: EntityTypeOwnerSubject::Web { id: *owned_by_id },

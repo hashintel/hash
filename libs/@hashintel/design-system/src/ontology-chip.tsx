@@ -91,6 +91,7 @@ const OntologyChip: ForwardRefRenderFunction<
       <Typography
         component={Stack}
         direction="row"
+        data-testid="ontology-chip-path"
         sx={(theme) => ({
           alignItems: "center",
           pr: 1.25,

@@ -277,7 +277,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             },
         };
 
-        let mut relationships = Vec::new();
+        let mut relationships = HashSet::new();
 
         let mut inserted_property_types = Vec::new();
         let mut inserted_property_type_metadata =
@@ -300,7 +300,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     .assert_permission()
                     .change_context(InsertionError)?;
 
-                relationships.push((
+                relationships.insert((
                     property_type_id,
                     PropertyTypeRelationAndSubject::Owner {
                         subject: PropertyTypeOwnerSubject::Web { id: *owned_by_id },
