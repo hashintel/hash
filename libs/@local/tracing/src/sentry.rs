@@ -113,6 +113,7 @@ pub fn init_sentry(
     })
 }
 
+#[must_use]
 pub fn layer<S>() -> SentryLayer<S>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
@@ -166,8 +167,8 @@ fn create_template(location: Location) -> TemplateInfo {
             .file_name()
             .map(|path| path.to_string_lossy().to_string()),
         abs_path: Some(location.file().to_owned()),
-        lineno: Some(location.line() as u64),
-        colno: Some(location.column() as u64),
+        lineno: Some(u64::from(location.line())),
+        colno: Some(u64::from(location.column())),
         pre_context,
         context_line,
         post_context,
@@ -183,7 +184,7 @@ pub fn capture_report<C>(report: &Report<C>) {
             template: report
                 .request_ref::<Location>()
                 .next()
-                .cloned()
+                .copied()
                 .or_else(|| report.request_value::<Location>().next())
                 .map(create_template),
             ..Event::default()
