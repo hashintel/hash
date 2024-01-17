@@ -30,7 +30,11 @@ const OPENTELEMETRY_TIMEOUT_DURATION: Duration = Duration::from_secs(5);
 ///
 /// Panics if the `OpenTelemetry` configuration is invalid.
 #[must_use]
-pub fn layer(endpoint: String) -> OpenTelemetryLayer<Layered<EnvFilter, Registry>, Tracer> {
+#[expect(
+    clippy::unused_async,
+    reason = "Creating a pipeline requires a Tokio context"
+)]
+pub async fn layer(endpoint: String) -> OpenTelemetryLayer<Layered<EnvFilter, Registry>, Tracer> {
     // Allow correlating trace IDs
     global::set_text_map_propagator(TraceContextPropagator::new());
     // If we need to set any tokens in the header for the tracing collector, this would be the place

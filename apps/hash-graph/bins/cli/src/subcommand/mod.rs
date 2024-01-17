@@ -49,7 +49,7 @@ fn block_on(
         .build()
         .expect("failed to create runtime")
         .block_on(async {
-            let _log_guard = init_tracing(tracing_config);
+            let _log_guard = init_tracing(tracing_config).await;
             future.await
         })
 }

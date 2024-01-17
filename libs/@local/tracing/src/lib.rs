@@ -34,7 +34,7 @@ pub struct TracingConfig {
 /// # Errors
 ///
 /// - [`TryInitError`], if initializing the [`tracing_subscriber::Registry`] fails.
-pub fn init_tracing(config: TracingConfig) -> Result<impl Drop + 'static, TryInitError> {
+pub async fn init_tracing(config: TracingConfig) -> Result<impl Drop + 'static, TryInitError> {
     let LoggingConfig {
         log_format,
         log_folder,
@@ -65,7 +65,11 @@ pub fn init_tracing(config: TracingConfig) -> Result<impl Drop + 'static, TryIni
     let error_layer = tracing_error::ErrorLayer::default();
     let (output_layer, json_output_layer) = logging::console_logger(log_format);
     let (json_file_layer, json_file_guard) = logging::file_logger(log_folder, &log_file_prefix);
-    let opentelemetry_layer = config.otlp.otlp_endpoint.map(opentelemetry::layer);
+    let opentelemetry_layer = if let Some(endpoint) = config.otlp.otlp_endpoint {
+        Some(opentelemetry::layer(endpoint).await)
+    } else {
+        None
+    };
     let sentry_layer = sentry::layer();
 
     tracing_subscriber::registry()
