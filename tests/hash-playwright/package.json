@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@apps/hash-frontend": "0.0.0-private",
+    "@apps/plugin-browser": "0.0.0-private",
     "@apps/hash-realtime": "0.0.0-private",
     "@apps/hash-search-loader": "0.0.0-private"
   }
