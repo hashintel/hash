@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -24,8 +24,13 @@ import { useBlockProtocolUpdateEntity } from "../components/hooks/block-protocol
 import {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
+  UpdateEntitiesMutation,
+  UpdateEntitiesMutationVariables,
 } from "../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
+import {
+  structuralQueryEntitiesQuery,
+  updateEntitiesMutation,
+} from "../graphql/queries/knowledge/entity.queries";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 
 export type NotificationEntitiesContextValues = {
@@ -38,6 +43,9 @@ export type NotificationEntitiesContextValues = {
   }) => Promise<void>;
   archiveNotification: (params: {
     notificationEntity: Entity;
+  }) => Promise<void>;
+  archiveNotifications: (params: {
+    notificationEntities: Entity[];
   }) => Promise<void>;
 };
 
@@ -147,8 +155,8 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
   );
 
   const archiveNotification = useCallback(
-    async (params: { notificationEntity: Entity }) => {
-      const { notificationEntity } = params;
+    async (params: { notificationEntity: Entity; shouldRefetch?: boolean }) => {
+      const { notificationEntity, shouldRefetch = true } = params;
 
       await updateEntity({
         data: {
@@ -161,9 +169,37 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
         },
       });
 
-      await refetch();
+      if (shouldRefetch) {
+        await refetch();
+      }
     },
     [updateEntity, refetch],
+  );
+
+  const [updateEntities] = useMutation<
+    UpdateEntitiesMutation,
+    UpdateEntitiesMutationVariables
+  >(updateEntitiesMutation);
+
+  const archiveNotifications = useCallback(
+    async (params: { notificationEntities: Entity[] }) => {
+      await updateEntities({
+        variables: {
+          updateEntities: params.notificationEntities.map(
+            (notificationEntity) => ({
+              entityId: notificationEntity.metadata.recordId.entityId,
+              entityTypeId: notificationEntity.metadata.entityTypeId,
+              updatedProperties: {
+                ...notificationEntity.properties,
+                "https://hash.ai/@hash/types/property-type/archived/": true,
+              } as NotificationProperties,
+            }),
+          ),
+        },
+      });
+      await refetch();
+    },
+    [updateEntities, refetch],
   );
 
   const numberOfUnreadNotifications = useMemo(
@@ -181,6 +217,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
       notificationEntities,
       numberOfUnreadNotifications,
       loading: loadingNotificationEntities,
+      archiveNotifications,
       refetch,
       markNotificationAsRead,
       archiveNotification,
@@ -188,6 +225,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
     [
       notificationEntities,
       numberOfUnreadNotifications,
+      archiveNotifications,
       loadingNotificationEntities,
       refetch,
       markNotificationAsRead,

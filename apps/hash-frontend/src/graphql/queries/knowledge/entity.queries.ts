@@ -89,6 +89,12 @@ export const updateEntityMutation = gql`
   }
 `;
 
+export const updateEntitiesMutation = gql`
+  mutation updateEntities($updateEntities: [EntityUpdateDefinition!]!) {
+    updateEntities(updateEntities: $updateEntities)
+  }
+`;
+
 export const archiveEntityMutation = gql`
   mutation archiveEntity($entityId: EntityId!) {
     archiveEntity(entityId: $entityId)

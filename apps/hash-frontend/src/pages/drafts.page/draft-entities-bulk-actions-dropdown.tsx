@@ -42,7 +42,7 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
 }) => {
   const { draftEntities, refetch: refetchDraftEntities } = useDraftEntities();
   const { notifications } = useNotificationsWithLinks();
-  const { archiveNotification, markNotificationAsRead } =
+  const { archiveNotifications, markNotificationAsRead } =
     useNotificationEntities();
 
   const popupState = usePopupState({
@@ -105,13 +105,9 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
       ),
     );
 
-    await Promise.all(
-      relatedNotifications.map((notification) =>
-        archiveNotification({
-          notificationEntity: notification.entity,
-        }),
-      ),
-    );
+    await archiveNotifications({
+      notificationEntities: relatedNotifications.map(({ entity }) => entity),
+    });
 
     await archiveEntities({
       variables: {
@@ -127,7 +123,7 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
     deselectAllDraftEntities();
   }, [
     notifications,
-    archiveNotification,
+    archiveNotifications,
     archiveEntities,
     selectedDraftEntityIds,
     selectedDraftEntities,
