@@ -77,7 +77,7 @@ export const SelectorAutocompleteOption = ({
   return (
     <li
       {...liProps}
-      data-testid="property-selector-option"
+      data-testid="selector-autocomplete-option"
       /** added GRID_CLICK_IGNORE_CLASS to be able to use this selector with Grid component */
       className={clsx(liProps.className, GRID_CLICK_IGNORE_CLASS)}
       onMouseEnter={onMouseEnter}

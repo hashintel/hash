@@ -66,7 +66,7 @@ test("user can update values on property table", async ({ page }) => {
     .fill("GitHub Account");
 
   // create a new `GitHub Account`
-  await page.getByTestId("property-selector-option").first().click();
+  await page.getByTestId("selector-autocomplete-option").first().click();
 
   // select property table
   const canvas = page.locator(".dvn-underlay > canvas:first-of-type").first();
