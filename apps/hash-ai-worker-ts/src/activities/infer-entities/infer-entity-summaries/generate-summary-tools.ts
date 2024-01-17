@@ -26,10 +26,16 @@ export type ProposedEntitySummariesByType = Record<
 export const validateEntitySummariesByType = (
   parsedJson: JsonObject,
   entityTypesById: DereferencedEntityTypesByTypeId,
-): parsedJson is ProposedEntitySummariesByType => {
+  existingSummaries: ProposedEntitySummary[],
+): {
+  errorMessage?: string;
+  validSummaries: ProposedEntitySummary[];
+} => {
   const errorMessages: string[] = [];
 
-  const validSummariesWithLinksUnchecked: ProposedEntitySummary[] = [];
+  const validSummariesWithLinksUnchecked: ProposedEntitySummary[] = [
+    ...existingSummaries,
+  ];
 
   for (const [entityTypeId, summaryEntitiesForType] of typedEntries(
     parsedJson,
@@ -96,11 +102,15 @@ export const validateEntitySummariesByType = (
         validSummariesWithLinksUnchecked.push({
           entityId: entitySummary.entityId as number,
           summary: entitySummary.summary as string,
+          sourceEntityId: entitySummary.sourceEntityId as number | undefined,
+          targetEntityId: entitySummary.targetEntityId as number | undefined,
           entityTypeId: entityTypeId as VersionedUrl,
         });
       }
     }
   }
+
+  const validSummaries: ProposedEntitySummary[] = [];
 
   for (const potentiallyLinkEntity of validSummariesWithLinksUnchecked) {
     const entityType = entityTypesById[potentiallyLinkEntity.entityTypeId]!;
@@ -110,7 +120,7 @@ export const validateEntitySummariesByType = (
         typeof potentiallyLinkEntity.targetEntityId !== "number"
       ) {
         errorMessages.push(
-          `Link entity ${stringify(
+          `Link entity with entityId ${stringify(
             potentiallyLinkEntity,
           )} must have number values for both sourceEntityId and targetEntityId`,
         );
@@ -126,22 +136,25 @@ export const validateEntitySummariesByType = (
 
       if (!source) {
         errorMessages.push(
-          `Link entity with id ${potentiallyLinkEntity.entityId} specifies invalid sourceEntityId ${potentiallyLinkEntity.sourceEntityId} that does not correspond to any other valid entity.`,
+          `Link entity with entityId ${potentiallyLinkEntity.entityId} specifies invalid sourceEntityId ${potentiallyLinkEntity.sourceEntityId} that does not correspond to any other valid entity – please include a valid entity with that entityId in your next attempt.`,
         );
       }
       if (!target) {
         errorMessages.push(
-          `Link entity with id ${potentiallyLinkEntity.entityId} specifies invalid targetEntityId ${potentiallyLinkEntity.targetEntityId} that does not correspond to any other valid entity.`,
+          `Link entity with entityId ${potentiallyLinkEntity.entityId} specifies invalid targetEntityId ${potentiallyLinkEntity.targetEntityId} that does not correspond to any other valid entity – please include a valid entity with that entityId in your next attempt.`,
         );
+      }
+      if (source && target) {
+        validSummaries.push(potentiallyLinkEntity);
       }
     }
   }
 
-  if (errorMessages.length > 0) {
-    throw new Error(errorMessages.join("\n"));
-  }
-
-  return true;
+  return {
+    errorMessage:
+      errorMessages.length > 0 ? errorMessages.join("\n") : undefined,
+    validSummaries,
+  };
 };
 
 type CouldNotInferEntitiesReturnKey = "reason";

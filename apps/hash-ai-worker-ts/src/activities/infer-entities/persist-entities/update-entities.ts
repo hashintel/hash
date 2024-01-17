@@ -106,15 +106,17 @@ export const updateEntities = async ({
               );
             }
 
+            const newProperties = {
+              ...existingEntity.properties,
+              ...properties,
+            };
+
             await graphApiClient.validateEntity(actorId, {
               draft: existingEntity.metadata.draft,
               entityTypeId,
               linkData: existingEntity.linkData,
               operations: ["all"],
-              properties: {
-                ...existingEntity.properties,
-                ...properties,
-              },
+              properties: newProperties,
             });
 
             const { data: updateEntityMetadata } =
@@ -123,10 +125,7 @@ export const updateEntities = async ({
                 draft: existingEntity.metadata.draft,
                 entityTypeId,
                 entityId: updateEntityId,
-                properties: {
-                  ...existingEntity.properties,
-                  ...properties,
-                },
+                properties: newProperties,
               });
 
             const metadata =
@@ -136,6 +135,7 @@ export const updateEntities = async ({
               entityTypeId,
               entity: {
                 ...existingEntity,
+                properties: newProperties,
                 metadata,
               },
               proposedEntity,

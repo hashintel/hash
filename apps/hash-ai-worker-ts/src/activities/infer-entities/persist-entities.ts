@@ -1,7 +1,10 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { createGraphChangeNotification } from "@local/hash-backend-utils/notifications";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/ai-inference-types";
+import type {
+  InferEntitiesReturn,
+  InferredEntityChangeResult,
+} from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { AccountId, Entity, OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -53,11 +56,16 @@ export const persistEntities = async (params: {
     iterationCount,
     inProgressEntityIds,
     proposedEntitySummaries,
-    resultsByTemporaryId,
     usage: usageFromLastIteration,
   } = inferenceState;
 
-  if (iterationCount > 20) {
+  const getResults = () =>
+    Object.values(inferenceState.resultsByTemporaryId).filter(
+      (result): result is InferredEntityChangeResult =>
+        result.status !== "update-candidate",
+    );
+
+  if (iterationCount > 30) {
     log(
       `Model reached maximum number of iterations. Messages: ${stringify(
         completionPayload.messages,
@@ -68,12 +76,27 @@ export const persistEntities = async (params: {
       code: StatusCode.ResourceExhausted,
       contents: [
         {
-          results: Object.values(inferenceState.resultsByTemporaryId),
+          results: getResults(),
           usage: inferenceState.usage,
         },
       ],
       message: `Maximum number of iterations reached.`,
     };
+  }
+
+  for (const inProgressEntityId of inProgressEntityIds) {
+    const inProgressEntity = proposedEntitySummaries.find(
+      (entity) => entity.entityId === inProgressEntityId,
+    );
+    if (inProgressEntity) {
+      inProgressEntity.takenFromQueue = true;
+    } else {
+      log(
+        `Could not find in progress entity with id ${inProgressEntityId} in proposedEntitySummaries: ${stringify(
+          proposedEntitySummaries,
+        )}`,
+      );
+    }
   }
 
   /**
@@ -126,7 +149,7 @@ export const persistEntities = async (params: {
       ...openAiResponse,
       contents: [
         {
-          results: Object.values(inferenceState.resultsByTemporaryId),
+          results: getResults(),
           usage: inferenceState.usage,
         },
       ],
@@ -215,7 +238,7 @@ export const persistEntities = async (params: {
         code: StatusCode.Unknown,
         contents: [
           {
-            results: Object.values(inferenceState.resultsByTemporaryId),
+            results: getResults(),
             usage: latestUsage,
           },
         ],
@@ -235,7 +258,7 @@ export const persistEntities = async (params: {
           code: StatusCode.ResourceExhausted,
           contents: [
             {
-              results: Object.values(inferenceState.resultsByTemporaryId),
+              results: getResults(),
               usage: latestUsage,
             },
           ],
@@ -269,7 +292,7 @@ export const persistEntities = async (params: {
         code: StatusCode.InvalidArgument,
         contents: [
           {
-            results: Object.values(inferenceState.resultsByTemporaryId),
+            results: getResults(),
             usage: latestUsage,
           },
         ],
@@ -287,7 +310,7 @@ export const persistEntities = async (params: {
           code: StatusCode.Internal,
           contents: [
             {
-              results: Object.values(inferenceState.resultsByTemporaryId),
+              results: getResults(),
               usage: latestUsage,
             },
           ],
@@ -428,8 +451,14 @@ export const persistEntities = async (params: {
             const successes = Object.values(creationSuccesses);
             const failures = Object.values(creationFailures);
             const unchangeds = Object.values(unchangedEntities);
+            const updates = Object.values(updateCandidates);
 
-            for (const result of [...successes, ...failures, ...unchangeds]) {
+            for (const result of [
+              ...successes,
+              ...failures,
+              ...unchangeds,
+              ...updates,
+            ]) {
               inferenceState.resultsByTemporaryId[
                 result.proposedEntity.entityId
               ] = result;
@@ -466,7 +495,6 @@ export const persistEntities = async (params: {
               requiresOriginalContextForRetry = true;
             }
 
-            const updates = Object.values(updateCandidates);
             if (updates.length > 0) {
               retryMessageContent += dedent(`
               Some of the entities you suggest for creation already exist. Please review their properties and call update_entities
@@ -479,13 +507,11 @@ export const persistEntities = async (params: {
                   updateCandidate.proposedEntity,
                 )}
                 updateEntityId to use: ${
-                  updateCandidate.existingEntity.metadata.recordId.entityId
+                  updateCandidate.entity.metadata.recordId.entityId
                 }
-                entityTypeId: ${
-                  updateCandidate.existingEntity.metadata.entityTypeId
-                }
+                entityTypeId: ${updateCandidate.entity.metadata.entityTypeId}
                 Current properties: ${stringify(
-                  updateCandidate.existingEntity.properties,
+                  updateCandidate.entity.properties,
                 )}
               `,
                 )
@@ -511,7 +537,7 @@ export const persistEntities = async (params: {
               code: StatusCode.Internal,
               contents: [
                 {
-                  results: Object.values(inferenceState.resultsByTemporaryId),
+                  results: getResults(),
                   usage: latestUsage,
                 },
               ],
@@ -619,7 +645,7 @@ export const persistEntities = async (params: {
               code: StatusCode.Internal,
               contents: [
                 {
-                  results: Object.values(inferenceState.resultsByTemporaryId),
+                  results: getResults(),
                   usage: latestUsage,
                 },
               ],
@@ -644,7 +670,7 @@ export const persistEntities = async (params: {
       }
 
       if (retryMessages.length === 0) {
-        const results = Object.values(resultsByTemporaryId);
+        const results = getResults();
         log(`Returning results: ${stringify(results)}`);
         return {
           code: StatusCode.Ok,
@@ -690,7 +716,7 @@ export const persistEntities = async (params: {
     code: StatusCode.Internal,
     contents: [
       {
-        results: Object.values(inferenceState.resultsByTemporaryId),
+        results: getResults(),
         usage: latestUsage,
       },
     ],
