@@ -105,10 +105,6 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
       ),
     );
 
-    await archiveNotifications({
-      notificationEntities: relatedNotifications.map(({ entity }) => entity),
-    });
-
     await archiveEntities({
       variables: {
         entityIds: [
@@ -116,6 +112,10 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
           ...(incomingOrOutgoingDraftLinksToIgnore ?? []),
         ].map(({ metadata }) => metadata.recordId.entityId),
       },
+    });
+
+    await archiveNotifications({
+      notificationEntities: relatedNotifications.map(({ entity }) => entity),
     });
 
     await refetchDraftEntities();
@@ -213,12 +213,6 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
           ),
       ) ?? [];
 
-    await markNotificationsAsRead({
-      notificationEntities: relatedGraphChangeNotifications.map(
-        ({ entity }) => entity,
-      ),
-    });
-
     await updateEntities({
       variables: {
         updateEntities: [
@@ -230,6 +224,12 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
           draft: false,
         })),
       },
+    });
+
+    await markNotificationsAsRead({
+      notificationEntities: relatedGraphChangeNotifications.map(
+        ({ entity }) => entity,
+      ),
     });
 
     await refetchDraftEntities();
