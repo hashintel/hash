@@ -16,7 +16,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum DataTypeNamespace {
     #[serde(rename = "graph/data_type")]
     DataType,
@@ -71,7 +71,7 @@ impl Resource for DataTypeId {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DataTypeResourceRelation {
     Owner,
@@ -80,7 +80,7 @@ pub enum DataTypeResourceRelation {
 
 impl Relation<DataTypeId> for DataTypeResourceRelation {}
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum DataTypePermission {
@@ -90,14 +90,14 @@ pub enum DataTypePermission {
 
 impl Permission<DataTypeId> for DataTypePermission {}
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum DataTypeSubject {
     Web(OwnedById),
     Public,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum DataTypeSubjectNamespace {
     #[serde(rename = "graph/web")]
     Web,
@@ -105,7 +105,7 @@ pub enum DataTypeSubjectNamespace {
     Account,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum DataTypeSubjectId {
     Uuid(Uuid),
@@ -149,7 +149,7 @@ impl Resource for DataTypeSubject {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum DataTypeOwnerSubject {
@@ -159,14 +159,14 @@ pub enum DataTypeOwnerSubject {
     },
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum DataTypeViewerSubject {
     Public,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation")]
 pub enum DataTypeRelationAndSubject {

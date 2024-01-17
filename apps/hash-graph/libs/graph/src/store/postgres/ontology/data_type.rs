@@ -151,7 +151,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             },
         };
 
-        let mut relationships = Vec::new();
+        let mut relationships = HashSet::new();
 
         let mut inserted_data_type_metadata = Vec::new();
         for (schema, metadata) in data_types {
@@ -171,7 +171,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     .assert_permission()
                     .change_context(InsertionError)?;
 
-                relationships.push((
+                relationships.insert((
                     data_type_id,
                     DataTypeRelationAndSubject::Owner {
                         subject: DataTypeOwnerSubject::Web { id: *owned_by_id },
