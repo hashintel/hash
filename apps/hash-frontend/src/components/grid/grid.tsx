@@ -116,6 +116,9 @@ export const Grid = <T extends Row & { rowId: string }>({
     })),
   );
 
+  const [previousSortedColumnKey, setPreviousSortedColumnKey] = useState<
+    string | undefined
+  >();
   const [currentSortedColumnKey, setCurrentSortedColumnKey] = useState<
     string | undefined
   >(initialSortedColumnKey ?? columns[0]?.id);
@@ -144,6 +147,7 @@ export const Grid = <T extends Row & { rowId: string }>({
         });
       }
 
+      setPreviousSortedColumnKey(currentSortedColumnKey);
       setCurrentSortedColumnKey(columnKey);
     },
     [currentSortedColumnKey],
@@ -207,15 +211,26 @@ export const Grid = <T extends Row & { rowId: string }>({
         ? sorts.find((sort) => sort.columnKey === currentSortedColumnKey)
         : undefined;
 
+      const previousSortedColumn = previousSortedColumnKey
+        ? sorts.find((sort) => sort.columnKey === previousSortedColumnKey)
+        : undefined;
+
       if (!sortedColumn) {
         return filteredRows;
       }
 
       const sortRowFn = sortRows ?? defaultSortRows;
 
-      return sortRowFn(filteredRows, sortedColumn);
+      return sortRowFn(filteredRows, sortedColumn, previousSortedColumn);
     }
-  }, [sortable, filteredRows, sortRows, currentSortedColumnKey, sorts]);
+  }, [
+    sortable,
+    filteredRows,
+    sortRows,
+    currentSortedColumnKey,
+    previousSortedColumnKey,
+    sorts,
+  ]);
 
   const gridSelection = useMemo(() => {
     if (sortedRows && selectedRows) {
