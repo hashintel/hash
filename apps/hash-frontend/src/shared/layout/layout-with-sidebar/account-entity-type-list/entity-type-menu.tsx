@@ -6,6 +6,7 @@ import { Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useState } from "react";
 
+import { useEntityTypesContextRequired } from "../../../entity-types-context/hooks/use-entity-types-context-required";
 import { useFrozenValue } from "../../../frozen";
 import { EntityTypeMenuItem } from "./entity-type-menu-item";
 
@@ -26,14 +27,21 @@ export const EntityTypeMenu: FunctionComponent<EntityTypeMenuProps> = ({
   const [copied, setCopied] = useState(false);
   const copiedFrozen = useFrozenValue(copied, !popupState.isOpen);
 
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const isLinkEntityType = isSpecialEntityTypeLookup?.[entityTypeId]?.isLink;
+
   return (
     <Menu {...bindMenu(popupState)}>
-      <EntityTypeMenuItem
-        title={`Create new ${pluralize.singular(title)}`}
-        icon={faAdd}
-        href={`/new/entity?entity-type-id=${entityTypeId}`}
-        popupState={popupState}
-      />
+      {isLinkEntityType ? null : (
+        <EntityTypeMenuItem
+          title={`Create new ${pluralize.singular(title)}`}
+          icon={faAdd}
+          href={`/new/entity?entity-type-id=${entityTypeId}`}
+          popupState={popupState}
+        />
+      )}
       <EntityTypeMenuItem
         title={copiedFrozen ? "Copied!" : `Copy link to ${title}`}
         icon={faLink}

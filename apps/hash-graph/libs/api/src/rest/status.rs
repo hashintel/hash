@@ -24,13 +24,13 @@ where
     C: Context,
 {
     let report = report.into();
-    tracing::error!(error = ?report);
     let status_code = report
         .request_ref::<StatusCode>()
         .next()
         .copied()
         .or_else(|| report.request_value::<StatusCode>().next())
         .unwrap_or(StatusCode::Internal);
+    tracing::error!(error = ?report, tags.code = ?status_code.to_http_code());
 
     status_to_response(Status::new(
         status_code,

@@ -14,7 +14,6 @@ use authorization::{
 use clap::Parser;
 use error_stack::{Report, Result, ResultExt};
 use graph::{
-    logging::{init_logger, LoggingArgs},
     ontology::domain_validator::DomainValidator,
     store::{DatabaseConnectionInfo, FetchingPool, PostgresStorePool, StorePool},
 };
@@ -60,9 +59,6 @@ impl TryFrom<ApiAddress> for SocketAddr {
 
 #[derive(Debug, Parser)]
 pub struct ServerArgs {
-    #[clap(flatten)]
-    pub log_config: LoggingArgs,
-
     #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
 
@@ -130,8 +126,6 @@ pub struct ServerArgs {
 }
 
 pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
-    let _log_guard = init_logger(&args.log_config);
-
     if args.healthcheck {
         return healthcheck(args.api_address)
             .await

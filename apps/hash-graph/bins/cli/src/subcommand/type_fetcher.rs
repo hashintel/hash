@@ -3,7 +3,6 @@ use std::time::Duration;
 use clap::Parser;
 use error_stack::{Result, ResultExt};
 use futures::{future, StreamExt};
-use graph::logging::{init_logger, LoggingArgs};
 use tarpc::{
     serde_transport::Transport,
     server::{self, Channel},
@@ -35,9 +34,6 @@ pub struct TypeFetcherAddress {
 #[derive(Debug, Parser)]
 pub struct TypeFetcherArgs {
     #[clap(flatten)]
-    pub log_config: LoggingArgs,
-
-    #[clap(flatten)]
     pub address: TypeFetcherAddress,
 
     /// Runs the healthcheck for the type fetcher.
@@ -46,8 +42,6 @@ pub struct TypeFetcherArgs {
 }
 
 pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
-    let _log_guard = init_logger(&args.log_config);
-
     if args.healthcheck {
         return healthcheck(args.address).await.change_context(GraphError);
     }

@@ -1,47 +1,53 @@
 import { DrawHeaderCallback, GridColumn } from "@glideapps/glide-data-grid";
+import { useTheme } from "@mui/material";
 import { useCallback } from "react";
 
 import { getCellHorizontalPadding, getYCenter } from "../utils";
-import { ColumnSort, ColumnSortType } from "./sorting";
+import { ColumnFilter } from "./filtering";
+import { InteractableManager } from "./interactable-manager";
+import {
+  Interactable,
+  InteractablePosition,
+} from "./interactable-manager/types";
+import { ColumnSort } from "./sorting";
 
-const drawHeaderSortIndicator = (
-  x: number,
-  y: number,
-  dir: ColumnSortType,
-  ctx: CanvasRenderingContext2D,
-) => {
-  const width = 6;
-  const height = width * 0.6;
+export const useDrawHeader = <T extends string>(props: {
+  tableId: string;
+  sorts?: ColumnSort<T>[];
+  onSortClick?: (columnKey: T) => void;
+  activeSortColumnKey?: T;
+  filters?: ColumnFilter<T, any>[];
+  onFilterClick?: (
+    columnKey: T,
+    interactablePosition: InteractablePosition,
+  ) => void;
+  columns: GridColumn[];
+  firstColumnLeftPadding?: number;
+}): DrawHeaderCallback => {
+  const {
+    activeSortColumnKey,
+    tableId,
+    sorts,
+    filters,
+    columns,
+    firstColumnLeftPadding,
+    onFilterClick,
+    onSortClick,
+  } = props;
 
-  let adjust = height / 2;
-  if (dir === "asc") {
-    adjust = -adjust;
-  }
+  const muiTheme = useTheme();
 
-  // adjustedY makes toggling asc-desc look like flipping the indicator
-  const adjustedY = y + adjust;
-
-  ctx.beginPath();
-  ctx.moveTo(x, adjustedY);
-  ctx.lineTo(x + width / 2, adjustedY + (dir === "asc" ? height : -height));
-  ctx.lineTo(x + width, adjustedY);
-  ctx.fill();
-};
-
-export const useDrawHeader = <T extends string>(
-  sort: ColumnSort<T> | undefined,
-  columns: GridColumn[],
-  firstColumnLeftPadding?: number,
-) => {
   const drawHeader: DrawHeaderCallback = useCallback(
     (args) => {
       const { ctx, rect, column, columnIndex, theme } = args;
-      const { x } = rect;
+      const { x: columnHeaderStartX, width: columnHeaderWidth } = rect;
 
       const paddingLeft =
         typeof firstColumnLeftPadding !== "undefined" && columnIndex === 0
           ? firstColumnLeftPadding
           : getCellHorizontalPadding();
+
+      const paddingRight = getCellHorizontalPadding();
 
       // center of the rectangle, we'll use it to draw the text & sort indicator
       const centerY = getYCenter(args);
@@ -49,26 +55,139 @@ export const useDrawHeader = <T extends string>(
       // draw text
       ctx.fillStyle = theme.textHeader;
       ctx.font = theme.headerFontStyle;
-      ctx.fillText(column.title, x + paddingLeft, centerY);
+      ctx.fillText(column.title, columnHeaderStartX + paddingLeft, centerY);
 
-      const columnKey = columns[columnIndex]?.id;
+      const columnKey = columns[columnIndex]?.id as T;
+
+      if (columnIndex < 0) {
+        return true;
+      }
+
+      const interactables: Interactable[] = [];
+
+      const sortIconSize = 15;
+
+      const iconSpacing = 10;
+
+      const sort = sorts?.find(
+        ({ columnKey: sortColumnKey }) => sortColumnKey === columnKey,
+      );
 
       if (sort) {
-        const isSorted = columnKey === sort.key;
+        const sortIconStartX =
+          columnHeaderStartX +
+          (columnHeaderWidth - sortIconSize - paddingRight);
 
-        // draw sort indicator
-        if (isSorted) {
-          const titleWidth = ctx.measureText(column.title).width;
-          const indicatorX = x + paddingLeft + titleWidth + 6;
-          const indicatorY = centerY;
+        const isSortActive = sort.columnKey === activeSortColumnKey;
 
-          drawHeaderSortIndicator(indicatorX, indicatorY, sort.dir, ctx);
-        }
+        args.spriteManager.drawSprite(
+          /**
+           * @todo: support other kinds of sort icons
+           */
+          `arrow${sort.direction === "asc" ? "Down" : "Up"}AzLight`,
+          "normal",
+          ctx,
+          sortIconStartX,
+          centerY - sortIconSize / 2,
+          sortIconSize,
+          {
+            ...theme,
+            fgIconHeader: isSortActive
+              ? muiTheme.palette.blue[70]
+              : muiTheme.palette.gray[50],
+          },
+          1,
+        );
+
+        interactables.push(
+          InteractableManager.createColumnHeaderInteractable(
+            { ...args, tableId },
+            {
+              id: `column-sort-${columnKey}`,
+              pos: {
+                left: sortIconStartX,
+                right: sortIconStartX + sortIconSize,
+                top: centerY - sortIconSize / 2,
+                bottom: centerY + sortIconSize / 2,
+              },
+              onClick: () => onSortClick?.(columnKey),
+            },
+          ),
+        );
+      }
+
+      const columnFilter = filters?.find(
+        (filter) => filter.columnKey === columnKey,
+      );
+
+      if (columnFilter) {
+        const filterIconSize = 15;
+
+        const columnFilterX =
+          columnHeaderStartX +
+          (columnHeaderWidth -
+            paddingRight -
+            (sort ? sortIconSize + iconSpacing : 0) -
+            filterIconSize);
+
+        const isFilterModified =
+          columnFilter.selectedFilterItemIds.length !==
+          columnFilter.filterItems.length;
+
+        args.spriteManager.drawSprite(
+          "filterLight",
+          "normal",
+          ctx,
+          columnFilterX,
+          centerY - filterIconSize / 2,
+          filterIconSize,
+          {
+            ...theme,
+            fgIconHeader: isFilterModified
+              ? muiTheme.palette.blue[70]
+              : muiTheme.palette.gray[50],
+          },
+          1,
+        );
+
+        interactables.push(
+          InteractableManager.createColumnHeaderInteractable(
+            { ...args, tableId },
+            {
+              id: `column-filter-${columnKey}`,
+              pos: {
+                left: columnFilterX,
+                right: columnFilterX + filterIconSize,
+                top: centerY - filterIconSize / 2,
+                bottom: centerY + filterIconSize / 2,
+              },
+              onClick: (interactable) =>
+                onFilterClick?.(columnKey, interactable.pos),
+            },
+          ),
+        );
+      }
+
+      if (interactables.length > 0) {
+        InteractableManager.setInteractablesForColumnHeader(
+          { ...args, tableId },
+          interactables,
+        );
       }
 
       return true;
     },
-    [sort, columns, firstColumnLeftPadding],
+    [
+      muiTheme,
+      sorts,
+      filters,
+      columns,
+      activeSortColumnKey,
+      tableId,
+      firstColumnLeftPadding,
+      onSortClick,
+      onFilterClick,
+    ],
   );
 
   return drawHeader;

@@ -11,6 +11,7 @@ import { Box, Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent } from "react";
 
+import { useEntityTypesContextRequired } from "../../../entity-types-context/hooks/use-entity-types-context-required";
 import { generateLinkParameters } from "../../../generate-link-parameters";
 import { EntityTypeMenuItem } from "./entity-type-menu-item";
 
@@ -29,14 +30,21 @@ export const EntityMenu: FunctionComponent<EntityTypeMenuProps> = ({
   popupState,
   title,
 }) => {
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const isLinkEntityType = isSpecialEntityTypeLookup?.[entityTypeId]?.isLink;
+
   return (
     <Menu {...bindMenu(popupState)}>
-      <EntityTypeMenuItem
-        title={`Create new ${pluralize.singular(title)}`}
-        icon={faAdd}
-        href={`/new/entity?entity-type-id=${entityTypeId}`}
-        popupState={popupState}
-      />
+      {isLinkEntityType ? null : (
+        <EntityTypeMenuItem
+          title={`Create new ${pluralize.singular(title)}`}
+          icon={faAdd}
+          href={`/new/entity?entity-type-id=${entityTypeId}`}
+          popupState={popupState}
+        />
+      )}
       <EntityTypeMenuItem
         title={`View all ${pluralize(title)}`}
         icon={faList}

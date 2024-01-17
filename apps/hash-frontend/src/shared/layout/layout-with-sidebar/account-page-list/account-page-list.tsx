@@ -410,7 +410,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           title="Pages"
           loading={loading}
           endAdornment={
-            <Tooltip title="Create new Page">
+            <Tooltip title="Create new page">
               <IconButton
                 size="small"
                 unpadded

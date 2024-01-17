@@ -46,7 +46,7 @@
     "@ory/client": "1.1.41",
     "@ory/kratos-client": "0.13.1",
     "@rudderstack/rudder-sdk-node": "2.0.3",
-    "@sentry/node": "7.81.0",
+    "@sentry/node": "7.93.0",
     "@snowplow/node-tracker": "3.3.1",
     "@temporalio/client": "1.8.1",
     "@types/ws": "8.5.10",
