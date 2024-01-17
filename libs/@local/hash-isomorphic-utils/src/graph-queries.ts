@@ -100,6 +100,29 @@ export const fullDecisionTimeAxis: QueryTemporalAxesUnresolved = {
 };
 
 /**
+ * According to the database's most up-to-date knowledge (transaction time),
+ * return the full history of entities and the times at which those decisions
+ * were made.
+ *
+ * Used to be passed as `temporalAxes` to structural queries.
+ */
+export const fullTransactionTimeAxis: QueryTemporalAxesUnresolved = {
+  pinned: {
+    axis: "decisionTime",
+    timestamp: null,
+  },
+  variable: {
+    axis: "transactionTime",
+    interval: {
+      start: {
+        kind: "unbounded",
+      },
+      end: null,
+    },
+  },
+};
+
+/**
  * Generates a query filter to match a type, given its versionedUrl.
  *
  * @param versionedUrl
