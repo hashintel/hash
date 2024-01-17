@@ -27,6 +27,6 @@ export const initSentry = (app: Router) => {
       // new Sentry.Integrations.Apollo({ useNestjs: true }),
     ],
 
-    tracesSampleRate: 0.2,
+    tracesSampleRate: 1.0,
   });
 };

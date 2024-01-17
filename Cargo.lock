@@ -1055,6 +1055,7 @@ dependencies = [
  "graph",
  "graph-types",
  "hash-status",
+ "hash-tracing",
  "http-body-util",
  "hyper 1.1.0",
  "include_dir",

@@ -1,11 +1,27 @@
-use std::{borrow::Cow, fmt, sync::Arc};
+use std::{
+    borrow::Cow,
+    fmt,
+    fs::File,
+    io::{BufRead, BufReader},
+    panic::Location,
+    path::Path,
+    sync::Arc,
+};
 #[cfg(feature = "clap")]
 use std::{ffi::OsStr, str::FromStr};
 
 #[cfg(feature = "clap")]
 use clap::{builder::TypedValueParser, error::ErrorKind, Arg, Command, Error, Parser};
-pub use sentry::{integrations::tracing::layer, release_name};
-use sentry::{types::Dsn, ClientInitGuard};
+use error_stack::Report;
+pub use sentry::release_name;
+use sentry::{
+    integrations::tracing::SentryLayer,
+    protocol::{Event, TemplateInfo},
+    types::Dsn,
+    ClientInitGuard, Hub, Level,
+};
+use tracing::Subscriber;
+use tracing_subscriber::registry::LookupSpan;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
@@ -30,7 +46,7 @@ pub struct OptionalSentryDsnParser;
 
 #[cfg(feature = "clap")]
 impl TypedValueParser for OptionalSentryDsnParser {
-    type Value = Option<sentry::types::Dsn>;
+    type Value = Option<Dsn>;
 
     fn parse_ref(
         &self,
@@ -45,7 +61,7 @@ impl TypedValueParser for OptionalSentryDsnParser {
                 return Err(Error::new(ErrorKind::InvalidValue).with_cmd(cmd));
             };
 
-            sentry::types::Dsn::from_str(value)
+            Dsn::from_str(value)
                 .map(Some)
                 .map_err(|_error| Error::new(ErrorKind::InvalidValue))
         }
@@ -95,4 +111,82 @@ pub fn init_sentry(
 
         ..Default::default()
     })
+}
+
+pub fn layer<S>() -> SentryLayer<S>
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+{
+    ::sentry::integrations::tracing::layer().enable_span_attributes()
+}
+
+fn read_source(location: Location) -> (Vec<String>, Option<String>, Vec<String>) {
+    let Ok(file) = File::open(location.file()) else {
+        return (Vec::new(), None, Vec::new());
+    };
+
+    // Extract relevant lines.
+    let reader = BufReader::new(file);
+    let line_no = location.line() as usize - 1;
+    let start_line = line_no.saturating_sub(10);
+
+    // Read the surrounding lines of `location`:
+    // - 10 lines before (stored into `pre_context`)
+    // - 10 lines after (stored into `post_context`)
+    // - the line of `location` (stored into `context_line`)
+    let mut pre_context = Vec::with_capacity(10);
+    let mut context_line = None;
+    let mut post_context = Vec::with_capacity(3);
+
+    for (current_line, line) in reader.lines().enumerate().skip(start_line) {
+        let Ok(line) = line else { break };
+        if current_line < line_no {
+            pre_context.push(line);
+        } else if current_line == line_no {
+            context_line.replace(line);
+        } else if current_line <= line_no + 3 {
+            post_context.push(line);
+        } else {
+            break;
+        }
+    }
+
+    (pre_context, context_line, post_context)
+}
+
+fn create_template(location: Location) -> TemplateInfo {
+    let (pre_context, context_line, post_context) = read_source(location);
+
+    let path = Path::new(location.file());
+    path.file_name()
+        .map(|path| path.to_string_lossy().to_string());
+
+    TemplateInfo {
+        filename: path
+            .file_name()
+            .map(|path| path.to_string_lossy().to_string()),
+        abs_path: Some(location.file().to_owned()),
+        lineno: Some(location.line() as u64),
+        colno: Some(location.column() as u64),
+        pre_context,
+        context_line,
+        post_context,
+    }
+}
+
+#[track_caller]
+pub fn capture_report<C>(report: &Report<C>) {
+    Hub::with_active(|hub| {
+        hub.capture_event(Event {
+            level: Level::Error,
+            message: Some(format!("Error: {report:#?}")),
+            template: report
+                .request_ref::<Location>()
+                .next()
+                .cloned()
+                .or_else(|| report.request_value::<Location>().next())
+                .map(create_template),
+            ..Event::default()
+        });
+    });
 }
