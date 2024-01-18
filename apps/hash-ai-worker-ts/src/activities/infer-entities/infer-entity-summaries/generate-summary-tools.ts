@@ -63,7 +63,7 @@ export const validateEntitySummariesByType = (
       errorMessages.push(
         `The value '${stringify(
           summaryEntitiesForType,
-        )}' for '${entityTypeId}' is not an array, but should be, but should be`,
+        )}' for '${entityTypeId}' is not an array, but should be`,
       );
       continue;
     }
@@ -114,7 +114,9 @@ export const validateEntitySummariesByType = (
 
   for (const potentiallyLinkEntity of validSummariesWithLinksUnchecked) {
     const entityType = entityTypesById[potentiallyLinkEntity.entityTypeId]!;
-    if (entityType.isLink) {
+    if (!entityType.isLink) {
+      validSummaries.push(potentiallyLinkEntity);
+    } else {
       if (
         typeof potentiallyLinkEntity.sourceEntityId !== "number" ||
         typeof potentiallyLinkEntity.targetEntityId !== "number"
