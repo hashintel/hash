@@ -241,6 +241,8 @@ const isDateWithinLastEditedTimeRange = (params: {
   }
 };
 
+type DraftEntityFilterKind = "type" | "source" | "web" | "lastEditedBy";
+
 export const filterDraftEntities = (params: {
   draftEntitiesWithCreatedAtAndCreators: {
     entity: Entity;
@@ -248,24 +250,30 @@ export const filterDraftEntities = (params: {
     creator: MinimalActor;
   }[];
   filterState: DraftEntityFilterState;
+  omitFilters?: DraftEntityFilterKind[];
 }) => {
-  const { draftEntitiesWithCreatedAtAndCreators, filterState } = params;
+  const { draftEntitiesWithCreatedAtAndCreators, filterState, omitFilters } =
+    params;
 
   return draftEntitiesWithCreatedAtAndCreators.filter(
     ({ entity, creator }) =>
-      filterState.entityTypeBaseUrls.includes(
-        extractBaseUrl(entity.metadata.entityTypeId),
-      ) &&
-      filterState.sourceAccountIds.includes(creator.accountId) &&
-      isDateWithinLastEditedTimeRange({
-        date: new Date(
-          entity.metadata.temporalVersioning.decisionTime.start.limit,
-        ),
-        lastEditedTimeRange: filterState.lastEditedTimeRange,
-      }) &&
-      filterState.webOwnedByIds.includes(
-        extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
-      ),
+      (omitFilters?.includes("type") ||
+        filterState.entityTypeBaseUrls.includes(
+          extractBaseUrl(entity.metadata.entityTypeId),
+        )) &&
+      (omitFilters?.includes("source") ||
+        filterState.sourceAccountIds.includes(creator.accountId)) &&
+      (omitFilters?.includes("web") ||
+        filterState.webOwnedByIds.includes(
+          extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
+        )) &&
+      (omitFilters?.includes("lastEditedBy") ||
+        isDateWithinLastEditedTimeRange({
+          date: new Date(
+            entity.metadata.temporalVersioning.decisionTime.start.limit,
+          ),
+          lastEditedTimeRange: filterState.lastEditedTimeRange,
+        })),
   );
 };
 
