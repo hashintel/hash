@@ -1,4 +1,4 @@
-import { CheckIcon, CloseIcon } from "@hashintel/design-system";
+import { CheckIcon, CloseIcon, DashIcon } from "@hashintel/design-system";
 import {
   Box,
   CircularProgress,
@@ -31,6 +31,13 @@ const InferenceRequestContainer = ({
   request: PageEntityInference;
   user: NonNullable<LocalStorage["user"]>;
 }) => {
+  const isUnproductiveSuccessfulRequest =
+    request.status === "complete" &&
+    (!request.data.contents[0]?.results?.length ||
+      request.data.contents[0].results.every(
+        (result) => result.operation === "already-exists-as-proposed",
+      ));
+
   return (
     <Box
       sx={{
@@ -89,9 +96,15 @@ const InferenceRequestContainer = ({
         {request.status === "pending" ? (
           <CircularProgress variant="indeterminate" size={13} sx={{ mr: 1 }} />
         ) : request.status === "complete" ? (
-          <CheckIcon
-            sx={{ height: 16, fill: ({ palette }) => palette.green[80] }}
-          />
+          isUnproductiveSuccessfulRequest ? (
+            <DashIcon
+              sx={{ height: 16, fill: ({ palette }) => palette.gray[40] }}
+            />
+          ) : (
+            <CheckIcon
+              sx={{ height: 16, fill: ({ palette }) => palette.green[80] }}
+            />
+          )
         ) : (
           <CloseIcon
             sx={{
