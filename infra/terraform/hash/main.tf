@@ -233,6 +233,8 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["graph_sentry_dsn"])
     },
     { name = "HASH_GRAPH_SENTRY_ENVIRONMENT", secret = false, value = "production" },
+    { name = "HASH_GRAPH_SENTRY_EVENT_FILTER", secret = false, value = "debug" },
+    { name = "HASH_GRAPH_SENTRY_SPAN_FILTER", secret = false, value = "trace" },
   ])
   graph_env_vars = concat(var.hash_graph_env_vars, [
     { name = "HASH_GRAPH_PG_USER", secret = false, value = "graph" },
@@ -252,6 +254,8 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["graph_sentry_dsn"])
     },
     { name = "HASH_GRAPH_SENTRY_ENVIRONMENT", secret = false, value = "production" },
+    { name = "HASH_GRAPH_SENTRY_EVENT_FILTER", secret = false, value = "debug" },
+    { name = "HASH_GRAPH_SENTRY_SPAN_FILTER", secret = false, value = "trace" },
   ])
   # The type fetcher uses the same image as the graph right now
   type_fetcher_image = module.graph_ecr

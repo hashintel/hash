@@ -70,7 +70,7 @@ pub async fn init_tracing(config: TracingConfig) -> Result<impl Drop + 'static, 
     } else {
         None
     };
-    let sentry_layer = sentry::layer();
+    let sentry_layer = sentry::layer(&config.sentry);
 
     tracing_subscriber::registry()
         .with(filter)
