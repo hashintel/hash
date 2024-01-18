@@ -1,32 +1,54 @@
 import { Box, Stack, Typography } from "@mui/material";
-import { forwardRef, PropsWithChildren, ReactElement } from "react";
+import { forwardRef, PropsWithChildren, ReactNode } from "react";
 
 export const SettingsPageContainer = forwardRef<
   HTMLSpanElement,
   PropsWithChildren<{
-    topRightElement?: ReactElement;
-    header: string | ReactElement;
+    topRightElement?: ReactNode;
+    heading: ReactNode;
+    subHeading?: ReactNode;
     disableContentWrapper?: boolean;
     sectionLabel?: string;
   }>
 >(
   (
-    { topRightElement, children, header, disableContentWrapper, sectionLabel },
+    {
+      topRightElement,
+      children,
+      heading,
+      subHeading,
+      disableContentWrapper,
+      sectionLabel,
+    },
     ref,
   ) => {
     return (
       <>
-        <Stack
-          direction="row"
-          alignItems="center"
-          mb={4}
-          justifyContent="space-between"
-        >
-          <Typography ref={ref} variant="h2" mt={-1} fontWeight="bold">
-            {header}
-          </Typography>
-          {topRightElement}
-        </Stack>
+        <Box marginBottom={4}>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+          >
+            <Typography ref={ref} variant="h2" mt={-1} fontWeight="bold">
+              {heading}
+            </Typography>
+            {topRightElement}
+          </Stack>
+          {subHeading ? (
+            <Typography
+              variant="h3"
+              sx={{
+                marginTop: 1,
+                fontSize: 24,
+                color: ({ palette }) => palette.gray[60],
+                fontWeight: 400,
+              }}
+            >
+              {subHeading}
+            </Typography>
+          ) : null}
+        </Box>
         {sectionLabel && (
           <Typography component="h4" variant="mediumCaps" mb={2}>
             {sectionLabel}

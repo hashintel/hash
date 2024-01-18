@@ -10,7 +10,7 @@ const Page: NextPageWithLayout = () => {
     <>
       <NextSeo title="Create Organization" />
 
-      <SettingsPageContainer header={<>Create new organization</>}>
+      <SettingsPageContainer heading={<>Create new organization</>}>
         <CreateOrgForm />
       </SettingsPageContainer>
     </>

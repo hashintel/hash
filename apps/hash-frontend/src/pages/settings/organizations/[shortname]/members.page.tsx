@@ -66,7 +66,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
       <NextSeo title={`${org.name} | Members`} />
 
       <SettingsPageContainer
-        header={org.name}
+        heading={org.name}
         sectionLabel="Members"
         ref={topRef}
       >

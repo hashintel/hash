@@ -82,7 +82,7 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
       <NextSeo title={`${org.name} | Settings`} />
 
       <SettingsPageContainer
-        header={org.name}
+        heading={org.name}
         sectionLabel="General"
         ref={topRef}
       >

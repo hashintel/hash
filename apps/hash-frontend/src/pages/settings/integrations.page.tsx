@@ -57,7 +57,11 @@ const AddNewIntegrations: FunctionComponent = () => {
 
 const IntegrationsPage: NextPageWithLayout = () => {
   return (
-    <SettingsPageContainer header="Integrations" disableContentWrapper>
+    <SettingsPageContainer
+      heading="Integrations"
+      subHeading="Connected to your user account"
+      disableContentWrapper
+    >
       <AddNewIntegrations />
     </SettingsPageContainer>
   );

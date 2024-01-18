@@ -44,7 +44,7 @@ const OrganizationListPage: NextPageWithLayout = () => {
             />
           </Button>
         }
-        header={<>Organizations</>}
+        heading={<>Organizations</>}
         ref={topRef}
       >
         <OrgTable>
