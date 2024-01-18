@@ -4,6 +4,7 @@ import { PropsWithChildren, ReactElement, useMemo } from "react";
 
 import { Org } from "../../../lib/user-and-org";
 import { PeopleGroupIcon } from "../../../shared/icons/people-group-icon";
+import { PlugSolidIcon } from "../../../shared/icons/plug-solid-icon";
 import { LayoutWithSidebar } from "../../../shared/layout/layout-with-sidebar";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { TopContextBar } from "../../shared/top-context-bar";
@@ -45,6 +46,11 @@ const generateMenuLinks = (
       icon: PeopleGroupIcon,
     },
     ...organizationItems,
+    {
+      label: "Integrations",
+      href: "/settings/integrations",
+      icon: <PlugSolidIcon sx={{ fontSize: 12 }} />,
+    },
   ];
 
   for (const item of menuItems) {
