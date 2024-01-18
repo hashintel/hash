@@ -57,6 +57,7 @@ use crate::{
 };
 
 impl<C: AsClient> PostgresStore<C> {
+    #[tracing::instrument(level = "trace", skip(entity_types, authorization_api, zookie))]
     pub(crate) async fn filter_entity_types_by_permission<I, T, A>(
         entity_types: impl IntoIterator<Item = (I, T)> + Send,
         actor_id: AccountId,
@@ -100,7 +101,7 @@ impl<C: AsClient> PostgresStore<C> {
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[tracing::instrument(
-        level = "trace",
+        level = "info",
         skip(self, traversal_context, subgraph, authorization_api, zookie)
     )]
     pub(crate) async fn traverse_entity_types<A: AuthorizationApi + Sync>(
@@ -245,7 +246,7 @@ impl<C: AsClient> PostgresStore<C> {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     pub async fn delete_entity_types(&mut self) -> Result<(), DeletionError> {
         let transaction = self.transaction().await.change_context(DeletionError)?;
 
@@ -284,6 +285,7 @@ impl<C: AsClient> PostgresStore<C> {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug")]
     fn create_closed_entity_type(
         entity_type_id: EntityTypeId,
         available_types: &mut HashMap<EntityTypeId, EntityType>,
@@ -337,6 +339,7 @@ impl<C: AsClient> PostgresStore<C> {
         Ok(current_type)
     }
 
+    #[tracing::instrument(level = "debug", skip(self, entity_types))]
     pub(crate) async fn resolve_entity_types(
         &self,
         entity_types: impl IntoIterator<Item = EntityType> + Send,

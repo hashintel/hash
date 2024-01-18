@@ -54,7 +54,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
 
     type ReadStream = impl futures::Stream<Item = Result<Self::Record, QueryError>> + Send + Sync;
 
-    #[tracing::instrument(level = "info", skip(self))]
+    #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
         &self,
         filter: &Filter<Entity>,
@@ -360,6 +360,7 @@ pub struct KnowledgeEdgeTraversal {
 }
 
 impl<C: AsClient> PostgresStore<C> {
+    #[tracing::instrument(level = "trace", skip(self))]
     pub(crate) async fn read_shared_edges<'t>(
         &self,
         traversal_data: &'t EntityEdgeTraversalData,
@@ -450,6 +451,7 @@ impl<C: AsClient> PostgresStore<C> {
             }))
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub(crate) async fn read_knowledge_edges<'t>(
         &self,
         traversal_data: &'t EntityEdgeTraversalData,

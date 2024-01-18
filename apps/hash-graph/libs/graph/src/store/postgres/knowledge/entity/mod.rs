@@ -70,7 +70,7 @@ impl<C: AsClient> PostgresStore<C> {
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[tracing::instrument(
-        level = "trace",
+        level = "info",
         skip(self, traversal_context, subgraph, authorization_api, zookie)
     )]
     pub(crate) async fn traverse_entities<A>(
@@ -267,7 +267,7 @@ impl<C: AsClient> PostgresStore<C> {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     pub async fn delete_entities(&mut self) -> Result<(), DeletionError> {
         self.as_client()
             .client()
@@ -293,7 +293,7 @@ impl<C: AsClient> PostgresStore<C> {
 impl<C: AsClient> EntityStore for PostgresStore<C> {
     #[tracing::instrument(
         level = "info",
-        skip(self, properties, authorization_api, relationships)
+        skip(self, properties, authorization_api, relationships, temporal_client)
     )]
     async fn create_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
@@ -550,7 +550,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(InsertionError)
             .attach(StatusCode::InvalidArgument)?;
 
-        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
+        let commit_result = {
+            let span = tracing::trace_span!("committing entity");
+            let _enter = span.enter();
+            transaction.commit().await.change_context(InsertionError)
+        };
+        if let Err(mut error) = commit_result {
             if let Err(auth_error) = authorization_api
                 .modify_entity_relations(relationships.into_iter().map(|relation_and_subject| {
                     (
@@ -613,6 +618,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     //   see https://linear.app/hash/issue/H-1449
     // TODO: Restrict non-draft links to non-draft entities
     //   see https://linear.app/hash/issue/H-1450
+    #[tracing::instrument(level = "info", skip(self, authorization_api))]
     async fn validate_entity<A: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,
@@ -727,6 +733,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     }
 
     #[expect(clippy::too_many_lines)]
+    #[tracing::instrument(level = "info", skip(self, authorization_api, entities))]
     async fn insert_entities_batched_by_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
@@ -877,7 +884,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .collect())
     }
 
-    #[tracing::instrument(level = "info", skip(self, authorization_api))]
+    #[tracing::instrument(level = "info", skip(self, authorization_api, query))]
     async fn get_entity<A: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,
@@ -1011,7 +1018,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok((subgraph, last))
     }
 
-    #[tracing::instrument(level = "info", skip(self, properties, authorization_api))]
+    #[tracing::instrument(
+        level = "info",
+        skip(self, properties, authorization_api, temporal_client)
+    )]
     async fn update_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
@@ -1224,6 +1234,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(entity_metadata)
     }
 
+    #[tracing::instrument(level = "info", skip(self, _authorization_api, embeddings))]
     async fn update_entity_embeddings<A: AuthorizationApi + Send + Sync>(
         &mut self,
         _actor_id: AccountId,
@@ -1334,6 +1345,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 }
 
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn insert_entity_edition(
         &self,
         edition_created_by_id: EditionCreatedById,

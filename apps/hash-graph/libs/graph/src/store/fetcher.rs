@@ -198,6 +198,7 @@ struct FetchedOntologyTypes {
     entity_types: Vec<(EntityType, PartialEntityTypeMetadata)>,
 }
 
+#[derive(Debug)]
 enum FetchBehavior {
     IncludeProvidedReferences,
     ExcludeProvidedReferences,
@@ -273,6 +274,7 @@ where
         .map(|subgraph| !subgraph.roots.is_empty())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, authorization_api, ontology_type))]
     async fn collect_external_ontology_types<
         'o,
         T: OntologyType + Sync,
@@ -303,6 +305,10 @@ where
         clippy::too_many_lines,
         reason = "Large parts of this function is is written out three times and this should be \
                   moved to another function at some point."
+    )]
+    #[tracing::instrument(
+        level = "debug",
+        skip(self, authorization_api, ontology_type_references)
     )]
     async fn fetch_external_ontology_types<Au: AuthorizationApi + Send + Sync>(
         &self,
@@ -342,11 +348,18 @@ where
                 break;
             }
 
-            let ontology_types = fetcher
-                .fetch_ontology_types(context::current(), ontology_urls)
-                .await
-                .change_context(StoreError)?
-                .change_context(StoreError)?;
+            let ontology_types = {
+                let span = tracing::info_span!(
+                    "fetching ontology types from type fetcher",
+                    urls=?ontology_urls
+                );
+                let _enter = span.enter();
+                fetcher
+                    .fetch_ontology_types(context::current(), ontology_urls)
+                    .await
+                    .change_context(StoreError)?
+                    .change_context(StoreError)?
+            };
 
             for (ontology_type, fetched_at) in ontology_types {
                 match ontology_type {
@@ -443,6 +456,7 @@ where
         Ok(fetched_ontology_types)
     }
 
+    #[tracing::instrument(level = "debug", skip(self, authorization_api, ontology_types))]
     async fn insert_external_types<'o, T, Au>(
         &mut self,
         actor_id: AccountId,
@@ -529,6 +543,7 @@ where
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip(self, authorization_api))]
     async fn insert_external_types_by_reference<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
@@ -623,6 +638,7 @@ where
     A: ToSocketAddrs + Send + Sync,
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
 {
+    #[tracing::instrument(level = "debug", skip(self, authorization_api))]
     async fn insert_external_ontology_type<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
@@ -1106,6 +1122,7 @@ where
             .await
     }
 
+    #[tracing::instrument(level = "info", skip(self, authorization_api))]
     async fn validate_entity<Au: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,

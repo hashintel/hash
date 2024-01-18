@@ -85,6 +85,7 @@ where
     ////////////////////////////////////////////////////////////////////////////
     // Account group authorization
     ////////////////////////////////////////////////////////////////////////////
+    #[tracing::instrument(level = "info", skip(self))]
     async fn check_account_group_permission(
         &self,
         actor: AccountId,
@@ -97,6 +98,7 @@ where
             .await
     }
 
+    #[tracing::instrument(level = "info", skip(self, relationships))]
     async fn modify_account_group_relations(
         &mut self,
         relationships: impl IntoIterator<
@@ -121,6 +123,7 @@ where
     ////////////////////////////////////////////////////////////////////////////
     // Web authorization
     ////////////////////////////////////////////////////////////////////////////
+    #[tracing::instrument(level = "info", skip(self))]
     async fn check_web_permission(
         &self,
         actor: AccountId,
@@ -133,6 +136,7 @@ where
             .await
     }
 
+    #[tracing::instrument(level = "info", skip(self, relationships))]
     async fn modify_web_relations(
         &mut self,
         relationships: impl IntoIterator<
@@ -156,6 +160,7 @@ where
             .written_at)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     async fn get_web_relations(
         &self,
         web: OwnedById,
@@ -174,6 +179,7 @@ where
             .collect())
     }
 
+    #[tracing::instrument(level = "info", skip(self, relationships))]
     async fn modify_entity_relations(
         &mut self,
         relationships: impl IntoIterator<
@@ -195,6 +201,7 @@ where
             .written_at)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     async fn check_entity_permission(
         &self,
         actor: AccountId,
@@ -207,6 +214,7 @@ where
             .await
     }
 
+    #[tracing::instrument(level = "info", skip(self, entities))]
     async fn check_entities_permission(
         &self,
         actor: AccountId,
@@ -248,6 +256,7 @@ where
             .map(|()| (permissions, response.checked_at))
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     async fn get_entity_relations(
         &self,
         entity: EntityId,
@@ -266,6 +275,7 @@ where
             .collect())
     }
 
+    #[tracing::instrument(level = "info", skip(self, relationships))]
     async fn modify_entity_type_relations(
         &mut self,
         relationships: impl IntoIterator<
@@ -289,6 +299,7 @@ where
             .written_at)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     async fn check_entity_type_permission(
         &self,
         actor: AccountId,
@@ -301,6 +312,7 @@ where
             .await
     }
 
+    #[tracing::instrument(level = "info", skip(self, entity_types))]
     async fn check_entity_types_permission(
         &self,
         actor: AccountId,
@@ -342,6 +354,7 @@ where
             .map(|()| (permissions, response.checked_at))
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     async fn get_entity_type_relations(
         &self,
         entity_type: EntityTypeId,
@@ -360,6 +373,7 @@ where
             .collect())
     }
 
+    #[tracing::instrument(level = "info", skip(self, relationships))]
     async fn modify_property_type_relations(
         &mut self,
         relationships: impl IntoIterator<
@@ -385,6 +399,7 @@ where
             .written_at)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     async fn check_property_type_permission(
         &self,
         actor: AccountId,
@@ -397,6 +412,7 @@ where
             .await
     }
 
+    #[tracing::instrument(level = "info", skip(self, property_types))]
     async fn check_property_types_permission(
         &self,
         actor: AccountId,
@@ -438,6 +454,7 @@ where
             .map(|()| (permissions, response.checked_at))
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     async fn get_property_type_relations(
         &self,
         property_type: PropertyTypeId,
@@ -456,6 +473,7 @@ where
             .collect())
     }
 
+    #[tracing::instrument(level = "info", skip(self, relationships))]
     async fn modify_data_type_relations(
         &mut self,
         relationships: impl IntoIterator<
@@ -479,6 +497,7 @@ where
             .written_at)
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     async fn check_data_type_permission(
         &self,
         actor: AccountId,
@@ -491,6 +510,7 @@ where
             .await
     }
 
+    #[tracing::instrument(level = "info", skip(self, data_types))]
     async fn check_data_types_permission(
         &self,
         actor: AccountId,
@@ -532,6 +552,7 @@ where
             .map(|()| (permissions, response.checked_at))
     }
 
+    #[tracing::instrument(level = "info", skip(self))]
     async fn get_data_type_relations(
         &self,
         data_type: DataTypeId,
