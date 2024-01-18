@@ -32,9 +32,10 @@ export const signOutAndReloadPopup = async ({
   await page.goto(`chrome-extension://${extensionId}/popup.html`);
   await expect(page.locator(loggedOutHeaderLocator)).toBeVisible();
 
-  // Sign back in again and confirm the quick note is loaded again
+  // Sign back in again and confirm the tabs are visible again
   await loginUsingTempForm({ page });
   await page.goto(`chrome-extension://${extensionId}/popup.html`);
+  await expect(page.locator("text=One-off")).toBeVisible();
 };
 
 test("popup window loads with logged-out state", async ({
