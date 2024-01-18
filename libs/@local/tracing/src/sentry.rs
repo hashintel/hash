@@ -140,7 +140,10 @@ fn read_source(location: Location) -> (Vec<String>, Option<String>, Vec<String>)
     let mut post_context = Vec::with_capacity(3);
 
     for (current_line, line) in reader.lines().enumerate().skip(start_line) {
-        let Ok(line) = line else { break };
+        let Ok(line) = line else {
+            // If the file can only partially be read, we cannot use the source.
+            return (Vec::new(), None, Vec::new());
+        };
         if current_line < line_no {
             pre_context.push(line);
         } else if current_line == line_no {
