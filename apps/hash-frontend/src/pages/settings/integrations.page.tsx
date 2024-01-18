@@ -2,6 +2,7 @@ import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { Box, Paper, Typography } from "@mui/material";
 import { FunctionComponent, useContext } from "react";
 
+import { isProduction } from "../../lib/config";
 import { extractOwnedById } from "../../lib/user-and-org";
 import { NextPageWithLayout } from "../../shared/layout";
 import { Button } from "../../shared/ui/button";
@@ -62,7 +63,16 @@ const IntegrationsPage: NextPageWithLayout = () => {
       subHeading="Connected to your user account"
       disableContentWrapper
     >
-      <AddNewIntegrations />
+      {/* @todo: add ability to setup integrations in production */}
+      {isProduction ? (
+        <Typography>
+          No integrations are currently available to your account. If you’d like
+          to suggest a new integration, or request access to an existing one,
+          contact us.
+        </Typography>
+      ) : (
+        <AddNewIntegrations />
+      )}
     </SettingsPageContainer>
   );
 };
