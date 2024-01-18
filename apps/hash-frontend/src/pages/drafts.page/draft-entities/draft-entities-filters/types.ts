@@ -7,6 +7,7 @@ type MultipleChoiceFilterSectionDefinition<Value = any> = {
     label: ReactNode;
     value: Value;
     checked: boolean;
+    count?: number;
   }[];
   onChange: (values: Value[]) => void;
 };
@@ -17,6 +18,7 @@ type SingleChoiceFilterSectionDefinition<Value = string> = {
   options: {
     label: ReactNode;
     value: Value;
+    count?: number;
   }[];
   value: Value;
   onChange: (value: Value) => void;

@@ -241,7 +241,14 @@ const isDateWithinLastEditedTimeRange = (params: {
   }
 };
 
-type DraftEntityFilterKind = "type" | "source" | "web" | "lastEditedBy";
+const draftEntityFilterKinds = [
+  "type",
+  "source",
+  "web",
+  "lastEditedBy",
+] as const;
+
+type DraftEntityFilterKind = (typeof draftEntityFilterKinds)[number];
 
 export const filterDraftEntities = (params: {
   draftEntitiesWithCreatedAtAndCreators: {
@@ -376,14 +383,44 @@ export const DraftEntitiesFilters: FunctionComponent<{
     });
   }, [webOwnedByIds, orgs, users, authenticatedUser]);
 
-  const filterSections = useMemo<FilterSectionDefinition[]>(
-    () => [
+  const filterSections = useMemo<FilterSectionDefinition[]>(() => {
+    /**
+     * For each filter kind, we want to obtain the draft entities that match
+     * all other filters except for the current filter kind. This will be
+     * used to display the count of draft entities per filter option.
+     */
+    const filteredDraftEntitiesExceptForFilter =
+      draftEntitiesWithCreatedAtAndCreators && filterState
+        ? draftEntityFilterKinds.reduce<
+            Record<
+              DraftEntityFilterKind,
+              {
+                entity: Entity;
+                createdAt: Date;
+                creator: MinimalActor;
+              }[]
+            >
+          >(
+            (prev, currentFilterKind) => ({
+              ...prev,
+              [currentFilterKind]: filterDraftEntities({
+                draftEntitiesWithCreatedAtAndCreators,
+                filterState,
+                omitFilters: [currentFilterKind],
+              }),
+            }),
+            { type: [], source: [], web: [], lastEditedBy: [] },
+          )
+        : undefined;
+
+    return [
       {
         kind: "multiple-choice",
         heading: "Type",
         options:
           entityTypes?.map((entityType) => {
             const entityTypeBaseUrl = extractBaseUrl(entityType.schema.$id);
+
             return {
               label: (
                 <>
@@ -403,6 +440,11 @@ export const DraftEntitiesFilters: FunctionComponent<{
               value: entityTypeBaseUrl,
               checked:
                 !!filterState?.entityTypeBaseUrls.includes(entityTypeBaseUrl),
+              count: filteredDraftEntitiesExceptForFilter?.type.filter(
+                ({ entity }) =>
+                  extractBaseUrl(entity.metadata.entityTypeId) ===
+                  entityTypeBaseUrl,
+              ).length,
             };
           }) ?? [],
         onChange: (updatedBaseUrls: BaseUrl[]) =>
@@ -460,6 +502,9 @@ export const DraftEntitiesFilters: FunctionComponent<{
               checked: !!filterState?.sourceAccountIds.includes(
                 source.accountId,
               ),
+              count: filteredDraftEntitiesExceptForFilter?.source.filter(
+                ({ creator }) => creator.accountId === source.accountId,
+              ).length,
             })) ?? [],
         onChange: (updatedAccountIds: AccountId[]) =>
           setFilterState((prev) =>
@@ -517,6 +562,12 @@ export const DraftEntitiesFilters: FunctionComponent<{
                 ),
                 value: webOwnedById,
                 checked: !!filterState?.webOwnedByIds.includes(webOwnedById),
+                count: filteredDraftEntitiesExceptForFilter?.web.filter(
+                  ({ entity }) =>
+                    extractOwnedByIdFromEntityId(
+                      entity.metadata.recordId.entityId,
+                    ) === webOwnedById,
+                ).length,
               };
             }) ?? [],
         onChange: (updatedWebOwnedByIds: OwnedById[]) =>
@@ -541,6 +592,15 @@ export const DraftEntitiesFilters: FunctionComponent<{
               </>
             ),
             value,
+            count: filteredDraftEntitiesExceptForFilter?.lastEditedBy.filter(
+              ({ entity }) =>
+                isDateWithinLastEditedTimeRange({
+                  date: new Date(
+                    entity.metadata.temporalVersioning.decisionTime.start.limit,
+                  ),
+                  lastEditedTimeRange: value as LastEditedTimeRanges,
+                }),
+            ).length,
           }),
         ),
         onChange: (updatedLastEditedTimeRange) =>
@@ -554,17 +614,17 @@ export const DraftEntitiesFilters: FunctionComponent<{
           ),
         value: filterState?.lastEditedTimeRange ?? "anytime",
       },
-    ],
-    [
-      entityTypes,
-      sources,
-      authenticatedUser,
-      webs,
-      filterState,
-      isSpecialEntityTypeLookup,
-      setFilterState,
-    ],
-  );
+    ];
+  }, [
+    entityTypes,
+    sources,
+    authenticatedUser,
+    webs,
+    draftEntitiesWithCreatedAtAndCreators,
+    filterState,
+    isSpecialEntityTypeLookup,
+    setFilterState,
+  ]);
 
   const allEntityTypesSelected = useMemo(
     () =>

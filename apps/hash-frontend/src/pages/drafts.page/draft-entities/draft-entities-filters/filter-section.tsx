@@ -73,13 +73,26 @@ export const FilterSection: FunctionComponent<{
   filterSection: FilterSectionDefinition;
 }> = ({ filterSection }) => (
   <Box>
-    <FilterSectionHeading>Type</FilterSectionHeading>
+    <FilterSectionHeading>{filterSection.heading}</FilterSectionHeading>
     {filterSection.kind === "multiple-choice" ? (
       <Box display="flex" flexDirection="column">
-        {filterSection.options.map(({ label, value, checked }) => (
+        {filterSection.options.map(({ label, value, checked, count }) => (
           <CheckboxFilter
             key={value}
-            label={label}
+            label={
+              <>
+                {label}
+                <Box
+                  sx={{
+                    marginLeft: 1,
+                    color: ({ palette }) => palette.gray[checked ? 60 : 50],
+                  }}
+                  component="span"
+                >
+                  {count}
+                </Box>
+              </>
+            }
             checked={checked}
             onChange={(updatedChecked) => {
               const previousCheckedValues = filterSection.options
@@ -103,20 +116,34 @@ export const FilterSection: FunctionComponent<{
           value={filterSection.value}
           onChange={(event) => filterSection.onChange(event.target.value)}
         >
-          {filterSection.options.map(({ value, label }) => {
+          {filterSection.options.map(({ value, label, count }) => {
+            const selected = filterSection.value === value;
+
             return (
               <FormControlLabel
                 key={value}
                 value={value}
                 control={<Radio />}
-                label={label}
+                label={
+                  <>
+                    {label}
+                    <Box
+                      sx={{
+                        marginLeft: 1,
+                        color: ({ palette }) =>
+                          palette.gray[selected ? 60 : 30],
+                      }}
+                      component="span"
+                    >
+                      {count}
+                    </Box>
+                  </>
+                }
                 sx={{
                   marginX: 0,
                   marginBottom: 1,
                   color: ({ palette }) =>
-                    filterSection.value === value
-                      ? palette.common.black
-                      : palette.gray[70],
+                    selected ? palette.common.black : palette.gray[70],
                   [`.${formControlLabelClasses.label}`]: {
                     display: "flex",
                     alignItems: "center",
