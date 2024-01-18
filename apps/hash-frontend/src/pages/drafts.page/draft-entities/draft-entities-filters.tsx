@@ -12,18 +12,7 @@ import {
 } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import {
-  Box,
-  Checkbox,
-  Fade,
-  FormControl,
-  FormControlLabel,
-  formControlLabelClasses,
-  Radio,
-  RadioGroup,
-  styled,
-  Typography,
-} from "@mui/material";
+import { Box, Fade, Typography } from "@mui/material";
 import {
   Dispatch,
   FunctionComponent,
@@ -48,53 +37,8 @@ import { UsersRegularIcon } from "../../../shared/icons/users-regular-icon";
 import { Button } from "../../../shared/ui";
 import { MinimalActor } from "../../../shared/use-actors";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
-
-const CheckboxFilter: FunctionComponent<{
-  label: ReactNode;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-}> = ({ label, checked, onChange }) => (
-  <FormControlLabel
-    sx={{
-      borderRadius: 16,
-      color: ({ palette }) =>
-        checked ? palette.common.black : palette.gray[70],
-      marginX: 0,
-      flexShrink: 0,
-      gap: 2,
-      marginBottom: 1,
-      [`.${formControlLabelClasses.label}`]: {
-        display: "flex",
-        alignItems: "center",
-        fontSize: 14,
-        fontWeight: 500,
-        svg: {
-          fontSize: 14,
-          marginRight: 1.25,
-        },
-      },
-      transition: ({ transitions }) =>
-        transitions.create(["background", "color"]),
-      "&:hover": {
-        background: ({ palette }) => palette.gray[10],
-        color: ({ palette }) => palette.gray[90],
-      },
-    }}
-    label={label}
-    control={
-      <Checkbox
-        sx={{
-          svg: {
-            width: 18,
-            height: 18,
-          },
-        }}
-        checked={checked}
-        onChange={({ target }) => onChange(target.checked)}
-      />
-    }
-  />
-);
+import { FilterSection } from "./draft-entities-filters/filter-section";
+import { FilterSectionDefinition } from "./draft-entities-filters/types";
 
 const draftEntitiesFiltersColumnWidth = 200;
 
@@ -274,15 +218,6 @@ export const isFilerStateDefaultFilterState =
     return true;
   };
 
-export const FilterSectionHeading = styled(Typography)(({ theme }) => ({
-  color: theme.palette.gray[70],
-  fontSize: 12,
-  fontWeight: 600,
-  letterSpacing: 1.2,
-  textTransform: "uppercase",
-  marginBottom: theme.spacing(1.5),
-}));
-
 export const DraftEntitiesFilters: FunctionComponent<{
   draftEntitiesWithCreatedAtAndCreators?: {
     entity: Entity;
@@ -382,6 +317,196 @@ export const DraftEntitiesFilters: FunctionComponent<{
     });
   }, [webOwnedByIds, orgs, users, authenticatedUser]);
 
+  const filterSections = useMemo<FilterSectionDefinition[]>(
+    () => [
+      {
+        kind: "multiple-choice",
+        heading: "Type",
+        options:
+          entityTypes?.map((entityType) => {
+            const entityTypeBaseUrl = extractBaseUrl(entityType.schema.$id);
+            return {
+              label: (
+                <>
+                  {entityType.metadata.icon ? (
+                    <Box marginRight={1.25} maxWidth={14} component="span">
+                      {entityType.metadata.icon}
+                    </Box>
+                  ) : isSpecialEntityTypeLookup?.[entityType.schema.$id]
+                      ?.isLink ? (
+                    <LinkRegularIcon />
+                  ) : (
+                    <AsteriskLightIcon />
+                  )}
+                  {entityType.schema.title}
+                </>
+              ),
+              value: entityTypeBaseUrl,
+              checked:
+                !!filterState?.entityTypeBaseUrls.includes(entityTypeBaseUrl),
+            };
+          }) ?? [],
+        onChange: (updatedBaseUrls: BaseUrl[]) =>
+          setFilterState((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  entityTypeBaseUrls: updatedBaseUrls,
+                }
+              : undefined,
+          ),
+      } satisfies FilterSectionDefinition<BaseUrl>,
+      {
+        kind: "multiple-choice",
+        heading: "Source",
+        options:
+          sources
+            ?.map((source) => {
+              const label =
+                authenticatedUser.accountId === source.accountId
+                  ? "Me"
+                  : "preferredName" in source
+                    ? source.preferredName!
+                    : "displayName" in source
+                      ? source.displayName
+                      : "Unknown";
+              return { label, source };
+            })
+            .sort(
+              (
+                { label: labelA, source: sourceA },
+                { label: labelB, source: sourceB },
+              ) => {
+                if (authenticatedUser.accountId === sourceA.accountId) {
+                  return -1;
+                } else if (authenticatedUser.accountId === sourceB.accountId) {
+                  return 1;
+                }
+                return labelA.localeCompare(labelB);
+              },
+            )
+            .map(({ source, label }) => ({
+              label: (
+                <>
+                  {"displayName" in source &&
+                  source.displayName === "HASH AI" ? (
+                    <WandMagicSparklesIcon />
+                  ) : (
+                    <UserIcon />
+                  )}
+                  {label}
+                </>
+              ),
+              value: source.accountId,
+              checked: !!filterState?.sourceAccountIds.includes(
+                source.accountId,
+              ),
+            })) ?? [],
+        onChange: (updatedAccountIds: AccountId[]) =>
+          setFilterState((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  sourceAccountIds: updatedAccountIds,
+                }
+              : undefined,
+          ),
+      },
+      {
+        kind: "multiple-choice",
+        heading: "Web",
+        options:
+          webs
+            ?.map((web) => {
+              const label =
+                web.kind === "user"
+                  ? web.accountId === authenticatedUser.accountId
+                    ? "My Web"
+                    : web.preferredName
+                      ? web.preferredName
+                      : "Unknown User"
+                  : web.name;
+
+              return { label, web };
+            })
+            .sort(
+              ({ label: labelA, web: webA }, { label: labelB, web: webB }) => {
+                if (
+                  webA.kind === "user" &&
+                  authenticatedUser.accountId === webA.accountId
+                ) {
+                  return -1;
+                } else if (
+                  webB.kind === "user" &&
+                  authenticatedUser.accountId === webB.accountId
+                ) {
+                  return 1;
+                }
+                return labelA.localeCompare(labelB);
+              },
+            )
+            .map(({ web, label }) => {
+              const webOwnedById = (
+                web.kind === "user" ? web.accountId : web.accountGroupId
+              ) as OwnedById;
+              return {
+                label: (
+                  <>
+                    {web.kind === "user" ? <UserIcon /> : <UsersRegularIcon />}
+                    {label}
+                  </>
+                ),
+                value: webOwnedById,
+                checked: !!filterState?.webOwnedByIds.includes(webOwnedById),
+              };
+            }) ?? [],
+        onChange: (updatedWebOwnedByIds: OwnedById[]) =>
+          setFilterState((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  webOwnedByIds: updatedWebOwnedByIds,
+                }
+              : undefined,
+          ),
+      },
+      {
+        kind: "single-choice",
+        heading: "Last Edited",
+        options: Object.entries(lastEditedTimeRangesToHumanReadable).map(
+          ([value, label]) => ({
+            label: (
+              <>
+                {lastEditedTimeRangesToIcon[value as LastEditedTimeRanges]}
+                {label}
+              </>
+            ),
+            value,
+          }),
+        ),
+        onChange: (updatedLastEditedTimeRange) =>
+          setFilterState((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  lastEditedTimeRange: updatedLastEditedTimeRange,
+                }
+              : undefined,
+          ),
+        value: filterState?.lastEditedTimeRange ?? "anytime",
+      },
+    ],
+    [
+      entityTypes,
+      sources,
+      authenticatedUser,
+      webs,
+      filterState,
+      isSpecialEntityTypeLookup,
+      setFilterState,
+    ],
+  );
+
   const allEntityTypesSelected = useMemo(
     () =>
       filterState &&
@@ -457,250 +582,12 @@ export const DraftEntitiesFilters: FunctionComponent<{
           </Button>
         </Fade>
       </Box>
-      <Box>
-        <FilterSectionHeading>Type</FilterSectionHeading>
-        <Box display="flex" flexDirection="column">
-          {entityTypes?.map((entityType) => {
-            const entityTypeBaseUrl = extractBaseUrl(entityType.schema.$id);
-
-            return (
-              <CheckboxFilter
-                key={entityType.schema.$id}
-                label={
-                  <>
-                    {entityType.metadata.icon ? (
-                      <Box marginRight={1.25} maxWidth={14} component="span">
-                        {entityType.metadata.icon}
-                      </Box>
-                    ) : isSpecialEntityTypeLookup?.[entityType.schema.$id]
-                        ?.isLink ? (
-                      <LinkRegularIcon />
-                    ) : (
-                      <AsteriskLightIcon />
-                    )}
-                    {entityType.schema.title}
-                  </>
-                }
-                checked={
-                  !!filterState?.entityTypeBaseUrls.includes(entityTypeBaseUrl)
-                }
-                onChange={(updatedChecked) =>
-                  setFilterState((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          entityTypeBaseUrls: updatedChecked
-                            ? [...prev.entityTypeBaseUrls, entityTypeBaseUrl]
-                            : prev.entityTypeBaseUrls.filter(
-                                (baseUrl) => baseUrl !== entityTypeBaseUrl,
-                              ),
-                        }
-                      : undefined,
-                  )
-                }
-              />
-            );
-          })}
-        </Box>
-      </Box>
-      <Box>
-        <FilterSectionHeading>Source</FilterSectionHeading>
-        <Box display="flex" flexDirection="column">
-          {sources
-            ?.map((source) => {
-              const label =
-                authenticatedUser.accountId === source.accountId
-                  ? "Me"
-                  : "preferredName" in source
-                    ? source.preferredName!
-                    : "displayName" in source
-                      ? source.displayName
-                      : "Unknown";
-
-              return { label, source };
-            })
-            .sort(
-              (
-                { label: labelA, source: sourceA },
-                { label: labelB, source: sourceB },
-              ) => {
-                if (authenticatedUser.accountId === sourceA.accountId) {
-                  return -1;
-                } else if (authenticatedUser.accountId === sourceB.accountId) {
-                  return 1;
-                }
-                return labelA.localeCompare(labelB);
-              },
-            )
-            .map(({ source, label }) => (
-              <CheckboxFilter
-                key={source.accountId}
-                label={
-                  <>
-                    {"displayName" in source &&
-                    source.displayName === "HASH AI" ? (
-                      <WandMagicSparklesIcon />
-                    ) : (
-                      <UserIcon />
-                    )}
-                    {label}
-                  </>
-                }
-                checked={
-                  !!filterState?.sourceAccountIds.includes(source.accountId)
-                }
-                onChange={(checked) =>
-                  setFilterState((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          sourceAccountIds: checked
-                            ? [...prev.sourceAccountIds, source.accountId]
-                            : prev.sourceAccountIds.filter(
-                                (accountId) => accountId !== source.accountId,
-                              ),
-                        }
-                      : undefined,
-                  )
-                }
-              />
-            ))}
-        </Box>
-      </Box>
-      <Box>
-        <FilterSectionHeading>Web</FilterSectionHeading>
-        <Box display="flex" flexDirection="column">
-          {webs
-            ?.map((web) => {
-              const label =
-                web.kind === "user"
-                  ? web.accountId === authenticatedUser.accountId
-                    ? "My Web"
-                    : web.preferredName
-                      ? web.preferredName
-                      : "Unknown User"
-                  : web.name;
-
-              return { label, web };
-            })
-            .sort(
-              ({ label: labelA, web: webA }, { label: labelB, web: webB }) => {
-                if (
-                  webA.kind === "user" &&
-                  authenticatedUser.accountId === webA.accountId
-                ) {
-                  return -1;
-                } else if (
-                  webB.kind === "user" &&
-                  authenticatedUser.accountId === webB.accountId
-                ) {
-                  return 1;
-                }
-                return labelA.localeCompare(labelB);
-              },
-            )
-            .map(({ web, label }) => {
-              const webOwnedById = (
-                web.kind === "user" ? web.accountId : web.accountGroupId
-              ) as OwnedById;
-
-              return (
-                <CheckboxFilter
-                  key={web.kind === "user" ? web.accountId : web.accountGroupId}
-                  label={
-                    <>
-                      {web.kind === "user" ? (
-                        <UserIcon />
-                      ) : (
-                        <UsersRegularIcon />
-                      )}
-                      {label}
-                    </>
-                  }
-                  checked={!!filterState?.webOwnedByIds.includes(webOwnedById)}
-                  onChange={(checked) =>
-                    setFilterState((prev) =>
-                      prev
-                        ? {
-                            ...prev,
-                            webOwnedByIds: checked
-                              ? [...prev.webOwnedByIds, webOwnedById]
-                              : prev.webOwnedByIds.filter(
-                                  (prevWebOwnedById) =>
-                                    prevWebOwnedById !== webOwnedById,
-                                ),
-                          }
-                        : undefined,
-                    )
-                  }
-                />
-              );
-            })}
-        </Box>
-      </Box>
-      <Box>
-        <FilterSectionHeading>Last edited</FilterSectionHeading>
-        <FormControl>
-          <RadioGroup
-            value={filterState?.lastEditedTimeRange ?? "anytime"}
-            onChange={(event) =>
-              setFilterState((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      lastEditedTimeRange: event.target
-                        .value as LastEditedTimeRanges,
-                    }
-                  : undefined,
-              )
-            }
-          >
-            {Object.entries(lastEditedTimeRangesToHumanReadable).map(
-              ([value, label]) => {
-                return (
-                  <FormControlLabel
-                    key={value}
-                    value={value}
-                    control={<Radio />}
-                    label={
-                      <>
-                        {
-                          lastEditedTimeRangesToIcon[
-                            value as LastEditedTimeRanges
-                          ]
-                        }
-                        {label}
-                      </>
-                    }
-                    sx={{
-                      marginX: 0,
-                      marginBottom: 1,
-                      color: ({ palette }) =>
-                        filterState?.lastEditedTimeRange === value
-                          ? palette.common.black
-                          : palette.gray[70],
-                      [`.${formControlLabelClasses.label}`]: {
-                        display: "flex",
-                        alignItems: "center",
-                        fontSize: 14,
-                        marginLeft: 2,
-                        fontWeight: 500,
-                        svg: {
-                          fontSize: 14,
-                          marginRight: 1.25,
-                        },
-                      },
-                      "&:hover": {
-                        color: ({ palette }) => palette.gray[90],
-                      },
-                    }}
-                  />
-                );
-              },
-            )}
-          </RadioGroup>
-        </FormControl>
-      </Box>
+      {filterSections.map((filterSection) => (
+        <FilterSection
+          key={filterSection.heading}
+          filterSection={filterSection}
+        />
+      ))}
     </Box>
   );
 };
