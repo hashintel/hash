@@ -92,7 +92,6 @@ export const createApolloServer = ({
             didResolveOperation: async (didResolveOperationCtx) => {
               const operationName = didResolveOperationCtx.operationName;
               if (operationName) {
-                // transaction.setName(operationName, "route");
                 statsd?.increment(operationName, ["graphql"]);
               }
             },
@@ -172,8 +171,6 @@ export const createApolloServer = ({
                   );
                 }
               }
-
-              // span?.finish();
             },
           };
         },
