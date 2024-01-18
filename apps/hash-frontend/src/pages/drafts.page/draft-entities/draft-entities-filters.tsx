@@ -422,21 +422,16 @@ export const DraftEntitiesFilters: FunctionComponent<{
             const entityTypeBaseUrl = extractBaseUrl(entityType.schema.$id);
 
             return {
-              label: (
-                <>
-                  {entityType.metadata.icon ? (
-                    <Box marginRight={1.25} maxWidth={14} component="span">
-                      {entityType.metadata.icon}
-                    </Box>
-                  ) : isSpecialEntityTypeLookup?.[entityType.schema.$id]
-                      ?.isLink ? (
-                    <LinkRegularIcon />
-                  ) : (
-                    <AsteriskLightIcon />
-                  )}
-                  {entityType.schema.title}
-                </>
+              icon: entityType.metadata.icon ? (
+                <Box marginRight={1.25} maxWidth={14} component="span">
+                  {entityType.metadata.icon}
+                </Box>
+              ) : isSpecialEntityTypeLookup?.[entityType.schema.$id]?.isLink ? (
+                <LinkRegularIcon />
+              ) : (
+                <AsteriskLightIcon />
               ),
+              label: entityType.schema.title,
               value: entityTypeBaseUrl,
               checked:
                 !!filterState?.entityTypeBaseUrls.includes(entityTypeBaseUrl),
@@ -487,17 +482,13 @@ export const DraftEntitiesFilters: FunctionComponent<{
               },
             )
             .map(({ source, label }) => ({
-              label: (
-                <>
-                  {"displayName" in source &&
-                  source.displayName === "HASH AI" ? (
-                    <WandMagicSparklesIcon />
-                  ) : (
-                    <UserIcon />
-                  )}
-                  {label}
-                </>
-              ),
+              icon:
+                "displayName" in source && source.displayName === "HASH AI" ? (
+                  <WandMagicSparklesIcon />
+                ) : (
+                  <UserIcon />
+                ),
+              label,
               value: source.accountId,
               checked: !!filterState?.sourceAccountIds.includes(
                 source.accountId,
@@ -554,12 +545,8 @@ export const DraftEntitiesFilters: FunctionComponent<{
                 web.kind === "user" ? web.accountId : web.accountGroupId
               ) as OwnedById;
               return {
-                label: (
-                  <>
-                    {web.kind === "user" ? <UserIcon /> : <UsersRegularIcon />}
-                    {label}
-                  </>
-                ),
+                icon: web.kind === "user" ? <UserIcon /> : <UsersRegularIcon />,
+                label,
                 value: webOwnedById,
                 checked: !!filterState?.webOwnedByIds.includes(webOwnedById),
                 count: filteredDraftEntitiesExceptForFilter?.web.filter(
@@ -585,12 +572,8 @@ export const DraftEntitiesFilters: FunctionComponent<{
         heading: "Last Edited",
         options: Object.entries(lastEditedTimeRangesToHumanReadable).map(
           ([value, label]) => ({
-            label: (
-              <>
-                {lastEditedTimeRangesToIcon[value as LastEditedTimeRanges]}
-                {label}
-              </>
-            ),
+            icon: lastEditedTimeRangesToIcon[value as LastEditedTimeRanges],
+            label,
             value,
             count: filteredDraftEntitiesExceptForFilter?.lastEditedBy.filter(
               ({ entity }) =>

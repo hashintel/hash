@@ -69,6 +69,27 @@ const FilterSectionHeading = styled(Typography)(({ theme }) => ({
   marginBottom: theme.spacing(1.5),
 }));
 
+const FilterOptionLabel: FunctionComponent<{
+  selected: boolean;
+  icon?: ReactNode;
+  label: ReactNode;
+  count?: number;
+}> = ({ selected, icon, label, count }) => (
+  <>
+    {icon}
+    {label}
+    <Box
+      sx={{
+        marginLeft: 1,
+        color: ({ palette }) => palette.gray[selected ? 60 : 40],
+      }}
+      component="span"
+    >
+      {count}
+    </Box>
+  </>
+);
+
 export const FilterSection: FunctionComponent<{
   filterSection: FilterSectionDefinition;
 }> = ({ filterSection }) => (
@@ -76,22 +97,16 @@ export const FilterSection: FunctionComponent<{
     <FilterSectionHeading>{filterSection.heading}</FilterSectionHeading>
     {filterSection.kind === "multiple-choice" ? (
       <Box display="flex" flexDirection="column">
-        {filterSection.options.map(({ label, value, checked, count }) => (
+        {filterSection.options.map(({ icon, label, value, checked, count }) => (
           <CheckboxFilter
             key={value}
             label={
-              <>
-                {label}
-                <Box
-                  sx={{
-                    marginLeft: 1,
-                    color: ({ palette }) => palette.gray[checked ? 60 : 50],
-                  }}
-                  component="span"
-                >
-                  {count}
-                </Box>
-              </>
+              <FilterOptionLabel
+                icon={icon}
+                selected={checked}
+                label={label}
+                count={count}
+              />
             }
             checked={checked}
             onChange={(updatedChecked) => {
@@ -116,7 +131,7 @@ export const FilterSection: FunctionComponent<{
           value={filterSection.value}
           onChange={(event) => filterSection.onChange(event.target.value)}
         >
-          {filterSection.options.map(({ value, label, count }) => {
+          {filterSection.options.map(({ icon, value, label, count }) => {
             const selected = filterSection.value === value;
 
             return (
@@ -125,19 +140,12 @@ export const FilterSection: FunctionComponent<{
                 value={value}
                 control={<Radio />}
                 label={
-                  <>
-                    {label}
-                    <Box
-                      sx={{
-                        marginLeft: 1,
-                        color: ({ palette }) =>
-                          palette.gray[selected ? 60 : 30],
-                      }}
-                      component="span"
-                    >
-                      {count}
-                    </Box>
-                  </>
+                  <FilterOptionLabel
+                    icon={icon}
+                    selected={selected}
+                    label={label}
+                    count={count}
+                  />
                 }
                 sx={{
                   marginX: 0,

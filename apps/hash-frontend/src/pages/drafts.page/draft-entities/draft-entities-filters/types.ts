@@ -4,6 +4,7 @@ type MultipleChoiceFilterSectionDefinition<Value = any> = {
   heading: string;
   kind: "multiple-choice";
   options: {
+    icon?: ReactNode;
     label: ReactNode;
     value: Value;
     checked: boolean;
@@ -16,6 +17,7 @@ type SingleChoiceFilterSectionDefinition<Value = string> = {
   heading: string;
   kind: "single-choice";
   options: {
+    icon?: ReactNode;
     label: ReactNode;
     value: Value;
     count?: number;
