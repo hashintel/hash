@@ -16,9 +16,11 @@ export const updateEntity = (params: {
   queryGraphQlApi<UpdateEntityMutation, UpdateEntityMutationVariables>(
     updateEntityMutation,
     {
-      entityId: params.entityId,
-      entityTypeId: params.entityTypeId,
-      updatedProperties: params.updatedProperties,
+      entityUpdate: {
+        entityId: params.entityId,
+        entityTypeId: params.entityTypeId,
+        updatedProperties: params.updatedProperties,
+      },
     },
   ).then(({ data }) => {
     return data.updateEntity;

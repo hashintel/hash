@@ -31,6 +31,7 @@ import {
   addEntityEditorResolver,
   addEntityOwnerResolver,
   addEntityViewerResolver,
+  archiveEntitiesResolver,
   archiveEntityResolver,
   createEntityResolver,
   getEntityAuthorizationRelationshipsResolver,
@@ -41,6 +42,7 @@ import {
   removeEntityOwnerResolver,
   removeEntityViewerResolver,
   structuralQueryEntitiesResolver,
+  updateEntitiesResolver,
   updateEntityResolver,
 } from "./knowledge/entity/entity";
 import { createFileFromUrl } from "./knowledge/file/create-file-from-url";
@@ -152,7 +154,9 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     // Knowledge
     createEntity: loggedInAndSignedUpMiddleware(createEntityResolver),
     updateEntity: loggedInMiddleware(updateEntityResolver),
+    updateEntities: loggedInMiddleware(updateEntitiesResolver),
     archiveEntity: loggedInMiddleware(archiveEntityResolver),
+    archiveEntities: loggedInMiddleware(archiveEntitiesResolver),
     createPage: loggedInAndSignedUpMiddleware(createPageResolver),
     setParentPage: loggedInAndSignedUpMiddleware(setParentPageResolver),
     updatePage: loggedInAndSignedUpMiddleware(updatePageResolver),

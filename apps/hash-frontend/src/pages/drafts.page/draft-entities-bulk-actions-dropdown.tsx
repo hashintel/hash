@@ -16,14 +16,14 @@ import {
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
 import {
-  ArchiveEntityMutation,
-  ArchiveEntityMutationVariables,
-  UpdateEntityMutation,
-  UpdateEntityMutationVariables,
+  ArchiveEntitiesMutation,
+  ArchiveEntitiesMutationVariables,
+  UpdateEntitiesMutation,
+  UpdateEntitiesMutationVariables,
 } from "../../graphql/api-types.gen";
 import {
-  archiveEntityMutation,
-  updateEntityMutation,
+  archiveEntitiesMutation,
+  updateEntitiesMutation,
 } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { LayerGroupLightIcon } from "../../shared/icons/layer-group-light-icon";
@@ -42,7 +42,7 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
 }) => {
   const { draftEntities, refetch: refetchDraftEntities } = useDraftEntities();
   const { notifications } = useNotificationsWithLinks();
-  const { archiveNotification, markNotificationAsRead } =
+  const { archiveNotifications, markNotificationsAsRead } =
     useNotificationEntities();
 
   const popupState = usePopupState({
@@ -89,10 +89,10 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
       .flat();
   }, [draftEntitiesWithLinkedDataSubgraph, selectedDraftEntities]);
 
-  const [archiveEntity] = useMutation<
-    ArchiveEntityMutation,
-    ArchiveEntityMutationVariables
-  >(archiveEntityMutation);
+  const [archiveEntities] = useMutation<
+    ArchiveEntitiesMutation,
+    ArchiveEntitiesMutationVariables
+  >(archiveEntitiesMutation);
 
   const ignoreAllSelectedDraftEntities = useCallback(async () => {
     if (!notifications) {
@@ -105,31 +105,26 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
       ),
     );
 
-    await Promise.all([
-      ...relatedNotifications.map((notification) =>
-        archiveNotification({
-          notificationEntity: notification.entity,
-        }),
-      ),
-      ...[
-        ...selectedDraftEntities,
-        ...(incomingOrOutgoingDraftLinksToIgnore ?? []),
-      ].map((selectedDraftEntity) =>
-        archiveEntity({
-          variables: {
-            entityId: selectedDraftEntity.metadata.recordId.entityId,
-          },
-        }),
-      ),
-    ]);
+    await archiveEntities({
+      variables: {
+        entityIds: [
+          ...selectedDraftEntities,
+          ...(incomingOrOutgoingDraftLinksToIgnore ?? []),
+        ].map(({ metadata }) => metadata.recordId.entityId),
+      },
+    });
+
+    await archiveNotifications({
+      notificationEntities: relatedNotifications.map(({ entity }) => entity),
+    });
 
     await refetchDraftEntities();
 
     deselectAllDraftEntities();
   }, [
     notifications,
-    archiveNotification,
-    archiveEntity,
+    archiveNotifications,
+    archiveEntities,
     selectedDraftEntityIds,
     selectedDraftEntities,
     refetchDraftEntities,
@@ -182,31 +177,28 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
           selectedDraftEntity.linkData.leftEntityId,
         );
 
-        if (!leftEntity) {
-          throw new Error("Left entity of link entity not found in subgraph.");
-        }
-
         const rightEntity = getEntityRevision(
           draftEntitiesWithLinkedDataSubgraph,
           selectedDraftEntity.linkData.rightEntityId,
         );
 
-        if (!rightEntity) {
-          throw new Error("Right entity of link entity not found in subgraph.");
-        }
-
         return [
-          leftEntity.metadata.draft ? leftEntity : [],
-          rightEntity.metadata.draft ? rightEntity : [],
+          /**
+           * Note: if a left or right draft entity has already been archived, it
+           * may not be present in the subgraph. This is why the `leftEntity` and
+           * `rightEntity` are nullable in this context.
+           */
+          leftEntity?.metadata.draft ? leftEntity : [],
+          rightEntity?.metadata.draft ? rightEntity : [],
         ].flat();
       })
       .flat();
   }, [draftEntitiesWithLinkedDataSubgraph, selectedDraftEntities]);
 
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation);
+  const [updateEntities] = useMutation<
+    UpdateEntitiesMutation,
+    UpdateEntitiesMutationVariables
+  >(updateEntitiesMutation);
 
   const acceptAllSelectedDraftEntities = useCallback(async () => {
     const relatedGraphChangeNotifications =
@@ -218,34 +210,35 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
           ),
       ) ?? [];
 
-    await Promise.all([
-      ...relatedGraphChangeNotifications.map((notification) =>
-        markNotificationAsRead({ notificationEntity: notification.entity }),
+    await updateEntities({
+      variables: {
+        entityUpdates: [
+          ...selectedDraftEntities,
+          ...(leftOrRightDraftEntitiesToAccept ?? []),
+        ].map((draftEntity) => ({
+          entityId: draftEntity.metadata.recordId.entityId,
+          updatedProperties: draftEntity.properties,
+          draft: false,
+        })),
+      },
+    });
+
+    await markNotificationsAsRead({
+      notificationEntities: relatedGraphChangeNotifications.map(
+        ({ entity }) => entity,
       ),
-      ...[
-        ...selectedDraftEntities,
-        ...(leftOrRightDraftEntitiesToAccept ?? []),
-      ].map((draftEntity) =>
-        updateEntity({
-          variables: {
-            entityId: draftEntity.metadata.recordId.entityId,
-            updatedProperties: draftEntity.properties,
-            draft: false,
-          },
-        }),
-      ),
-    ]);
+    });
 
     await refetchDraftEntities();
 
     deselectAllDraftEntities();
   }, [
     notifications,
-    markNotificationAsRead,
+    markNotificationsAsRead,
     selectedDraftEntityIds,
     selectedDraftEntities,
     leftOrRightDraftEntitiesToAccept,
-    updateEntity,
+    updateEntities,
     refetchDraftEntities,
     deselectAllDraftEntities,
   ]);

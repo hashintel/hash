@@ -89,22 +89,19 @@ export const AcceptDraftEntityButton: FunctionComponent<
         draftEntity.linkData.leftEntityId,
       );
 
-      if (!leftEntity) {
-        throw new Error("Left entity of link entity not found in subgraph.");
-      }
-
       const rightEntity = getEntityRevision(
         draftEntitySubgraph,
         draftEntity.linkData.rightEntityId,
       );
 
-      if (!rightEntity) {
-        throw new Error("Right entity of link entity not found in subgraph.");
-      }
-
       return {
-        draftLeftEntity: leftEntity.metadata.draft ? leftEntity : undefined,
-        draftRightEntity: rightEntity.metadata.draft ? rightEntity : undefined,
+        /**
+         * Note: if a left or right draft entity has already been archived, it
+         * may not be present in the subgraph. This is why the `leftEntity` and
+         * `rightEntity` are nullable in this context.
+         */
+        draftLeftEntity: leftEntity?.metadata.draft ? leftEntity : undefined,
+        draftRightEntity: rightEntity?.metadata.draft ? rightEntity : undefined,
       };
     }
 
@@ -148,9 +145,11 @@ export const AcceptDraftEntityButton: FunctionComponent<
 
       const response = await updateEntity({
         variables: {
-          entityId: params.draftEntity.metadata.recordId.entityId,
-          updatedProperties: params.draftEntity.properties,
-          draft: false,
+          entityUpdate: {
+            entityId: params.draftEntity.metadata.recordId.entityId,
+            updatedProperties: params.draftEntity.properties,
+            draft: false,
+          },
         },
       });
 

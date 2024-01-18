@@ -52,11 +52,13 @@ export const useBlockProtocolUpdateEntity = (
 
       const { data: updateEntityResponseData } = await updateFn({
         variables: {
-          entityId, // @todo-0.3 consider validating that this matches the id format,
-          entityTypeId,
-          updatedProperties: properties,
-          leftToRightOrder,
-          rightToLeftOrder,
+          entityUpdate: {
+            entityId, // @todo-0.3 consider validating that this matches the id format,
+            entityTypeId,
+            updatedProperties: properties,
+            leftToRightOrder,
+            rightToLeftOrder,
+          },
         },
       });
 
