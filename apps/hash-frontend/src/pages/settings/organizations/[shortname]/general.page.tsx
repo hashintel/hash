@@ -10,8 +10,8 @@ import { NextPageWithLayout } from "../../../../shared/layout";
 import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissions-on-entity";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
+import { SettingsPageContainer } from "../../shared/settings-page-container";
 import { OrgForm, OrgFormData } from "../shared/org-form";
-import { OrgSettingsContainer } from "../shared/org-settings-container";
 
 const OrgGeneralSettingsPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -81,7 +81,7 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
     <>
       <NextSeo title={`${org.name} | Settings`} />
 
-      <OrgSettingsContainer
+      <SettingsPageContainer
         header={org.name}
         sectionLabel="General"
         ref={topRef}
@@ -93,7 +93,7 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
           readonly={!userPermissions?.edit}
           submitLabel="Update organization profile"
         />
-      </OrgSettingsContainer>
+      </SettingsPageContainer>
     </>
   );
 };

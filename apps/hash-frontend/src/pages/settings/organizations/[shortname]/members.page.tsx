@@ -15,8 +15,8 @@ import { NextPageWithLayout } from "../../../../shared/layout";
 import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissions-on-entity";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
+import { SettingsPageContainer } from "../../shared/settings-page-container";
 import { Cell } from "../shared/cell";
-import { OrgSettingsContainer } from "../shared/org-settings-container";
 import { OrgTable } from "../shared/org-table";
 import { AddMemberForm } from "./members.page/add-member-form";
 import { MemberRow } from "./members.page/member-row";
@@ -65,7 +65,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
     <>
       <NextSeo title={`${org.name} | Members`} />
 
-      <OrgSettingsContainer
+      <SettingsPageContainer
         header={org.name}
         sectionLabel="Members"
         ref={topRef}
@@ -125,7 +125,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
             </TableRow>
           </TableFooter>
         </OrgTable>
-      </OrgSettingsContainer>
+      </SettingsPageContainer>
     </>
   );
 };

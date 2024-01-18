@@ -1,5 +1,5 @@
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
-import { Box, Container, Paper, Typography } from "@mui/material";
+import { Box, Paper, Typography } from "@mui/material";
 import { FunctionComponent, useContext } from "react";
 
 import { extractOwnedById } from "../../lib/user-and-org";
@@ -7,6 +7,7 @@ import { NextPageWithLayout } from "../../shared/layout";
 import { Button } from "../../shared/ui/button";
 import { WorkspaceContext } from "../shared/workspace-context";
 import { getSettingsLayout } from "./shared/settings-layout";
+import { SettingsPageContainer } from "./shared/settings-page-container";
 
 const AddNewIntegrations: FunctionComponent = () => {
   const { activeWorkspace } = useContext(WorkspaceContext);
@@ -56,14 +57,9 @@ const AddNewIntegrations: FunctionComponent = () => {
 
 const IntegrationsPage: NextPageWithLayout = () => {
   return (
-    <Container>
-      <Box sx={{ paddingLeft: 4 }}>
-        <Typography variant="h1" mt={10} mb={4} fontWeight="bold">
-          Integrations
-        </Typography>
-        <AddNewIntegrations />
-      </Box>
-    </Container>
+    <SettingsPageContainer header="Integrations" disableContentWrapper>
+      <AddNewIntegrations />
+    </SettingsPageContainer>
   );
 };
 

@@ -2,7 +2,7 @@ import { NextSeo } from "next-seo";
 
 import { NextPageWithLayout } from "../../../../shared/layout";
 import { getSettingsLayout } from "../../shared/settings-layout";
-import { OrgSettingsContainer } from "../shared/org-settings-container";
+import { SettingsPageContainer } from "../../shared/settings-page-container";
 import { CreateOrgForm } from "./index.page/create-org-form";
 
 const Page: NextPageWithLayout = () => {
@@ -10,9 +10,9 @@ const Page: NextPageWithLayout = () => {
     <>
       <NextSeo title="Create Organization" />
 
-      <OrgSettingsContainer header={<>Create new organization</>}>
+      <SettingsPageContainer header={<>Create new organization</>}>
         <CreateOrgForm />
-      </OrgSettingsContainer>
+      </SettingsPageContainer>
     </>
   );
 };
