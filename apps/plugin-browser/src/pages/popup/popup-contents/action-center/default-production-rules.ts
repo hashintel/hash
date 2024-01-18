@@ -5,12 +5,12 @@ export const defaultProductionRules: LocalStorage["automaticInferenceConfig"]["r
     {
       restrictToDomains: ["crunchbase.com"],
       entityTypeId:
-        "https://hash.ai/@hash/types/entity-type/crunchbase-person/v/9",
+        "https://hash.ai/@hash/types/entity-type/crunchbase-person/v/11",
     },
     {
       restrictToDomains: ["crunchbase.com"],
       entityTypeId:
-        "https://hash.ai/@hash/types/entity-type/crunchbase-company/v/10",
+        "https://hash.ai/@hash/types/entity-type/crunchbase-company/v/13",
     },
     {
       restrictToDomains: ["crunchbase.com"],
@@ -39,7 +39,7 @@ export const defaultProductionRules: LocalStorage["automaticInferenceConfig"]["r
     {
       restrictToDomains: ["crunchbase.com"],
       entityTypeId:
-        "https://hash.ai/@hash/types/entity-type/initial-public-offering/v/2",
+        "https://hash.ai/@hash/types/entity-type/initial-public-offering/v/3",
     },
     {
       restrictToDomains: ["crunchbase.com"],
@@ -83,7 +83,7 @@ export const defaultProductionRules: LocalStorage["automaticInferenceConfig"]["r
     },
     {
       restrictToDomains: ["crunchbase.com"],
-      entityTypeId: "https://hash.ai/@hash/types/entity-type/stock-symbol/v/2",
+      entityTypeId: "https://hash.ai/@hash/types/entity-type/stock-symbol/v/3",
     },
     {
       restrictToDomains: ["crunchbase.com"],
@@ -100,6 +100,14 @@ export const defaultProductionRules: LocalStorage["automaticInferenceConfig"]["r
       entityTypeId: "https://hash.ai/@hash/types/entity-type/mentioned-in/v/1",
     },
     {
+      restrictToDomains: ["crunchbase.com", "linkedin.com"],
+      entityTypeId: "https://hash.ai/@hash/types/entity-type/website/v/1",
+    },
+    {
+      restrictToDomains: ["crunchbase.com", "linkedin.com"],
+      entityTypeId: "https://hash.ai/@hash/types/entity-type/news-article/v/1",
+    },
+    {
       restrictToDomains: ["linkedin.com"],
       entityTypeId:
         "https://hash.ai/@hash/types/entity-type/linkedin-account/v/1",
@@ -112,9 +120,5 @@ export const defaultProductionRules: LocalStorage["automaticInferenceConfig"]["r
     {
       restrictToDomains: ["linkedin.com"],
       entityTypeId: "https://hash.ai/@hash/types/entity-type/linkedin-post/v/1",
-    },
-    {
-      restrictToDomains: ["linkedin.com"],
-      entityTypeId: "https://hash.ai/@hash/types/entity-type/website/v/1",
     },
   ];
