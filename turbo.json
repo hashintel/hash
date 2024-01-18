@@ -1,17 +1,18 @@
 {
   "$schema": "https://turborepo.org/schema.json",
   "pipeline": {
-    "codegen": {},
-    "build": {
+    "codegen": {
       "dependsOn": ["^codegen"]
     },
-    "build:test": {},
+    "build": {
+      "dependsOn": ["codegen"]
+    },
     "test:unit": {
-      "dependsOn": ["^codegen"],
+      "dependsOn": ["codegen"],
       "env": ["TEST_COVERAGE"]
     },
     "test:integration": {
-      "dependsOn": ["^codegen"],
+      "dependsOn": ["codegen"],
       "env": ["TEST_COVERAGE"]
     },
     "test:system": {},
@@ -20,18 +21,18 @@
       "persistent": true
     },
     "lint": {
-      "dependsOn": ["^codegen"]
+      "dependsOn": ["codegen"]
     },
     "lint:clippy": {},
     "lint:eslint": {
       "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
-      "dependsOn": ["^codegen"]
+      "dependsOn": ["codegen"]
     },
     "lint:tsc": {
-      "dependsOn": ["^codegen"]
+      "dependsOn": ["codegen"]
     },
     "fix:eslint": {
-      "dependsOn": ["^codegen"]
+      "dependsOn": ["codegen"]
     },
     "fix:clippy": {}
   },
