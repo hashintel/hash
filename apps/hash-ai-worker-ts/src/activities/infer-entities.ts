@@ -306,7 +306,7 @@ export const inferEntities = async ({
         ([linkTypeId, targetSchema]) =>
           // It must exist as a potential link on at least one of the other entity types being sought...
           linkTypeId === entityTypeId &&
-          // ...and that link must not have destination constraints which exclude the link type
+          // ...and that link must not have destination constraints which cannot be met
           !(
             "oneOf" in targetSchema.items &&
             !targetSchema.items.oneOf.some(

@@ -1,6 +1,7 @@
 import type { JsonValue } from "@blockprotocol/core";
 import {
   CaretDownSolidIcon,
+  DashIcon,
   IconButton,
   LinkIcon,
   PlusIcon,
@@ -265,193 +266,216 @@ export const InferredEntity = ({
               )
             )}
           </Typography>
-          {Object.keys(proposedEntity.properties ?? {}).length > 0 && (
-            <IconButton
-              onClick={(event) => {
-                event.stopPropagation();
-                event.preventDefault();
-                toggleExpanded();
-              }}
-              sx={({ palette }) => ({
-                p: 0.5,
-                "&:hover": {
-                  background: "none",
-
-                  "@media (prefers-color-scheme: dark)": {
-                    color: palette.primary.main,
-                  },
-                },
-              })}
-            >
-              <CaretDownSolidIcon
-                sx={{
-                  height: 14,
-                  transform: !expanded ? "rotate(-90deg)" : "translateY(-1px)",
-                  transition: ({ transitions }) =>
-                    transitions.create("transform"),
+          {operation !== "already-exists-as-proposed" &&
+            Object.keys(proposedEntity.properties ?? {}).length > 0 && (
+              <IconButton
+                onClick={(event) => {
+                  event.stopPropagation();
+                  event.preventDefault();
+                  toggleExpanded();
                 }}
-              />
-            </IconButton>
-          )}
+                sx={({ palette }) => ({
+                  p: 0.5,
+                  "&:hover": {
+                    background: "none",
+
+                    "@media (prefers-color-scheme: dark)": {
+                      color: palette.primary.main,
+                    },
+                  },
+                })}
+              >
+                <CaretDownSolidIcon
+                  sx={{
+                    height: 14,
+                    transform: !expanded
+                      ? "rotate(-90deg)"
+                      : "translateY(-1px)",
+                    transition: ({ transitions }) =>
+                      transitions.create("transform"),
+                  }}
+                />
+              </IconButton>
+            )}
         </Stack>
         {status === "success" ? (
           operation === "update" ? (
-            <UpFromLineIcon
-              sx={{
-                fill: ({ palette }) => palette.blue[60],
-                fontSize: 14,
-                ml: 0.5,
-              }}
-            />
+            <Box title="Update made to existing entity">
+              <UpFromLineIcon
+                sx={{
+                  fill: ({ palette }) => palette.blue[60],
+                  fontSize: 14,
+                  ml: 0.5,
+                }}
+              />
+            </Box>
+          ) : operation === "already-exists-as-proposed" ? (
+            <Box title="No changes made to existing entity">
+              <DashIcon
+                sx={{
+                  fill: ({ palette }) => palette.gray[40],
+                  fontSize: 14,
+                  ml: 0.5,
+                }}
+              />
+            </Box>
           ) : (
-            <PlusIcon
-              sx={{
-                fontSize: 14,
-                ml: 0.5,
-                color: ({ palette }) => palette.green[80],
-              }}
-            />
+            <Box title="Entity created">
+              <PlusIcon
+                sx={{
+                  fontSize: 14,
+                  ml: 0.5,
+                  color: ({ palette }) => palette.green[80],
+                }}
+              />
+            </Box>
           )
         ) : null}
       </Stack>
-      <Collapse in={expanded}>
-        <Stack mt={0.5}>
-          {Object.entries(proposedEntity.properties ?? {})
-            .sort((a, b) => a[0].localeCompare(b[0]))
-            .map(([key, value]) => {
-              const { propertyType, refSchema } = getPropertyTypeForEntity(
-                entityTypesSubgraph,
-                entityType.schema.$id,
-                key as BaseUrl,
-              );
-
-              const isArrayOfPropertyType = "items" in refSchema;
-
-              const { schema, isArrayOfSchema } = guessSchemaForPropertyValue(
-                entityTypesSubgraph,
-                propertyType,
-                value,
-              );
-
-              const formatValue = (
-                dataValue: JsonValue,
-                dataSchema: DataTypeWithMetadata["schema"] | null,
-              ): FormattedValuePart[] => {
-                if (isArrayOfSchema) {
-                  if (!Array.isArray(dataValue)) {
-                    throw new Error("Non-array value provided to array schema");
-                  }
-                  return joinArrayParts(
-                    dataValue.map((innerValue) =>
-                      formatDataValue(innerValue, dataSchema),
-                    ),
-                  );
-                }
-                return formatDataValue(dataValue, dataSchema);
-              };
-
-              // @todo check and improve this logic for handling nested arrays
-              const formatPropertyTypeValue = (
-                propertyValue: JsonValue,
-              ): FormattedValuePart[] => {
-                if (Array.isArray(schema)) {
-                  if (!Array.isArray(propertyValue)) {
-                    throw new Error("Non-array value provided to array schema");
-                  }
-
-                  return joinArrayParts(
-                    propertyValue.map((innerValue, index) =>
-                      formatValue(innerValue, schema[index]),
-                    ),
-                  );
-                }
-                return formatValue(propertyValue, schema);
-              };
-
-              const formattedValue: FormattedValuePart[] = [];
-              if (isArrayOfPropertyType) {
-                formattedValue.push(
-                  ...joinArrayParts(
-                    (value as JsonValue[]).map((innerValue) =>
-                      formatPropertyTypeValue(innerValue),
-                    ),
-                  ),
+      {operation !== "already-exists-as-proposed" && (
+        <Collapse in={expanded}>
+          <Stack mt={0.5}>
+            {Object.entries(proposedEntity.properties ?? {})
+              .sort((a, b) => a[0].localeCompare(b[0]))
+              .map(([key, value]) => {
+                const { propertyType, refSchema } = getPropertyTypeForEntity(
+                  entityTypesSubgraph,
+                  entityType.schema.$id,
+                  key as BaseUrl,
                 );
-              } else {
-                formattedValue.push(...formatPropertyTypeValue(value));
-              }
 
-              return (
-                <Stack
-                  direction="row"
-                  key={key}
-                  sx={{ "&:not(:last-child)": { mb: 0.5 } }}
-                >
-                  <Typography
-                    sx={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      mr: 0.5,
-                      width: 120,
-                      whiteSpace: "nowrap",
-                      textOverflow: "ellipsis",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {propertyType.title}:
-                  </Typography>
-                  <Typography
-                    sx={{
-                      display: "-webkit-box",
-                      "-webkit-line-clamp": "3",
-                      "-webkit-box-orient": "vertical",
-                      fontSize: 13,
-                      opacity: 0.8,
-                      overflow: "hidden",
-                      width: "calc(100% - 100px)",
-                    }}
-                  >
-                    {formattedValue.map((part, index) => {
-                      const additionalRightPadding =
-                        part.type === "leftLabel"
-                          ? 0.5
-                          : part.type === "value" &&
-                              formattedValue[index + 1]?.type === "rightLabel"
-                            ? 0.5
-                            : 0;
+                const isArrayOfPropertyType = "items" in refSchema;
 
-                      return (
-                        <Box
-                          component="span"
-                          /* eslint-disable-next-line react/no-array-index-key */
-                          key={index}
-                          sx={{
-                            color:
-                              part.type === "value" ? "inherit" : part.color,
-                            paddingRight: `${additionalRightPadding}px`,
-                          }}
-                        >
-                          {part.text}
-                        </Box>
+                const { schema, isArrayOfSchema } = guessSchemaForPropertyValue(
+                  entityTypesSubgraph,
+                  propertyType,
+                  value,
+                );
+
+                const formatValue = (
+                  dataValue: JsonValue,
+                  dataSchema: DataTypeWithMetadata["schema"] | null,
+                ): FormattedValuePart[] => {
+                  if (isArrayOfSchema) {
+                    if (!Array.isArray(dataValue)) {
+                      throw new Error(
+                        "Non-array value provided to array schema",
                       );
-                    })}
-                  </Typography>
-                </Stack>
-              );
-            })}
-        </Stack>
-        {!wasSuccess && (
-          <Typography
-            sx={{
-              color: ({ palette }) => palette.red[70],
-              fontSize: 13,
-              mt: 0.3,
-            }}
-          >
-            Not {operation}d: {result.failureReason}
-          </Typography>
-        )}
-      </Collapse>
+                    }
+                    return joinArrayParts(
+                      dataValue.map((innerValue) =>
+                        formatDataValue(innerValue, dataSchema),
+                      ),
+                    );
+                  }
+                  return formatDataValue(dataValue, dataSchema);
+                };
+
+                // @todo check and improve this logic for handling nested arrays
+                const formatPropertyTypeValue = (
+                  propertyValue: JsonValue,
+                ): FormattedValuePart[] => {
+                  if (Array.isArray(schema)) {
+                    if (!Array.isArray(propertyValue)) {
+                      throw new Error(
+                        "Non-array value provided to array schema",
+                      );
+                    }
+
+                    return joinArrayParts(
+                      propertyValue.map((innerValue, index) =>
+                        formatValue(innerValue, schema[index]),
+                      ),
+                    );
+                  }
+                  return formatValue(propertyValue, schema);
+                };
+
+                const formattedValue: FormattedValuePart[] = [];
+                if (isArrayOfPropertyType) {
+                  formattedValue.push(
+                    ...joinArrayParts(
+                      (value as JsonValue[]).map((innerValue) =>
+                        formatPropertyTypeValue(innerValue),
+                      ),
+                    ),
+                  );
+                } else {
+                  formattedValue.push(...formatPropertyTypeValue(value));
+                }
+
+                return (
+                  <Stack
+                    direction="row"
+                    key={key}
+                    sx={{ "&:not(:last-child)": { mb: 0.5 } }}
+                  >
+                    <Typography
+                      sx={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        mr: 0.5,
+                        width: 120,
+                        whiteSpace: "nowrap",
+                        textOverflow: "ellipsis",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {propertyType.title}:
+                    </Typography>
+                    <Typography
+                      sx={{
+                        display: "-webkit-box",
+                        "-webkit-line-clamp": "3",
+                        "-webkit-box-orient": "vertical",
+                        fontSize: 13,
+                        opacity: 0.8,
+                        overflow: "hidden",
+                        width: "calc(100% - 100px)",
+                      }}
+                    >
+                      {formattedValue.map((part, index) => {
+                        const additionalRightPadding =
+                          part.type === "leftLabel"
+                            ? 0.5
+                            : part.type === "value" &&
+                                formattedValue[index + 1]?.type === "rightLabel"
+                              ? 0.5
+                              : 0;
+
+                        return (
+                          <Box
+                            component="span"
+                            /* eslint-disable-next-line react/no-array-index-key */
+                            key={index}
+                            sx={{
+                              color:
+                                part.type === "value" ? "inherit" : part.color,
+                              paddingRight: `${additionalRightPadding}px`,
+                            }}
+                          >
+                            {part.text}
+                          </Box>
+                        );
+                      })}
+                    </Typography>
+                  </Stack>
+                );
+              })}
+          </Stack>
+          {!wasSuccess && (
+            <Typography
+              sx={{
+                color: ({ palette }) => palette.red[70],
+                fontSize: 13,
+                mt: 0.3,
+              }}
+            >
+              Not {operation}d: {result.failureReason}
+            </Typography>
+          )}
+        </Collapse>
+      )}
     </Box>
   );
 };
