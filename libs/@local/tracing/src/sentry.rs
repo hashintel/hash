@@ -133,7 +133,7 @@ fn read_source(location: Location) -> (Vec<String>, Option<String>, Vec<String>)
 
     // Read the surrounding lines of `location`:
     // - 10 lines before (stored into `pre_context`)
-    // - 10 lines after (stored into `post_context`)
+    // - 3 lines after (stored into `post_context`)
     // - the line of `location` (stored into `context_line`)
     let mut pre_context = Vec::with_capacity(10);
     let mut context_line = None;
