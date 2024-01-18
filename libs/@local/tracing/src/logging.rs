@@ -1,7 +1,7 @@
 use std::{
     fmt::{Display, Formatter},
     io,
-    io::Stderr,
+    io::{IsTerminal, Stderr},
     path::{Path, PathBuf},
 };
 
@@ -201,7 +201,7 @@ where
         LogFormat::Compact => OutputFormatter::Compact(formatter.compact()),
     };
 
-    let ansi_output = log_format != LogFormat::Json;
+    let ansi_output = io::stderr().is_terminal() && log_format != LogFormat::Json;
     if !ansi_output {
         Report::set_color_mode(ColorMode::None);
     }

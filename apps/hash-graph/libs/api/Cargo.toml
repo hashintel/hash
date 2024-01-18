@@ -10,6 +10,7 @@ description = "HASH Graph API"
 hash-status = { workspace = true }
 graph = { workspace = true, features = ["utoipa"] }
 graph-types = { workspace = true }
+hash-tracing = { workspace = true }
 temporal-client = { workspace = true }
 temporal-versioning = { workspace = true }
 authorization = { workspace = true }
