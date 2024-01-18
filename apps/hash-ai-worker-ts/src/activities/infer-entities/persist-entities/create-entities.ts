@@ -283,14 +283,17 @@ export const createEntities = async ({
               "targetEntityId" in proposedEntity
             )
           ) {
+            const originalProposal =
+              inferenceState.proposedEntitySummaries.find(
+                (summary) => summary.entityId === proposedEntity.entityId,
+              );
             internalEntityStatusMap.creationFailures[proposedEntity.entityId] =
               {
                 entityTypeId,
                 proposedEntity,
                 operation: "create",
                 status: "failure",
-                failureReason:
-                  "Link entities must have both a sourceEntityId and a targetEntityId.",
+                failureReason: `Link entities must have both a sourceEntityId and a targetEntityId.${originalProposal ? `You originally proposed that entityId ${proposedEntity.entityId} should have sourceEntityId ${originalProposal.sourceEntityId?.toString() ?? ""} and targetEntityId ${originalProposal.targetEntityId?.toString() ?? ""}.` : ""}`,
               };
             return;
           }
@@ -461,6 +464,9 @@ export const createEntities = async ({
                   status: "update-candidate",
                 };
               }
+              log(
+                `Proposed link entity ${proposedEntity.entityId} exactly matches existing entity – continuing`,
+              );
 
               return;
             }
