@@ -127,14 +127,36 @@ export const persistEntities = async (params: {
 
   const tools = generatePersistEntitiesTools(Object.values(entityTypes));
 
+  const entitiesToUpdate = inProgressEntityIds.filter(
+    (inProgressEntityId) =>
+      inferenceState.resultsByTemporaryId[inProgressEntityId]?.status ===
+      "update-candidate",
+  );
+
+  const entitiesToCreate = inProgressEntityIds.filter(
+    (inProgressEntityId) => !entitiesToUpdate.includes(inProgressEntityId),
+  );
+
+  const createMessage =
+    entitiesToCreate.length > 0
+      ? `create_entities with temporary id ${entitiesToCreate.join(", ")}`
+      : null;
+  const updateMessage =
+    entitiesToUpdate.length > 0
+      ? `update_entities with temporary ids ${entitiesToUpdate.join(", ")}`
+      : null;
+  const innerMessage = [createMessage, updateMessage]
+    .filter(Boolean)
+    .join(" and ");
+
   const nextMessage = {
     role: "user",
-    content:
-      dedent(`Please make calls to create or update entities with temporary ids ${inProgressEntityIds.join(
-        ", ",
-      )}.
-    Remember to include as many properties as you can find matching values for in the website content.`),
+    content: dedent(
+      `Please make calls to ${innerMessage}. Remember to include as many properties as you can find matching values for in the website content.`,
+    ),
   } as const;
+
+  log(`Next message to model: ${stringify(nextMessage)}`);
 
   const openApiPayload: OpenAI.ChatCompletionCreateParams = {
     ...completionPayload,
@@ -602,6 +624,9 @@ export const persistEntities = async (params: {
             const successes = Object.values(updateSuccesses);
             const failures = Object.values(updateFailures);
 
+            log(`Update successes: ${stringify(updateSuccesses)}`);
+            log(`Update failures: ${stringify(updateFailures)}`);
+
             for (const success of successes) {
               void createInferredEntityNotification({
                 entity: success.entity,
@@ -621,14 +646,22 @@ export const persistEntities = async (params: {
               ] = result;
             }
 
-            if (failures.length > 0) {
+            /**
+             * Sometimes the model decides to propose updates for entities that it hasn't been asked to.
+             * These will fail because we are not tracking an entityId to update for them.
+             * It tends to do this for entities which it's already provided some other response for.
+             */
+            const failuresToRetry = failures.filter((failure) =>
+              inProgressEntityIds.includes(failure.proposedEntity.entityId),
+            );
+            if (failuresToRetry.length > 0) {
               retryMessages.push({
                 role: "tool",
                 tool_call_id: toolCallId,
                 content: dedent(`
                   Some of the entities you suggested for update were invalid. Please review their properties and try again. 
                   The entities you should review and make a 'update_entities' call for are:
-                  ${failures
+                  ${failuresToRetry
                     .map(
                       (failure) => `
                     your proposed entity: ${stringify(failure.proposedEntity)}
