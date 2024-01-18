@@ -5,6 +5,7 @@ import { FunctionComponent, useContext } from "react";
 import { isProduction } from "../../lib/config";
 import { extractOwnedById } from "../../lib/user-and-org";
 import { NextPageWithLayout } from "../../shared/layout";
+import { Link } from "../../shared/ui";
 import { Button } from "../../shared/ui/button";
 import { WorkspaceContext } from "../shared/workspace-context";
 import { getSettingsLayout } from "./shared/settings-layout";
@@ -65,11 +66,16 @@ const IntegrationsPage: NextPageWithLayout = () => {
     >
       {/* @todo: add ability to setup integrations in production */}
       {isProduction ? (
-        <Typography>
-          No integrations are currently available to your account. If you’d like
-          to suggest a new integration, or request access to an existing one,
-          contact us.
-        </Typography>
+        <>
+          <Typography gutterBottom>
+            No integrations are currently available to your account.
+          </Typography>
+          <Typography>
+            Please <Link href="https://hash.ai/contact">contact us</Link> if
+            you'd like to suggest a new integration, or request access to an
+            existing one.
+          </Typography>
+        </>
       ) : (
         <AddNewIntegrations />
       )}
