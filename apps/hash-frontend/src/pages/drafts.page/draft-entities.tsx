@@ -12,13 +12,10 @@ import {
   EntityId,
   EntityRootType,
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Divider, Typography } from "@mui/material";
-import { subDays, subHours } from "date-fns";
 import {
   Dispatch,
   Fragment,
@@ -45,9 +42,9 @@ import { DraftEntitiesContextBar } from "./draft-entities/draft-entities-context
 import {
   DraftEntitiesFilters,
   DraftEntityFilterState,
+  filterDraftEntities,
   generateDefaultFilterState,
   isFilerStateDefaultFilterState,
-  LastEditedTimeRanges,
 } from "./draft-entities/draft-entities-filters";
 import { DraftEntity } from "./draft-entity";
 
@@ -62,28 +59,6 @@ const doesSubgraphIncludeEntitiesInRoots = (params: {
   return params.entityIds.every((entityId) =>
     roots.some((root) => root.metadata.recordId.entityId === entityId),
   );
-};
-
-const isDateWithinLastEditedTimeRange = (params: {
-  date: Date;
-  lastEditedTimeRange: LastEditedTimeRanges;
-}) => {
-  const { date, lastEditedTimeRange } = params;
-  const now = new Date();
-  switch (lastEditedTimeRange) {
-    case "anytime":
-      return true;
-    case "last-24-hours":
-      return date >= subHours(now, 1);
-    case "last-7-days":
-      return date >= subDays(now, 7);
-    case "last-30-days":
-      return date >= subDays(now, 30);
-    case "last-365-days":
-      return date >= subDays(now, 365);
-    default:
-      return true;
-  }
 };
 
 export type SortOrder = "created-at-asc" | "created-at-desc";
@@ -264,40 +239,24 @@ export const DraftEntities: FunctionComponent<{
       filterState &&
       draftEntitiesWithCreatedAtAndCreators &&
       draftEntitiesWithLinkedDataSubgraph
-        ? draftEntitiesWithCreatedAtAndCreators
-            .filter(
-              ({ entity, creator }) =>
-                filterState.entityTypeBaseUrls.includes(
-                  extractBaseUrl(entity.metadata.entityTypeId),
-                ) &&
-                filterState.sourceAccountIds.includes(creator.accountId) &&
-                isDateWithinLastEditedTimeRange({
-                  date: new Date(
-                    entity.metadata.temporalVersioning.decisionTime.start.limit,
-                  ),
-                  lastEditedTimeRange: filterState.lastEditedTimeRange,
-                }) &&
-                filterState.webOwnedByIds.includes(
-                  extractOwnedByIdFromEntityId(
-                    entity.metadata.recordId.entityId,
-                  ),
-                ),
-            )
-            .sort((a, b) =>
-              a.createdAt.getTime() === b.createdAt.getTime()
-                ? generateEntityLabel(
+        ? filterDraftEntities({
+            draftEntitiesWithCreatedAtAndCreators,
+            filterState,
+          }).sort((a, b) =>
+            a.createdAt.getTime() === b.createdAt.getTime()
+              ? generateEntityLabel(
+                  draftEntitiesWithLinkedDataSubgraph,
+                  a.entity,
+                ).localeCompare(
+                  generateEntityLabel(
                     draftEntitiesWithLinkedDataSubgraph,
-                    a.entity,
-                  ).localeCompare(
-                    generateEntityLabel(
-                      draftEntitiesWithLinkedDataSubgraph,
-                      b.entity,
-                    ),
-                  )
-                : sortOrder === "created-at-asc"
-                  ? a.createdAt.getTime() - b.createdAt.getTime()
-                  : b.createdAt.getTime() - a.createdAt.getTime(),
-            )
+                    b.entity,
+                  ),
+                )
+              : sortOrder === "created-at-asc"
+                ? a.createdAt.getTime() - b.createdAt.getTime()
+                : b.createdAt.getTime() - a.createdAt.getTime(),
+          )
         : undefined,
     [
       draftEntitiesWithCreatedAtAndCreators,

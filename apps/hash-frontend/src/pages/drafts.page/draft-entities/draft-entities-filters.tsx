@@ -13,6 +13,7 @@ import {
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Fade, Typography } from "@mui/material";
+import { subDays, subHours } from "date-fns";
 import {
   Dispatch,
   FunctionComponent,
@@ -217,6 +218,56 @@ export const isFilerStateDefaultFilterState =
 
     return true;
   };
+
+const isDateWithinLastEditedTimeRange = (params: {
+  date: Date;
+  lastEditedTimeRange: LastEditedTimeRanges;
+}) => {
+  const { date, lastEditedTimeRange } = params;
+  const now = new Date();
+  switch (lastEditedTimeRange) {
+    case "anytime":
+      return true;
+    case "last-24-hours":
+      return date >= subHours(now, 1);
+    case "last-7-days":
+      return date >= subDays(now, 7);
+    case "last-30-days":
+      return date >= subDays(now, 30);
+    case "last-365-days":
+      return date >= subDays(now, 365);
+    default:
+      return true;
+  }
+};
+
+export const filterDraftEntities = (params: {
+  draftEntitiesWithCreatedAtAndCreators: {
+    entity: Entity;
+    createdAt: Date;
+    creator: MinimalActor;
+  }[];
+  filterState: DraftEntityFilterState;
+}) => {
+  const { draftEntitiesWithCreatedAtAndCreators, filterState } = params;
+
+  return draftEntitiesWithCreatedAtAndCreators.filter(
+    ({ entity, creator }) =>
+      filterState.entityTypeBaseUrls.includes(
+        extractBaseUrl(entity.metadata.entityTypeId),
+      ) &&
+      filterState.sourceAccountIds.includes(creator.accountId) &&
+      isDateWithinLastEditedTimeRange({
+        date: new Date(
+          entity.metadata.temporalVersioning.decisionTime.start.limit,
+        ),
+        lastEditedTimeRange: filterState.lastEditedTimeRange,
+      }) &&
+      filterState.webOwnedByIds.includes(
+        extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
+      ),
+  );
+};
 
 export const DraftEntitiesFilters: FunctionComponent<{
   draftEntitiesWithCreatedAtAndCreators?: {
