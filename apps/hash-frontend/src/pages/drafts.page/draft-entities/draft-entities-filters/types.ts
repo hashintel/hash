@@ -11,7 +11,7 @@ type FilterOption<Value = string> = {
   count?: number;
 };
 
-type MultipleChoiceFilterSectionDefinition<Value = string> = {
+export type MultipleChoiceFilterSectionDefinition<Value = string> = {
   heading: string;
   kind: "multiple-choice";
   options: (FilterOption<Value> & {
@@ -20,7 +20,7 @@ type MultipleChoiceFilterSectionDefinition<Value = string> = {
   onChange: (values: Value[]) => void;
 };
 
-type SingleChoiceFilterSectionDefinition<Value = string> = {
+export type SingleChoiceFilterSectionDefinition<Value = string> = {
   heading: string;
   kind: "single-choice";
   options: FilterOption<Value>[];
