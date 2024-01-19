@@ -15,7 +15,7 @@ use clap::{builder::TypedValueParser, error::ErrorKind, Arg, Command, Error, Par
 use error_stack::Report;
 pub use sentry::release_name;
 use sentry::{
-    integrations::tracing::SentryLayer,
+    integrations::tracing::{EventFilter, SentryLayer},
     protocol::{Event, TemplateInfo},
     types::Dsn,
     ClientInitGuard, Hub, Level,
@@ -71,6 +71,7 @@ impl TypedValueParser for OptionalSentryDsnParser {
 /// Arguments for configuring the logging setup
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "clap", derive(Parser))]
+#[expect(clippy::struct_field_names, reason = "Used as clap arguments")]
 pub struct SentryConfig {
     // we need to qualify `Option` here, as otherwise `clap` tries to be too smart and only uses
     // the `value_parser` on the internal `sentry::types::Dsn`, failing.
@@ -83,6 +84,25 @@ pub struct SentryConfig {
         default_value_t = SentryEnvironment::default(),
     ))]
     pub sentry_environment: SentryEnvironment,
+
+    /// Enable every parent span's attributes to be sent along with own event's attributes.
+    #[cfg_attr(
+        feature = "clap",
+        arg(long, env = "HASH_GRAPH_SENTRY_ENABLE_SPAN_ATTRIBUTES",)
+    )]
+    pub sentry_enable_span_attributes: bool,
+
+    #[cfg_attr(
+        feature = "clap",
+        arg(long, env = "HASH_GRAPH_SENTRY_SPAN_FILTER", default_value_t = tracing::Level::INFO)
+    )]
+    pub sentry_span_filter: tracing::Level,
+
+    #[cfg_attr(
+        feature = "clap",
+        arg(long, env = "HASH_GRAPH_SENTRY_EVENT_FILTER", default_value_t = tracing::Level::INFO)
+    )]
+    pub sentry_event_filter: tracing::Level,
 }
 
 pub fn init_sentry(
@@ -114,11 +134,23 @@ pub fn init_sentry(
 }
 
 #[must_use]
-pub fn layer<S>() -> SentryLayer<S>
+pub fn layer<S>(config: &SentryConfig) -> SentryLayer<S>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
-    ::sentry::integrations::tracing::layer().enable_span_attributes()
+    let mut layer = ::sentry::integrations::tracing::layer();
+    if config.sentry_enable_span_attributes {
+        layer = layer.enable_span_attributes();
+    }
+    let span_filter = config.sentry_event_filter;
+    let event_filter = config.sentry_event_filter;
+    layer
+        .span_filter(move |metadata| *metadata.level() <= span_filter)
+        .event_filter(move |metadata| match *metadata.level() {
+            tracing::Level::ERROR => EventFilter::Exception,
+            level if level <= event_filter => EventFilter::Breadcrumb,
+            _ => EventFilter::Ignore,
+        })
 }
 
 fn read_source(location: Location) -> (Vec<String>, Option<String>, Vec<String>) {
