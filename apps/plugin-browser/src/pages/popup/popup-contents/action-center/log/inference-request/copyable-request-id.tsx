@@ -2,7 +2,7 @@ import { Box, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
 export const CopyableRequestId = ({ requestId }: { requestId: string }) => {
-  const [label, setLabel] = useState("Copy request id:");
+  const [label, setLabel] = useState("Event ID:");
 
   return (
     <Stack
@@ -32,7 +32,7 @@ export const CopyableRequestId = ({ requestId }: { requestId: string }) => {
           } catch {
             setLabel("Not allowed to copy to clipboard");
           } finally {
-            setTimeout(() => setLabel("Copy request id:"), 3_000);
+            setTimeout(() => setLabel("Event ID:"), 3_000);
           }
         }}
         sx={({ palette, transitions }) => ({
