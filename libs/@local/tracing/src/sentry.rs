@@ -79,9 +79,9 @@ pub struct SentryConfig {
     pub sentry_dsn: core::option::Option<Dsn>,
 
     #[cfg_attr(feature = "clap", arg(
-    long,
-    env = "HASH_GRAPH_SENTRY_ENVIRONMENT",
-    default_value_t = SentryEnvironment::default(),
+        long,
+        env = "HASH_GRAPH_SENTRY_ENVIRONMENT",
+        default_value_t = SentryEnvironment::default(),
     ))]
     pub sentry_environment: SentryEnvironment,
 
