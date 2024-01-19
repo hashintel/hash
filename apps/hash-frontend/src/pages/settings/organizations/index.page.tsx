@@ -9,9 +9,9 @@ import { NextPageWithLayout } from "../../../shared/layout";
 import { Button } from "../../../shared/ui/button";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { getSettingsLayout } from "../shared/settings-layout";
+import { SettingsPageContainer } from "../shared/settings-page-container";
 import { OrgRow } from "./index.page/org-row";
 import { Cell } from "./shared/cell";
-import { OrgSettingsContainer } from "./shared/org-settings-container";
 import { OrgTable } from "./shared/org-table";
 
 const OrganizationListPage: NextPageWithLayout = () => {
@@ -30,7 +30,7 @@ const OrganizationListPage: NextPageWithLayout = () => {
     <>
       <NextSeo title="Organizations" />
 
-      <OrgSettingsContainer
+      <SettingsPageContainer
         topRightElement={
           <Button
             href="/settings/organizations/new"
@@ -44,7 +44,7 @@ const OrganizationListPage: NextPageWithLayout = () => {
             />
           </Button>
         }
-        header={<>Organizations</>}
+        heading={<>Organizations</>}
         ref={topRef}
       >
         <OrgTable>
@@ -63,7 +63,7 @@ const OrganizationListPage: NextPageWithLayout = () => {
               ))}
           </TableBody>
         </OrgTable>
-      </OrgSettingsContainer>
+      </SettingsPageContainer>
     </>
   );
 };

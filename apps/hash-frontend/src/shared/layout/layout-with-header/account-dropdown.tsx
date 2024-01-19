@@ -149,6 +149,12 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
         <MenuItem href="/settings" onClick={() => popupState.close()}>
           <ListItemText primary="Settings" />
         </MenuItem>
+        <MenuItem
+          href="/settings/integrations"
+          onClick={() => popupState.close()}
+        >
+          <ListItemText primary="Integrations" />
+        </MenuItem>
         {/*  
           Commented out menu items whose functionality have not been implemented yet
           @todo uncomment when functionality has been implemented 

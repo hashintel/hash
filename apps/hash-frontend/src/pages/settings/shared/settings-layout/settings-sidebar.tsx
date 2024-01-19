@@ -9,7 +9,13 @@ import {
   useTheme,
 } from "@mui/material";
 import { useRouter } from "next/router";
-import { FunctionComponent, useCallback, useEffect, useState } from "react";
+import {
+  FunctionComponent,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 
 import { Link } from "../../../../shared/ui/link";
 
@@ -19,7 +25,7 @@ export type SidebarItemData = {
   children?: SidebarItemData[];
   label: string;
   href: string;
-  icon?: FunctionComponent<SvgIconProps>;
+  icon?: FunctionComponent<SvgIconProps> | ReactNode;
   parentHref?: string;
 };
 
@@ -102,17 +108,28 @@ const SidebarItem = ({
           position: "relative",
         }}
       >
-        {item.icon ? (
-          <item.icon
-            sx={{
+        <Box
+          sx={{
+            paddingRight: 1.2,
+            width: "1rem",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            svg: {
               fill: itemColor,
-              width: "1rem",
-              mr: 1.2,
-            }}
-          />
-        ) : (
-          <Box width="1rem" minWidth="1rem" mr={1.2} />
-        )}
+            },
+          }}
+        >
+          {item.icon ? (
+            typeof item.icon === "function" ? (
+              <item.icon sx={{ width: "1rem" }} />
+            ) : (
+              item.icon
+            )
+          ) : (
+            <Box width="1rem" minWidth="1rem" mr={1.2} />
+          )}
+        </Box>
         {level === 3 && active ? (
           <Box
             sx={({ palette }) => ({
