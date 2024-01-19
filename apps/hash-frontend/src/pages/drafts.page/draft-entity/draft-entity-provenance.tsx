@@ -1,6 +1,6 @@
-import { Chip, WandMagicSparklesIcon } from "@hashintel/design-system";
+import { WandMagicSparklesIcon } from "@hashintel/design-system";
 import { Entity } from "@local/hash-subgraph";
-import { Box, chipClasses, styled, Typography } from "@mui/material";
+import { Box, styled, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { FunctionComponent, useMemo } from "react";
 
@@ -8,22 +8,7 @@ import { ClockRegularIcon } from "../../../shared/icons/clock-regular-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";
 import { useActors } from "../../../shared/use-actors";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
-
-const DraftEntityChip = styled(Chip)(({ theme }) => ({
-  color: theme.palette.common.black,
-  background: theme.palette.common.white,
-  borderColor: theme.palette.gray[30],
-  fontWeight: 500,
-  fontSize: 12,
-  textTransform: "none",
-  [`& .${chipClasses.icon}`]: {
-    marginLeft: theme.spacing(1.25),
-    color: theme.palette.gray[50],
-  },
-  [`& .${chipClasses.label}`]: {
-    padding: theme.spacing(0.5, 1.25),
-  },
-}));
+import { DraftEntityChip } from "./draft-entity-chip";
 
 const DraftEntityTypography = styled(Typography)(({ theme }) => ({
   color: theme.palette.gray[50],

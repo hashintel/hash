@@ -16,7 +16,7 @@ import { EditEntityModal } from "../[shortname]/entities/[entity-uuid].page/edit
 import { DraftEntityActionButtons } from "./draft-entity/draft-entity-action-buttons";
 import { DraftEntityProvenance } from "./draft-entity/draft-entity-provenance";
 import { DraftEntityType } from "./draft-entity/draft-entity-type";
-import { DraftEntityViewers } from "./draft-entity/draft-entity-viewers";
+import { DraftEntityWeb } from "./draft-entity/draft-entity-web";
 
 const generateEntityRootedSubgraph = (
   entity: Entity,
@@ -171,7 +171,14 @@ export const DraftEntity: FunctionComponent<{
       <Box marginTop={1.5} display="flex" justifyContent="space-between">
         <Box display="flex" alignItems="center" columnGap={2}>
           <DraftEntityType entity={entity} subgraph={subgraph} />
-          <DraftEntityViewers entity={entity} />
+          <DraftEntityWeb entity={entity} />
+          {/*
+           * @todo: bring back draft entity viewers when the GQL resolver
+           * returns the correct number of authorization relationships.
+           *
+           * @see https://linear.app/hash/issue/H-1115/use-permission-types-from-graph-in-graphql
+           */}
+          {/* <DraftEntityViewers entity={entity} /> */}
         </Box>
         <DraftEntityProvenance entity={entity} createdAt={createdAt} />
       </Box>
