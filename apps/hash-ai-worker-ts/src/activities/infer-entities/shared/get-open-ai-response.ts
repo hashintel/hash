@@ -1,4 +1,5 @@
 import { Status, StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 import OpenAI from "openai";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
@@ -74,10 +75,17 @@ export const getOpenAiResponse = async (
 
   let data: OpenAI.ChatCompletion;
   try {
-    data = await openai.chat.completions.create({
-      ...openAiPayload,
-      stream: false,
-    });
+    data = await openai.chat.completions.create(
+      {
+        ...openAiPayload,
+        stream: false,
+      },
+      /**
+       * Note that if the model has started generating, it will
+       * so this only saves tokens if
+       */
+      { signal: Context.current().cancellationSignal },
+    );
 
     log(`Response from AI received: ${stringify(data)}.`);
   } catch (err) {

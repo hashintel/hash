@@ -22,6 +22,7 @@ import {
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { AccountId, Subgraph, Timestamp } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
+import { CancelledFailure, Context } from "@temporalio/activity";
 import dedent from "dedent";
 import OpenAI from "openai";
 
@@ -30,6 +31,7 @@ import {
   DereferencedEntityType,
   dereferenceEntityType,
 } from "./infer-entities/dereference-entity-type";
+import { getResultsFromInferenceState } from "./infer-entities/get-results-from-inference-state";
 import { inferEntitySummaries } from "./infer-entities/infer-entity-summaries";
 import {
   InferenceState,
@@ -89,13 +91,15 @@ const usageCostLimit = {
  * @param authentication should belong to the user making the request
  * @param requestUuid a unique request id that will be assigned to the workflow and used in logs
  */
-export const inferEntities = async ({
+const inferEntities = async ({
   authentication: userAuthenticationInfo,
   graphApiClient,
+  inferenceState,
   requestUuid,
   userArguments,
 }: InferEntitiesCallerParams & {
   graphApiClient: GraphApi;
+  inferenceState: InferenceState;
 }): Promise<InferEntitiesReturn> => {
   /** Check if the user has exceeded their usage limits */
   const now = new Date();
@@ -323,22 +327,17 @@ export const inferEntities = async ({
     delete entityTypes[unusableTypeId];
   }
 
-  const inferenceState: InferenceState = {
-    iterationCount: 1,
-    inProgressEntityIds: [],
-    proposedEntitySummaries: [],
-    resultsByTemporaryId: {},
-    usage: [],
-  };
-
   /**
    * Inference step 1: get a list of entities that can be inferred from the input text, without property details
    *
    * The two-step approach is intended to:
-   * 1. Allow for inferring more entities than completion token limits would allow for if all entity details were inferred in one step
-   * 2. Split the task into steps to encourage the model to infer as many entities as possible first, before filling out the details
+   * 1. Allow for inferring more entities than completion token limits would allow for if all entity details were
+   * inferred in one step
+   * 2. Split the task into steps to encourage the model to infer as many entities as possible first, before filling
+   * out the details
    *
-   * This step may need its own internal iteration if there are very many entities to infer – to be handled inside the inferEntitySummaries function.
+   * This step may need its own internal iteration if there are very many entities to infer – to be handled inside the
+   * inferEntitySummaries function.
    */
   const summariseEntitiesPrompt = dedent(`
     First, let's get a summary of the entities you can infer from the provided text. Please provide a brief description
@@ -355,7 +354,7 @@ export const inferEntities = async ({
     Your comprehensive list entities of the requested types you are able to infer from the website:
   `);
 
-  const { code, contents, message } = await inferEntitySummaries({
+  const { code, message } = await inferEntitySummaries({
     completionPayload: {
       max_tokens: maxTokens,
       messages: [
@@ -381,17 +380,11 @@ export const inferEntities = async ({
         message ?? "no message provided"
       }`,
     );
-    if (contents[0]?.usage) {
-      await createInferenceUsageRecord({
-        aiAssistantAccountId,
-        graphApiClient,
-        modelName: model,
-        usage: contents[0]?.usage,
-        userAccountId: userAuthenticationInfo.actorId,
-      });
-    }
-
-    return { code, contents: [], message };
+    return {
+      code,
+      contents: [{ results: [], usage: inferenceState.usage }],
+      message,
+    };
   }
 
   /**
@@ -434,7 +427,7 @@ export const inferEntities = async ({
     } as const,
   ];
 
-  const response = await persistEntities({
+  return await persistEntities({
     authentication: { machineActorId: aiAssistantAccountId },
     completionPayload: {
       max_tokens: maxTokens,
@@ -460,13 +453,96 @@ export const inferEntities = async ({
     requestingUserAccountId: userAuthenticationInfo.actorId,
     requestUuid,
   });
+};
 
-  if (response.contents[0]?.usage) {
+export const inferEntitiesActivity = async ({
+  authentication: userAuthenticationInfo,
+  graphApiClient,
+  requestUuid,
+  userArguments,
+}: InferEntitiesCallerParams & {
+  graphApiClient: GraphApi;
+}): Promise<InferEntitiesReturn> => {
+  /**
+   * The heartbeat is required for the workflow to be cancellable
+   */
+  const heartbeatInterval = setInterval(() => {
+    Context.current().heartbeat();
+  }, 5_000);
+  void Context.current().cancelled.catch(() => {
+    clearInterval(heartbeatInterval);
+  });
+
+  const inferenceState: InferenceState = {
+    iterationCount: 1,
+    inProgressEntityIds: [],
+    proposedEntitySummaries: [],
+    resultsByTemporaryId: {},
+    usage: [],
+  };
+
+  /**
+   * Wait for the job to complete, or a cancellation error to be returned, whichever comes first
+   */
+  const resultOrCancelledError = await Promise.race([
+    inferEntities({
+      authentication: userAuthenticationInfo,
+      graphApiClient,
+      inferenceState,
+      requestUuid,
+      userArguments,
+    }),
+    Context.current().cancelled.catch((cancellationErr) => {
+      return cancellationErr as Error;
+    }),
+  ]);
+
+  const model = modelAliasToSpecificModel[userArguments.model];
+
+  /**
+   * @todo we pass the inference state around the child functions of this activity,
+   *    and have them return the contents (usage and results), but doing either is pointless:
+   *    (a) the inferenceState is the same object in memory as it is here, we don't need to pass it around
+   *        - and in fact we rely on that being the case in many places
+   *    (b) 'usage' and 'results' can be derived from the inferenceState, so we don't need to return them
+   *   The only thing the child functions need to do is return a code and message to accompany the results.
+   *    TODO clean this up when we do any further refactoring of the process
+   */
+  const usage = inferenceState.usage;
+  const results = getResultsFromInferenceState(inferenceState);
+
+  /**
+   * Whether the job was allowed to complete or was cancelled, we need to record the tokens used to this point,
+   * and link the entities created or updated by the activity from the usage record.
+   *
+   * If an inference job has no usage and no results, it was probably cancelled basically immediately,
+   * and there's no point creating empty usage records that have no tokens and link to nothing.
+   *
+   * In theory usage should be sufficient to check, because there should be no results without usage,
+   * but in case somehow there are results with no usage we should log them.
+   */
+  if (results.length !== 0 || usage.length !== 0) {
+    // We act as the HASH AI machine actor to create these entities
+    let aiAssistantAccountId: AccountId;
+    try {
+      aiAssistantAccountId = await getMachineActorId(
+        { graphApi: graphApiClient },
+        userAuthenticationInfo,
+        { identifier: "hash-ai" },
+      );
+    } catch {
+      return {
+        code: StatusCode.Internal,
+        contents: [],
+        message: "Could not retrieve hash-ai entity",
+      };
+    }
+
     const usageRecordMetadata = await createInferenceUsageRecord({
       aiAssistantAccountId,
       graphApiClient,
       modelName: model,
-      usage: response.contents[0].usage,
+      usage,
       userAccountId: userAuthenticationInfo.actorId,
     });
 
@@ -475,7 +551,7 @@ export const inferEntities = async ({
       { actorId: aiAssistantAccountId },
     );
 
-    for (const entityResult of response.contents[0].results) {
+    for (const entityResult of results) {
       if (entityResult.status === "success") {
         await graphApiClient.createEntity(aiAssistantAccountId, {
           draft: false,
@@ -517,5 +593,34 @@ export const inferEntities = async ({
     }
   }
 
-  return response;
+  if ("code" in resultOrCancelledError) {
+    /**
+     * The job completed, return the result
+     */
+    return {
+      ...resultOrCancelledError,
+      contents: [{ results, usage }],
+    };
+  }
+
+  /**
+   * This must be a cancellation, throw it. We pass the results back to the workflow as details inside the cancellation error.
+   * We could just return the results, but we have to throw this error for Temporal to categorise the workflow as cancelled.
+   */
+  throw new CancelledFailure(
+    "Activity cancelled",
+    [
+      {
+        code: StatusCode.Cancelled,
+        contents: [
+          {
+            results,
+            usage,
+          },
+        ],
+        message: "Activity cancelled",
+      },
+    ],
+    resultOrCancelledError,
+  );
 };

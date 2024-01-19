@@ -91,7 +91,9 @@ const InferenceMetadata = ({ request }: { request: PageEntityInference }) => {
           View source page
         </Link>
         <MetadataItem label="Model" value={request.model} />
-        {usage && <MetadataItem label="Tokens" value={usage.toString()} />}
+        {usage ? (
+          <MetadataItem label="Tokens" value={usage.toString()} />
+        ) : null}
         <MetadataItem label="Time" value={timeElapsed} />
       </Stack>
       <CopyableRequestId requestId={request.requestUuid} />

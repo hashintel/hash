@@ -152,8 +152,19 @@ export type InferEntitiesRequestMessage = {
   requestUuid: string;
 };
 
+export type CancelInferEntitiesRequestMessage = {
+  cookie: string;
+  type: "cancel-inference-request";
+  requestUuid: string;
+};
+
+export type InferenceWebsocketRequestMessage =
+  | InferEntitiesRequestMessage
+  | CancelInferEntitiesRequestMessage;
+
 export type InferEntitiesResponseMessage = {
   payload: InferEntitiesReturn;
   requestUuid: string;
+  status: "complete" | "user-cancelled" | "bad-request";
   type: "inference-response";
 };

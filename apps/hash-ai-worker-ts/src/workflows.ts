@@ -1,12 +1,19 @@
 import type { Filter } from "@local/hash-graph-client";
 import type { InferEntitiesCallerParams } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { AccountId, Entity } from "@local/hash-subgraph";
-import { proxyActivities } from "@temporalio/workflow";
+import { CancelledFailure } from "@temporalio/common";
+import {
+  ActivityCancellationType,
+  ActivityFailure,
+  isCancellation,
+  proxyActivities,
+} from "@temporalio/workflow";
 import { CreateEmbeddingResponse } from "openai/resources";
 
 import { createAiActivities, createGraphActivities } from "./activities";
 
 const aiActivities = proxyActivities<ReturnType<typeof createAiActivities>>({
+  cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
   startToCloseTimeout: "3600 second", // 1 hour
   retry: {
     maximumAttempts: 1,
@@ -22,8 +29,26 @@ const graphActivities = proxyActivities<
   },
 });
 
-export const inferEntities = (params: InferEntitiesCallerParams) =>
-  aiActivities.inferEntitiesActivity(params);
+export const inferEntities = async (params: InferEntitiesCallerParams) => {
+  try {
+    return await aiActivities.inferEntitiesActivity(params);
+  } catch (err) {
+    if (isCancellation(err) && ActivityFailure.is(err)) {
+      if (
+        "cause" in (err as Error) &&
+        CancelledFailure.is(err.cause) &&
+        typeof err.cause.details[0] === "object" &&
+        err.cause.details[0] !== null &&
+        "code" in err.cause.details[0]
+      ) {
+        // We've been given a cancellation failure with the return in the cause's details, return it
+        const details = err.cause.details[0];
+        throw new CancelledFailure("Cancelled", [details]);
+      }
+    }
+    throw err;
+  }
+};
 
 type UpdateEntityEmbeddingsParams = {
   authentication: {

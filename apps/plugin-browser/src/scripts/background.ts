@@ -13,7 +13,10 @@ import {
   getSetFromLocalStorageValue,
   setInLocalStorage,
 } from "../shared/storage";
-import { inferEntities } from "./background/infer-entities";
+import {
+  cancelInferEntities,
+  inferEntities,
+} from "./background/infer-entities";
 
 /**
  * This is the service worker for the extension.
@@ -42,6 +45,8 @@ browser.runtime.onMessage.addListener((message: Message, sender) => {
 
   if (message.type === "infer-entities") {
     void inferEntities(message, "user");
+  } else if (message.type === "cancel-infer-entities") {
+    void cancelInferEntities(message);
   }
 });
 

@@ -1,4 +1,9 @@
-import { CheckIcon, CloseIcon, DashIcon } from "@hashintel/design-system";
+import {
+  CheckIcon,
+  CloseIcon,
+  DashIcon,
+  IconButton,
+} from "@hashintel/design-system";
 import {
   Box,
   CircularProgress,
@@ -7,12 +12,13 @@ import {
   Typography,
 } from "@mui/material";
 import { format } from "date-fns";
-import { useState } from "react";
+import { MouseEvent, useState } from "react";
 
 import {
   LocalStorage,
   PageEntityInference,
 } from "../../../../../shared/storage";
+import { sendMessageToBackground } from "../../../../shared/messages";
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
@@ -37,6 +43,17 @@ const InferenceRequestContainer = ({
       request.data.contents[0].results.every(
         (result) => result.operation === "already-exists-as-proposed",
       ));
+
+  const [cancellationRequested, setCancellationRequested] = useState(false);
+
+  const cancelRequest = (event: MouseEvent) => {
+    event.stopPropagation();
+    void sendMessageToBackground({
+      requestUuid: request.requestUuid,
+      type: "cancel-infer-entities",
+    });
+    setCancellationRequested(true);
+  };
 
   return (
     <Box
@@ -68,7 +85,7 @@ const InferenceRequestContainer = ({
           },
         }}
       >
-        <Stack direction="row" sx={{ maxWidth: "90%" }}>
+        <Stack direction="row" sx={{ maxWidth: "88%" }}>
           <Typography
             sx={{
               color: ({ palette }) => palette.gray[90],
@@ -94,7 +111,32 @@ const InferenceRequestContainer = ({
           </Typography>
         </Stack>
         {request.status === "pending" ? (
-          <CircularProgress variant="indeterminate" size={13} sx={{ mr: 1 }} />
+          <Stack alignItems="center" direction="row">
+            {!cancellationRequested && (
+              <IconButton
+                onClick={cancelRequest}
+                title="Cancel request"
+                sx={{ p: 0, "&:hover": { background: "none" }, mr: 0.2 }}
+              >
+                <CloseIcon
+                  sx={({ palette, transitions }) => ({
+                    fill: palette.gray[30],
+                    fontSize: 12,
+                    mr: 1,
+                    transition: transitions.create("fill"),
+                    "&:hover": {
+                      fill: palette.red[70],
+                    },
+                  })}
+                />
+              </IconButton>
+            )}
+            <CircularProgress
+              variant="indeterminate"
+              size={13}
+              sx={{ mr: 1 }}
+            />
+          </Stack>
         ) : request.status === "complete" ? (
           isUnproductiveSuccessfulRequest ? (
             <DashIcon

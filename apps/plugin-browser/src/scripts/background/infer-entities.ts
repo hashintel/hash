@@ -1,6 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/graph";
 import type {
   InferenceModelName,
+  InferEntitiesRequestMessage,
   InferEntitiesResponseMessage,
   InferEntitiesReturn,
   InferEntitiesUserArguments,
@@ -61,11 +62,12 @@ const getWebSocket = async () => {
     async (event: MessageEvent<string>) => {
       const message = JSON.parse(event.data) as InferEntitiesResponseMessage;
 
-      const { payload: inferredEntitiesReturn, requestUuid } = message;
+      const { payload: inferredEntitiesReturn, requestUuid, status } = message;
 
       if (
-        inferredEntitiesReturn.code !== "OK" &&
-        inferredEntitiesReturn.contents.length === 0
+        status === "bad-request" ||
+        (inferredEntitiesReturn.code !== "OK" &&
+          inferredEntitiesReturn.contents.length === 0)
       ) {
         const errorMessage = inferredEntitiesReturn.message;
 
@@ -92,7 +94,7 @@ const getWebSocket = async () => {
                 ...requestInState,
                 data: inferredEntitiesReturn,
                 finishedAt: new Date().toISOString(),
-                status: "complete",
+                status,
               }
             : requestInState,
         ),
@@ -105,20 +107,7 @@ const getWebSocket = async () => {
   return ws;
 };
 
-const sendInferEntitiesMessage = async (params: {
-  requestUuid: string;
-  payload: {
-    createAs: "draft" | "live";
-    model: InferenceModelName;
-    textInput: string;
-    entityTypeIds: VersionedUrl[];
-    ownedById: OwnedById;
-    sourceTitle: string;
-    sourceUrl: string;
-  };
-}) => {
-  const { requestUuid, payload } = params;
-
+const getCookieString = async () => {
   const cookies = await browser.cookies
     .getAll({
       url: API_ORIGIN,
@@ -132,14 +121,22 @@ const sendInferEntitiesMessage = async (params: {
     );
 
   if (cookies.length < 2) {
-    console.error(
-      "No session cookies available to use in entity inference request",
-    );
-    return;
+    throw new Error("No session cookies available to use in websocket request");
   }
 
+  return cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join(";");
+};
+
+const sendInferEntitiesMessage = async (params: {
+  requestUuid: string;
+  payload: Omit<
+    InferEntitiesRequestMessage["payload"],
+    "cookie" | "maxTokens" | "temperature"
+  >;
+}) => {
+  const { requestUuid, payload } = params;
+
   const socket = await getWebSocket();
-  console.log("Got socket");
 
   const inferMessagePayload: InferEntitiesUserArguments = {
     ...payload,
@@ -147,14 +144,32 @@ const sendInferEntitiesMessage = async (params: {
     temperature: 0,
   };
 
+  const cookie = await getCookieString();
+
   socket.send(
     JSON.stringify({
-      cookie: cookies
-        .map((cookie) => `${cookie.name}=${cookie.value}`)
-        .join(";"),
+      cookie,
       payload: inferMessagePayload,
       requestUuid,
       type: "inference-request",
+    }),
+  );
+};
+
+export const cancelInferEntities = async ({
+  requestUuid,
+}: {
+  requestUuid: string;
+}) => {
+  const cookie = await getCookieString();
+
+  const socket = await getWebSocket();
+
+  socket.send(
+    JSON.stringify({
+      cookie,
+      requestUuid,
+      type: "cancel-inference-request",
     }),
   );
 };

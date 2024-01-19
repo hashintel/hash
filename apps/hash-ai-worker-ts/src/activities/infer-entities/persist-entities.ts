@@ -1,15 +1,13 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { createGraphChangeNotification } from "@local/hash-backend-utils/notifications";
 import type { GraphApi } from "@local/hash-graph-client";
-import type {
-  InferEntitiesReturn,
-  InferredEntityChangeResult,
-} from "@local/hash-isomorphic-utils/ai-inference-types";
+import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { AccountId, Entity, OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import OpenAI from "openai";
 
+import { getResultsFromInferenceState } from "./get-results-from-inference-state";
 import {
   CompletionPayload,
   DereferencedEntityTypesByTypeId,
@@ -59,12 +57,6 @@ export const persistEntities = async (params: {
     usage: usageFromLastIteration,
   } = inferenceState;
 
-  const getResults = () =>
-    Object.values(inferenceState.resultsByTemporaryId).filter(
-      (result): result is InferredEntityChangeResult =>
-        result.status !== "update-candidate",
-    );
-
   if (iterationCount > 30) {
     log(
       `Model reached maximum number of iterations. Messages: ${stringify(
@@ -76,7 +68,7 @@ export const persistEntities = async (params: {
       code: StatusCode.ResourceExhausted,
       contents: [
         {
-          results: getResults(),
+          results: getResultsFromInferenceState(inferenceState),
           usage: inferenceState.usage,
         },
       ],
@@ -171,7 +163,7 @@ export const persistEntities = async (params: {
       ...openAiResponse,
       contents: [
         {
-          results: getResults(),
+          results: getResultsFromInferenceState(inferenceState),
           usage: inferenceState.usage,
         },
       ],
@@ -260,7 +252,7 @@ export const persistEntities = async (params: {
         code: StatusCode.Unknown,
         contents: [
           {
-            results: getResults(),
+            results: getResultsFromInferenceState(inferenceState),
             usage: latestUsage,
           },
         ],
@@ -280,7 +272,7 @@ export const persistEntities = async (params: {
           code: StatusCode.ResourceExhausted,
           contents: [
             {
-              results: getResults(),
+              results: getResultsFromInferenceState(inferenceState),
               usage: latestUsage,
             },
           ],
@@ -314,7 +306,7 @@ export const persistEntities = async (params: {
         code: StatusCode.InvalidArgument,
         contents: [
           {
-            results: getResults(),
+            results: getResultsFromInferenceState(inferenceState),
             usage: latestUsage,
           },
         ],
@@ -332,7 +324,7 @@ export const persistEntities = async (params: {
           code: StatusCode.Internal,
           contents: [
             {
-              results: getResults(),
+              results: getResultsFromInferenceState(inferenceState),
               usage: latestUsage,
             },
           ],
@@ -559,7 +551,7 @@ export const persistEntities = async (params: {
               code: StatusCode.Internal,
               contents: [
                 {
-                  results: getResults(),
+                  results: getResultsFromInferenceState(inferenceState),
                   usage: latestUsage,
                 },
               ],
@@ -678,7 +670,7 @@ export const persistEntities = async (params: {
               code: StatusCode.Internal,
               contents: [
                 {
-                  results: getResults(),
+                  results: getResultsFromInferenceState(inferenceState),
                   usage: latestUsage,
                 },
               ],
@@ -703,7 +695,7 @@ export const persistEntities = async (params: {
       }
 
       if (retryMessages.length === 0) {
-        const results = getResults();
+        const results = getResultsFromInferenceState(inferenceState);
         log(`Returning results: ${stringify(results)}`);
         return {
           code: StatusCode.Ok,
@@ -749,7 +741,7 @@ export const persistEntities = async (params: {
     code: StatusCode.Internal,
     contents: [
       {
-        results: getResults(),
+        results: getResultsFromInferenceState(inferenceState),
         usage: latestUsage,
       },
     ],

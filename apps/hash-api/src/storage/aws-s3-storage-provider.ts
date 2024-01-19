@@ -128,6 +128,7 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
     const url = await getSignedUrl(client, command, {
       expiresIn: params.expiresInSeconds,
     });
+
     return url;
   }
 

@@ -34,6 +34,11 @@ type InferenceErrorStatus = {
   status: "error";
 };
 
+type InferenceCancelledStatus = {
+  data: InferEntitiesReturn;
+  status: "user-cancelled";
+};
+
 type InferenceCompleteStatus = {
   data: InferEntitiesReturn;
   status: "complete";
@@ -44,6 +49,7 @@ export type InferenceStatus =
       status: "not-started" | "pending";
     }
   | InferenceErrorStatus
+  | InferenceCancelledStatus
   | InferenceCompleteStatus;
 
 export type PageEntityInference = InferenceStatus & {
