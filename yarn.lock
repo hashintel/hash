@@ -4734,12 +4734,12 @@
   resolved "https://registry.yarnpkg.com/@pkgr/core/-/core-0.1.0.tgz#7d8dacb7fdef0e4387caf7396cbd77f179867d06"
   integrity sha512-Zwq5OCzuwJC2jwqmpEQt7Ds1DTi6BWSwoGkbb1n9pO3hzb35BoJELx7c0T23iDkBGkh2e7tvOtjF3tr3OaQHDQ==
 
-"@playwright/test@1.41.0":
-  version "1.41.0"
-  resolved "https://registry.yarnpkg.com/@playwright/test/-/test-1.41.0.tgz#b083e976295f1fe039c15d451c66554d7f37278c"
-  integrity sha512-Grvzj841THwtpBOrfiHOeYTJQxDRnKofMSzCiV8XeyLWu3o89qftQ4BCKfkziJhSUQRd0utKhrddtIsiraIwmw==
+"@playwright/test@1.41.1":
+  version "1.41.1"
+  resolved "https://registry.yarnpkg.com/@playwright/test/-/test-1.41.1.tgz#6954139ed4a67999f1b17460aa3d184f4b334f18"
+  integrity sha512-9g8EWTjiQ9yFBXc6HjCWe41msLpxEX0KhmfmPl9RPLJdfzL4F0lg2BdJ91O9azFdl11y1pmpwdjBiSxvqc+btw==
   dependencies:
-    playwright "1.41.0"
+    playwright "1.41.1"
 
 "@pmmmwh/react-refresh-webpack-plugin@0.5.10", "@pmmmwh/react-refresh-webpack-plugin@^0.5.5":
   version "0.5.10"
@@ -19471,17 +19471,17 @@ plaiceholder@2.5.0:
     node-cache "5.1.2"
     node-fetch "2.6.7"
 
-playwright-core@1.41.0:
-  version "1.41.0"
-  resolved "https://registry.yarnpkg.com/playwright-core/-/playwright-core-1.41.0.tgz#dbda9c3948df28a8deae76cc90b424e47174f9d7"
-  integrity sha512-UGKASUhXmvqm2Lxa1fNr8sFwAtqjpgBRr9jQ7XBI8Rn5uFiEowGUGwrruUQsVPIom4bk7Lt+oLGpXobnXzrBIw==
+playwright-core@1.41.1:
+  version "1.41.1"
+  resolved "https://registry.yarnpkg.com/playwright-core/-/playwright-core-1.41.1.tgz#9c152670010d9d6f970f34b68e3e935d3c487431"
+  integrity sha512-/KPO5DzXSMlxSX77wy+HihKGOunh3hqndhqeo/nMxfigiKzogn8kfL0ZBDu0L1RKgan5XHCPmn6zXd2NUJgjhg==
 
-playwright@1.41.0:
-  version "1.41.0"
-  resolved "https://registry.yarnpkg.com/playwright/-/playwright-1.41.0.tgz#77ab5f3a5fde479522167f74a5070e72ce884bff"
-  integrity sha512-XOsfl5ZtAik/T9oek4V0jAypNlaCNzuKOwVhqhgYT3os6kH34PzbRb74F0VWcLYa5WFdnmxl7qyAHBXvPv7lqQ==
+playwright@1.41.1:
+  version "1.41.1"
+  resolved "https://registry.yarnpkg.com/playwright/-/playwright-1.41.1.tgz#83325f34165840d019355c2a78a50f21ed9b9c85"
+  integrity sha512-gdZAWG97oUnbBdRL3GuBvX3nDDmUOuqzV/D24dytqlKt+eI5KbwusluZRGljx1YoJKZ2NRPaeWiFTeGZO7SosQ==
   dependencies:
-    playwright-core "1.41.0"
+    playwright-core "1.41.1"
   optionalDependencies:
     fsevents "2.3.2"
 
