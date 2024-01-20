@@ -61,7 +61,7 @@
     "@types/react-dom": "18.0.10",
     "@types/webextension-polyfill": "0.10.4",
     "@types/ws": "8.5.10",
-    "babel-eslint": "10.1.0",
+    "@babel/eslint-parser": "7.11.0",
     "babel-loader": "9.1.2",
     "babel-preset-react-app": "10.0.1",
     "clean-webpack-plugin": "4.0.0",
