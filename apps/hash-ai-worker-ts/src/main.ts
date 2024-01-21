@@ -7,15 +7,17 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
-import { createAiActivities } from "./activities";
+import { createAiActivities, createGraphActivities } from "./activities";
 
 export const monorepoRootDir = path.resolve(__dirname, "../../..");
 
 config({ silent: true, path: monorepoRootDir });
 
-const TEMPORAL_HOST = process.env.HASH_TEMPORAL_HOST ?? "localhost";
-const TEMPORAL_PORT = process.env.HASH_TEMPORAL_PORT
-  ? parseInt(process.env.HASH_TEMPORAL_PORT, 10)
+const TEMPORAL_HOST = new URL(
+  process.env.HASH_TEMPORAL_SERVER_HOST ?? "http://localhost",
+).hostname;
+const TEMPORAL_PORT = process.env.HASH_TEMPORAL_SERVER_PORT
+  ? parseInt(process.env.HASH_TEMPORAL_SERVER_PORT, 10)
   : 7233;
 
 const createHealthCheckServer = () => {
@@ -59,9 +61,14 @@ async function run() {
 
   const worker = await Worker.create({
     ...workflowOption(),
-    activities: createAiActivities({
-      graphApiClient,
-    }),
+    activities: {
+      ...createAiActivities({
+        graphApiClient,
+      }),
+      ...createGraphActivities({
+        graphApiClient,
+      }),
+    },
     connection: await NativeConnection.connect({
       address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
     }),

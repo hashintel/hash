@@ -46,6 +46,8 @@ use graph_types::{
     Embedding,
 };
 use serde::Deserialize;
+use temporal_client::TemporalClient;
+use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
 use validation::ValidationProfile;
@@ -200,6 +202,7 @@ async fn create_entity<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<CreateEntityRequest>,
 ) -> Result<Json<EntityMetadata>, Response>
 where
@@ -226,6 +229,7 @@ where
         .create_entity(
             actor_id,
             &mut authorization_api,
+            temporal_client.as_deref(),
             owned_by_id,
             entity_uuid,
             None,
@@ -414,7 +418,7 @@ where
         .filter
         .convert_parameters()
         .map_err(report_to_response)?;
-    let subgraph = store
+    let (subgraph, last) = store
         .get_entity(
             actor_id,
             &authorization_api,
@@ -425,10 +429,9 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let cursor = subgraph.roots.iter().last().map(Cursor);
     let mut headers = HeaderMap::new();
-    if let (Some(cursor), Some(limit)) = (cursor, pagination.limit) {
-        headers.insert(LINK, cursor.link_header("next", uri, limit)?);
+    if let (Some(last), Some(limit)) = (last, pagination.limit) {
+        headers.insert(LINK, Cursor(last).link_header("next", uri, limit)?);
     }
     Ok((headers, Json(Subgraph::from(subgraph))))
 }
@@ -468,6 +471,7 @@ async fn update_entity<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<UpdateEntityRequest>,
 ) -> Result<Json<EntityMetadata>, Response>
 where
@@ -493,6 +497,7 @@ where
         .update_entity(
             actor_id,
             &mut authorization_api,
+            temporal_client.as_deref(),
             entity_id,
             None,
             archived,
@@ -519,6 +524,9 @@ where
 #[serde(rename_all = "camelCase")]
 struct EntityEmbeddingUpdateRequest {
     embeddings: Vec<EntityEmbedding<'static>>,
+    updated_at_transaction_time: Timestamp<TransactionTime>,
+    updated_at_decision_time: Timestamp<DecisionTime>,
+    reset: bool,
 }
 
 #[utoipa::path(
@@ -534,7 +542,7 @@ struct EntityEmbeddingUpdateRequest {
         (status = 403, description = "Insufficient permissions to update the entity"),
         (status = 500, description = "Store error occurred"),
     ),
-    request_body = UpdateEntityRequest,
+    request_body = EntityEmbeddingUpdateRequest,
 )]
 #[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
 async fn update_entity_embeddings<S, A>(
@@ -547,7 +555,12 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let Json(EntityEmbeddingUpdateRequest { embeddings }) = body;
+    let Json(EntityEmbeddingUpdateRequest {
+        embeddings,
+        updated_at_transaction_time,
+        updated_at_decision_time,
+        reset,
+    }) = body;
 
     let mut store = store_pool.acquire().await.map_err(report_to_response)?;
     let mut authorization_api = authorization_api_pool
@@ -556,7 +569,14 @@ where
         .map_err(report_to_response)?;
 
     store
-        .update_entity_embeddings(actor_id, &mut authorization_api, embeddings)
+        .update_entity_embeddings(
+            actor_id,
+            &mut authorization_api,
+            embeddings,
+            updated_at_transaction_time,
+            updated_at_decision_time,
+            reset,
+        )
         .await
         .map_err(report_to_response)
 }

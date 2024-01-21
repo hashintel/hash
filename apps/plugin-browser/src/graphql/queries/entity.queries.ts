@@ -11,3 +11,9 @@ export const createEntityMutation = /* GraphQL */ `
     )
   }
 `;
+
+export const updateEntityMutation = /* GraphQL */ `
+  mutation updateEntity($entityUpdate: EntityUpdateDefinition!) {
+    updateEntity(entityUpdate: $entityUpdate)
+  }
+`;

@@ -219,7 +219,7 @@ module "application" {
   worker_memory                = 512
   ses_verified_domain_identity = var.ses_verified_domain_identity
   graph_image                  = module.graph_ecr
-  graph_migration_env_vars               = concat(var.hash_graph_env_vars, [
+  graph_migration_env_vars     = concat(var.hash_graph_env_vars, [
     { name = "HASH_GRAPH_PG_USER", secret = false, value = "superuser" },
     {
       name  = "HASH_GRAPH_PG_PASSWORD", secret = true,
@@ -233,8 +233,10 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["graph_sentry_dsn"])
     },
     { name = "HASH_GRAPH_SENTRY_ENVIRONMENT", secret = false, value = "production" },
+    { name = "HASH_GRAPH_SENTRY_EVENT_FILTER", secret = false, value = "debug" },
+    { name = "HASH_GRAPH_SENTRY_SPAN_FILTER", secret = false, value = "trace" },
   ])
-  graph_env_vars               = concat(var.hash_graph_env_vars, [
+  graph_env_vars = concat(var.hash_graph_env_vars, [
     { name = "HASH_GRAPH_PG_USER", secret = false, value = "graph" },
     {
       name  = "HASH_GRAPH_PG_PASSWORD", secret = true,
@@ -252,6 +254,8 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["graph_sentry_dsn"])
     },
     { name = "HASH_GRAPH_SENTRY_ENVIRONMENT", secret = false, value = "production" },
+    { name = "HASH_GRAPH_SENTRY_EVENT_FILTER", secret = false, value = "debug" },
+    { name = "HASH_GRAPH_SENTRY_SPAN_FILTER", secret = false, value = "trace" },
   ])
   # The type fetcher uses the same image as the graph right now
   type_fetcher_image = module.graph_ecr
@@ -319,8 +323,6 @@ module "application" {
     },
     { name = "HASH_REDIS_HOST", secret = false, value = module.redis.node.address },
     { name = "HASH_REDIS_PORT", secret = false, value = module.redis.node.port },
-    { name = "HASH_TEMPORAL_SERVER_HOST", secret = false, value = module.temporal.host },
-    { name = "HASH_TEMPORAL_SERVER_PORT", secret = false, value = module.temporal.temporal_port },
     { name = "HASH_INTEGRATION_QUEUE_NAME", secret = false, value = "integration" },
     #    { name = "LINEAR_CLIENT_ID", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_id"]) },
     #    { name = "LINEAR_CLIENT_SECRET", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_secret"]) },
@@ -342,7 +344,7 @@ module "application" {
   ]
   temporal_worker_integration_image = module.temporal_worker_integration_ecr
   temporal_host                     = module.temporal.host
-  temporal_port                     = module.temporal.temporal_port
+  temporal_port                     = module.temporal.port
   spicedb_image                     = {
     name    = "authzed/spicedb"
     version = "1.28.0"

@@ -13,17 +13,23 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/block-collection/",
   },
+  browserPluginSettings: {
+    entityTypeId:
+      "https://hash.ai/@hash/types/entity-type/browser-plugin-settings/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/browser-plugin-settings/",
+  },
   canvas: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/canvas/v/1",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/canvas/",
   },
   comment: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/2",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/3",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/comment/",
   },
   commentNotification: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/comment-notification/v/2",
+      "https://hash.ai/@hash/types/entity-type/comment-notification/v/3",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/comment-notification/",
   },
@@ -68,7 +74,7 @@ export const systemEntityTypes = {
   },
   linearIntegration: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/linear-integration/v/2",
+      "https://hash.ai/@hash/types/entity-type/linear-integration/v/3",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/linear-integration/",
   },
@@ -84,7 +90,7 @@ export const systemEntityTypes = {
   },
   mentionNotification: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/mention-notification/v/2",
+      "https://hash.ai/@hash/types/entity-type/mention-notification/v/3",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/mention-notification/",
   },
@@ -137,7 +143,7 @@ export const systemEntityTypes = {
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/usage-record/",
   },
   user: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/2",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/3",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/user/",
   },
   userSecret: {
@@ -155,6 +161,10 @@ export const systemLinkEntityTypes = {
   created: {
     linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/created/v/1",
     linkEntityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/created/",
+  },
+  has: {
+    linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/has/v/1",
+    linkEntityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/has/",
   },
   hasAvatar: {
     linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/has-avatar/v/1",
@@ -291,6 +301,18 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/archived/v/1",
     propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/archived/",
   },
+  automaticInferenceConfiguration: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/",
+  },
+  browserPluginTab: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/browser-plugin-tab/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/browser-plugin-tab/",
+  },
   componentId: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/component-id/v/1",
@@ -307,6 +329,11 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/deleted-at/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/deleted-at/",
+  },
+  draftNote: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/draft-note/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/draft-note/",
   },
   email: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/email/v/1",
@@ -426,6 +453,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@hash/types/property-type/machine-identifier/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/machine-identifier/",
+  },
+  manualInferenceConfiguration: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/manual-inference-configuration/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/manual-inference-configuration/",
   },
   orgSelfRegistrationIsEnabled: {
     propertyTypeId:
@@ -556,6 +589,70 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/y-position/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/y-position/",
+  },
+} as const;
+
+export const systemDataTypes = {
+  centimeters: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/centimeters/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/centimeters/",
+    title: "Centimeters",
+    description:
+      "A unit of length in the International System of Units (SI), equal to one hundredth of a meter.",
+  },
+  date: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/date/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/date/",
+    title: "Date",
+    description:
+      "A reference to a particular day represented within a calendar system, in the format YYYY-MM-DD.",
+  },
+  datetime: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/datetime/",
+    title: "DateTime",
+    description: "A reference to a particular date and time.",
+  },
+  email: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/email/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/email/",
+    title: "Email",
+    description:
+      "An identifier for an email box to which messages are delivered.",
+  },
+  kilometers: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/kilometers/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/kilometers/",
+    title: "Kilometers",
+    description:
+      "A unit of length in the International System of Units (SI), equal to one thousand meters.",
+  },
+  meters: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/meters/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/meters/",
+    title: "Meters",
+    description:
+      "The base unit of length in the International System of Units (SI).",
+  },
+  miles: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/miles/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/miles/",
+    title: "Miles",
+    description:
+      "An imperial unit of length, equivalent to 1,609.344 meters in the International System of Units (SI).",
+  },
+  millimeters: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/millimeters/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/millimeters/",
+    title: "Millimeters",
+    description:
+      "A unit of length in the International System of Units (SI), equal to one thousandth of a meter.",
+  },
+  uri: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/uri/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/uri/",
+    title: "URI",
+    description: "A unique identifier for a resource (e.g. a URL, or URN).",
   },
 } as const;
 

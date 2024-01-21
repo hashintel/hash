@@ -24,13 +24,16 @@ where
     C: Context,
 {
     let report = report.into();
-    tracing::error!(error = ?report);
     let status_code = report
         .request_ref::<StatusCode>()
         .next()
         .copied()
         .or_else(|| report.request_value::<StatusCode>().next())
         .unwrap_or(StatusCode::Internal);
+    // TODO: Currently, this mostly duplicates the error printed below, when more information is
+    //       added to the `Report` event consider commenting in this line again.
+    // hash_tracing::sentry::capture_report(&report);
+    tracing::error!(error = ?report, tags.code = ?status_code.to_http_code());
 
     status_to_response(Status::new(
         status_code,

@@ -31,9 +31,11 @@ const RowByType = (
   const updateOrAddRule = useCallback(
     ({
       newEntityTypeId,
+      newLinkedEntityTypeIds,
       restrictToDomains = [],
     }: {
       newEntityTypeId?: VersionedUrl;
+      newLinkedEntityTypeIds?: VersionedUrl[];
       restrictToDomains: string[];
     }) => {
       const rulesByType = rules.reduce<
@@ -66,22 +68,32 @@ const RowByType = (
       }
 
       /**
-       * If we're switching the type for the rule, check for an existing rule for that type and merge them
+       * For each of the (a) new user-selected entity type id, and (b) entity type ids linked to it,
+       * check for existing rules and update them with the new domains.
        */
-      const duplicateRuleForType =
-        newEntityTypeId !== entityTypeId
-          ? rulesByType[newEntityTypeId]
-          : undefined;
+      for (const entityTypeIdToUpdate of [
+        ...(newLinkedEntityTypeIds ?? []),
+        newEntityTypeId,
+      ]) {
+        /**
+         * We want to merge in any domains assigned to an existing rule with this type,
+         * unless it's the previous version of THIS rule, in which case we don't (as it prevents removing domains).
+         */
+        const duplicateRuleForType =
+          entityTypeIdToUpdate !== entityTypeId
+            ? rulesByType[entityTypeIdToUpdate]
+            : undefined;
 
-      rulesByType[newEntityTypeId] = {
-        entityTypeId: newEntityTypeId,
-        restrictToDomains: Array.from(
-          new Set([
-            ...restrictToDomains,
-            ...(duplicateRuleForType?.restrictToDomains ?? []),
-          ]),
-        ),
-      };
+        rulesByType[entityTypeIdToUpdate] = {
+          entityTypeId: entityTypeIdToUpdate,
+          restrictToDomains: Array.from(
+            new Set([
+              ...restrictToDomains,
+              ...(duplicateRuleForType?.restrictToDomains ?? []),
+            ]),
+          ),
+        };
+      }
 
       setInferenceConfig({
         ...inferenceConfig,
@@ -113,10 +125,14 @@ const RowByType = (
         <EntityTypeSelector
           inputHeight={44}
           multiple={false}
-          setTargetEntityTypeIds={(newTargetIds) => {
+          setTargetEntityTypeIds={({
+            selectedEntityTypeIds: newTargetIds,
+            linkedEntityTypeIds,
+          }) => {
             const newEntityTypeId = newTargetIds[0];
             updateOrAddRule({
               newEntityTypeId,
+              newLinkedEntityTypeIds: linkedEntityTypeIds,
               restrictToDomains: ruleDomains,
             });
 

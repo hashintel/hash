@@ -8,7 +8,6 @@ use authorization::{
 use clap::Parser;
 use error_stack::{Result, ResultExt};
 use graph::{
-    logging::{init_logger, LoggingArgs},
     snapshot::SnapshotEntry,
     store::{DatabaseConnectionInfo, PostgresStorePool},
 };
@@ -24,9 +23,6 @@ use crate::{
 #[derive(Debug, Parser)]
 #[clap(version, author, about, long_about = None)]
 pub struct TestServerArgs {
-    #[clap(flatten)]
-    pub log_config: LoggingArgs,
-
     #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
 
@@ -52,7 +48,6 @@ pub struct TestServerArgs {
 }
 
 pub async fn test_server(args: TestServerArgs) -> Result<(), GraphError> {
-    let _log_guard = init_logger(&args.log_config);
     SnapshotEntry::install_error_stack_hook();
 
     if args.healthcheck {

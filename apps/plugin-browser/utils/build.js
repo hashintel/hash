@@ -1,5 +1,4 @@
 process.env.BABEL_ENV = "production";
-process.env.NODE_ENV = "production";
 process.env.ASSET_PATH = "/";
 
 const webpack = require("webpack");

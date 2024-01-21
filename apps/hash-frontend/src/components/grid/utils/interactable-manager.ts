@@ -4,12 +4,16 @@ import { typedKeys } from "@local/advanced-types/typed-entries";
 
 import {
   CellPath,
+  ColumnHeaderDrawArgs,
+  ColumnHeaderPath,
   CursorPos,
   Interactable,
 } from "./interactable-manager/types";
 import {
-  drawArgsToPath,
+  drawArgsToCellPath,
+  drawArgsToColumnHeaderPath,
   isCursorOnInteractable,
+  isPathCellPath,
   splitPath,
 } from "./interactable-manager/utils";
 
@@ -24,15 +28,23 @@ class InteractableManagerClass {
    * };
    * ```
    */
-  private interactableStore: Record<CellPath, Record<string, Interactable>> =
-    {};
+  private interactableStore: Record<
+    CellPath | ColumnHeaderPath,
+    Record<string, Interactable>
+  > = {};
+
+  getInteractable(path: CellPath | ColumnHeaderPath, id: string) {
+    return Object.values(this.interactableStore[path] ?? {}).find(
+      (interactable) => interactable.id === id,
+    );
+  }
 
   /**
    * @param args Draw args of cell
    * @param props Properties which will will be used to create the `Interactable`
    * @returns The created `Interactable`
    */
-  create(
+  createCellInteractable(
     args: DrawArgs<CustomCell>,
     props: Omit<Interactable, "hovered" | "path" | "cellRect">,
   ): Interactable {
@@ -49,7 +61,26 @@ class InteractableManagerClass {
       ...props,
       hovered,
       cellRect: rect,
-      path: drawArgsToPath(args),
+      path: drawArgsToCellPath(args),
+    };
+  }
+
+  /**
+   * @param args Draw args of cell
+   * @param props Properties which will will be used to create the `Interactable`
+   * @returns The created `Interactable`
+   */
+  createColumnHeaderInteractable(
+    args: ColumnHeaderDrawArgs,
+    props: Omit<Interactable, "hovered" | "path" | "cellRect">,
+  ): Interactable {
+    const { rect, isHovered } = args;
+
+    return {
+      ...props,
+      hovered: isHovered,
+      cellRect: rect,
+      path: drawArgsToColumnHeaderPath(args),
     };
   }
 
@@ -62,7 +93,7 @@ class InteractableManagerClass {
     args: DrawArgs<CustomCell>,
     interactables: Interactable[],
   ) {
-    const path = drawArgsToPath(args);
+    const path = drawArgsToCellPath(args);
 
     /**
      * for each interactable, check if the hover status changed
@@ -88,11 +119,31 @@ class InteractableManagerClass {
   }
 
   /**
+   * Call this function at the end of the `draw` function of the custom header to register the interactables.
+   * @param args Draw args of column header
+   * @param interactables List of the interactables for a specific column header.
+   */
+  setInteractablesForColumnHeader(
+    args: ColumnHeaderDrawArgs,
+    interactables: Interactable[],
+  ) {
+    const path = drawArgsToColumnHeaderPath(args);
+
+    /** @todo: trigger on mouse enter/leave events? */
+
+    const interactableMap = Object.fromEntries(
+      interactables.map((interactable) => [interactable.id, interactable]),
+    );
+
+    this.interactableStore[path] = interactableMap;
+  }
+
+  /**
    * Checks if the cursor position is overlapping with an `Interactable` inside clicked cell.
    * If it's overlapping, triggers the corresponding event handler for the clicked `Interactable`
    * @returns true if handled the click event, false if not
    */
-  handleClick(path: CellPath, event: CursorPos): boolean {
+  handleClick(path: CellPath | ColumnHeaderPath, event: CursorPos): boolean {
     const interactableMap = this.interactableStore[path] ?? {};
     const interactables = Object.values(interactableMap);
 
@@ -131,26 +182,24 @@ class InteractableManagerClass {
     tableId: string,
     boundaries?: { deleteBeforeRow: number; deleteAfterRow: number },
   ) {
-    const pathsToDelete: CellPath[] = typedKeys(this.interactableStore).filter(
-      (path) => {
-        if (path.startsWith(tableId)) {
-          if (!boundaries) {
-            return true;
-          }
-
-          const { rowIndex } = splitPath(path);
-
-          if (
-            rowIndex < boundaries.deleteBeforeRow ||
-            rowIndex > boundaries.deleteAfterRow
-          ) {
-            return true;
-          }
+    const pathsToDelete = typedKeys(this.interactableStore).filter((path) => {
+      if (path.startsWith(tableId) && isPathCellPath(path)) {
+        if (!boundaries) {
+          return true;
         }
 
-        return false;
-      },
-    );
+        const { rowIndex } = splitPath(path);
+
+        if (
+          rowIndex < boundaries.deleteBeforeRow ||
+          rowIndex > boundaries.deleteAfterRow
+        ) {
+          return true;
+        }
+      }
+
+      return false;
+    });
 
     for (const key of pathsToDelete) {
       delete this.interactableStore[key];

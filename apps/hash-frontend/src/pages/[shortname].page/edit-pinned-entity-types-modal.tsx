@@ -155,13 +155,15 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
 
     await updateEntity({
       variables: {
-        entityId: profile.entity.metadata.recordId.entityId,
-        entityTypeId: profile.entity.metadata.entityTypeId,
-        updatedProperties: {
-          ...profile.entity.properties,
-          [extractBaseUrl(
-            systemPropertyTypes.pinnedEntityTypeBaseUrl.propertyTypeId,
-          )]: updatedPinnedEntityTypeBaseUrls,
+        entityUpdate: {
+          entityId: profile.entity.metadata.recordId.entityId,
+          entityTypeId: profile.entity.metadata.entityTypeId,
+          updatedProperties: {
+            ...profile.entity.properties,
+            [extractBaseUrl(
+              systemPropertyTypes.pinnedEntityTypeBaseUrl.propertyTypeId,
+            )]: updatedPinnedEntityTypeBaseUrls,
+          },
         },
       },
     });

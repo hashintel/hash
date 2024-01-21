@@ -11,6 +11,9 @@ import {
   faAtRegular,
   faBracketsCurly,
   faBracketsSquare,
+  faCalendarClockRegular,
+  faCalendarRegular,
+  faClockRegular,
   faCube,
   faCubes,
   faEmptySet,
@@ -65,6 +68,18 @@ const expectedValuesDisplayMap = {
   },
   identifier: {
     icon: faInputPipeRegular,
+    colors: chipColors.blue,
+  },
+  time: {
+    icon: faClockRegular,
+    colors: chipColors.blue,
+  },
+  date: {
+    icon: faCalendarRegular,
+    colors: chipColors.blue,
+  },
+  datetime: {
+    icon: faCalendarClockRegular,
     colors: chipColors.blue,
   },
   number: {
@@ -220,13 +235,23 @@ export const DataTypesOptionsContextProvider = ({
           };
         }
 
-        const displayType = measurementTypeTitles.includes(dataType.title)
-          ? "measurement"
-          : identifierTypeTitles.includes(dataType.title)
-            ? "identifier"
-            : dataType.title === "Email"
-              ? "email"
-              : (dataType.type as keyof typeof expectedValuesDisplayMap);
+        let displayType =
+          dataType.type as keyof typeof expectedValuesDisplayMap;
+        if (measurementTypeTitles.includes(dataType.title)) {
+          displayType = "measurement";
+        } else if (identifierTypeTitles.includes(dataType.title)) {
+          displayType = "identifier";
+        } else if ("format" in dataType) {
+          if (dataType.format === "date-time") {
+            displayType = "datetime";
+          } else if (dataType.format === "date") {
+            displayType = "date";
+          } else if (dataType.format === "time") {
+            displayType = "time";
+          } else if (dataType.format === "email") {
+            displayType = "email";
+          }
+        }
 
         return {
           title: dataType.title,

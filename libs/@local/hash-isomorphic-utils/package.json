@@ -25,10 +25,10 @@
   "dependencies": {
     "@apollo/client": "3.6.9",
     "@blockprotocol/core": "0.1.2",
-    "@blockprotocol/graph": "0.3.1-canary-20231207113055",
+    "@blockprotocol/graph": "0.3.1-canary-20240108132503",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
-    "@sentry/browser": "7.74.1",
+    "@sentry/browser": "7.93.0",
     "apollo-server-express": "3.9.0",
     "fractional-indexing": "2.1.0",
     "immer": "9.0.6",

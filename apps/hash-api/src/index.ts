@@ -1,14 +1,18 @@
 /* eslint-disable import/first */
+
 import {
   monorepoRootDir,
   realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
+import express, { raw } from "express";
 
 // eslint-disable-next-line import/order
 import { initSentry } from "./sentry";
 
-initSentry();
+const app = express();
+
+initSentry(app);
 
 import http from "node:http";
 import path from "node:path";
@@ -24,7 +28,6 @@ import * as Sentry from "@sentry/node";
 import type { Client as TemporalClient } from "@temporalio/client";
 import { json } from "body-parser";
 import cors from "cors";
-import express, { raw } from "express";
 import proxy from "express-http-proxy";
 import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
@@ -46,7 +49,6 @@ import {
 } from "./email/transporters";
 import { ImpureGraphContext } from "./graph/context-types";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
-import { isSelfHostedInstance } from "./graph/ensure-system-graph-is-initialized/system-webs-and-entities";
 import { User } from "./graph/knowledge/system-types/user";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
@@ -144,7 +146,6 @@ const main = async () => {
   }
 
   // Configure the Express server
-  const app = express();
   app.use(
     Sentry.Handlers.requestHandler({
       ip: true,
@@ -385,6 +386,8 @@ const main = async () => {
   app.get("/oauth/linear/callback", rateLimiter, oAuthLinearCallback);
   app.post("/webhooks/linear", linearWebhook);
 
+  app.use(Sentry.Handlers.tracingHandler());
+
   /**
    * This middleware MUST:
    * 1. Come AFTER all non-error controllers
@@ -409,7 +412,7 @@ const main = async () => {
   const httpTerminator = createHttpTerminator({ server: httpServer });
   shutdown.addCleanup("HTTP Server", async () => httpTerminator.terminate());
 
-  if (!isSelfHostedInstance && temporalClient) {
+  if (temporalClient) {
     openInferEntitiesWebSocket({
       context,
       httpServer,

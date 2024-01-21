@@ -150,6 +150,10 @@ jobs:
         with:
           scope: ${{ matrix.package }}
 
+      - name: Install Protobuf
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        run: sudo apt install protobuf-compiler
+
       - name: Install yarn dependencies
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
         env:
@@ -169,13 +173,13 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@56ab7930c591507f833cbaed864d201386d518a8 # v2.23.7
+        uses: taiki-e/install-action@98cdbf3892eb5b31fc9b26666699439be4d9d88a # v2.25.1
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
       - name: Cache Rust dependencies
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: Swatinem/rust-cache@3cf7f8cc28d1b4e7d01e3783be10a97d55d483c8 # v2.7.1
+        uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
@@ -281,6 +285,10 @@ jobs:
           echo "external-service-ai-worker-ts=$REQUIRES_AI_WORKER_TS" >> $GITHUB_OUTPUT
           echo "external-service-worker-integration=$REQUIRES_INTEGRATION_WORKER" >> $GITHUB_OUTPUT
 
+      - name: Install Protobuf
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        run: sudo apt install protobuf-compiler
+
       - name: Install Rust toolchain
         if: always() && steps.tests.outputs.has-rust == 'true'
         uses: ./.github/actions/install-rust-toolchain
@@ -290,13 +298,13 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@56ab7930c591507f833cbaed864d201386d518a8 # v2.23.7
+        uses: taiki-e/install-action@98cdbf3892eb5b31fc9b26666699439be4d9d88a # v2.25.1
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
       - name: Cache Rust dependencies
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: Swatinem/rust-cache@3cf7f8cc28d1b4e7d01e3783be10a97d55d483c8 # v2.7.1
+        uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
@@ -318,12 +326,13 @@ jobs:
         run: |
           turbo codegen --filter '@apps/hash-external-services'
 
-          SERVICES="kratos mailslurper redis temporal temporal-setup spicedb"
+          SERVICES="kratos redis spicedb"
 
           if [[ ${{ steps.tests.outputs.external-service-graph == 'true' }} == 'true' ]]; then
             SERVICES="$SERVICES graph"
           fi
           if [[ ${{ steps.tests.outputs.external-service-ai-worker-ts }} == 'true' ]]; then
+              echo 'OPENAI_API_KEY=dummy' >> .env.local
               SERVICES="$SERVICES hash-temporal-worker-ts"
           fi
           if [[ ${{ steps.tests.outputs.external-service-worker-integration }} == 'true' ]]; then
@@ -331,7 +340,7 @@ jobs:
           fi
 
           echo "Running services: $SERVICES"
-          yarn workspace @apps/hash-external-services deploy:test up $SERVICES --detach
+          yarn workspace @apps/hash-external-services deploy:test up $SERVICES --wait
 
       - name: Show disk usage
         run: df -h
@@ -397,6 +406,10 @@ jobs:
             ${{ matrix.package }}
             @apps/hash-external-services
 
+      - name: Install Protobuf
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        run: sudo apt install protobuf-compiler
+
       - name: Install yarn dependencies
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
         env:
@@ -416,13 +429,13 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@56ab7930c591507f833cbaed864d201386d518a8 # v2.23.7
+        uses: taiki-e/install-action@98cdbf3892eb5b31fc9b26666699439be4d9d88a # v2.25.1
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
       - name: Cache Rust dependencies
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: Swatinem/rust-cache@3cf7f8cc28d1b4e7d01e3783be10a97d55d483c8 # v2.7.1
+        uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
@@ -452,7 +465,8 @@ jobs:
       - name: Launch external services
         run: |
           turbo codegen --filter '@apps/hash-external-services'
-          yarn workspace @apps/hash-external-services deploy up --detach
+          echo 'OPENAI_API_KEY=dummy' >> .env.local
+          yarn workspace @apps/hash-external-services deploy up --wait
 
       - name: Launch HASH-API
         run: |
@@ -541,7 +555,7 @@ jobs:
 
       - name: Install tools
         if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
-        uses: taiki-e/install-action@56ab7930c591507f833cbaed864d201386d518a8 # v2.23.7
+        uses: taiki-e/install-action@98cdbf3892eb5b31fc9b26666699439be4d9d88a # v2.25.1
         with:
           tool: cargo-semver-checks
 
@@ -585,8 +599,7 @@ jobs:
           [[ ${{ needs.integration-tests.result }} =~ success|skipped ]]
       - name: Check system tests
         run: |
-          # TODO: Stop allowing failure of system tests
-          [[ ${{ needs.system-tests.result }} =~ success|skipped|failure ]]
+          [[ ${{ needs.system-tests.result }} =~ success|skipped ]]
       - name: Check publish results
         run: |
           [[ ${{ needs.publish.result }} =~ success|skipped ]]

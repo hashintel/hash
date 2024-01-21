@@ -35,6 +35,8 @@ export * from "./icon-input-pipe";
 export * from "./icon-input-pipe-regular";
 export * from "./icon-link";
 export * from "./icon-list-regular";
+export * from "./icon-magnifying-glass-regular";
+export * from "./icon-person-running-regular";
 export * from "./icon-plus";
 export * from "./icon-rainbow-hash";
 export * from "./icon-rotate-regular";

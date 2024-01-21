@@ -1,6 +1,7 @@
 import { OntologyTemporalMetadata } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
+  fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -105,21 +106,7 @@ export const queryPropertyTypesResolver: ResolverFn<
         constrainsPropertiesOn,
       },
       temporalAxes: includeArchived
-        ? {
-            pinned: {
-              axis: "decisionTime",
-              timestamp: null,
-            },
-            variable: {
-              axis: "transactionTime",
-              interval: {
-                start: {
-                  kind: "unbounded",
-                },
-                end: null,
-              },
-            },
-          }
+        ? fullTransactionTimeAxis
         : currentTimeInstantTemporalAxes,
       includeDrafts: false,
     },
@@ -137,7 +124,12 @@ export const getPropertyTypeResolver: ResolverFn<
   QueryGetPropertyTypeArgs
 > = async (
   _,
-  { propertyTypeId, constrainsValuesOn, constrainsPropertiesOn },
+  {
+    propertyTypeId,
+    constrainsValuesOn,
+    constrainsPropertiesOn,
+    includeArchived,
+  },
   { dataSources, authentication },
   __,
 ) =>
@@ -151,7 +143,9 @@ export const getPropertyTypeResolver: ResolverFn<
         constrainsValuesOn,
         constrainsPropertiesOn,
       },
-      temporalAxes: currentTimeInstantTemporalAxes,
+      temporalAxes: includeArchived
+        ? fullTransactionTimeAxis
+        : currentTimeInstantTemporalAxes,
     },
   );
 

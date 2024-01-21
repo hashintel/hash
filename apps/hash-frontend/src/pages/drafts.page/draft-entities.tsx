@@ -3,7 +3,6 @@ import { Skeleton } from "@hashintel/design-system";
 import { Filter } from "@local/hash-graph-client";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
-  currentTimeInstantTemporalAxes,
   fullDecisionTimeAxis,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
@@ -13,19 +12,17 @@ import {
   EntityId,
   EntityRootType,
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Divider, Typography } from "@mui/material";
-import { subDays, subHours } from "date-fns";
 import {
   Dispatch,
   Fragment,
   FunctionComponent,
   SetStateAction,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -41,11 +38,13 @@ import { useDraftEntities } from "../../shared/draft-entities-context";
 import { getFirstRevision } from "../../shared/entity-utils";
 import { Button } from "../../shared/ui";
 import { MinimalActor, useActors } from "../../shared/use-actors";
+import { DraftEntitiesContextBar } from "./draft-entities/draft-entities-context-bar";
 import {
   DraftEntitiesFilters,
   DraftEntityFilterState,
+  filterDraftEntities,
   generateDefaultFilterState,
-  LastEditedTimeRanges,
+  isFilerStateDefaultFilterState,
 } from "./draft-entities/draft-entities-filters";
 import { DraftEntity } from "./draft-entity";
 
@@ -62,32 +61,18 @@ const doesSubgraphIncludeEntitiesInRoots = (params: {
   );
 };
 
-const isDateWithinLastEditedTimeRange = (params: {
-  date: Date;
-  lastEditedTimeRange: LastEditedTimeRanges;
-}) => {
-  const { date, lastEditedTimeRange } = params;
-  const now = new Date();
-  switch (lastEditedTimeRange) {
-    case "anytime":
-      return true;
-    case "last-24-hours":
-      return date >= subHours(now, 1);
-    case "last-7-days":
-      return date >= subDays(now, 7);
-    case "last-30-days":
-      return date >= subDays(now, 30);
-    case "last-365-days":
-      return date >= subDays(now, 365);
-    default:
-      return true;
-  }
-};
-
 export type SortOrder = "created-at-asc" | "created-at-desc";
 
-export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
+export const DraftEntities: FunctionComponent<{
+  sortOrder: SortOrder;
+  selectedDraftEntityIds: EntityId[];
+  setSelectedDraftEntityIds: Dispatch<SetStateAction<EntityId[]>>;
+  draftEntitiesWithLinkedDataSubgraph?: Subgraph<EntityRootType>;
+}> = ({
   sortOrder,
+  selectedDraftEntityIds,
+  setSelectedDraftEntityIds,
+  draftEntitiesWithLinkedDataSubgraph,
 }) => {
   const [filterState, setFilterState] = useState<DraftEntityFilterState>();
 
@@ -108,55 +93,6 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
         })) ?? [],
     }),
     [draftEntities],
-  );
-
-  const [
-    previouslyFetchedDraftEntitiesWithLinkedDataResponse,
-    setPreviouslyFetchedDraftEntitiesWithLinkedDataResponse,
-  ] = useState<StructuralQueryEntitiesQuery>();
-
-  const { data: draftEntitiesWithLinkedDataResponse } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
-    variables: {
-      query: {
-        filter: getDraftEntitiesFilter,
-        includeDrafts: true,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        graphResolveDepths: {
-          isOfType: { outgoing: 1 },
-          inheritsFrom: { outgoing: 255 },
-          constrainsPropertiesOn: { outgoing: 255 },
-          constrainsValuesOn: { outgoing: 255 },
-          constrainsLinksOn: { outgoing: 255 },
-          constrainsLinkDestinationsOn: { outgoing: 255 },
-          hasLeftEntity: { outgoing: 1, incoming: 1 },
-          hasRightEntity: { outgoing: 1, incoming: 1 },
-        },
-      },
-      includePermissions: false,
-    },
-    skip: !draftEntities,
-    onCompleted: (data) =>
-      setPreviouslyFetchedDraftEntitiesWithLinkedDataResponse(data),
-    fetchPolicy: "network-only",
-  });
-
-  const draftEntitiesWithLinkedDataSubgraph = useMemo(
-    () =>
-      draftEntitiesWithLinkedDataResponse ||
-      previouslyFetchedDraftEntitiesWithLinkedDataResponse
-        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-            (draftEntitiesWithLinkedDataResponse ??
-              previouslyFetchedDraftEntitiesWithLinkedDataResponse)!
-              .structuralQueryEntities.subgraph,
-          )
-        : undefined,
-    [
-      draftEntitiesWithLinkedDataResponse,
-      previouslyFetchedDraftEntitiesWithLinkedDataResponse,
-    ],
   );
 
   const [
@@ -282,45 +218,45 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
     );
   }
 
+  const isDefaultFilterState = useMemo(
+    () =>
+      !!filterState &&
+      !!draftEntitiesWithCreatedAtAndCreators &&
+      !!draftEntitiesWithLinkedDataSubgraph &&
+      isFilerStateDefaultFilterState({
+        draftEntitiesWithCreatedAtAndCreators,
+        draftEntitiesSubgraph: draftEntitiesWithLinkedDataSubgraph,
+      })(filterState),
+    [
+      filterState,
+      draftEntitiesWithCreatedAtAndCreators,
+      draftEntitiesWithLinkedDataSubgraph,
+    ],
+  );
+
   const filteredAndSortedDraftEntitiesWithCreatedAt = useMemo(
     () =>
       filterState &&
       draftEntitiesWithCreatedAtAndCreators &&
       draftEntitiesWithLinkedDataSubgraph
-        ? draftEntitiesWithCreatedAtAndCreators
-            .filter(
-              ({ entity, creator }) =>
-                filterState.entityTypeBaseUrls.includes(
-                  extractBaseUrl(entity.metadata.entityTypeId),
-                ) &&
-                filterState.sourceAccountIds.includes(creator.accountId) &&
-                isDateWithinLastEditedTimeRange({
-                  date: new Date(
-                    entity.metadata.temporalVersioning.decisionTime.start.limit,
-                  ),
-                  lastEditedTimeRange: filterState.lastEditedTimeRange,
-                }) &&
-                filterState.webOwnedByIds.includes(
-                  extractOwnedByIdFromEntityId(
-                    entity.metadata.recordId.entityId,
-                  ),
-                ),
-            )
-            .sort((a, b) =>
-              a.createdAt.getTime() === b.createdAt.getTime()
-                ? generateEntityLabel(
+        ? filterDraftEntities({
+            draftEntitiesWithCreatedAtAndCreators,
+            filterState,
+          }).sort((a, b) =>
+            a.createdAt.getTime() === b.createdAt.getTime()
+              ? generateEntityLabel(
+                  draftEntitiesWithLinkedDataSubgraph,
+                  a.entity,
+                ).localeCompare(
+                  generateEntityLabel(
                     draftEntitiesWithLinkedDataSubgraph,
-                    a.entity,
-                  ).localeCompare(
-                    generateEntityLabel(
-                      draftEntitiesWithLinkedDataSubgraph,
-                      b.entity,
-                    ),
-                  )
-                : sortOrder === "created-at-asc"
-                  ? a.createdAt.getTime() - b.createdAt.getTime()
-                  : b.createdAt.getTime() - a.createdAt.getTime(),
-            )
+                    b.entity,
+                  ),
+                )
+              : sortOrder === "created-at-asc"
+                ? a.createdAt.getTime() - b.createdAt.getTime()
+                : b.createdAt.getTime() - a.createdAt.getTime(),
+          )
         : undefined,
     [
       draftEntitiesWithCreatedAtAndCreators,
@@ -329,6 +265,37 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
       draftEntitiesWithLinkedDataSubgraph,
     ],
   );
+
+  useEffect(() => {
+    if (filteredAndSortedDraftEntitiesWithCreatedAt) {
+      /**
+       * If the filter state has changed, there may be previously selected drafts
+       * which are no longer listed in the UI which we need to deselect.
+       */
+      const nonMatchingSelectedDraftEntityIds = selectedDraftEntityIds.filter(
+        (selectedDraftEntityId) =>
+          !filteredAndSortedDraftEntitiesWithCreatedAt.some(
+            ({ entity }) =>
+              entity.metadata.recordId.entityId === selectedDraftEntityId,
+          ),
+      );
+
+      if (nonMatchingSelectedDraftEntityIds.length > 0) {
+        setSelectedDraftEntityIds((prev) =>
+          prev.filter(
+            (selectedDraftEntityId) =>
+              !nonMatchingSelectedDraftEntityIds.includes(
+                selectedDraftEntityId,
+              ),
+          ),
+        );
+      }
+    }
+  }, [
+    filteredAndSortedDraftEntitiesWithCreatedAt,
+    selectedDraftEntityIds,
+    setSelectedDraftEntityIds,
+  ]);
 
   const [numberOfIncrements, setNumberOfIncrements] = useState(1);
 
@@ -345,6 +312,20 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
 
   const numberOfEntitiesToDisplay =
     incrementNumberOfEntitiesToDisplay * numberOfIncrements;
+
+  const displayedDraftEntitiesWithCreatedAt = useMemo(
+    () =>
+      filteredAndSortedDraftEntitiesWithCreatedAt
+        ? /**
+           * @todo: use pagination instead
+           */
+          filteredAndSortedDraftEntitiesWithCreatedAt.slice(
+            0,
+            numberOfEntitiesToDisplay,
+          )
+        : undefined,
+    [filteredAndSortedDraftEntitiesWithCreatedAt, numberOfEntitiesToDisplay],
+  );
 
   return (
     <Container
@@ -370,6 +351,18 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
           </Typography>
         ) : (
           <>
+            <DraftEntitiesContextBar
+              isDefaultFilterState={isDefaultFilterState}
+              draftEntities={draftEntities}
+              selectedDraftEntityIds={selectedDraftEntityIds}
+              setSelectedDraftEntityIds={setSelectedDraftEntityIds}
+              displayedDraftEntities={displayedDraftEntitiesWithCreatedAt?.map(
+                ({ entity }) => entity,
+              )}
+              matchingDraftEntities={filteredAndSortedDraftEntitiesWithCreatedAt?.map(
+                ({ entity }) => entity,
+              )}
+            />
             <Box
               sx={{
                 background: ({ palette }) => palette.common.white,
@@ -380,30 +373,47 @@ export const DraftEntities: FunctionComponent<{ sortOrder: SortOrder }> = ({
                 flexGrow: 1,
               }}
             >
-              {filteredAndSortedDraftEntitiesWithCreatedAt &&
+              {displayedDraftEntitiesWithCreatedAt &&
               draftEntitiesWithLinkedDataSubgraph ? (
                 <>
-                  {filteredAndSortedDraftEntitiesWithCreatedAt
-                    /**
-                     * @todo: use pagination instead
-                     */
-                    .slice(0, numberOfEntitiesToDisplay)
-                    .map(({ entity, createdAt }, i, all) => (
-                      <Fragment key={entity.metadata.recordId.entityId}>
-                        <DraftEntity
-                          entity={entity}
-                          createdAt={createdAt}
-                          subgraph={draftEntitiesWithLinkedDataSubgraph}
-                        />
-                        {i < all.length - 1 ? (
-                          <Divider
-                            sx={{
-                              borderColor: ({ palette }) => palette.gray[30],
-                            }}
+                  {displayedDraftEntitiesWithCreatedAt.map(
+                    ({ entity, createdAt }, i, all) => {
+                      const isSelected = selectedDraftEntityIds.includes(
+                        entity.metadata.recordId.entityId,
+                      );
+                      return (
+                        <Fragment key={entity.metadata.recordId.entityId}>
+                          <DraftEntity
+                            entity={entity}
+                            createdAt={createdAt}
+                            subgraph={draftEntitiesWithLinkedDataSubgraph}
+                            selected={isSelected}
+                            toggleSelected={() =>
+                              setSelectedDraftEntityIds((prev) =>
+                                isSelected
+                                  ? prev.filter(
+                                      (entityId) =>
+                                        entityId !==
+                                        entity.metadata.recordId.entityId,
+                                    )
+                                  : [
+                                      ...prev,
+                                      entity.metadata.recordId.entityId,
+                                    ],
+                              )
+                            }
                           />
-                        ) : null}
-                      </Fragment>
-                    ))}
+                          {i < all.length - 1 ? (
+                            <Divider
+                              sx={{
+                                borderColor: ({ palette }) => palette.gray[30],
+                              }}
+                            />
+                          ) : null}
+                        </Fragment>
+                      );
+                    },
+                  )}
                 </>
               ) : (
                 <Box paddingY={4.5} paddingX={3.25}>

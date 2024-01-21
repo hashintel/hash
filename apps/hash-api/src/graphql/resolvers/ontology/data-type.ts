@@ -1,5 +1,6 @@
 import {
   currentTimeInstantTemporalAxes,
+  fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { DataTypeRootType, Subgraph } from "@local/hash-subgraph";
@@ -19,7 +20,11 @@ export const queryDataTypes: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryQueryDataTypesArgs
-> = async (_, { constrainsValuesOn }, { dataSources, authentication }) => {
+> = async (
+  _,
+  { constrainsValuesOn, includeArchived },
+  { dataSources, authentication },
+) => {
   const { graphApi } = dataSources;
 
   const { data } = await graphApi.getDataTypesByQuery(authentication.actorId, {
@@ -30,7 +35,9 @@ export const queryDataTypes: ResolverFn<
       ...zeroedGraphResolveDepths,
       constrainsValuesOn,
     },
-    temporalAxes: currentTimeInstantTemporalAxes,
+    temporalAxes: includeArchived
+      ? fullTransactionTimeAxis
+      : currentTimeInstantTemporalAxes,
     includeDrafts: false,
   });
 
@@ -46,7 +53,7 @@ export const getDataType: ResolverFn<
   QueryGetDataTypeArgs
 > = async (
   _,
-  { dataTypeId, constrainsValuesOn },
+  { dataTypeId, constrainsValuesOn, includeArchived },
   { dataSources, authentication },
 ) =>
   getDataTypeSubgraphById(
@@ -59,6 +66,8 @@ export const getDataType: ResolverFn<
         ...zeroedGraphResolveDepths,
         constrainsValuesOn,
       },
-      temporalAxes: currentTimeInstantTemporalAxes,
+      temporalAxes: includeArchived
+        ? fullTransactionTimeAxis
+        : currentTimeInstantTemporalAxes,
     },
   );

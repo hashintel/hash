@@ -42,9 +42,10 @@ if (fileSystem.existsSync(secretsPath)) {
   alias.secrets = secretsPath;
 }
 
-const isDevelopment = process.env.NODE_ENV !== "production";
+const isProduction = process.env.NODE_ENV === "production";
+const isDevelopment = process.env.NODE_ENV === "development";
 
-if (!isDevelopment && (!env.SENTRY_DSN || !env.SENTRY_AUTH_TOKEN)) {
+if (isProduction && (!env.SENTRY_DSN || !env.SENTRY_AUTH_TOKEN)) {
   throw new Error(
     "Both SENTRY_DSN and SENTRY_AUTH_TOKEN must be set in environment for a production build. SENTRY_DSN is relied on at runtime, and they are both needed to build and upload source maps to Sentry.",
   );
@@ -222,7 +223,7 @@ const options = {
       chunks: ["popup"],
       cache: false,
     }),
-    env.SENTRY_AUTH_TOKEN && env.SENTRY_DSN && !isDevelopment
+    env.SENTRY_AUTH_TOKEN && env.SENTRY_DSN && isProduction
       ? sentryWebpackPlugin({
           authToken: env.SENTRY_AUTH_TOKEN,
           org: "hashintel",
@@ -235,7 +236,7 @@ const options = {
   },
 };
 
-if (env.NODE_ENV !== "development") {
+if (!isDevelopment) {
   options.optimization = {
     minimize: true,
     minimizer: [

@@ -5,7 +5,7 @@ import {
   extractEntityUuidFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import { Box, Typography } from "@mui/material";
+import { Box, Checkbox, Typography } from "@mui/material";
 import { FunctionComponent, useMemo, useRef, useState } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
@@ -16,7 +16,7 @@ import { EditEntityModal } from "../[shortname]/entities/[entity-uuid].page/edit
 import { DraftEntityActionButtons } from "./draft-entity/draft-entity-action-buttons";
 import { DraftEntityProvenance } from "./draft-entity/draft-entity-provenance";
 import { DraftEntityType } from "./draft-entity/draft-entity-type";
-import { DraftEntityViewers } from "./draft-entity/draft-entity-viewers";
+import { DraftEntityWeb } from "./draft-entity/draft-entity-web";
 
 const generateEntityRootedSubgraph = (
   entity: Entity,
@@ -36,7 +36,9 @@ export const DraftEntity: FunctionComponent<{
   subgraph: Subgraph<EntityRootType>;
   entity: Entity;
   createdAt: Date;
-}> = ({ entity, subgraph, createdAt }) => {
+  selected: boolean;
+  toggleSelected: () => void;
+}> = ({ entity, subgraph, createdAt, selected, toggleSelected }) => {
   const { refetch } = useDraftEntities();
 
   const getOwnerForEntity = useGetOwnerForEntity();
@@ -86,72 +88,97 @@ export const DraftEntity: FunctionComponent<{
   }
 
   return (
-    <Box paddingY={4.5} paddingX={3.25}>
+    <Box paddingRight={4.5} paddingLeft={6} paddingY={3.25}>
       <Box
         display="flex"
         justifyContent="space-between"
         alignItems="flex-start"
       >
-        <EditEntityModal
-          open={displayEntityModal}
-          entitySubgraph={entityRootedSubgraph}
-          onClose={() => setDisplayEntityModal(false)}
-          onSubmit={() => {
-            void refetch();
-            setDisplayEntityModal(false);
-          }}
-        />
-        <Link
-          noLinkStyle
-          href={href}
-          sx={{
-            "&:hover > div": {
-              background: ({ palette }) => palette.blue[15],
-            },
-          }}
-          onClick={(event) => {
-            if (event.metaKey) {
-              return;
-            }
-            setDisplayEntityModal(true);
-            event.preventDefault();
-          }}
-        >
-          <Box
+        <Box display="flex" alignItems="center">
+          <Checkbox
+            checked={selected}
+            onChange={toggleSelected}
             sx={{
-              transition: ({ transitions }) => transitions.create("background"),
-              borderRadius: "6px",
-              paddingY: 0.5,
-              paddingX: 1,
-              marginLeft: -1,
+              position: "relative",
+              top: 2,
+              svg: {
+                width: 18,
+                height: 18,
+              },
+              marginLeft: ({ spacing }) =>
+                `calc(-1 * (18px + ${spacing(1.5)}))`,
+              paddingRight: 1.5,
+            }}
+          />
+          <EditEntityModal
+            open={displayEntityModal}
+            entitySubgraph={entityRootedSubgraph}
+            onClose={() => setDisplayEntityModal(false)}
+            onSubmit={() => {
+              void refetch();
+              setDisplayEntityModal(false);
+            }}
+          />
+          <Link
+            noLinkStyle
+            href={href}
+            sx={{
+              "&:hover > div": {
+                background: ({ palette }) => palette.blue[15],
+              },
+            }}
+            onClick={(event) => {
+              if (event.metaKey) {
+                return;
+              }
+              setDisplayEntityModal(true);
+              event.preventDefault();
             }}
           >
-            <Typography
-              variant="h2"
+            <Box
               sx={{
-                fontSize: 24,
-                fontWeight: 600,
-                color: ({ palette }) => palette.gray[90],
+                transition: ({ transitions }) =>
+                  transitions.create("background"),
+                borderRadius: "6px",
+                paddingY: 0.5,
+                paddingX: 1,
+                marginLeft: -1,
               }}
             >
-              {label}
-              <ArrowUpRightRegularIcon
+              <Typography
+                variant="h2"
                 sx={{
-                  color: ({ palette }) => palette.blue[70],
-                  position: "relative",
-                  top: 5,
-                  marginLeft: 0.5,
+                  fontSize: 24,
+                  fontWeight: 600,
+                  color: ({ palette }) => palette.gray[90],
                 }}
-              />
-            </Typography>
-          </Box>
-        </Link>
+              >
+                {label}
+                <ArrowUpRightRegularIcon
+                  sx={{
+                    color: ({ palette }) => palette.blue[70],
+                    position: "relative",
+                    top: 5,
+                    marginLeft: 0.5,
+                  }}
+                />
+              </Typography>
+            </Box>
+          </Link>
+        </Box>
         <DraftEntityActionButtons entity={entity} subgraph={subgraph} />
       </Box>
       <Box marginTop={1.5} display="flex" justifyContent="space-between">
         <Box display="flex" alignItems="center" columnGap={2}>
           <DraftEntityType entity={entity} subgraph={subgraph} />
-          <DraftEntityViewers entity={entity} />
+          <DraftEntityWeb entity={entity} />
+          {/*
+           * @todo: bring back draft entity viewers when the GQL resolver
+           * returns the correct number of authorization relationships.
+           *
+           * @see https://linear.app/hash/issue/H-1115/use-permission-types-from-graph-in-graphql
+           */}
+          {/* <DraftEntityViewers entity={entity} /> */}
         </Box>
         <DraftEntityProvenance entity={entity} createdAt={createdAt} />
       </Box>

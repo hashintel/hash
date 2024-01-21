@@ -8,7 +8,7 @@ export const createTemporalClient = async (_logger?: Logger) => {
     return undefined;
   }
 
-  const host = process.env.HASH_TEMPORAL_SERVER_HOST;
+  const host = new URL(process.env.HASH_TEMPORAL_SERVER_HOST).hostname;
   const port = parseInt(process.env.HASH_TEMPORAL_SERVER_PORT || "7233", 10);
   const namespace = "HASH";
 

@@ -69,29 +69,27 @@ export const structuralQueryEntitiesQuery = gql`
 `;
 
 export const updateEntityMutation = gql`
-  mutation updateEntity(
-    $entityId: EntityId!
-    $updatedProperties: EntityPropertiesObject!
-    $leftToRightOrder: Int
-    $rightToLeftOrder: Int
-    $entityTypeId: VersionedUrl
-    $draft: Boolean
-  ) {
+  mutation updateEntity($entityUpdate: EntityUpdateDefinition!) {
     # This is a scalar, which has no selection.
-    updateEntity(
-      entityId: $entityId
-      updatedProperties: $updatedProperties
-      leftToRightOrder: $leftToRightOrder
-      rightToLeftOrder: $rightToLeftOrder
-      entityTypeId: $entityTypeId
-      draft: $draft
-    )
+    updateEntity(entityUpdate: $entityUpdate)
+  }
+`;
+
+export const updateEntitiesMutation = gql`
+  mutation updateEntities($entityUpdates: [EntityUpdateDefinition!]!) {
+    updateEntities(entityUpdates: $entityUpdates)
   }
 `;
 
 export const archiveEntityMutation = gql`
   mutation archiveEntity($entityId: EntityId!) {
     archiveEntity(entityId: $entityId)
+  }
+`;
+
+export const archiveEntitiesMutation = gql`
+  mutation archiveEntities($entityIds: [EntityId!]!) {
+    archiveEntities(entityIds: $entityIds)
   }
 `;
 

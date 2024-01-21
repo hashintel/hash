@@ -23,6 +23,7 @@ export const propertyTypeTypedef = gql`
       propertyTypeId: VersionedUrl!
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+      includeArchived: Boolean = false
     ): Subgraph!
   }
 

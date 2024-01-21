@@ -31,7 +31,8 @@ use graph_types::{
 };
 use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
-use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp};
+use temporal_client::TemporalClient;
+use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use tokio_postgres::GenericClient;
 use type_system::{url::VersionedUrl, EntityType};
 use uuid::Uuid;
@@ -298,6 +299,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
+        temporal_client: Option<&TemporalClient>,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
@@ -569,7 +571,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         } else {
             let decision_time = row.get(0);
             let transaction_time = row.get(1);
-            Ok(EntityMetadata {
+            let entity_metadata = EntityMetadata {
                 record_id: EntityRecordId {
                     entity_id,
                     edition_id,
@@ -589,7 +591,21 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 },
                 archived,
                 draft,
-            })
+            };
+            if let Some(temporal_client) = temporal_client {
+                temporal_client
+                    .start_update_entity_embeddings_workflow(
+                        actor_id,
+                        &[Entity {
+                            properties,
+                            link_data,
+                            metadata: entity_metadata.clone(),
+                        }],
+                    )
+                    .await
+                    .change_context(InsertionError)?;
+            }
+            Ok(entity_metadata)
         }
     }
 
@@ -869,7 +885,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         query: &StructuralQuery<Entity>,
         after: Option<&EntityVertexId>,
         limit: Option<usize>,
-    ) -> Result<Subgraph, QueryError> {
+    ) -> Result<(Subgraph, Option<EntityVertexId>), QueryError> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
@@ -880,43 +896,75 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let mut entities = Read::<Entity>::read_vec(
-            self,
-            filter,
-            Some(&temporal_axes),
-            after,
-            limit,
-            include_drafts,
-        )
-        .await?
-        .into_iter()
-        .map(|entity| (entity.vertex_id(time_axis), entity))
-        .collect::<Vec<_>>();
-        // TODO: The subgraph structure differs from the API interface. At the API the vertices
-        //       are stored in a nested `HashMap` and here it's flattened. We need to adjust the
-        //       the subgraph anyway so instead of refactoring this now this will just copy the ids.
-        //   see https://linear.app/hash/issue/H-297/revisit-subgraph-layout-to-allow-temporal-ontology-types
-        let filtered_ids = entities
-            .iter()
-            .map(|(vertex_id, _)| vertex_id.base_id)
-            .collect::<HashSet<_>>();
+        let mut root_entities = Vec::new();
+        let mut after = after.copied();
 
-        let (permissions, zookie) = authorization_api
-            .check_entities_permission(
-                actor_id,
-                EntityPermission::View,
-                filtered_ids,
-                Consistency::FullyConsistent,
+        let (latest_zookie, last) = loop {
+            // We query one more than requested to determine if there are more entities to return.
+            let entities = Read::<Entity>::read(
+                self,
+                filter,
+                Some(&temporal_axes),
+                after.as_ref(),
+                limit,
+                include_drafts,
             )
-            .await
-            .change_context(QueryError)?;
+            .await?
+            .map_ok(|entity| (entity.vertex_id(time_axis), entity))
+            .try_collect::<Vec<_>>()
+            .await?;
+            after = entities.last().map(|(vertex_id, _)| *vertex_id);
+            let num_returned_entities = entities.len();
 
-        let permitted_ids = permissions
-            .into_iter()
-            .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
-            .collect::<HashSet<_>>();
+            // TODO: The subgraph structure differs from the API interface. At the API the vertices
+            //       are stored in a nested `HashMap` and here it's flattened. We need to adjust the
+            //       subgraph anyway so instead of refactoring this now this will just copy the ids.
+            //   see https://linear.app/hash/issue/H-297/revisit-subgraph-layout-to-allow-temporal-ontology-types
+            let filtered_ids = entities
+                .iter()
+                .map(|(vertex_id, _)| vertex_id.base_id)
+                .collect::<HashSet<_>>();
 
-        entities.retain(|(vertex_id, _)| permitted_ids.contains(&vertex_id.base_id.entity_uuid));
+            let (permissions, zookie) = authorization_api
+                .check_entities_permission(
+                    actor_id,
+                    EntityPermission::View,
+                    filtered_ids,
+                    Consistency::FullyConsistent,
+                )
+                .await
+                .change_context(QueryError)?;
+
+            let permitted_ids = permissions
+                .into_iter()
+                .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
+                .collect::<HashSet<_>>();
+
+            root_entities.extend(
+                entities
+                    .into_iter()
+                    .filter(|(vertex_id, _)| permitted_ids.contains(&vertex_id.base_id.entity_uuid))
+                    .take(limit.unwrap_or(usize::MAX) - root_entities.len()),
+            );
+
+            if let Some(limit) = limit {
+                if num_returned_entities < limit {
+                    // When the returned entities are less than the requested amount we know
+                    // that there are no more entities to return.
+                    break (zookie, None);
+                }
+                if root_entities.len() == limit {
+                    // The requested limit is reached, so we can stop here.
+                    break (
+                        zookie,
+                        root_entities.last().map(|(vertex_id, _)| *vertex_id),
+                    );
+                }
+            } else {
+                // Without a limit all entities are returned.
+                break (zookie, None);
+            }
+        };
 
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
@@ -925,11 +973,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         );
 
         subgraph.roots.extend(
-            entities
+            root_entities
                 .iter()
                 .map(|(vertex_id, _)| GraphElementVertexId::from(*vertex_id)),
         );
-        subgraph.vertices.entities = entities.into_iter().collect();
+        subgraph.vertices.entities = root_entities.into_iter().collect();
 
         let mut traversal_context = TraversalContext::default();
 
@@ -951,7 +999,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             &mut traversal_context,
             actor_id,
             authorization_api,
-            &zookie,
+            &latest_zookie,
             &mut subgraph,
         )
         .await?;
@@ -960,7 +1008,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .read_traversed_vertices(self, &mut subgraph, include_drafts)
             .await?;
 
-        Ok(subgraph)
+        Ok((subgraph, last))
     }
 
     #[tracing::instrument(level = "info", skip(self, properties, authorization_api))]
@@ -968,6 +1016,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
+        temporal_client: Option<&TemporalClient>,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
@@ -1126,7 +1175,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         transaction.commit().await.change_context(UpdateError)?;
 
-        Ok(EntityMetadata {
+        let entity_metadata = EntityMetadata {
             record_id: EntityRecordId {
                 entity_id,
                 edition_id,
@@ -1152,14 +1201,37 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             },
             archived,
             draft,
-        })
+        };
+        if let Some(temporal_client) = temporal_client {
+            temporal_client
+                .start_update_entity_embeddings_workflow(
+                    actor_id,
+                    &[Entity {
+                        properties,
+                        link_data: previous_entity
+                            .link_data
+                            .map(|previous_link_data| LinkData {
+                                left_entity_id: previous_link_data.left_entity_id,
+                                right_entity_id: previous_link_data.right_entity_id,
+                                order: link_order,
+                            }),
+                        metadata: entity_metadata.clone(),
+                    }],
+                )
+                .await
+                .change_context(UpdateError)?;
+        }
+        Ok(entity_metadata)
     }
 
     async fn update_entity_embeddings<A: AuthorizationApi + Send + Sync>(
         &mut self,
-        actor_id: AccountId,
-        authorization_api: &mut A,
+        _actor_id: AccountId,
+        _authorization_api: &mut A,
         embeddings: impl IntoIterator<Item = EntityEmbedding<'_>> + Send,
+        updated_at_transaction_time: Timestamp<TransactionTime>,
+        updated_at_decision_time: Timestamp<DecisionTime>,
+        reset: bool,
     ) -> Result<(), UpdateError> {
         #[derive(Debug, ToSql)]
         #[postgres(name = "entity_embeddings")]
@@ -1168,6 +1240,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             entity_uuid: EntityUuid,
             property: Option<String>,
             embedding: Embedding<'a>,
+            updated_at_transaction_time: Timestamp<TransactionTime>,
+            updated_at_decision_time: Timestamp<DecisionTime>,
         }
         let (entity_ids, entity_embeddings): (HashSet<_>, Vec<_>) = embeddings
             .into_iter()
@@ -1179,29 +1253,61 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         entity_uuid: embedding.entity_id.entity_uuid,
                         property: embedding.property.as_ref().map(ToString::to_string),
                         embedding: embedding.embedding,
+                        updated_at_transaction_time,
+                        updated_at_decision_time,
                     },
                 )
             })
             .unzip();
-        let permissions = authorization_api
-            .check_entities_permission(
-                actor_id,
-                EntityPermission::Update,
-                entity_ids,
-                Consistency::FullyConsistent,
-            )
-            .await
-            .change_context(UpdateError)?
-            .0
-            .into_iter()
-            .filter_map(|(entity_id, has_permission)| (!has_permission).then_some(entity_id))
-            .collect::<Vec<_>>();
-        if !permissions.is_empty() {
-            let mut status = Report::new(PermissionAssertion);
-            for entity_id in permissions {
-                status = status.attach(format!("Permission denied for entity {entity_id}"));
-            }
-            return Err(status.change_context(UpdateError));
+
+        // TODO: Add permission to allow updating embeddings
+        //   see https://linear.app/hash/issue/H-1870
+        // let permissions = authorization_api
+        //     .check_entities_permission(
+        //         actor_id,
+        //         EntityPermission::UpdateEmbeddings,
+        //         entity_ids.iter().copied(),
+        //         Consistency::FullyConsistent,
+        //     )
+        //     .await
+        //     .change_context(UpdateError)?
+        //     .0
+        //     .into_iter()
+        //     .filter_map(|(entity_id, has_permission)| (!has_permission).then_some(entity_id))
+        //     .collect::<Vec<_>>();
+        // if !permissions.is_empty() {
+        //     let mut status = Report::new(PermissionAssertion);
+        //     for entity_id in permissions {
+        //         status = status.attach(format!("Permission denied for entity {entity_id}"));
+        //     }
+        //     return Err(status.change_context(UpdateError));
+        // }
+
+        if reset {
+            let (owned_by_id, entity_uuids): (Vec<_>, Vec<_>) = entity_ids
+                .into_iter()
+                .map(|entity_id| (entity_id.owned_by_id, entity_id.entity_uuid))
+                .unzip();
+            self.as_client()
+                .query(
+                    "
+                        DELETE FROM entity_embeddings
+                        WHERE (web_id, entity_uuid) IN (
+                            SELECT *
+                            FROM UNNEST($1::UUID[], $2::UUID[])
+                        )
+                        AND updated_at_transaction_time <= $3
+                        AND updated_at_decision_time <= $4;
+                    ",
+                    &[
+                        &owned_by_id,
+                        &entity_uuids,
+                        &updated_at_transaction_time,
+                        &updated_at_decision_time,
+                    ],
+                )
+                .await
+                .change_context(UpdateError)?;
         }
         self.as_client()
             .query(
@@ -1209,7 +1315,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     INSERT INTO entity_embeddings
                     SELECT * FROM UNNEST($1::entity_embeddings[])
                     ON CONFLICT (web_id, entity_uuid, property) DO UPDATE
-                    SET embedding = EXCLUDED.embedding;
+                    SET
+                        embedding = EXCLUDED.embedding,
+                        updated_at_transaction_time = EXCLUDED.updated_at_transaction_time,
+                        updated_at_decision_time = EXCLUDED.updated_at_decision_time
+                    WHERE entity_embeddings.updated_at_transaction_time <= \
+                 EXCLUDED.updated_at_transaction_time
+                    AND entity_embeddings.updated_at_decision_time <= \
+                 EXCLUDED.updated_at_decision_time;
                 ",
                 &[&entity_embeddings],
             )

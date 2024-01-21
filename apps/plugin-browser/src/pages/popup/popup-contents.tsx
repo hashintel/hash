@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import browser, { Tabs } from "webextension-polyfill";
 
 import { clearError } from "../../shared/badge";
-import { useLocalStorage } from "../shared/use-local-storage";
+import { useStorageSync } from "../shared/use-storage-sync";
 import { useUser } from "../shared/use-user";
 import { ActionCenter } from "./popup-contents/action-center";
 import { SignIn } from "./popup-contents/sign-in";
@@ -30,7 +30,7 @@ export const PopupContents = () => {
     null,
   );
 
-  const [popupTab, setPopupTab, popupTabLoaded] = useLocalStorage(
+  const [popupTab, setPopupTab, popupTabLoaded] = useStorageSync(
     "popupTab",
     "one-off",
   );

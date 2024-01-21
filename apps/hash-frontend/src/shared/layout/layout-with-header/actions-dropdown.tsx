@@ -10,8 +10,10 @@ import {
   Box,
   Divider,
   ListItemIcon,
+  listItemIconClasses,
   listItemSecondaryActionClasses,
   ListItemText,
+  listItemTextClasses,
   Menu,
   Typography,
   useTheme,
@@ -26,6 +28,7 @@ import { FunctionComponent, useContext } from "react";
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { HashtagRegularIcon } from "../../icons/hashtag-regular-icon";
+import { InfinitySolidIcon } from "../../icons/infinity-solid-icon";
 import { UploadRegularIcon } from "../../icons/upload-regular-icon";
 import { MenuItem } from "../../ui";
 import { CreatePageMenuItems } from "./actions-dropdown/create-page-menu-items";
@@ -125,6 +128,29 @@ const ActionsDropdownInner: FunctionComponent = () => {
             <UploadRegularIcon />
           </ListItemIcon>
           <ListItemText primary="Upload a file" />
+        </MenuItem>
+        <Divider />
+        <MenuItem
+          href="/settings/integrations"
+          onClick={popupState.close}
+          sx={{
+            [`& .${listItemTextClasses.primary}, .${listItemIconClasses.root} svg`]:
+              {
+                color: ({ palette }) => palette.blue[70],
+                fontWeight: 600,
+              },
+            "&:hover": {
+              [`& .${listItemTextClasses.primary}, .${listItemIconClasses.root} svg`]:
+                {
+                  color: ({ palette }) => palette.blue[70],
+                },
+            },
+          }}
+        >
+          <ListItemIcon>
+            <InfinitySolidIcon />
+          </ListItemIcon>
+          <ListItemText primary="Sync external data" />
         </MenuItem>
       </Menu>
     </Box>

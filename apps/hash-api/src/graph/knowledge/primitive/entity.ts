@@ -451,12 +451,33 @@ export const archiveEntity: ImpureGraphFunction<
   await graphApi.updateEntity(actorId, {
     entityId: entity.metadata.recordId.entityId,
     archived: true,
-    draft: entity.metadata.draft,
     /**
      * @todo: these fields shouldn't be required when archiving an entity
      *
      * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
      * */
+    draft: entity.metadata.draft,
+    entityTypeId: entity.metadata.entityTypeId,
+    properties: entity.properties,
+  });
+};
+
+export const unarchiveEntity: ImpureGraphFunction<
+  {
+    entity: Entity;
+  },
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  const { entity } = params;
+  await graphApi.updateEntity(actorId, {
+    entityId: entity.metadata.recordId.entityId,
+    /**
+     * @todo: these fields shouldn't be required when archiving an entity
+     *
+     * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
+     * */
+    archived: false,
+    draft: entity.metadata.draft,
     entityTypeId: entity.metadata.entityTypeId,
     properties: entity.properties,
   });

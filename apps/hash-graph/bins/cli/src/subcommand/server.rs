@@ -1,6 +1,7 @@
 use std::{
     fmt, fs,
     net::{AddrParseError, SocketAddr},
+    str::FromStr,
     sync::Arc,
     time::Duration,
 };
@@ -13,13 +14,13 @@ use authorization::{
 use clap::Parser;
 use error_stack::{Report, Result, ResultExt};
 use graph::{
-    logging::{init_logger, LoggingArgs},
     ontology::domain_validator::DomainValidator,
     store::{DatabaseConnectionInfo, FetchingPool, PostgresStorePool, StorePool},
 };
 use graph_api::rest::{rest_api_router, OpenApiDocumentation, RestRouterDependencies};
 use regex::Regex;
-use reqwest::Client;
+use reqwest::{Client, Url};
+use temporal_client::TemporalClientConfig;
 use tokio::{net::TcpListener, time::timeout};
 use tokio_postgres::NoTls;
 
@@ -58,9 +59,6 @@ impl TryFrom<ApiAddress> for SocketAddr {
 
 #[derive(Debug, Parser)]
 pub struct ServerArgs {
-    #[clap(flatten)]
-    pub log_config: LoggingArgs,
-
     #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
 
@@ -109,17 +107,25 @@ pub struct ServerArgs {
     pub spicedb_host: String,
 
     /// The port the Spice DB server is listening at.
-    #[clap(long, env = "HASH_SPICEDB_HTTP_PORT")]
+    #[clap(long, env = "HASH_SPICEDB_HTTP_PORT", default_value_t = 8443)]
     pub spicedb_http_port: u16,
 
     /// The secret key used to authenticate with the Spice DB server.
     #[clap(long, env = "HASH_SPICEDB_GRPC_PRESHARED_KEY")]
     pub spicedb_grpc_preshared_key: Option<String>,
+
+    /// The URL of the Temporal server.
+    ///
+    /// If not set, the service will not trigger workflows.
+    #[clap(long, env = "HASH_TEMPORAL_SERVER_HOST")]
+    pub temporal_host: Option<String>,
+
+    /// The URL of the Temporal server.
+    #[clap(long, env = "HASH_TEMPORAL_SERVER_PORT", default_value_t = 7233)]
+    pub temporal_port: u16,
 }
 
 pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
-    let _log_guard = init_logger(&args.log_config);
-
     if args.healthcheck {
         return healthcheck(args.api_address)
             .await
@@ -197,6 +203,19 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
         store: Arc::new(pool),
         authorization_api: Arc::new(zanzibar_client),
         domain_regex: DomainValidator::new(args.allowed_url_domain),
+        temporal_client: if let Some(host) = args.temporal_host {
+            Some(
+                TemporalClientConfig::new(
+                    Url::from_str(&format!("{}:{}", host, args.temporal_port))
+                        .change_context(GraphError)?,
+                )
+                .change_context(GraphError)?
+                .await
+                .change_context(GraphError)?,
+            )
+        } else {
+            None
+        },
     });
 
     tracing::info!("Listening on {}", args.api_address);

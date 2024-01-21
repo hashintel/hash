@@ -1,6 +1,6 @@
 {
   "name": "@apps/plugin-browser",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "private": true,
   "description": "A browser extension for gathering info from the web into your HASH account.",
   "repository": {
@@ -14,8 +14,9 @@
     ]
   },
   "scripts": {
-    "build": "NODE_ENV=production yarn lint:tsc && node utils/build.js",
-    "build:firefox": "NODE_ENV=production yarn lint:tsc && BROWSER=firefox node utils/build.js",
+    "build": "yarn lint:tsc && NODE_ENV=production node utils/build.js",
+    "build:firefox": "yarn lint:tsc && BROWSER=firefox NODE_ENV=production node utils/build.js",
+    "build:test": "yarn lint:tsc && NODE_ENV=test node utils/build.js",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "node utils/webserver.js",
     "dev:firefox": "BROWSER=firefox node utils/webserver.js",
@@ -29,11 +30,12 @@
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@mui/material": "5.14.11",
-    "@sentry/browser": "7.74.1",
+    "@sentry/browser": "7.93.0",
     "bowser": "2.11.0",
     "date-fns": "2.28.0",
     "fractional-indexing": "2.1.0",
     "graphql": "16.8.1",
+    "lodash.debounce": "4.0.8",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "uuid": "9.0.1",
@@ -53,7 +55,8 @@
     "@local/hash-subgraph": "0.0.0-private",
     "@local/status": "0.0.0-private",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.10",
-    "@sentry/webpack-plugin": "2.9.0",
+    "@sentry/webpack-plugin": "2.10.2",
+    "@types/lodash.debounce": "4.0.7",
     "@types/react": "18.0.26",
     "@types/react-dom": "18.0.10",
     "@types/webextension-polyfill": "0.10.4",

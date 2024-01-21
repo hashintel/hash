@@ -514,6 +514,7 @@ impl DatabaseApi<'_> {
             .create_entity(
                 self.account_id,
                 &mut NoAuthorization,
+                None,
                 OwnedById::new(self.account_id.into_uuid()),
                 entity_uuid,
                 Some(generate_decision_time()),
@@ -549,6 +550,7 @@ impl DatabaseApi<'_> {
                 None,
             )
             .await?
+            .0
             .vertices
             .entities
             .into_values()
@@ -581,6 +583,7 @@ impl DatabaseApi<'_> {
                 None,
             )
             .await?
+            .0
             .vertices
             .entities
             .into_values()
@@ -608,6 +611,7 @@ impl DatabaseApi<'_> {
                 None,
             )
             .await?
+            .0
             .vertices
             .entities
             .into_values()
@@ -627,6 +631,7 @@ impl DatabaseApi<'_> {
             .update_entity(
                 self.account_id,
                 &mut NoAuthorization,
+                None,
                 entity_id,
                 Some(generate_decision_time()),
                 false,
@@ -650,6 +655,7 @@ impl DatabaseApi<'_> {
             .create_entity(
                 self.account_id,
                 &mut NoAuthorization,
+                None,
                 OwnedById::new(self.account_id.into_uuid()),
                 entity_uuid,
                 None,
@@ -741,11 +747,12 @@ impl DatabaseApi<'_> {
             .await?;
 
         let roots = subgraph
+            .0
             .roots
             .into_iter()
             .filter_map(|vertex_id| match vertex_id {
                 GraphElementVertexId::KnowledgeGraph(vertex_id) => {
-                    subgraph.vertices.entities.remove(&vertex_id)
+                    subgraph.0.vertices.entities.remove(&vertex_id)
                 }
                 _ => None,
             })
@@ -808,11 +815,12 @@ impl DatabaseApi<'_> {
             .await?;
 
         Ok(subgraph
+            .0
             .roots
             .into_iter()
             .filter_map(|vertex_id| match vertex_id {
                 GraphElementVertexId::KnowledgeGraph(edition_id) => {
-                    subgraph.vertices.entities.remove(&edition_id)
+                    subgraph.0.vertices.entities.remove(&edition_id)
                 }
                 _ => None,
             })
@@ -830,6 +838,7 @@ impl DatabaseApi<'_> {
             .update_entity(
                 self.account_id,
                 &mut NoAuthorization,
+                None,
                 entity_id,
                 None,
                 true,

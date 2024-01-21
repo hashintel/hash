@@ -42,6 +42,8 @@ export const TypeSelector = <T extends TypeSelectorType>({
 
   return (
     <SelectorAutocomplete
+      data-testid="type-selector"
+      noOptionsText="No results"
       dropdownProps={dropdownProps}
       inputPlaceholder={`Search for ${
         variant === "entity type" ? "an" : "a"
@@ -81,7 +83,7 @@ export const TypeSelector = <T extends TypeSelectorType>({
           onCancel();
         }
       }}
-      onBlur={() => {
+      onClickAway={() => {
         if (!createModalPopupState?.isOpen) {
           onCancel();
         }

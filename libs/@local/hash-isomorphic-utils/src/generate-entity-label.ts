@@ -92,11 +92,10 @@ export const generateEntityLabel = (
       }
 
       entityTypesToCheck.push(
-        ...(entityTypeAndAncestors ?? []).filter(
-          (type) =>
-            typeToCheck.schema.allOf?.find(
-              ({ $ref }) => $ref === type.schema.$id,
-            ),
+        ...(entityTypeAndAncestors ?? []).filter((type) =>
+          typeToCheck.schema.allOf?.find(
+            ({ $ref }) => $ref === type.schema.$id,
+          ),
         ),
       );
     }

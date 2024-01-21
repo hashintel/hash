@@ -62,7 +62,7 @@ services:
       HASH_GRAPH_API_PORT: "${HASH_GRAPH_TEST_API_PORT}"
       HASH_SPICEDB_HOST: http://spicedb
       HASH_SPICEDB_HTTP_PORT: "${HASH_SPICEDB_HTTP_PORT}"
-      RUST_LOG: "info"
+      HASH_GRAPH_LOG_LEVEL: "${HASH_GRAPH_LOG_LEVEL}"
       RUST_BACKTRACE: 1
     ports:
       - "${HASH_GRAPH_TEST_API_PORT}:${HASH_GRAPH_TEST_API_PORT}"
@@ -90,8 +90,14 @@ services:
         condition: service_healthy
       spicedb:
         condition: service_healthy
+      temporal:
+        condition: service_healthy
+      temporal-setup:
+        condition: service_completed_successfully
     environment:
       HASH_SPICEDB_HOST: http://spicedb
       HASH_SPICEDB_HTTP_PORT: "${HASH_SPICEDB_HTTP_PORT}"
+      HASH_TEMPORAL_SERVER_HOST: "http://temporal"
+      HASH_TEMPORAL_SERVER_PORT: "${HASH_TEMPORAL_SERVER_PORT}"
     ports:
       - "${HASH_GRAPH_API_PORT}:${HASH_GRAPH_API_PORT}"

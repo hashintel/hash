@@ -58,13 +58,6 @@ export const serviceModuleCallbacks: ServiceEmbedderMessageCallbacks = {
       payload,
     }),
 
-  openaiCompleteText: async ({ data: payload }) =>
-    callExternalApiMethod({
-      providerName: "openai",
-      methodName: "completeText",
-      payload,
-    }),
-
   openaiCompleteChat: async ({ data: payload }) =>
     callExternalApiMethod({
       providerName: "openai",

@@ -3,12 +3,9 @@ use std::{borrow::Cow, net::SocketAddr, time::Duration};
 use axum::{
     body::Body,
     extract::{ConnectInfo, MatchedPath, OriginalUri},
-    http::{self, uri::Scheme, Request, StatusCode},
-    middleware::Next,
-    response::{IntoResponse, Response},
+    http::{self, uri::Scheme, Request},
+    response::Response,
 };
-use bytes::Bytes;
-use http_body_util::Collected;
 use hyper::header;
 use opentelemetry::{
     propagation::Extractor,
@@ -19,71 +16,7 @@ use tower_http::{
     classify::{ServerErrorsAsFailures, ServerErrorsFailureClass, SharedClassifier},
     trace::{DefaultOnBodyChunk, DefaultOnEos, DefaultOnRequest, TraceLayer},
 };
-use tracing::{enabled, field::Empty, Level};
-
-// *Heavily* inspired by
-// https://github.com/tokio-rs/axum/blob/main/examples/print-request-response/src/main.rs
-
-/// A development-environment-focused `axum` Handler function to buffer the body of requests and
-/// responses and log them. Overhead should be minimal when not in `Level::Trace`
-pub(crate) async fn log_request_and_response(
-    request: Request<Body>,
-    next: Next,
-) -> Result<impl IntoResponse, (StatusCode, String)> {
-    let mut request = request;
-    if enabled!(Level::TRACE) {
-        // Destructure the request and pass the stream buffer
-        let (parts, body) = request.into_parts();
-        let bytes = buffer_and_log("request", body, None).await?;
-        request = Request::from_parts(parts, Body::from(bytes));
-    }
-
-    // Run the rest of the layers
-    let response = next.run(request).await;
-
-    if enabled!(Level::TRACE) {
-        // Destructure the response and pass the stream buffer
-        let (parts, body) = response.into_parts();
-        let bytes = buffer_and_log("response", body, Some(parts.status)).await?;
-        let new_response = Response::from_parts(parts, Body::from(bytes));
-        Ok(new_response.into_response())
-    } else {
-        Ok(response)
-    }
-}
-
-async fn buffer_and_log(
-    direction: &str,
-    body: Body,
-    status_code: Option<StatusCode>,
-) -> Result<Bytes, (StatusCode, String)> {
-    let bytes = match http_body_util::BodyExt::collect(body)
-        .await
-        .map(Collected::to_bytes)
-    {
-        Ok(bytes) => bytes,
-        Err(err) => {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                format!("failed to read {direction} body: {err}"),
-            ));
-        }
-    };
-
-    if let Ok(body) = std::str::from_utf8(&bytes) {
-        if let Some(status_code) = status_code {
-            if status_code.is_success() {
-                tracing::trace!("{direction} body = {body:?}");
-            } else {
-                tracing::error!("{direction} body = {body:?}");
-            }
-        } else {
-            tracing::trace!("{direction} body = {body:?}");
-        }
-    }
-
-    Ok(bytes)
-}
+use tracing::field::Empty;
 
 pub(crate) fn span_trace_layer() -> TraceLayer<
     SharedClassifier<ServerErrorsAsFailures>,
