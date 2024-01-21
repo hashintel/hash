@@ -14,14 +14,14 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "incremental": true
+    "incremental": true,
   },
   "include": [
     "@types/gtag.js",
     "next-env.d.ts",
     "theme-override.d.ts",
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
 }
