@@ -9,14 +9,14 @@
     "noEmit": true,
     "paths": {
       "@blockprotocol/type-system": [
-        "../../../../node_modules/@blockprotocol/type-system/dist/cjs-slim/index-slim.d.ts"
-      ]
+        "../../../../node_modules/@blockprotocol/type-system/dist/cjs-slim/index-slim.d.ts",
+      ],
     },
     "plugins": [
       {
-        "name": "next"
-      }
-    ]
+        "name": "next",
+      },
+    ],
   },
   "include": [
     "assets.d.ts",
@@ -24,7 +24,7 @@
     "theme-override.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "codegen.config.ts"
+    "codegen.config.ts",
   ],
-  "exclude": ["node_modules", ".next"]
+  "exclude": ["node_modules", ".next"],
 }
