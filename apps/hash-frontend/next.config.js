@@ -46,7 +46,8 @@ const apiDomain = new URL(apiUrl).hostname;
  * @todo: import the page `entityTypeId` from `@local/hash-isomorphic-utils/ontology-types`
  * when the `next.config.js` supports imports from modules
  */
-const pageEntityTypeBaseUrl = "https://hash.ai/@hash/types/entity-type/page/";
+const pageEntityTypeBaseUrl =
+  "https://hash.ai/@hash/types/entity-type/document/";
 
 /**
  * @todo make plugin definition cleaner - some ideas in https://github.com/cyrilwanner/next-compose-plugins/issues/59
