@@ -37,14 +37,15 @@ const InferenceRequestContainer = ({
   request: PageEntityInference;
   user: NonNullable<LocalStorage["user"]>;
 }) => {
-  const isUnproductiveSuccessfulRequest =
-    request.status === "complete" &&
-    (!request.data.contents[0]?.results?.length ||
-      request.data.contents[0].results.every(
-        (result) => result.operation === "already-exists-as-proposed",
-      ));
-
   const [cancellationRequested, setCancellationRequested] = useState(false);
+
+  const isUnproductiveSuccessfulRequest =
+    request.status === "complete" ||
+    (request.status === "user-cancelled" &&
+      (!request.data.contents[0]?.results?.length ||
+        request.data.contents[0].results.every(
+          (result) => result.operation === "already-exists-as-proposed",
+        )));
 
   const cancelRequest = (event: MouseEvent) => {
     event.stopPropagation();
@@ -112,7 +113,13 @@ const InferenceRequestContainer = ({
         </Stack>
         {request.status === "pending" ? (
           <Stack alignItems="center" direction="row">
-            {!cancellationRequested && (
+            {cancellationRequested ? (
+              <CircularProgress
+                variant="indeterminate"
+                size={13}
+                sx={{ mr: 1, color: ({ palette }) => palette.red[70] }}
+              />
+            ) : (
               <IconButton
                 onClick={cancelRequest}
                 title="Cancel request"
@@ -137,7 +144,8 @@ const InferenceRequestContainer = ({
               sx={{ mr: 1 }}
             />
           </Stack>
-        ) : request.status === "complete" ? (
+        ) : request.status === "complete" ||
+          request.status === "user-cancelled" ? (
           isUnproductiveSuccessfulRequest ? (
             <DashIcon
               sx={{ height: 16, fill: ({ palette }) => palette.gray[40] }}

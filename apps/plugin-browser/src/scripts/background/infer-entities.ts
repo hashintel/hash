@@ -1,12 +1,9 @@
-import type { VersionedUrl } from "@blockprotocol/graph";
 import type {
-  InferenceModelName,
   InferEntitiesRequestMessage,
   InferEntitiesResponseMessage,
   InferEntitiesReturn,
   InferEntitiesUserArguments,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { OwnedById } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { v4 as uuid } from "uuid";
 import browser from "webextension-polyfill";

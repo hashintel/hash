@@ -41,9 +41,14 @@ export const inferEntities = async (params: InferEntitiesCallerParams) => {
         err.cause.details[0] !== null &&
         "code" in err.cause.details[0]
       ) {
-        // We've been given a cancellation failure with the return in the cause's details, return it
-        const details = err.cause.details[0];
-        throw new CancelledFailure("Cancelled", [details]);
+        /**
+         * We've been given a cancellation failure with the return in the cause's details, return it.
+         *
+         * Ideally we'd throw the `CancelledFailure` error here, so that Temporal treats it as a cancellation,
+         * but the client doesn't see the `details` if we do that for some reason.
+         * @see https://temporalio.slack.com/archives/C01DKSMU94L/p1705927971571849
+         */
+        return err.cause.details[0];
       }
     }
     throw err;

@@ -10,7 +10,6 @@ export const CopyableRequestId = ({ requestId }: { requestId: string }) => {
       alignItems="center"
       direction="row"
       justifyContent="flex-end"
-      mt={0.8}
     >
       <Typography
         sx={{

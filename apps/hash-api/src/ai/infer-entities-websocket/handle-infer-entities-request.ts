@@ -31,7 +31,7 @@ export const handleInferEntitiesRequest = async ({
 
   const sendResponse = (
     payload: InferEntitiesReturn,
-    status: "bad-request" | "complete",
+    status: InferEntitiesResponseMessage["status"],
   ) => {
     const responseMessage: InferEntitiesResponseMessage = {
       payload,
@@ -91,9 +91,11 @@ export const handleInferEntitiesRequest = async ({
       },
     });
 
-    sendResponse(status, "complete");
+    sendResponse(
+      status,
+      status.code === "CANCELLED" ? "user-cancelled" : "complete",
+    );
   } catch (err) {
-    console.log(JSON.stringify(err, null, 2));
     const errorCause = (err as WorkflowFailedError).cause?.cause as
       | ApplicationFailure
       | undefined;
