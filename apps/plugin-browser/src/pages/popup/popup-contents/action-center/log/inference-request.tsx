@@ -1,8 +1,8 @@
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
-import { Box, Skeleton, Stack, Typography } from "@mui/material";
+import { Box, Link, Skeleton, Stack, Typography } from "@mui/material";
 import { formatDuration, intervalToDuration } from "date-fns";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type {
   LocalStorage,
@@ -13,6 +13,7 @@ import {
   darkModeBorderColor,
 } from "../../../../shared/style-values";
 import { useEntityTypes } from "../../../../shared/use-entity-types";
+import { CopyableRequestId } from "./inference-request/copyable-request-id";
 import { InferredEntity } from "./inference-request/inferred-entity";
 
 const metadataFontSize = 12;
@@ -34,7 +35,17 @@ const MetadataItem = ({ label, value }: { label: string; value: string }) => (
   </Stack>
 );
 
+const generateDurationString = (interval: Interval) =>
+  formatDuration(intervalToDuration(interval));
+
 const InferenceMetadata = ({ request }: { request: PageEntityInference }) => {
+  const [timeElapsed, setTimeElapsed] = useState(() =>
+    generateDurationString({
+      start: new Date(request.createdAt),
+      end: new Date(request.finishedAt || Date.now()),
+    }),
+  );
+
   const usage =
     "data" in request &&
     request.data.contents[0]?.usage.reduce(
@@ -42,51 +53,47 @@ const InferenceMetadata = ({ request }: { request: PageEntityInference }) => {
       0,
     );
 
-  const duration = request.finishedAt
-    ? formatDuration(
-        intervalToDuration({
-          start: new Date(request.createdAt),
-          end: new Date(request.finishedAt),
-        }),
-      )
-    : null;
+  useEffect(() => {
+    if (!request.finishedAt) {
+      setTimeout(() => {
+        setTimeElapsed(
+          generateDurationString({
+            start: new Date(request.createdAt),
+            end: new Date(request.finishedAt || Date.now()),
+          }),
+        );
+      }, 1_000);
+    }
+  });
 
   return (
-    <Stack
-      alignItems="center"
-      direction="row"
-      justifyContent="space-between"
-      sx={() => ({
-        borderTopWidth: 1,
-        borderTopStyle: "solid",
-        ...borderColors,
-        pt: 0.5,
-      })}
-    >
-      <Box
-        component="a"
-        href={request.sourceUrl}
-        sx={({ palette, transitions }) => ({
-          color: palette.blue[70],
-          textDecoration: "none",
-          fontSize: metadataFontSize,
-          fontWeight: 600,
-          lineHeight: 1.5,
-          marginBottom: "1px",
-          opacity: 0.7,
-          transition: transitions.create("opacity"),
-          "&:hover": {
-            opacity: 1,
-          },
+    <Box>
+      <Stack
+        alignItems="center"
+        direction="row"
+        justifyContent="space-between"
+        sx={() => ({
+          borderTopWidth: 1,
+          borderTopStyle: "solid",
+          ...borderColors,
+          pt: 0.5,
         })}
-        target="blank"
       >
-        View source page
-      </Box>
-      <MetadataItem label="Model" value={request.model} />
-      {usage && <MetadataItem label="Tokens" value={usage.toString()} />}
-      {duration && <MetadataItem label="Time" value={duration} />}
-    </Stack>
+        <Link
+          href={request.sourceUrl}
+          sx={{
+            fontSize: metadataFontSize,
+          }}
+          target="blank"
+        >
+          View source page
+        </Link>
+        <MetadataItem label="Model" value={request.model} />
+        {usage && <MetadataItem label="Tokens" value={usage.toString()} />}
+        <MetadataItem label="Time" value={timeElapsed} />
+      </Stack>
+      <CopyableRequestId requestId={request.requestUuid} />
+    </Box>
   );
 };
 
@@ -127,7 +134,14 @@ export const InferenceRequest = ({
     !entityTypesSubgraph
   ) {
     return (
-      <Skeleton variant="rectangular" height={54} sx={{ borderRadius: 1 }} />
+      <Box px={1.5} py={1}>
+        <Skeleton
+          variant="rectangular"
+          height={54}
+          sx={{ borderRadius: 1, mb: 1.5 }}
+        />
+        <InferenceMetadata request={request} />
+      </Box>
     );
   }
 

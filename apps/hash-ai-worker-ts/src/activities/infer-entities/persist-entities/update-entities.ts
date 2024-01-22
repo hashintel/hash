@@ -75,6 +75,7 @@ export const updateEntities = async ({
               graphApiClient,
               filter: {
                 all: [
+                  { equal: [{ path: ["archived"] }, { parameter: false }] },
                   {
                     equal: [
                       { path: ["uuid"] },
@@ -105,27 +106,26 @@ export const updateEntities = async ({
               );
             }
 
+            const newProperties = {
+              ...existingEntity.properties,
+              ...properties,
+            };
+
             await graphApiClient.validateEntity(actorId, {
               draft: existingEntity.metadata.draft,
               entityTypeId,
               linkData: existingEntity.linkData,
               operations: ["all"],
-              properties: {
-                ...existingEntity.properties,
-                ...properties,
-              },
+              properties: newProperties,
             });
 
             const { data: updateEntityMetadata } =
               await graphApiClient.updateEntity(actorId, {
-                archived: false,
+                archived: existingEntity.metadata.archived,
                 draft: existingEntity.metadata.draft,
                 entityTypeId,
                 entityId: updateEntityId,
-                properties: {
-                  ...existingEntity.properties,
-                  ...properties,
-                },
+                properties: newProperties,
               });
 
             const metadata =
@@ -135,6 +135,7 @@ export const updateEntities = async ({
               entityTypeId,
               entity: {
                 ...existingEntity,
+                properties: newProperties,
                 metadata,
               },
               proposedEntity,
@@ -150,9 +151,7 @@ export const updateEntities = async ({
               } failed with err: ${stringify(err)}}`,
             );
 
-            const failureReason = `${extractErrorMessage(
-              err,
-            )}. The schema is ${JSON.stringify(entityType.schema)}.`;
+            const failureReason = `${extractErrorMessage(err)}.`;
 
             entityStatusMap.updateFailures[proposedEntity.entityId] = {
               entityTypeId,

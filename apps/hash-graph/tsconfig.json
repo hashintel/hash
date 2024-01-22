@@ -2,7 +2,7 @@
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "compilerOptions": {
     "module": "ESNext",
-    "esModuleInterop": true
+    "esModuleInterop": true,
   },
-  "include": ["./type-defs/*"]
+  "include": ["./type-defs/*"],
 }

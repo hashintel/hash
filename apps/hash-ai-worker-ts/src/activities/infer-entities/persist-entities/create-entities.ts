@@ -5,7 +5,6 @@ import type {
   InferredEntityCreationFailure,
   InferredEntityCreationSuccess,
   InferredEntityMatchesExisting,
-  ProposedEntity,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
@@ -22,17 +21,12 @@ import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib
 import isMatch from "lodash.ismatch";
 
 import type { DereferencedEntityType } from "../dereference-entity-type";
-import { InferenceState } from "../inference-types";
+import { InferenceState, UpdateCandidate } from "../inference-types";
 import { extractErrorMessage } from "../shared/extract-validation-failure-details";
 import { getEntityByFilter } from "../shared/get-entity-by-filter";
 import { stringify } from "../stringify";
 import { ensureTrailingSlash } from "./ensure-trailing-slash";
 import type { ProposedEntityCreationsByType } from "./generate-persist-entities-tools";
-
-type UpdateCandidate = {
-  existingEntity: Entity;
-  proposedEntity: ProposedEntity;
-};
 
 type StatusByTemporaryId<T> = Record<number, T>;
 
@@ -83,7 +77,7 @@ export const createEntities = async ({
     temporaryId: number,
   ): Entity | null | undefined =>
     internalEntityStatusMap.creationSuccesses[temporaryId]?.entity ??
-    internalEntityStatusMap.updateCandidates[temporaryId]?.existingEntity ??
+    internalEntityStatusMap.updateCandidates[temporaryId]?.entity ??
     internalEntityStatusMap.unchangedEntities[temporaryId]?.entity ??
     inferenceState.resultsByTemporaryId[temporaryId]?.entity;
 
@@ -95,9 +89,32 @@ export const createEntities = async ({
 
       await Promise.all(
         (proposedEntities ?? []).map(async (proposedEntity) => {
-          const properties = ensureTrailingSlash(
+          const possiblyOverdefinedProperties = ensureTrailingSlash(
             proposedEntity.properties ?? {},
           );
+
+          /**
+           * The AI tends to want to supply properties for entities even when they shouldn't have any,
+           * so we set the property object to empty if the schema demands it.
+           */
+          const entityType = requestedEntityTypes[entityTypeId]!; // check beforehand
+          const hasNoProperties =
+            Object.keys(entityType.schema.properties).length === 0;
+          const properties = hasNoProperties
+            ? {}
+            : possiblyOverdefinedProperties;
+
+          if (hasNoProperties) {
+            /**
+             * This prevents the proposed entity's properties object causing problems elsewhere, as it isn't present on the schema.
+             * Repeatedly advising the AI that it is providing a property not in the schema does not seem to stop it from doing so.
+             */
+            log(
+              `Overwriting properties of entity with temporary id ${proposedEntity.entityId} to an empty object, as the target type has no properties`,
+            );
+            // eslint-disable-next-line no-param-reassign
+            proposedEntity.properties = {};
+          }
 
           const nameProperties = [
             "name",
@@ -119,6 +136,7 @@ export const createEntities = async ({
               graphApiClient,
               filter: {
                 all: [
+                  { equal: [{ path: ["archived"] }, { parameter: false }] },
                   {
                     any: propertyKeysToMatchOn.map((key) => ({
                       equal: [
@@ -154,8 +172,9 @@ export const createEntities = async ({
                 internalEntityStatusMap.updateCandidates[
                   proposedEntity.entityId
                 ] = {
-                  existingEntity,
+                  entity: existingEntity,
                   proposedEntity,
+                  status: "update-candidate",
                 };
               } else {
                 log(
@@ -230,9 +249,7 @@ export const createEntities = async ({
               } failed with err: ${stringify(err)}`,
             );
 
-            const failureReason = `${extractErrorMessage(
-              err,
-            )}. The schema is ${JSON.stringify(nonLinkType.schema)}.`;
+            const failureReason = `${extractErrorMessage(err)}.`;
 
             internalEntityStatusMap.creationFailures[proposedEntity.entityId] =
               {
@@ -266,14 +283,17 @@ export const createEntities = async ({
               "targetEntityId" in proposedEntity
             )
           ) {
+            const originalProposal =
+              inferenceState.proposedEntitySummaries.find(
+                (summary) => summary.entityId === proposedEntity.entityId,
+              );
             internalEntityStatusMap.creationFailures[proposedEntity.entityId] =
               {
                 entityTypeId,
                 proposedEntity,
                 operation: "create",
                 status: "failure",
-                failureReason:
-                  "Link entities must have both a sourceEntityId and a targetEntityId.",
+                failureReason: `Link entities must have both a sourceEntityId and a targetEntityId.${originalProposal ? `You originally proposed that entityId ${proposedEntity.entityId} should have sourceEntityId ${originalProposal.sourceEntityId?.toString() ?? ""} and targetEntityId ${originalProposal.targetEntityId?.toString() ?? ""}.` : ""}`,
               };
             return;
           }
@@ -377,6 +397,7 @@ export const createEntities = async ({
               graphApiClient,
               filter: {
                 all: [
+                  { equal: [{ path: ["archived"] }, { parameter: false }] },
                   {
                     equal: [
                       {
@@ -438,10 +459,14 @@ export const createEntities = async ({
                 internalEntityStatusMap.updateCandidates[
                   proposedEntity.entityId
                 ] = {
-                  existingEntity: existingLinkEntity,
+                  entity: existingLinkEntity,
                   proposedEntity,
+                  status: "update-candidate",
                 };
               }
+              log(
+                `Proposed link entity ${proposedEntity.entityId} exactly matches existing entity – continuing`,
+              );
 
               return;
             }
@@ -491,9 +516,7 @@ export const createEntities = async ({
               } failed with err: ${stringify(err)}`,
             );
 
-            const failureReason = `${extractErrorMessage(
-              err,
-            )}. The schema is ${JSON.stringify(linkType.schema)}.`;
+            const failureReason = `${extractErrorMessage(err)}.`;
 
             internalEntityStatusMap.creationFailures[proposedEntity.entityId] =
               {

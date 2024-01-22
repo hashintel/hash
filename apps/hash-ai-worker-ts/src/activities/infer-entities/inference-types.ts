@@ -1,7 +1,9 @@
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import type { Entity } from "@local/hash-graph-client";
 import {
   InferenceTokenUsage,
   InferredEntityChangeResult,
+  ProposedEntity,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import OpenAI from "openai";
 
@@ -31,6 +33,12 @@ export type ProposedEntitySummary = {
   summary: string;
 };
 
+export type UpdateCandidate = {
+  entity: Entity;
+  proposedEntity: ProposedEntity;
+  status: "update-candidate";
+};
+
 export type InferenceState = {
   /** Starting from 1, the current iteration number, where each iteration is a call to the LLM */
   iterationCount: number;
@@ -39,7 +47,10 @@ export type InferenceState = {
   /** A list of entities that can be inferred from the input, in summary form (no properties) */
   proposedEntitySummaries: ProposedEntitySummary[];
   /** The results of attempting to persist entities inferred from the input */
-  resultsByTemporaryId: Record<number, InferredEntityChangeResult>;
+  resultsByTemporaryId: Record<
+    number,
+    InferredEntityChangeResult | UpdateCandidate
+  >;
   /** The token usage for each iteration, in order */
   usage: InferenceTokenUsage[];
 };

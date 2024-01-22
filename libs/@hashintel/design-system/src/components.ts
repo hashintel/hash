@@ -23,6 +23,7 @@ export * from "./icon-caret-down-solid";
 export * from "./icon-check";
 export * from "./icon-circle-plus";
 export * from "./icon-close";
+export * from "./icon-dash";
 export * from "./icon-download-regular";
 export * from "./icon-eye-regular";
 export * from "./icon-eye-slash-regular";
