@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
   getHashInstanceAdminAccountGroupId,
   isUserHashInstanceAdmin,
@@ -281,6 +282,47 @@ export const inferEntities = async ({
 
   const model = modelAliasToSpecificModel[modelAlias];
 
+  const unusableTypeIds = entityTypeIds.filter((entityTypeId) => {
+    const details = entityTypes[entityTypeId];
+    if (!details) {
+      return true;
+    }
+
+    const { isLink } = details;
+
+    if (!isLink) {
+      /**
+       * If it's not a link we assume it can be satisfied.
+       * @todo consider checking if it has required links (minItems > 1) which cannot be satisfied
+       */
+      return false;
+    }
+
+    /**
+     * If this is a link type, only search for it if it can be used, given the other types of entities being sought
+     */
+    const linkCanBeSatisfied = Object.values(entityTypes).some((option) =>
+      typedEntries(option.schema.links ?? {}).some(
+        ([linkTypeId, targetSchema]) =>
+          // It must exist as a potential link on at least one of the other entity types being sought...
+          linkTypeId === entityTypeId &&
+          // ...and that link must not have destination constraints which cannot be met
+          !(
+            "oneOf" in targetSchema.items &&
+            !targetSchema.items.oneOf.some(
+              (targetOption) => entityTypes[targetOption.$ref],
+            )
+          ),
+      ),
+    );
+
+    return !linkCanBeSatisfied;
+  });
+
+  for (const unusableTypeId of unusableTypeIds) {
+    delete entityTypes[unusableTypeId];
+  }
+
   const inferenceState: InferenceState = {
     iterationCount: 1,
     inProgressEntityIds: [],
@@ -302,6 +344,7 @@ export const inferEntities = async ({
     First, let's get a summary of the entities you can infer from the provided text. Please provide a brief description
     of each entity you can infer. It only needs to be long enough to uniquely identify the entity in the text – we'll
     worry about any more details in a future step.
+    For entities that link other entities together, the sourceEntityId must correspond to an entityId of an entity you provide, as must the targetEntityId.
     I'm about to provide you with the content of a website hosted at ${sourceUrl}, titled ${sourceTitle}.
     Pay particular attention to providing responses for entities which are most prominent in the page,
       and any which are mentioned in the title or URL – but include as many other entities as you can find also.

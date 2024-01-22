@@ -1,5 +1,5 @@
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
+import { typedKeys } from "@local/advanced-types/typed-entries";
 import { Status, StatusCode } from "@local/status";
 import dedent from "dedent";
 import OpenAI from "openai";
@@ -14,6 +14,7 @@ import {
   CompletionPayload,
   DereferencedEntityTypesByTypeId,
   InferenceState,
+  ProposedEntitySummary,
 } from "./inference-types";
 import { log } from "./log";
 import { getOpenAiResponse } from "./shared/get-open-ai-response";
@@ -35,6 +36,20 @@ export const inferEntitySummaries = async (params: {
   } = params;
 
   const { iterationCount, usage: usageFromPreviousIterations } = inferenceState;
+
+  if (iterationCount > 10) {
+    log(
+      `Model reached maximum number of iterations for generating summaries. Messages: ${stringify(
+        completionPayload.messages,
+      )}`,
+    );
+
+    return {
+      code: StatusCode.ResourceExhausted,
+      contents: [],
+      message: `Maximum number of iterations reached.`,
+    };
+  }
 
   log(`Iteration ${iterationCount} begun.`);
 
@@ -67,6 +82,7 @@ export const inferEntitySummaries = async (params: {
       | OpenAI.ChatCompletionToolMessageParam
       | OpenAI.ChatCompletionUserMessageParam
     )[],
+    proposedEntitySummaries: ProposedEntitySummary[],
   ) => {
     log(`Retrying with additional message: ${stringify(retryMessages)}`);
 
@@ -80,6 +96,7 @@ export const inferEntitySummaries = async (params: {
       ...params,
       inferenceState: {
         ...inferenceState,
+        proposedEntitySummaries,
         iterationCount: iterationCount + 1,
       },
       completionPayload: {
@@ -120,15 +137,18 @@ export const inferEntitySummaries = async (params: {
         };
       }
 
-      return retryWithMessages([
-        {
-          role: "tool",
-          content:
-            // @todo see if we can get the model to respond continuing off the previous JSON argument to the function call
-            "Your previous response was cut off for length – please respond again with a shorter function call.",
-          tool_call_id: toolCallId,
-        },
-      ]);
+      return retryWithMessages(
+        [
+          {
+            role: "tool",
+            content:
+              // @todo see if we can get the model to respond continuing off the previous JSON argument to the function call
+              "Your previous response was cut off for length – please respond again with a shorter function call.",
+            tool_call_id: toolCallId,
+          },
+        ],
+        inferenceState.proposedEntitySummaries,
+      );
     }
 
     case "content_filter":
@@ -190,7 +210,7 @@ export const inferEntitySummaries = async (params: {
         }
 
         if (functionName === "could_not_infer_entities") {
-          if (Object.keys(inferenceState.resultsByTemporaryId).length > 0) {
+          if (Object.keys(inferenceState.proposedEntitySummaries).length > 0) {
             return {
               code: StatusCode.Ok,
               contents: [inferenceState],
@@ -214,7 +234,6 @@ export const inferEntitySummaries = async (params: {
             proposedEntitySummariesByType = JSON.parse(
               modelProvidedArgument,
             ) as ProposedEntitySummariesByType;
-            validateEntitySummariesByType(proposedEntitySummariesByType);
           } catch (err) {
             log(
               `Model provided invalid argument to register_entity_summaries function. Argument provided: ${stringify(
@@ -223,25 +242,41 @@ export const inferEntitySummaries = async (params: {
             );
 
             retryMessages.push({
-              content:
-                "You provided an invalid argument to register_entity_summaries. Please try again",
+              content: `Invalid JSON, please try again: ${
+                (err as Error).message
+              }`,
               role: "tool",
               tool_call_id: toolCallId,
             });
             continue;
           }
 
-          for (const [entityTypeId, proposedEntitySummaries] of typedEntries(
-            proposedEntitySummariesByType,
-          )) {
-            for (const summary of proposedEntitySummaries) {
-              inferenceState.proposedEntitySummaries.push({
-                ...summary,
-                entityTypeId,
-              });
+          const { validSummaries, errorMessage } =
+            validateEntitySummariesByType(
+              proposedEntitySummariesByType,
+              entityTypes,
+              inferenceState.proposedEntitySummaries,
+            );
 
-              providedOrRerequestedEntityTypes.add(entityTypeId);
+          for (const validSummary of validSummaries) {
+            if (
+              !inferenceState.proposedEntitySummaries.some(
+                (summary) => summary.entityId === validSummary.entityId,
+              )
+            ) {
+              inferenceState.proposedEntitySummaries.push(validSummary);
             }
+            providedOrRerequestedEntityTypes.add(validSummary.entityTypeId);
+          }
+
+          if (errorMessage) {
+            retryMessages.push({
+              content: `There were problems with some of your proposals. Please correct these and try again: ${errorMessage}.
+              Remember, if you have specified a sourceEntityId and targetEntityId for an entity, you must provide entities with an entityId for each of the source and target!
+              `,
+              role: "tool",
+              tool_call_id: toolCallId,
+            });
           }
         }
       }
@@ -303,7 +338,10 @@ export const inferEntitySummaries = async (params: {
         })),
       );
 
-      return retryWithMessages(retryMessages);
+      return retryWithMessages(
+        retryMessages,
+        inferenceState.proposedEntitySummaries,
+      );
     }
   }
 
