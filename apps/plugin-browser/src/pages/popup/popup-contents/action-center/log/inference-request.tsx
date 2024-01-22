@@ -80,7 +80,6 @@ const InferenceMetadata = ({ request }: { request: PageEntityInference }) => {
         })}
       >
         <Link
-          component="a"
           href={request.sourceUrl}
           sx={{
             fontSize: metadataFontSize,
