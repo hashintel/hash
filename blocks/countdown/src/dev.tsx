@@ -4,7 +4,7 @@
  */
 import { VersionedUrl } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
-import { render } from "react-dom";
+import { createRoot } from "react-dom/client";
 
 import packageJSON from "../package.json";
 import Component from "./index";
@@ -40,4 +40,4 @@ const App = () => {
   );
 };
 
-render(<App />, node);
+createRoot(node!).render(<App />);
