@@ -9,7 +9,6 @@
 #![feature(try_find)]
 #![feature(type_alias_impl_trait)]
 #![feature(hash_raw_entry)]
-#![feature(bound_map)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 #![expect(
