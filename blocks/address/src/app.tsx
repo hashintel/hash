@@ -292,7 +292,7 @@ export const App: BlockComponent<BlockEntity> = ({
   };
 
   const updateAddress = async (address?: Address) => {
-    if (readonly || !address) {
+    if (readonly ?? !address) {
       return;
     }
 

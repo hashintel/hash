@@ -17,6 +17,7 @@ import type {
   BaseUrl,
   DataTypeWithMetadata,
   Entity,
+  EntityPropertiesObject,
   EntityPropertyValue,
   EntityTypeRootType,
   EntityTypeWithMetadata,
@@ -42,7 +43,7 @@ const generateEntityLabel = (
   entityType: EntityTypeWithMetadata,
   index: number,
 ) => {
-  const simplifiedProperties = simplifyProperties<{}>(
+  const simplifiedProperties = simplifyProperties<EntityPropertiesObject>(
     entityToLabel.properties ?? {},
   ) as Record<string, EntityPropertyValue>;
 
@@ -193,7 +194,7 @@ export const InferredEntity = ({
                * @todo figure out why that is and fix it, possibly in the @blockprotocol/type-system package,
                *    or in the plugin-browser webpack config.
                */
-              `${FRONTEND_ORIGIN}/@${web?.properties.shortname!}/entities/${
+              `${FRONTEND_ORIGIN}/@${web?.properties.shortname}/entities/${
                 persistedEntity.metadata.recordId.entityId.split("~")[1]
               }`
             : undefined

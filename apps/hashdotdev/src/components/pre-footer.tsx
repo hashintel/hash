@@ -227,7 +227,7 @@ export const Subscribe: FunctionComponent<
                   disabled={loading}
                   placeholder="you@example.com"
                   error={error !== null}
-                  helperText={error !== null ? error : undefined}
+                  helperText={error ?? undefined}
                   inputRef={inputRef}
                 />
                 <Button

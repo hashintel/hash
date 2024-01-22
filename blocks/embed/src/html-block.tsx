@@ -6,7 +6,7 @@ import { toCSSText } from "./utils";
 type HtmlBlockProps = {
   html: string;
   dimensions?: { height: number; width: number };
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export const HtmlBlock: FunctionComponent<HtmlBlockProps> = ({

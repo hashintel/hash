@@ -94,7 +94,7 @@ export const GenerateText = ({ blockEntity }: { blockEntity: BlockEntity }) => {
 
     const textResponse = choice?.message?.content;
 
-    if (errors || !textResponse) {
+    if (errors ?? !textResponse) {
       setError(true);
       setLoading(false);
       return;

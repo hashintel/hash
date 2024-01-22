@@ -7,6 +7,7 @@ import type {
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { OwnedById } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
+import { StatusCode } from "@local/status";
 import { v4 as uuid } from "uuid";
 import browser from "webextension-polyfill";
 
@@ -64,7 +65,7 @@ const getWebSocket = async () => {
       const { payload: inferredEntitiesReturn, requestUuid } = message;
 
       if (
-        inferredEntitiesReturn.code !== "OK" &&
+        inferredEntitiesReturn.code !== StatusCode.Ok &&
         inferredEntitiesReturn.contents.length === 0
       ) {
         const errorMessage = inferredEntitiesReturn.message;
