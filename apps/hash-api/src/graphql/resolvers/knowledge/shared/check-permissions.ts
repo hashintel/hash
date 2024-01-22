@@ -12,7 +12,7 @@ export const checkUserPermissionsOnEntity: ResolverFn<
   UserPermissions,
   Pick<Entity, "metadata">,
   GraphQLContext,
-  {}
+  Record<string, never>
 > = async (entity, _, context) => {
   return checkPermissionsOnEntity(context.dataSources, context.authentication, {
     entity,
@@ -23,7 +23,7 @@ export const canUserEdit: ResolverFn<
   boolean,
   Pick<Entity, "metadata">,
   LoggedInGraphQLContext,
-  {}
+  Record<string, never>
 > = async (entity, _, context) => {
   return checkEntityPermission(context.dataSources, context.authentication, {
     entityId: entity.metadata.recordId.entityId,

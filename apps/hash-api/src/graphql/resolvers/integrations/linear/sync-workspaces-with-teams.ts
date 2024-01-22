@@ -33,7 +33,7 @@ import { LoggedInGraphQLContext } from "../../../context";
 
 export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
   Promise<Entity>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationSyncLinearIntegrationWithWorkspacesArgs
 > = async (

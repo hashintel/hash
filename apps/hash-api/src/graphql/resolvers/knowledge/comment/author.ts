@@ -10,7 +10,7 @@ export const commentAuthorResolver: ResolverFn<
   Promise<Entity>,
   UnresolvedCommentGQL,
   LoggedInGraphQLContext,
-  {}
+  Record<string, never>
 > = async ({ metadata }, _, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 

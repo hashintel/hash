@@ -309,7 +309,7 @@ const readNodes = async <T>(connection: Connection<T>): Promise<T[]> => {
   return nodes;
 };
 
-type ParamsWithApiKey<T = {}> = T & { apiKey: string };
+type ParamsWithApiKey<T = Record<string, unknown>> = T & { apiKey: string };
 
 export const createLinearIntegrationActivities = ({
   graphApiClient,
@@ -336,7 +336,7 @@ export const createLinearIntegrationActivities = ({
 
   async readLinearOrganization({
     apiKey,
-  }: ParamsWithApiKey<{}>): Promise<PartialEntity> {
+  }: ParamsWithApiKey): Promise<PartialEntity> {
     return createLinearClient(apiKey).organization.then((organization) =>
       mapLinearDataToEntity({
         linearType: "Organization",

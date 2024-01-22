@@ -10,7 +10,7 @@ import { dataSourcesToImpureGraphContext } from "../../util";
 
 export const createFileFromUrl: ResolverFn<
   Promise<FileEntityType>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationCreateFileFromUrlArgs
 > = async (

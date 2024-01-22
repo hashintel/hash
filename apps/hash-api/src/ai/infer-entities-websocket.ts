@@ -126,11 +126,13 @@ export const openInferEntitiesWebSocket = ({
       "message",
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
       async (rawMessage) => {
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string -- doesn't matter for comparison
         if (rawMessage.toString() === "ping") {
           return;
         }
 
         const parsedMessage = JSON.parse(
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string -- doesn't matter for comparison
           rawMessage.toString(),
         ) as InferEntitiesRequestMessage; // @todo validate this
 

@@ -17,7 +17,7 @@ import { dataSourcesToImpureGraphContext } from "../util";
 
 export const queryDataTypes: ResolverFn<
   Promise<Subgraph>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   QueryQueryDataTypesArgs
 > = async (
@@ -48,7 +48,7 @@ export const queryDataTypes: ResolverFn<
 
 export const getDataType: ResolverFn<
   Promise<Subgraph>,
-  {},
+  Record<string, never>,
   GraphQLContext,
   QueryGetDataTypeArgs
 > = async (

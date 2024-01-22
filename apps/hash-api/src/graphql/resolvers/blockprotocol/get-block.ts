@@ -7,9 +7,9 @@ import { GraphQLContext } from "../../context";
 
 export const getBlockProtocolBlocksResolver: ResolverFn<
   BlockProtocolBlock[],
-  {},
+  Record<string, never>,
   GraphQLContext,
-  {}
+  Record<string, never>
 > = async () => {
   const apiKey = process.env.BLOCK_PROTOCOL_API_KEY;
 

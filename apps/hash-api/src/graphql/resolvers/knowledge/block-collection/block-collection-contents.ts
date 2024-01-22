@@ -14,7 +14,7 @@ export const blockCollectionContents: ResolverFn<
   { linkEntity: Entity; rightEntity: UnresolvedBlockGQL }[],
   Entity,
   LoggedInGraphQLContext,
-  {}
+  Record<string, never>
 > = async (blockCollection, _, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 

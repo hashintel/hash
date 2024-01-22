@@ -7,9 +7,9 @@ import { dataSourcesToImpureGraphContext } from "../../util";
 
 export const hashInstanceEntityResolver: ResolverFn<
   Promise<Entity>,
-  {},
+  Record<string, never>,
   GraphQLContext,
-  {}
+  Record<string, never>
 > = async (_, __, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 

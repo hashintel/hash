@@ -38,7 +38,7 @@ export const updateBlockCollectionContents: ResolverFn<
       blockCollection: Entity;
     }
   >,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationUpdateBlockCollectionContentsArgs
 > = async (

@@ -6,7 +6,7 @@ import { UnresolvedBlockGQL } from "../graphql-mapping";
 
 export const blocksResolver: ResolverFn<
   Promise<UnresolvedBlockGQL[]>,
-  {},
+  Record<string, never>,
   GraphQLContext,
   QueryBlocksArgs
 > = async (_, params, { dataSources, authentication }) => {

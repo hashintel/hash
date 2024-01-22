@@ -4,7 +4,7 @@ import { LoggedInGraphQLContext } from "../../../context";
 
 export const hasAccessToHashResolver: ResolverFn<
   Query["hasAccessToHash"],
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
-  {}
+  Record<string, never>
 > = async (_, __, { user }) => userHasAccessToHash({ user });

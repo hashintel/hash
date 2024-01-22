@@ -18,9 +18,9 @@ import { LoggedInGraphQLContext } from "../../../context";
 
 export const getUsageRecordsResolver: ResolverFn<
   Query["getUsageRecords"],
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
-  {}
+  Record<string, never>
 > = async (_, __, { dataSources, authentication, user: requestingUser }) => {
   const userIsAdmin = await isUserHashInstanceAdmin(
     { graphApi: dataSources.graphApi },

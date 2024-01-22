@@ -22,7 +22,11 @@ const requestHeaderContainsValidKratosApiKey = (req: Request): boolean =>
 const kratosAfterRegistrationHookHandler =
   (
     context: ImpureGraphContext,
-  ): RequestHandler<{}, {}, { identity: KratosUserIdentity }> =>
+  ): RequestHandler<
+    Record<string, never>,
+    string,
+    { identity: KratosUserIdentity }
+  > =>
   (req, res) => {
     const {
       body: {
