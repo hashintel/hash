@@ -21,29 +21,25 @@ export const createAiActivities = ({
   graphApiClient,
 }: {
   graphApiClient: GraphApi;
-}) => {
-  return {
-    async inferEntitiesActivity(
-      params: InferEntitiesCallerParams,
-    ): Promise<InferEntitiesReturn> {
-      const status = await inferEntitiesActivity({ ...params, graphApiClient });
-      if (status.code !== StatusCode.Ok) {
-        throw new ApplicationFailure(status.message, status.code, true, [
-          status,
-        ]);
-      }
+}) => ({
+  async inferEntitiesActivity(
+    params: InferEntitiesCallerParams,
+  ): Promise<InferEntitiesReturn> {
+    const status = await inferEntitiesActivity({ ...params, graphApiClient });
+    if (status.code !== StatusCode.Ok) {
+      throw new ApplicationFailure(status.message, status.code, true, [status]);
+    }
 
-      return status;
-    },
+    return status;
+  },
 
-    async createEmbeddingsActivity(params: {
-      entityProperties: EntityPropertiesObject;
-      propertyTypes: PropertyTypeWithMetadata[];
-    }): Promise<{
-      embeddings: { property?: BaseUrl; embedding: number[] }[];
-      usage: CreateEmbeddingResponse.Usage;
-    }> {
-      return createEmbeddings(params);
-    },
-  };
-};
+  async createEmbeddingsActivity(params: {
+    entityProperties: EntityPropertiesObject;
+    propertyTypes: PropertyTypeWithMetadata[];
+  }): Promise<{
+    embeddings: { property?: BaseUrl; embedding: number[] }[];
+    usage: CreateEmbeddingResponse.Usage;
+  }> {
+    return createEmbeddings(params);
+  },
+});
