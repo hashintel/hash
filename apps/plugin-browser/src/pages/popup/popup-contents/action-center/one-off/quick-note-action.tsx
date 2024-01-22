@@ -78,7 +78,7 @@ const createQuickNote = async (text: string) => {
         entityTypeId: systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
         properties: {
           "https://hash.ai/@hash/types/property-type/fractional-index/":
-            fractionalIndexes[index]!,
+            fractionalIndexes[index],
         } as HasIndexedContentProperties,
         linkData: {
           leftEntityId: quickNoteEntity.metadata.recordId.entityId,

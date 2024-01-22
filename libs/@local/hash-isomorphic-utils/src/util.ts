@@ -93,7 +93,7 @@ export const topologicalSort = <T>(edges: [T, T][]) => {
     sort.push(node);
     const nodeOutgoing = outgoingEdges.get(node);
     for (const child of Array.from(nodeOutgoing.values())) {
-      const childIncoming = incomingEdges.get(child)!;
+      const childIncoming = incomingEdges.get(child);
       // Remove the (node, child) edge from the graph
       nodeOutgoing.delete(child);
       childIncoming.delete(node);
@@ -172,7 +172,6 @@ export const treeFromParentReferences = <
      *  }
      * */
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (existingParent[recursive]) {
       existingParent[recursive].push(current);
     } else {

@@ -64,7 +64,6 @@ export const EntityTypeSelector: FunctionComponent<{
         uniqueId: $id,
         icon:
           icon ??
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo why this false positive?
           (isSpecialEntityTypeLookup?.[$id]?.isLink ? (
             <LinkTypeIcon />
           ) : (

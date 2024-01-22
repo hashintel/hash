@@ -35,12 +35,12 @@ type LinearWebhookPayload = {
   webhookTimestamp: number; // UNIX timestamp of webhook delivery in milliseconds.
 };
 
-// @todo upgrade to Express 5 which handles async controllers automatically
-// eslint-disable-next-line @typescript-eslint/no-misused-promises
 export const linearWebhook: RequestHandler<
   Record<string, never>,
   string,
   string
+  // @todo upgrade to Express 5 which handles async controllers automatically
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
 > = async (req, res) => {
   const secret = process.env.LINEAR_WEBHOOK_SECRET;
 

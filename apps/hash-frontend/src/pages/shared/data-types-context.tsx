@@ -68,7 +68,6 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
     ({ dataTypeId, value }: { dataTypeId: VersionedUrl; value: JsonValue }) => {
       const { baseUrl, version } = componentsFromVersionedUrl(dataTypeId);
 
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive on unsafe index access
       const dataType = data?.queryDataTypes.vertices[baseUrl]?.[
         version as unknown as OntologyTypeRevisionId
       ]?.inner.schema as DataTypeWithMetadata["schema"] | undefined;

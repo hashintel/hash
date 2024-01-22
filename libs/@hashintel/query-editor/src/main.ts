@@ -1,4 +1,4 @@
 export {
-  type EntityQueryEditorProps,
   EntityQueryEditor,
+  type EntityQueryEditorProps,
 } from "./entity-query-editor";

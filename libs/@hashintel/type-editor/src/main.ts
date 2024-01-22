@@ -1,6 +1,6 @@
 export {
-  type EntityTypeEditorProps,
   EntityTypeEditor,
+  type EntityTypeEditorProps,
   EntityTypeFormController,
   EntityTypeFormProvider,
   useEntityTypeForm,

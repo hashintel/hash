@@ -6,9 +6,9 @@ import {
   type EntityRecordId as EntityRecordIdBp,
   type EntityRevisionId as EntityRevisionIdBp,
   type EntityTemporalVersioningMetadata as EntityTemporalVersioningMetadataBp,
+  isEntityRecordId as isEntityRecordIdBp,
   type LinkData as LinkDataBp,
   type LinkEntityAndRightEntity as LinkEntityAndRightEntityBp,
-  isEntityRecordId as isEntityRecordIdBp,
 } from "@blockprotocol/graph/temporal";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Brand } from "@local/advanced-types/brand";

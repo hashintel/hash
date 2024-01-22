@@ -55,7 +55,6 @@ const configureAppReloadWhenBlockChanges = (
             window.location.reload();
           }
         } catch {
-          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need improvement
           reportProblem(`Could not parse socket message: ${data}`);
         }
       });

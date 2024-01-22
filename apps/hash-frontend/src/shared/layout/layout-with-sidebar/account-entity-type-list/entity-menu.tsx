@@ -32,7 +32,6 @@ export const EntityMenu: FunctionComponent<EntityTypeMenuProps> = ({
 }) => {
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const isLinkEntityType = isSpecialEntityTypeLookup?.[entityTypeId]?.isLink;
 
   return (
