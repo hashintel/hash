@@ -103,6 +103,7 @@ dependencies = [
  "serde_plain",
  "tokio",
  "tokio-util",
+ "tracing",
  "type-system",
  "utoipa",
  "uuid",

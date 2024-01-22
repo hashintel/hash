@@ -100,7 +100,7 @@ pub struct LoggingConfig {
         feature = "clap",
         clap(
             long,
-            default_value = "pretty",
+            default_value = "compact",
             value_enum,
             env = "HASH_GRAPH_LOG_FORMAT",
             global = true,

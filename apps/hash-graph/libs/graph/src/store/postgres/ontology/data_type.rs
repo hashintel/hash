@@ -37,6 +37,7 @@ use crate::{
 };
 
 impl<C: AsClient> PostgresStore<C> {
+    #[tracing::instrument(level = "trace", skip(data_types, authorization_api, zookie))]
     pub(crate) async fn filter_data_types_by_permission<I, T, A>(
         data_types: impl IntoIterator<Item = (I, T)> + Send,
         actor_id: AccountId,
@@ -79,7 +80,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     pub(crate) async fn traverse_data_types<A: AuthorizationApi + Sync>(
         &self,
         queue: Vec<(
@@ -100,7 +101,7 @@ impl<C: AsClient> PostgresStore<C> {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     pub async fn delete_data_types(&mut self) -> Result<(), DeletionError> {
         let transaction = self.transaction().await.change_context(DeletionError)?;
 
