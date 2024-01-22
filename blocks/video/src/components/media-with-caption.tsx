@@ -71,6 +71,7 @@ export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
       )}
       {!readonly && (
         <button
+          aria-label="Stop editing"
           type="button"
           onClick={onReset}
           className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm self-start border-solid`}

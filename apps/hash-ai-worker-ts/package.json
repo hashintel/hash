@@ -58,7 +58,7 @@
     "@types/dedent": "0.7.0",
     "@types/dotenv-flow": "3.2.0",
     "@types/lodash.ismatch": "4.4.9",
-    "eslint": "8.33.0",
+    "eslint": "8.56.0",
     "ts-node-dev": "2.0.0"
   }
 }

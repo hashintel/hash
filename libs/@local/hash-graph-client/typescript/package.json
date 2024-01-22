@@ -18,8 +18,8 @@
     "@local/tsconfig": "0.0.0-private",
     "@redocly/cli": "1.6.0",
     "@types/node": "18.15.13",
-    "@typescript-eslint/parser": "5.49.0",
-    "eslint": "8.33.0",
+    "@typescript-eslint/parser": "5.62.0",
+    "eslint": "8.56.0",
     "typescript": "5.1.6"
   }
 }

@@ -129,6 +129,7 @@ export const getUserServiceUsage = async (
       record.properties as UsageRecordProperties,
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive
     aggregateUsageByServiceFeature[serviceFeatureKey] ??= {
       serviceName,
       featureName,
