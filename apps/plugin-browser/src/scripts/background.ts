@@ -66,7 +66,10 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
             ({ restrictToDomains }) => {
               const pageHostname = new URL(pageDetails.pageUrl).hostname;
 
-              if (pageHostname === "app.hash.ai") {
+              if (
+                pageHostname === "app.hash.ai" ||
+                pageHostname === "hash.ai"
+              ) {
                 return false;
               }
 
