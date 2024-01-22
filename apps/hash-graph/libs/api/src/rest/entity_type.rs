@@ -31,10 +31,7 @@ use graph::{
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         ConflictBehavior, EntityTypeStore, StorePool,
     },
-    subgraph::{
-        identifier::EntityTypeVertexId,
-        query::{EntityTypeStructuralQuery, StructuralQuery},
-    },
+    subgraph::query::{EntityTypeStructuralQuery, StructuralQuery},
 };
 use graph_types::{
     ontology::{
@@ -690,7 +687,7 @@ async fn get_entity_types_by_query<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
-    Query(pagination): Query<Pagination<EntityTypeVertexId>>,
+    Query(pagination): Query<Pagination<VersionedUrl>>,
     OriginalUri(uri): OriginalUri,
     Json(query): Json<serde_json::Value>,
 ) -> Result<(HeaderMap, Json<Subgraph>), Response>

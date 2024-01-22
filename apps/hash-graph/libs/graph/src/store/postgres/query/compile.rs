@@ -2,9 +2,11 @@ use std::collections::{HashMap, HashSet};
 
 use postgres_types::ToSql;
 use temporal_versioning::TimeAxis;
+use tokio_postgres::Row;
 
 use crate::{
     store::{
+        crud::QueryCompiler,
         postgres::query::{
             expression::GroupByExpression,
             table::{
@@ -17,6 +19,7 @@ use crate::{
             WhereExpression, WindowStatement, WithExpression,
         },
         query::{Filter, FilterExpression, Parameter, ParameterList, ParameterType},
+        Record,
     },
     subgraph::temporal_axes::QueryTemporalAxes,
 };
@@ -40,11 +43,17 @@ pub struct CompilerArtifacts<'p> {
     uses_cursor: bool,
 }
 
-pub struct SelectCompiler<'p, T> {
+pub struct SelectCompiler<'p, T: Record> {
     statement: SelectStatement,
     artifacts: CompilerArtifacts<'p>,
     temporal_axes: Option<&'p QueryTemporalAxes>,
     table_hooks: HashMap<Table, fn(&mut Self, Alias)>,
+    selections:
+        HashMap<&'p T::QueryPath<'p>, (AliasedColumn, usize, Distinctness, Option<Ordering>)>,
+}
+
+impl<'c, R: Record> QueryCompiler<'c> for SelectCompiler<'c, R> {
+    type ResultSet = Row;
 }
 
 impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
@@ -92,6 +101,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
             },
             temporal_axes,
             table_hooks,
+            selections: HashMap::new(),
         }
     }
 
@@ -256,65 +266,79 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
     ///
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
-    pub fn add_selection_path<'q>(&mut self, path: &'p R::QueryPath<'q>) -> usize
+    pub fn add_selection_path(&mut self, path: &'p R::QueryPath<'p>) -> usize
     where
-        R::QueryPath<'q>: PostgresQueryPath,
+        R::QueryPath<'p>: PostgresQueryPath,
     {
-        let column = self.compile_path_column(path);
-        self.statement
-            .selects
-            .push(SelectExpression::from_column(column, None));
-        self.statement.selects.len() - 1
+        self.add_distinct_selection_with_ordering(path, Distinctness::Indistinct, None)
     }
 
     /// Adds a new path to the selection.
     ///
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
-    pub fn add_distinct_selection_with_ordering<'q>(
+    pub fn add_distinct_selection_with_ordering(
         &mut self,
-        path: &'p R::QueryPath<'q>,
+        path: &'p R::QueryPath<'p>,
         distinctness: Distinctness,
         ordering: Option<Ordering>,
     ) -> usize
     where
-        R::QueryPath<'q>: PostgresQueryPath,
+        R::QueryPath<'p>: PostgresQueryPath,
     {
-        let column = self.compile_path_column(path);
-        if distinctness == Distinctness::Distinct {
-            self.statement.distinct.push(column);
+        if let Some((column, index, stored_distinctness, stored_ordering)) =
+            self.selections.get_mut(path)
+        {
+            if distinctness == Distinctness::Distinct
+                && *stored_distinctness == Distinctness::Indistinct
+            {
+                self.statement.distinct.push(*column);
+                *stored_distinctness = Distinctness::Distinct;
+            }
+            if stored_ordering.is_none()
+                && let Some(ordering) = ordering
+            {
+                self.statement.order_by_expression.push(*column, ordering);
+                *stored_ordering = Some(ordering);
+            }
+            *index
+        } else {
+            let column = self.compile_path_column(path);
+            self.statement
+                .selects
+                .push(SelectExpression::from_column(column, None));
+
+            if distinctness == Distinctness::Distinct {
+                self.statement.distinct.push(column);
+            }
+            if let Some(ordering) = ordering {
+                self.statement.order_by_expression.push(column, ordering);
+            }
+
+            let index = self.statement.selects.len() - 1;
+            self.selections
+                .insert(path, (column, index, distinctness, ordering));
+            index
         }
-        if let Some(ordering) = ordering {
-            self.statement.order_by_expression.push(column, ordering);
-        }
-        self.statement
-            .selects
-            .push(SelectExpression::from_column(column, None));
-        self.statement.selects.len() - 1
     }
 
     /// Adds a new path to the selection which can be used as cursor.
-    pub fn add_cursor_selection<'q: 'p>(
+    pub fn add_cursor_selection(
         &mut self,
-        path: &'p R::QueryPath<'q>,
+        path: &'p R::QueryPath<'p>,
         lhs: impl FnOnce(Expression) -> Expression,
         rhs: Expression,
         ordering: Ordering,
     ) -> usize
     where
-        R::QueryPath<'q>: PostgresQueryPath,
+        R::QueryPath<'p>: PostgresQueryPath,
     {
         let column = self.compile_path_column(path);
-        self.statement.distinct.push(column);
-        self.statement.order_by_expression.push(column, ordering);
         self.statement
             .where_expression
             .add_cursor(lhs(Expression::Column(column)), rhs, ordering);
-        self.statement
-            .selects
-            .push(SelectExpression::from_column(column, None));
         self.artifacts.uses_cursor = true;
-        self.statement.selects.len() - 1
+        self.add_distinct_selection_with_ordering(path, Distinctness::Distinct, Some(ordering))
     }
 
     /// Adds a new filter to the selection.

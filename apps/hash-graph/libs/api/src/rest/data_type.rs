@@ -30,10 +30,7 @@ use graph::{
         error::VersionedUrlAlreadyExists, BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore,
         OntologyVersionDoesNotExist, StorePool,
     },
-    subgraph::{
-        identifier::DataTypeVertexId,
-        query::{DataTypeStructuralQuery, StructuralQuery},
-    },
+    subgraph::query::{DataTypeStructuralQuery, StructuralQuery},
 };
 use graph_types::{
     ontology::{
@@ -380,7 +377,7 @@ async fn get_data_types_by_query<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
-    Query(pagination): Query<Pagination<DataTypeVertexId>>,
+    Query(pagination): Query<Pagination<VersionedUrl>>,
     OriginalUri(uri): OriginalUri,
     Json(query): Json<serde_json::Value>,
 ) -> Result<(HeaderMap, Json<Subgraph>), Response>

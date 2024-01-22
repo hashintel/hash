@@ -130,7 +130,7 @@ pub struct StoreProvider<'a, S, A> {
 
 impl<S, A> StoreProvider<'_, S, A>
 where
-    S: Read<DataTypeWithMetadata, Record = DataTypeWithMetadata>,
+    S: Read<DataTypeWithMetadata>,
     A: AuthorizationApi + Sync,
 {
     async fn authorize_data_type(&self, type_id: DataTypeId) -> Result<(), Report<QueryError>> {
@@ -154,7 +154,7 @@ where
 
 impl<S, A> OntologyTypeProvider<DataType> for StoreProvider<'_, S, A>
 where
-    S: Read<DataTypeWithMetadata, Record = DataTypeWithMetadata>,
+    S: Read<DataTypeWithMetadata>,
     A: AuthorizationApi + Sync,
 {
     #[expect(refining_impl_trait)]
@@ -176,7 +176,7 @@ where
         let schema = self
             .store
             .read_one(
-                &Filter::<S::Record>::for_versioned_url(type_id),
+                &Filter::for_versioned_url(type_id),
                 Some(
                     &QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -197,7 +197,7 @@ where
 
 impl<S, A> StoreProvider<'_, S, A>
 where
-    S: Read<PropertyTypeWithMetadata, Record = PropertyTypeWithMetadata>,
+    S: Read<PropertyTypeWithMetadata>,
     A: AuthorizationApi + Sync,
 {
     async fn authorize_property_type(
@@ -224,7 +224,7 @@ where
 
 impl<S, A> OntologyTypeProvider<PropertyType> for StoreProvider<'_, S, A>
 where
-    S: Read<PropertyTypeWithMetadata, Record = PropertyTypeWithMetadata>,
+    S: Read<PropertyTypeWithMetadata>,
     A: AuthorizationApi + Sync,
 {
     #[expect(refining_impl_trait)]
@@ -246,7 +246,7 @@ where
         let schema = self
             .store
             .read_one(
-                &Filter::<S::Record>::for_versioned_url(type_id),
+                &Filter::for_versioned_url(type_id),
                 Some(
                     &QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -402,7 +402,7 @@ where
 
 impl<S, A> EntityProvider for StoreProvider<'_, S, A>
 where
-    S: Read<Entity, Record = Entity>,
+    S: Read<Entity>,
     A: AuthorizationApi + Sync,
 {
     #[expect(refining_impl_trait)]
@@ -422,7 +422,7 @@ where
 
         self.store
             .read_one(
-                &Filter::<S::Record>::for_entity_by_entity_id(entity_id),
+                &Filter::for_entity_by_entity_id(entity_id),
                 Some(
                     &QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),

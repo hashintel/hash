@@ -42,7 +42,7 @@ impl Error for ValidateEntityError {}
 ///
 /// [Entities]: Entity
 #[async_trait]
-pub trait EntityStore: crud::Read<Entity> {
+pub trait EntityStore: crud::ReadPaginated<Entity, EntityVertexId> {
     /// Creates a new [`Entity`].
     ///
     /// # Errors:
@@ -140,7 +140,7 @@ pub trait EntityStore: crud::Read<Entity> {
         &self,
         actor_id: AccountId,
         authorization_api: &A,
-        query: &StructuralQuery<Entity>,
+        query: &StructuralQuery<'_, Entity>,
         after: Option<&EntityVertexId>,
         limit: Option<usize>,
     ) -> Result<(Subgraph, Option<EntityVertexId>), QueryError>;

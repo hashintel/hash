@@ -1,217 +1,77 @@
-use std::{borrow::Cow, convert::identity, mem::swap, str::FromStr};
+use std::{borrow::Cow, mem::swap};
 
 use async_trait::async_trait;
-use error_stack::{Report, Result, ResultExt};
-use futures::{StreamExt, TryStreamExt};
+use error_stack::{Result, ResultExt};
+use futures::{Stream, StreamExt, TryStreamExt};
 use graph_types::{
-    knowledge::{
-        entity::{
-            Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityId, EntityMetadata,
-            EntityProvenanceMetadata, EntityRecordId, EntityTemporalMetadata, EntityUuid,
-        },
-        link::{EntityLinkOrder, LinkData},
-    },
+    knowledge::entity::{EntityEditionId, EntityId, EntityUuid},
     owned_by_id::OwnedById,
 };
 use temporal_versioning::{
     LeftClosedTemporalInterval, RightBoundedTemporalInterval, TemporalTagged, TimeAxis, Timestamp,
 };
-use tokio_postgres::GenericClient;
-use type_system::url::{BaseUrl, VersionedUrl};
-use uuid::Uuid;
+use tokio_postgres::{GenericClient, Row};
+use type_system::url::BaseUrl;
 
 use crate::{
-    knowledge::EntityQueryPath,
-    ontology::EntityTypeQueryPath,
     store::{
-        crud,
+        crud::{Cursor, PostgresQueryResult, QueryRecord, QueryResult, Read, ReadPaginated},
         postgres::{
             ontology::OntologyId,
             query::{
-                Distinctness, Expression, ForeignKeyReference, Function, Ordering, ReferenceTable,
+                ForeignKeyReference, PostgresQueryPath, PostgresRecord, ReferenceTable,
                 SelectCompiler, Table, Transpile,
             },
         },
-        query::{Filter, Parameter},
-        AsClient, PostgresStore, QueryError, Record,
+        query::Filter,
+        AsClient, PostgresStore, QueryError,
     },
     subgraph::{
-        edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
+        edges::{EdgeDirection, GraphResolveDepths},
         identifier::{EntityTypeVertexId, EntityVertexId},
         temporal_axes::{PinnedAxis, QueryTemporalAxes, VariableAxis},
     },
 };
 
-struct CursorParameters<'p> {
-    owned_by_id: Parameter<'p>,
-    entity_uuid: Parameter<'p>,
-    revision_id: Parameter<'p>,
-}
-
 #[async_trait]
-impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
-    type Record = Entity;
+impl<Cl, R, C> ReadPaginated<R, C> for PostgresStore<Cl>
+where
+    Cl: AsClient,
+    for<'c> R:
+        QueryRecord<'c, SelectCompiler<'c, R>> + PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
+    for<'c> C: Cursor<'c, SelectCompiler<'c, R>> + Sync + 'static,
+{
+    type QueryResultSet = Row;
 
-    type ReadStream = impl futures::Stream<Item = Result<Self::Record, QueryError>> + Send + Sync;
+    type QueryResult = impl QueryResult<Record = R, Cursor = C>;
+    type ReadPaginatedStream =
+        impl Stream<Item = Result<Self::QueryResult, QueryError>> + Send + Sync;
 
-    #[tracing::instrument(level = "info", skip(self, filter))]
-    async fn read(
+    #[tracing::instrument(level = "info", skip(self, filter, cursor))]
+    async fn read_paginated(
         &self,
-        filter: &Filter<Entity>,
+        filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
-        after: Option<&<Self::Record as Record>::VertexId>,
+        cursor: Option<&C>,
         limit: Option<usize>,
         include_drafts: bool,
-    ) -> Result<Self::ReadStream, QueryError> {
-        // We can't define these inline otherwise we'll drop while borrowed
-        let left_entity_uuid_path = EntityQueryPath::EntityEdge {
-            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-            path: Box::new(EntityQueryPath::Uuid),
-            direction: EdgeDirection::Outgoing,
-        };
-        let left_owned_by_id_query_path = EntityQueryPath::EntityEdge {
-            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-            path: Box::new(EntityQueryPath::OwnedById),
-            direction: EdgeDirection::Outgoing,
-        };
-        let right_entity_uuid_path = EntityQueryPath::EntityEdge {
-            edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
-            path: Box::new(EntityQueryPath::Uuid),
-            direction: EdgeDirection::Outgoing,
-        };
-        let right_owned_by_id_query_path = EntityQueryPath::EntityEdge {
-            edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
-            path: Box::new(EntityQueryPath::OwnedById),
-            direction: EdgeDirection::Outgoing,
-        };
+    ) -> Result<Self::ReadPaginatedStream, QueryError> {
+        let cursor_parameters = cursor.map(C::encode);
 
         let mut compiler = SelectCompiler::new(temporal_axes, include_drafts);
         if let Some(limit) = limit {
             compiler.set_limit(limit);
         }
 
-        let cursor_parameters: Option<CursorParameters> = after.map(|cursor| CursorParameters {
-            owned_by_id: Parameter::Uuid(cursor.base_id.owned_by_id.into_uuid()),
-            entity_uuid: Parameter::Uuid(cursor.base_id.entity_uuid.into_uuid()),
-            revision_id: Parameter::Timestamp(cursor.revision_id.cast()),
-        });
+        let cursor_indices = C::compile(
+            &mut compiler,
+            #[allow(clippy::unwrap_used)]
+            cursor_parameters.as_ref(),
+            temporal_axes.expect("To use a cursor, temporal axes has to be specified"),
+        );
 
-        let (owned_by_id_index, entity_uuid_index, (transaction_time_index, decision_time_index)) =
-            if let Some(cursor_parameters) = &cursor_parameters {
-                let owned_by_id_expression =
-                    compiler.compile_parameter(&cursor_parameters.owned_by_id).0;
-                let entity_uuid_expression =
-                    compiler.compile_parameter(&cursor_parameters.entity_uuid).0;
-                let revision_id_expression =
-                    compiler.compile_parameter(&cursor_parameters.revision_id).0;
-                (
-                    compiler.add_cursor_selection(
-                        &EntityQueryPath::OwnedById,
-                        identity,
-                        owned_by_id_expression,
-                        Ordering::Ascending,
-                    ),
-                    compiler.add_cursor_selection(
-                        &EntityQueryPath::Uuid,
-                        identity,
-                        entity_uuid_expression,
-                        Ordering::Ascending,
-                    ),
-                    match temporal_axes.map(QueryTemporalAxes::variable_time_axis) {
-                        Some(TimeAxis::TransactionTime) => (
-                            compiler.add_cursor_selection(
-                                &EntityQueryPath::TransactionTime,
-                                |column| Expression::Function(Function::Lower(Box::new(column))),
-                                revision_id_expression,
-                                Ordering::Descending,
-                            ),
-                            compiler.add_selection_path(&EntityQueryPath::DecisionTime),
-                        ),
-                        Some(TimeAxis::DecisionTime) => (
-                            compiler.add_selection_path(&EntityQueryPath::TransactionTime),
-                            compiler.add_cursor_selection(
-                                &EntityQueryPath::DecisionTime,
-                                |column| Expression::Function(Function::Lower(Box::new(column))),
-                                revision_id_expression,
-                                Ordering::Descending,
-                            ),
-                        ),
-                        None => {
-                            return Err(Report::new(QueryError).attach_printable(
-                                "When specifying the `start` parameter, a temporal axes has to be \
-                                 provided",
-                            ));
-                        }
-                    },
-                )
-            } else {
-                // If we neither have `limit` nor `after` we don't need to sort
-                let maybe_ascending = limit.map(|_| Ordering::Ascending);
-                let maybe_descending = limit.map(|_| Ordering::Descending);
-                (
-                    compiler.add_distinct_selection_with_ordering(
-                        &EntityQueryPath::OwnedById,
-                        Distinctness::Distinct,
-                        maybe_ascending,
-                    ),
-                    compiler.add_distinct_selection_with_ordering(
-                        &EntityQueryPath::Uuid,
-                        Distinctness::Distinct,
-                        maybe_ascending,
-                    ),
-                    (
-                        compiler.add_distinct_selection_with_ordering(
-                            &EntityQueryPath::TransactionTime,
-                            Distinctness::Distinct,
-                            maybe_descending.filter(|_| {
-                                temporal_axes.map_or(true, |axes| {
-                                    axes.variable_time_axis() == TimeAxis::TransactionTime
-                                })
-                            }),
-                        ),
-                        compiler.add_distinct_selection_with_ordering(
-                            &EntityQueryPath::DecisionTime,
-                            Distinctness::Distinct,
-                            maybe_descending.filter(|_| {
-                                temporal_axes.map_or(true, |axes| {
-                                    axes.variable_time_axis() == TimeAxis::DecisionTime
-                                })
-                            }),
-                        ),
-                    ),
-                )
-            };
-
-        let edition_id_index = compiler.add_selection_path(&EntityQueryPath::EditionId);
-        let type_id_index = compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
-            edge_kind: SharedEdgeKind::IsOfType,
-            path: EntityTypeQueryPath::VersionedUrl,
-            inheritance_depth: Some(0),
-        });
-
-        let properties_index = compiler.add_selection_path(&EntityQueryPath::Properties(None));
-
-        let left_entity_uuid_index = compiler.add_selection_path(&left_entity_uuid_path);
-        let left_entity_owned_by_id_index =
-            compiler.add_selection_path(&left_owned_by_id_query_path);
-        let right_entity_uuid_index = compiler.add_selection_path(&right_entity_uuid_path);
-        let right_entity_owned_by_id_index =
-            compiler.add_selection_path(&right_owned_by_id_query_path);
-        let left_to_right_order_index =
-            compiler.add_selection_path(&EntityQueryPath::LeftToRightOrder);
-        let right_to_left_order_index =
-            compiler.add_selection_path(&EntityQueryPath::RightToLeftOrder);
-
-        let created_by_id_index = compiler.add_selection_path(&EntityQueryPath::CreatedById);
-        let created_at_transaction_time_index =
-            compiler.add_selection_path(&EntityQueryPath::CreatedAtTransactionTime);
-        let created_at_decision_time_index =
-            compiler.add_selection_path(&EntityQueryPath::CreatedAtDecisionTime);
-        let edition_created_by_id_index =
-            compiler.add_selection_path(&EntityQueryPath::EditionCreatedById);
-
-        let archived_index = compiler.add_selection_path(&EntityQueryPath::Archived);
-        let draft_index = compiler.add_selection_path(&EntityQueryPath::Draft);
+        let record_artifacts = R::parameters();
+        let record_indices = R::compile(&mut compiler, &record_artifacts);
 
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
@@ -220,86 +80,72 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
             .await
+            .change_context(QueryError)?;
+
+        Ok(stream
+            .map(|row| row.change_context(QueryError))
+            .map_ok(move |row| PostgresQueryResult {
+                query_result: row,
+                record_artifacts: record_indices,
+                cursor_artifacts: cursor_indices,
+            }))
+    }
+}
+
+#[async_trait]
+impl<Cl, R> Read<R> for PostgresStore<Cl>
+where
+    Cl: AsClient,
+    for<'c> R:
+        QueryRecord<'c, SelectCompiler<'c, R>> + PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
+{
+    type ReadStream = impl Stream<Item = Result<R, QueryError>> + Send + Sync;
+
+    async fn read(
+        &self,
+        filter: &Filter<'_, R>,
+        temporal_axes: Option<&QueryTemporalAxes>,
+        include_drafts: bool,
+    ) -> Result<Self::ReadStream, QueryError> {
+        let mut compiler = SelectCompiler::new(temporal_axes, include_drafts);
+
+        let record_artifacts = R::parameters();
+        let record_indices = R::compile(&mut compiler, &record_artifacts);
+
+        compiler.add_filter(filter);
+        let (statement, parameters) = compiler.compile();
+
+        Ok(self
+            .as_client()
+            .query_raw(&statement, parameters.iter().copied())
+            .await
             .change_context(QueryError)?
             .map(|row| row.change_context(QueryError))
-            .and_then(move |row| async move {
-                let entity_type_id =
-                    VersionedUrl::from_str(row.get(type_id_index)).change_context(QueryError)?;
+            .map_ok(move |row| R::decode(&row, record_indices)))
+    }
 
-                let link_data = {
-                    let left_owned_by_id: Option<Uuid> = row.get(left_entity_owned_by_id_index);
-                    let left_entity_uuid: Option<Uuid> = row.get(left_entity_uuid_index);
-                    let right_owned_by_id: Option<Uuid> = row.get(right_entity_owned_by_id_index);
-                    let right_entity_uuid: Option<Uuid> = row.get(right_entity_uuid_index);
-                    match (
-                        left_owned_by_id,
-                        left_entity_uuid,
-                        right_owned_by_id,
-                        right_entity_uuid,
-                    ) {
-                        (
-                            Some(left_owned_by_id),
-                            Some(left_entity_uuid),
-                            Some(right_owned_by_id),
-                            Some(right_entity_uuid),
-                        ) => Some(LinkData {
-                            left_entity_id: EntityId {
-                                owned_by_id: OwnedById::new(left_owned_by_id),
-                                entity_uuid: EntityUuid::new(left_entity_uuid),
-                            },
-                            right_entity_id: EntityId {
-                                owned_by_id: OwnedById::new(right_owned_by_id),
-                                entity_uuid: EntityUuid::new(right_entity_uuid),
-                            },
-                            order: EntityLinkOrder {
-                                left_to_right: row.get(left_to_right_order_index),
-                                right_to_left: row.get(right_to_left_order_index),
-                            },
-                        }),
-                        (None, None, None, None) => None,
-                        _ => unreachable!(
-                            "It's not possible to have a link entity with the left entityId or \
-                             right entityId unspecified"
-                        ),
-                    }
-                };
+    #[tracing::instrument(level = "info", skip(self, filter))]
+    async fn read_one(
+        &self,
+        filter: &Filter<'_, R>,
+        temporal_axes: Option<&QueryTemporalAxes>,
+        include_drafts: bool,
+    ) -> Result<R, QueryError> {
+        let mut compiler = SelectCompiler::new(temporal_axes, include_drafts);
 
-                let entity_id = EntityId {
-                    owned_by_id: row.get(owned_by_id_index),
-                    entity_uuid: row.get(entity_uuid_index),
-                };
+        let record_artifacts = R::parameters();
+        let record_indices = R::compile(&mut compiler, &record_artifacts);
 
-                if let Ok(distance) = row.try_get::<_, f64>("distance") {
-                    tracing::trace!(%entity_id, %distance, "Entity embedding was calculated");
-                }
+        compiler.add_filter(filter);
+        let (statement, parameters) = compiler.compile();
 
-                Ok(Entity {
-                    properties: row.get(properties_index),
-                    link_data,
-                    metadata: EntityMetadata {
-                        record_id: EntityRecordId {
-                            entity_id,
-                            edition_id: row.get(edition_id_index),
-                        },
-                        temporal_versioning: EntityTemporalMetadata {
-                            decision_time: row.get(decision_time_index),
-                            transaction_time: row.get(transaction_time_index),
-                        },
-                        entity_type_id,
-                        provenance: EntityProvenanceMetadata {
-                            created_by_id: row.get(created_by_id_index),
-                            created_at_transaction_time: row.get(created_at_transaction_time_index),
-                            created_at_decision_time: row.get(created_at_decision_time_index),
-                            edition: EntityEditionProvenanceMetadata {
-                                created_by_id: row.get(edition_created_by_id_index),
-                            },
-                        },
-                        archived: row.get(archived_index),
-                        draft: row.get(draft_index),
-                    },
-                })
-            });
-        Ok(stream)
+        let row = self
+            .as_client()
+            .query_one(&statement, parameters)
+            .await
+            .change_context(QueryError)?;
+
+        Ok(R::decode(&row, record_indices))
     }
 }
 

@@ -4,13 +4,36 @@ mod ontology_id;
 mod property_type;
 mod read;
 
+use std::{borrow::Cow, convert::identity};
+
 use error_stack::{Result, ResultExt};
-use graph_types::ontology::OntologyType;
-use tokio_postgres::Transaction;
-use type_system::{DataType, EntityType, PropertyType};
+use graph_types::{
+    ontology::{
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyType,
+        OntologyTypeClassificationMetadata, OntologyTypeVersion, PropertyTypeWithMetadata,
+    },
+    owned_by_id::OwnedById,
+};
+use serde::Deserialize;
+use time::OffsetDateTime;
+use tokio_postgres::{Row, Transaction};
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    DataType, EntityType, PropertyType,
+};
 
 pub use self::ontology_id::OntologyId;
-use crate::store::{error::DeletionError, AsClient, PostgresStore};
+use crate::{
+    ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
+    store::{
+        crud::{Cursor, QueryRecordDecode, QueryRecordEncode},
+        error::DeletionError,
+        postgres::query::{Distinctness, Ordering, SelectCompiler},
+        query::Parameter,
+        AsClient, PostgresStore,
+    },
+    subgraph::temporal_axes::QueryTemporalAxes,
+};
 
 /// Provides an abstraction over elements of the Type System stored in the Database.
 ///
@@ -105,5 +128,113 @@ impl PostgresStore<Transaction<'_>> {
             .change_context(DeletionError)?;
 
         Ok(())
+    }
+}
+
+pub struct VersionedUrlCursorParameters<'p> {
+    base_url: Parameter<'p>,
+    version: Parameter<'p>,
+}
+
+impl QueryRecordEncode for VersionedUrl {
+    type CompilationParameters<'p> = VersionedUrlCursorParameters<'p>;
+
+    fn encode(&self) -> Self::CompilationParameters<'_> {
+        VersionedUrlCursorParameters {
+            base_url: Parameter::Text(Cow::Borrowed(self.base_url.as_str())),
+            version: Parameter::OntologyTypeVersion(OntologyTypeVersion::new(self.version)),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct VersionedUrlIndices {
+    pub base_url: usize,
+    pub version: usize,
+}
+
+impl QueryRecordDecode<Row> for VersionedUrl {
+    type CompilationArtifacts = VersionedUrlIndices;
+
+    fn decode(row: &Row, indices: Self::CompilationArtifacts) -> Self {
+        Self {
+            base_url: BaseUrl::new(row.get(indices.base_url))
+                .expect("invalid base URL returned from Postgres"),
+            version: row.get::<_, OntologyTypeVersion>(indices.version).inner(),
+        }
+    }
+}
+
+macro_rules! impl_cursor {
+    ($ty:ty, $query_path:ty) => {
+        impl<'c> Cursor<'c, SelectCompiler<'c, $ty>> for VersionedUrl {
+            fn compile<'p: 'c>(
+                compiler: &mut SelectCompiler<'c, $ty>,
+                parameters: Option<&'c Self::CompilationParameters<'p>>,
+                _temporal_axes: &QueryTemporalAxes,
+            ) -> Self::CompilationArtifacts {
+                if let Some(parameters) = parameters {
+                    let base_url_expression = compiler.compile_parameter(&parameters.base_url).0;
+                    let version_expression = compiler.compile_parameter(&parameters.version).0;
+
+                    VersionedUrlIndices {
+                        base_url: compiler.add_cursor_selection(
+                            &<$query_path>::BaseUrl,
+                            identity,
+                            base_url_expression,
+                            Ordering::Ascending,
+                        ),
+                        version: compiler.add_cursor_selection(
+                            &<$query_path>::Version,
+                            identity,
+                            version_expression,
+                            Ordering::Descending,
+                        ),
+                    }
+                } else {
+                    VersionedUrlIndices {
+                        base_url: compiler.add_distinct_selection_with_ordering(
+                            &<$query_path>::BaseUrl,
+                            Distinctness::Distinct,
+                            Some(Ordering::Ascending),
+                        ),
+                        version: compiler.add_distinct_selection_with_ordering(
+                            &<$query_path>::Version,
+                            Distinctness::Distinct,
+                            Some(Ordering::Descending),
+                        ),
+                    }
+                }
+            }
+        }
+    };
+}
+
+impl_cursor!(DataTypeWithMetadata, DataTypeQueryPath);
+impl_cursor!(PropertyTypeWithMetadata, PropertyTypeQueryPath);
+impl_cursor!(EntityTypeWithMetadata, EntityTypeQueryPath);
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum PostgresOntologyTypeClassificationMetadata {
+    Owned {
+        web_id: OwnedById,
+    },
+    External {
+        #[serde(with = "temporal_versioning::serde::time")]
+        fetched_at: OffsetDateTime,
+    },
+}
+
+impl From<PostgresOntologyTypeClassificationMetadata> for OntologyTypeClassificationMetadata {
+    fn from(value: PostgresOntologyTypeClassificationMetadata) -> Self {
+        match value {
+            PostgresOntologyTypeClassificationMetadata::Owned { web_id } => Self::Owned {
+                owned_by_id: web_id,
+            },
+            PostgresOntologyTypeClassificationMetadata::External { fetched_at } => {
+                Self::External { fetched_at }
+            }
+        }
     }
 }
