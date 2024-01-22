@@ -1,6 +1,6 @@
 import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
-import { Box, Skeleton, Stack, Typography } from "@mui/material";
+import { Box, Link, Skeleton, Stack, Typography } from "@mui/material";
 import { formatDuration, intervalToDuration } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 
@@ -79,26 +79,16 @@ const InferenceMetadata = ({ request }: { request: PageEntityInference }) => {
           pt: 0.5,
         })}
       >
-        <Box
+        <Link
           component="a"
           href={request.sourceUrl}
-          sx={({ palette, transitions }) => ({
-            color: palette.blue[70],
-            textDecoration: "none",
+          sx={{
             fontSize: metadataFontSize,
-            fontWeight: 600,
-            lineHeight: 1.5,
-            marginBottom: "1px",
-            opacity: 0.7,
-            transition: transitions.create("opacity"),
-            "&:hover": {
-              opacity: 1,
-            },
-          })}
+          }}
           target="blank"
         >
           View source page
-        </Box>
+        </Link>
         <MetadataItem label="Model" value={request.model} />
         {usage && <MetadataItem label="Tokens" value={usage.toString()} />}
         <MetadataItem label="Time" value={timeElapsed} />
