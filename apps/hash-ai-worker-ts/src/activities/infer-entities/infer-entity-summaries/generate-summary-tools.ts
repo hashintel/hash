@@ -1,11 +1,16 @@
 import type { JsonObject } from "@blockprotocol/core";
 import { validateVersionedUrl, VersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import OpenAI from "openai";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
 import { DereferencedEntityType } from "../dereference-entity-type";
-import { ProposedEntitySummary } from "../inference-types";
+import {
+  DereferencedEntityTypesByTypeId,
+  ProposedEntitySummary,
+} from "../inference-types";
+import { stringify } from "../stringify";
 
 type FunctionName = "could_not_infer_entities" | "register_entity_summaries";
 
@@ -14,90 +19,144 @@ export type ProposedEntitySummariesByType = Record<
   Omit<ProposedEntitySummary, "entityTypeId">[]
 >;
 
-const stringifyArray = (array: unknown[]): string =>
-  array.map((item) => JSON.stringify(item)).join(", ");
-
 /**
  * Validates that the provided object is a valid ProposedEntitiesByType object.
  * @throws Error if the provided object does not match ProposedEntitiesByType
  */
 export const validateEntitySummariesByType = (
   parsedJson: JsonObject,
-): parsedJson is ProposedEntitySummariesByType => {
-  const maybeVersionedUrls = Object.keys(parsedJson);
+  entityTypesById: DereferencedEntityTypesByTypeId,
+  existingSummaries: ProposedEntitySummary[],
+): {
+  errorMessage?: string;
+  validSummaries: ProposedEntitySummary[];
+} => {
+  const errorMessages: string[] = [];
 
-  const invalidVersionedUrls = maybeVersionedUrls.filter(
-    (maybeVersionedUrl) => {
-      const result = validateVersionedUrl(maybeVersionedUrl);
+  const validSummariesWithLinksUnchecked: ProposedEntitySummary[] = [
+    ...existingSummaries,
+  ];
 
-      return result.type !== "Ok";
-    },
-  );
+  for (const [entityTypeId, summaryEntitiesForType] of typedEntries(
+    parsedJson,
+  )) {
+    const typeIdValidationResult = validateVersionedUrl(entityTypeId);
 
-  if (invalidVersionedUrls.length > 0) {
-    throw new Error(
-      `Invalid versionedUrls in AI-provided response: ${invalidVersionedUrls.join(
-        ", ",
-      )}`,
-    );
-  }
+    if (typeIdValidationResult.type !== "Ok") {
+      errorMessages.push(
+        `The value '${stringify(
+          entityTypeId,
+        )}' for entityTypeId is not a valid versionedUrl`,
+      );
+      continue;
+    }
 
-  const maybeEntitySummariesArrays = Object.values(parsedJson);
+    const entityType = entityTypesById[entityTypeId as VersionedUrl];
+    if (!entityType) {
+      errorMessages.push(
+        `Call to register_entity_summaries for unknown entity type ${entityTypeId}`,
+      );
+      continue;
+    }
 
-  const invalidArrays = maybeEntitySummariesArrays.filter(
-    (maybeEntitySummariesArray) => {
-      return !Array.isArray(maybeEntitySummariesArray);
-    },
-  );
+    if (!Array.isArray(summaryEntitiesForType)) {
+      errorMessages.push(
+        `The value '${stringify(
+          summaryEntitiesForType,
+        )}' for '${entityTypeId}' is not an array, but should be`,
+      );
+      continue;
+    }
 
-  if (invalidArrays.length > 0) {
-    throw new Error(
-      `Invalid entities arrays in AI-provided response: ${stringifyArray(
-        invalidArrays,
-      )}`,
-    );
-  }
-
-  const invalidEntities = maybeEntitySummariesArrays
-    .flat()
-    .filter((maybeEntitySummary) => {
+    for (const entitySummary of summaryEntitiesForType) {
       if (
-        maybeEntitySummary === null ||
-        typeof maybeEntitySummary !== "object" ||
-        Array.isArray(maybeEntitySummary)
+        entitySummary === null ||
+        typeof entitySummary !== "object" ||
+        Array.isArray(entitySummary)
       ) {
-        return true;
+        errorMessages.push(`Malformed entity ${stringify(entitySummary)}`);
+        continue;
       }
 
-      if (typeof maybeEntitySummary.entityId !== "number") {
-        return true;
+      let currentEntityIsValid = true;
+
+      if (typeof entitySummary.entityId !== "number") {
+        errorMessages.push(
+          `entityId must be a number, but is ${stringify(
+            entitySummary.entityId,
+          )}`,
+        );
+        currentEntityIsValid = false;
       }
 
-      if (typeof maybeEntitySummary.summary !== "string") {
-        return true;
+      if (typeof entitySummary.summary !== "string") {
+        errorMessages.push(
+          `summary for entity with id ${stringify(
+            entitySummary.entityId,
+          )} must be a string, but is ${stringify(entitySummary.summary)}`,
+        );
+        currentEntityIsValid = false;
       }
 
-      if (
-        ("sourceEntityId" in maybeEntitySummary &&
-          !("targetEntityId" in maybeEntitySummary)) ||
-        (!("sourceEntityId" in maybeEntitySummary) &&
-          "targetEntityId" in maybeEntitySummary)
-      ) {
-        return true;
+      if (currentEntityIsValid) {
+        validSummariesWithLinksUnchecked.push({
+          entityId: entitySummary.entityId as number,
+          summary: entitySummary.summary as string,
+          sourceEntityId: entitySummary.sourceEntityId as number | undefined,
+          targetEntityId: entitySummary.targetEntityId as number | undefined,
+          entityTypeId: entityTypeId as VersionedUrl,
+        });
       }
-
-      return false;
-    });
-
-  if (invalidEntities.length > 0) {
-    throw new Error(
-      `Invalid entities in AI-provided response: ${stringifyArray(
-        invalidEntities,
-      )}`,
-    );
+    }
   }
 
-  return true;
+  const validSummaries: ProposedEntitySummary[] = [];
+
+  for (const potentiallyLinkEntity of validSummariesWithLinksUnchecked) {
+    const entityType = entityTypesById[potentiallyLinkEntity.entityTypeId]!;
+    if (!entityType.isLink) {
+      validSummaries.push(potentiallyLinkEntity);
+    } else {
+      if (
+        typeof potentiallyLinkEntity.sourceEntityId !== "number" ||
+        typeof potentiallyLinkEntity.targetEntityId !== "number"
+      ) {
+        errorMessages.push(
+          `Link entity with entityId ${stringify(
+            potentiallyLinkEntity,
+          )} must have number values for both sourceEntityId and targetEntityId`,
+        );
+        continue;
+      }
+
+      const source = validSummariesWithLinksUnchecked.find(
+        (entity) => entity.entityId === potentiallyLinkEntity.sourceEntityId,
+      );
+      const target = validSummariesWithLinksUnchecked.find(
+        (entity) => entity.entityId === potentiallyLinkEntity.targetEntityId,
+      );
+
+      if (!source) {
+        errorMessages.push(
+          `Link entity with entityId ${potentiallyLinkEntity.entityId} specifies invalid sourceEntityId ${potentiallyLinkEntity.sourceEntityId} that does not correspond to any other valid entity – please include a valid entity with that entityId in your next attempt.`,
+        );
+      }
+      if (!target) {
+        errorMessages.push(
+          `Link entity with entityId ${potentiallyLinkEntity.entityId} specifies invalid targetEntityId ${potentiallyLinkEntity.targetEntityId} that does not correspond to any other valid entity – please include a valid entity with that entityId in your next attempt.`,
+        );
+      }
+      if (source && target) {
+        validSummaries.push(potentiallyLinkEntity);
+      }
+    }
+  }
+
+  return {
+    errorMessage:
+      errorMessages.length > 0 ? errorMessages.join("\n") : undefined,
+    validSummaries,
+  };
 };
 
 type CouldNotInferEntitiesReturnKey = "reason";

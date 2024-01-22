@@ -47,6 +47,7 @@ use crate::{
 };
 
 impl<C: AsClient> PostgresStore<C> {
+    #[tracing::instrument(level = "debug", skip(property_types, authorization_api, zookie))]
     pub(crate) async fn filter_property_types_by_permission<I, T, A>(
         property_types: impl IntoIterator<Item = (I, T)> + Send,
         actor_id: AccountId,
@@ -90,7 +91,7 @@ impl<C: AsClient> PostgresStore<C> {
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[tracing::instrument(
-        level = "trace",
+        level = "info",
         skip(self, traversal_context, subgraph, authorization_api, zookie)
     )]
     pub(crate) async fn traverse_property_types<A: AuthorizationApi + Sync>(
@@ -210,7 +211,7 @@ impl<C: AsClient> PostgresStore<C> {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     pub async fn delete_property_types(&mut self) -> Result<(), DeletionError> {
         let transaction = self.transaction().await.change_context(DeletionError)?;
 

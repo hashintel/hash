@@ -65,6 +65,14 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
           const applicableRules = automaticInferenceConfig.rules.filter(
             ({ restrictToDomains }) => {
               const pageHostname = new URL(pageDetails.pageUrl).hostname;
+
+              if (
+                pageHostname === "app.hash.ai" ||
+                pageHostname === "hash.ai"
+              ) {
+                return false;
+              }
+
               return (
                 restrictToDomains.length === 0 ||
                 restrictToDomains.some(

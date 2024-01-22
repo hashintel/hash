@@ -54,7 +54,6 @@ pub trait Read<R>: Sync {
             .await
     }
 
-    #[tracing::instrument(level = "info", skip(self, query))]
     async fn read_one(
         &self,
         query: &Filter<Self::Record>,
