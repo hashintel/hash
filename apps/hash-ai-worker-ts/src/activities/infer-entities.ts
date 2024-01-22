@@ -518,8 +518,8 @@ export const inferEntitiesActivity = async ({
    * If an inference job has no usage and no results, it was probably cancelled basically immediately,
    * and there's no point creating empty usage records that have no tokens and link to nothing.
    *
-   * In theory usage should be sufficient to check, because there should be no results without usage,
-   * but in case somehow there are results with no usage we should log them.
+   * In theory checking that 'usage.length > 0' should be sufficient, as there shouldn't be results without usage logged,
+   * but we check both in case there is somehow results without usage.
    */
   if (results.length !== 0 || usage.length !== 0) {
     // We act as the HASH AI machine actor to create these entities
@@ -605,7 +605,7 @@ export const inferEntitiesActivity = async ({
 
   /**
    * This must be a cancellation, throw it. We pass the results back to the workflow as details inside the cancellation error.
-   * We could just return the results, but we have to throw this error for Temporal to categorise the workflow as cancelled.
+   * We could just return the results, but we have to throw this error for Temporal to categorise the activity as cancelled.
    */
   throw new CancelledFailure(
     "Activity cancelled",

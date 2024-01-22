@@ -80,10 +80,6 @@ export const getOpenAiResponse = async (
         ...openAiPayload,
         stream: false,
       },
-      /**
-       * Note that if the model has started generating, it will
-       * so this only saves tokens if
-       */
       { signal: Context.current().cancellationSignal },
     );
 
