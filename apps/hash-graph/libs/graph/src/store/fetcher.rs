@@ -301,11 +301,6 @@ where
         Ok(references)
     }
 
-    #[expect(
-        clippy::too_many_lines,
-        reason = "Large parts of this function is is written out three times and this should be \
-                  moved to another function at some point."
-    )]
     #[tracing::instrument(
         level = "debug",
         skip(self, authorization_api, ontology_type_references)

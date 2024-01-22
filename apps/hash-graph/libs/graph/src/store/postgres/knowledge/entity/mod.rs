@@ -732,7 +732,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .attach(StatusCode::InvalidArgument)
     }
 
-    #[expect(clippy::too_many_lines)]
     #[tracing::instrument(level = "info", skip(self, authorization_api, entities))]
     async fn insert_entities_batched_by_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
