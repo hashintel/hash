@@ -3,7 +3,7 @@ import { AsteriskRegularIcon } from "@hashintel/design-system";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { isBaseUrl } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box, buttonClasses, Container, Typography } from "@mui/material";
+import { Box, buttonClasses, Container, Fade, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useCallback, useMemo } from "react";
@@ -18,6 +18,7 @@ import { AsteriskLightIcon } from "../shared/icons/asterisk-light-icon";
 import { FileCirclePlusRegularIcon } from "../shared/icons/file-circle-plus-regular-icon";
 import { FilesLightIcon } from "../shared/icons/files-light-icon";
 import { FilesRegularIcon } from "../shared/icons/files-regular-icon";
+import { PlusRegularIcon } from "../shared/icons/plus-regular";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import { TabLink } from "../shared/ui/tab-link";
@@ -62,10 +63,6 @@ const EntitiesPage: NextPageWithLayout = () => {
     ownedById: activeWorkspaceOwnedById,
   });
 
-  const createPage = useCallback(async () => {
-    await createUntitledPage(lastRootPageIndex, "document");
-  }, [lastRootPageIndex, createUntitledPage]);
-
   const { latestEntityTypes } = useLatestEntityTypesOptional({
     includeArchived: true,
   });
@@ -90,6 +87,26 @@ const EntitiesPage: NextPageWithLayout = () => {
   const isViewAllPagesPage =
     entityType && isPageEntityTypeId(entityType.schema.$id);
 
+  const createEntity = useCallback(async () => {
+    if (isViewAllPagesPage) {
+      await createUntitledPage(lastRootPageIndex, "document");
+    } else {
+      void router.push(
+        `/new/entity${
+          entityType
+            ? `?entity-type-id=${encodeURIComponent(entityType.schema.$id)}`
+            : ""
+        }`,
+      );
+    }
+  }, [
+    lastRootPageIndex,
+    createUntitledPage,
+    isViewAllPagesPage,
+    entityType,
+    router,
+  ]);
+
   const pageTitle = entityType
     ? entityTypeId
       ? `${entityType.schema.title} v${extractVersion(entityTypeId)}`
@@ -97,6 +114,14 @@ const EntitiesPage: NextPageWithLayout = () => {
     : "Entities";
 
   const { entities, loading } = entityTypeEntitiesValue;
+
+  const displayCreateEntityButton = useMemo(() => {
+    if (isViewAllPagesPage) {
+      return hashInstance?.properties.pagesAreEnabled;
+    }
+
+    return true;
+  }, [isViewAllPagesPage, hashInstance]);
 
   return (
     <>
@@ -157,15 +182,22 @@ const EntitiesPage: NextPageWithLayout = () => {
                 loading={loading}
               />
             </Tabs>
-            {isViewAllPagesPage && hashInstance?.properties.pagesAreEnabled ? (
+            <Fade in={displayCreateEntityButton}>
               <Button
-                endIcon={<FileCirclePlusRegularIcon />}
+                endIcon={
+                  isViewAllPagesPage ? (
+                    <FileCirclePlusRegularIcon />
+                  ) : (
+                    <PlusRegularIcon />
+                  )
+                }
                 variant="tertiary_quiet"
-                onClick={createPage}
+                onClick={createEntity}
                 sx={{
                   color: ({ palette }) => palette.gray[90],
                   fontSize: 14,
                   padding: 0,
+                  transition: ({ transitions }) => transitions.create("color"),
                   ":hover": {
                     background: "transparent",
                     color: ({ palette }) => palette.blue[70],
@@ -178,9 +210,12 @@ const EntitiesPage: NextPageWithLayout = () => {
                   },
                 }}
               >
-                Create a page
+                Create new{" "}
+                {isViewAllPagesPage
+                  ? "page"
+                  : entityType?.schema.title.toLowerCase() ?? "entity"}
               </Button>
-            ) : null}
+            </Fade>
           </Box>
         </Container>
       </Box>
