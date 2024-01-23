@@ -4,6 +4,7 @@ import { format } from "prettier";
 export const updateJson = async (
   jsonFilePath: string,
   // @todo consider avoiding argument mutation and improve typings if the function is used more widely
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   transform: (existingJson: any) => void,
 ) => {
   /* eslint-disable @typescript-eslint/no-unsafe-assignment */

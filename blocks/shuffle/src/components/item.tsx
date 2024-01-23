@@ -23,7 +23,7 @@ export type ItemProps = {
   onDelete?: () => void;
   paperStyle?: SxProps;
   attributes?: DraggableAttributes;
-  listeners?: Record<string, Function>;
+  listeners?: Record<string, (...args: unknown[]) => unknown>;
   style?: CSSProperties;
   dragOverlay?: RefObject<HTMLDivElement>;
   linkedToEntity?: boolean;
@@ -87,7 +87,7 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
               <SIconButton
                 onClick={() => onDelete?.()}
                 sx={({ palette }) => ({
-                  opacity: dragOverlay || isHovered ? 1 : 0,
+                  opacity: dragOverlay ?? isHovered ? 1 : 0,
                   transition: ({ transitions }) =>
                     transitions.create("opacity"),
                   "&:focus-visible, :hover": {

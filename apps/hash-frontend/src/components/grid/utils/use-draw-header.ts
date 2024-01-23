@@ -16,7 +16,8 @@ export const useDrawHeader = <T extends string>(props: {
   sorts?: ColumnSort<T>[];
   onSortClick?: (columnKey: T) => void;
   activeSortColumnKey?: T;
-  filters?: ColumnFilter<T>[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  filters?: ColumnFilter<T, any>[];
   onFilterClick?: (
     columnKey: T,
     interactablePosition: InteractablePosition,

@@ -1,1 +1,1 @@
-/// <reference path="../design-system/theme-override.d.ts" />
+import "@hashintel/design-system/theme-override";

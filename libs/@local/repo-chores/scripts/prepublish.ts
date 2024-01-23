@@ -68,7 +68,8 @@ const script = async () => {
 
   await updateJson(
     path.resolve(packageInfo.path, "package.json"),
-    (packageJson: Record<string, string | any>) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (packageJson: Record<string, any>) => {
       if ("main" in packageJson) {
         /* eslint-disable @typescript-eslint/no-unsafe-member-access,no-param-reassign -- see comment on updateJson() for potential improvement */
         if (packageJson.main !== expectedMainName) {

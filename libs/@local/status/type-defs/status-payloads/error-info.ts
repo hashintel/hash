@@ -32,5 +32,5 @@ export type ErrorInfo = {
    * returned as, {"instanceLimitPerRequest": "100"}, if the client exceeds the number of
    * instances that can be created in a single (batch) request.
    */
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 };

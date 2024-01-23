@@ -18,7 +18,9 @@ type CustomExpectedValueSelectorProps<T> = {
   value: T[];
 } & Partial<AutocompleteProps<T, true, false, false>>;
 
-export const CustomExpectedValueSelector = <T extends any>({
+export const CustomExpectedValueSelector = <
+  T extends string | Record<string, unknown> | undefined,
+>({
   inputLabel,
   collapsedWidth,
   options,

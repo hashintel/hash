@@ -68,8 +68,8 @@ const generateLinearOAuthUrl = (oAuthState: string) => {
 };
 
 export const oAuthLinear: RequestHandler<
-  {},
-  {},
+  Record<string, never>,
+  string,
   {
     ownedById?: EntityUuid;
   }
@@ -134,9 +134,9 @@ export const oAuthLinear: RequestHandler<
   };
 
 export const oAuthLinearCallback: RequestHandler<
-  {},
+  Record<string, never>,
   Entity | { error: string },
-  {},
+  never,
   { code: string; state?: string }
 > =
   // @todo upgrade to Express 5, which handles errors from async request handlers automatically

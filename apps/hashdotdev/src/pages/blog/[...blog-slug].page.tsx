@@ -84,7 +84,6 @@ export const getStaticProps: GetStaticProps<
     const postPhotoSrc: string | null =
       (typeof data.postPhoto === "string" &&
         data.postPhoto &&
-        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         data.postPhoto.split(",")[0]) ||
       null;
     const [postPhoto, bodyImages] = await Promise.all([

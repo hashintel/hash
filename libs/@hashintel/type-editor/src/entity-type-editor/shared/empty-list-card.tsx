@@ -50,7 +50,7 @@ export const EmptyListCard = ({
       <Box
         sx={{
           fontSize: 20,
-          [`.${fontAwesomeIconClasses.toString()}`]: { fontSize: "inherit" },
+          [`.${fontAwesomeIconClasses.icon}`]: { fontSize: "inherit" },
         }}
         className="EmptyListCard-icon"
       >

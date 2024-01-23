@@ -59,7 +59,10 @@ export type ProposedEntitySchemaOrData = {
    * The AI Model does not reliably return an empty properties object if the entity type has no properties.
    */
   properties?: unknown;
-} & ({} | { sourceEntityId: unknown; targetEntityId: unknown });
+} & (
+  | Record<string, never>
+  | { sourceEntityId: unknown; targetEntityId: unknown }
+);
 
 export type ProposedEntity = Subtype<
   ProposedEntitySchemaOrData,
@@ -68,7 +71,7 @@ export type ProposedEntity = Subtype<
     updateEntityId?: string;
     properties?: Record<BaseUrl, EntityPropertyValue>;
   } & (
-    | {}
+    | Record<string, never>
     | {
         sourceEntityId: number;
         targetEntityId: number;

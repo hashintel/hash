@@ -17,7 +17,8 @@ import { ColumnFilter } from "./filtering";
 
 export const ColumnFilterMenu: FunctionComponent<
   {
-    columnFilter?: ColumnFilter<string>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    columnFilter?: ColumnFilter<string, any>;
     onClose: () => void;
   } & PopperProps
 > = ({ columnFilter, onClose, open, ...popoverProps }) => {

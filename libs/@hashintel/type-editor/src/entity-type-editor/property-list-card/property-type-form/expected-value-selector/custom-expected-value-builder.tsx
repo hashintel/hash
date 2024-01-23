@@ -74,11 +74,7 @@ const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
   }
 };
 
-type CustomExpectedValueBuilderProps = {};
-
-export const CustomExpectedValueBuilder: FunctionComponent<
-  CustomExpectedValueBuilderProps
-> = () => {
+export const CustomExpectedValueBuilder: FunctionComponent = () => {
   const { handleSave, handleCancel } = useCustomExpectedValueBuilderContext();
   const { getValues, setValue, control } =
     useFormContext<ExpectedValueSelectorFormValues>();
