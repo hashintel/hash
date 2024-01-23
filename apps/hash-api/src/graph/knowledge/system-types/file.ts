@@ -66,9 +66,10 @@ const generateCommonParameters = async (
     return {
       existingEntity: null,
       entityTypeId:
-        fileEntityCreationInput.entityTypeId ?? mimeType.startsWith("image/")
+        fileEntityCreationInput.entityTypeId ??
+        (mimeType.startsWith("image/")
           ? systemEntityTypes.image.entityTypeId
-          : systemEntityTypes.file.entityTypeId,
+          : systemEntityTypes.file.entityTypeId),
       mimeType,
       ownedById: fileEntityCreationInput.ownedById,
     };
