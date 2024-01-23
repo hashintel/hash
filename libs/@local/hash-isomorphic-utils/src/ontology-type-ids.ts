@@ -37,6 +37,14 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/document/v/1",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/document/",
   },
+  documentFile: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/document-file/v/1",
+    entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/document-file/",
+  },
+  docxDocument: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/docx-document/v/1",
+    entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/docx-document/",
+  },
   facebookAccount: {
     entityTypeId:
       "https://hash.ai/@hash/types/entity-type/facebook-account/v/1",
@@ -106,6 +114,22 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/page/v/1",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/page/",
   },
+  pdfDocument: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/pdf-document/v/1",
+    entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/pdf-document/",
+  },
+  pptxPresentation: {
+    entityTypeId:
+      "https://hash.ai/@hash/types/entity-type/pptx-presentation/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/pptx-presentation/",
+  },
+  presentationFile: {
+    entityTypeId:
+      "https://hash.ai/@hash/types/entity-type/presentation-file/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/presentation-file/",
+  },
   profileBio: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/profile-bio/v/1",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/profile-bio/",
@@ -123,6 +147,12 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/service-feature/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/service-feature/",
+  },
+  spreadsheetFile: {
+    entityTypeId:
+      "https://hash.ai/@hash/types/entity-type/spreadsheet-file/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/spreadsheet-file/",
   },
   text: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/text/v/1",
@@ -149,6 +179,12 @@ export const systemEntityTypes = {
   userSecret: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/user-secret/v/1",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/user-secret/",
+  },
+  xlsxSpreadsheet: {
+    entityTypeId:
+      "https://hash.ai/@hash/types/entity-type/xlsx-spreadsheet/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/xlsx-spreadsheet/",
   },
 } as const;
 
@@ -605,13 +641,14 @@ export const systemDataTypes = {
     dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/date/",
     title: "Date",
     description:
-      "A reference to a particular day represented within a calendar system, in the format YYYY-MM-DD.",
+      "A reference to a particular day represented within a calendar system, formatted according to RFC 3339.",
   },
   datetime: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1",
     dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/datetime/",
     title: "DateTime",
-    description: "A reference to a particular date and time.",
+    description:
+      "A reference to a particular date and time, formatted according to RFC 3339.",
   },
   email: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/email/v/1",
@@ -647,6 +684,13 @@ export const systemDataTypes = {
     title: "Millimeters",
     description:
       "A unit of length in the International System of Units (SI), equal to one thousandth of a meter.",
+  },
+  time: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/time/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/time/",
+    title: "Time",
+    description:
+      "A reference to a particular clock time, formatted according to RFC 3339.",
   },
   uri: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/uri/v/1",
