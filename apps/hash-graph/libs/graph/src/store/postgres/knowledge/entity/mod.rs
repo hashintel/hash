@@ -6,7 +6,6 @@ use std::{
     iter::once,
 };
 
-use async_trait::async_trait;
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
@@ -291,7 +290,6 @@ impl<C: AsClient> PostgresStore<C> {
     }
 }
 
-#[async_trait]
 impl<C: AsClient> EntityStore for PostgresStore<C> {
     #[tracing::instrument(
         level = "info",
@@ -1245,12 +1243,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(entity_metadata)
     }
 
-    #[tracing::instrument(level = "info", skip(self, _authorization_api, embeddings))]
+    #[tracing::instrument(level = "info", skip(self, embeddings))]
     async fn update_entity_embeddings<A: AuthorizationApi + Send + Sync>(
         &mut self,
-        _actor_id: AccountId,
-        _authorization_api: &mut A,
-        embeddings: impl IntoIterator<Item = EntityEmbedding<'_>> + Send,
+        _: AccountId,
+        _: &mut A,
+        embeddings: Vec<EntityEmbedding<'_>>,
         updated_at_transaction_time: Timestamp<TransactionTime>,
         updated_at_decision_time: Timestamp<DecisionTime>,
         reset: bool,

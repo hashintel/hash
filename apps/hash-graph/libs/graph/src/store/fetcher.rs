@@ -1098,7 +1098,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> EntityStore for FetchingStore<S, A>
 where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore + Send + Sync,
@@ -1262,7 +1261,7 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
-        embeddings: impl IntoIterator<Item = EntityEmbedding<'_>> + Send,
+        embeddings: Vec<EntityEmbedding<'_>>,
         updated_at_transaction_time: Timestamp<TransactionTime>,
         updated_at_decision_time: Timestamp<DecisionTime>,
         reset: bool,
