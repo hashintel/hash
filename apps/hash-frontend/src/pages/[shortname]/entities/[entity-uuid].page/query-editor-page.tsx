@@ -56,6 +56,7 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
     : [];
 
   const entity = getRoots(entityEditorProps.entitySubgraph)[0];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const defaultValue = (entity?.properties as any)[
     blockProtocolPropertyTypes.query.propertyTypeBaseUrl
   ];

@@ -229,7 +229,7 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
     },
   );
 
-  const secret = await vaultClient.read({
+  const secret = await vaultClient.read<{ value: string }>({
     path: secretEntity.vaultPath,
     secretMountPath: "secret",
   });

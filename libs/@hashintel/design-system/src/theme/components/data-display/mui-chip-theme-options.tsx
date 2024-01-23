@@ -115,7 +115,7 @@ export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
 
         // only apply hover ui and show a pointer cursor
         // when the chip is clickable
-        ...(onClick || clickable
+        ...(onClick ?? clickable
           ? {
               cursor: "pointer",
               "&:hover": {

@@ -36,6 +36,7 @@ export interface TypeEntitiesRow {
     [k: string]: string;
   };
   /** @todo: get rid of this by typing `columnId` */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 

@@ -47,7 +47,7 @@ const resolvePropertySchema = (
  */
 const ConfigurationInput: FunctionComponent<{
   name: string;
-  onChange: (value: any) => void;
+  onChange: (value: JsonValue) => void;
   rootSchema: JsonSchema;
   propertySchema: JsonSchema;
   value?: JsonValue | null;
@@ -218,7 +218,7 @@ export const BlockConfigMenu: FunctionComponent<BlockConfigMenuProps> = ({
         <Box key={name} sx={{ mt: 2 }}>
           <ConfigurationInput
             name={name}
-            onChange={(value: any) => updateConfig({ [name]: value })}
+            onChange={(value) => updateConfig({ [name]: value })}
             rootSchema={blockSchema ?? {}}
             propertySchema={schema}
             value={entityData?.[name] ?? ""}

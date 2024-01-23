@@ -54,7 +54,7 @@ export class BlockView implements NodeView {
   blockHandleRef = createRef<HTMLDivElement>();
 
   private store: EntityStore;
-  private unsubscribe: Function;
+  private unsubscribe: () => void;
 
   getBlockEntityIdFromNode = (node: Node) => {
     const blockEntityNode = node.firstChild;

@@ -15,7 +15,7 @@ const generateEntityLabel = (
   subgraph: Subgraph<EntityRootType>,
   entity: Entity,
 ) => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
   return hashGenerateEntityLabel(subgraph as any, entity as any);
 };
 
@@ -76,7 +76,7 @@ export const EntitiesGraphChart: FunctionComponent<{
         ) {
           if (params.dataType === "node" || params.dataType === "edge") {
             /** @todo: improve typing */
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
             const entityId = (params.data as any).id as EntityId;
 
             const entity = entities?.find(
@@ -107,10 +107,10 @@ export const EntitiesGraphChart: FunctionComponent<{
         trigger: "item",
         formatter: (params) => {
           /** @todo: improve typing */
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
           const id = (params as any).data.id as string;
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
           if ((params as any).dataType === "edge") {
             const linkEntity = linkEntities?.find(
               ({ metadata }) => metadata.recordId.entityId === id,

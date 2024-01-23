@@ -32,6 +32,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
   kind: GridCellKind.Custom,
   needsHover: true,
   isMatch: (cell: CustomCell): cell is LinkedWithCell =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (cell.data as any).kind === "linked-with-cell",
   draw: (args, cell) => {
     const { rect, ctx, theme, spriteManager, hoverAmount, highlighted } = args;

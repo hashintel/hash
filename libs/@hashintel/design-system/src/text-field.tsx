@@ -6,7 +6,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { forwardRef, FunctionComponent, useState } from "react";
+import { forwardRef, FunctionComponent, ReactNode, useState } from "react";
 
 import { getInputProps, inputLabelProps, TextFieldProps } from "./input-props";
 
@@ -14,7 +14,7 @@ import { getInputProps, inputLabelProps, TextFieldProps } from "./input-props";
  * 'Freezes' a value when it's falsy, meaning the value will never update to
  * be falsy. Useful for keeping a component the same when animating out
  */
-const useFrozenValue = <T extends any>(value: T): T => {
+const useFrozenValue = <T extends ReactNode>(value: T): T => {
   const [frozenValue, setFrozenValue] = useState(value);
 
   if (value && frozenValue !== value) {

@@ -64,7 +64,7 @@ export const WhiteCard = ({
        *
        * @see https://app.asana.com/0/1203179076056209/1203468350364504/f
        */}
-      {onClick || href ? (
+      {onClick ?? href ? (
         <CardActionArea
           {...(onClick ? { onClick } : { href })}
           LinkComponent={LinkComponent}

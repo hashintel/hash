@@ -68,6 +68,7 @@ export const getChipColors = (
 export const renderChipCell: CustomRenderer<ChipCell> = {
   kind: GridCellKind.Custom,
   isMatch: (cell: CustomCell): cell is ChipCell =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (cell.data as any).kind === "chip-cell",
   draw: (args, cell) => {
     const { theme, rect } = args;

@@ -116,7 +116,9 @@ export type Entity<
   {
     metadata: EntityMetadata;
     linkData?: LinkData;
-  } & (Properties extends null ? {} : { properties: Properties })
+  } & (Properties extends null
+    ? Record<string, never>
+    : { properties: Properties })
 >;
 
 export type LinkEntityAndRightEntity = Subtype<

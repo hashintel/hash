@@ -72,7 +72,7 @@ const EntitiesPage: NextPageWithLayout = () => {
 
   const entityType = useMemo(
     () =>
-      entityTypeId || entityTypeBaseUrl
+      entityTypeId ?? entityTypeBaseUrl
         ? latestEntityTypes?.find(({ schema }) =>
             entityTypeId
               ? schema.$id === entityTypeId

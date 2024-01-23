@@ -47,7 +47,7 @@ export const useQueryEntities = ({
               })),
             ],
             operator:
-              excludeEntityTypeIds || !includeEntityTypeIds?.length
+              excludeEntityTypeIds ?? !includeEntityTypeIds?.length
                 ? "AND"
                 : "OR",
           },

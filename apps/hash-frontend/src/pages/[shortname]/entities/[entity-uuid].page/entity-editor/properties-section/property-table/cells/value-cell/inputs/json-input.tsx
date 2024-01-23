@@ -20,7 +20,7 @@ const isJsonObjectString = (str?: string) => {
   return true;
 };
 
-export const JsonInput = ({ onChange, value }: CellInputProps<any>) => {
+export const JsonInput = ({ onChange, value }: CellInputProps<unknown>) => {
   const [innerValue, setInnerValue] = useState(
     JSON.stringify(value, undefined, 2),
   );

@@ -103,7 +103,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   if (editorType === "object") {
     return (
       <JsonInput
-        value={value as any}
+        value={value}
         onChange={(newValue, isDiscarded) => {
           if (isDiscarded) {
             return onFinishedEditing(undefined);

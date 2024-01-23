@@ -76,7 +76,9 @@ const Select = <T,>(
 };
 
 // used the type assertion approach in https://stackoverflow.com/a/58473012
-const SelectForwardRef = forwardRef(Select) as <T extends {}>(
+const SelectForwardRef = forwardRef(Select) as <
+  T extends Record<string, unknown>,
+>(
   p: SelectProps<T> & { ref?: Ref<HTMLSelectElement> },
 ) => ReactElement;
 

@@ -17,7 +17,7 @@ import { ColumnFilter } from "./filtering";
 
 export const ColumnFilterMenu: FunctionComponent<
   {
-    columnFilter?: ColumnFilter<string, any>;
+    columnFilter?: ColumnFilter<string>;
     onClose: () => void;
   } & PopperProps
 > = ({ columnFilter, onClose, open, ...popoverProps }) => {
@@ -40,7 +40,7 @@ export const ColumnFilterMenu: FunctionComponent<
   }, [wrapperRef]);
 
   const [previousColumnFilter, setPreviousColumnFilter] =
-    useState<ColumnFilter<string, any>>();
+    useState<ColumnFilter<string>>();
 
   if (
     columnFilter &&

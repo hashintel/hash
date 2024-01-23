@@ -16,7 +16,7 @@ export const useDrawHeader = <T extends string>(props: {
   sorts?: ColumnSort<T>[];
   onSortClick?: (columnKey: T) => void;
   activeSortColumnKey?: T;
-  filters?: ColumnFilter<T, any>[];
+  filters?: ColumnFilter<T>[];
   onFilterClick?: (
     columnKey: T,
     interactablePosition: InteractablePosition,
