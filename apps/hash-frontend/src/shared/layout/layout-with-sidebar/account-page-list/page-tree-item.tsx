@@ -15,7 +15,7 @@ import { PageMenu } from "./page-menu";
 interface DragProps {
   isSorting?: boolean;
   attributes?: DraggableAttributes;
-  listeners?: Record<string, Function>;
+  listeners?: Record<string, (...args: unknown[]) => unknown>;
   style?: CSSProperties;
   wrapperRef?(this: void, node: HTMLLIElement): void;
 }

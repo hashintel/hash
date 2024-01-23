@@ -8,7 +8,7 @@ import {
 } from "./layout/layout-with-sidebar";
 import { PlainLayout } from "./layout/plain-layout";
 
-export type NextPageWithLayout<T = {}> = NextPage<T> & {
+export type NextPageWithLayout<T> = NextPage<T> & {
   getLayout?: (page: ReactElement) => ReactNode;
 };
 

@@ -23,11 +23,7 @@ import { getImageUrlFromEntityProperties } from "../../../pages/shared/get-image
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { Button, MenuItem } from "../../ui";
 
-type WorkspaceSwitcherProps = {};
-
-export const WorkspaceSwitcher: FunctionComponent<
-  WorkspaceSwitcherProps
-> = () => {
+export const WorkspaceSwitcher = () => {
   const popupState = usePopupState({
     variant: "popover",
     popupId: "workspace-switcher-menu",

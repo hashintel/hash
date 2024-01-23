@@ -250,8 +250,8 @@ export const CommandBar: FunctionComponent = () => {
 
       if (command) {
         if (
-          command.options ||
-          command.renderCustomScreen ||
+          command.options ??
+          command.renderCustomScreen ??
           command.asyncCommand
         ) {
           cancelReset();

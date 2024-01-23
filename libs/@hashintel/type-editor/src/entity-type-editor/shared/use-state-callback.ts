@@ -8,8 +8,8 @@ import { SetStateAction, useLayoutEffect, useRef, useState } from "react";
  *          this is therefore not safe to call from render
  *
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const useStateCallback = <T extends any>(initialValue: T) => {
+
+export const useStateCallback = <T>(initialValue: T) => {
   const [state, setState] = useState(initialValue);
 
   const callbacksRef = useRef<(() => void)[]>([]);

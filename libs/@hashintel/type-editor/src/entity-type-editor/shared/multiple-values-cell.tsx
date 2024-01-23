@@ -39,7 +39,7 @@ import {
 import { EntityTypeEditorFormData } from "../../shared/form-types";
 import { useIsReadonly } from "../../shared/read-only-context";
 
-const useFrozenValue = <T extends string | number | boolean | ReactNode>(
+const useFrozenValue = <T extends ReactNode>(
   value: T,
   isFrozen: boolean,
 ): T => {

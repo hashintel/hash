@@ -84,7 +84,7 @@ export const DraftEntitiesContextProvider: FunctionComponent<
 
   const draftEntitiesSubgraph = useMemo(
     () =>
-      draftEntitiesData || previouslyFetchedDraftEntitiesData
+      draftEntitiesData ?? previouslyFetchedDraftEntitiesData
         ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
             (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)!
               .structuralQueryEntities.subgraph,
