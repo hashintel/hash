@@ -50,6 +50,7 @@ import { linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../../context-types";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
+import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
 import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
 import {
   createLinkEntity,
@@ -86,7 +87,6 @@ export const createEntity: ImpureGraphFunction<
   const {
     ownedById,
     entityTypeId,
-    properties,
     outgoingLinks,
     entityUuid: overrideEntityUuid,
     draft = false,
@@ -94,6 +94,21 @@ export const createEntity: ImpureGraphFunction<
 
   const { graphApi } = context;
   const { actorId } = authentication;
+
+  let properties = params.properties;
+
+  for (const beforeCreateHook of beforeCreateEntityHooks) {
+    if (beforeCreateHook.entityTypeId === entityTypeId) {
+      const { properties: hookReturnedProperties } =
+        await beforeCreateHook.callback({
+          context,
+          properties,
+          authentication,
+        });
+
+      properties = hookReturnedProperties;
+    }
+  }
 
   const { data: metadata } = await graphApi.createEntity(actorId, {
     ownedById,
