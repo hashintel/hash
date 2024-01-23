@@ -148,7 +148,7 @@ export type ComponentIdPropertyValue = TextDataType;
 export type ConnectionSourceNamePropertyValue = TextDataType;
 
 /**
- * A reference to a particular date and time.
+ * A reference to a particular date and time, formatted according to RFC 3339.
  */
 export type DateTimeDataType = string;
 
@@ -166,6 +166,23 @@ export type DescriptionPropertyValue = TextDataType;
  * A human-friendly display name for something
  */
 export type DisplayNamePropertyValue = TextDataType;
+
+export type DocumentFile = Entity<DocumentFileProperties>;
+
+export type DocumentFileOutgoingLinkAndTarget = never;
+
+export type DocumentFileOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A document file.
+ */
+export type DocumentFileProperties = DocumentFileProperties1 &
+  DocumentFileProperties2;
+export type DocumentFileProperties1 = FileProperties;
+
+export type DocumentFileProperties2 = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
+};
 
 /**
  * A working draft of a text note
@@ -672,6 +689,23 @@ export type PreferredNamePropertyValue = TextDataType;
  */
 export type PreferredPronounsPropertyValue = TextDataType;
 
+export type PresentationFile = Entity<PresentationFileProperties>;
+
+export type PresentationFileOutgoingLinkAndTarget = never;
+
+export type PresentationFileOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A presentation file.
+ */
+export type PresentationFileProperties = PresentationFileProperties1 &
+  PresentationFileProperties2;
+export type PresentationFileProperties1 = FileProperties;
+
+export type PresentationFileProperties2 = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
+};
+
 export type ProfileBio = Entity<ProfileBioProperties>;
 
 export type ProfileBioHasIndexedContentLink = {
@@ -756,6 +790,21 @@ export type ServiceUnitCostPropertyValue = {
  * A unique identifier for something, in the form of a slug
  */
 export type ShortnamePropertyValue = TextDataType;
+
+export type SpreadsheetFile = Entity<SpreadsheetFileProperties>;
+
+export type SpreadsheetFileOutgoingLinkAndTarget = never;
+
+export type SpreadsheetFileOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A spreadsheet file.
+ */
+export type SpreadsheetFileProperties = SpreadsheetFileProperties1 &
+  SpreadsheetFileProperties2;
+export type SpreadsheetFileProperties1 = FileProperties;
+
+export type SpreadsheetFileProperties2 = {};
 
 /**
  * The summary of the something.
