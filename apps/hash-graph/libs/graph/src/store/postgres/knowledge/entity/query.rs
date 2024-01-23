@@ -21,8 +21,11 @@ use crate::{
     knowledge::EntityQueryPath,
     ontology::EntityTypeQueryPath,
     store::{
-        crud::{Cursor, QueryRecord, QueryRecordDecode, QueryRecordEncode},
-        postgres::query::{Distinctness, Expression, Function, Ordering, SelectCompiler},
+        crud::{QueryRecordDecode, VertexIdSorting},
+        postgres::query::{
+            Distinctness, Expression, Function, Ordering, PostgresSorting, QueryRecord,
+            QueryRecordEncode, SelectCompiler,
+        },
         query::Parameter,
     },
     subgraph::{
@@ -57,14 +60,15 @@ impl QueryRecordEncode for EntityVertexId {
     }
 }
 
-impl QueryRecordDecode<Row> for EntityVertexId {
+impl QueryRecordDecode<Row> for VertexIdSorting<Entity> {
     type CompilationArtifacts = EntityVertexIdIndices;
+    type Output = EntityVertexId;
 
-    fn decode(row: &Row, indices: Self::CompilationArtifacts) -> Self {
+    fn decode(row: &Row, indices: Self::CompilationArtifacts) -> Self::Output {
         let ClosedTemporalBound::Inclusive(revision_id) = *row
             .get::<_, LeftClosedTemporalInterval<VariableAxis>>(indices.revision_id)
             .start();
-        Self {
+        EntityVertexId {
             base_id: EntityId {
                 owned_by_id: row.get(indices.owned_by_id),
                 entity_uuid: row.get(indices.entity_uuid),
@@ -74,10 +78,10 @@ impl QueryRecordDecode<Row> for EntityVertexId {
     }
 }
 
-impl<'c> Cursor<'c, SelectCompiler<'c, Entity>> for EntityVertexId {
-    fn compile<'p: 'c>(
+impl PostgresSorting<Entity> for VertexIdSorting<Entity> {
+    fn compile<'c, 'p: 'c>(
         compiler: &mut SelectCompiler<'c, Entity>,
-        parameters: Option<&'c Self::CompilationParameters<'p>>,
+        parameters: Option<&'c EntityVertexIdCursorParameters<'p>>,
         temporal_axes: &QueryTemporalAxes,
     ) -> Self::CompilationArtifacts {
         let revision_id_path = match temporal_axes.variable_time_axis() {
@@ -197,6 +201,7 @@ impl Default for EntityRecordPaths<'_> {
 
 impl QueryRecordDecode<Row> for Entity {
     type CompilationArtifacts = EntityRecordRowIndices;
+    type Output = Self;
 
     fn decode(row: &Row, indices: Self::CompilationArtifacts) -> Self {
         let entity_type_id = VersionedUrl::from_str(row.get(indices.type_id))
@@ -277,14 +282,14 @@ impl QueryRecordDecode<Row> for Entity {
     }
 }
 
-impl<'c> QueryRecord<'c, SelectCompiler<'c, Self>> for Entity {
+impl QueryRecord for Entity {
     type CompilationParameters = EntityRecordPaths<'static>;
 
     fn parameters() -> Self::CompilationParameters {
         EntityRecordPaths::default()
     }
 
-    fn compile<'p: 'c>(
+    fn compile<'c, 'p: 'c>(
         compiler: &mut SelectCompiler<'c, Self>,
         paths: &'p Self::CompilationParameters,
     ) -> Self::CompilationArtifacts {

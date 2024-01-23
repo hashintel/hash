@@ -42,7 +42,7 @@ use validation::{Validate, ValidationProfile};
 use crate::{
     ontology::EntityTypeQueryPath,
     store::{
-        crud::{QueryResult, Read, ReadPaginated},
+        crud::{QueryResult, Read, ReadPaginated, VertexIdSorting},
         error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
         knowledge::{EntityValidationType, ValidateEntityError},
         postgres::{
@@ -904,7 +904,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let time_axis = temporal_axes.variable_time_axis();
 
         let mut root_entities = Vec::new();
-        let mut after = cursor.copied();
+        let mut cursor = cursor.copied();
 
         let (latest_zookie, last) = loop {
             // We query one more than requested to determine if there are more entities to return.
@@ -912,7 +912,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 self,
                 filter,
                 Some(&temporal_axes),
-                after.as_ref(),
+                Some(&VertexIdSorting { cursor }),
                 limit,
                 include_drafts,
             )
@@ -920,7 +920,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .map_ok(|entity_query| (entity_query.decode_record(), entity_query))
             .try_collect::<Vec<_>>()
             .await?;
-            after = entities
+            cursor = entities
                 .last()
                 .map(|(_, entity_query)| entity_query.decode_cursor());
             let num_returned_entities = entities.len();

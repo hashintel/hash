@@ -22,7 +22,11 @@ use type_system::{
 
 use crate::{
     store::{ConflictBehavior, InsertionError, QueryError, UpdateError},
-    subgraph::{query::StructuralQuery, Subgraph},
+    subgraph::{
+        identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
+        query::StructuralQuery,
+        Subgraph,
+    },
 };
 
 /// Describes the API of a store implementation for [`DataType`]s.
@@ -88,7 +92,7 @@ pub trait DataTypeStore {
         actor_id: AccountId,
         authorization_api: &A,
         query: &StructuralQuery<DataTypeWithMetadata>,
-        after: Option<&VersionedUrl>,
+        after: Option<DataTypeVertexId>,
         limit: Option<usize>,
     ) -> impl Future<Output = Result<Subgraph, QueryError>> + Send;
 
@@ -196,7 +200,7 @@ pub trait PropertyTypeStore {
         actor_id: AccountId,
         authorization_api: &A,
         query: &StructuralQuery<'_, PropertyTypeWithMetadata>,
-        after: Option<&VersionedUrl>,
+        after: Option<PropertyTypeVertexId>,
         limit: Option<usize>,
     ) -> impl Future<Output = Result<Subgraph, QueryError>> + Send;
 
@@ -302,7 +306,7 @@ pub trait EntityTypeStore {
         actor_id: AccountId,
         authorization_api: &A,
         query: &StructuralQuery<'_, EntityTypeWithMetadata>,
-        after: Option<&VersionedUrl>,
+        after: Option<EntityTypeVertexId>,
         limit: Option<usize>,
     ) -> impl Future<Output = Result<Subgraph, QueryError>> + Send;
 

@@ -40,7 +40,7 @@ impl Error for ValidateEntityError {}
 /// Describes the API of a store implementation for [Entities].
 ///
 /// [Entities]: Entity
-pub trait EntityStore: crud::ReadPaginated<Entity, EntityVertexId> {
+pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// Creates a new [`Entity`].
     ///
     /// # Errors:

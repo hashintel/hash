@@ -29,18 +29,19 @@ use type_system::{
 use crate::{
     ontology::DataTypeQueryPath,
     store::{
-        crud::{QueryRecord, QueryRecordDecode, QueryResult, ReadPaginated},
+        crud::{QueryRecordDecode, QueryResult, ReadPaginated, VertexIdSorting},
         error::DeletionError,
         postgres::{
             ontology::{OntologyId, PostgresOntologyTypeClassificationMetadata},
-            query::{Distinctness, SelectCompiler},
+            query::{Distinctness, QueryRecord, SelectCompiler},
             TraversalContext,
         },
         AsClient, ConflictBehavior, DataTypeStore, InsertionError, PostgresStore, QueryError,
         Record, UpdateError,
     },
     subgraph::{
-        edges::GraphResolveDepths, query::StructuralQuery, temporal_axes::VariableAxis, Subgraph,
+        edges::GraphResolveDepths, identifier::DataTypeVertexId, query::StructuralQuery,
+        temporal_axes::VariableAxis, Subgraph,
     },
 };
 
@@ -261,7 +262,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         actor_id: AccountId,
         authorization_api: &A,
         query: &StructuralQuery<'_, DataTypeWithMetadata>,
-        after: Option<&VersionedUrl>,
+        cursor: Option<DataTypeVertexId>,
         limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
@@ -278,20 +279,23 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         //   see https://linear.app/hash/issue/H-297
         let mut visited_ontology_ids = HashSet::new();
 
-        let data_types = ReadPaginated::<DataTypeWithMetadata, VersionedUrl>::read_paginated_vec(
+        let data_types = ReadPaginated::<DataTypeWithMetadata>::read_paginated_vec(
             self,
             filter,
             Some(&temporal_axes),
-            after,
+            cursor
+                .map(|cursor| VertexIdSorting {
+                    cursor: Some(cursor),
+                })
+                .as_ref(),
             limit,
             include_drafts,
         )
         .await?
         .into_iter()
         .filter_map(|data_type_query| {
-            let cursor = data_type_query.decode_cursor();
             let data_type = data_type_query.decode_record();
-            let id = DataTypeId::from_url(&cursor);
+            let id = DataTypeId::from_url(data_type.schema.id());
             let vertex_id = data_type.vertex_id(time_axis);
             // The records are already sorted by time, so we can just take the first one
             visited_ontology_ids
@@ -489,6 +493,7 @@ pub struct DataTypeRowIndices {
 
 impl QueryRecordDecode<Row> for DataTypeWithMetadata {
     type CompilationArtifacts = DataTypeRowIndices;
+    type Output = Self;
 
     fn decode(row: &Row, indices: Self::CompilationArtifacts) -> Self {
         Self {
@@ -521,12 +526,12 @@ impl QueryRecordDecode<Row> for DataTypeWithMetadata {
     }
 }
 
-impl<'c> QueryRecord<'c, SelectCompiler<'c, Self>> for DataTypeWithMetadata {
+impl QueryRecord for DataTypeWithMetadata {
     type CompilationParameters = ();
 
     fn parameters() -> Self::CompilationParameters {}
 
-    fn compile<'p: 'c>(
+    fn compile<'c, 'p: 'c>(
         compiler: &mut SelectCompiler<'c, Self>,
         _paths: &'p Self::CompilationParameters,
     ) -> Self::CompilationArtifacts {

@@ -10,27 +10,26 @@ use error_stack::{Result, ResultExt};
 use graph_types::{
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyType,
-        OntologyTypeClassificationMetadata, OntologyTypeVersion, PropertyTypeWithMetadata,
+        OntologyTypeClassificationMetadata, PropertyTypeWithMetadata,
     },
     owned_by_id::OwnedById,
 };
 use serde::Deserialize;
 use time::OffsetDateTime;
 use tokio_postgres::{Row, Transaction};
-use type_system::{
-    url::{BaseUrl, VersionedUrl},
-    DataType, EntityType, PropertyType,
-};
+use type_system::{url::BaseUrl, DataType, EntityType, PropertyType};
 
 pub use self::ontology_id::OntologyId;
 use crate::{
     ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
     store::{
-        crud::{Cursor, QueryRecordDecode, QueryRecordEncode},
+        crud::{QueryRecordDecode, VertexIdSorting},
         error::DeletionError,
-        postgres::query::{Distinctness, Ordering, SelectCompiler},
+        postgres::query::{
+            Distinctness, Ordering, PostgresSorting, QueryRecordEncode, SelectCompiler,
+        },
         query::Parameter,
-        AsClient, PostgresStore,
+        AsClient, PostgresStore, Record,
     },
     subgraph::temporal_axes::QueryTemporalAxes,
 };
@@ -136,41 +135,42 @@ pub struct VersionedUrlCursorParameters<'p> {
     version: Parameter<'p>,
 }
 
-impl QueryRecordEncode for VersionedUrl {
-    type CompilationParameters<'p> = VersionedUrlCursorParameters<'p>;
-
-    fn encode(&self) -> Self::CompilationParameters<'_> {
-        VersionedUrlCursorParameters {
-            base_url: Parameter::Text(Cow::Borrowed(self.base_url.as_str())),
-            version: Parameter::OntologyTypeVersion(OntologyTypeVersion::new(self.version)),
-        }
-    }
-}
-
 #[derive(Debug, Copy, Clone)]
 pub struct VersionedUrlIndices {
     pub base_url: usize,
     pub version: usize,
 }
 
-impl QueryRecordDecode<Row> for VersionedUrl {
-    type CompilationArtifacts = VersionedUrlIndices;
-
-    fn decode(row: &Row, indices: Self::CompilationArtifacts) -> Self {
-        Self {
-            base_url: BaseUrl::new(row.get(indices.base_url))
-                .expect("invalid base URL returned from Postgres"),
-            version: row.get::<_, OntologyTypeVersion>(indices.version).inner(),
-        }
-    }
-}
-
-macro_rules! impl_cursor {
+macro_rules! impl_ontology_cursor {
     ($ty:ty, $query_path:ty) => {
-        impl<'c> Cursor<'c, SelectCompiler<'c, $ty>> for VersionedUrl {
-            fn compile<'p: 'c>(
+        impl QueryRecordEncode for <$ty as Record>::VertexId {
+            type CompilationParameters<'p> = VersionedUrlCursorParameters<'p>;
+
+            fn encode(&self) -> Self::CompilationParameters<'_> {
+                VersionedUrlCursorParameters {
+                    base_url: Parameter::Text(Cow::Borrowed(self.base_id.as_str())),
+                    version: Parameter::OntologyTypeVersion(self.revision_id),
+                }
+            }
+        }
+
+        impl QueryRecordDecode<Row> for VertexIdSorting<$ty> {
+            type CompilationArtifacts = VersionedUrlIndices;
+            type Output = <$ty as Record>::VertexId;
+
+            fn decode(row: &Row, indices: Self::CompilationArtifacts) -> Self::Output {
+                Self::Output {
+                    base_id: BaseUrl::new(row.get(indices.base_url))
+                        .expect("invalid base URL returned from Postgres"),
+                    revision_id: row.get(indices.version),
+                }
+            }
+        }
+
+        impl PostgresSorting<$ty> for VertexIdSorting<$ty> {
+            fn compile<'c, 'p: 'c>(
                 compiler: &mut SelectCompiler<'c, $ty>,
-                parameters: Option<&'c Self::CompilationParameters<'p>>,
+                parameters: Option<&'c VersionedUrlCursorParameters<'p>>,
                 _temporal_axes: &QueryTemporalAxes,
             ) -> Self::CompilationArtifacts {
                 if let Some(parameters) = parameters {
@@ -210,9 +210,9 @@ macro_rules! impl_cursor {
     };
 }
 
-impl_cursor!(DataTypeWithMetadata, DataTypeQueryPath);
-impl_cursor!(PropertyTypeWithMetadata, PropertyTypeQueryPath);
-impl_cursor!(EntityTypeWithMetadata, EntityTypeQueryPath);
+impl_ontology_cursor!(DataTypeWithMetadata, DataTypeQueryPath);
+impl_ontology_cursor!(PropertyTypeWithMetadata, PropertyTypeQueryPath);
+impl_ontology_cursor!(EntityTypeWithMetadata, EntityTypeQueryPath);
 
 #[derive(Deserialize)]
 #[serde(untagged)]

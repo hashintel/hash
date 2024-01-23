@@ -2,11 +2,9 @@ use std::collections::{HashMap, HashSet};
 
 use postgres_types::ToSql;
 use temporal_versioning::TimeAxis;
-use tokio_postgres::Row;
 
 use crate::{
     store::{
-        crud::QueryCompiler,
         postgres::query::{
             expression::GroupByExpression,
             table::{
@@ -50,10 +48,6 @@ pub struct SelectCompiler<'p, T: Record> {
     table_hooks: HashMap<Table, fn(&mut Self, Alias)>,
     selections:
         HashMap<&'p T::QueryPath<'p>, (AliasedColumn, usize, Distinctness, Option<Ordering>)>,
-}
-
-impl<'c, R: Record> QueryCompiler<'c> for SelectCompiler<'c, R> {
-    type ResultSet = Row;
 }
 
 impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {

@@ -41,7 +41,7 @@ use validation::ValidationProfile;
 use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
-        crud::{QueryRecordDecode, Read, ReadPaginated},
+        crud::{Read, ReadPaginated, Sorting},
         knowledge::{EntityValidationType, ValidateEntityError},
         query::{Filter, OntologyQueryPath},
         AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
@@ -49,7 +49,9 @@ use crate::{
     },
     subgraph::{
         edges::GraphResolveDepths,
-        identifier::{EntityVertexId, VertexId},
+        identifier::{
+            DataTypeVertexId, EntityTypeVertexId, EntityVertexId, PropertyTypeVertexId, VertexId,
+        },
         query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
@@ -665,29 +667,27 @@ where
 }
 
 #[async_trait]
-impl<S, A, R, C> ReadPaginated<R, C> for FetchingStore<S, A>
+impl<I, A, R, S> ReadPaginated<R, S> for FetchingStore<I, A>
 where
     A: Send + Sync,
-    S: ReadPaginated<R, C> + Send,
+    I: ReadPaginated<R, S> + Send,
     R: Record,
+    S: Sorting + Sync,
 {
-    type QueryResult = S::QueryResult;
-    type QueryResultSet = S::QueryResultSet;
-    type ReadPaginatedStream = S::ReadPaginatedStream;
+    type QueryResult = I::QueryResult;
+    type QueryResultSet = I::QueryResultSet;
+    type ReadPaginatedStream = I::ReadPaginatedStream;
 
     async fn read_paginated(
         &self,
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
-        cursor: Option<&C>,
+        sorting: Option<&S>,
         limit: Option<usize>,
         include_drafts: bool,
-    ) -> Result<Self::ReadPaginatedStream, QueryError>
-    where
-        C: QueryRecordDecode<Self::QueryResultSet> + Sync,
-    {
+    ) -> Result<Self::ReadPaginatedStream, QueryError> {
         self.store
-            .read_paginated(filter, temporal_axes, cursor, limit, include_drafts)
+            .read_paginated(filter, temporal_axes, sorting, limit, include_drafts)
             .await
     }
 }
@@ -824,7 +824,7 @@ where
         actor_id: AccountId,
         authorization_api: &Au,
         query: &StructuralQuery<'_, DataTypeWithMetadata>,
-        after: Option<&VersionedUrl>,
+        after: Option<DataTypeVertexId>,
         limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         self.store
@@ -932,7 +932,7 @@ where
         actor_id: AccountId,
         authorization_api: &Au,
         query: &StructuralQuery<'_, PropertyTypeWithMetadata>,
-        after: Option<&VersionedUrl>,
+        after: Option<PropertyTypeVertexId>,
         limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         self.store
@@ -1036,11 +1036,11 @@ where
         actor_id: AccountId,
         authorization_api: &Au,
         query: &StructuralQuery<'_, EntityTypeWithMetadata>,
-        after: Option<&VersionedUrl>,
+        cursor: Option<EntityTypeVertexId>,
         limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         self.store
-            .get_entity_type(actor_id, authorization_api, query, after, limit)
+            .get_entity_type(actor_id, authorization_api, query, cursor, limit)
             .await
     }
 

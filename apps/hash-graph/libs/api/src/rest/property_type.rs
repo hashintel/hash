@@ -31,7 +31,10 @@ use graph::{
         error::VersionedUrlAlreadyExists, BaseUrlAlreadyExists, ConflictBehavior,
         OntologyVersionDoesNotExist, PropertyTypeStore, StorePool,
     },
-    subgraph::query::{PropertyTypeStructuralQuery, StructuralQuery},
+    subgraph::{
+        identifier::PropertyTypeVertexId,
+        query::{PropertyTypeStructuralQuery, StructuralQuery},
+    },
 };
 use graph_types::{
     ontology::{
@@ -383,7 +386,7 @@ async fn get_property_types_by_query<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
-    Query(pagination): Query<Pagination<VersionedUrl>>,
+    Query(pagination): Query<Pagination<PropertyTypeVertexId>>,
     OriginalUri(uri): OriginalUri,
     Json(query): Json<serde_json::Value>,
 ) -> Result<(HeaderMap, Json<Subgraph>), Response>
@@ -408,7 +411,7 @@ where
             actor_id,
             &authorization_api,
             &query,
-            pagination.after.as_ref().map(|cursor| &cursor.0),
+            pagination.after.map(|cursor| cursor.0),
             pagination.limit,
         )
         .await

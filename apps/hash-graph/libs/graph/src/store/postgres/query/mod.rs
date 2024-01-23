@@ -14,6 +14,8 @@ mod table;
 
 use std::fmt::{self, Display, Formatter};
 
+use tokio_postgres::Row;
+
 pub use self::{
     compile::SelectCompiler,
     condition::{Condition, EqualityOperator},
@@ -26,7 +28,14 @@ pub use self::{
         Alias, AliasedColumn, AliasedTable, Column, ForeignKeyReference, ReferenceTable, Table,
     },
 };
-use crate::store::{postgres::query::table::Relation, Record};
+use crate::{
+    store::{
+        crud::{QueryRecordDecode, Sorting},
+        postgres::query::table::Relation,
+        Record,
+    },
+    subgraph::temporal_axes::QueryTemporalAxes,
+};
 
 pub trait PostgresRecord: Record {
     /// The [`Table`] used for this `Query`.
@@ -57,6 +66,35 @@ pub trait Transpile: 'static {
 
         Transpiler(self).to_string()
     }
+}
+
+pub trait QueryRecordEncode {
+    type CompilationParameters<'p>: Send
+    where
+        Self: 'p;
+
+    fn encode(&self) -> Self::CompilationParameters<'_>;
+}
+
+pub trait PostgresSorting<R: Record>:
+    Sorting<Cursor: QueryRecordEncode> + QueryRecordDecode<Row, Output = Self::Cursor>
+{
+    fn compile<'c, 'p: 'c>(
+        compiler: &mut SelectCompiler<'c, R>,
+        parameters: Option<&'c <Self::Cursor as QueryRecordEncode>::CompilationParameters<'p>>,
+        temporal_axes: &QueryTemporalAxes,
+    ) -> Self::CompilationArtifacts;
+}
+
+pub trait QueryRecord: Record + QueryRecordDecode<Row, Output = Self> {
+    type CompilationParameters: Send + 'static;
+
+    fn parameters() -> Self::CompilationParameters;
+
+    fn compile<'c, 'p: 'c>(
+        compiler: &mut SelectCompiler<'c, Self>,
+        paths: &'p Self::CompilationParameters,
+    ) -> Self::CompilationArtifacts;
 }
 
 #[cfg(test)]

@@ -32,14 +32,14 @@ use type_system::{
 use crate::{
     ontology::PropertyTypeQueryPath,
     store::{
-        crud::{QueryRecord, QueryRecordDecode, QueryResult, ReadPaginated},
+        crud::{QueryRecordDecode, QueryResult, ReadPaginated, VertexIdSorting},
         error::DeletionError,
         postgres::{
             ontology::{
                 read::OntologyTypeTraversalData, OntologyId,
                 PostgresOntologyTypeClassificationMetadata,
             },
-            query::{Distinctness, ReferenceTable, SelectCompiler},
+            query::{Distinctness, QueryRecord, ReferenceTable, SelectCompiler},
             TraversalContext,
         },
         AsClient, ConflictBehavior, InsertionError, PostgresStore, PropertyTypeStore, QueryError,
@@ -402,7 +402,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         actor_id: AccountId,
         authorization_api: &A,
         query: &StructuralQuery<'_, PropertyTypeWithMetadata>,
-        after: Option<&VersionedUrl>,
+        cursor: Option<PropertyTypeVertexId>,
         limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
@@ -419,28 +419,30 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         //   see https://linear.app/hash/issue/H-297
         let mut visited_ontology_ids = HashSet::new();
 
-        let property_types =
-            ReadPaginated::<PropertyTypeWithMetadata, VersionedUrl>::read_paginated_vec(
-                self,
-                filter,
-                Some(&temporal_axes),
-                after,
-                limit,
-                include_drafts,
-            )
-            .await?
-            .into_iter()
-            .filter_map(|property_type_query| {
-                let cursor = property_type_query.decode_cursor();
-                let property_type = property_type_query.decode_record();
-                let id = PropertyTypeId::from_url(&cursor);
-                let vertex_id = property_type.vertex_id(time_axis);
-                // The records are already sorted by time, so we can just take the first one
-                visited_ontology_ids
-                    .insert(id)
-                    .then_some((id, (vertex_id, property_type)))
-            })
-            .collect::<Vec<_>>();
+        let property_types = ReadPaginated::<PropertyTypeWithMetadata>::read_paginated_vec(
+            self,
+            filter,
+            Some(&temporal_axes),
+            cursor
+                .map(|cursor| VertexIdSorting {
+                    cursor: Some(cursor),
+                })
+                .as_ref(),
+            limit,
+            include_drafts,
+        )
+        .await?
+        .into_iter()
+        .filter_map(|property_type_query| {
+            let property_type = property_type_query.decode_record();
+            let id = PropertyTypeId::from_url(property_type.schema.id());
+            let vertex_id = property_type.vertex_id(time_axis);
+            // The records are already sorted by time, so we can just take the first one
+            visited_ontology_ids
+                .insert(id)
+                .then_some((id, (vertex_id, property_type)))
+        })
+        .collect::<Vec<_>>();
 
         let filtered_ids = property_types
             .iter()
@@ -646,6 +648,7 @@ pub struct PropertyTypeRowIndices {
 
 impl QueryRecordDecode<Row> for PropertyTypeWithMetadata {
     type CompilationArtifacts = PropertyTypeRowIndices;
+    type Output = Self;
 
     fn decode(row: &Row, indices: Self::CompilationArtifacts) -> Self {
         Self {
@@ -678,12 +681,12 @@ impl QueryRecordDecode<Row> for PropertyTypeWithMetadata {
     }
 }
 
-impl<'c> QueryRecord<'c, SelectCompiler<'c, Self>> for PropertyTypeWithMetadata {
+impl QueryRecord for PropertyTypeWithMetadata {
     type CompilationParameters = ();
 
     fn parameters() -> Self::CompilationParameters {}
 
-    fn compile<'p: 'c>(
+    fn compile<'c, 'p: 'c>(
         compiler: &mut SelectCompiler<'c, Self>,
         _paths: &'p Self::CompilationParameters,
     ) -> Self::CompilationArtifacts {

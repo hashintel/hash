@@ -1,8 +1,6 @@
 use std::{borrow::Cow, mem::swap};
 
-use async_trait::async_trait;
 use error_stack::{Result, ResultExt};
-use futures::{Stream, StreamExt, TryStreamExt};
 use graph_types::{
     knowledge::entity::{EntityEditionId, EntityId, EntityUuid},
     owned_by_id::OwnedById,
@@ -10,144 +8,23 @@ use graph_types::{
 use temporal_versioning::{
     LeftClosedTemporalInterval, RightBoundedTemporalInterval, TemporalTagged, TimeAxis, Timestamp,
 };
-use tokio_postgres::{GenericClient, Row};
+use tokio_postgres::GenericClient;
 use type_system::url::BaseUrl;
 
 use crate::{
     store::{
-        crud::{Cursor, PostgresQueryResult, QueryRecord, QueryResult, Read, ReadPaginated},
         postgres::{
             ontology::OntologyId,
-            query::{
-                ForeignKeyReference, PostgresQueryPath, PostgresRecord, ReferenceTable,
-                SelectCompiler, Table, Transpile,
-            },
+            query::{ForeignKeyReference, ReferenceTable, Table, Transpile},
         },
-        query::Filter,
         AsClient, PostgresStore, QueryError,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths},
         identifier::{EntityTypeVertexId, EntityVertexId},
-        temporal_axes::{PinnedAxis, QueryTemporalAxes, VariableAxis},
+        temporal_axes::{PinnedAxis, VariableAxis},
     },
 };
-
-#[async_trait]
-impl<Cl, R, C> ReadPaginated<R, C> for PostgresStore<Cl>
-where
-    Cl: AsClient,
-    for<'c> R:
-        QueryRecord<'c, SelectCompiler<'c, R>> + PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
-    for<'c> C: Cursor<'c, SelectCompiler<'c, R>> + Sync + 'static,
-{
-    type QueryResultSet = Row;
-
-    type QueryResult = impl QueryResult<Record = R, Cursor = C>;
-    type ReadPaginatedStream =
-        impl Stream<Item = Result<Self::QueryResult, QueryError>> + Send + Sync;
-
-    #[tracing::instrument(level = "info", skip(self, filter, cursor))]
-    async fn read_paginated(
-        &self,
-        filter: &Filter<'_, R>,
-        temporal_axes: Option<&QueryTemporalAxes>,
-        cursor: Option<&C>,
-        limit: Option<usize>,
-        include_drafts: bool,
-    ) -> Result<Self::ReadPaginatedStream, QueryError> {
-        let cursor_parameters = cursor.map(C::encode);
-
-        let mut compiler = SelectCompiler::new(temporal_axes, include_drafts);
-        if let Some(limit) = limit {
-            compiler.set_limit(limit);
-        }
-
-        let cursor_indices = C::compile(
-            &mut compiler,
-            #[allow(clippy::unwrap_used)]
-            cursor_parameters.as_ref(),
-            temporal_axes.expect("To use a cursor, temporal axes has to be specified"),
-        );
-
-        let record_artifacts = R::parameters();
-        let record_indices = R::compile(&mut compiler, &record_artifacts);
-
-        compiler.add_filter(filter);
-        let (statement, parameters) = compiler.compile();
-
-        let stream = self
-            .as_client()
-            .query_raw(&statement, parameters.iter().copied())
-            .await
-            .change_context(QueryError)?;
-
-        Ok(stream
-            .map(|row| row.change_context(QueryError))
-            .map_ok(move |row| PostgresQueryResult {
-                query_result: row,
-                record_artifacts: record_indices,
-                cursor_artifacts: cursor_indices,
-            }))
-    }
-}
-
-#[async_trait]
-impl<Cl, R> Read<R> for PostgresStore<Cl>
-where
-    Cl: AsClient,
-    for<'c> R:
-        QueryRecord<'c, SelectCompiler<'c, R>> + PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
-{
-    type ReadStream = impl Stream<Item = Result<R, QueryError>> + Send + Sync;
-
-    async fn read(
-        &self,
-        filter: &Filter<'_, R>,
-        temporal_axes: Option<&QueryTemporalAxes>,
-        include_drafts: bool,
-    ) -> Result<Self::ReadStream, QueryError> {
-        let mut compiler = SelectCompiler::new(temporal_axes, include_drafts);
-
-        let record_artifacts = R::parameters();
-        let record_indices = R::compile(&mut compiler, &record_artifacts);
-
-        compiler.add_filter(filter);
-        let (statement, parameters) = compiler.compile();
-
-        Ok(self
-            .as_client()
-            .query_raw(&statement, parameters.iter().copied())
-            .await
-            .change_context(QueryError)?
-            .map(|row| row.change_context(QueryError))
-            .map_ok(move |row| R::decode(&row, record_indices)))
-    }
-
-    #[tracing::instrument(level = "info", skip(self, filter))]
-    async fn read_one(
-        &self,
-        filter: &Filter<'_, R>,
-        temporal_axes: Option<&QueryTemporalAxes>,
-        include_drafts: bool,
-    ) -> Result<R, QueryError> {
-        let mut compiler = SelectCompiler::new(temporal_axes, include_drafts);
-
-        let record_artifacts = R::parameters();
-        let record_indices = R::compile(&mut compiler, &record_artifacts);
-
-        compiler.add_filter(filter);
-        let (statement, parameters) = compiler.compile();
-
-        let row = self
-            .as_client()
-            .query_one(&statement, parameters)
-            .await
-            .change_context(QueryError)?;
-
-        Ok(R::decode(&row, record_indices))
-    }
-}
 
 #[derive(Debug)]
 pub struct EntityEdgeTraversalData {

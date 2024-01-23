@@ -9,102 +9,224 @@
 use async_trait::async_trait;
 use error_stack::Result;
 use futures::{Stream, TryStreamExt};
-use tokio_postgres::Row;
 
 use crate::{
     store::{query::Filter, QueryError, Record},
     subgraph::temporal_axes::QueryTemporalAxes,
 };
 
-pub trait QueryCompiler<'p> {
-    type ResultSet;
-}
-
-pub trait QueryRecordEncode {
-    type CompilationParameters<'p>: Send
-    where
-        Self: 'p;
-
-    fn encode(&self) -> Self::CompilationParameters<'_>;
-}
-
 pub trait QueryRecordDecode<Q> {
     type CompilationArtifacts: Copy + Send + Sync + 'static;
+    type Output;
 
-    fn decode(query_result: &Q, artifacts: Self::CompilationArtifacts) -> Self;
-}
-
-pub trait Cursor<'c, C>: QueryRecordEncode + QueryRecordDecode<C::ResultSet>
-where
-    C: QueryCompiler<'c>,
-{
-    fn compile<'p: 'c>(
-        compiler: &mut C,
-        parameters: Option<&'c Self::CompilationParameters<'p>>,
-        temporal_axes: &QueryTemporalAxes,
-    ) -> Self::CompilationArtifacts;
-}
-
-/// A record which is queried for.
-///
-/// To create a record, three steps are necessary:
-///
-///   1. As a preparation, the [`QueryRecord::parameters`] are retrieved. This is required as often
-///      the parameters are used for the compilation step but the parameters need to outlive
-///      compilation.
-///   2. Compiling the query using the [`CompilationParameters`] and the [`SelectCompiler`]. This
-///      results in [`CompilationArtifacts`], which are used later to decode the query result.
-///   3. After a query has been made, the query result is decoded using the [`CompilationArtifacts`]
-///      and the query result `Q`.
-///
-/// [`CompilationParameters`]: Self::CompilationParameters
-/// [`CompilationArtifacts`]: Self::CompilationArtifacts
-pub trait QueryRecord<'c, C>: Record + QueryRecordDecode<C::ResultSet>
-where
-    C: QueryCompiler<'c>,
-{
-    type CompilationParameters: Send + 'static;
-
-    fn parameters() -> Self::CompilationParameters;
-
-    fn compile<'p: 'c>(
-        compiler: &mut C,
-        paths: &'p Self::CompilationParameters,
-    ) -> Self::CompilationArtifacts;
+    fn decode(query_result: &Q, artifacts: Self::CompilationArtifacts) -> Self::Output;
 }
 
 pub trait QueryResult {
     type Record;
-    type Cursor;
+    type Sorting: Sorting;
 
     fn decode_record(&self) -> Self::Record;
-    fn decode_cursor(&self) -> Self::Cursor;
+    fn decode_cursor(&self) -> <Self::Sorting as Sorting>::Cursor;
 }
 
-pub struct PostgresQueryResult<R, C>
-where
-    R: QueryRecordDecode<Row>,
-    C: QueryRecordDecode<Row>,
-{
-    pub query_result: Row,
-    pub record_artifacts: R::CompilationArtifacts,
-    pub cursor_artifacts: C::CompilationArtifacts,
+pub trait Sorting {
+    type Cursor;
+
+    fn cursor(&self) -> Option<&Self::Cursor>;
+
+    fn set_cursor(&mut self, cursor: Self::Cursor);
 }
 
-impl<R, C> QueryResult for PostgresQueryResult<R, C>
-where
-    R: QueryRecordDecode<Row>,
-    C: QueryRecordDecode<Row>,
-{
-    type Cursor = C;
-    type Record = R;
+pub struct VertexIdSorting<R: Record> {
+    pub cursor: Option<R::VertexId>,
+}
 
-    fn decode_record(&self) -> Self::Record {
-        R::decode(&self.query_result, self.record_artifacts)
+impl<R: Record> Sorting for VertexIdSorting<R> {
+    type Cursor = R::VertexId;
+
+    fn cursor(&self) -> Option<&Self::Cursor> {
+        self.cursor.as_ref()
     }
 
-    fn decode_cursor(&self) -> Self::Cursor {
-        C::decode(&self.query_result, self.cursor_artifacts)
+    fn set_cursor(&mut self, cursor: Self::Cursor) {
+        self.cursor = Some(cursor);
+    }
+}
+
+#[expect(
+    dead_code,
+    reason = "https://linear.app/hash/issue/H-1440/implement-sorting-for-subgraph-roots"
+)]
+pub struct CustomSorting<'p, R: Record> {
+    keys: Vec<R::QueryPath<'p>>,
+    cursor: Option<CustomCursor>,
+}
+
+#[expect(
+    dead_code,
+    reason = "https://linear.app/hash/issue/H-1440/implement-sorting-for-subgraph-roots"
+)]
+pub struct CustomCursor {
+    values: Vec<serde_json::Value>,
+}
+
+impl<R: Record> Sorting for CustomSorting<'_, R> {
+    type Cursor = CustomCursor;
+
+    fn cursor(&self) -> Option<&Self::Cursor> {
+        self.cursor.as_ref()
+    }
+
+    fn set_cursor(&mut self, cursor: Self::Cursor) {
+        self.cursor = Some(cursor);
+    }
+}
+
+pub struct ReadParameter<'f, R: Record, S> {
+    filters: Option<&'f Filter<'f, R>>,
+    temporal_axes: Option<&'f QueryTemporalAxes>,
+    include_drafts: bool,
+    sorting: Option<S>,
+    limit: Option<usize>,
+}
+
+impl<'f, R: Record> Default for ReadParameter<'f, R, ()> {
+    fn default() -> Self {
+        Self {
+            filters: None,
+            temporal_axes: None,
+            include_drafts: false,
+            sorting: None,
+            limit: None,
+        }
+    }
+}
+
+impl<'f, R: Record, S> ReadParameter<'f, R, S> {
+    #[must_use]
+    pub const fn filter(mut self, filter: &'f Filter<'f, R>) -> Self {
+        self.filters = Some(filter);
+        self
+    }
+
+    #[must_use]
+    pub const fn temporal_axes(mut self, temporal_axes: &'f QueryTemporalAxes) -> Self {
+        self.temporal_axes = Some(temporal_axes);
+        self
+    }
+
+    #[must_use]
+    pub const fn include_drafts(mut self) -> Self {
+        self.include_drafts = true;
+        self
+    }
+
+    #[must_use]
+    pub fn sort_by_vertex_id(self) -> ReadParameter<'f, R, VertexIdSorting<R>> {
+        ReadParameter {
+            filters: self.filters,
+            temporal_axes: self.temporal_axes,
+            include_drafts: self.include_drafts,
+            sorting: Some(VertexIdSorting { cursor: None }),
+            limit: self.limit,
+        }
+    }
+
+    #[must_use]
+    pub fn sort_by_keys<'p>(
+        self,
+        keys: impl IntoIterator<Item = R::QueryPath<'p>>,
+    ) -> ReadParameter<'f, R, CustomSorting<'p, R>> {
+        ReadParameter {
+            filters: self.filters,
+            temporal_axes: self.temporal_axes,
+            include_drafts: self.include_drafts,
+            sorting: Some(CustomSorting {
+                keys: keys.into_iter().collect(),
+                cursor: None,
+            }),
+            limit: self.limit,
+        }
+    }
+}
+
+impl<'f, R: Record> ReadParameter<'f, R, ()> {
+    /// # Errors
+    ///
+    /// Returns an error if reading the records fails.
+    pub async fn read(
+        &self,
+        store: &impl Read<R>,
+    ) -> Result<impl Stream<Item = Result<R, QueryError>>, QueryError> {
+        store
+            .read(
+                self.filters.unwrap_or(&Filter::All(Vec::new())),
+                self.temporal_axes,
+                self.include_drafts,
+            )
+            .await
+    }
+
+    /// # Errors
+    ///
+    /// Returns an error if reading the records fails.
+    pub async fn read_vec(&self, store: &impl Read<R>) -> Result<Vec<R>, QueryError> {
+        self.read(store).await?.try_collect().await
+    }
+}
+
+impl<'f, R: Record, S: Sorting> ReadParameter<'f, R, S> {
+    #[must_use]
+    pub const fn limit(mut self, limit: usize) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    #[must_use]
+    #[expect(
+        clippy::missing_panics_doc,
+        reason = "It's not possible to get `S` as parameter without setting `sorting`"
+    )]
+    pub fn cursor(mut self, cursor: S::Cursor) -> Self {
+        self.sorting
+            .as_mut()
+            .expect("sorting is not set")
+            .set_cursor(cursor);
+        self
+    }
+}
+
+impl<'f, R: Record, S: Sorting + Sync> ReadParameter<'f, R, S> {
+    /// # Errors
+    ///
+    /// Returns an error if reading the records fails.
+    pub async fn read_paginated(
+        &self,
+        store: &impl ReadPaginated<R, S>,
+    ) -> Result<
+        impl Stream<Item = Result<impl QueryResult<Record = R, Sorting = S>, QueryError>>,
+        QueryError,
+    > {
+        store
+            .read_paginated(
+                self.filters.unwrap_or(&Filter::All(Vec::new())),
+                self.temporal_axes,
+                self.sorting.as_ref(),
+                self.limit,
+                self.include_drafts,
+            )
+            .await
+    }
+
+    /// # Errors
+    ///
+    /// Returns an error if reading the records fails.
+    pub async fn read_paginated_vec(
+        &self,
+        store: &impl ReadPaginated<R, S>,
+    ) -> Result<Vec<impl QueryResult<Record = R, Sorting = S>>, QueryError> {
+        self.read_paginated(store).await?.try_collect().await
     }
 }
 
@@ -112,9 +234,9 @@ where
 ///
 /// [`Store`]: crate::store::Store
 #[async_trait]
-pub trait ReadPaginated<R: Record, C = <R as Record>::VertexId>: Read<R> {
+pub trait ReadPaginated<R: Record, S: Sorting + Sync = VertexIdSorting<R>>: Read<R> {
     type QueryResultSet;
-    type QueryResult: QueryResult<Record = R, Cursor = C> + Send;
+    type QueryResult: QueryResult<Record = R, Sorting = S> + Send;
 
     type ReadPaginatedStream: Stream<Item = Result<Self::QueryResult, QueryError>> + Send + Sync;
 
@@ -122,25 +244,20 @@ pub trait ReadPaginated<R: Record, C = <R as Record>::VertexId>: Read<R> {
         &self,
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
-        cursor: Option<&C>,
+        sorting: Option<&S>,
         limit: Option<usize>,
         include_drafts: bool,
-    ) -> Result<Self::ReadPaginatedStream, QueryError>
-    where
-        C: QueryRecordDecode<Self::QueryResultSet> + Sync;
+    ) -> Result<Self::ReadPaginatedStream, QueryError>;
 
     async fn read_paginated_vec(
         &self,
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
-        cursor: Option<&C>,
+        sorting: Option<&S>,
         limit: Option<usize>,
         include_drafts: bool,
-    ) -> Result<Vec<Self::QueryResult>, QueryError>
-    where
-        C: QueryRecordDecode<Self::QueryResultSet> + Sync,
-    {
-        self.read_paginated(filter, temporal_axes, cursor, limit, include_drafts)
+    ) -> Result<Vec<Self::QueryResult>, QueryError> {
+        self.read_paginated(filter, temporal_axes, sorting, limit, include_drafts)
             .await?
             .try_collect()
             .await

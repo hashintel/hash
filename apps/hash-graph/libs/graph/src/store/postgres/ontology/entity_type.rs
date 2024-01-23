@@ -34,14 +34,14 @@ use uuid::Uuid;
 use crate::{
     ontology::EntityTypeQueryPath,
     store::{
-        crud::{QueryRecord, QueryRecordDecode, QueryResult, ReadPaginated},
+        crud::{QueryRecordDecode, QueryResult, ReadPaginated, VertexIdSorting},
         error::DeletionError,
         postgres::{
             ontology::{
                 read::OntologyTypeTraversalData, OntologyId,
                 PostgresOntologyTypeClassificationMetadata,
             },
-            query::{Distinctness, ReferenceTable, SelectCompiler},
+            query::{Distinctness, QueryRecord, ReferenceTable, SelectCompiler},
             TraversalContext,
         },
         query::{Filter, FilterExpression, ParameterList},
@@ -576,7 +576,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         actor_id: AccountId,
         authorization_api: &A,
         query: &StructuralQuery<'_, EntityTypeWithMetadata>,
-        after: Option<&VersionedUrl>,
+        cursor: Option<EntityTypeVertexId>,
         limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
@@ -593,28 +593,30 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         //   see https://linear.app/hash/issue/H-297
         let mut visited_ontology_ids = HashSet::new();
 
-        let entity_types =
-            ReadPaginated::<EntityTypeWithMetadata, VersionedUrl>::read_paginated_vec(
-                self,
-                filter,
-                Some(&temporal_axes),
-                after,
-                limit,
-                include_drafts,
-            )
-            .await?
-            .into_iter()
-            .filter_map(|entity_type_query| {
-                let cursor = entity_type_query.decode_cursor();
-                let entity_type = entity_type_query.decode_record();
-                let id = EntityTypeId::from_url(&cursor);
-                let vertex_id = entity_type.vertex_id(time_axis);
-                // The records are already sorted by time, so we can just take the first one
-                visited_ontology_ids
-                    .insert(id)
-                    .then_some((id, (vertex_id, entity_type)))
-            })
-            .collect::<Vec<_>>();
+        let entity_types = ReadPaginated::<EntityTypeWithMetadata>::read_paginated_vec(
+            self,
+            filter,
+            Some(&temporal_axes),
+            cursor
+                .map(|cursor| VertexIdSorting {
+                    cursor: Some(cursor),
+                })
+                .as_ref(),
+            limit,
+            include_drafts,
+        )
+        .await?
+        .into_iter()
+        .filter_map(|entity_type_query| {
+            let entity_type = entity_type_query.decode_record();
+            let id = EntityTypeId::from_url(entity_type.schema.id());
+            let vertex_id = entity_type.vertex_id(time_axis);
+            // The records are already sorted by time, so we can just take the first one
+            visited_ontology_ids
+                .insert(id)
+                .then_some((id, (vertex_id, entity_type)))
+        })
+        .collect::<Vec<_>>();
 
         let filtered_ids = entity_types
             .iter()
@@ -859,6 +861,7 @@ pub struct EntityTypeRowIndices {
 
 impl QueryRecordDecode<Row> for EntityTypeWithMetadata {
     type CompilationArtifacts = EntityTypeRowIndices;
+    type Output = Self;
 
     fn decode(row: &Row, indices: Self::CompilationArtifacts) -> Self {
         Self {
@@ -897,12 +900,12 @@ impl QueryRecordDecode<Row> for EntityTypeWithMetadata {
     }
 }
 
-impl<'c> QueryRecord<'c, SelectCompiler<'c, Self>> for EntityTypeWithMetadata {
+impl QueryRecord for EntityTypeWithMetadata {
     type CompilationParameters = ();
 
     fn parameters() -> Self::CompilationParameters {}
 
-    fn compile<'p: 'c>(
+    fn compile<'c, 'p: 'c>(
         compiler: &mut SelectCompiler<'c, Self>,
         _paths: &'p Self::CompilationParameters,
     ) -> Self::CompilationArtifacts {
