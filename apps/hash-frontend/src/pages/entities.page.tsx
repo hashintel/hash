@@ -1,9 +1,16 @@
 import { extractVersion, VersionedUrl } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon } from "@hashintel/design-system";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isBaseUrl } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box, buttonClasses, Container, Fade, Typography } from "@mui/material";
+import {
+  Box,
+  buttonClasses,
+  Container,
+  Fade,
+  styled,
+  Typography,
+} from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useCallback, useMemo } from "react";
@@ -15,6 +22,7 @@ import { EntityTypeEntitiesContext } from "../shared/entity-type-entities-contex
 import { useEntityTypeEntitiesContextValue } from "../shared/entity-type-entities-context/use-entity-type-entities-context-value";
 import { useLatestEntityTypesOptional } from "../shared/entity-types-context/hooks";
 import { AsteriskLightIcon } from "../shared/icons/asterisk-light-icon";
+import { CanvasNewIcon } from "../shared/icons/canvas-new-icon";
 import { FileCirclePlusRegularIcon } from "../shared/icons/file-circle-plus-regular-icon";
 import { FilesLightIcon } from "../shared/icons/files-light-icon";
 import { FilesRegularIcon } from "../shared/icons/files-regular-icon";
@@ -32,6 +40,23 @@ const contentMaxWidth = 1000;
 type ParsedQueryParams = {
   entityTypeIdOrBaseUrl?: string;
 };
+
+export const CreateButton = styled(Button)(({ theme }) => ({
+  color: theme.palette.gray[90],
+  fontSize: 14,
+  padding: 0,
+  transition: theme.transitions.create("color"),
+  ":hover": {
+    background: "transparent",
+    color: theme.palette.blue[70],
+    [`.${buttonClasses.endIcon}`]: {
+      color: theme.palette.blue[70],
+    },
+  },
+  [`.${buttonClasses.endIcon}`]: {
+    color: theme.palette.blue[70],
+  },
+}));
 
 const EntitiesPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -85,27 +110,25 @@ const EntitiesPage: NextPageWithLayout = () => {
   });
 
   const isViewAllPagesPage =
-    entityType && isPageEntityTypeId(entityType.schema.$id);
+    entityType && entityType.schema.$id === systemEntityTypes.page.entityTypeId;
+
+  const createDocument = useCallback(async () => {
+    await createUntitledPage(lastRootPageIndex, "document");
+  }, [lastRootPageIndex, createUntitledPage]);
+
+  const createCanvas = useCallback(async () => {
+    await createUntitledPage(lastRootPageIndex, "canvas");
+  }, [lastRootPageIndex, createUntitledPage]);
 
   const createEntity = useCallback(async () => {
-    if (isViewAllPagesPage) {
-      await createUntitledPage(lastRootPageIndex, "document");
-    } else {
-      void router.push(
-        `/new/entity${
-          entityType
-            ? `?entity-type-id=${encodeURIComponent(entityType.schema.$id)}`
-            : ""
-        }`,
-      );
-    }
-  }, [
-    lastRootPageIndex,
-    createUntitledPage,
-    isViewAllPagesPage,
-    entityType,
-    router,
-  ]);
+    await router.push(
+      `/new/entity${
+        entityType
+          ? `?entity-type-id=${encodeURIComponent(entityType.schema.$id)}`
+          : ""
+      }`,
+    );
+  }, [entityType, router]);
 
   const pageTitle = entityType
     ? entityTypeId
@@ -183,38 +206,38 @@ const EntitiesPage: NextPageWithLayout = () => {
               />
             </Tabs>
             <Fade in={displayCreateEntityButton}>
-              <Button
-                endIcon={
-                  isViewAllPagesPage ? (
-                    <FileCirclePlusRegularIcon />
-                  ) : (
-                    <PlusRegularIcon />
-                  )
-                }
-                variant="tertiary_quiet"
-                onClick={createEntity}
-                sx={{
-                  color: ({ palette }) => palette.gray[90],
-                  fontSize: 14,
-                  padding: 0,
-                  transition: ({ transitions }) => transitions.create("color"),
-                  ":hover": {
-                    background: "transparent",
-                    color: ({ palette }) => palette.blue[70],
-                    [`.${buttonClasses.endIcon}`]: {
-                      color: ({ palette }) => palette.blue[70],
-                    },
-                  },
-                  [`.${buttonClasses.endIcon}`]: {
-                    color: ({ palette }) => palette.blue[70],
-                  },
-                }}
-              >
-                Create new{" "}
-                {isViewAllPagesPage
-                  ? "page"
-                  : entityType?.schema.title.toLowerCase() ?? "entity"}
-              </Button>
+              {isViewAllPagesPage ? (
+                <Box display="flex" gap={3}>
+                  <CreateButton
+                    variant="tertiary_quiet"
+                    endIcon={<FileCirclePlusRegularIcon />}
+                    onClick={createDocument}
+                  >
+                    Create new document
+                  </CreateButton>
+                  <CreateButton
+                    variant="tertiary_quiet"
+                    sx={{
+                      [`.${buttonClasses.endIcon}`]: {
+                        fontSize: 18,
+                      },
+                    }}
+                    endIcon={<CanvasNewIcon />}
+                    onClick={createCanvas}
+                  >
+                    Create new canvas
+                  </CreateButton>
+                </Box>
+              ) : (
+                <CreateButton
+                  onClick={createEntity}
+                  variant="tertiary_quiet"
+                  endIcon={<PlusRegularIcon />}
+                >
+                  Create new{" "}
+                  {entityType?.schema.title.toLowerCase() ?? "entity"}
+                </CreateButton>
+              )}
             </Fade>
           </Box>
         </Container>
