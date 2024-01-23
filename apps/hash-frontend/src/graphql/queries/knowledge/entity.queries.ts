@@ -8,6 +8,7 @@ export const createEntityMutation = gql`
     $properties: EntityPropertiesObject!
     $linkData: LinkData
     $draft: Boolean
+    $relationships: [EntityRelationAndSubject!]
   ) {
     # This is a scalar, which has no selection.
     createEntity(
@@ -16,6 +17,7 @@ export const createEntityMutation = gql`
       properties: $properties
       linkData: $linkData
       draft: $draft
+      relationships: $relationships
     )
   }
 `;
