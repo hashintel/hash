@@ -21,6 +21,8 @@ import { useHashInstance } from "../components/hooks/use-hash-instance";
 import { EntityTypeEntitiesContext } from "../shared/entity-type-entities-context";
 import { useEntityTypeEntitiesContextValue } from "../shared/entity-type-entities-context/use-entity-type-entities-context-value";
 import { useLatestEntityTypesOptional } from "../shared/entity-types-context/hooks";
+import { useEntityTypesContextRequired } from "../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { generateLinkParameters } from "../shared/generate-link-parameters";
 import { AsteriskLightIcon } from "../shared/icons/asterisk-light-icon";
 import { CanvasNewIcon } from "../shared/icons/canvas-new-icon";
 import { FileCirclePlusRegularIcon } from "../shared/icons/file-circle-plus-regular-icon";
@@ -63,6 +65,8 @@ const EntitiesPage: NextPageWithLayout = () => {
   const { activeWorkspaceOwnedById, activeWorkspace } = useActiveWorkspace();
 
   const { hashInstance } = useHashInstance();
+
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
   const { entityTypeId, entityTypeBaseUrl } = useMemo(() => {
     if (router.isReady) {
@@ -109,6 +113,14 @@ const EntitiesPage: NextPageWithLayout = () => {
     entityTypeId,
   });
 
+  const isFileEntityType = useMemo(
+    () =>
+      entityType
+        ? isSpecialEntityTypeLookup?.[entityType.schema.$id]?.isFile
+        : false,
+    [isSpecialEntityTypeLookup, entityType],
+  );
+
   const isViewAllPagesPage =
     entityType && entityType.schema.$id === systemEntityTypes.page.entityTypeId;
 
@@ -122,13 +134,20 @@ const EntitiesPage: NextPageWithLayout = () => {
 
   const createEntity = useCallback(async () => {
     await router.push(
-      `/new/entity${
-        entityType
-          ? `?entity-type-id=${encodeURIComponent(entityType.schema.$id)}`
-          : ""
-      }`,
+      /**
+       * If the entity type is a file entity type, we want to redirect the
+       * user to the upload tab of the entity type page instead of the
+       * entity editor.
+       */
+      entityType && isFileEntityType
+        ? `${generateLinkParameters(entityType.schema.$id).href}?tab=upload`
+        : `/new/entity${
+            entityType
+              ? `?entity-type-id=${encodeURIComponent(entityType.schema.$id)}`
+              : ""
+          }`,
     );
-  }, [entityType, router]);
+  }, [entityType, isFileEntityType, router]);
 
   const pageTitle = entityType
     ? entityTypeId
@@ -234,8 +253,9 @@ const EntitiesPage: NextPageWithLayout = () => {
                   variant="tertiary_quiet"
                   endIcon={<PlusRegularIcon />}
                 >
-                  Create new{" "}
+                  {isFileEntityType ? "Add" : "Create"} new{" "}
                   {entityType?.schema.title.toLowerCase() ?? "entity"}
+                  {isFileEntityType ? "(s)" : ""}
                 </CreateButton>
               )}
             </Fade>
