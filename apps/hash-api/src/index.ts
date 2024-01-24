@@ -25,7 +25,6 @@ import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { oryKratosPublicUrl } from "@local/hash-isomorphic-utils/environment";
 import { Session } from "@ory/client";
 import * as Sentry from "@sentry/node";
-import type { Client as TemporalClient } from "@temporalio/client";
 import { json } from "body-parser";
 import cors from "cors";
 import proxy from "express-http-proxy";
@@ -84,7 +83,6 @@ declare global {
   namespace Express {
     interface Request {
       context: ImpureGraphContext<true> & {
-        temporalClient?: TemporalClient;
         vaultClient?: VaultClient;
       };
       session: Session | undefined;
@@ -183,11 +181,11 @@ const main = async () => {
   // Setup upload storage provider and express routes for local file uploads
   const uploadProvider = setupStorageProviders(app, FILE_UPLOAD_PROVIDER);
 
-  const temporalClient = await createTemporalClient(logger);
+  const temporalClient = (await createTemporalClient(logger)) ?? null;
 
   const vaultClient = createVaultClient();
 
-  const context = { graphApi, uploadProvider };
+  const context = { graphApi, uploadProvider, temporalClient };
 
   await ensureSystemGraphIsInitialized({ logger, context });
 
@@ -274,7 +272,7 @@ const main = async () => {
     graphApi,
     search,
     uploadProvider,
-    temporalClient,
+    temporalClient: temporalClient ?? undefined,
     vaultClient,
     cache: redis,
     emailTransporter,

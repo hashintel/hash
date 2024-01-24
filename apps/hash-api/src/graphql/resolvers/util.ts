@@ -1,12 +1,14 @@
 import { ImpureGraphContext } from "../../graph/context-types";
 import { GraphQLContext } from "../context";
 
-export const dataSourcesToImpureGraphContext = ({
-  graphApi,
-  uploadProvider,
-}: GraphQLContext["dataSources"]): ImpureGraphContext<true> => {
+export const graphQLContextToImpureGraphContext = ({
+  dataSources,
+  temporal,
+}: GraphQLContext): ImpureGraphContext<true> => {
+  const { graphApi, uploadProvider } = dataSources;
   return {
     graphApi,
     uploadProvider,
+    temporalClient: temporal ?? null,
   };
 };

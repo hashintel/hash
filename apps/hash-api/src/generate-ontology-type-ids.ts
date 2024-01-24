@@ -18,7 +18,7 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { publicUserAccountId } from "./auth/public-user-account-id";
-import { ImpureGraphFunction } from "./graph/context-types";
+import { ImpureGraphContext, ImpureGraphFunction } from "./graph/context-types";
 import { getOrgByShortname, Org } from "./graph/knowledge/system-types/org";
 import { getDataTypes } from "./graph/ontology/primitive/data-type";
 import {
@@ -181,7 +181,7 @@ const generateOntologyIds = async () => {
     port: graphApiPort,
   });
 
-  const graphContext = { graphApi };
+  const graphContext: ImpureGraphContext = { graphApi, temporalClient: null };
 
   const [hashOrg, linearOrg] = await Promise.all([
     getOrgByShortname(
@@ -253,19 +253,19 @@ const generateOntologyIds = async () => {
   await writeFile(
     outputPath,
     await Promise.all([
-      serializeTypes({ graphApi }, authentication, {
+      serializeTypes(graphContext, authentication, {
         entityTypes: hashEntityTypes,
         propertyTypes: hashPropertyTypes,
         dataTypes: hashDataTypes,
         /** @todo: change this to "hash"? */
         prefix: "system",
       }),
-      serializeTypes({ graphApi }, authentication, {
+      serializeTypes(graphContext, authentication, {
         entityTypes: linearEntityTypes,
         propertyTypes: linearPropertyTypes,
         prefix: "linear",
       }),
-      serializeTypes({ graphApi }, authentication, {
+      serializeTypes(graphContext, authentication, {
         entityTypes: blockProtocolEntityTypes,
         propertyTypes: blockProtocolPropertyTypes,
         dataTypes: blockProtocolDataTypes,

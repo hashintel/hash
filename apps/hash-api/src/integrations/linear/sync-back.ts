@@ -16,6 +16,7 @@ import {
   LinkEntity,
 } from "@local/hash-subgraph/type-system-patch";
 
+import { ImpureGraphContext } from "../../graph/context-types";
 import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
 import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret";
 import { systemAccountId } from "../../graph/system-account";
@@ -69,12 +70,17 @@ export const processEntityChange = async (
     return;
   }
 
+  const graphContext: ImpureGraphContext = {
+    graphApi,
+    temporalClient: null,
+  };
+
   const linearEntityToUpdate = supportedLinearEntityTypeIds.includes(
     entityTypeId,
   )
     ? entity
     : await getLatestEntityById(
-        { graphApi },
+        graphContext,
         { actorId: linearMachineActorId },
         { entityId: (entity as LinkEntity).linkData.leftEntityId },
       );
@@ -108,7 +114,7 @@ export const processEntityChange = async (
   );
 
   const linearApiKey = await getLinearSecretValueByHashWorkspaceId(
-    { graphApi },
+    graphContext,
     { actorId: linearMachineActorId },
     {
       hashWorkspaceEntityId,

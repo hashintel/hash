@@ -3,7 +3,7 @@ import { Entity } from "@local/hash-subgraph";
 import { getBlockCollectionBlocks } from "../../../../graph/knowledge/system-types/block-collection";
 import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { graphQLContextToImpureGraphContext } from "../../util";
 import {
   mapBlockToGQL,
   mapEntityToGQL,
@@ -15,13 +15,17 @@ export const blockCollectionContents: ResolverFn<
   Entity,
   LoggedInGraphQLContext,
   Record<string, never>
-> = async (blockCollection, _, { dataSources, authentication }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+> = async (blockCollection, _, graphQLContext) => {
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const contentItems = await getBlockCollectionBlocks(context, authentication, {
-    blockCollectionEntityId: blockCollection.metadata.recordId.entityId,
-    blockCollectionEntityTypeId: blockCollection.metadata.entityTypeId,
-  });
+  const contentItems = await getBlockCollectionBlocks(
+    context,
+    graphQLContext.authentication,
+    {
+      blockCollectionEntityId: blockCollection.metadata.recordId.entityId,
+      blockCollectionEntityTypeId: blockCollection.metadata.entityTypeId,
+    },
+  );
 
   return contentItems.map(({ linkEntity, rightEntity }) => ({
     linkEntity: mapEntityToGQL(linkEntity),

@@ -55,6 +55,7 @@ export const createTestImpureGraphContext = (): ImpureGraphContext<true> => {
       },
       storageType: "LOCAL_FILE_SYSTEM",
     },
+    temporalClient: null,
   };
 };
 

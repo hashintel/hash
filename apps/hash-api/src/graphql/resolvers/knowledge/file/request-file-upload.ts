@@ -7,7 +7,7 @@ import {
   ResolverFn,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const requestFileUpload: ResolverFn<
   Promise<RequestFileUploadResponse>,
@@ -24,9 +24,10 @@ export const requestFileUpload: ResolverFn<
     name,
     size,
   },
-  { dataSources, authentication },
+  graphQLContext,
 ) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   const { presignedPut, entity } = await createFileFromUploadRequest(
     context,

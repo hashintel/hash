@@ -5,6 +5,7 @@ import { parseResolveInfo, ResolveTree } from "graphql-parse-resolve-info";
 import { checkPermissionsOnEntitiesInSubgraph } from "../../../../graph/knowledge/primitive/entity";
 import { Subgraph, SubgraphAndPermissions } from "../../../api-types.gen";
 import { GraphQLContext } from "../../../context";
+import { graphQLContextToImpureGraphContext } from "../../util";
 
 const werePermissionsRequested = (info: GraphQLResolveInfo) => {
   const parsedResolveInfoFragment = parseResolveInfo(info);
@@ -27,17 +28,21 @@ const werePermissionsRequested = (info: GraphQLResolveInfo) => {
 };
 
 export const createSubgraphAndPermissionsReturn = async (
-  context: Pick<GraphQLContext, "dataSources" | "authentication">,
+  graphQLContext: GraphQLContext,
   resolveInfo: GraphQLResolveInfo,
   subgraph: Subgraph,
 ): Promise<SubgraphAndPermissions> => {
-  const { authentication, dataSources } = context;
+  const { authentication } = graphQLContext;
 
   const userPermissionsOnEntities = werePermissionsRequested(resolveInfo)
     .entities
-    ? await checkPermissionsOnEntitiesInSubgraph(dataSources, authentication, {
-        subgraph,
-      })
+    ? await checkPermissionsOnEntitiesInSubgraph(
+        graphQLContextToImpureGraphContext(graphQLContext),
+        authentication,
+        {
+          subgraph,
+        },
+      )
     : /**
        * The GraphQL schema has this field as non-nullable, which it is if the user requests it.
        * Because we are checking whether it was requested or not ourselves, we can safely return null here.

@@ -3,11 +3,13 @@ import { DataSource } from "apollo-datasource";
 
 import { AuthenticationContext } from "../graphql/authentication-context";
 import { UploadableStorageProvider } from "../storage/storage-provider";
+import { TemporalClient } from "../temporal";
 
 export type GraphApi = GraphApiClient & DataSource;
 
 export type ImpureGraphContext<WithUpload extends boolean = false> = {
   graphApi: GraphApi;
+  temporalClient: TemporalClient | null;
 } & (WithUpload extends true
   ? { uploadProvider: UploadableStorageProvider }
   : Record<string, unknown>);

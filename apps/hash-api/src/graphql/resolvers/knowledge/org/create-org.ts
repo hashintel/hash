@@ -5,7 +5,7 @@ import { createOrg } from "../../../../graph/knowledge/system-types/org";
 import { joinOrg } from "../../../../graph/knowledge/system-types/user";
 import { MutationCreateOrgArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const createOrgResolver: ResolverFn<
   Promise<Subgraph>,
@@ -15,9 +15,10 @@ export const createOrgResolver: ResolverFn<
 > = async (
   _,
   { name, shortname, websiteUrl, hasLeftEntity, hasRightEntity },
-  { dataSources, authentication, user },
+  graphQLContext,
 ) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+  const { authentication, user } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   const org = await createOrg(context, authentication, {
     shortname,

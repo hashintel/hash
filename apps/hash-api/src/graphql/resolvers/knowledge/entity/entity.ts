@@ -66,7 +66,7 @@ import {
   ResolverFn,
 } from "../../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { graphQLContextToImpureGraphContext } from "../../util";
 import { mapEntityToGQL } from "../graphql-mapping";
 import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
 
@@ -86,9 +86,10 @@ export const createEntityResolver: ResolverFn<
     draft,
     relationships,
   },
-  { dataSources, authentication, user },
+  graphQLContext,
 ) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+  const { authentication, user } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   /**
    * @todo: prevent callers of this mutation from being able to create restricted
@@ -157,9 +158,12 @@ export const queryEntitiesResolver: NonNullable<
     hasRightEntity,
     includeDrafts,
   },
-  { logger, dataSources, authentication },
+  graphQLContext,
   info,
 ) => {
+  const { authentication, logger } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
+
   if (operation.multiSort !== undefined && operation.multiSort !== null) {
     throw new ApolloError(
       "Sorting on queryEntities  results is not currently supported",
@@ -176,7 +180,7 @@ export const queryEntitiesResolver: NonNullable<
     );
   }
 
-  const entitySubgraph = await getEntities(dataSources, authentication, {
+  const entitySubgraph = await getEntities(context, authentication, {
     query: {
       filter,
       graphResolveDepths: {
@@ -196,7 +200,7 @@ export const queryEntitiesResolver: NonNullable<
   });
 
   return createSubgraphAndPermissionsReturn(
-    { dataSources, authentication },
+    graphQLContext,
     info,
     entitySubgraph,
   );
@@ -207,16 +211,16 @@ export const structuralQueryEntitiesResolver: ResolverFn<
   Record<string, never>,
   GraphQLContext,
   QueryStructuralQueryEntitiesArgs
-> = async (_, { query }, context, info) => {
+> = async (_, { query }, graphQLContext, info) => {
   const subgraph = await getEntities(
-    context.dataSources,
-    context.authentication,
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
     {
       query,
     },
   );
 
-  return createSubgraphAndPermissionsReturn(context, info, subgraph);
+  return createSubgraphAndPermissionsReturn(graphQLContext, info, subgraph);
 };
 
 export const getEntityResolver: ResolverFn<
@@ -239,7 +243,7 @@ export const getEntityResolver: ResolverFn<
     hasRightEntity,
     includeDrafts,
   },
-  { dataSources, authentication },
+  graphQLContext,
   info,
 ) => {
   const [ownedById, entityUuid] = splitEntityId(entityId);
@@ -273,27 +277,31 @@ export const getEntityResolver: ResolverFn<
       }
     : currentTimeInstantTemporalAxes;
 
-  const entitySubgraph = await getEntities(dataSources, authentication, {
-    query: {
-      filter,
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-        constrainsLinksOn,
-        constrainsLinkDestinationsOn,
-        inheritsFrom,
-        isOfType,
-        hasLeftEntity,
-        hasRightEntity,
+  const entitySubgraph = await getEntities(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    {
+      query: {
+        filter,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          constrainsValuesOn,
+          constrainsPropertiesOn,
+          constrainsLinksOn,
+          constrainsLinkDestinationsOn,
+          inheritsFrom,
+          isOfType,
+          hasLeftEntity,
+          hasRightEntity,
+        },
+        temporalAxes,
+        includeDrafts: includeDrafts ?? false,
       },
-      temporalAxes,
-      includeDrafts: includeDrafts ?? false,
     },
-  });
+  );
 
   return createSubgraphAndPermissionsReturn(
-    { dataSources, authentication },
+    graphQLContext,
     info,
     entitySubgraph,
   );
@@ -316,9 +324,10 @@ export const updateEntityResolver: ResolverFn<
       entityTypeId,
     },
   },
-  { dataSources, authentication, user },
+  graphQLContext,
 ) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+  const { authentication, user } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   const isIncompleteUser = !user.isAccountSignupComplete;
   const isUpdatingOwnEntity =
@@ -388,7 +397,10 @@ export const archiveEntityResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationArchiveEntityArgs
-> = async (_, { entityId }, { dataSources: context, authentication }) => {
+> = async (_, { entityId }, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
+
   const entity = await getLatestEntityById(context, authentication, {
     entityId,
     includeDrafts: true,
@@ -404,7 +416,10 @@ export const archiveEntitiesResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationArchiveEntitiesArgs
-> = async (_, { entityIds }, { dataSources: context, authentication }) => {
+> = async (_, { entityIds }, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
+
   const archivedEntities: Entity[] = [];
 
   const entitiesThatCouldNotBeArchived: EntityId[] = [];
@@ -446,8 +461,10 @@ export const addEntityOwnerResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationAddEntityOwnerArgs
-> = async (_, { entityId, owner }, { dataSources, authentication }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+> = async (_, { entityId, owner }, graphQLContext) => {
+  const { authentication } = graphQLContext;
+
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   await addEntityAdministrator(context, authentication, {
     entityId,
@@ -462,8 +479,9 @@ export const removeEntityOwnerResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationRemoveEntityOwnerArgs
-> = async (_, { entityId, owner }, { dataSources, authentication }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+> = async (_, { entityId, owner }, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   await removeEntityAdministrator(context, authentication, {
     entityId,
@@ -478,8 +496,9 @@ export const addEntityEditorResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationAddEntityEditorArgs
-> = async (_, { entityId, editor }, { dataSources, authentication }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+> = async (_, { entityId, editor }, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   await addEntityEditor(context, authentication, { entityId, editor });
 
@@ -491,8 +510,9 @@ export const removeEntityEditorResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationRemoveEntityEditorArgs
-> = async (_, { entityId, editor }, { dataSources, authentication }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+> = async (_, { entityId, editor }, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   await removeEntityEditor(context, authentication, { entityId, editor });
 
@@ -526,8 +546,9 @@ export const addEntityViewerResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationAddEntityViewerArgs
-> = async (_, { entityId, viewer }, { dataSources, authentication }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+> = async (_, { entityId, viewer }, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   await modifyEntityAuthorizationRelationships(context, authentication, [
     {
@@ -551,8 +572,9 @@ export const removeEntityViewerResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationRemoveEntityViewerArgs
-> = async (_, { entityId, viewer }, { dataSources, authentication }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+> = async (_, { entityId, viewer }, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   await modifyEntityAuthorizationRelationships(context, authentication, [
     {
@@ -576,9 +598,9 @@ export const isEntityPublicResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   QueryIsEntityPublicArgs
-> = async (_, { entityId }, { dataSources }) =>
+> = async (_, { entityId }, graphQLContext) =>
   checkEntityPermission(
-    dataSourcesToImpureGraphContext(dataSources),
+    graphQLContextToImpureGraphContext(graphQLContext),
     { actorId: publicUserAccountId },
     { entityId, permission: "view" },
   );
@@ -588,12 +610,12 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   QueryIsEntityPublicArgs
-> = async (_, { entityId }, { dataSources, authentication }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+> = async (_, { entityId }, graphQLContext) => {
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   const relationships = await getEntityAuthorizationRelationships(
     context,
-    authentication,
+    graphQLContext.authentication,
     { entityId },
   );
 
