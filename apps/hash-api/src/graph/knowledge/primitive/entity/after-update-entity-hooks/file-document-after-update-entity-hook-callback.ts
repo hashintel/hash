@@ -66,21 +66,27 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: UpdateEntityHookCal
         },
       );
 
-      await temporalClient.workflow.execute<
-        (params: ParseTextFromFileParams) => Promise<void>
-      >("parseTextFromFile", {
-        taskQueue: "ai",
-        args: [
-          {
-            presignedFileDownloadUrl,
-            fileEntity: docxFileEntity,
-            webMachineActorId,
+      try {
+        /** @todo: ensure this doesn't crash the node API */
+        void temporalClient.workflow.execute<
+          (params: ParseTextFromFileParams) => Promise<void>
+        >("parseTextFromFile", {
+          taskQueue: "ai",
+          args: [
+            {
+              presignedFileDownloadUrl,
+              fileEntity: docxFileEntity,
+              webMachineActorId,
+            },
+          ],
+          workflowId,
+          retry: {
+            maximumAttempts: 1,
           },
-        ],
-        workflowId,
-        retry: {
-          maximumAttempts: 1,
-        },
-      });
+        });
+      } catch (error) {
+        /** @todo: figure out whether this should be logged */
+        return undefined;
+      }
     }
   };
