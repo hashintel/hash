@@ -46,6 +46,7 @@
     "dedent": "0.7.0",
     "dotenv-flow": "3.2.0",
     "lodash.ismatch": "4.4.0",
+    "officeparser": "4.0.6",
     "openai": "4.20.0",
     "openai-chat-tokens": "0.2.8",
     "ts-node": "10.9.1",

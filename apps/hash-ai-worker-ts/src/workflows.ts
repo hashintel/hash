@@ -1,5 +1,6 @@
 import type { Filter } from "@local/hash-graph-client";
 import type { InferEntitiesCallerParams } from "@local/hash-isomorphic-utils/ai-inference-types";
+import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import type { AccountId, Entity } from "@local/hash-subgraph";
 import { proxyActivities } from "@temporalio/workflow";
 import { CreateEmbeddingResponse } from "openai/resources";
@@ -145,4 +146,10 @@ export const updateEntityEmbeddings = async (
   }
 
   return usage;
+};
+
+export const parseTextFromFile = async (
+  params: ParseTextFromFileParams,
+): Promise<void> => {
+  await aiActivities.parseTextFromFileActivity(params);
 };
