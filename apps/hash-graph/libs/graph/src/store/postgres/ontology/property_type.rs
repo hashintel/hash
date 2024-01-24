@@ -688,9 +688,9 @@ impl PostgresRecord for PropertyTypeWithMetadata {
 
     fn parameters() -> Self::CompilationParameters {}
 
-    fn compile<'c, 'p: 'c>(
-        compiler: &mut SelectCompiler<'c, Self>,
-        _paths: &'p Self::CompilationParameters,
+    fn compile<'p, 'q: 'p>(
+        compiler: &mut SelectCompiler<'p, 'q, Self>,
+        _paths: &Self::CompilationParameters,
     ) -> Self::CompilationArtifacts {
         PropertyTypeRowIndices {
             base_url: compiler.add_distinct_selection_with_ordering(

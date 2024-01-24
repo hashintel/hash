@@ -12,9 +12,14 @@ mod property_type;
 mod statement;
 mod table;
 
-use std::fmt::{self, Display, Formatter};
+use std::{
+    convert::identity,
+    fmt::{self, Display, Formatter},
+};
 
 use error_stack::Context;
+use graph_types::knowledge::entity::Entity;
+use tokio_postgres::Row;
 
 pub use self::{
     compile::SelectCompiler,
@@ -30,8 +35,9 @@ pub use self::{
 };
 use crate::{
     store::{
-        crud::Sorting,
+        crud::{CustomCursor, CustomSorting, Sorting},
         postgres::{crud::QueryRecordDecode, query::table::Relation},
+        query::{Parameter, ParameterConversionError, QueryPath},
         Record,
     },
     subgraph::temporal_axes::QueryTemporalAxes,
@@ -45,8 +51,8 @@ pub trait PostgresRecord: Record + QueryRecordDecode<Output = Self> {
 
     fn parameters() -> Self::CompilationParameters;
 
-    fn compile<'c, 'p: 'c>(
-        compiler: &mut SelectCompiler<'c, Self>,
+    fn compile<'p, 'q: 'p>(
+        compiler: &mut SelectCompiler<'p, 'q, Self>,
         paths: &'p Self::CompilationParameters,
     ) -> Self::CompilationArtifacts;
 }
@@ -77,21 +83,87 @@ pub trait Transpile: 'static {
     }
 }
 
-pub trait PostgresSorting<R: Record>: Sorting + QueryRecordDecode<Output = Self::Cursor> {
-    type CompilationParameters<'p>: Send
-    where
-        Self: 'p;
+pub trait PostgresSorting<'s, R: Record>:
+    Sorting + QueryRecordDecode<Output = Self::Cursor>
+{
+    type CompilationParameters: Send;
 
     type Error: Context + Send + Sync + 'static;
 
-    fn encode(&self) -> Result<Option<Self::CompilationParameters<'_>>, Self::Error>;
+    fn encode(&self) -> Result<Option<Self::CompilationParameters>, Self::Error>;
 
-    fn compile<'c, 'p: 'c>(
-        &self,
-        compiler: &mut SelectCompiler<'c, R>,
-        parameters: Option<&'c Self::CompilationParameters<'p>>,
+    fn compile<'p, 'q: 'p>(
+        &'p self,
+        compiler: &mut SelectCompiler<'p, 'q, R>,
+        parameters: Option<&'p Self::CompilationParameters>,
         temporal_axes: &QueryTemporalAxes,
-    ) -> Self::CompilationArtifacts;
+    ) -> Self::CompilationArtifacts
+    where
+        's: 'q;
+}
+
+impl<R: Record> QueryRecordDecode for CustomSorting<'_, R> {
+    type CompilationArtifacts = Vec<usize>;
+    type Output = CustomCursor;
+
+    fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self::Output {
+        CustomCursor {
+            values: indices.iter().map(|i| row.get(i)).collect(),
+        }
+    }
+}
+
+impl<'s> PostgresSorting<'s, Entity> for CustomSorting<'s, Entity> {
+    type CompilationParameters = Vec<Parameter<'s>>;
+    type Error = ParameterConversionError;
+
+    fn encode(&self) -> Result<Option<Self::CompilationParameters>, Self::Error> {
+        self.cursor()
+            .map(|cursor| {
+                self.paths
+                    .iter()
+                    .zip(&cursor.values)
+                    .map(|(path, value)| {
+                        // TODO: Figure out why `'static` is required for `Parameter` here (why
+                        //       `to_owned` is required).
+                        Ok(Parameter::from_value(value, path.expected_type())?.to_owned())
+                    })
+                    .collect()
+            })
+            .transpose()
+    }
+
+    fn compile<'p, 'q: 'p>(
+        &'p self,
+        compiler: &mut SelectCompiler<'p, 'q, Entity>,
+        parameters: Option<&'p Self::CompilationParameters>,
+        _: &QueryTemporalAxes,
+    ) -> Self::CompilationArtifacts
+    where
+        's: 'q,
+    {
+        if let Some(cursor) = parameters {
+            self.paths
+                .iter()
+                .zip(cursor)
+                .map(|(path, parameter)| {
+                    let expression = compiler.compile_parameter(parameter).0;
+                    compiler.add_cursor_selection(path, identity, expression, Ordering::Ascending)
+                })
+                .collect()
+        } else {
+            self.paths
+                .iter()
+                .map(|path| {
+                    compiler.add_distinct_selection_with_ordering(
+                        path,
+                        Distinctness::Distinct,
+                        Some(Ordering::Ascending),
+                    )
+                })
+                .collect()
+        }
+    }
 }
 
 #[cfg(test)]
