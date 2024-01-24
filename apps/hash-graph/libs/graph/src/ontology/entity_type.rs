@@ -22,7 +22,7 @@ use crate::{
 /// A path to a [`EntityType`] field.
 ///
 /// [`EntityType`]: type_system::EntityType
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum EntityTypeQueryPath<'p> {
     /// The [`BaseUrl`] of the [`EntityType`].
     ///

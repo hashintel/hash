@@ -1,4 +1,5 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import { createOrgMembershipAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -79,28 +80,9 @@ export const createOrgMembership: ImpureGraphFunction<
       leftEntityId: userEntityId,
       rightEntityId: orgEntityId,
       properties: {},
-      relationships: [
-        {
-          relation: "setting",
-          subject: {
-            kind: "setting",
-            subjectId: "administratorFromWeb",
-          },
-        },
-        {
-          relation: "editor",
-          subject: {
-            kind: "account",
-            subjectId: userAccountId,
-          },
-        },
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
+      relationships: createOrgMembershipAuthorizationRelationships({
+        memberAccountId: userAccountId,
+      }),
     });
   } catch (error) {
     await ctx.graphApi.removeAccountGroupMember(

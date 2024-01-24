@@ -10,7 +10,7 @@ pub trait StorePool {
     type Error: Context;
 
     /// The store returned when acquiring.
-    type Store<'pool>: Store + Send;
+    type Store<'pool>: Store + Send + Sync;
 
     /// Retrieves a [`Store`] from the pool.
     async fn acquire(&self) -> Result<Self::Store<'_>, Self::Error>;

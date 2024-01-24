@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use temporal_versioning::TimeAxis;
 
 use crate::{store::query::QueryPath, subgraph::identifier::VertexId};
@@ -9,7 +11,7 @@ use crate::{store::query::QueryPath, subgraph::identifier::VertexId};
 //   see https://linear.app/hash/issue/H-754
 pub trait Record: Sized + Send {
     type VertexId: VertexId<Record = Self> + Send + Sync;
-    type QueryPath<'p>: QueryPath + Send + Sync;
+    type QueryPath<'p>: QueryPath + Send + Sync + Eq + Hash;
 
     fn vertex_id(&self, time_axis: TimeAxis) -> Self::VertexId;
 }

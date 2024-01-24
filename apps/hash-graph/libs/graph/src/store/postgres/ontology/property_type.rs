@@ -3,7 +3,6 @@ use std::{
     iter::once,
 };
 
-use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
@@ -22,16 +21,26 @@ use graph_types::{
         PropertyTypeMetadata, PropertyTypeWithMetadata,
     },
 };
+use postgres_types::Json;
 use temporal_versioning::RightBoundedTemporalInterval;
-use type_system::{url::VersionedUrl, PropertyType};
+use tokio_postgres::Row;
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    PropertyType,
+};
 
 use crate::{
+    ontology::PropertyTypeQueryPath,
     store::{
-        crud::Read,
+        crud::{QueryResult, ReadPaginated, VertexIdSorting},
         error::DeletionError,
         postgres::{
-            ontology::{read::OntologyTypeTraversalData, OntologyId},
-            query::ReferenceTable,
+            crud::QueryRecordDecode,
+            ontology::{
+                read::OntologyTypeTraversalData, OntologyId,
+                PostgresOntologyTypeClassificationMetadata,
+            },
+            query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
             TraversalContext,
         },
         AsClient, ConflictBehavior, InsertionError, PostgresStore, PropertyTypeStore, QueryError,
@@ -249,7 +258,6 @@ impl<C: AsClient> PostgresStore<C> {
     }
 }
 
-#[async_trait]
 impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     #[tracing::instrument(
         level = "info",
@@ -394,8 +402,8 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         &self,
         actor_id: AccountId,
         authorization_api: &A,
-        query: &StructuralQuery<PropertyTypeWithMetadata>,
-        after: Option<&PropertyTypeVertexId>,
+        query: &StructuralQuery<'_, PropertyTypeWithMetadata>,
+        cursor: Option<PropertyTypeVertexId>,
         limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
@@ -412,25 +420,27 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         //   see https://linear.app/hash/issue/H-297
         let mut visited_ontology_ids = HashSet::new();
 
-        let property_types = Read::<PropertyTypeWithMetadata>::read_vec(
+        let (data, artifacts) = ReadPaginated::<PropertyTypeWithMetadata>::read_paginated_vec(
             self,
             filter,
             Some(&temporal_axes),
-            after,
+            &VertexIdSorting { cursor },
             limit,
             include_drafts,
         )
-        .await?
-        .into_iter()
-        .filter_map(|property_type| {
-            let id = PropertyTypeId::from_url(property_type.schema.id());
-            let vertex_id = property_type.vertex_id(time_axis);
-            // The records are already sorted by time, so we can just take the first one
-            visited_ontology_ids
-                .insert(id)
-                .then_some((id, (vertex_id, property_type)))
-        })
-        .collect::<Vec<_>>();
+        .await?;
+        let property_types = data
+            .into_iter()
+            .filter_map(|row| {
+                let property_type = row.decode_record(&artifacts);
+                let id = PropertyTypeId::from_url(property_type.schema.id());
+                let vertex_id = property_type.vertex_id(time_axis);
+                // The records are already sorted by time, so we can just take the first one
+                visited_ontology_ids
+                    .insert(id)
+                    .then_some((id, (vertex_id, property_type)))
+            })
+            .collect::<Vec<_>>();
 
         let filtered_ids = property_types
             .iter()
@@ -598,25 +608,113 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         }
     }
 
-    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
-    async fn archive_property_type<A: AuthorizationApi + Sync>(
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn archive_property_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &mut A,
+        _: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.archive_ontology_type(id, EditionArchivedById::new(actor_id))
             .await
     }
 
-    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
-    async fn unarchive_property_type<A: AuthorizationApi + Sync>(
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn unarchive_property_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &mut A,
+        _: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.unarchive_ontology_type(id, EditionCreatedById::new(actor_id))
             .await
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct PropertyTypeRowIndices {
+    pub base_url: usize,
+    pub version: usize,
+    pub transaction_time: usize,
+
+    pub schema: usize,
+
+    pub edition_created_by_id: usize,
+    pub edition_archived_by_id: usize,
+    pub additional_metadata: usize,
+}
+
+impl QueryRecordDecode for PropertyTypeWithMetadata {
+    type CompilationArtifacts = PropertyTypeRowIndices;
+    type Output = Self;
+
+    fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self {
+        Self {
+            schema: row.get::<_, Json<_>>(indices.schema).0,
+            metadata: PropertyTypeMetadata {
+                record_id: OntologyTypeRecordId {
+                    base_url: BaseUrl::new(row.get(indices.base_url))
+                        .expect("invalid base URL returned from Postgres"),
+                    version: row.get(indices.version),
+                },
+                classification: row
+                    .get::<_, Json<PostgresOntologyTypeClassificationMetadata>>(
+                        indices.additional_metadata,
+                    )
+                    .0
+                    .into(),
+                temporal_versioning: OntologyTemporalMetadata {
+                    transaction_time: row.get(indices.transaction_time),
+                },
+                provenance: OntologyProvenanceMetadata {
+                    edition: OntologyEditionProvenanceMetadata {
+                        created_by_id: EditionCreatedById::new(
+                            row.get(indices.edition_created_by_id),
+                        ),
+                        archived_by_id: row.get(indices.edition_archived_by_id),
+                    },
+                },
+            },
+        }
+    }
+}
+
+impl PostgresRecord for PropertyTypeWithMetadata {
+    type CompilationParameters = ();
+
+    fn base_table() -> Table {
+        Table::OntologyTemporalMetadata
+    }
+
+    fn parameters() -> Self::CompilationParameters {}
+
+    fn compile<'c, 'p: 'c>(
+        compiler: &mut SelectCompiler<'c, Self>,
+        _paths: &'p Self::CompilationParameters,
+    ) -> Self::CompilationArtifacts {
+        PropertyTypeRowIndices {
+            base_url: compiler.add_distinct_selection_with_ordering(
+                &PropertyTypeQueryPath::BaseUrl,
+                Distinctness::Distinct,
+                None,
+            ),
+            version: compiler.add_distinct_selection_with_ordering(
+                &PropertyTypeQueryPath::Version,
+                Distinctness::Distinct,
+                None,
+            ),
+            transaction_time: compiler.add_distinct_selection_with_ordering(
+                &PropertyTypeQueryPath::TransactionTime,
+                Distinctness::Distinct,
+                None,
+            ),
+            schema: compiler.add_selection_path(&PropertyTypeQueryPath::Schema(None)),
+            edition_created_by_id: compiler
+                .add_selection_path(&PropertyTypeQueryPath::EditionCreatedById),
+            edition_archived_by_id: compiler
+                .add_selection_path(&PropertyTypeQueryPath::EditionArchivedById),
+            additional_metadata: compiler
+                .add_selection_path(&PropertyTypeQueryPath::AdditionalMetadata),
+        }
     }
 }

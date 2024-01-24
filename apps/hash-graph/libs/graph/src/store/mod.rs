@@ -23,7 +23,7 @@ pub use self::{
         BaseUrlAlreadyExists, InsertionError, OntologyVersionDoesNotExist, QueryError, StoreError,
         UpdateError,
     },
-    fetcher::{FetchingPool, TypeFetcher},
+    fetcher::{FetchingPool, FetchingStore, TypeFetcher},
     knowledge::{EntityStore, EntityValidationType},
     migration::{Migration, MigrationState, StoreMigration},
     ontology::{DataTypeStore, EntityTypeStore, PropertyTypeStore},

@@ -1,6 +1,7 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { TextField } from "@hashintel/design-system";
 import {
+  createOrgMembershipAuthorizationRelationships,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -12,21 +13,24 @@ import {
   AccountEntityId,
   EntityRootType,
   extractAccountId,
-  OwnedById,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import { FormEvent, useEffect, useRef, useState } from "react";
 
-import { useBlockProtocolCreateEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import {
   AddAccountGroupMemberMutation,
   AddAccountGroupMemberMutationVariables,
+  CreateEntityMutation,
+  CreateEntityMutationVariables,
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
 } from "../../../../../graphql/api-types.gen";
 import { addAccountGroupMemberMutation } from "../../../../../graphql/queries/account-group.queries";
-import { queryEntitiesQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
+import {
+  createEntityMutation,
+  queryEntitiesQuery,
+} from "../../../../../graphql/queries/knowledge/entity.queries";
 import { Org } from "../../../../../lib/user-and-org";
 import { Button } from "../../../../../shared/ui/button";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
@@ -44,9 +48,11 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
     AddAccountGroupMemberMutationVariables
   >(addAccountGroupMemberMutation);
 
-  const { createEntity } = useBlockProtocolCreateEntity(
-    org.accountGroupId as OwnedById,
-  );
+  const [createEntity] = useMutation<
+    CreateEntityMutation,
+    CreateEntityMutationVariables
+  >(createEntityMutation);
+
   const [queryEntities] = useLazyQuery<
     QueryEntitiesQuery,
     QueryEntitiesQueryVariables
@@ -117,13 +123,18 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
 
     await Promise.all([
       createEntity({
-        data: {
+        variables: {
           entityTypeId: systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
           properties: {},
           linkData: {
             leftEntityId: user.metadata.recordId.entityId,
             rightEntityId: org.entity.metadata.recordId.entityId,
           },
+          relationships: createOrgMembershipAuthorizationRelationships({
+            memberAccountId: extractAccountId(
+              user.metadata.recordId.entityId as AccountEntityId,
+            ),
+          }),
         },
       }),
       addMemberPermission({

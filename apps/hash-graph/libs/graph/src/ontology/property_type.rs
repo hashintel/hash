@@ -18,7 +18,7 @@ use crate::{
 /// A path to a [`PropertyType`] field.
 ///
 /// [`PropertyType`]: type_system::PropertyType
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum PropertyTypeQueryPath<'p> {
     /// The [`BaseUrl`] of the [`PropertyType`].
     ///

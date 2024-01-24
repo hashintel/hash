@@ -37,8 +37,6 @@ impl<C: AsClient> PostgresStore<C> {
                 ParameterList::Uuid(&ids),
             ),
             Some(&subgraph.temporal_axes.resolved),
-            None,
-            None,
             false,
         )
         .await?
@@ -69,8 +67,6 @@ impl<C: AsClient> PostgresStore<C> {
                 ParameterList::Uuid(&ids),
             ),
             Some(&subgraph.temporal_axes.resolved),
-            None,
-            None,
             false,
         )
         .await?
@@ -101,8 +97,6 @@ impl<C: AsClient> PostgresStore<C> {
                 ParameterList::Uuid(&ids),
             ),
             Some(&subgraph.temporal_axes.resolved),
-            None,
-            None,
             false,
         )
         .await?
@@ -134,8 +128,6 @@ impl<C: AsClient> PostgresStore<C> {
                 ParameterList::Uuid(&ids),
             ),
             Some(&subgraph.temporal_axes.resolved),
-            None,
-            None,
             include_drafts,
         )
         .await?

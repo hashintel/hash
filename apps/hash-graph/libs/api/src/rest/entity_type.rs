@@ -716,7 +716,7 @@ where
             actor_id,
             &authorization_api,
             &query,
-            pagination.after.as_ref().map(|cursor| &cursor.0),
+            pagination.after.map(|cursor| cursor.0),
             pagination.limit,
         )
         .await
