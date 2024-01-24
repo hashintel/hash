@@ -1,6 +1,5 @@
-use std::{error::Error, fmt};
+use std::{error::Error, fmt, future::Future};
 
-use async_trait::async_trait;
 use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency, AuthorizationApi};
 use error_stack::Result;
 use graph_types::{
@@ -41,8 +40,7 @@ impl Error for ValidateEntityError {}
 /// Describes the API of a store implementation for [Entities].
 ///
 /// [Entities]: Entity
-#[async_trait]
-pub trait EntityStore: crud::Read<Entity> {
+pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// Creates a new [`Entity`].
     ///
     /// # Errors:
@@ -59,7 +57,7 @@ pub trait EntityStore: crud::Read<Entity> {
         clippy::too_many_arguments,
         reason = "https://linear.app/hash/issue/H-1466"
     )]
-    async fn create_entity<A: AuthorizationApi + Send + Sync>(
+    fn create_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
@@ -73,7 +71,7 @@ pub trait EntityStore: crud::Read<Entity> {
         properties: EntityProperties,
         link_data: Option<LinkData>,
         relationships: impl IntoIterator<Item = EntityRelationAndSubject> + Send,
-    ) -> Result<EntityMetadata, InsertionError>;
+    ) -> impl Future<Output = Result<EntityMetadata, InsertionError>> + Send;
 
     /// Validates an [`Entity`].
     ///
@@ -86,7 +84,7 @@ pub trait EntityStore: crud::Read<Entity> {
         clippy::too_many_arguments,
         reason = "https://linear.app/hash/issue/H-1466"
     )]
-    async fn validate_entity<A: AuthorizationApi + Sync>(
+    fn validate_entity<A: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,
         authorization_api: &A,
@@ -95,7 +93,7 @@ pub trait EntityStore: crud::Read<Entity> {
         properties: &EntityProperties,
         link_data: Option<&LinkData>,
         profile: ValidationProfile,
-    ) -> Result<(), ValidateEntityError>;
+    ) -> impl Future<Output = Result<(), ValidateEntityError>> + Send;
 
     /// Inserts the entities with the specified [`EntityType`] into the `Store`.
     ///
@@ -114,7 +112,7 @@ pub trait EntityStore: crud::Read<Entity> {
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
     /// [`EntityType`]: type_system::EntityType
-    async fn insert_entities_batched_by_type<A: AuthorizationApi + Send + Sync>(
+    fn insert_entities_batched_by_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
@@ -129,21 +127,21 @@ pub trait EntityStore: crud::Read<Entity> {
             IntoIter: Send,
         > + Send,
         entity_type_id: &VersionedUrl,
-    ) -> Result<Vec<EntityMetadata>, InsertionError>;
+    ) -> impl Future<Output = Result<Vec<EntityMetadata>, InsertionError>> + Send;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity<A: AuthorizationApi + Sync>(
+    fn get_entity<A: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,
         authorization_api: &A,
-        query: &StructuralQuery<Entity>,
+        query: &StructuralQuery<'_, Entity>,
         after: Option<&EntityVertexId>,
         limit: Option<usize>,
-    ) -> Result<(Subgraph, Option<EntityVertexId>), QueryError>;
+    ) -> impl Future<Output = Result<(Subgraph, Option<EntityVertexId>), QueryError>> + Send;
 
     /// Update an existing [`Entity`].
     ///
@@ -163,7 +161,7 @@ pub trait EntityStore: crud::Read<Entity> {
         clippy::too_many_arguments,
         reason = "https://linear.app/hash/issue/H-1466"
     )]
-    async fn update_entity<A: AuthorizationApi + Send + Sync>(
+    fn update_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
@@ -175,15 +173,15 @@ pub trait EntityStore: crud::Read<Entity> {
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_order: EntityLinkOrder,
-    ) -> Result<EntityMetadata, UpdateError>;
+    ) -> impl Future<Output = Result<EntityMetadata, UpdateError>> + Send;
 
-    async fn update_entity_embeddings<A: AuthorizationApi + Send + Sync>(
+    fn update_entity_embeddings<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
-        embeddings: impl IntoIterator<Item = EntityEmbedding<'_>> + Send,
+        embeddings: Vec<EntityEmbedding<'_>>,
         updated_at_transaction_time: Timestamp<TransactionTime>,
         updated_at_decision_time: Timestamp<DecisionTime>,
         reset: bool,
-    ) -> Result<(), UpdateError>;
+    ) -> impl Future<Output = Result<(), UpdateError>> + Send;
 }

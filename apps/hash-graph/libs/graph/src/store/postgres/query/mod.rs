@@ -14,6 +14,8 @@ mod table;
 
 use std::fmt::{self, Display, Formatter};
 
+use error_stack::Context;
+
 pub use self::{
     compile::SelectCompiler,
     condition::{Condition, EqualityOperator},
@@ -26,11 +28,27 @@ pub use self::{
         Alias, AliasedColumn, AliasedTable, Column, ForeignKeyReference, ReferenceTable, Table,
     },
 };
-use crate::store::{postgres::query::table::Relation, Record};
+use crate::{
+    store::{
+        crud::Sorting,
+        postgres::{crud::QueryRecordDecode, query::table::Relation},
+        Record,
+    },
+    subgraph::temporal_axes::QueryTemporalAxes,
+};
 
-pub trait PostgresRecord: Record {
+pub trait PostgresRecord: Record + QueryRecordDecode<Output = Self> {
+    type CompilationParameters: Send + 'static;
+
     /// The [`Table`] used for this `Query`.
     fn base_table() -> Table;
+
+    fn parameters() -> Self::CompilationParameters;
+
+    fn compile<'c, 'p: 'c>(
+        compiler: &mut SelectCompiler<'c, Self>,
+        paths: &'p Self::CompilationParameters,
+    ) -> Self::CompilationArtifacts;
 }
 
 /// An absolute path inside of a query pointing to an attribute.
@@ -57,6 +75,23 @@ pub trait Transpile: 'static {
 
         Transpiler(self).to_string()
     }
+}
+
+pub trait PostgresSorting<R: Record>: Sorting + QueryRecordDecode<Output = Self::Cursor> {
+    type CompilationParameters<'p>: Send
+    where
+        Self: 'p;
+
+    type Error: Context + Send + Sync + 'static;
+
+    fn encode(&self) -> Result<Option<Self::CompilationParameters<'_>>, Self::Error>;
+
+    fn compile<'c, 'p: 'c>(
+        &self,
+        compiler: &mut SelectCompiler<'c, R>,
+        parameters: Option<&'c Self::CompilationParameters<'p>>,
+        temporal_axes: &QueryTemporalAxes,
+    ) -> Self::CompilationArtifacts;
 }
 
 #[cfg(test)]

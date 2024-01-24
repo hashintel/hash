@@ -227,16 +227,10 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             .change_context(InsertionError)?;
 
         if validation {
-            let entities = Read::<Entity>::read_vec(
-                postgres_client,
-                &Filter::All(Vec::new()),
-                None,
-                None,
-                None,
-                true,
-            )
-            .await
-            .change_context(InsertionError)?;
+            let entities =
+                Read::<Entity>::read_vec(postgres_client, &Filter::All(Vec::new()), None, true)
+                    .await
+                    .change_context(InsertionError)?;
 
             let schemas = postgres_client
                 .read_closed_schemas(&Filter::All(Vec::new()), None)

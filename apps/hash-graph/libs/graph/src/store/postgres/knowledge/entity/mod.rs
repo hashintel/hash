@@ -1,10 +1,11 @@
+mod query;
 mod read;
+
 use std::{
     collections::{HashMap, HashSet},
     iter::once,
 };
 
-use async_trait::async_trait;
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
@@ -41,7 +42,7 @@ use validation::{Validate, ValidationProfile};
 use crate::{
     ontology::EntityTypeQueryPath,
     store::{
-        crud::Read,
+        crud::{QueryResult, Read, ReadPaginated, VertexIdSorting},
         error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
         knowledge::{EntityValidationType, ValidateEntityError},
         postgres::{
@@ -55,7 +56,7 @@ use crate::{
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
-        identifier::{EntityIdWithInterval, EntityVertexId, GraphElementVertexId},
+        identifier::{EntityIdWithInterval, EntityVertexId},
         query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableAxis,
@@ -289,7 +290,6 @@ impl<C: AsClient> PostgresStore<C> {
     }
 }
 
-#[async_trait]
 impl<C: AsClient> EntityStore for PostgresStore<C> {
     #[tracing::instrument(
         level = "info",
@@ -888,8 +888,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         &self,
         actor_id: AccountId,
         authorization_api: &A,
-        query: &StructuralQuery<Entity>,
-        after: Option<&EntityVertexId>,
+        query: &StructuralQuery<'_, Entity>,
+        cursor: Option<&EntityVertexId>,
         limit: Option<usize>,
     ) -> Result<(Subgraph, Option<EntityVertexId>), QueryError> {
         let StructuralQuery {
@@ -899,27 +899,31 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             include_drafts,
         } = *query;
 
+        let unresolved_temporal_axes = unresolved_temporal_axes.clone();
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
         let mut root_entities = Vec::new();
-        let mut after = after.copied();
+        let mut cursor = cursor.copied();
 
         let (latest_zookie, last) = loop {
             // We query one more than requested to determine if there are more entities to return.
-            let entities = Read::<Entity>::read(
+            let (stream, artifacts) = ReadPaginated::<Entity>::read_paginated(
                 self,
                 filter,
                 Some(&temporal_axes),
-                after.as_ref(),
+                &VertexIdSorting { cursor },
                 limit,
                 include_drafts,
             )
-            .await?
-            .map_ok(|entity| (entity.vertex_id(time_axis), entity))
-            .try_collect::<Vec<_>>()
             .await?;
-            after = entities.last().map(|(vertex_id, _)| *vertex_id);
+            let entities = stream
+                .map_ok(|row| (row.decode_record(&artifacts), row))
+                .try_collect::<Vec<_>>()
+                .await?;
+            cursor = entities
+                .last()
+                .map(|(_, row)| row.decode_cursor(&artifacts));
             let num_returned_entities = entities.len();
 
             // TODO: The subgraph structure differs from the API interface. At the API the vertices
@@ -928,7 +932,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             //   see https://linear.app/hash/issue/H-297/revisit-subgraph-layout-to-allow-temporal-ontology-types
             let filtered_ids = entities
                 .iter()
-                .map(|(vertex_id, _)| vertex_id.base_id)
+                .map(|(entity, _)| entity.metadata.record_id.entity_id)
                 .collect::<HashSet<_>>();
 
             let (permissions, zookie) = authorization_api
@@ -949,7 +953,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             root_entities.extend(
                 entities
                     .into_iter()
-                    .filter(|(vertex_id, _)| permitted_ids.contains(&vertex_id.base_id.entity_uuid))
+                    .filter(|(entity, _)| {
+                        permitted_ids.contains(&entity.metadata.record_id.entity_id.entity_uuid)
+                    })
                     .take(limit.unwrap_or(usize::MAX) - root_entities.len()),
             );
 
@@ -963,7 +969,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     // The requested limit is reached, so we can stop here.
                     break (
                         zookie,
-                        root_entities.last().map(|(vertex_id, _)| *vertex_id),
+                        root_entities
+                            .last()
+                            .map(|(_, row)| row.decode_cursor(&artifacts)),
                     );
                 }
             } else {
@@ -974,16 +982,19 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
-            unresolved_temporal_axes.clone(),
-            temporal_axes.clone(),
+            unresolved_temporal_axes,
+            temporal_axes,
         );
 
         subgraph.roots.extend(
             root_entities
                 .iter()
-                .map(|(vertex_id, _)| GraphElementVertexId::from(*vertex_id)),
+                .map(|(entity, _)| entity.vertex_id(time_axis).into()),
         );
-        subgraph.vertices.entities = root_entities.into_iter().collect();
+        subgraph.vertices.entities = root_entities
+            .into_iter()
+            .map(|(entity, _)| (entity.vertex_id(time_axis), entity))
+            .collect();
 
         let mut traversal_context = TraversalContext::default();
 
@@ -1233,12 +1244,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(entity_metadata)
     }
 
-    #[tracing::instrument(level = "info", skip(self, _authorization_api, embeddings))]
+    #[tracing::instrument(level = "info", skip(self, embeddings))]
     async fn update_entity_embeddings<A: AuthorizationApi + Send + Sync>(
         &mut self,
-        _actor_id: AccountId,
-        _authorization_api: &mut A,
-        embeddings: impl IntoIterator<Item = EntityEmbedding<'_>> + Send,
+        _: AccountId,
+        _: &mut A,
+        embeddings: Vec<EntityEmbedding<'_>>,
         updated_at_transaction_time: Timestamp<TransactionTime>,
         updated_at_decision_time: Timestamp<DecisionTime>,
         reset: bool,

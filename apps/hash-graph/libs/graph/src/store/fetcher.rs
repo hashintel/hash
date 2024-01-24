@@ -41,7 +41,7 @@ use validation::ValidationProfile;
 use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
-        crud::Read,
+        crud::{QueryResult, Read, ReadPaginated, Sorting},
         knowledge::{EntityValidationType, ValidateEntityError},
         query::{Filter, OntologyQueryPath},
         AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
@@ -159,7 +159,7 @@ const ENTITY_TYPE_RELATIONSHIPS: [EntityTypeRelationAndSubject; 2] = [
 
 impl<S, A> FetchingStore<S, A>
 where
-    S: Send + Sync,
+    S: Sync,
     A: ToSocketAddrs + Send + Sync,
 {
     fn connection_info(&self) -> Result<&TypeFetcherConnectionInfo<A>, StoreError> {
@@ -169,9 +169,14 @@ where
         })
     }
 
+    /// Creates the client to fetch types from.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the type fetcher is not available.
     pub async fn fetcher_client(&self) -> Result<FetcherClient, StoreError>
     where
-        A: ToSocketAddrs,
+        A: Send + ToSocketAddrs,
     {
         let connection_info = self.connection_info()?;
         let transport =
@@ -207,18 +212,14 @@ enum FetchBehavior {
 impl<'t, S, A> FetchingStore<S, A>
 where
     A: ToSocketAddrs + Send + Sync,
-    S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
+    S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send + Sync,
 {
     async fn contains_ontology_type<Au: AuthorizationApi + Send + Sync>(
         &self,
         actor_id: AccountId,
         authorization_api: &Au,
         ontology_type_reference: OntologyTypeReference<'_>,
-    ) -> Result<bool, StoreError>
-    where
-        S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
-        A: Send + Sync,
-    {
+    ) -> Result<bool, StoreError> {
         fn create_query<'u, T>(versioned_url: &'u VersionedUrl) -> StructuralQuery<'u, T>
         where
             T: Record<QueryPath<'u>: OntologyQueryPath>,
@@ -631,7 +632,7 @@ where
 impl<S, A> TypeFetcher for FetchingStore<S, A>
 where
     A: ToSocketAddrs + Send + Sync,
-    S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
+    S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send + Sync,
 {
     #[tracing::instrument(level = "debug", skip(self, authorization_api))]
     async fn insert_external_ontology_type<Au: AuthorizationApi + Send + Sync>(
@@ -665,25 +666,62 @@ where
     }
 }
 
+impl<I, A, R, S> ReadPaginated<R, S> for FetchingStore<I, A>
+where
+    A: Send + Sync,
+    I: ReadPaginated<R, S> + Send,
+    R: Record,
+    S: Sorting + Sync,
+{
+    type QueryResult = I::QueryResult;
+    type ReadPaginatedStream = I::ReadPaginatedStream;
+
+    async fn read_paginated(
+        &self,
+        filter: &Filter<'_, R>,
+        temporal_axes: Option<&QueryTemporalAxes>,
+        sorting: &S,
+        limit: Option<usize>,
+        include_drafts: bool,
+    ) -> Result<
+        (
+            Self::ReadPaginatedStream,
+            <Self::QueryResult as QueryResult<R, S>>::Artifacts,
+        ),
+        QueryError,
+    > {
+        self.store
+            .read_paginated(filter, temporal_axes, sorting, limit, include_drafts)
+            .await
+    }
+}
+
 #[async_trait]
-impl<S, A, R: Record> Read<R> for FetchingStore<S, A>
+impl<S, A, R> Read<R> for FetchingStore<S, A>
 where
     A: Send + Sync,
     S: Read<R> + Send,
+    R: Record,
 {
     type ReadStream = S::ReadStream;
-    type Record = S::Record;
 
     async fn read(
         &self,
-        query: &Filter<Self::Record>,
+        filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
-        start: Option<&<Self::Record as Record>::VertexId>,
-        limit: Option<usize>,
         include_drafts: bool,
     ) -> Result<Self::ReadStream, QueryError> {
+        self.store.read(filter, temporal_axes, include_drafts).await
+    }
+
+    async fn read_one(
+        &self,
+        filter: &Filter<'_, R>,
+        temporal_axes: Option<&QueryTemporalAxes>,
+        include_drafts: bool,
+    ) -> Result<R, QueryError> {
         self.store
-            .read(query, temporal_axes, start, limit, include_drafts)
+            .read_one(filter, temporal_axes, include_drafts)
             .await
     }
 }
@@ -740,10 +778,9 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> DataTypeStore for FetchingStore<S, A>
 where
-    S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
+    S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send + Sync,
     A: ToSocketAddrs + Send + Sync,
 {
     async fn create_data_types<Au: AuthorizationApi + Send + Sync>(
@@ -790,8 +827,8 @@ where
         &self,
         actor_id: AccountId,
         authorization_api: &Au,
-        query: &StructuralQuery<DataTypeWithMetadata>,
-        after: Option<&DataTypeVertexId>,
+        query: &StructuralQuery<'_, DataTypeWithMetadata>,
+        after: Option<DataTypeVertexId>,
         limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         self.store
@@ -844,10 +881,9 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> PropertyTypeStore for FetchingStore<S, A>
 where
-    S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
+    S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send + Sync,
     A: ToSocketAddrs + Send + Sync,
 {
     async fn create_property_types<Au: AuthorizationApi + Send + Sync>(
@@ -899,8 +935,8 @@ where
         &self,
         actor_id: AccountId,
         authorization_api: &Au,
-        query: &StructuralQuery<PropertyTypeWithMetadata>,
-        after: Option<&PropertyTypeVertexId>,
+        query: &StructuralQuery<'_, PropertyTypeWithMetadata>,
+        after: Option<PropertyTypeVertexId>,
         limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         self.store
@@ -953,10 +989,9 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> EntityTypeStore for FetchingStore<S, A>
 where
-    S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
+    S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send + Sync,
     A: ToSocketAddrs + Send + Sync,
 {
     async fn create_entity_types<Au: AuthorizationApi + Send + Sync>(
@@ -1004,12 +1039,12 @@ where
         &self,
         actor_id: AccountId,
         authorization_api: &Au,
-        query: &StructuralQuery<EntityTypeWithMetadata>,
-        after: Option<&EntityTypeVertexId>,
+        query: &StructuralQuery<'_, EntityTypeWithMetadata>,
+        cursor: Option<EntityTypeVertexId>,
         limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         self.store
-            .get_entity_type(actor_id, authorization_api, query, after, limit)
+            .get_entity_type(actor_id, authorization_api, query, cursor, limit)
             .await
     }
 
@@ -1067,10 +1102,9 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> EntityStore for FetchingStore<S, A>
 where
-    S: DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore + Send,
+    S: DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore + Send + Sync,
     A: ToSocketAddrs + Send + Sync,
 {
     async fn create_entity<Au: AuthorizationApi + Send + Sync>(
@@ -1177,7 +1211,7 @@ where
         &self,
         actor_id: AccountId,
         authorization_api: &Au,
-        query: &StructuralQuery<Entity>,
+        query: &StructuralQuery<'_, Entity>,
         after: Option<&EntityVertexId>,
         limit: Option<usize>,
     ) -> Result<(Subgraph, Option<EntityVertexId>), QueryError> {
@@ -1231,7 +1265,7 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
-        embeddings: impl IntoIterator<Item = EntityEmbedding<'_>> + Send,
+        embeddings: Vec<EntityEmbedding<'_>>,
         updated_at_transaction_time: Timestamp<TransactionTime>,
         updated_at_decision_time: Timestamp<DecisionTime>,
         reset: bool,

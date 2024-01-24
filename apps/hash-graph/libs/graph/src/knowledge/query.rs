@@ -21,7 +21,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum EntityQueryPath<'p> {
     /// The [`EntityUuid`] of the [`EntityId`] belonging to the [`Entity`].
     ///
