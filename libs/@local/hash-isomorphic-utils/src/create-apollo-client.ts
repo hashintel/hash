@@ -79,7 +79,9 @@ export const createApolloClient = (params?: {
     }
 
     return ponyfilledFetch(
-      operationName ? `${JSON.stringify(uri)}?${operationName}` : uri,
+      operationName
+        ? `${typeof uri === "string" ? uri : JSON.stringify(uri)}?${operationName}`
+        : uri,
       options,
     );
   };
