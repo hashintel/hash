@@ -129,7 +129,8 @@ export const fullTransactionTimeAxis: QueryTemporalAxesUnresolved = {
  * @param [options] configuration of the returned filter
  * @param [options.ignoreParents] don't check the type's parents for a match against the versionedUrl
  * @param [options.pathPrefix] the path to the thing to match the type of, if it's not the root of the query
- *     @example ["outgoingLinks", "rightEntity"] to filter query results to things with a linked entity of the given type
+ *     @example ["outgoingLinks", "rightEntity"] to filter query results to things with a linked entity of the given
+ *   type
  */
 export const generateVersionedUrlMatchingFilter = (
   versionedUrl: VersionedUrl,
@@ -225,6 +226,33 @@ export const createDefaultAuthorizationRelationships = (params: {
     subject: {
       kind: "setting",
       subjectId: "viewFromWeb",
+    },
+  },
+];
+
+export const createOrgMembershipAuthorizationRelationships = ({
+  memberAccountId,
+}: {
+  memberAccountId: AccountId;
+}): EntityRelationAndSubject[] => [
+  {
+    relation: "setting",
+    subject: {
+      kind: "setting",
+      subjectId: "administratorFromWeb", // web admins can edit the link
+    },
+  },
+  {
+    relation: "editor",
+    subject: {
+      kind: "account",
+      subjectId: memberAccountId, // so can the user
+    },
+  },
+  {
+    relation: "viewer",
+    subject: {
+      kind: "public", // everyone in the world can see it (until we allow restricting this)
     },
   },
 ];

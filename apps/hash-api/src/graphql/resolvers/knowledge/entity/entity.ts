@@ -77,7 +77,15 @@ export const createEntityResolver: ResolverFn<
   MutationCreateEntityArgs
 > = async (
   _,
-  { ownedById, properties, entityTypeId, linkedEntities, linkData, draft },
+  {
+    ownedById,
+    properties,
+    entityTypeId,
+    linkedEntities,
+    linkData,
+    draft,
+    relationships,
+  },
   { dataSources, authentication, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
@@ -114,7 +122,9 @@ export const createEntityResolver: ResolverFn<
       properties,
       linkEntityTypeId: entityTypeId,
       ownedById: ownedById ?? (user.accountId as OwnedById),
-      relationships: createDefaultAuthorizationRelationships(authentication),
+      relationships:
+        relationships ??
+        createDefaultAuthorizationRelationships(authentication),
       draft: draft ?? undefined,
     });
   } else {
