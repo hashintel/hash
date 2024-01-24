@@ -666,7 +666,6 @@ where
     }
 }
 
-#[async_trait]
 impl<I, A, R, S> ReadPaginated<R, S> for FetchingStore<I, A>
 where
     A: Send + Sync,

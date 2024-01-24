@@ -6,6 +6,8 @@
 //!
 //! [`Store`]: crate::store::Store
 
+use std::future::Future;
+
 use async_trait::async_trait;
 use error_stack::Result;
 use futures::{Stream, TryStreamExt};
@@ -192,45 +194,50 @@ impl<'f, R: Record, S: Sorting> ReadParameter<'f, R, S> {
 /// Read access to a [`Store`].
 ///
 /// [`Store`]: crate::store::Store
-#[async_trait]
 pub trait ReadPaginated<R: Record, S: Sorting + Sync = VertexIdSorting<R>>: Read<R> {
     type QueryResult: QueryResult<R, S> + Send;
 
     type ReadPaginatedStream: Stream<Item = Result<Self::QueryResult, QueryError>> + Send + Sync;
 
-    async fn read_paginated(
+    fn read_paginated(
         &self,
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
         sorting: &S,
         limit: Option<usize>,
         include_drafts: bool,
-    ) -> Result<
-        (
-            Self::ReadPaginatedStream,
-            <Self::QueryResult as QueryResult<R, S>>::Artifacts,
-        ),
-        QueryError,
-    >;
+    ) -> impl Future<
+        Output = Result<
+            (
+                Self::ReadPaginatedStream,
+                <Self::QueryResult as QueryResult<R, S>>::Artifacts,
+            ),
+            QueryError,
+        >,
+    > + Send;
 
-    async fn read_paginated_vec(
+    fn read_paginated_vec(
         &self,
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
         sorting: &S,
         limit: Option<usize>,
         include_drafts: bool,
-    ) -> Result<
-        (
-            Vec<Self::QueryResult>,
-            <Self::QueryResult as QueryResult<R, S>>::Artifacts,
-        ),
-        QueryError,
-    > {
-        let (stream, artifacts) = self
-            .read_paginated(filter, temporal_axes, sorting, limit, include_drafts)
-            .await?;
-        Ok((stream.try_collect().await?, artifacts))
+    ) -> impl Future<
+        Output = Result<
+            (
+                Vec<Self::QueryResult>,
+                <Self::QueryResult as QueryResult<R, S>>::Artifacts,
+            ),
+            QueryError,
+        >,
+    > + Send {
+        async move {
+            let (stream, artifacts) = self
+                .read_paginated(filter, temporal_axes, sorting, limit, include_drafts)
+                .await?;
+            Ok((stream.try_collect().await?, artifacts))
+        }
     }
 }
 

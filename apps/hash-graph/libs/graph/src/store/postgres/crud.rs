@@ -41,14 +41,11 @@ where
     }
 }
 
-#[async_trait]
 impl<Cl, R, S> ReadPaginated<R, S> for PostgresStore<Cl>
 where
     Cl: AsClient,
     for<'c> R: PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
-    // TODO: figure out why `'s` is needed here, it should do nothing. It's likely because of
-    // `async_trait`
-    for<'s> S: PostgresSorting<R> + Sync + 's,
+    S: PostgresSorting<R> + Sync + 'static,
 {
     type QueryResult = Row;
 
