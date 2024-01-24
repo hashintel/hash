@@ -42,7 +42,7 @@ use crate::{
                 read::OntologyTypeTraversalData, OntologyId,
                 PostgresOntologyTypeClassificationMetadata,
             },
-            query::{Distinctness, QueryRecord, ReferenceTable, SelectCompiler},
+            query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
             TraversalContext,
         },
         query::{Filter, FilterExpression, ParameterList},
@@ -902,8 +902,12 @@ impl QueryRecordDecode for EntityTypeWithMetadata {
     }
 }
 
-impl QueryRecord for EntityTypeWithMetadata {
+impl PostgresRecord for EntityTypeWithMetadata {
     type CompilationParameters = ();
+
+    fn base_table() -> Table {
+        Table::OntologyTemporalMetadata
+    }
 
     fn parameters() -> Self::CompilationParameters {}
 

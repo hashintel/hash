@@ -34,7 +34,7 @@ use crate::{
         postgres::{
             crud::QueryRecordDecode,
             ontology::{OntologyId, PostgresOntologyTypeClassificationMetadata},
-            query::{Distinctness, QueryRecord, SelectCompiler},
+            query::{Distinctness, PostgresRecord, SelectCompiler, Table},
             TraversalContext,
         },
         AsClient, ConflictBehavior, DataTypeStore, InsertionError, PostgresStore, QueryError,
@@ -528,8 +528,12 @@ impl QueryRecordDecode for DataTypeWithMetadata {
     }
 }
 
-impl QueryRecord for DataTypeWithMetadata {
+impl PostgresRecord for DataTypeWithMetadata {
     type CompilationParameters = ();
+
+    fn base_table() -> Table {
+        Table::OntologyTemporalMetadata
+    }
 
     fn parameters() -> Self::CompilationParameters {}
 

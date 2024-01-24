@@ -25,8 +25,8 @@ use crate::{
         postgres::{
             crud::QueryRecordDecode,
             query::{
-                Distinctness, Expression, Function, Ordering, PostgresSorting, QueryRecord,
-                QueryRecordEncode, SelectCompiler,
+                Distinctness, Expression, Function, Ordering, PostgresRecord, PostgresSorting,
+                QueryRecordEncode, SelectCompiler, Table,
             },
         },
         query::Parameter,
@@ -285,8 +285,12 @@ impl QueryRecordDecode for Entity {
     }
 }
 
-impl QueryRecord for Entity {
+impl PostgresRecord for Entity {
     type CompilationParameters = EntityRecordPaths<'static>;
+
+    fn base_table() -> Table {
+        Table::EntityTemporalMetadata
+    }
 
     fn parameters() -> Self::CompilationParameters {
         EntityRecordPaths::default()

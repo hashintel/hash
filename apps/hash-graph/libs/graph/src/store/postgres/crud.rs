@@ -7,8 +7,7 @@ use crate::{
     store::{
         crud::{QueryResult, Read, ReadPaginated, Sorting},
         postgres::query::{
-            PostgresQueryPath, PostgresRecord, PostgresSorting, QueryRecord, QueryRecordEncode,
-            SelectCompiler,
+            PostgresQueryPath, PostgresRecord, PostgresSorting, QueryRecordEncode, SelectCompiler,
         },
         query::Filter,
         AsClient, PostgresStore, QueryError,
@@ -48,9 +47,9 @@ where
 impl<Cl, R, S> ReadPaginated<R, S> for PostgresStore<Cl>
 where
     Cl: AsClient,
-    for<'c> R: QueryRecord + PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
-    S: PostgresSorting<R> + Send + Sync + 'static,
-    S::Cursor: QueryRecordEncode,
+    for<'c> R: PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
+    S: PostgresSorting<R> + Sync,
+    S::Cursor: QueryRecordEncode + 'static,
 {
     type QueryResult = Row;
 
@@ -108,7 +107,7 @@ where
 impl<Cl, R> Read<R> for PostgresStore<Cl>
 where
     Cl: AsClient,
-    for<'c> R: QueryRecord + PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
+    for<'c> R: PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
 {
     type ReadStream = impl Stream<Item = Result<R, Report<QueryError>>> + Send + Sync;
 

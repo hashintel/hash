@@ -40,7 +40,7 @@ use crate::{
                 read::OntologyTypeTraversalData, OntologyId,
                 PostgresOntologyTypeClassificationMetadata,
             },
-            query::{Distinctness, QueryRecord, ReferenceTable, SelectCompiler},
+            query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
             TraversalContext,
         },
         AsClient, ConflictBehavior, InsertionError, PostgresStore, PropertyTypeStore, QueryError,
@@ -683,8 +683,12 @@ impl QueryRecordDecode for PropertyTypeWithMetadata {
     }
 }
 
-impl QueryRecord for PropertyTypeWithMetadata {
+impl PostgresRecord for PropertyTypeWithMetadata {
     type CompilationParameters = ();
+
+    fn base_table() -> Table {
+        Table::OntologyTemporalMetadata
+    }
 
     fn parameters() -> Self::CompilationParameters {}
 
