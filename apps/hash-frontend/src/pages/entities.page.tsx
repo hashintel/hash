@@ -1,7 +1,7 @@
 import { extractVersion, VersionedUrl } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon } from "@hashintel/design-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { isBaseUrl } from "@local/hash-subgraph";
+import { EntityTypeWithMetadata, isBaseUrl } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
-import { useCallback, useMemo } from "react";
+import { FunctionComponent, useCallback, useMemo } from "react";
 
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
@@ -60,57 +60,18 @@ export const CreateButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-const EntitiesPage: NextPageWithLayout = () => {
+export const CreateButtons: FunctionComponent<{
+  entityType?: EntityTypeWithMetadata;
+}> = ({ entityType }) => {
   const router = useRouter();
   const { activeWorkspaceOwnedById, activeWorkspace } = useActiveWorkspace();
 
-  const { hashInstance } = useHashInstance();
-
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
-
-  const { entityTypeId, entityTypeBaseUrl } = useMemo(() => {
-    if (router.isReady) {
-      const { entityTypeIdOrBaseUrl } = router.query as ParsedQueryParams;
-
-      return {
-        entityTypeId:
-          entityTypeIdOrBaseUrl && !isBaseUrl(entityTypeIdOrBaseUrl)
-            ? (entityTypeIdOrBaseUrl as VersionedUrl)
-            : undefined,
-        entityTypeBaseUrl:
-          entityTypeIdOrBaseUrl && isBaseUrl(entityTypeIdOrBaseUrl)
-            ? entityTypeIdOrBaseUrl
-            : undefined,
-      };
-    }
-    return {};
-  }, [router]);
 
   const { lastRootPageIndex } = useAccountPages(activeWorkspaceOwnedById);
   const [createUntitledPage] = useCreatePage({
     shortname: activeWorkspace?.shortname,
     ownedById: activeWorkspaceOwnedById,
-  });
-
-  const { latestEntityTypes } = useLatestEntityTypesOptional({
-    includeArchived: true,
-  });
-
-  const entityType = useMemo(
-    () =>
-      entityTypeId || entityTypeBaseUrl
-        ? latestEntityTypes?.find(({ schema }) =>
-            entityTypeId
-              ? schema.$id === entityTypeId
-              : extractBaseUrl(schema.$id) === entityTypeBaseUrl,
-          )
-        : undefined,
-    [latestEntityTypes, entityTypeId, entityTypeBaseUrl],
-  );
-
-  const entityTypeEntitiesValue = useEntityTypeEntitiesContextValue({
-    entityTypeBaseUrl,
-    entityTypeId,
   });
 
   const isFileEntityType = useMemo(
@@ -120,9 +81,6 @@ const EntitiesPage: NextPageWithLayout = () => {
         : false,
     [isSpecialEntityTypeLookup, entityType],
   );
-
-  const isViewAllPagesPage =
-    entityType && entityType.schema.$id === systemEntityTypes.page.entityTypeId;
 
   const createDocument = useCallback(async () => {
     await createUntitledPage(lastRootPageIndex, "document");
@@ -148,6 +106,106 @@ const EntitiesPage: NextPageWithLayout = () => {
           }`,
     );
   }, [entityType, isFileEntityType, router]);
+
+  const isViewAllPagesPage = useMemo(() => {
+    return entityType?.schema.$id === systemEntityTypes.page.entityTypeId;
+  }, [entityType]);
+
+  const isViewAllDocumentsPage = useMemo(() => {
+    return entityType?.schema.$id === systemEntityTypes.document.entityTypeId;
+  }, [entityType]);
+
+  const isViewAllCanvasesPage = useMemo(() => {
+    return entityType?.schema.$id === systemEntityTypes.canvas.entityTypeId;
+  }, [entityType]);
+
+  return isViewAllPagesPage ||
+    isViewAllDocumentsPage ||
+    isViewAllCanvasesPage ? (
+    <Box display="flex" gap={3}>
+      {isViewAllPagesPage || isViewAllDocumentsPage ? (
+        <CreateButton
+          variant="tertiary_quiet"
+          endIcon={<FileCirclePlusRegularIcon />}
+          onClick={createDocument}
+        >
+          Create new document
+        </CreateButton>
+      ) : null}
+      {isViewAllPagesPage || isViewAllCanvasesPage ? (
+        <CreateButton
+          variant="tertiary_quiet"
+          sx={{
+            [`.${buttonClasses.endIcon}`]: {
+              fontSize: 18,
+            },
+          }}
+          endIcon={<CanvasNewIcon />}
+          onClick={createCanvas}
+        >
+          Create new canvas
+        </CreateButton>
+      ) : null}
+    </Box>
+  ) : (
+    <CreateButton
+      onClick={createEntity}
+      variant="tertiary_quiet"
+      endIcon={<PlusRegularIcon />}
+    >
+      {isFileEntityType ? "Add" : "Create"} new{" "}
+      {entityType?.schema.title.toLowerCase() ?? "entity"}
+      {isFileEntityType ? "(s)" : ""}
+    </CreateButton>
+  );
+};
+
+const EntitiesPage: NextPageWithLayout = () => {
+  const router = useRouter();
+
+  const { hashInstance } = useHashInstance();
+
+  const { entityTypeId, entityTypeBaseUrl } = useMemo(() => {
+    if (router.isReady) {
+      const { entityTypeIdOrBaseUrl } = router.query as ParsedQueryParams;
+
+      return {
+        entityTypeId:
+          entityTypeIdOrBaseUrl && !isBaseUrl(entityTypeIdOrBaseUrl)
+            ? (entityTypeIdOrBaseUrl as VersionedUrl)
+            : undefined,
+        entityTypeBaseUrl:
+          entityTypeIdOrBaseUrl && isBaseUrl(entityTypeIdOrBaseUrl)
+            ? entityTypeIdOrBaseUrl
+            : undefined,
+      };
+    }
+    return {};
+  }, [router]);
+
+  const { latestEntityTypes } = useLatestEntityTypesOptional({
+    includeArchived: true,
+  });
+
+  const entityType = useMemo(
+    () =>
+      entityTypeId || entityTypeBaseUrl
+        ? latestEntityTypes?.find(({ schema }) =>
+            entityTypeId
+              ? schema.$id === entityTypeId
+              : extractBaseUrl(schema.$id) === entityTypeBaseUrl,
+          )
+        : undefined,
+    [latestEntityTypes, entityTypeId, entityTypeBaseUrl],
+  );
+
+  const entityTypeEntitiesValue = useEntityTypeEntitiesContextValue({
+    entityTypeBaseUrl,
+    entityTypeId,
+  });
+
+  const isViewAllPagesPage =
+    entityType && entityType.schema.$id === systemEntityTypes.page.entityTypeId;
 
   const pageTitle = entityType
     ? entityTypeId
@@ -225,39 +283,9 @@ const EntitiesPage: NextPageWithLayout = () => {
               />
             </Tabs>
             <Fade in={displayCreateEntityButton}>
-              {isViewAllPagesPage ? (
-                <Box display="flex" gap={3}>
-                  <CreateButton
-                    variant="tertiary_quiet"
-                    endIcon={<FileCirclePlusRegularIcon />}
-                    onClick={createDocument}
-                  >
-                    Create new document
-                  </CreateButton>
-                  <CreateButton
-                    variant="tertiary_quiet"
-                    sx={{
-                      [`.${buttonClasses.endIcon}`]: {
-                        fontSize: 18,
-                      },
-                    }}
-                    endIcon={<CanvasNewIcon />}
-                    onClick={createCanvas}
-                  >
-                    Create new canvas
-                  </CreateButton>
-                </Box>
-              ) : (
-                <CreateButton
-                  onClick={createEntity}
-                  variant="tertiary_quiet"
-                  endIcon={<PlusRegularIcon />}
-                >
-                  {isFileEntityType ? "Add" : "Create"} new{" "}
-                  {entityType?.schema.title.toLowerCase() ?? "entity"}
-                  {isFileEntityType ? "(s)" : ""}
-                </CreateButton>
-              )}
+              <Box>
+                <CreateButtons entityType={entityType} />
+              </Box>
             </Fade>
           </Box>
         </Container>
