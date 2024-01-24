@@ -334,7 +334,7 @@ export const useEntityTypeValue = (
         },
       });
 
-      if (res.errors?.length || !res.data) {
+      if (!!res.errors?.length || !res.data) {
         throw new Error("Could not publish changes");
       }
 

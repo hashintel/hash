@@ -97,6 +97,7 @@ export class ProsemirrorManager {
       this.view.setProps({
         nodeViews: {
           // Private API
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ...(this.view as any).nodeViews,
           [componentId]: this.componentNodeViewFactory(block),
         },
@@ -161,6 +162,7 @@ export class ProsemirrorManager {
       }
 
       /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       blockEntity = entityInStore as any;
     }
 
@@ -334,6 +336,7 @@ export class ProsemirrorManager {
         addEntityStoreAction(this.view.state, tr, {
           type: "updateEntityProperties",
           payload: {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain -- TODO check blockChildEntity or type this better
             draftId: blockEntity.blockChildEntity?.draftId!,
             properties: entityProperties,
             merge: true,
@@ -532,7 +535,7 @@ export class ProsemirrorManager {
   private createBlockEntity(
     tr: Transaction,
     targetComponentId: string,
-    blockDataProperties: {},
+    blockDataProperties: Record<string, unknown>,
   ) {
     if (!this.view) {
       throw new Error("Cannot trigger createBlockEntity without view");

@@ -42,6 +42,7 @@ const InferenceMetadata = ({ request }: { request: PageEntityInference }) => {
   const [timeElapsed, setTimeElapsed] = useState(() =>
     generateDurationString({
       start: new Date(request.createdAt),
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
       end: new Date(request.finishedAt || Date.now()),
     }),
   );
@@ -59,6 +60,7 @@ const InferenceMetadata = ({ request }: { request: PageEntityInference }) => {
         setTimeElapsed(
           generateDurationString({
             start: new Date(request.createdAt),
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
             end: new Date(request.finishedAt || Date.now()),
           }),
         );

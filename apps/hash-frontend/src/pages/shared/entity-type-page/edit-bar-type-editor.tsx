@@ -15,7 +15,7 @@ import {
   useFreezeScrollWhileTransitioning,
 } from "../../[shortname]/shared/edit-bar";
 
-const useFrozenValue = <T extends any>(value: T): T => {
+const useFrozenValue = <T extends number | boolean | object>(value: T): T => {
   const { isDirty } = useEntityTypeFormState<EntityTypeEditorFormData>();
 
   const [frozen, setFrozen] = useState(value);

@@ -7,8 +7,6 @@ export const scalars = {
   QueryOperationInput: "@blockprotocol/graph#QueryOperationInput",
   VersionedUrl: "@blockprotocol/type-system#VersionedUrl",
 
-  UnknownEntityProperties:
-    "@local/hash-isomorphic-utils/types#UnknownEntityProperties",
   TextToken: "@local/hash-isomorphic-utils/types#TextToken",
 
   HasIndexedContentProperties:

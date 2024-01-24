@@ -16,7 +16,7 @@ browser.runtime.onMessage.addListener(
   (message: Message, _sender, sendResponse) => {
     if (message.type === "get-site-content") {
       const docContent =
-        document.querySelector("main") || document.querySelector("body");
+        document.querySelector("main") ?? document.querySelector("body");
 
       /**
        * Take the URL without any anchor hash on the assumption that it does not affect page content.

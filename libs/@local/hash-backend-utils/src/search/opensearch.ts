@@ -227,6 +227,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
     }
 
     const hits = (body.hits.hits as RawHit[]).map(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (hit: any): SearchHit => ({
         index: hit._index as string,
         id: hit._id as string,
@@ -400,6 +401,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
     }
 
     const hits = (body.hits.hits as RawHit[]).map(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (hit: any): SearchHit => ({
         index: hit._index as string,
         id: hit._id as string,

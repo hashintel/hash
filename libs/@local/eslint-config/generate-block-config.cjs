@@ -13,4 +13,23 @@ module.exports = (workspaceDirPath) => ({
     tsconfigRootDir: workspaceDirPath,
     project: `${workspaceDirPath}/tsconfig.json`,
   },
+  overrides: [
+    {
+      files: ["**/src/types/**"],
+      rules: {
+        "@typescript-eslint/ban-types": [
+          "error",
+          {
+            types: {
+              /**
+               * @todo update the codegen utility in @blockprotocol/graph to generate Object as Record<string, unknown>, not {}
+               */
+              "{}": false,
+            },
+            extendDefaults: true,
+          },
+        ],
+      },
+    },
+  ],
 });

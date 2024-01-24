@@ -20,7 +20,7 @@ describe("flatMapTree", () => {
     const result = [];
     for (const block of test1) {
       result.push(
-        ...flatMapTree(block, (node: any) => {
+        ...flatMapTree(block, (node: unknown) => {
           return [node];
         }),
       );
@@ -79,7 +79,7 @@ describe("flatMapTree", () => {
     const result = [];
     for (const block of test1) {
       result.push(
-        ...flatMapTree(block, (node: any) => {
+        ...flatMapTree(block, (node: unknown) => {
           return [node];
         }),
       );

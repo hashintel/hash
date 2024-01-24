@@ -1,3 +1,4 @@
+import { Block } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import {
   EntityId,
   EntityPropertiesObject,
@@ -229,6 +230,7 @@ const setBlockChildEntity = (
   }
 
   // @todo sort out entity store types – search https://app.asana.com/0/0/1203099452204542/f
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   draftBlockEntity.blockChildEntity = targetDraftEntity as any;
 };
 
@@ -284,7 +286,9 @@ const entityStoreReducer = (
               draftEntity.componentId =
                 action.payload.blockEntityMetadata.componentId;
               draftEntity.blockChildEntity = action.payload.blockEntityMetadata
-                .blockChildEntity as any;
+                .blockChildEntity as Draft<
+                Block & { draftId?: string | undefined }
+              >;
             }
 
             if ("properties" in action.payload) {

@@ -50,10 +50,12 @@ export const createApolloClient = (params?: {
   additionalHeaders?: { [key: string]: string | undefined };
 }): ApolloClient<NormalizedCacheObject> => {
   const ponyfilledFetch =
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     typeof (globalThis as any).fetch === "undefined"
       ? // eslint-disable-next-line global-require
         require("node-fetch")
-      : (globalThis as any).fetch;
+      : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (globalThis as any).fetch;
 
   /**
    * This wraps fetch to inject the query operation name into the URL, which makes it easier
@@ -77,7 +79,7 @@ export const createApolloClient = (params?: {
     }
 
     return ponyfilledFetch(
-      operationName ? `${uri.toString()}?${operationName}` : uri,
+      operationName ? `${JSON.stringify(uri)}?${operationName}` : uri,
       options,
     );
   };

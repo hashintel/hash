@@ -20,7 +20,7 @@ export const queryGraphQlApi = <
   })
     .then((resp) => resp.json())
     .then((resp: { data?: ReturnData; errors?: GraphQLError[] }) => {
-      if (resp.errors || !resp.data) {
+      if (resp.errors ?? !resp.data) {
         throw new Error(
           resp.errors?.[0].message ?? "No data and no errors returned",
         );

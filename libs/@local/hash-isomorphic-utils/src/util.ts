@@ -4,7 +4,7 @@ import { uniq } from "lodash";
 /**
  * This behaves differently from the type `{}`, and will error if you set more properties on it.
  */
-export type EmptyObject = Record<any, never>;
+export type EmptyObject = Record<string, never>;
 
 /**
  * @see https://github.com/microsoft/TypeScript/issues/25720#issuecomment-533438205
@@ -17,7 +17,7 @@ export const isUnknownObject = (
 /**
  * This allows you to collect calls to a function to run at the end of a tick
  */
-export const collect = <P extends Array<any>>(
+export const collect = <P extends Array<unknown>>(
   handler: (calls: P[]) => void,
 ): ((...args: P) => void) => {
   let id: ReturnType<typeof setImmediate> | null = null;
