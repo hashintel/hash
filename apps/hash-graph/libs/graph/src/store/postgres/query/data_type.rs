@@ -1,7 +1,5 @@
 use std::iter::once;
 
-use graph_types::ontology::DataTypeWithMetadata;
-
 use crate::{
     ontology::DataTypeQueryPath,
     store::postgres::query::{
@@ -9,16 +7,10 @@ use crate::{
             Column, DataTypes, JsonField, OntologyAdditionalMetadata, OntologyIds,
             OntologyOwnedMetadata, OntologyTemporalMetadata, ReferenceTable, Relation,
         },
-        PostgresQueryPath, PostgresRecord, Table,
+        PostgresQueryPath,
     },
     subgraph::edges::{EdgeDirection, OntologyEdgeKind},
 };
-
-impl PostgresRecord for DataTypeWithMetadata {
-    fn base_table() -> Table {
-        Table::OntologyTemporalMetadata
-    }
-}
 
 impl PostgresQueryPath for DataTypeQueryPath<'_> {
     fn relations(&self) -> Vec<Relation> {

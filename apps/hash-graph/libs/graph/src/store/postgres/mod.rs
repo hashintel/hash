@@ -1,3 +1,4 @@
+mod crud;
 mod knowledge;
 mod ontology;
 

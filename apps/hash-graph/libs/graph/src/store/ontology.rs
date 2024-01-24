@@ -1,6 +1,5 @@
-use std::iter;
+use std::{future::Future, iter};
 
-use async_trait::async_trait;
 use authorization::{
     schema::{
         DataTypeRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
@@ -22,7 +21,7 @@ use type_system::{
 };
 
 use crate::{
-    store::{crud, ConflictBehavior, InsertionError, QueryError, UpdateError},
+    store::{ConflictBehavior, InsertionError, QueryError, UpdateError},
     subgraph::{
         identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
         query::StructuralQuery,
@@ -31,8 +30,7 @@ use crate::{
 };
 
 /// Describes the API of a store implementation for [`DataType`]s.
-#[async_trait]
-pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
+pub trait DataTypeStore {
     /// Creates a new [`DataType`].
     ///
     /// # Errors:
@@ -41,25 +39,30 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// - if the [`BaseUrl`] of the `data_type` already exists.
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
-    async fn create_data_type<A: AuthorizationApi + Send + Sync>(
+    fn create_data_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         schema: DataType,
         metadata: PartialDataTypeMetadata,
         relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
-    ) -> Result<DataTypeMetadata, InsertionError> {
-        Ok(self
-            .create_data_types(
-                actor_id,
-                authorization_api,
-                iter::once((schema, metadata)),
-                ConflictBehavior::Fail,
-                relationships,
-            )
-            .await?
-            .pop()
-            .expect("created exactly one data type"))
+    ) -> impl Future<Output = Result<DataTypeMetadata, InsertionError>> + Send
+    where
+        Self: Send,
+    {
+        async move {
+            Ok(self
+                .create_data_types(
+                    actor_id,
+                    authorization_api,
+                    iter::once((schema, metadata)),
+                    ConflictBehavior::Fail,
+                    relationships,
+                )
+                .await?
+                .pop()
+                .expect("created exactly one data type"))
+        }
     }
 
     /// Creates the provided [`DataType`]s.
@@ -70,70 +73,69 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// - if any [`BaseUrl`] of the data type already exists.
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
-    async fn create_data_types<A: AuthorizationApi + Send + Sync>(
+    fn create_data_types<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         data_types: impl IntoIterator<Item = (DataType, PartialDataTypeMetadata), IntoIter: Send> + Send,
         on_conflict: ConflictBehavior,
         relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
-    ) -> Result<Vec<DataTypeMetadata>, InsertionError>;
+    ) -> impl Future<Output = Result<Vec<DataTypeMetadata>, InsertionError>> + Send;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    async fn get_data_type<A: AuthorizationApi + Sync>(
+    fn get_data_type<A: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,
         authorization_api: &A,
         query: &StructuralQuery<DataTypeWithMetadata>,
-        after: Option<&DataTypeVertexId>,
+        after: Option<DataTypeVertexId>,
         limit: Option<usize>,
-    ) -> Result<Subgraph, QueryError>;
+    ) -> impl Future<Output = Result<Subgraph, QueryError>> + Send;
 
     /// Update the definition of an existing [`DataType`].
     ///
     /// # Errors
     ///
     /// - if the [`DataType`] doesn't exist.
-    async fn update_data_type<A: AuthorizationApi + Send + Sync>(
+    fn update_data_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         data_type: DataType,
         relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
-    ) -> Result<DataTypeMetadata, UpdateError>;
+    ) -> impl Future<Output = Result<DataTypeMetadata, UpdateError>> + Send;
 
     /// Archives the definition of an existing [`DataType`].
     ///
     /// # Errors
     ///
     /// - if the [`DataType`] doesn't exist.
-    async fn archive_data_type<A: AuthorizationApi + Send + Sync>(
+    fn archive_data_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         id: &VersionedUrl,
-    ) -> Result<OntologyTemporalMetadata, UpdateError>;
+    ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
 
     /// Restores the definition of an existing [`DataType`].
     ///
     /// # Errors
     ///
     /// - if the [`DataType`] doesn't exist.
-    async fn unarchive_data_type<A: AuthorizationApi + Send + Sync>(
+    fn unarchive_data_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         id: &VersionedUrl,
-    ) -> Result<OntologyTemporalMetadata, UpdateError>;
+    ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
 }
 
 /// Describes the API of a store implementation for [`PropertyType`]s.
-#[async_trait]
-pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
+pub trait PropertyTypeStore {
     /// Creates a new [`PropertyType`].
     ///
     /// # Errors:
@@ -142,25 +144,30 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     /// - if the [`BaseUrl`] of the `property_type` already exists.
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
-    async fn create_property_type<A: AuthorizationApi + Send + Sync>(
+    fn create_property_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         schema: PropertyType,
         metadata: PartialPropertyTypeMetadata,
         relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
-    ) -> Result<PropertyTypeMetadata, InsertionError> {
-        Ok(self
-            .create_property_types(
-                actor_id,
-                authorization_api,
-                iter::once((schema, metadata)),
-                ConflictBehavior::Fail,
-                relationships,
-            )
-            .await?
-            .pop()
-            .expect("created exactly one property type"))
+    ) -> impl Future<Output = Result<PropertyTypeMetadata, InsertionError>> + Send
+    where
+        Self: Send,
+    {
+        async move {
+            Ok(self
+                .create_property_types(
+                    actor_id,
+                    authorization_api,
+                    iter::once((schema, metadata)),
+                    ConflictBehavior::Fail,
+                    relationships,
+                )
+                .await?
+                .pop()
+                .expect("created exactly one property type"))
+        }
     }
 
     /// Creates the provided [`PropertyType`]s.
@@ -171,7 +178,7 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     /// - if any [`BaseUrl`] of the property type already exists.
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
-    async fn create_property_types<A: AuthorizationApi + Send + Sync>(
+    fn create_property_types<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
@@ -181,63 +188,62 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
         > + Send,
         on_conflict: ConflictBehavior,
         relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
-    ) -> Result<Vec<PropertyTypeMetadata>, InsertionError>;
+    ) -> impl Future<Output = Result<Vec<PropertyTypeMetadata>, InsertionError>> + Send;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
-    async fn get_property_type<A: AuthorizationApi + Sync>(
+    fn get_property_type<A: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,
         authorization_api: &A,
-        query: &StructuralQuery<PropertyTypeWithMetadata>,
-        after: Option<&PropertyTypeVertexId>,
+        query: &StructuralQuery<'_, PropertyTypeWithMetadata>,
+        after: Option<PropertyTypeVertexId>,
         limit: Option<usize>,
-    ) -> Result<Subgraph, QueryError>;
+    ) -> impl Future<Output = Result<Subgraph, QueryError>> + Send;
 
     /// Update the definition of an existing [`PropertyType`].
     ///
     /// # Errors
     ///
     /// - if the [`PropertyType`] doesn't exist.
-    async fn update_property_type<A: AuthorizationApi + Send + Sync>(
+    fn update_property_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         property_type: PropertyType,
         relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
-    ) -> Result<PropertyTypeMetadata, UpdateError>;
+    ) -> impl Future<Output = Result<PropertyTypeMetadata, UpdateError>> + Send;
 
     /// Archives the definition of an existing [`PropertyType`].
     ///
     /// # Errors
     ///
     /// - if the [`PropertyType`] doesn't exist.
-    async fn archive_property_type<A: AuthorizationApi + Send + Sync>(
+    fn archive_property_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         id: &VersionedUrl,
-    ) -> Result<OntologyTemporalMetadata, UpdateError>;
+    ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
 
     /// Restores the definition of an existing [`PropertyType`].
     ///
     /// # Errors
     ///
     /// - if the [`PropertyType`] doesn't exist.
-    async fn unarchive_property_type<A: AuthorizationApi + Send + Sync>(
+    fn unarchive_property_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         id: &VersionedUrl,
-    ) -> Result<OntologyTemporalMetadata, UpdateError>;
+    ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
 }
 
 /// Describes the API of a store implementation for [`EntityType`]s.
-#[async_trait]
-pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
+pub trait EntityTypeStore {
     /// Creates a new [`EntityType`].
     ///
     /// # Errors:
@@ -246,25 +252,30 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     /// - if the [`BaseUrl`] of the `entity_type` already exists.
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
-    async fn create_entity_type<A: AuthorizationApi + Send + Sync>(
+    fn create_entity_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         schema: EntityType,
         metadata: PartialEntityTypeMetadata,
         relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
-    ) -> Result<EntityTypeMetadata, InsertionError> {
-        Ok(self
-            .create_entity_types(
-                actor_id,
-                authorization_api,
-                iter::once((schema, metadata)),
-                ConflictBehavior::Fail,
-                relationships,
-            )
-            .await?
-            .pop()
-            .expect("created exactly one entity type"))
+    ) -> impl Future<Output = Result<EntityTypeMetadata, InsertionError>> + Send
+    where
+        Self: Send,
+    {
+        async move {
+            Ok(self
+                .create_entity_types(
+                    actor_id,
+                    authorization_api,
+                    iter::once((schema, metadata)),
+                    ConflictBehavior::Fail,
+                    relationships,
+                )
+                .await?
+                .pop()
+                .expect("created exactly one entity type"))
+        }
     }
 
     /// Creates the provided [`EntityType`]s.
@@ -275,7 +286,7 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     /// - if any [`BaseUrl`] of the entity type already exists.
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
-    async fn create_entity_types<A: AuthorizationApi + Send + Sync>(
+    fn create_entity_types<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
@@ -283,28 +294,28 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
         + Send,
         on_conflict: ConflictBehavior,
         relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
-    ) -> Result<Vec<EntityTypeMetadata>, InsertionError>;
+    ) -> impl Future<Output = Result<Vec<EntityTypeMetadata>, InsertionError>> + Send;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`EntityType`] doesn't exist.
-    async fn get_entity_type<A: AuthorizationApi + Sync>(
+    fn get_entity_type<A: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,
         authorization_api: &A,
-        query: &StructuralQuery<EntityTypeWithMetadata>,
-        after: Option<&EntityTypeVertexId>,
+        query: &StructuralQuery<'_, EntityTypeWithMetadata>,
+        after: Option<EntityTypeVertexId>,
         limit: Option<usize>,
-    ) -> Result<Subgraph, QueryError>;
+    ) -> impl Future<Output = Result<Subgraph, QueryError>> + Send;
 
     /// Update the definition of an existing [`EntityType`].
     ///
     /// # Errors
     ///
     /// - if the [`EntityType`] doesn't exist.
-    async fn update_entity_type<A: AuthorizationApi + Send + Sync>(
+    fn update_entity_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
@@ -312,29 +323,29 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
         label_property: Option<BaseUrl>,
         icon: Option<String>,
         relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
-    ) -> Result<EntityTypeMetadata, UpdateError>;
+    ) -> impl Future<Output = Result<EntityTypeMetadata, UpdateError>> + Send;
 
     /// Archives the definition of an existing [`EntityType`].
     ///
     /// # Errors
     ///
     /// - if the [`EntityType`] doesn't exist.
-    async fn archive_entity_type<A: AuthorizationApi + Send + Sync>(
+    fn archive_entity_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         id: &VersionedUrl,
-    ) -> Result<OntologyTemporalMetadata, UpdateError>;
+    ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
 
     /// Restores the definition of an existing [`EntityType`].
     ///
     /// # Errors
     ///
     /// - if the [`EntityType`] doesn't exist.
-    async fn unarchive_entity_type<A: AuthorizationApi + Send + Sync>(
+    fn unarchive_entity_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         id: &VersionedUrl,
-    ) -> Result<OntologyTemporalMetadata, UpdateError>;
+    ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
 }

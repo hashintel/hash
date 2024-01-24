@@ -3,7 +3,6 @@ use std::{
     iter::once,
 };
 
-use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
@@ -23,7 +22,9 @@ use graph_types::{
         OntologyTypeRecordId, PartialEntityTypeMetadata,
     },
 };
+use postgres_types::Json;
 use temporal_versioning::RightBoundedTemporalInterval;
+use tokio_postgres::Row;
 use type_system::{
     url::{BaseUrl, VersionedUrl},
     EntityType,
@@ -33,11 +34,15 @@ use uuid::Uuid;
 use crate::{
     ontology::EntityTypeQueryPath,
     store::{
-        crud::Read,
+        crud::{QueryResult, ReadPaginated, VertexIdSorting},
         error::DeletionError,
         postgres::{
-            ontology::{read::OntologyTypeTraversalData, OntologyId},
-            query::ReferenceTable,
+            crud::QueryRecordDecode,
+            ontology::{
+                read::OntologyTypeTraversalData, OntologyId,
+                PostgresOntologyTypeClassificationMetadata,
+            },
+            query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
             TraversalContext,
         },
         query::{Filter, FilterExpression, ParameterList},
@@ -408,7 +413,6 @@ pub struct EntityTypeInsertion {
     pub closed_schema: EntityType,
 }
 
-#[async_trait]
 impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
     #[tracing::instrument(
         level = "info",
@@ -572,8 +576,8 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         &self,
         actor_id: AccountId,
         authorization_api: &A,
-        query: &StructuralQuery<EntityTypeWithMetadata>,
-        after: Option<&EntityTypeVertexId>,
+        query: &StructuralQuery<'_, EntityTypeWithMetadata>,
+        cursor: Option<EntityTypeVertexId>,
         limit: Option<usize>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
@@ -590,25 +594,27 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         //   see https://linear.app/hash/issue/H-297
         let mut visited_ontology_ids = HashSet::new();
 
-        let entity_types = Read::<EntityTypeWithMetadata>::read_vec(
+        let (data, artifacts) = ReadPaginated::<EntityTypeWithMetadata>::read_paginated_vec(
             self,
             filter,
             Some(&temporal_axes),
-            after,
+            &VertexIdSorting { cursor },
             limit,
             include_drafts,
         )
-        .await?
-        .into_iter()
-        .filter_map(|entity_type| {
-            let id = EntityTypeId::from_url(entity_type.schema.id());
-            let vertex_id = entity_type.vertex_id(time_axis);
-            // The records are already sorted by time, so we can just take the first one
-            visited_ontology_ids
-                .insert(id)
-                .then_some((id, (vertex_id, entity_type)))
-        })
-        .collect::<Vec<_>>();
+        .await?;
+        let entity_types = data
+            .into_iter()
+            .filter_map(|row| {
+                let entity_type = row.decode_record(&artifacts);
+                let id = EntityTypeId::from_url(entity_type.schema.id());
+                let vertex_id = entity_type.vertex_id(time_axis);
+                // The records are already sorted by time, so we can just take the first one
+                visited_ontology_ids
+                    .insert(id)
+                    .then_some((id, (vertex_id, entity_type)))
+            })
+            .collect::<Vec<_>>();
 
         let filtered_ids = entity_types
             .iter()
@@ -813,25 +819,123 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         }
     }
 
-    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
-    async fn archive_entity_type<A: AuthorizationApi + Sync>(
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn archive_entity_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &mut A,
+        _: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.archive_ontology_type(id, EditionArchivedById::new(actor_id))
             .await
     }
 
-    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
-    async fn unarchive_entity_type<A: AuthorizationApi + Sync>(
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn unarchive_entity_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &mut A,
+        _: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.unarchive_ontology_type(id, EditionCreatedById::new(actor_id))
             .await
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct EntityTypeRowIndices {
+    pub base_url: usize,
+    pub version: usize,
+    pub transaction_time: usize,
+
+    pub schema: usize,
+
+    pub edition_created_by_id: usize,
+    pub edition_archived_by_id: usize,
+    pub additional_metadata: usize,
+    pub label_property: usize,
+    pub icon: usize,
+}
+
+impl QueryRecordDecode for EntityTypeWithMetadata {
+    type CompilationArtifacts = EntityTypeRowIndices;
+    type Output = Self;
+
+    fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self {
+        Self {
+            schema: row.get::<_, Json<_>>(indices.schema).0,
+            metadata: EntityTypeMetadata {
+                record_id: OntologyTypeRecordId {
+                    base_url: BaseUrl::new(row.get(indices.base_url))
+                        .expect("invalid base URL returned from Postgres"),
+                    version: row.get(indices.version),
+                },
+                classification: row
+                    .get::<_, Json<PostgresOntologyTypeClassificationMetadata>>(
+                        indices.additional_metadata,
+                    )
+                    .0
+                    .into(),
+                temporal_versioning: OntologyTemporalMetadata {
+                    transaction_time: row.get(indices.transaction_time),
+                },
+                provenance: OntologyProvenanceMetadata {
+                    edition: OntologyEditionProvenanceMetadata {
+                        created_by_id: EditionCreatedById::new(
+                            row.get(indices.edition_created_by_id),
+                        ),
+                        archived_by_id: row.get(indices.edition_archived_by_id),
+                    },
+                },
+                label_property: row
+                    .get::<_, Option<String>>(indices.label_property)
+                    .map(BaseUrl::new)
+                    .transpose()
+                    .expect("label property returned from Postgres is not valid"),
+                icon: row.get(indices.icon),
+            },
+        }
+    }
+}
+
+impl PostgresRecord for EntityTypeWithMetadata {
+    type CompilationParameters = ();
+
+    fn base_table() -> Table {
+        Table::OntologyTemporalMetadata
+    }
+
+    fn parameters() -> Self::CompilationParameters {}
+
+    fn compile<'c, 'p: 'c>(
+        compiler: &mut SelectCompiler<'c, Self>,
+        _paths: &'p Self::CompilationParameters,
+    ) -> Self::CompilationArtifacts {
+        EntityTypeRowIndices {
+            base_url: compiler.add_distinct_selection_with_ordering(
+                &EntityTypeQueryPath::BaseUrl,
+                Distinctness::Distinct,
+                None,
+            ),
+            version: compiler.add_distinct_selection_with_ordering(
+                &EntityTypeQueryPath::Version,
+                Distinctness::Distinct,
+                None,
+            ),
+            transaction_time: compiler.add_distinct_selection_with_ordering(
+                &EntityTypeQueryPath::TransactionTime,
+                Distinctness::Distinct,
+                None,
+            ),
+            schema: compiler.add_selection_path(&EntityTypeQueryPath::Schema(None)),
+            edition_created_by_id: compiler
+                .add_selection_path(&EntityTypeQueryPath::EditionCreatedById),
+            edition_archived_by_id: compiler
+                .add_selection_path(&EntityTypeQueryPath::EditionArchivedById),
+            additional_metadata: compiler
+                .add_selection_path(&EntityTypeQueryPath::AdditionalMetadata),
+            label_property: compiler.add_selection_path(&EntityTypeQueryPath::LabelProperty),
+            icon: compiler.add_selection_path(&EntityTypeQueryPath::Icon),
+        }
     }
 }

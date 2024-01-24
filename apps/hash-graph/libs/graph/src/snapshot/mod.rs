@@ -54,7 +54,7 @@ use crate::{
     snapshot::{entity::EntitySnapshotRecord, restore::SnapshotRecordBatch},
     store::{
         crud::Read, query::Filter, AsClient, InsertionError, PostgresStore, PostgresStorePool,
-        StorePool,
+        Record, StorePool,
     },
 };
 
@@ -281,7 +281,7 @@ where
     ) -> Result<impl Stream<Item = Result<T, SnapshotDumpError>> + Send + 'pool, SnapshotDumpError>
     where
         <Self as StorePool>::Store<'pool>: Read<T>,
-        T: 'pool,
+        T: Record + 'pool,
     {
         Ok(Read::<T>::read(
             &self
@@ -289,8 +289,6 @@ where
                 .await
                 .change_context(SnapshotDumpError::Query)?,
             &Filter::All(vec![]),
-            None,
-            None,
             None,
             true,
         )

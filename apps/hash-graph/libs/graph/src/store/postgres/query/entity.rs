@@ -1,7 +1,5 @@
 use std::iter::once;
 
-use graph_types::knowledge::entity::Entity;
-
 use crate::{
     knowledge::EntityQueryPath,
     store::postgres::query::{
@@ -9,16 +7,10 @@ use crate::{
             Column, EntityEditions, EntityEmbeddings, EntityHasLeftEntity, EntityHasRightEntity,
             EntityIds, EntityTemporalMetadata, JsonField, ReferenceTable, Relation,
         },
-        PostgresQueryPath, PostgresRecord, Table,
+        PostgresQueryPath,
     },
     subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
 };
-
-impl PostgresRecord for Entity {
-    fn base_table() -> Table {
-        Table::EntityTemporalMetadata
-    }
-}
 
 impl PostgresQueryPath for EntityQueryPath<'_> {
     fn relations(&self) -> Vec<Relation> {

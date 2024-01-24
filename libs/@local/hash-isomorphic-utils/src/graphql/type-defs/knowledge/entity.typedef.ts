@@ -6,6 +6,7 @@ export const entityTypedef = gql`
   scalar Entity
   scalar EntityPropertiesObject
   scalar EntityMetadata
+  scalar EntityRelationAndSubject
   scalar EntityStructuralQuery
   scalar LinkData
   scalar QueryOperationInput
@@ -204,6 +205,10 @@ export const entityTypedef = gql`
       Whether the created entity should be a draft
       """
       draft: Boolean
+      """
+      Set the permission relations on the entity
+      """
+      relationships: [EntityRelationAndSubject!]
     ): Entity!
 
     """
