@@ -1,9 +1,21 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import { DOCXDocumentProperties } from "@local/hash-isomorphic-utils/system-types/docxdocument";
-import { AccountId, Entity } from "@local/hash-subgraph/.";
 import officeParser from "officeparser";
+
+/** @todo: turn this into an activity */
+const fetchFileFromUrl = async (url: string): Promise<Buffer> => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to download file: ${response.statusText}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+
+  return Buffer.from(arrayBuffer);
+};
 
 type TextParsingFunction = (fileBuffer: Buffer) => Promise<string>;
 
@@ -26,19 +38,15 @@ const fileEntityTypeToParsingFunction: Record<
     officeParserTextParsingFunction,
 };
 
-export const parseTextFromFileActivity = async (
+export const parseTextFromFile = async (
   context: { graphApiClient: GraphApi },
-  params: {
-    stringifiedFileBuffer: string;
-    fileEntity: Entity;
-    webMachineActorId: AccountId;
-  },
+  params: ParseTextFromFileParams,
 ) => {
   const { graphApiClient } = context;
 
-  const { stringifiedFileBuffer, fileEntity, webMachineActorId } = params;
+  const { presignedFileDownloadUrl, fileEntity, webMachineActorId } = params;
 
-  const fileBuffer = Buffer.from(stringifiedFileBuffer, "base64");
+  const fileBuffer = await fetchFileFromUrl(presignedFileDownloadUrl);
 
   const textParsingFunction =
     fileEntityTypeToParsingFunction[fileEntity.metadata.entityTypeId];

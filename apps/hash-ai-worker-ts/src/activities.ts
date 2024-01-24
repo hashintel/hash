@@ -3,6 +3,7 @@ import type {
   InferEntitiesCallerParams,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
+import { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import type {
   BaseUrl,
   EntityPropertiesObject,
@@ -13,9 +14,8 @@ import { ApplicationFailure } from "@temporalio/activity";
 import { CreateEmbeddingResponse } from "openai/resources";
 
 import { createEmbeddings } from "./activities/embeddings";
-import { fetchFileActivity } from "./activities/fetch-file";
 import { inferEntities } from "./activities/infer-entities";
-import { parseTextFromFileActivity } from "./activities/parse-text-from-file";
+import { parseTextFromFile } from "./activities/parse-text-from-file";
 
 export { createGraphActivities } from "./activities/graph";
 
@@ -35,16 +35,10 @@ export const createAiActivities = ({
     return status;
   },
 
-  async fetchFileFromUrlActivity(
-    ...params: Parameters<typeof fetchFileActivity>
-  ): ReturnType<typeof fetchFileActivity> {
-    return fetchFileActivity(...params);
-  },
-
   async parseTextFromFileActivity(
-    params: Parameters<typeof parseTextFromFileActivity>[1],
-  ): ReturnType<typeof parseTextFromFileActivity> {
-    return parseTextFromFileActivity({ graphApiClient }, params);
+    params: ParseTextFromFileParams,
+  ): Promise<void> {
+    return parseTextFromFile({ graphApiClient }, params);
   },
 
   async createEmbeddingsActivity(params: {

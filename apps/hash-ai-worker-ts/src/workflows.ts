@@ -151,17 +151,5 @@ export const updateEntityEmbeddings = async (
 export const parseTextFromFile = async (
   params: ParseTextFromFileParams,
 ): Promise<void> => {
-  const { presignedFileDownloadUrl } = params;
-
-  const { stringifiedFileBuffer } = await aiActivities.fetchFileFromUrlActivity(
-    {
-      url: presignedFileDownloadUrl,
-    },
-  );
-
-  await aiActivities.parseTextFromFileActivity({
-    stringifiedFileBuffer,
-    fileEntity: params.fileEntity,
-    webMachineActorId: params.webMachineActorId,
-  });
+  await aiActivities.parseTextFromFileActivity(params);
 };
