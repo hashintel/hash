@@ -14,6 +14,8 @@ mod table;
 
 use std::fmt::{self, Display, Formatter};
 
+use error_stack::Context;
+
 pub use self::{
     compile::SelectCompiler,
     condition::{Condition, EqualityOperator},
@@ -75,20 +77,19 @@ pub trait Transpile: 'static {
     }
 }
 
-pub trait QueryRecordEncode {
+pub trait PostgresSorting<R: Record>: Sorting + QueryRecordDecode<Output = Self::Cursor> {
     type CompilationParameters<'p>: Send
     where
         Self: 'p;
 
-    fn encode(&self) -> Self::CompilationParameters<'_>;
-}
+    type Error: Context + Send + Sync + 'static;
 
-pub trait PostgresSorting<R: Record>:
-    Sorting<Cursor: QueryRecordEncode> + QueryRecordDecode<Output = Self::Cursor>
-{
+    fn encode(&self) -> Result<Option<Self::CompilationParameters<'_>>, Self::Error>;
+
     fn compile<'c, 'p: 'c>(
+        &self,
         compiler: &mut SelectCompiler<'c, R>,
-        parameters: Option<&'c <Self::Cursor as QueryRecordEncode>::CompilationParameters<'p>>,
+        parameters: Option<&'c Self::CompilationParameters<'p>>,
         temporal_axes: &QueryTemporalAxes,
     ) -> Self::CompilationArtifacts;
 }

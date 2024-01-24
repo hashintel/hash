@@ -681,7 +681,7 @@ where
         &self,
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
-        sorting: Option<&S>,
+        sorting: &S,
         limit: Option<usize>,
         include_drafts: bool,
     ) -> Result<

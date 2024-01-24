@@ -912,7 +912,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 self,
                 filter,
                 Some(&temporal_axes),
-                Some(&VertexIdSorting { cursor }),
+                &VertexIdSorting { cursor },
                 limit,
                 include_drafts,
             )

@@ -598,11 +598,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             self,
             filter,
             Some(&temporal_axes),
-            cursor
-                .map(|cursor| VertexIdSorting {
-                    cursor: Some(cursor),
-                })
-                .as_ref(),
+            &VertexIdSorting { cursor },
             limit,
             include_drafts,
         )

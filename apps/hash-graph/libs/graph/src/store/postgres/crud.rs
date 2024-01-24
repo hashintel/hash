@@ -6,9 +6,7 @@ use tokio_postgres::{GenericClient, Row};
 use crate::{
     store::{
         crud::{QueryResult, Read, ReadPaginated, Sorting},
-        postgres::query::{
-            PostgresQueryPath, PostgresRecord, PostgresSorting, QueryRecordEncode, SelectCompiler,
-        },
+        postgres::query::{PostgresQueryPath, PostgresRecord, PostgresSorting, SelectCompiler},
         query::Filter,
         AsClient, PostgresStore, QueryError,
     },
@@ -48,33 +46,32 @@ impl<Cl, R, S> ReadPaginated<R, S> for PostgresStore<Cl>
 where
     Cl: AsClient,
     for<'c> R: PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
-    S: PostgresSorting<R> + Sync,
-    S::Cursor: QueryRecordEncode + 'static,
+    // TODO: figure out why `'s` is needed here, it should do nothing. It's likely because of
+    // `async_trait`
+    for<'s> S: PostgresSorting<R> + Sync + 's,
 {
     type QueryResult = Row;
 
     type ReadPaginatedStream =
         impl Stream<Item = Result<Self::QueryResult, Report<QueryError>>> + Send + Sync;
 
-    #[tracing::instrument(level = "info", skip(self, filter, sorting))]
+    // #[tracing::instrument(level = "info", skip(self, filter, sorting))]
     async fn read_paginated(
         &self,
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
-        sorting: Option<&S>,
+        sorting: &S,
         limit: Option<usize>,
         include_drafts: bool,
     ) -> Result<(Self::ReadPaginatedStream, QueryArtifacts<R, S>), Report<QueryError>> {
-        let cursor_parameters = sorting
-            .and_then(Sorting::cursor)
-            .map(QueryRecordEncode::encode);
+        let cursor_parameters = sorting.encode().change_context(QueryError)?;
 
         let mut compiler = SelectCompiler::new(temporal_axes, include_drafts);
         if let Some(limit) = limit {
             compiler.set_limit(limit);
         }
 
-        let cursor_indices = S::compile(
+        let cursor_indices = sorting.compile(
             &mut compiler,
             #[allow(clippy::unwrap_used)]
             cursor_parameters.as_ref(),

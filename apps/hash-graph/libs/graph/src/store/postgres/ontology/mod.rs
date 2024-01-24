@@ -6,7 +6,7 @@ mod read;
 
 use std::{borrow::Cow, convert::identity};
 
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt};
 use graph_types::{
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyType,
@@ -23,11 +23,11 @@ pub use self::ontology_id::OntologyId;
 use crate::{
     ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
     store::{
-        crud::VertexIdSorting,
+        crud::{Sorting, VertexIdSorting},
         error::DeletionError,
         postgres::{
             crud::QueryRecordDecode,
-            query::{Distinctness, Ordering, PostgresSorting, QueryRecordEncode, SelectCompiler},
+            query::{Distinctness, Ordering, PostgresSorting, SelectCompiler},
         },
         query::Parameter,
         AsClient, PostgresStore, Record,
@@ -66,7 +66,7 @@ impl PostgresStore<Transaction<'_>> {
     pub async fn delete_ontology_ids(
         &self,
         ontology_ids: &[OntologyId],
-    ) -> Result<(), DeletionError> {
+    ) -> Result<(), Report<DeletionError>> {
         self.as_client()
             .query(
                 "
@@ -144,17 +144,6 @@ pub struct VersionedUrlIndices {
 
 macro_rules! impl_ontology_cursor {
     ($ty:ty, $query_path:ty) => {
-        impl QueryRecordEncode for <$ty as Record>::VertexId {
-            type CompilationParameters<'p> = VersionedUrlCursorParameters<'p>;
-
-            fn encode(&self) -> Self::CompilationParameters<'_> {
-                VersionedUrlCursorParameters {
-                    base_url: Parameter::Text(Cow::Borrowed(self.base_id.as_str())),
-                    version: Parameter::OntologyTypeVersion(self.revision_id),
-                }
-            }
-        }
-
         impl QueryRecordDecode for VertexIdSorting<$ty> {
             type CompilationArtifacts = VersionedUrlIndices;
             type Output = <$ty as Record>::VertexId;
@@ -169,7 +158,18 @@ macro_rules! impl_ontology_cursor {
         }
 
         impl PostgresSorting<$ty> for VertexIdSorting<$ty> {
+            type CompilationParameters<'p> = VersionedUrlCursorParameters<'p>;
+            type Error = !;
+
+            fn encode(&self) -> Result<Option<Self::CompilationParameters<'_>>, Self::Error> {
+                Ok(self.cursor().map(|cursor| VersionedUrlCursorParameters {
+                    base_url: Parameter::Text(Cow::Borrowed(cursor.base_id.as_str())),
+                    version: Parameter::OntologyTypeVersion(cursor.revision_id),
+                }))
+            }
+
             fn compile<'c, 'p: 'c>(
+                &self,
                 compiler: &mut SelectCompiler<'c, $ty>,
                 parameters: Option<&'c VersionedUrlCursorParameters<'p>>,
                 _temporal_axes: &QueryTemporalAxes,
