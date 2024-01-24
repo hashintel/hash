@@ -75,10 +75,13 @@ const storageProviderInitialiserLookup: Record<
  * All storage providers usable by the API should be added here.
  * Even if not currently used for upload, they need to be available for downloads.
  */
-const storageProviderLookup: StorageProviderLookup = {};
+export const storageProviderLookup: StorageProviderLookup = {};
 let uploadStorageProvider: StorageType = "LOCAL_FILE_SYSTEM";
 
-const initialiseStorageProvider = (app: Express, provider: StorageType) => {
+export const initialiseStorageProvider = (
+  app: Express,
+  provider: StorageType,
+) => {
   const initialiser = storageProviderInitialiserLookup[provider];
 
   const newProvider = initialiser(app);
@@ -109,7 +112,9 @@ const isFileEntity = (entity: Entity): entity is Entity<FileProperties> =>
   systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl in entity.properties &&
   blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl in entity.properties;
 
-const isStorageType = (storageType: string): storageType is StorageType =>
+export const isStorageType = (
+  storageType: string,
+): storageType is StorageType =>
   storageTypes.includes(storageType as StorageType);
 
 const getFileEntity = async (
