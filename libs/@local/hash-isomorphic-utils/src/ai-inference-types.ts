@@ -52,32 +52,38 @@ export type InferEntitiesCallerParams = {
   userArguments: InferEntitiesUserArguments;
 };
 
-export type ProposedEntitySchemaOrData = {
+type BaseProposedEntitySchemaOrData = {
   entityId: unknown;
   updateEntityId?: unknown;
   /**
    * The AI Model does not reliably return an empty properties object if the entity type has no properties.
    */
   properties?: unknown;
-} & (
-  | Record<string, never>
-  | { sourceEntityId: unknown; targetEntityId: unknown }
-);
+};
 
-export type ProposedEntity = Subtype<
-  ProposedEntitySchemaOrData,
-  {
-    entityId: number;
-    updateEntityId?: string;
-    properties?: Record<BaseUrl, EntityPropertyValue>;
-  } & (
-    | Record<string, never>
-    | {
-        sourceEntityId: number;
-        targetEntityId: number;
-      }
-  )
->;
+type EntitySchemaOrDataLinkFields = {
+  sourceEntityId: unknown;
+  targetEntityId: unknown;
+};
+
+export type ProposedEntitySchemaOrData =
+  | BaseProposedEntitySchemaOrData
+  | (BaseProposedEntitySchemaOrData & EntitySchemaOrDataLinkFields);
+
+type BaseProposedEntity = {
+  entityId: number;
+  updateEntityId?: string;
+  properties?: Record<BaseUrl, EntityPropertyValue>;
+};
+
+type ProposedEntityLinkFields = {
+  sourceEntityId: number;
+  targetEntityId: number;
+};
+
+export type ProposedEntity =
+  | BaseProposedEntity
+  | (BaseProposedEntity & ProposedEntityLinkFields);
 
 export type InferenceTokenUsage = {
   prompt_tokens: number;

@@ -15,7 +15,8 @@ import { PageMenu } from "./page-menu";
 interface DragProps {
   isSorting?: boolean;
   attributes?: DraggableAttributes;
-  listeners?: Record<string, (...args: unknown[]) => unknown>;
+  // eslint-disable-next-line @typescript-eslint/ban-types -- this matches the library type we get listeners from
+  listeners?: Record<string, Function>;
   style?: CSSProperties;
   wrapperRef?(this: void, node: HTMLLIElement): void;
 }

@@ -24,7 +24,7 @@ export type ItemProps = {
   paperStyle?: SxProps;
   attributes?: DraggableAttributes;
   // eslint-disable-next-line @typescript-eslint/ban-types -- this matches the library type we get listeners from
-  listeners?: Function;
+  listeners?: Record<string, Function>;
   style?: CSSProperties;
   dragOverlay?: RefObject<HTMLDivElement>;
   linkedToEntity?: boolean;
