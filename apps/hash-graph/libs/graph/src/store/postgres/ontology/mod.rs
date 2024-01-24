@@ -23,10 +23,11 @@ pub use self::ontology_id::OntologyId;
 use crate::{
     ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
     store::{
-        crud::{QueryRecordDecode, VertexIdSorting},
+        crud::VertexIdSorting,
         error::DeletionError,
-        postgres::query::{
-            Distinctness, Ordering, PostgresSorting, QueryRecordEncode, SelectCompiler,
+        postgres::{
+            crud::QueryRecordDecode,
+            query::{Distinctness, Ordering, PostgresSorting, QueryRecordEncode, SelectCompiler},
         },
         query::Parameter,
         AsClient, PostgresStore, Record,
@@ -154,11 +155,11 @@ macro_rules! impl_ontology_cursor {
             }
         }
 
-        impl QueryRecordDecode<Row> for VertexIdSorting<$ty> {
+        impl QueryRecordDecode for VertexIdSorting<$ty> {
             type CompilationArtifacts = VersionedUrlIndices;
             type Output = <$ty as Record>::VertexId;
 
-            fn decode(row: &Row, indices: Self::CompilationArtifacts) -> Self::Output {
+            fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self::Output {
                 Self::Output {
                     base_id: BaseUrl::new(row.get(indices.base_url))
                         .expect("invalid base URL returned from Postgres"),

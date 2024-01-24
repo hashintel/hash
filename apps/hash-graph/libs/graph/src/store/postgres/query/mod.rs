@@ -14,8 +14,6 @@ mod table;
 
 use std::fmt::{self, Display, Formatter};
 
-use tokio_postgres::Row;
-
 pub use self::{
     compile::SelectCompiler,
     condition::{Condition, EqualityOperator},
@@ -30,8 +28,8 @@ pub use self::{
 };
 use crate::{
     store::{
-        crud::{QueryRecordDecode, Sorting},
-        postgres::query::table::Relation,
+        crud::Sorting,
+        postgres::{crud::QueryRecordDecode, query::table::Relation},
         Record,
     },
     subgraph::temporal_axes::QueryTemporalAxes,
@@ -77,7 +75,7 @@ pub trait QueryRecordEncode {
 }
 
 pub trait PostgresSorting<R: Record>:
-    Sorting<Cursor: QueryRecordEncode> + QueryRecordDecode<Row, Output = Self::Cursor>
+    Sorting<Cursor: QueryRecordEncode> + QueryRecordDecode<Output = Self::Cursor>
 {
     fn compile<'c, 'p: 'c>(
         compiler: &mut SelectCompiler<'c, R>,
@@ -86,7 +84,7 @@ pub trait PostgresSorting<R: Record>:
     ) -> Self::CompilationArtifacts;
 }
 
-pub trait QueryRecord: Record + QueryRecordDecode<Row, Output = Self> {
+pub trait QueryRecord: Record + QueryRecordDecode<Output = Self> {
     type CompilationParameters: Send + 'static;
 
     fn parameters() -> Self::CompilationParameters;

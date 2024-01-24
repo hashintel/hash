@@ -21,10 +21,13 @@ use crate::{
     knowledge::EntityQueryPath,
     ontology::EntityTypeQueryPath,
     store::{
-        crud::{QueryRecordDecode, VertexIdSorting},
-        postgres::query::{
-            Distinctness, Expression, Function, Ordering, PostgresSorting, QueryRecord,
-            QueryRecordEncode, SelectCompiler,
+        crud::VertexIdSorting,
+        postgres::{
+            crud::QueryRecordDecode,
+            query::{
+                Distinctness, Expression, Function, Ordering, PostgresSorting, QueryRecord,
+                QueryRecordEncode, SelectCompiler,
+            },
         },
         query::Parameter,
     },
@@ -60,11 +63,11 @@ impl QueryRecordEncode for EntityVertexId {
     }
 }
 
-impl QueryRecordDecode<Row> for VertexIdSorting<Entity> {
+impl QueryRecordDecode for VertexIdSorting<Entity> {
     type CompilationArtifacts = EntityVertexIdIndices;
     type Output = EntityVertexId;
 
-    fn decode(row: &Row, indices: Self::CompilationArtifacts) -> Self::Output {
+    fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self::Output {
         let ClosedTemporalBound::Inclusive(revision_id) = *row
             .get::<_, LeftClosedTemporalInterval<VariableAxis>>(indices.revision_id)
             .start();
@@ -199,11 +202,11 @@ impl Default for EntityRecordPaths<'_> {
     }
 }
 
-impl QueryRecordDecode<Row> for Entity {
+impl QueryRecordDecode for Entity {
     type CompilationArtifacts = EntityRecordRowIndices;
     type Output = Self;
 
-    fn decode(row: &Row, indices: Self::CompilationArtifacts) -> Self {
+    fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self {
         let entity_type_id = VersionedUrl::from_str(row.get(indices.type_id))
             .expect("Malformed entity type ID returned from Postgres");
 

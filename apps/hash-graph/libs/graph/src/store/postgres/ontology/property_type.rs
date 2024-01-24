@@ -32,9 +32,10 @@ use type_system::{
 use crate::{
     ontology::PropertyTypeQueryPath,
     store::{
-        crud::{QueryRecordDecode, QueryResult, ReadPaginated, VertexIdSorting},
+        crud::{QueryResult, ReadPaginated, VertexIdSorting},
         error::DeletionError,
         postgres::{
+            crud::QueryRecordDecode,
             ontology::{
                 read::OntologyTypeTraversalData, OntologyId,
                 PostgresOntologyTypeClassificationMetadata,
@@ -419,7 +420,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         //   see https://linear.app/hash/issue/H-297
         let mut visited_ontology_ids = HashSet::new();
 
-        let property_types = ReadPaginated::<PropertyTypeWithMetadata>::read_paginated_vec(
+        let (data, artifacts) = ReadPaginated::<PropertyTypeWithMetadata>::read_paginated_vec(
             self,
             filter,
             Some(&temporal_axes),
@@ -431,18 +432,19 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             limit,
             include_drafts,
         )
-        .await?
-        .into_iter()
-        .filter_map(|property_type_query| {
-            let property_type = property_type_query.decode_record();
-            let id = PropertyTypeId::from_url(property_type.schema.id());
-            let vertex_id = property_type.vertex_id(time_axis);
-            // The records are already sorted by time, so we can just take the first one
-            visited_ontology_ids
-                .insert(id)
-                .then_some((id, (vertex_id, property_type)))
-        })
-        .collect::<Vec<_>>();
+        .await?;
+        let property_types = data
+            .into_iter()
+            .filter_map(|row| {
+                let property_type = row.decode_record(&artifacts);
+                let id = PropertyTypeId::from_url(property_type.schema.id());
+                let vertex_id = property_type.vertex_id(time_axis);
+                // The records are already sorted by time, so we can just take the first one
+                visited_ontology_ids
+                    .insert(id)
+                    .then_some((id, (vertex_id, property_type)))
+            })
+            .collect::<Vec<_>>();
 
         let filtered_ids = property_types
             .iter()
@@ -646,11 +648,11 @@ pub struct PropertyTypeRowIndices {
     pub additional_metadata: usize,
 }
 
-impl QueryRecordDecode<Row> for PropertyTypeWithMetadata {
+impl QueryRecordDecode for PropertyTypeWithMetadata {
     type CompilationArtifacts = PropertyTypeRowIndices;
     type Output = Self;
 
-    fn decode(row: &Row, indices: Self::CompilationArtifacts) -> Self {
+    fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self {
         Self {
             schema: row.get::<_, Json<_>>(indices.schema).0,
             metadata: PropertyTypeMetadata {

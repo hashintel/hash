@@ -41,7 +41,7 @@ use validation::ValidationProfile;
 use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
-        crud::{Read, ReadPaginated, Sorting},
+        crud::{QueryResult, Read, ReadPaginated, Sorting},
         knowledge::{EntityValidationType, ValidateEntityError},
         query::{Filter, OntologyQueryPath},
         AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
@@ -675,7 +675,6 @@ where
     S: Sorting + Sync,
 {
     type QueryResult = I::QueryResult;
-    type QueryResultSet = I::QueryResultSet;
     type ReadPaginatedStream = I::ReadPaginatedStream;
 
     async fn read_paginated(
@@ -685,7 +684,13 @@ where
         sorting: Option<&S>,
         limit: Option<usize>,
         include_drafts: bool,
-    ) -> Result<Self::ReadPaginatedStream, QueryError> {
+    ) -> Result<
+        (
+            Self::ReadPaginatedStream,
+            <Self::QueryResult as QueryResult<R, S>>::Artifacts,
+        ),
+        QueryError,
+    > {
         self.store
             .read_paginated(filter, temporal_axes, sorting, limit, include_drafts)
             .await

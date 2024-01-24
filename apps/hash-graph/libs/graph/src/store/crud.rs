@@ -15,19 +15,11 @@ use crate::{
     subgraph::temporal_axes::QueryTemporalAxes,
 };
 
-pub trait QueryRecordDecode<Q> {
-    type CompilationArtifacts: Copy + Send + Sync + 'static;
-    type Output;
+pub trait QueryResult<R, S: Sorting> {
+    type Artifacts: Send;
 
-    fn decode(query_result: &Q, artifacts: Self::CompilationArtifacts) -> Self::Output;
-}
-
-pub trait QueryResult {
-    type Record;
-    type Sorting: Sorting;
-
-    fn decode_record(&self) -> Self::Record;
-    fn decode_cursor(&self) -> <Self::Sorting as Sorting>::Cursor;
+    fn decode_record(&self, artifacts: &Self::Artifacts) -> R;
+    fn decode_cursor(&self, artifacts: &Self::Artifacts) -> <S as Sorting>::Cursor;
 }
 
 pub trait Sorting {
@@ -197,46 +189,12 @@ impl<'f, R: Record, S: Sorting> ReadParameter<'f, R, S> {
     }
 }
 
-impl<'f, R: Record, S: Sorting + Sync> ReadParameter<'f, R, S> {
-    /// # Errors
-    ///
-    /// Returns an error if reading the records fails.
-    pub async fn read_paginated(
-        &self,
-        store: &impl ReadPaginated<R, S>,
-    ) -> Result<
-        impl Stream<Item = Result<impl QueryResult<Record = R, Sorting = S>, QueryError>>,
-        QueryError,
-    > {
-        store
-            .read_paginated(
-                self.filters.unwrap_or(&Filter::All(Vec::new())),
-                self.temporal_axes,
-                self.sorting.as_ref(),
-                self.limit,
-                self.include_drafts,
-            )
-            .await
-    }
-
-    /// # Errors
-    ///
-    /// Returns an error if reading the records fails.
-    pub async fn read_paginated_vec(
-        &self,
-        store: &impl ReadPaginated<R, S>,
-    ) -> Result<Vec<impl QueryResult<Record = R, Sorting = S>>, QueryError> {
-        self.read_paginated(store).await?.try_collect().await
-    }
-}
-
 /// Read access to a [`Store`].
 ///
 /// [`Store`]: crate::store::Store
 #[async_trait]
 pub trait ReadPaginated<R: Record, S: Sorting + Sync = VertexIdSorting<R>>: Read<R> {
-    type QueryResultSet;
-    type QueryResult: QueryResult<Record = R, Sorting = S> + Send;
+    type QueryResult: QueryResult<R, S> + Send;
 
     type ReadPaginatedStream: Stream<Item = Result<Self::QueryResult, QueryError>> + Send + Sync;
 
@@ -247,7 +205,13 @@ pub trait ReadPaginated<R: Record, S: Sorting + Sync = VertexIdSorting<R>>: Read
         sorting: Option<&S>,
         limit: Option<usize>,
         include_drafts: bool,
-    ) -> Result<Self::ReadPaginatedStream, QueryError>;
+    ) -> Result<
+        (
+            Self::ReadPaginatedStream,
+            <Self::QueryResult as QueryResult<R, S>>::Artifacts,
+        ),
+        QueryError,
+    >;
 
     async fn read_paginated_vec(
         &self,
@@ -256,11 +220,17 @@ pub trait ReadPaginated<R: Record, S: Sorting + Sync = VertexIdSorting<R>>: Read
         sorting: Option<&S>,
         limit: Option<usize>,
         include_drafts: bool,
-    ) -> Result<Vec<Self::QueryResult>, QueryError> {
-        self.read_paginated(filter, temporal_axes, sorting, limit, include_drafts)
-            .await?
-            .try_collect()
-            .await
+    ) -> Result<
+        (
+            Vec<Self::QueryResult>,
+            <Self::QueryResult as QueryResult<R, S>>::Artifacts,
+        ),
+        QueryError,
+    > {
+        let (stream, artifacts) = self
+            .read_paginated(filter, temporal_axes, sorting, limit, include_drafts)
+            .await?;
+        Ok((stream.try_collect().await?, artifacts))
     }
 }
 

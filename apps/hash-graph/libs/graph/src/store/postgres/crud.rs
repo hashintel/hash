@@ -5,7 +5,7 @@ use tokio_postgres::{GenericClient, Row};
 
 use crate::{
     store::{
-        crud::{QueryRecordDecode, QueryResult, Read, ReadPaginated, Sorting},
+        crud::{QueryResult, Read, ReadPaginated, Sorting},
         postgres::query::{
             PostgresQueryPath, PostgresRecord, PostgresSorting, QueryRecord, QueryRecordEncode,
             SelectCompiler,
@@ -16,30 +16,31 @@ use crate::{
     subgraph::temporal_axes::QueryTemporalAxes,
 };
 
-pub struct PostgresQueryResult<R, S>
-where
-    R: QueryRecordDecode<Row>,
-    S: QueryRecordDecode<Row>,
-{
-    pub query_result: Row,
-    pub record_artifacts: R::CompilationArtifacts,
-    pub cursor_artifacts: S::CompilationArtifacts,
+pub struct QueryArtifacts<R: QueryRecordDecode, S: QueryRecordDecode> {
+    record_indices: R::CompilationArtifacts,
+    cursor_indices: S::CompilationArtifacts,
 }
 
-impl<R, S> QueryResult for PostgresQueryResult<R, S>
-where
-    R: QueryRecordDecode<Row, Output = R>,
-    S: Sorting + QueryRecordDecode<Row, Output = S::Cursor>,
-{
-    type Record = R;
-    type Sorting = S;
+pub trait QueryRecordDecode {
+    type CompilationArtifacts: Send + Sync + 'static;
+    type Output;
 
-    fn decode_record(&self) -> R {
-        R::decode(&self.query_result, self.record_artifacts)
+    fn decode(row: &Row, artifacts: &Self::CompilationArtifacts) -> Self::Output;
+}
+
+impl<R, S> QueryResult<R, S> for Row
+where
+    R: QueryRecordDecode<Output = R>,
+    S: Sorting + QueryRecordDecode<Output = S::Cursor>,
+{
+    type Artifacts = QueryArtifacts<R, S>;
+
+    fn decode_record(&self, indices: &Self::Artifacts) -> R {
+        R::decode(self, &indices.record_indices)
     }
 
-    fn decode_cursor(&self) -> S::Cursor {
-        S::decode(&self.query_result, self.cursor_artifacts)
+    fn decode_cursor(&self, indices: &Self::Artifacts) -> S::Cursor {
+        S::decode(self, &indices.cursor_indices)
     }
 }
 
@@ -51,8 +52,7 @@ where
     S: PostgresSorting<R> + Send + Sync + 'static,
     S::Cursor: QueryRecordEncode,
 {
-    type QueryResult = PostgresQueryResult<R, S>;
-    type QueryResultSet = Row;
+    type QueryResult = Row;
 
     type ReadPaginatedStream =
         impl Stream<Item = Result<Self::QueryResult, Report<QueryError>>> + Send + Sync;
@@ -65,7 +65,7 @@ where
         sorting: Option<&S>,
         limit: Option<usize>,
         include_drafts: bool,
-    ) -> Result<Self::ReadPaginatedStream, Report<QueryError>> {
+    ) -> Result<(Self::ReadPaginatedStream, QueryArtifacts<R, S>), Report<QueryError>> {
         let cursor_parameters = sorting
             .and_then(Sorting::cursor)
             .map(QueryRecordEncode::encode);
@@ -94,13 +94,13 @@ where
             .await
             .change_context(QueryError)?;
 
-        Ok(stream
-            .map(|row| row.change_context(QueryError))
-            .map_ok(move |row| PostgresQueryResult {
-                query_result: row,
-                record_artifacts: record_indices,
-                cursor_artifacts: cursor_indices,
-            }))
+        Ok((
+            stream.map(|row| row.change_context(QueryError)),
+            QueryArtifacts {
+                record_indices,
+                cursor_indices,
+            },
+        ))
     }
 }
 
@@ -132,7 +132,7 @@ where
             .await
             .change_context(QueryError)?
             .map(|row| row.change_context(QueryError))
-            .map_ok(move |row| R::decode(&row, record_indices)))
+            .map_ok(move |row| R::decode(&row, &record_indices)))
     }
 
     #[tracing::instrument(level = "info", skip(self, filter))]
@@ -156,6 +156,6 @@ where
             .await
             .change_context(QueryError)?;
 
-        Ok(R::decode(&row, record_indices))
+        Ok(R::decode(&row, &record_indices))
     }
 }

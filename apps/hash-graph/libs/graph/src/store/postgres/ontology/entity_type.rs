@@ -34,9 +34,10 @@ use uuid::Uuid;
 use crate::{
     ontology::EntityTypeQueryPath,
     store::{
-        crud::{QueryRecordDecode, QueryResult, ReadPaginated, VertexIdSorting},
+        crud::{QueryResult, ReadPaginated, VertexIdSorting},
         error::DeletionError,
         postgres::{
+            crud::QueryRecordDecode,
             ontology::{
                 read::OntologyTypeTraversalData, OntologyId,
                 PostgresOntologyTypeClassificationMetadata,
@@ -593,7 +594,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         //   see https://linear.app/hash/issue/H-297
         let mut visited_ontology_ids = HashSet::new();
 
-        let entity_types = ReadPaginated::<EntityTypeWithMetadata>::read_paginated_vec(
+        let (data, artifacts) = ReadPaginated::<EntityTypeWithMetadata>::read_paginated_vec(
             self,
             filter,
             Some(&temporal_axes),
@@ -605,18 +606,19 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             limit,
             include_drafts,
         )
-        .await?
-        .into_iter()
-        .filter_map(|entity_type_query| {
-            let entity_type = entity_type_query.decode_record();
-            let id = EntityTypeId::from_url(entity_type.schema.id());
-            let vertex_id = entity_type.vertex_id(time_axis);
-            // The records are already sorted by time, so we can just take the first one
-            visited_ontology_ids
-                .insert(id)
-                .then_some((id, (vertex_id, entity_type)))
-        })
-        .collect::<Vec<_>>();
+        .await?;
+        let entity_types = data
+            .into_iter()
+            .filter_map(|row| {
+                let entity_type = row.decode_record(&artifacts);
+                let id = EntityTypeId::from_url(entity_type.schema.id());
+                let vertex_id = entity_type.vertex_id(time_axis);
+                // The records are already sorted by time, so we can just take the first one
+                visited_ontology_ids
+                    .insert(id)
+                    .then_some((id, (vertex_id, entity_type)))
+            })
+            .collect::<Vec<_>>();
 
         let filtered_ids = entity_types
             .iter()
@@ -859,11 +861,11 @@ pub struct EntityTypeRowIndices {
     pub icon: usize,
 }
 
-impl QueryRecordDecode<Row> for EntityTypeWithMetadata {
+impl QueryRecordDecode for EntityTypeWithMetadata {
     type CompilationArtifacts = EntityTypeRowIndices;
     type Output = Self;
 
-    fn decode(row: &Row, indices: Self::CompilationArtifacts) -> Self {
+    fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self {
         Self {
             schema: row.get::<_, Json<_>>(indices.schema).0,
             metadata: EntityTypeMetadata {

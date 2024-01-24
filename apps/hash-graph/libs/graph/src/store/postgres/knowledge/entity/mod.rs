@@ -908,7 +908,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let (latest_zookie, last) = loop {
             // We query one more than requested to determine if there are more entities to return.
-            let entities = ReadPaginated::<Entity>::read_paginated(
+            let (stream, artifacts) = ReadPaginated::<Entity>::read_paginated(
                 self,
                 filter,
                 Some(&temporal_axes),
@@ -916,13 +916,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 limit,
                 include_drafts,
             )
-            .await?
-            .map_ok(|entity_query| (entity_query.decode_record(), entity_query))
-            .try_collect::<Vec<_>>()
             .await?;
+            let entities = stream
+                .map_ok(|row| (row.decode_record(&artifacts), row))
+                .try_collect::<Vec<_>>()
+                .await?;
             cursor = entities
                 .last()
-                .map(|(_, entity_query)| entity_query.decode_cursor());
+                .map(|(_, row)| row.decode_cursor(&artifacts));
             let num_returned_entities = entities.len();
 
             // TODO: The subgraph structure differs from the API interface. At the API the vertices
@@ -970,7 +971,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         zookie,
                         root_entities
                             .last()
-                            .map(|(_, entity_query)| entity_query.decode_cursor()),
+                            .map(|(_, row)| row.decode_cursor(&artifacts)),
                     );
                 }
             } else {
