@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
+import pluralize from "pluralize";
 import { FunctionComponent, useCallback, useMemo } from "react";
 
 import { useAccountPages } from "../components/hooks/use-account-pages";
@@ -210,7 +211,7 @@ const EntitiesPage: NextPageWithLayout = () => {
   const pageTitle = entityType
     ? entityTypeId
       ? `${entityType.schema.title} v${extractVersion(entityTypeId)}`
-      : `${entityType.schema.title}s`
+      : pluralize(entityType.schema.title)
     : "Entities";
 
   const { entities, loading } = entityTypeEntitiesValue;
