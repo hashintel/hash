@@ -10,6 +10,13 @@ import {
 import { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
+/**
+ * We want to limit the size of files that can be uploaded to account
+ * for potential issues when they are loaded into memory in the temporal
+ * worker.
+ *
+ * @todo: figure out how to handle large files in temporal
+ */
 const maximumFileSizeInMegaBytes = 100;
 
 const maximumFileSizeInBytes = maximumFileSizeInMegaBytes * 1024 * 1024;
