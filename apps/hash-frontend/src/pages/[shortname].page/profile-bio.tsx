@@ -41,7 +41,8 @@ export const ProfileBio: FunctionComponent<{
     GetEntityQueryVariables
   >(getEntityQuery, {
     variables: {
-      entityId: profile.hasBio!.profileBioEntity.metadata.recordId.entityId,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain -- potential crash otherwise
+      entityId: profile.hasBio?.profileBioEntity.metadata.recordId.entityId!,
       ...blockCollectionContentsGetEntityVariables,
     },
     skip: !profile.hasBio,
@@ -212,6 +213,7 @@ export const ProfileBio: FunctionComponent<{
               marginRight: -2,
               marginTop: -1,
             }}
+            aria-label={isEditing ? "Save Bio" : "Edit Bio"}
           >
             {isEditing ? <CheckRegularIcon /> : <PenRegularIcon />}
           </IconButton>
