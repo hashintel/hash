@@ -5,7 +5,6 @@ import { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text
 import { DOCXDocumentProperties } from "@local/hash-isomorphic-utils/system-types/docxdocument";
 import officeParser from "officeparser";
 
-/** @todo: turn this into an activity */
 const fetchFileFromUrl = async (url: string): Promise<Buffer> => {
   const response = await fetch(url);
   if (!response.ok) {
