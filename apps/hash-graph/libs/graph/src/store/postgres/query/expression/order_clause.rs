@@ -18,6 +18,10 @@ impl OrderByExpression {
         self.columns.push((column, ordering));
     }
 
+    pub fn insert(&mut self, index: usize, column: AliasedColumn, ordering: Ordering) {
+        self.columns.insert(index, (column, ordering));
+    }
+
     pub fn is_empty(&self) -> bool {
         self.columns.is_empty()
     }

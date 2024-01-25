@@ -471,9 +471,11 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                         });
                     }
 
-                    self.statement
-                        .order_by_expression
-                        .push(distance_column, Ordering::Ascending);
+                    self.statement.order_by_expression.insert(
+                        0,
+                        distance_column,
+                        Ordering::Ascending,
+                    );
                     self.statement
                         .selects
                         .push(SelectExpression::from_column(distance_column, None));
