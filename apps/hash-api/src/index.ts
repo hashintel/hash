@@ -154,6 +154,23 @@ const main = async () => {
   );
   app.use(cors(CORS_CONFIG));
 
+  // Add logging of requests
+  app.use((req, res, next) => {
+    const requestId = nanoid();
+    res.set("x-hash-request-id", requestId);
+    logger.info({
+      requestId,
+      method: req.method,
+      ip: req.ip,
+      path: req.path,
+      message: "request",
+      userAgent: req.headers["user-agent"],
+      graphqlClient: req.headers["apollographql-client-name"],
+    });
+
+    next();
+  });
+
   const redisHost = getRequiredEnv("HASH_REDIS_HOST");
   const redisPort = parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10);
 
