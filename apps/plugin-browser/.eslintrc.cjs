@@ -13,6 +13,10 @@ module.exports = {
         ],
       },
     ],
+    /**
+     * Importing the StatusCode enum interferes with Playwright test setup for some reason.
+     */
+    "@typescript-eslint/no-unsafe-enum-comparison": "off",
   },
   ignorePatterns: require("@local/eslint-config/generate-ignore-patterns.cjs")(
     __dirname,
