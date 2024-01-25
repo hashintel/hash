@@ -11,7 +11,7 @@ import { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 
 export const setParentPageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationSetParentPageArgs
 > = async (

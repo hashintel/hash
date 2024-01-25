@@ -26,21 +26,22 @@ import { genId } from "../../util";
 type LinearWebhookPayload = {
   action: "create" | "update" | "delete";
   createdAt: string; // ISO timestamp when the action took place.
-  data?: any; // The serialized value of the subject entity.
+  data?: { id: string }; // The serialized value of the subject entity.
   organizationId: string;
   type: "Cycle" | "Issue" | "Project" | "Reaction" | "User";
   url: string; // The URL of the subject entity.
-  updatedFrom?: any; // an object containing the previous values of updated properties;
+  updatedFrom?: unknown; // an object containing the previous values of updated properties;
   webhookId: string;
   webhookTimestamp: number; // UNIX timestamp of webhook delivery in milliseconds.
 };
 
-// @todo upgrade to Express 5 which handles async controllers automatically
-// eslint-disable-next-line @typescript-eslint/no-misused-promises
-export const linearWebhook: RequestHandler<{}, string, string> = async (
-  req,
-  res,
-) => {
+export const linearWebhook: RequestHandler<
+  Record<string, never>,
+  string,
+  string
+  // @todo upgrade to Express 5 which handles async controllers automatically
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
+> = async (req, res) => {
   const secret = process.env.LINEAR_WEBHOOK_SECRET;
 
   if (!secret) {
@@ -78,7 +79,7 @@ export const linearWebhook: RequestHandler<{}, string, string> = async (
     return;
   }
 
-  const linearId = payload.data?.id;
+  const linearId = payload.data.id;
 
   if (!linearId) {
     res

@@ -172,12 +172,12 @@ export function linkInputRule() {
   return new InputRule(
     new RegExp(`${urlRegexSafe({ returnString: true })}\\s$`),
     (state, match, start, end) => {
-      const attrs = { href: match[0]!.slice(0, -1) };
+      const attrs = { href: match[0].slice(0, -1) };
       const tr = state.tr;
       let newEnd = end;
 
       if (match[1]) {
-        const textStart = start + match[0]!.indexOf(match[1]);
+        const textStart = start + match[0].indexOf(match[1]);
         const textEnd = textStart + match[1].length;
         if (textEnd < newEnd) {
           tr.delete(textEnd, newEnd);

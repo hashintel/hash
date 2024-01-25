@@ -83,7 +83,7 @@ export const Button: FunctionComponent<ButtonProps & { openInNew?: boolean }> =
       ref,
     ) => {
       const linkProps = useMemo(() => {
-        if (href && (openInNew || isHrefExternal(href))) {
+        if (href && (openInNew ?? isHrefExternal(href))) {
           return {
             rel: "noopener",
             target: "_blank",

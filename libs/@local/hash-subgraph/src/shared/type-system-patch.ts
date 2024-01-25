@@ -72,6 +72,8 @@ export const versionedUrlFromComponents = (
   }
 };
 
-export type LinkEntity<T extends EntityPropertiesObject = {}> = Entity<T> & {
+export type LinkEntity<
+  T extends EntityPropertiesObject = EntityPropertiesObject,
+> = Entity<T> & {
   linkData: NonNullable<Entity["linkData"]>;
 };

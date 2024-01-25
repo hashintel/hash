@@ -38,17 +38,17 @@ export const createTestImpureGraphContext = (): ImpureGraphContext<true> => {
   return {
     graphApi,
     uploadProvider: {
-      getFileEntityStorageKey: (_params: any) => {
+      getFileEntityStorageKey: (_params) => {
         throw new Error(
           "File fetching not implemented in tests. Override with mock to test.",
         );
       },
-      presignDownload: (_params: any) => {
+      presignDownload: (_params) => {
         throw new Error(
           "File presign download not implemented in tests. Override with mock to test.",
         );
       },
-      presignUpload: (_params: any) => {
+      presignUpload: (_params) => {
         throw new Error(
           "File presign upload not implemented in tests. Override with mock to test.",
         );

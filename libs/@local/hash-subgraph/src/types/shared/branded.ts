@@ -71,13 +71,13 @@ export const splitEntityId = (entityId: EntityId): [OwnedById, EntityUuid] => {
 };
 
 export const extractOwnedByIdFromEntityId = (entityId: EntityId): OwnedById => {
-  return splitEntityId(entityId)[0]!;
+  return splitEntityId(entityId)[0];
 };
 
 export const extractEntityUuidFromEntityId = (
   entityId: EntityId,
 ): EntityUuid => {
-  return splitEntityId(entityId)[1]!;
+  return splitEntityId(entityId)[1];
 };
 
 /** An account ID of creating actor */

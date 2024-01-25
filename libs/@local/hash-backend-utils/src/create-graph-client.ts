@@ -22,7 +22,7 @@ const agentConfig = {
 const httpAgent = new HttpAgent(agentConfig);
 const httpsAgent = new HttpsAgent(agentConfig);
 
-type GraphStatus = Status<{}>;
+type GraphStatus = Status<Record<string, unknown>>;
 
 const isErrorAxiosError = (error: Error): error is AxiosError =>
   (error as AxiosError).isAxiosError;

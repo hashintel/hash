@@ -50,6 +50,7 @@ export const useEditorOntologyFunctions = (
     EditorOntologyFunctions["createEntityType"]
   >(
     (args) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return createEntityType(args as any).then(async (res) => {
         await refetchEntityTypes();
         return res;
@@ -62,6 +63,7 @@ export const useEditorOntologyFunctions = (
     EditorOntologyFunctions["updateEntityType"]
   >(
     (args) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return updateEntityType(args as any).then(async (res) => {
         await refetchEntityTypes();
         return res;

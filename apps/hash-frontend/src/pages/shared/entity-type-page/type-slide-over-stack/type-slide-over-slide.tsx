@@ -210,7 +210,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
           justifyContent="space-between"
         >
           <Box display="flex" justifyContent="space-between" gap={1}>
-            {onBack || onForward ? (
+            {onBack ?? onForward ? (
               <Tooltip title="Back" placement="bottom">
                 <IconButton disabled={!onBack} onClick={handleBackClick}>
                   <ArrowLeftIcon />

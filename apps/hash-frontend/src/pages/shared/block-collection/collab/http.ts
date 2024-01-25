@@ -24,7 +24,7 @@ export const req = (
     headers?: Record<string, string>;
 
     // @todo type body
-    body?: any;
+    body?: string;
   },
   onAbort?: VoidFunction,
 ): AbortingPromise<string> => {
@@ -70,7 +70,7 @@ export const req = (
           request.setRequestHeader(header, conf.headers[header]!);
         }
       }
-      request.send(conf.body || null);
+      request.send(conf.body ?? null);
     }),
     {
       abort() {
@@ -89,7 +89,7 @@ export const GET = (url: string) => req({ url, method: "GET" });
 // @todo type body
 export const POST = (
   url: string,
-  body: any,
+  body: string,
   type: string,
   onAbort?: VoidFunction,
 ) =>

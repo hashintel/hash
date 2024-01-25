@@ -1,1 +1,2 @@
-/// <reference path="../../libs/@hashintel/design-system/theme-override.d.ts" />
+// eslint-disable-next-line no-restricted-imports
+import "@hashintel/design-system/theme-override";

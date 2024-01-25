@@ -72,7 +72,7 @@ import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-an
 
 export const createEntityResolver: ResolverFn<
   Promise<Entity>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationCreateEntityArgs
 > = async (
@@ -141,9 +141,8 @@ export const createEntityResolver: ResolverFn<
   return mapEntityToGQL(entity);
 };
 
-export const queryEntitiesResolver: Extract<
-  QueryResolvers<GraphQLContext>["queryEntities"],
-  Function
+export const queryEntitiesResolver: NonNullable<
+  QueryResolvers<GraphQLContext>["queryEntities"]
 > = async (
   _,
   {
@@ -205,7 +204,7 @@ export const queryEntitiesResolver: Extract<
 
 export const structuralQueryEntitiesResolver: ResolverFn<
   Query["structuralQueryEntities"],
-  {},
+  Record<string, never>,
   GraphQLContext,
   QueryStructuralQueryEntitiesArgs
 > = async (_, { query }, context, info) => {
@@ -222,7 +221,7 @@ export const structuralQueryEntitiesResolver: ResolverFn<
 
 export const getEntityResolver: ResolverFn<
   Query["getEntity"],
-  {},
+  Record<string, never>,
   GraphQLContext,
   QueryGetEntityArgs
 > = async (
@@ -302,7 +301,7 @@ export const getEntityResolver: ResolverFn<
 
 export const updateEntityResolver: ResolverFn<
   Promise<Entity>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationUpdateEntityArgs
 > = async (
@@ -367,7 +366,7 @@ export const updateEntityResolver: ResolverFn<
 
 export const updateEntitiesResolver: ResolverFn<
   Promise<Entity[]>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationUpdateEntitiesArgs
 > = async (_, { entityUpdates }, context, info) => {
@@ -386,7 +385,7 @@ export const updateEntitiesResolver: ResolverFn<
 
 export const archiveEntityResolver: ResolverFn<
   Promise<boolean>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationArchiveEntityArgs
 > = async (_, { entityId }, { dataSources: context, authentication }) => {
@@ -402,7 +401,7 @@ export const archiveEntityResolver: ResolverFn<
 
 export const archiveEntitiesResolver: ResolverFn<
   Promise<boolean>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationArchiveEntitiesArgs
 > = async (_, { entityIds }, { dataSources: context, authentication }) => {
@@ -444,7 +443,7 @@ export const archiveEntitiesResolver: ResolverFn<
 
 export const addEntityOwnerResolver: ResolverFn<
   Promise<boolean>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationAddEntityOwnerArgs
 > = async (_, { entityId, owner }, { dataSources, authentication }) => {
@@ -460,7 +459,7 @@ export const addEntityOwnerResolver: ResolverFn<
 
 export const removeEntityOwnerResolver: ResolverFn<
   Promise<boolean>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationRemoveEntityOwnerArgs
 > = async (_, { entityId, owner }, { dataSources, authentication }) => {
@@ -476,7 +475,7 @@ export const removeEntityOwnerResolver: ResolverFn<
 
 export const addEntityEditorResolver: ResolverFn<
   Promise<boolean>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationAddEntityEditorArgs
 > = async (_, { entityId, editor }, { dataSources, authentication }) => {
@@ -489,7 +488,7 @@ export const addEntityEditorResolver: ResolverFn<
 
 export const removeEntityEditorResolver: ResolverFn<
   Promise<boolean>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationRemoveEntityEditorArgs
 > = async (_, { entityId, editor }, { dataSources, authentication }) => {
@@ -524,7 +523,7 @@ const parseGqlAuthorizationViewerInput = ({
 
 export const addEntityViewerResolver: ResolverFn<
   Promise<boolean>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationAddEntityViewerArgs
 > = async (_, { entityId, viewer }, { dataSources, authentication }) => {
@@ -549,7 +548,7 @@ export const addEntityViewerResolver: ResolverFn<
 
 export const removeEntityViewerResolver: ResolverFn<
   Promise<boolean>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationRemoveEntityViewerArgs
 > = async (_, { entityId, viewer }, { dataSources, authentication }) => {
@@ -574,7 +573,7 @@ export const removeEntityViewerResolver: ResolverFn<
 
 export const isEntityPublicResolver: ResolverFn<
   Promise<boolean>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   QueryIsEntityPublicArgs
 > = async (_, { entityId }, { dataSources }) =>
@@ -586,7 +585,7 @@ export const isEntityPublicResolver: ResolverFn<
 
 export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
   EntityAuthorizationRelationship[],
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   QueryIsEntityPublicArgs
 > = async (_, { entityId }, { dataSources, authentication }) => {

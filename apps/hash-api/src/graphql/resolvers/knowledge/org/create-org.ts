@@ -9,7 +9,7 @@ import { dataSourcesToImpureGraphContext } from "../../util";
 
 export const createOrgResolver: ResolverFn<
   Promise<Subgraph>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationCreateOrgArgs
 > = async (

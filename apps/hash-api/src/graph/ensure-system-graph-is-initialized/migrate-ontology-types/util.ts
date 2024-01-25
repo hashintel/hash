@@ -1132,7 +1132,7 @@ export const anyUserInstantiator: EntityTypeInstantiatorSubject = {
 };
 
 export const getExistingUsersAndOrgs: ImpureGraphFunction<
-  {},
+  Record<string, never>,
   Promise<{ users: Entity[]; orgs: Entity[] }>
 > = async (context, authentication) => {
   const [users, orgs] = await Promise.all([

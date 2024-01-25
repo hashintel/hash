@@ -117,7 +117,7 @@ export const Table: FunctionComponent<{
       newLocalRows,
     }: {
       newLocalColumns?: TableLocalColumnPropertyValue[];
-      newLocalRows?: Object[];
+      newLocalRows?: Record<string, unknown>[];
     }) => {
       if (newLocalColumns) setLocalColumns(newLocalColumns);
       if (newLocalRows) setLocalRows(newLocalRows);
@@ -184,7 +184,9 @@ export const Table: FunctionComponent<{
         numberOfRows > localRows.length
           ? [
               ...localRows,
-              ...Array<{}>(numberOfRows - localRows.length).fill({}),
+              ...Array<Record<string, unknown>>(
+                numberOfRows - localRows.length,
+              ).fill({}),
             ]
           : localRows;
 
@@ -300,7 +302,7 @@ export const Table: FunctionComponent<{
         rows={numberOfRows}
         columns={columns}
         rightElement={
-          readonly || hideHeaderRow ? null : (
+          !!readonly || hideHeaderRow ? null : (
             <ButtonBase
               type="button"
               onClick={handleAddNewColumnClick}

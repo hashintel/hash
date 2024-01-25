@@ -47,6 +47,7 @@ const guessDataTypeFromValue = (
 export const renderValueCell: CustomRenderer<ValueCell> = {
   kind: GridCellKind.Custom,
   isMatch: (cell: CustomCell): cell is ValueCell =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (cell.data as any).kind === "value-cell",
   draw: (args, cell) => {
     const { ctx, rect, theme } = args;

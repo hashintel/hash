@@ -11,7 +11,7 @@ import { dataSourcesToImpureGraphContext } from "../../util";
 
 export const requestFileUpload: ResolverFn<
   Promise<RequestFileUploadResponse>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationRequestFileUploadArgs
 > = async (

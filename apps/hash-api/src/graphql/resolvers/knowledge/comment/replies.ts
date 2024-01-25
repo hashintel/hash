@@ -8,7 +8,7 @@ export const commentRepliesResolver: ResolverFn<
   UnresolvedCommentGQL[],
   UnresolvedCommentGQL,
   LoggedInGraphQLContext,
-  {}
+  Record<string, never>
 > = async ({ metadata }, _, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 

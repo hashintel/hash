@@ -16,7 +16,7 @@ export const pageContents: ResolverFn<
   { linkEntity: Entity; rightEntity: UnresolvedBlockGQL }[],
   UnresolvedPageGQL,
   LoggedInGraphQLContext,
-  {}
+  Record<string, never>
 > = async (page, _, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 

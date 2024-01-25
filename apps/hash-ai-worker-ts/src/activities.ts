@@ -8,6 +8,7 @@ import type {
   EntityPropertiesObject,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
+import { StatusCode } from "@local/status";
 import { ApplicationFailure } from "@temporalio/activity";
 import { CreateEmbeddingResponse } from "openai/resources";
 
@@ -25,7 +26,7 @@ export const createAiActivities = ({
     params: InferEntitiesCallerParams,
   ): Promise<InferEntitiesReturn> {
     const status = await inferEntities({ ...params, graphApiClient });
-    if (status.code !== "OK") {
+    if (status.code !== StatusCode.Ok) {
       throw new ApplicationFailure(status.message, status.code, true, [status]);
     }
 

@@ -120,7 +120,7 @@ export const DraftEntities: FunctionComponent<{
 
   const draftEntityHistoriesSubgraph = useMemo(
     () =>
-      draftEntityHistoriesResponse || previouslyFetchedDraftEntityHistoriesData
+      draftEntityHistoriesResponse ?? previouslyFetchedDraftEntityHistoriesData
         ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
             (draftEntityHistoriesResponse ??
               previouslyFetchedDraftEntityHistoriesData)!

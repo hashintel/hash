@@ -1,7 +1,7 @@
 import {
-  type OntologyElementMetadata as OntologyElementMetadataBp,
   DataTypeWithMetadata as DataTypeWithMetadataBp,
   EntityTypeWithMetadata as EntityTypeWithMetadataBp,
+  type OntologyElementMetadata as OntologyElementMetadataBp,
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
 } from "@blockprotocol/graph/temporal";
 import {
@@ -95,9 +95,9 @@ export type EditableOntologyElementMetadata = {
   icon?: string | null;
 };
 
-export type DataTypeMetadata = OntologyElementMetadata & {};
+export type DataTypeMetadata = OntologyElementMetadata;
 
-export type PropertyTypeMetadata = OntologyElementMetadata & {};
+export type PropertyTypeMetadata = OntologyElementMetadata;
 
 export type EntityTypeMetadata = OntologyElementMetadata &
   EditableOntologyElementMetadata;
@@ -251,9 +251,9 @@ export type EntityTypeWithMetadata = Subtype<
 >;
 
 export const isExternalOntologyElementMetadata = (
-  metadata: DataTypeMetadata | PropertyTypeMetadata | EntityTypeMetadata,
+  metadata: DataTypeMetadata | EntityTypeMetadata,
 ): metadata is ExternalOntologyElementMetadata => "fetchedAt" in metadata;
 
 export const isOwnedOntologyElementMetadata = (
-  metadata: DataTypeMetadata | PropertyTypeMetadata | EntityTypeMetadata,
+  metadata: DataTypeMetadata | EntityTypeMetadata,
 ): metadata is OwnedOntologyElementMetadata => "ownedById" in metadata;

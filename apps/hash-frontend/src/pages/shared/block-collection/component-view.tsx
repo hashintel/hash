@@ -79,7 +79,7 @@ export class ComponentView implements NodeView {
 
   private readonly target = createComponentViewTarget();
 
-  private readonly unsubscribe: Function;
+  private readonly unsubscribe: () => void;
 
   private store: EntityStore;
 

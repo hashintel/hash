@@ -65,6 +65,7 @@ export const CustomElementLoader: FunctionComponent<
     }
 
     existingDefinitionRef.current = { tagName, elementClass };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setCustomElement(createComponent(React, tagName, elementClass) as any); // @todo fix this
   }, [elementClass, tagName]);
 

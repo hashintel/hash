@@ -105,7 +105,7 @@ export const returnTypeAsJson = async (request: NextRequest) => {
     | GetPropertyTypeQueryVariables
   >(query, variables, cookie);
 
-  if (errors || !data) {
+  if (errors ?? !data) {
     const { code, message } = errors?.[0] ?? {
       code: "INTERNAL_SERVER_ERROR",
       message: "Unknown error",

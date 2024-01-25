@@ -10,7 +10,7 @@ export const commentHasTextResolver: ResolverFn<
   TextToken[],
   UnresolvedCommentGQL,
   LoggedInGraphQLContext,
-  {}
+  Record<string, never>
 > = async ({ metadata }, _, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 

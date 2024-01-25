@@ -9,6 +9,7 @@ const callExternalApiMethod = async (params: {
   methodName: string;
   payload: Parameters<ServiceFunction>[0]["data"];
 }): Promise<{
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: any;
   errors?: Awaited<ReturnType<ServiceFunction>>["errors"];
 }> => {

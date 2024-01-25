@@ -15,7 +15,7 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useMemo } from "react";
+import { useMemo } from "react";
 
 import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
@@ -23,11 +23,7 @@ import { getImageUrlFromEntityProperties } from "../../../pages/shared/get-image
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { Button, MenuItem } from "../../ui";
 
-type WorkspaceSwitcherProps = {};
-
-export const WorkspaceSwitcher: FunctionComponent<
-  WorkspaceSwitcherProps
-> = () => {
+export const WorkspaceSwitcher = () => {
   const popupState = usePopupState({
     variant: "popover",
     popupId: "workspace-switcher-menu",

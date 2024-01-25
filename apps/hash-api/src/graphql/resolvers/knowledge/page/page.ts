@@ -18,7 +18,7 @@ import {
 
 export const createPageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationCreatePageArgs
 > = async (
@@ -40,7 +40,7 @@ export const createPageResolver: ResolverFn<
 
 export const pageCommentsResolver: ResolverFn<
   Promise<UnresolvedCommentGQL[]>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   QueryPageCommentsArgs
 > = async (_, { entityId }, { dataSources, authentication }) => {

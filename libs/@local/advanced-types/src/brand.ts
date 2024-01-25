@@ -1,4 +1,4 @@
-type BrandedBase<Base, Kind extends {}> = Base & {
+type BrandedBase<Base, Kind extends Record<string, unknown>> = Base & {
   // The property prefixes are chosen such that they shouldn't appear in intellisense.
 
   /** The type of the value space that is branded */

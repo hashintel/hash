@@ -8,7 +8,7 @@ import { dataSourcesToImpureGraphContext } from "../../util";
 
 export const isShortnameTakenResolver: ResolverFn<
   Promise<boolean>,
-  {},
+  Record<string, never>,
   GraphQLContext,
   QueryIsShortnameTakenArgs
 > = async (_, { shortname }, { dataSources, authentication }) => {

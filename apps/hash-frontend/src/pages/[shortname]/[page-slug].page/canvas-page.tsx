@@ -14,6 +14,7 @@ import {
   MenuGroup,
   menuItem,
   Tldraw,
+  TLTranslationKey,
   toolbarItem,
 } from "@tldraw/tldraw";
 import { useRouter } from "next/router";
@@ -140,7 +141,7 @@ export const CanvasPageBlock = ({
               // at the moment custom icons appear to only be possible via overwriting an existing one (in public/icons)
               // @see https://docs.tldraw.dev/docs/ucg/usage#assets
               icon: "twitter",
-              label: "Block" as any,
+              label: "Block" as TLTranslationKey,
               kbd: "b",
               readonlyOk: false,
               onSelect: () => {

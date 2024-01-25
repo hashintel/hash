@@ -5,7 +5,7 @@ import { signedUpMiddleware } from "./signed-up";
 
 export const loggedInAndSignedUpMiddleware: ResolverMiddleware<
   GraphQLContext,
-  any,
+  Record<string, unknown>,
   LoggedInGraphQLContext
-> = (next) => (obj: any, args: any, ctx: GraphQLContext, info: any) =>
+> = (next) => (obj, args, ctx: GraphQLContext, info) =>
   loggedInMiddleware(signedUpMiddleware(next))(obj, args, ctx, info);

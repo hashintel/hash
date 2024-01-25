@@ -11,7 +11,9 @@ const InlineSelectChevronDown = () => (
 );
 
 export const InlineSelect = styled(
-  <T extends {}>(props: SelectProps<T> & { ref?: Ref<HTMLSelectElement> }) => (
+  <T extends object | string>(
+    props: SelectProps<T> & { ref?: Ref<HTMLSelectElement> },
+  ) => (
     <Select
       variant="standard"
       disableUnderline

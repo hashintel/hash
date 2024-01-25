@@ -322,7 +322,9 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
           size="xs"
           variant="tertiary_quiet"
           endIcon={<ChevronDownRegularIcon sx={{ fontSize: 10 }} />}
-          disabled={primaryRelationship.relation === "Owner"}
+          disabled={
+            primaryRelationship.relation === EntityAuthorizationRelation.Owner
+          }
           sx={{
             color: ({ palette }) => palette.gray[80],
             [`&.${buttonClasses.disabled}`]: {

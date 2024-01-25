@@ -23,6 +23,7 @@ export const createRenderTextIconCell = (params?: {
 }): CustomRenderer<TextIconCell> => ({
   kind: GridCellKind.Custom,
   isMatch: (cell: CustomCell): cell is TextIconCell =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (cell.data as any).kind === "text-icon-cell",
   draw: (args, cell) => {
     const { firstColumnLeftPadding } = params ?? {};

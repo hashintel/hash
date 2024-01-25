@@ -33,7 +33,7 @@ import { dataSourcesToImpureGraphContext } from "../util";
 
 export const createPropertyTypeResolver: ResolverFn<
   Promise<PropertyTypeWithMetadata>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationCreatePropertyTypeArgs
 > = async (_, params, { dataSources, authentication, user }) => {
@@ -70,7 +70,7 @@ export const createPropertyTypeResolver: ResolverFn<
 
 export const queryPropertyTypesResolver: ResolverFn<
   Promise<Subgraph>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   QueryQueryPropertyTypesArgs
 > = async (
@@ -119,7 +119,7 @@ export const queryPropertyTypesResolver: ResolverFn<
 
 export const getPropertyTypeResolver: ResolverFn<
   Promise<Subgraph>,
-  {},
+  Record<string, never>,
   GraphQLContext,
   QueryGetPropertyTypeArgs
 > = async (
@@ -151,7 +151,7 @@ export const getPropertyTypeResolver: ResolverFn<
 
 export const updatePropertyTypeResolver: ResolverFn<
   Promise<PropertyTypeWithMetadata>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationUpdatePropertyTypeArgs
 > = async (_, params, { dataSources, authentication }) =>
@@ -181,7 +181,7 @@ export const updatePropertyTypeResolver: ResolverFn<
 
 export const archivePropertyTypeResolver: ResolverFn<
   Promise<OntologyTemporalMetadata>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationArchivePropertyTypeArgs
 > = async (_, params, { dataSources, authentication }) =>
@@ -189,7 +189,7 @@ export const archivePropertyTypeResolver: ResolverFn<
 
 export const unarchivePropertyTypeResolver: ResolverFn<
   Promise<OntologyTemporalMetadata>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationUnarchivePropertyTypeArgs
 > = async (_, params, { dataSources, authentication }) =>

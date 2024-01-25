@@ -136,7 +136,7 @@ export const Link = forwardRef<
       }
     }
 
-    if (openInNew || isHrefExternal(href)) {
+    if (openInNew ?? isHrefExternal(href)) {
       other.rel = "noopener";
       other.target = "_blank";
 

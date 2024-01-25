@@ -17,6 +17,7 @@ import { ColumnFilter } from "./filtering";
 
 export const ColumnFilterMenu: FunctionComponent<
   {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     columnFilter?: ColumnFilter<string, any>;
     onClose: () => void;
   } & PopperProps
@@ -40,7 +41,7 @@ export const ColumnFilterMenu: FunctionComponent<
   }, [wrapperRef]);
 
   const [previousColumnFilter, setPreviousColumnFilter] =
-    useState<ColumnFilter<string, any>>();
+    useState<ColumnFilter<string>>();
 
   if (
     columnFilter &&

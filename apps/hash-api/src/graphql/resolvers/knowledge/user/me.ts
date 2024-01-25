@@ -6,7 +6,7 @@ import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-an
 
 export const meResolver: ResolverFn<
   Query["me"],
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   QueryMeArgs
 > = async (

@@ -9,7 +9,7 @@ import { mapCommentToGQL, UnresolvedCommentGQL } from "../graphql-mapping";
 
 export const resolveCommentResolver: ResolverFn<
   Promise<UnresolvedCommentGQL>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationResolveCommentArgs
 > = async (_, { entityId }, { dataSources, authentication }) => {

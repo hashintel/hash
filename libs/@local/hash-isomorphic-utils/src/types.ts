@@ -26,8 +26,6 @@ export type TextToken =
       linkEntityTypeBaseUrl?: BaseUrl;
     };
 
-export type UnknownEntityProperties = {};
-
 export type SystemDefinedProperties = "$schema" | "kind" | "$id";
 
 export type ConstructPropertyTypeParams = Omit<

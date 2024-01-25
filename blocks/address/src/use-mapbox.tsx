@@ -68,7 +68,7 @@ export const useMapbox = (
   const fetchSuggestions = debounce((query: string) => {
     setSuggestionsLoading(true);
 
-    serviceModule
+    void serviceModule
       .mapboxSuggestAddress({
         data: {
           searchText: query,

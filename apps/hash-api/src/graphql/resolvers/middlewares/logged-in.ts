@@ -5,7 +5,7 @@ import { ResolverMiddleware } from "./middleware-types";
 
 export const loggedInMiddleware: ResolverMiddleware<
   GraphQLContext,
-  any,
+  Record<string, unknown>,
   LoggedInGraphQLContext
 > = (next) => (obj, args, ctx, info) => {
   if (!ctx.user) {

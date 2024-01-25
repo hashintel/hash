@@ -13,7 +13,7 @@ export const blockChildEntityResolver: ResolverFn<
   Promise<Entity>,
   UnresolvedBlockGQL,
   GraphQLContext,
-  {}
+  Record<string, never>
 > = async ({ metadata }, _, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 

@@ -1,7 +1,6 @@
 import { validateEntityType } from "@blockprotocol/type-system";
 import { EntityType } from "@blockprotocol/type-system/slim";
 import { OwnedById } from "@local/hash-subgraph";
-// eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo } from "react";

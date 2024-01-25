@@ -13,7 +13,9 @@ export {
   StatusCode,
 } from "./status-code";
 
-export const isStatus = (value: unknown): value is Status<{}> => {
+export const isStatus = (
+  value: unknown,
+): value is Status<Record<string, unknown>> => {
   return (
     typeof value === "object" &&
     value !== null &&

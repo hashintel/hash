@@ -339,61 +339,67 @@ export const App: BlockComponent<BlockEntity> = ({
                         }),
                   }}
                 >
-                  {title || description || !readonly ? (
-                    <Stack
-                      sx={{
-                        gap: 1.5,
-                      }}
-                    >
-                      <EditableField
-                        value={titleValue}
-                        onChange={(event) => {
-                          if (!readonly) {
-                            setTitleValue(event.target.value);
-                          }
-                        }}
-                        onBlur={(event) =>
-                          updateField(event.target.value, titleKey)
-                        }
+                  {
+                    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
+                    title || description || !readonly ? (
+                      <Stack
                         sx={{
-                          fontWeight: 700,
-                          fontSize: 21,
-                          lineHeight: 1,
-                          letterSpacing: "-0.02em",
-                          color: theme.palette.common.black,
+                          gap: 1.5,
                         }}
-                        placeholder="Enter a how-to guide name"
-                        readonly={readonly}
-                      />
-
-                      <EditableField
-                        editIconFontSize={14}
-                        value={descriptionValue}
-                        onChange={(event) => {
-                          if (!readonly) {
-                            setDescriptionValue(event.target.value);
+                      >
+                        <EditableField
+                          value={titleValue}
+                          onChange={(event) => {
+                            if (!readonly) {
+                              setTitleValue(event.target.value);
+                            }
+                          }}
+                          onBlur={(event) =>
+                            updateField(event.target.value, titleKey)
                           }
-                        }}
-                        onBlur={(event) => {
-                          void updateField(event.target.value, descriptionKey);
-                        }}
-                        sx={{
-                          fontWeight: 500,
-                          fontSize: 14,
-                          lineHeight: 1.3,
-                          letterSpacing: "-0.02em",
-                          color: theme.palette.gray[90],
-                        }}
-                        placeholder="Click here to add a description of the how-to process"
-                        placeholderSx={{
-                          fontStyle: "italic",
-                        }}
-                        readonly={readonly}
-                      />
-                    </Stack>
-                  ) : null}
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: 21,
+                            lineHeight: 1,
+                            letterSpacing: "-0.02em",
+                            color: theme.palette.common.black,
+                          }}
+                          placeholder="Enter a how-to guide name"
+                          readonly={readonly}
+                        />
 
-                  {introEntity || !readonly ? (
+                        <EditableField
+                          editIconFontSize={14}
+                          value={descriptionValue}
+                          onChange={(event) => {
+                            if (!readonly) {
+                              setDescriptionValue(event.target.value);
+                            }
+                          }}
+                          onBlur={(event) => {
+                            void updateField(
+                              event.target.value,
+                              descriptionKey,
+                            );
+                          }}
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: 14,
+                            lineHeight: 1.3,
+                            letterSpacing: "-0.02em",
+                            color: theme.palette.gray[90],
+                          }}
+                          placeholder="Click here to add a description of the how-to process"
+                          placeholderSx={{
+                            fontStyle: "italic",
+                          }}
+                          readonly={readonly}
+                        />
+                      </Stack>
+                    ) : null
+                  }
+
+                  {introEntity ?? !readonly ? (
                     <Box>
                       <Collapse
                         in={!readonly && !introEntity && !introAnimatingOut}

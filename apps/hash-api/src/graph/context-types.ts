@@ -10,7 +10,7 @@ export type ImpureGraphContext<WithUpload extends boolean = false> = {
   graphApi: GraphApi;
 } & (WithUpload extends true
   ? { uploadProvider: UploadableStorageProvider }
-  : {});
+  : Record<string, unknown>);
 
 export type ImpureGraphFunction<
   Parameters,

@@ -20,7 +20,9 @@ const getLabelPropertyValue = (
     const label = entityToLabel.properties[entityType.metadata.labelProperty];
 
     if (label) {
-      return label.toString();
+      return label && typeof label === "object"
+        ? JSON.stringify(label)
+        : label.toString();
     }
   }
 };

@@ -122,7 +122,7 @@ type SelectorAutocompleteProps<
   AutocompleteProps<T, Multiple, true, false>,
   "renderInput" | "renderOption" | "getOptionLabel" | "componentsProps"
 > & {
-  inputRef?: Ref<any>;
+  inputRef?: Ref<Element>;
   inputPlaceholder?: string;
   /** Determines if a given option matches a selected value (defaults to strict equality) */
   isOptionEqualToValue?: (option: T, value: T) => boolean;
@@ -157,7 +157,7 @@ export const SelectorAutocomplete = <
   PaperComponent,
   ...rest
 }: SelectorAutocompleteProps<
-  Multiple extends true ? (T extends any[] ? T[number] : T) : T,
+  Multiple extends true ? (T extends unknown[] ? T[number] : T) : T,
   Multiple
 >) => {
   const allModifiers = useMemo(

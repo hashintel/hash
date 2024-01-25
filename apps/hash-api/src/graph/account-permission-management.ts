@@ -30,13 +30,13 @@ export const removeAccountGroupMember: ImpureGraphFunction<
 };
 
 export const createAccount: ImpureGraphFunction<
-  {},
+  Record<string, never>,
   Promise<AccountId>
 > = async ({ graphApi }, { actorId }, _) =>
   graphApi.createAccount(actorId).then(({ data }) => data as AccountId);
 
 export const createAccountGroup: ImpureGraphFunction<
-  {},
+  Record<string, never>,
   Promise<AccountGroupId>
 > = async ({ graphApi }, { actorId }, _) =>
   graphApi

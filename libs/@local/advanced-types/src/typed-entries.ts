@@ -6,7 +6,7 @@ type TupleEntry<
   ? TupleEntry<Tail, [...I, unknown], R | [`${I["length"]}`, Head]>
   : R;
 
-type ObjectEntry<T extends {}> = T extends object
+type ObjectEntry<T extends Record<string, unknown>> = T extends object
   ? { [K in keyof T]: [K, Required<T>[K]] }[keyof T] extends infer E
     ? E extends [infer K, infer V]
       ? K extends string
@@ -19,23 +19,32 @@ type ObjectEntry<T extends {}> = T extends object
   : never;
 
 // Source: https://dev.to/harry0000/a-bit-convenient-typescript-type-definitions-for-objectentries-d6g
-export type Entry<T extends {}> = T extends readonly [unknown, ...unknown[]]
+export type Entry<T extends Record<string, unknown>> = T extends readonly [
+  unknown,
+  ...unknown[],
+]
   ? TupleEntry<T>
   : T extends ReadonlyArray<infer U>
     ? [`${number}`, U]
     : ObjectEntry<T>;
 
 /** `Object.entries` analogue which returns a well-typed array */
-export function typedEntries<T extends {}>(object: T): ReadonlyArray<Entry<T>> {
+export function typedEntries<T extends Record<string, unknown>>(
+  object: T,
+): ReadonlyArray<Entry<T>> {
   return Object.entries(object) as unknown as ReadonlyArray<Entry<T>>;
 }
 
 /** `Object.keys` analogue which returns a well-typed array */
-export const typedKeys = <T extends {}>(object: T): Entry<T>[0][] => {
+export const typedKeys = <T extends Record<string, unknown>>(
+  object: T,
+): Entry<T>[0][] => {
   return Object.keys(object) as Entry<T>[0][];
 };
 
 /** `Object.values` analogue which returns a well-typed array */
-export const typedValues = <T extends {}>(object: T): Entry<T>[1][] => {
+export const typedValues = <T extends Record<string, unknown>>(
+  object: T,
+): Entry<T>[1][] => {
   return Object.values(object);
 };

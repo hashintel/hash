@@ -41,7 +41,7 @@ export const ProfileBio: FunctionComponent<{
     GetEntityQueryVariables
   >(getEntityQuery, {
     variables: {
-      entityId: profile.hasBio?.profileBioEntity.metadata.recordId.entityId!,
+      entityId: profile.hasBio!.profileBioEntity.metadata.recordId.entityId,
       ...blockCollectionContentsGetEntityVariables,
     },
     skip: !profile.hasBio,

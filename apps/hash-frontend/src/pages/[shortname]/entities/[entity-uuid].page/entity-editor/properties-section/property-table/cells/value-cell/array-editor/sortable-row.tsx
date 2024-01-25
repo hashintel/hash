@@ -106,7 +106,7 @@ export const SortableRow = ({
     if (editorType === "object") {
       return (
         <JsonInput
-          value={draftValue as any}
+          value={draftValue}
           onChange={(newValue, isDiscarded) => {
             if (isDiscarded) {
               onDiscardChanges();

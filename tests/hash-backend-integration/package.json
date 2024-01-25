@@ -19,6 +19,7 @@
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
+    "@local/status": "0.0.0-private",
     "execa": "5.1.1",
     "fractional-indexing": "2.1.0",
     "graphql": "16.8.1",

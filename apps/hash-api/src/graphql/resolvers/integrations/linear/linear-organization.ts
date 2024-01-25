@@ -9,7 +9,7 @@ import { LoggedInGraphQLContext } from "../../../context";
 
 export const getLinearOrganizationResolver: ResolverFn<
   Promise<LinearOrganization>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   QueryGetLinearOrganizationArgs
 > = async (_, params, { dataSources, authentication, user, vault }) => {

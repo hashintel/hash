@@ -108,8 +108,8 @@ export const SelectEntityTypePage = () => {
                           entityType.schema.$id,
                         )}`,
                       );
-                    } catch (error: any) {
-                      triggerSnackbar.error(error.message);
+                    } catch (error) {
+                      triggerSnackbar.error((error as Error).message);
                     } finally {
                       setLoading(false);
                     }

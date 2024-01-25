@@ -4,11 +4,14 @@ import { Node, NodeSpec, NodeType, Schema } from "prosemirror-model";
 
 import { paragraphBlockComponentId } from "./blocks";
 
-type NodeWithAttrs<Attrs extends {}> = Omit<Node, "attrs"> & {
+type NodeWithAttrs<Attrs extends Record<string, unknown>> = Omit<
+  Node,
+  "attrs"
+> & {
   attrs: Attrs;
 };
 
-type ComponentNodeAttrs = {};
+type ComponentNodeAttrs = Record<string, unknown>;
 export type ComponentNode = NodeWithAttrs<ComponentNodeAttrs>;
 
 export type EntityNode = NodeWithAttrs<{
@@ -325,6 +328,7 @@ export const mutateSchema = (
   schema: Schema,
   mutate: (map: OrderedMapPrivateInterface<NodeSpec>) => void,
 ) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mutate(schema.spec.nodes as any);
   const loadingType = schema.nodes.loading!;
 

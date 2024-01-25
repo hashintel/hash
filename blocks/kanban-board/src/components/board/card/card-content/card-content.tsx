@@ -27,7 +27,7 @@ export const CardContent = ({
     setInputVal(content);
   }
 
-  if (readonly || !editing) {
+  if (!!readonly || !editing) {
     return (
       <>
         <div

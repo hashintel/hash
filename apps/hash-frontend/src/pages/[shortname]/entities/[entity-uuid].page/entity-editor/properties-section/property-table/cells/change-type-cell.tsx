@@ -42,6 +42,7 @@ export const createRenderChangeTypeCell = (
   return {
     kind: GridCellKind.Custom,
     isMatch: (cell: CustomCell): cell is ChangeTypeCell =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (cell.data as any).kind === "change-type-cell",
     draw: (args, cell) => {
       const { theme, rect, ctx, spriteManager } = args;
