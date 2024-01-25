@@ -211,6 +211,9 @@ export const setupFileDownloadProxyHandler = (
       },
     );
 
+    // eslint-disable-next-line no-console -- temporary debug log
+    console.log({ fileEntity });
+
     if (!fileEntity) {
       res.status(404).json({
         error: `Could not find file entity ${entityId} with edition timestamp ${editionTimestamp}, either it does not exist or you do not have permission to access it.`,
@@ -265,6 +268,8 @@ export const setupFileDownloadProxyHandler = (
           return;
         }
       }
+      // eslint-disable-next-line no-console -- temporary debug log
+      console.log({ storageProvider });
 
       presignUrl = await storageProvider.presignDownload({
         entity: fileEntity,
@@ -289,6 +294,9 @@ export const setupFileDownloadProxyHandler = (
         );
       }
     }
+
+    // eslint-disable-next-line no-console -- temporary debug log
+    console.log({ presignUrl });
 
     res.redirect(presignUrl);
   });
