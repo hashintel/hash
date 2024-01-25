@@ -211,6 +211,7 @@ export const setupFileDownloadProxyHandler = (
       },
     );
 
+    // eslint-disable-next-line no-console -- temporary debug log
     console.log({ fileEntity });
 
     if (!fileEntity) {
@@ -267,7 +268,7 @@ export const setupFileDownloadProxyHandler = (
           return;
         }
       }
-
+      // eslint-disable-next-line no-console -- temporary debug log
       console.log({ storageProvider });
 
       presignUrl = await storageProvider.presignDownload({
@@ -294,6 +295,7 @@ export const setupFileDownloadProxyHandler = (
       }
     }
 
+    // eslint-disable-next-line no-console -- temporary debug log
     console.log({ presignUrl });
 
     res.redirect(presignUrl);

@@ -116,6 +116,7 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
         forcePathStyle: fileStorageForcePathStyle,
         region: fileStorageRegion,
       });
+      // eslint-disable-next-line no-console -- temporary debug log
       console.log("Constructed new client");
     }
 
