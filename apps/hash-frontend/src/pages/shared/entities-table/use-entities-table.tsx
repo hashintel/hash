@@ -26,7 +26,8 @@ import { MinimalUser } from "../../../lib/user-and-org";
 export interface TypeEntitiesRow {
   rowId: string;
   entityId: EntityId;
-  entity: string;
+  entity: Entity;
+  entityLabel: string;
   entityTypeVersion: string;
   namespace: string;
   archived?: boolean;
@@ -98,7 +99,7 @@ export const useEntitiesTable = (params: {
               ({ $id }) => $id === entities?.[0]?.metadata.entityTypeId,
             )?.title ?? "Entity"
           : "Entity",
-        id: "entity",
+        id: "entityLabel",
         width: 252,
         grow: 1,
       },
@@ -179,7 +180,8 @@ export const useEntitiesTable = (params: {
             return {
               rowId: entityId,
               entityId,
-              entity: entityLabel,
+              entity,
+              entityLabel,
               entityTypeVersion: entityType
                 ? `v${extractVersion(entityType.$id)} ${entityType.title}`
                 : "",

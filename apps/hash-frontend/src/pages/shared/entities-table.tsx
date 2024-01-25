@@ -1,6 +1,7 @@
 import {
   Entity as BpEntity,
   EntityRootType as BpEntityRootType,
+  PropertyType,
   Subgraph as BpSubgraph,
 } from "@blockprotocol/graph";
 import {
@@ -199,17 +200,17 @@ export const EntitiesTable: FunctionComponent<{
             };
           }
 
-          if (columnId === "entity") {
+          if (columnId === "entityLabel") {
             return {
               kind: GridCellKind.Custom,
               allowOverlay: false,
               readonly: true,
-              copyData: row.entity,
+              copyData: row.entityLabel,
               cursor: "pointer",
               data: {
                 kind: "text-icon-cell",
                 icon: "bpAsterisk",
-                value: row.entity,
+                value: row.entityLabel,
                 onClick: () =>
                   router.push(
                     isViewingPages
@@ -448,9 +449,61 @@ export const EntitiesTable: FunctionComponent<{
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const columnRowKeys = columns.map(({ id }) => id ?? []).flat();
 
+    const tableContentColumnTitles = columns.map(({ title }) => title);
+
+    const propertyColumns = rows.reduce<PropertyType[]>((prev, row) => {
+      const { entity } = row;
+
+      const propertyTypesUsedInEntity = Object.keys(entity.properties).map(
+        (baseUrl) => {
+          const propertyType = propertyTypes?.find(
+            ({ $id }) => extractBaseUrl($id) === baseUrl,
+          );
+
+          if (!propertyType) {
+            throw new Error(`Could not find property type for ${baseUrl}`);
+          }
+
+          return propertyType;
+        },
+      );
+
+      const newPropertyTypes = propertyTypesUsedInEntity.filter(
+        (propertyType) =>
+          !prev.some(
+            (previouslyAddedPropertyType) =>
+              previouslyAddedPropertyType.$id === propertyType.$id,
+          ),
+      );
+
+      return [...prev, ...newPropertyTypes];
+    }, []);
+
     const content: string[][] = [
-      ["Entity ID", ...columns.map(({ title }) => title)],
+      [
+        "Entity ID",
+        ...propertyColumns.map(({ title }) => title),
+        ...tableContentColumnTitles,
+      ],
       ...rows.map((row) => {
+        const { entity } = row;
+
+        const propertyValues = propertyColumns.map((propertyType) => {
+          /** @todo: stringify this better */
+          const propertyValue =
+            entity.properties[extractBaseUrl(propertyType.$id)];
+
+          if (typeof propertyValue === "string") {
+            return propertyValue;
+          } else if (typeof propertyValue === "object") {
+            return JSON.stringify(propertyValue);
+          } else if (propertyValue !== undefined) {
+            return String(propertyValue);
+          }
+
+          return "";
+        });
+
         const tableContent = columnRowKeys.map((key) => {
           const value = row[key];
 
@@ -465,7 +518,7 @@ export const EntitiesTable: FunctionComponent<{
           return "";
         });
 
-        return [row.entityId, ...tableContent];
+        return [row.entityId, ...propertyValues, ...tableContent];
       }),
     ];
 
@@ -473,7 +526,7 @@ export const EntitiesTable: FunctionComponent<{
       title: "Entities",
       content,
     };
-  }, [rows, columns]);
+  }, [rows, columns, propertyTypes]);
 
   return (
     <Box>
