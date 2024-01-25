@@ -211,6 +211,8 @@ export const setupFileDownloadProxyHandler = (
       },
     );
 
+    console.log({ fileEntity });
+
     if (!fileEntity) {
       res.status(404).json({
         error: `Could not find file entity ${entityId} with edition timestamp ${editionTimestamp}, either it does not exist or you do not have permission to access it.`,
@@ -266,6 +268,8 @@ export const setupFileDownloadProxyHandler = (
         }
       }
 
+      console.log({ storageProvider });
+
       presignUrl = await storageProvider.presignDownload({
         entity: fileEntity,
         key: fileStorageKey,
@@ -289,6 +293,8 @@ export const setupFileDownloadProxyHandler = (
         );
       }
     }
+
+    console.log({ presignUrl });
 
     res.redirect(presignUrl);
   });

@@ -116,6 +116,7 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
         forcePathStyle: fileStorageForcePathStyle,
         region: fileStorageRegion,
       });
+      console.log("Constructed new client");
     }
 
     const command = new GetObjectCommand({
