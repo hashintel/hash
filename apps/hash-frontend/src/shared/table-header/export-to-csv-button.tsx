@@ -7,13 +7,19 @@ type CsvFile = {
   content: string[][];
 };
 
-export type GenerateCsvFileFunction = () => CsvFile;
+export type GenerateCsvFileFunction = () => CsvFile | null;
 
 export const ExportToCsvButton: FunctionComponent<{
   generateCsvFile: GenerateCsvFileFunction;
 }> = ({ generateCsvFile }) => {
   const handleExportToCsv = useCallback(() => {
-    const { title, content } = generateCsvFile();
+    const generatedCsvFile = generateCsvFile();
+
+    if (!generatedCsvFile) {
+      return;
+    }
+
+    const { title, content } = generatedCsvFile;
 
     const stringifiedContent = content.map((row) => row.join(",")).join("\n");
 

@@ -47,6 +47,7 @@ import {
 import { BlankCell, blankCell } from "../../components/grid/utils";
 import { ColumnFilter } from "../../components/grid/utils/filtering";
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
+import { MinimalUser } from "../../lib/user-and-org";
 import { useEntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
 import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
@@ -439,6 +440,41 @@ export const EntitiesTable: FunctionComponent<{
     ],
   );
 
+  const generateCsvFile = useCallback(() => {
+    if (!rows) {
+      return null;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const columnRowKeys = columns.map(({ id }) => id ?? []).flat();
+
+    const content: string[][] = [
+      ["Entity ID", ...columns.map(({ title }) => title)],
+      ...rows.map((row) => {
+        const tableContent = columnRowKeys.map((key) => {
+          const value = row[key];
+
+          if (typeof value === "string") {
+            return value;
+          } else if (key === "lastEditedBy") {
+            const user: MinimalUser | undefined = value;
+
+            return user?.preferredName ?? "";
+          }
+
+          return "";
+        });
+
+        return [row.entityId, ...tableContent];
+      }),
+    ];
+
+    return {
+      title: "Entities",
+      content,
+    };
+  }, [rows, columns]);
+
   return (
     <Box>
       <TableHeader
@@ -452,6 +488,7 @@ export const EntitiesTable: FunctionComponent<{
             ),
           ) ?? []
         }
+        generateCsvFile={generateCsvFile}
         endAdornment={
           <ToggleButtonGroup
             value={view}
