@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -28,6 +29,26 @@ const UPLOAD_URL_EXPIRATION_SECONDS = 60 * 30;
 export const formatUrl = (key: string) => {
   return `${apiOrigin}/file/${key}`;
 };
+
+const fileMimeTypeStartsWithToEntityTypeId: Record<string, VersionedUrl> = {
+  "image/": systemEntityTypes.image.entityTypeId,
+  "application/pdf": systemEntityTypes.pdfDocument.entityTypeId,
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    systemEntityTypes.docxDocument.entityTypeId,
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+    systemEntityTypes.pptxPresentation.entityTypeId,
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+    systemEntityTypes.xlsxSpreadsheet.entityTypeId,
+};
+
+const getEntityTypeIdForMimeType = (mimeType: string) =>
+  /**
+   * @note we should to adapt this if we add sub-types for `Image` (for example a
+   * `PNG Image` type), so that the most specific type is used.
+   */
+  Object.entries(fileMimeTypeStartsWithToEntityTypeId).find(
+    ([mimeTypeStartsWith]) => mimeType.startsWith(mimeTypeStartsWith),
+  )?.[1];
 
 const generateCommonParameters = async (
   ctx: ImpureGraphContext,
@@ -63,13 +84,39 @@ const generateCommonParameters = async (
       ),
     };
   } else if (fileEntityCreationInput) {
+    const { entityTypeId: specifiedEntityTypeId } = fileEntityCreationInput;
+
+    const entityTypeIdByMimeType = getEntityTypeIdForMimeType(mimeType);
+
+    let entityTypeId: VersionedUrl;
+
+    if (specifiedEntityTypeId) {
+      /**
+       * If there is a mime entity type ID and it is not the same
+       * as the specified entity type ID, override it. Otherwise,
+       * use the specified entity type ID.
+       *
+       * @todo when not using the specified entity ID, consider
+       * ensuring that the mime entity type ID is a sub-type of
+       * the specified type ID
+       */
+      entityTypeId =
+        entityTypeIdByMimeType &&
+        specifiedEntityTypeId !== entityTypeIdByMimeType
+          ? entityTypeIdByMimeType
+          : specifiedEntityTypeId;
+    } else {
+      /**
+       * If no entity type ID was specified, we use the mime entity type ID
+       * directly if it exists, otherwise we use the default `File` entity.
+       */
+      entityTypeId =
+        entityTypeIdByMimeType ?? systemEntityTypes.file.entityTypeId;
+    }
+
     return {
       existingEntity: null,
-      entityTypeId:
-        fileEntityCreationInput.entityTypeId ??
-        (mimeType.startsWith("image/")
-          ? systemEntityTypes.image.entityTypeId
-          : systemEntityTypes.file.entityTypeId),
+      entityTypeId,
       mimeType,
       ownedById: fileEntityCreationInput.ownedById,
     };
