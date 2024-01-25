@@ -47,7 +47,7 @@ hash_api_env_vars = [
   { name = "FRONTEND_URL", secret = false, value = "https://app.hash.ai" },
   { name = "API_ORIGIN", secret = false, value = "https://app-api.hash.ai" },
 
-  { name = "LOG_LEVEL", secret = false, value = "debug" },
+  { name = "LOG_LEVEL", secret = false, value = "info" },
 
   { name = "FILE_UPLOAD_PROVIDER", secret = false, value = "AWS_S3" },
 
