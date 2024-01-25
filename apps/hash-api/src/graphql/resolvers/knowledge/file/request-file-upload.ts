@@ -1,4 +1,5 @@
 import { Entity } from "@local/hash-subgraph";
+import { UserInputError } from "apollo-server-errors";
 
 import { createFileFromUploadRequest } from "../../../../graph/knowledge/system-types/file";
 import {
@@ -8,6 +9,10 @@ import {
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
+
+const maximumFileSizeInMegaBytes = 100;
+
+const maximumFileSizeInBytes = maximumFileSizeInMegaBytes * 1024 * 1024;
 
 export const requestFileUpload: ResolverFn<
   Promise<RequestFileUploadResponse>,
@@ -28,6 +33,12 @@ export const requestFileUpload: ResolverFn<
 ) => {
   const { authentication } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
+
+  if (size > maximumFileSizeInBytes) {
+    throw new UserInputError(
+      `The file size must be less than ${maximumFileSizeInMegaBytes} MB`,
+    );
+  }
 
   const { presignedPut, entity } = await createFileFromUploadRequest(
     context,
