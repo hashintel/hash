@@ -1,6 +1,7 @@
 import { extractVersion, VersionedUrl } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon } from "@hashintel/design-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import { EntityTypeWithMetadata, isBaseUrl } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
@@ -13,7 +14,6 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
-import pluralize from "pluralize";
 import { FunctionComponent, useCallback, useMemo } from "react";
 
 import { useAccountPages } from "../components/hooks/use-account-pages";
