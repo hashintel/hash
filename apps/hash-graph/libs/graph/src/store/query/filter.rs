@@ -210,6 +210,10 @@ impl<'p> Parameter<'p> {
     /// # Errors
     ///
     /// - Returns [`ParameterConversionError`] if conversion fails.
+    #[expect(
+        clippy::todo,
+        reason = "https://linear.app/hash/issue/H-2005/allow-reading-arbitrary-values-from-postgres"
+    )]
     pub fn from_value(
         value: &'p serde_json::Value,
         ty: ParameterType,
