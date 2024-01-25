@@ -1,25 +1,17 @@
 import type {
   BaseUrl,
   EntityPropertiesObject,
-  EntityPropertyValue,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 import OpenAI from "openai/index";
 import { CreateEmbeddingResponse } from "openai/resources";
+
+import { createPropertyEmbeddingInput } from "./shared/create-embedding-input";
 import Usage = CreateEmbeddingResponse.Usage;
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-const createPropertyEmbeddingInput = (params: {
-  propertyType: PropertyTypeWithMetadata;
-  property: EntityPropertyValue;
-}): string => {
-  return `${params.propertyType.schema.title}: ${JSON.stringify(
-    params.property,
-  )}`;
-};
 
 export const createEmbeddings = async (params: { input: string[] }) => {
   const response = await openai.embeddings.create({
@@ -62,8 +54,8 @@ export const createEntityEmbeddings = async (params: {
       continue;
     }
     const embeddingInput = createPropertyEmbeddingInput({
-      propertyType,
-      property,
+      propertyTypeSchema: propertyType.schema,
+      propertyValue: property,
     });
     combinedEntityEmbedding += `${embeddingInput}\n`;
     propertyEmbeddings.push(embeddingInput);
