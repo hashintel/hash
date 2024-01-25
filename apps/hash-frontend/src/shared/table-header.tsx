@@ -17,7 +17,6 @@ import {
 } from "@local/hash-subgraph";
 import {
   Box,
-  buttonClasses,
   Checkbox,
   chipClasses,
   FormControlLabel,
@@ -43,7 +42,11 @@ import { FilterListIcon } from "./icons/filter-list-icon";
 import { HouseRegularIcon } from "./icons/house-regular-icon";
 import { MagnifyingGlassRegularIcon } from "./icons/magnifying-glass-regular-icon";
 import { BulkActionsDropdown } from "./table-header/bulk-actions-dropdown";
-import { Button } from "./ui";
+import {
+  ExportToCsvButton,
+  GenerateCsvFileFunction,
+} from "./table-header/export-to-csv-button";
+import { TableHeaderButton } from "./table-header/table-header-button";
 
 export const tableHeaderHeight = 50;
 
@@ -119,6 +122,7 @@ type TableHeaderProps = {
   )[];
   filterState: FilterState;
   endAdornment?: ReactNode;
+  generateCsvFile?: GenerateCsvFileFunction;
   setFilterState: Dispatch<SetStateAction<FilterState>>;
   toggleSearch?: () => void;
   onBulkActionCompleted?: () => void;
@@ -137,6 +141,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
   selectedItems,
   filterState,
   endAdornment,
+  generateCsvFile,
   setFilterState,
   toggleSearch,
   onBulkActionCompleted,
@@ -283,34 +288,13 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             borderRadius: 15,
           }}
         >
-          <Button
+          <TableHeaderButton
             variant="tertiary_quiet"
             onClick={() => setDisplayFilters(!displayFilters)}
             startIcon={<FilterListIcon />}
-            sx={{
-              py: 0.25,
-              px: 2,
-              borderRadius: 15,
-              background: "transparent",
-              minHeight: "unset",
-              minWidth: "unset",
-              fontWeight: 500,
-              fontSize: 13,
-              color: ({ palette }) => palette.gray[70],
-              [`.${buttonClasses.startIcon}`]: {
-                color: ({ palette }) => palette.gray[70],
-              },
-              ":hover": {
-                color: ({ palette }) => palette.gray[90],
-                background: ({ palette }) => palette.gray[30],
-                [`.${buttonClasses.startIcon}`]: {
-                  color: ({ palette }) => palette.gray[90],
-                },
-              },
-            }}
           >
             Filter
-          </Button>
+          </TableHeaderButton>
           <Box
             sx={{
               transition: ({ transitions }) => transitions.create("max-width"),
@@ -350,6 +334,9 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             </Box>
           </Box>
         </Box>
+        {generateCsvFile ? (
+          <ExportToCsvButton generateCsvFile={generateCsvFile} />
+        ) : null}
         {endAdornment}
       </Box>
     </Box>
