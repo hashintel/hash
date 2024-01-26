@@ -81,7 +81,14 @@ let uploadStorageProvider: StorageType = "LOCAL_FILE_SYSTEM";
 const initialiseStorageProvider = (app: Express, provider: StorageType) => {
   const initialiser = storageProviderInitialiserLookup[provider];
 
+  // eslint-disable-next-line no-console -- temporary debug log
+  console.log({ initialiser });
+
   const newProvider = initialiser(app);
+
+  // eslint-disable-next-line no-console -- temporary debug log
+  console.log({ newProvider });
+
   storageProviderLookup[provider] = newProvider;
   return newProvider;
 };
@@ -211,6 +218,9 @@ export const setupFileDownloadProxyHandler = (
       },
     );
 
+    // eslint-disable-next-line no-console -- temporary debug log
+    console.log({ fileEntity });
+
     if (!fileEntity) {
       res.status(404).json({
         error: `Could not find file entity ${entityId} with edition timestamp ${editionTimestamp}, either it does not exist or you do not have permission to access it.`,
@@ -233,7 +243,13 @@ export const setupFileDownloadProxyHandler = (
       return;
     }
 
+    // eslint-disable-next-line no-console -- temporary debug log
+    console.log({ fileStorageKey });
+
     let presignUrl = await cache.get(key);
+
+    // eslint-disable-next-line no-console -- temporary debug log
+    console.log({ presignUrlFromCache: presignUrl });
 
     if (!presignUrl) {
       const { fileStorageProvider: storageProviderName } = simplifyProperties(
@@ -255,9 +271,17 @@ export const setupFileDownloadProxyHandler = (
       }
 
       let storageProvider = storageProviderLookup[storageProviderName];
+
+      // eslint-disable-next-line no-console -- temporary debug log
+      console.log({ storageProvider });
+
       if (!storageProvider) {
         try {
+          // eslint-disable-next-line no-console -- temporary debug log
+          console.log("Initialising storage provider...");
           storageProvider = initialiseStorageProvider(app, storageProviderName);
+          // eslint-disable-next-line no-console -- temporary debug log
+          console.log({ storageProviderInitialised: storageProvider });
         } catch {
           res.status(500).json({
             error: `Could not initialize ${storageProviderName} storage provider.`,
@@ -271,6 +295,9 @@ export const setupFileDownloadProxyHandler = (
         key: fileStorageKey,
         expiresInSeconds: DOWNLOAD_URL_EXPIRATION_SECONDS,
       });
+
+      // eslint-disable-next-line no-console -- temporary debug log
+      console.log({ presignUrl });
 
       if (!presignUrl) {
         res.sendStatus(404);
@@ -289,6 +316,9 @@ export const setupFileDownloadProxyHandler = (
         );
       }
     }
+
+    // eslint-disable-next-line no-console -- temporary debug log
+    console.log({ presignUrl });
 
     res.redirect(presignUrl);
   });

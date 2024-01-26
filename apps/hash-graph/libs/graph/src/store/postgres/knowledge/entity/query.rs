@@ -69,11 +69,11 @@ impl QueryRecordDecode for VertexIdSorting<Entity> {
     }
 }
 
-impl PostgresSorting<Entity> for VertexIdSorting<Entity> {
-    type CompilationParameters<'p> = EntityVertexIdCursorParameters<'p>;
+impl<'s> PostgresSorting<'s, Entity> for VertexIdSorting<Entity> {
+    type CompilationParameters = EntityVertexIdCursorParameters<'static>;
     type Error = !;
 
-    fn encode(&self) -> Result<Option<Self::CompilationParameters<'_>>, Self::Error> {
+    fn encode(&self) -> Result<Option<Self::CompilationParameters>, Self::Error> {
         Ok(self.cursor().map(|cursor| EntityVertexIdCursorParameters {
             owned_by_id: Parameter::Uuid(cursor.base_id.owned_by_id.into_uuid()),
             entity_uuid: Parameter::Uuid(cursor.base_id.entity_uuid.into_uuid()),
@@ -81,10 +81,10 @@ impl PostgresSorting<Entity> for VertexIdSorting<Entity> {
         }))
     }
 
-    fn compile<'c, 'p: 'c>(
+    fn compile<'p, 'q: 'p>(
         &self,
-        compiler: &mut SelectCompiler<'c, Entity>,
-        parameters: Option<&'c EntityVertexIdCursorParameters<'p>>,
+        compiler: &mut SelectCompiler<'p, 'q, Entity>,
+        parameters: Option<&'p Self::CompilationParameters>,
         temporal_axes: &QueryTemporalAxes,
     ) -> Self::CompilationArtifacts {
         let revision_id_path = match temporal_axes.variable_time_axis() {
@@ -296,8 +296,8 @@ impl PostgresRecord for Entity {
         EntityRecordPaths::default()
     }
 
-    fn compile<'c, 'p: 'c>(
-        compiler: &mut SelectCompiler<'c, Self>,
+    fn compile<'p, 'q: 'p>(
+        compiler: &mut SelectCompiler<'p, 'q, Self>,
         paths: &'p Self::CompilationParameters,
     ) -> Self::CompilationArtifacts {
         EntityRecordRowIndices {

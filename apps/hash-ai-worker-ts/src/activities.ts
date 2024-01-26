@@ -14,7 +14,7 @@ import { StatusCode } from "@local/status";
 import { ApplicationFailure } from "@temporalio/activity";
 import { CreateEmbeddingResponse } from "openai/resources";
 
-import { inferEntities } from "./activities/infer-entities";
+import { inferEntitiesActivity } from "./activities/infer-entities";
 import {
   createEmbeddings,
   createEntityEmbeddings,
@@ -30,7 +30,7 @@ export const createAiActivities = ({
   async inferEntitiesActivity(
     params: InferEntitiesCallerParams,
   ): Promise<InferEntitiesReturn> {
-    const status = await inferEntities({ ...params, graphApiClient });
+    const status = await inferEntitiesActivity({ ...params, graphApiClient });
     if (status.code !== StatusCode.Ok) {
       throw new ApplicationFailure(status.message, status.code, true, [status]);
     }

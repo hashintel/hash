@@ -114,8 +114,8 @@ mod tests {
         },
     };
 
-    fn test_compilation<'p, T: PostgresRecord + 'static>(
-        compiler: &SelectCompiler<'p, T>,
+    fn test_compilation<'p, 'q: 'p, T: PostgresRecord + 'static>(
+        compiler: &SelectCompiler<'p, 'q, T>,
         expected_statement: &'static str,
         expected_parameters: &[&'p dyn ToSql],
     ) {

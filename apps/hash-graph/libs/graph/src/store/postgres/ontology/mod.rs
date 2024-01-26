@@ -157,22 +157,22 @@ macro_rules! impl_ontology_cursor {
             }
         }
 
-        impl PostgresSorting<$ty> for VertexIdSorting<$ty> {
-            type CompilationParameters<'p> = VersionedUrlCursorParameters<'p>;
+        impl<'s> PostgresSorting<'s, $ty> for VertexIdSorting<$ty> {
+            type CompilationParameters = VersionedUrlCursorParameters<'s>;
             type Error = !;
 
-            fn encode(&self) -> Result<Option<Self::CompilationParameters<'_>>, Self::Error> {
+            fn encode(&self) -> Result<Option<Self::CompilationParameters>, Self::Error> {
                 Ok(self.cursor().map(|cursor| VersionedUrlCursorParameters {
-                    base_url: Parameter::Text(Cow::Borrowed(cursor.base_id.as_str())),
+                    base_url: Parameter::Text(Cow::Owned(cursor.base_id.to_string())),
                     version: Parameter::OntologyTypeVersion(cursor.revision_id),
                 }))
             }
 
-            fn compile<'c, 'p: 'c>(
+            fn compile<'p, 'q: 'p>(
                 &self,
-                compiler: &mut SelectCompiler<'c, $ty>,
-                parameters: Option<&'c VersionedUrlCursorParameters<'p>>,
-                _temporal_axes: &QueryTemporalAxes,
+                compiler: &mut SelectCompiler<'p, 'q, $ty>,
+                parameters: Option<&'p Self::CompilationParameters>,
+                _: &QueryTemporalAxes,
             ) -> Self::CompilationArtifacts {
                 if let Some(parameters) = parameters {
                     let base_url_expression = compiler.compile_parameter(&parameters.base_url).0;

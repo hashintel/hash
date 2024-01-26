@@ -3,14 +3,25 @@ import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
   InferEntitiesCallerParams,
+  InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
+import { GetResultsFromCancelledInferenceRequestQuery } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { AccountId, Entity } from "@local/hash-subgraph";
-import { proxyActivities } from "@temporalio/workflow";
+import { CancelledFailure } from "@temporalio/common";
+import {
+  ActivityCancellationType,
+  ActivityFailure,
+  defineQuery,
+  isCancellation,
+  proxyActivities,
+  setHandler,
+} from "@temporalio/workflow";
 import { CreateEmbeddingResponse } from "openai/resources";
 
 import { createAiActivities, createGraphActivities } from "./activities";
 
 const aiActivities = proxyActivities<ReturnType<typeof createAiActivities>>({
+  cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
   startToCloseTimeout: "3600 second", // 1 hour
   retry: {
     maximumAttempts: 1,
@@ -26,8 +37,37 @@ const graphActivities = proxyActivities<
   },
 });
 
-export const inferEntities = (params: InferEntitiesCallerParams) =>
-  aiActivities.inferEntitiesActivity(params);
+const getResultsFromCancelledInferenceQuery: GetResultsFromCancelledInferenceRequestQuery =
+  defineQuery("getResultsFromCancelledInference");
+
+export const inferEntities = async (params: InferEntitiesCallerParams) => {
+  try {
+    return await aiActivities.inferEntitiesActivity(params);
+  } catch (err) {
+    if (isCancellation(err) && ActivityFailure.is(err)) {
+      if (
+        "cause" in (err as Error) &&
+        CancelledFailure.is(err.cause) &&
+        typeof err.cause.details[0] === "object" &&
+        err.cause.details[0] !== null &&
+        "code" in err.cause.details[0]
+      ) {
+        const results = err.cause.details[0] as InferEntitiesReturn;
+
+        /**
+         * For some reason the `details` are not returned to the client as part of the 'CancelledFailure' error,
+         * so we set up a query handler instead which the client can call for partial results when it receives a cancellation.
+         *
+         * @todo figure out why 'details' is not being returned in the error - @see https://temporalio.slack.com/archives/C01DKSMU94L/p1705927971571849
+         */
+        setHandler(getResultsFromCancelledInferenceQuery, () => results);
+
+        throw err;
+      }
+    }
+    throw err;
+  }
+};
 
 type UpdateEntityEmbeddingsParams = {
   authentication: {
