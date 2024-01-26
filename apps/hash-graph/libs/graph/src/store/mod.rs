@@ -15,6 +15,7 @@ mod fetcher;
 mod postgres;
 
 use async_trait::async_trait;
+use serde::Deserialize;
 
 pub use self::{
     account::AccountStore,
@@ -24,7 +25,10 @@ pub use self::{
         UpdateError,
     },
     fetcher::{FetchingPool, FetchingStore, TypeFetcher},
-    knowledge::{EntityStore, EntityValidationType},
+    knowledge::{
+        EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
+        EntityValidationType,
+    },
     migration::{Migration, MigrationState, StoreMigration},
     ontology::{DataTypeStore, EntityTypeStore, PropertyTypeStore},
     pool::StorePool,
@@ -55,4 +59,11 @@ pub enum ConflictBehavior {
     Fail,
     /// If a conflict is detected, the operation will be skipped.
     Skip,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Ordering {
+    Ascending,
+    Descending,
 }

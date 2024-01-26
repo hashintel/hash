@@ -1,12 +1,9 @@
 use std::fmt;
 
-use crate::store::postgres::query::{AliasedColumn, Transpile};
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Ordering {
-    Ascending,
-    Descending,
-}
+use crate::store::{
+    postgres::query::{AliasedColumn, Transpile},
+    Ordering,
+};
 
 #[derive(Debug, Default, PartialEq, Eq, Hash)]
 pub struct OrderByExpression {

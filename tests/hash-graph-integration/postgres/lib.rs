@@ -30,8 +30,8 @@ use graph::{
     store::{
         query::{Filter, FilterExpression, Parameter},
         AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
-        EntityStore, EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool,
-        PropertyTypeStore, QueryError, StorePool, UpdateError,
+        EntityQuerySorting, EntityStore, EntityTypeStore, InsertionError, PostgresStore,
+        PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
@@ -546,7 +546,10 @@ impl DatabaseApi<'_> {
                     },
                     include_drafts: false,
                 },
-                None,
+                EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
                 None,
             )
             .await?
@@ -579,7 +582,10 @@ impl DatabaseApi<'_> {
                     },
                     include_drafts: false,
                 },
-                None,
+                EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
                 None,
             )
             .await?
@@ -607,7 +613,10 @@ impl DatabaseApi<'_> {
                     },
                     include_drafts: false,
                 },
-                None,
+                EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
                 None,
             )
             .await?
@@ -741,7 +750,10 @@ impl DatabaseApi<'_> {
                     },
                     include_drafts: false,
                 },
-                None,
+                EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
                 None,
             )
             .await?;
@@ -809,7 +821,10 @@ impl DatabaseApi<'_> {
                     },
                     include_drafts: false,
                 },
-                None,
+                EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
                 None,
             )
             .await?;

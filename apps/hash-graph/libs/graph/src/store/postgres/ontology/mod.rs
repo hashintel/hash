@@ -27,10 +27,10 @@ use crate::{
         error::DeletionError,
         postgres::{
             crud::QueryRecordDecode,
-            query::{Distinctness, Ordering, PostgresSorting, SelectCompiler},
+            query::{Distinctness, PostgresSorting, SelectCompiler},
         },
         query::Parameter,
-        AsClient, PostgresStore, Record,
+        AsClient, Ordering, PostgresStore, Record,
     },
     subgraph::temporal_axes::QueryTemporalAxes,
 };

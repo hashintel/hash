@@ -1,6 +1,9 @@
 use std::{fmt, fmt::Write};
 
-use crate::store::postgres::query::{Condition, Expression, Ordering, Transpile};
+use crate::store::{
+    postgres::query::{Condition, Expression, Transpile},
+    Ordering,
+};
 
 #[derive(Debug, Default, PartialEq, Eq, Hash)]
 pub struct WhereExpression {

@@ -344,6 +344,35 @@ impl<'de: 'p, 'p> Deserialize<'de> for DataTypeQueryPath<'p> {
     }
 }
 
+impl DataTypeQueryPath<'_> {
+    #[must_use]
+    pub fn into_owned(self) -> DataTypeQueryPath<'static> {
+        match self {
+            DataTypeQueryPath::BaseUrl => DataTypeQueryPath::BaseUrl,
+            DataTypeQueryPath::Version => DataTypeQueryPath::Version,
+            DataTypeQueryPath::VersionedUrl => DataTypeQueryPath::VersionedUrl,
+            DataTypeQueryPath::TransactionTime => DataTypeQueryPath::TransactionTime,
+            DataTypeQueryPath::OwnedById => DataTypeQueryPath::OwnedById,
+            DataTypeQueryPath::EditionCreatedById => DataTypeQueryPath::EditionCreatedById,
+            DataTypeQueryPath::EditionArchivedById => DataTypeQueryPath::EditionArchivedById,
+            DataTypeQueryPath::Title => DataTypeQueryPath::Title,
+            DataTypeQueryPath::Description => DataTypeQueryPath::Description,
+            DataTypeQueryPath::OntologyId => DataTypeQueryPath::OntologyId,
+            DataTypeQueryPath::Schema(path) => {
+                DataTypeQueryPath::Schema(path.map(JsonPath::into_owned))
+            }
+            DataTypeQueryPath::AdditionalMetadata => DataTypeQueryPath::AdditionalMetadata,
+            DataTypeQueryPath::Type => DataTypeQueryPath::Type,
+            DataTypeQueryPath::PropertyTypeEdge { path, edge_kind } => {
+                DataTypeQueryPath::PropertyTypeEdge {
+                    path: Box::new(path.into_owned()),
+                    edge_kind,
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::iter::once;

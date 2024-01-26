@@ -4,7 +4,7 @@ use authorization::{schema::WebOwnerSubject, NoAuthorization};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
-    store::{query::Filter, AccountStore, EntityStore},
+    store::{query::Filter, AccountStore, EntityQuerySorting, EntityStore},
     subgraph::{
         edges::GraphResolveDepths,
         query::StructuralQuery,
@@ -150,7 +150,10 @@ pub fn bench_get_entity_by_id(
                         },
                         include_drafts: false,
                     },
-                    None,
+                    EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
                     None,
                 )
                 .await

@@ -204,8 +204,9 @@ pub enum ParameterList<'p> {
     Uuid(&'p [Uuid]),
 }
 
-impl Parameter<'_> {
-    fn to_owned(&self) -> Parameter<'static> {
+impl<'p> Parameter<'p> {
+    #[must_use]
+    pub fn to_owned(&self) -> Parameter<'static> {
         match self {
             Parameter::Boolean(bool) => Parameter::Boolean(*bool),
             Parameter::I32(number) => Parameter::I32(*number),

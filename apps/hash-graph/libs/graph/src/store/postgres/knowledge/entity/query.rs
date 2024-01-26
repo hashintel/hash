@@ -25,11 +25,12 @@ use crate::{
         postgres::{
             crud::QueryRecordDecode,
             query::{
-                Distinctness, Expression, Function, Ordering, PostgresRecord, PostgresSorting,
+                Distinctness, Expression, Function, PostgresRecord, PostgresSorting,
                 SelectCompiler, Table,
             },
         },
         query::Parameter,
+        Ordering,
     },
     subgraph::{
         edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},

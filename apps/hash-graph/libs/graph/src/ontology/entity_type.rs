@@ -794,6 +794,64 @@ impl<'de: 'p, 'p> Deserialize<'de> for EntityTypeQueryPath<'p> {
     }
 }
 
+impl EntityTypeQueryPath<'_> {
+    #[must_use]
+    pub fn into_owned(self) -> EntityTypeQueryPath<'static> {
+        match self {
+            EntityTypeQueryPath::BaseUrl => EntityTypeQueryPath::BaseUrl,
+            EntityTypeQueryPath::Version => EntityTypeQueryPath::Version,
+            EntityTypeQueryPath::VersionedUrl => EntityTypeQueryPath::VersionedUrl,
+            EntityTypeQueryPath::TransactionTime => EntityTypeQueryPath::TransactionTime,
+            EntityTypeQueryPath::OwnedById => EntityTypeQueryPath::OwnedById,
+            EntityTypeQueryPath::EditionCreatedById => EntityTypeQueryPath::EditionCreatedById,
+            EntityTypeQueryPath::EditionArchivedById => EntityTypeQueryPath::EditionArchivedById,
+            EntityTypeQueryPath::Title => EntityTypeQueryPath::Title,
+            EntityTypeQueryPath::Description => EntityTypeQueryPath::Description,
+            EntityTypeQueryPath::Examples => EntityTypeQueryPath::Examples,
+            EntityTypeQueryPath::Required => EntityTypeQueryPath::Required,
+            EntityTypeQueryPath::LabelProperty => EntityTypeQueryPath::LabelProperty,
+            EntityTypeQueryPath::Icon => EntityTypeQueryPath::Icon,
+            EntityTypeQueryPath::PropertyTypeEdge {
+                path,
+                edge_kind,
+                inheritance_depth,
+            } => EntityTypeQueryPath::PropertyTypeEdge {
+                path: path.into_owned(),
+                edge_kind,
+                inheritance_depth,
+            },
+            EntityTypeQueryPath::EntityTypeEdge {
+                path,
+                edge_kind,
+                inheritance_depth,
+                direction,
+            } => EntityTypeQueryPath::EntityTypeEdge {
+                path: Box::new(path.into_owned()),
+                edge_kind,
+                inheritance_depth,
+                direction,
+            },
+            EntityTypeQueryPath::EntityEdge {
+                path,
+                edge_kind,
+                inheritance_depth,
+            } => EntityTypeQueryPath::EntityEdge {
+                path: Box::new(path.into_owned()),
+                edge_kind,
+                inheritance_depth,
+            },
+            EntityTypeQueryPath::OntologyId => EntityTypeQueryPath::OntologyId,
+            EntityTypeQueryPath::Schema(path) => {
+                EntityTypeQueryPath::Schema(path.map(JsonPath::into_owned))
+            }
+            EntityTypeQueryPath::ClosedSchema(path) => {
+                EntityTypeQueryPath::ClosedSchema(path.map(JsonPath::into_owned))
+            }
+            EntityTypeQueryPath::AdditionalMetadata => EntityTypeQueryPath::AdditionalMetadata,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::iter::once;

@@ -42,16 +42,16 @@ use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
         crud::{QueryResult, Read, ReadPaginated, Sorting},
-        knowledge::{EntityValidationType, ValidateEntityError},
+        knowledge::{
+            EntityQueryCursor, EntityQuerySorting, EntityValidationType, ValidateEntityError,
+        },
         query::{Filter, OntologyQueryPath},
         AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
         InsertionError, PropertyTypeStore, QueryError, Record, StoreError, StorePool, UpdateError,
     },
     subgraph::{
         edges::GraphResolveDepths,
-        identifier::{
-            DataTypeVertexId, EntityTypeVertexId, EntityVertexId, PropertyTypeVertexId, VertexId,
-        },
+        identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId, VertexId},
         query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
@@ -1212,11 +1212,11 @@ where
         actor_id: AccountId,
         authorization_api: &Au,
         query: &StructuralQuery<'_, Entity>,
-        after: Option<&EntityVertexId>,
+        sorting: EntityQuerySorting<'static>,
         limit: Option<usize>,
-    ) -> Result<(Subgraph, Option<EntityVertexId>), QueryError> {
+    ) -> Result<(Subgraph, Option<EntityQueryCursor<'static>>), QueryError> {
         self.store
-            .get_entity(actor_id, authorization_api, query, after, limit)
+            .get_entity(actor_id, authorization_api, query, sorting, limit)
             .await
     }
 

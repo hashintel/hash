@@ -103,10 +103,10 @@ mod tests {
         ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
         store::{
             postgres::query::{
-                test_helper::trim_whitespace, Distinctness, Ordering, PostgresRecord,
-                SelectCompiler,
+                test_helper::trim_whitespace, Distinctness, PostgresRecord, SelectCompiler,
             },
             query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
+            Ordering,
         },
         subgraph::{
             edges::{EdgeDirection, KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},

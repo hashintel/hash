@@ -12,12 +12,12 @@ use crate::{
                 OntologyTemporalMetadata,
             },
             Alias, AliasedColumn, AliasedTable, Column, Condition, Constant, Distinctness,
-            EqualityOperator, Expression, Function, JoinExpression, OrderByExpression, Ordering,
+            EqualityOperator, Expression, Function, JoinExpression, OrderByExpression,
             PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table, Transpile,
             WhereExpression, WindowStatement, WithExpression,
         },
         query::{Filter, FilterExpression, Parameter, ParameterList, ParameterType},
-        Record,
+        Ordering, Record,
     },
     subgraph::temporal_axes::QueryTemporalAxes,
 };
@@ -681,6 +681,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
 
         column.aliased(alias)
+    }
+
+    pub fn add_parameter(&mut self, parameter: &'p (dyn ToSql + Sync)) -> Expression {
+        self.artifacts.parameters.push(parameter);
+        Expression::Parameter(self.artifacts.parameters.len())
     }
 
     pub fn compile_parameter<'f: 'p>(
