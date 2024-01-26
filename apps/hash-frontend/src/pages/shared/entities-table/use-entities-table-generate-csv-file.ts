@@ -135,31 +135,41 @@ export const useEntitiesTableGenerateCsvFile = (props: {
         outgoingLinksSubgraph,
       ) as LinkEntity[];
 
-      return outgoingLinkEntities.map((linkEntity) => {
-        const rightEntityRevisions = getRightEntityForLinkEntity(
-          outgoingLinksSubgraph,
-          linkEntity.metadata.recordId.entityId,
-        )!;
+      return outgoingLinkEntities
+        .map((linkEntity) => {
+          const rightEntityRevisions = getRightEntityForLinkEntity(
+            outgoingLinksSubgraph,
+            linkEntity.metadata.recordId.entityId,
+          )!;
 
-        const rightEntity = rightEntityRevisions[0]!;
+          const rightEntity = rightEntityRevisions[0];
 
-        const rightEntityLabel = generateEntityLabel(
-          outgoingLinksSubgraph,
-          rightEntity,
-        );
+          if (!rightEntity) {
+            /**
+             * The user may not have access to the right entity of the
+             * link, so we should handle this gracefully.
+             */
+            return [];
+          }
 
-        const linkEntityType = getEntityTypeById(
-          outgoingLinksSubgraph,
-          linkEntity.metadata.entityTypeId,
-        )!;
+          const rightEntityLabel = generateEntityLabel(
+            outgoingLinksSubgraph,
+            rightEntity,
+          );
 
-        return {
-          linkEntity,
-          rightEntity,
-          rightEntityLabel,
-          linkEntityType,
-        };
-      });
+          const linkEntityType = getEntityTypeById(
+            outgoingLinksSubgraph,
+            linkEntity.metadata.entityTypeId,
+          )!;
+
+          return {
+            linkEntity,
+            rightEntity,
+            rightEntityLabel,
+            linkEntityType,
+          };
+        })
+        .flat();
     },
     [structuralQueryEntities],
   );
