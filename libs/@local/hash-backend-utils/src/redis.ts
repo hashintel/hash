@@ -83,9 +83,7 @@ export class AsyncRedisClient extends DataSource {
     client.on("connect", () => {
       this.logger.debug("Redis client is connecting");
     });
-    client.on("reconnecting", (params) =>
-      this.logger.debug(`Redis reconnecting, attempt ${params.attempt}`),
-    );
+    client.on("reconnecting", () => this.logger.debug(`Redis reconnecting...`));
     client.on("ready", () => {
       this.logger.debug("Redis client is connected and ready.");
     });
