@@ -48,7 +48,7 @@ testTolerateConsoleErrors("a user's profile page renders", async ({ page }) => {
 /**
  * @todo H-2006 fix bugs on profile page and revert to using 'test' from ./shared/runtime
  */
-testTolerateConsoleErrors.only(
+testTolerateConsoleErrors(
   "an org's profile page renders, with and without a bio",
   async ({ page }) => {
     await loginUsingTempForm({
