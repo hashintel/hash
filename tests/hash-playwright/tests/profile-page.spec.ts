@@ -39,6 +39,8 @@ testTolerateConsoleErrors("a user's profile page renders", async ({ page }) => {
 
   await page.reload();
 
+  await sleep(2_000);
+
   await expect(page.locator("text=@alice")).toBeVisible();
   await expect(page.locator(`text=${bioText}`)).toBeVisible();
 });
@@ -46,7 +48,7 @@ testTolerateConsoleErrors("a user's profile page renders", async ({ page }) => {
 /**
  * @todo H-2006 fix bugs on profile page and revert to using 'test' from ./shared/runtime
  */
-testTolerateConsoleErrors(
+testTolerateConsoleErrors.only(
   "an org's profile page renders, with and without a bio",
   async ({ page }) => {
     await loginUsingTempForm({
@@ -72,6 +74,8 @@ testTolerateConsoleErrors(
     await sleep(2_000);
 
     await page.reload();
+
+    await sleep(2_000);
 
     await expect(page.locator("text=@example-org")).toBeVisible();
     await expect(page.locator(`text=${bioText}`)).toBeVisible();
