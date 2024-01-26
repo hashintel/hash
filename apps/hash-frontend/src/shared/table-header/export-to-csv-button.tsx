@@ -7,13 +7,13 @@ type CsvFile = {
   content: string[][];
 };
 
-export type GenerateCsvFileFunction = () => CsvFile | null;
+export type GenerateCsvFileFunction = () => Promise<CsvFile | null>;
 
 export const ExportToCsvButton: FunctionComponent<{
   generateCsvFile: GenerateCsvFileFunction;
 }> = ({ generateCsvFile }) => {
-  const handleExportToCsv = useCallback(() => {
-    const generatedCsvFile = generateCsvFile();
+  const handleExportToCsv = useCallback(async () => {
+    const generatedCsvFile = await generateCsvFile();
 
     if (!generatedCsvFile) {
       return;

@@ -1,6 +1,8 @@
+import { useLazyQuery } from "@apollo/client";
 import {
   Entity as BpEntity,
   EntityRootType as BpEntityRootType,
+  EntityType,
   PropertyType,
   Subgraph as BpSubgraph,
 } from "@blockprotocol/graph";
@@ -12,16 +14,32 @@ import {
 } from "@glideapps/glide-data-grid";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
 import { ListRegularIcon } from "@hashintel/design-system";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import {
+  currentTimeInstantTemporalAxes,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
   EntityId,
+  EntityRootType,
+  EntityTypeWithMetadata,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import {
+  getEntityTypeById,
+  getRightEntityForLinkEntity,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
+import {
+  extractBaseUrl,
+  LinkEntity,
+} from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   ToggleButton,
@@ -48,6 +66,11 @@ import {
 import { BlankCell, blankCell } from "../../components/grid/utils";
 import { ColumnFilter } from "../../components/grid/utils/filtering";
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
+import {
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
+} from "../../graphql/api-types.gen";
+import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { MinimalUser } from "../../lib/user-and-org";
 import { useEntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
 import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
@@ -441,15 +464,108 @@ export const EntitiesTable: FunctionComponent<{
     ],
   );
 
-  const generateCsvFile = useCallback(() => {
+  const [structuralQueryEntities] = useLazyQuery<
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery);
+
+  const fetchOutgoingLinksOfEntities = useCallback(
+    async (params: {
+      leftEntities: Entity[];
+    }): Promise<
+      {
+        linkEntity: LinkEntity;
+        rightEntity: Entity;
+        rightEntityLabel: string;
+        linkEntityType: EntityTypeWithMetadata;
+      }[]
+    > => {
+      const { leftEntities } = params;
+
+      const { data } = await structuralQueryEntities({
+        variables: {
+          query: {
+            filter: {
+              any: leftEntities.map((entity) => ({
+                equal: [
+                  { path: ["leftEntity", "uuid"] },
+                  {
+                    parameter: extractEntityUuidFromEntityId(
+                      entity.metadata.recordId.entityId,
+                    ),
+                  },
+                ],
+              })),
+            },
+            temporalAxes: currentTimeInstantTemporalAxes,
+            graphResolveDepths: {
+              ...zeroedGraphResolveDepths,
+              inheritsFrom: { outgoing: 255 },
+              isOfType: { outgoing: 2 },
+              hasRightEntity: { outgoing: 1, incoming: 0 },
+            },
+            includeDrafts: false,
+          },
+          includePermissions: false,
+        },
+      });
+
+      const outgoingLinksSubgraph = data
+        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+            data.structuralQueryEntities.subgraph,
+          )
+        : undefined;
+
+      if (!outgoingLinksSubgraph) {
+        throw new Error("Could not fetch outgoing links of entities");
+      }
+
+      const outgoingLinkEntities = getRoots(
+        outgoingLinksSubgraph,
+      ) as LinkEntity[];
+
+      return outgoingLinkEntities.map((linkEntity) => {
+        const rightEntityRevisions = getRightEntityForLinkEntity(
+          outgoingLinksSubgraph,
+          linkEntity.metadata.recordId.entityId,
+        )!;
+
+        const rightEntity = rightEntityRevisions[0]!;
+
+        const rightEntityLabel = generateEntityLabel(
+          outgoingLinksSubgraph,
+          rightEntity,
+        );
+
+        const linkEntityType = getEntityTypeById(
+          outgoingLinksSubgraph,
+          linkEntity.metadata.entityTypeId,
+        )!;
+
+        return {
+          linkEntity,
+          rightEntity,
+          rightEntityLabel,
+          linkEntityType,
+        };
+      });
+    },
+    [structuralQueryEntities],
+  );
+
+  const generateCsvFile = useCallback(async () => {
     if (!rows) {
       return null;
     }
+
+    // Table contents
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const columnRowKeys = columns.map(({ id }) => id ?? []).flat();
 
     const tableContentColumnTitles = columns.map(({ title }) => title);
+
+    // Entity Properties
 
     const propertyColumns = rows.reduce<PropertyType[]>((prev, row) => {
       const { entity } = row;
@@ -479,10 +595,32 @@ export const EntitiesTable: FunctionComponent<{
       return [...prev, ...newPropertyTypes];
     }, []);
 
+    // Outgoing links
+
+    const outgoingLinksWithRightEntities = await fetchOutgoingLinksOfEntities({
+      leftEntities: rows.map(({ entity }) => entity),
+    });
+
+    const outgoingLinkColumns = outgoingLinksWithRightEntities.reduce<
+      EntityType[]
+    >((prev, { linkEntityType }) => {
+      if (
+        !prev.some(
+          (previousLinkEntity) =>
+            previousLinkEntity.$id === linkEntityType.schema.$id,
+        )
+      ) {
+        return [...prev, linkEntityType.schema];
+      }
+
+      return prev;
+    }, []);
+
     const content: string[][] = [
       [
         "Entity ID",
         ...propertyColumns.map(({ title }) => title),
+        ...outgoingLinkColumns.map(({ title }) => title),
         ...tableContentColumnTitles,
       ],
       ...rows.map((row) => {
@@ -504,6 +642,27 @@ export const EntitiesTable: FunctionComponent<{
           return "";
         });
 
+        const outgoingLinks = outgoingLinksWithRightEntities.filter(
+          ({ linkEntity }) =>
+            linkEntity.linkData.leftEntityId ===
+            entity.metadata.recordId.entityId,
+        );
+
+        const outgoingLinkValues = outgoingLinkColumns.map((linkEntityType) => {
+          const outgoingLinksOfType = outgoingLinks.filter(
+            ({ linkEntityType: outgoingLinkEntityType }) =>
+              outgoingLinkEntityType.schema.$id === linkEntityType.$id,
+          );
+
+          if (outgoingLinksOfType.length > 0) {
+            return outgoingLinksOfType
+              .map(({ rightEntityLabel }) => rightEntityLabel)
+              .join(", ");
+          }
+
+          return "";
+        });
+
         const tableContent = columnRowKeys.map((key) => {
           const value = row[key];
 
@@ -518,7 +677,12 @@ export const EntitiesTable: FunctionComponent<{
           return "";
         });
 
-        return [row.entityId, ...propertyValues, ...tableContent];
+        return [
+          row.entityId,
+          ...propertyValues,
+          ...outgoingLinkValues,
+          ...tableContent,
+        ];
       }),
     ];
 
@@ -526,7 +690,7 @@ export const EntitiesTable: FunctionComponent<{
       title: "Entities",
       content,
     };
-  }, [rows, columns, propertyTypes]);
+  }, [rows, columns, propertyTypes, fetchOutgoingLinksOfEntities]);
 
   return (
     <Box>
