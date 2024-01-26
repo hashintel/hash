@@ -29,7 +29,9 @@ testTolerateConsoleErrors("a user's profile page renders", async ({ page }) => {
 
   await sleep(2_000);
 
-  await page.keyboard.type("Alice's bio");
+  const bioText = "Alice's bio";
+
+  await page.keyboard.type(bioText);
 
   await page.click("[aria-label='Save Bio']");
 
@@ -38,6 +40,7 @@ testTolerateConsoleErrors("a user's profile page renders", async ({ page }) => {
   await page.reload();
 
   await expect(page.locator("text=@alice")).toBeVisible();
+  await expect(page.locator(`text=${bioText}`)).toBeVisible();
 });
 
 /**
@@ -61,7 +64,8 @@ testTolerateConsoleErrors(
 
     await sleep(2_000);
 
-    await page.keyboard.type("Example Org's bio");
+    const bioText = "Example Org's bio";
+    await page.keyboard.type(bioText);
 
     await page.click("[aria-label='Save Bio']");
 
@@ -70,5 +74,6 @@ testTolerateConsoleErrors(
     await page.reload();
 
     await expect(page.locator("text=@example-org")).toBeVisible();
+    await expect(page.locator(`text=${bioText}`)).toBeVisible();
   },
 );
