@@ -1,6 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { AllFilter, Entity, GraphApi } from "@local/hash-graph-client";
+import type {
+  AllFilter,
+  CosineDistanceFilter,
+  Entity,
+  GraphApi,
+} from "@local/hash-graph-client";
 import type {
   InferredEntityCreationFailure,
   InferredEntityCreationSuccess,
@@ -10,6 +15,7 @@ import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils
 import type {
   AccountId,
   BaseUrl,
+  Entity as BrandedEntity,
   EntityId,
   LinkData,
   OwnedById,
@@ -21,7 +27,7 @@ import {
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 import isMatch from "lodash.ismatch";
 
-import { createPropertyEmbeddingInput } from "../../shared/create-embedding-input";
+import { createEntityEmbeddings } from "../../shared/embeddings";
 import type { DereferencedEntityType } from "../dereference-entity-type";
 import { InferenceState, UpdateCandidate } from "../inference-types";
 import { extractErrorMessage } from "../shared/extract-validation-failure-details";
@@ -108,8 +114,9 @@ export const createEntities = async ({
 
           if (hasNoProperties) {
             /**
-             * This prevents the proposed entity's properties object causing problems elsewhere, as it isn't present on the schema.
-             * Repeatedly advising the AI that it is providing a property not in the schema does not seem to stop it from doing so.
+             * This prevents the proposed entity's properties object causing problems elsewhere, as it isn't present on
+             * the schema. Repeatedly advising the AI that it is providing a property not in the schema does not seem
+             * to stop it from doing so.
              */
             log(
               `Overwriting properties of entity with temporary id ${proposedEntity.entityId} to an empty object, as the target type has no properties`,
@@ -120,9 +127,27 @@ export const createEntities = async ({
 
           /**
            * Search for an existing entity that seems to semantically match the proposed entity, based on:
-           * 1. The value for the label property, or other properties which are good candidates for unique identifying an entity
+           * 1. The value for the label property, or other properties which are good candidates for unique identifying
+           * an entity
            * 2. The entire entity properties object, if there is no match from (1)
            */
+
+          /** We are going to need the embeddings in both cases, so create these first */
+          const { embeddings } = await createEntityEmbeddings({
+            entityProperties: properties,
+            propertyTypes: Object.values(entityType.schema.properties).map(
+              (propertySchema) => ({
+                title:
+                  "items" in propertySchema
+                    ? propertySchema.items.title
+                    : propertySchema.title,
+                $id:
+                  "items" in propertySchema
+                    ? propertySchema.items.$id
+                    : propertySchema.$id,
+              }),
+            ),
+          });
 
           const existingEntityBaseAllFilter = [
             { equal: [{ path: ["archived"] }, { parameter: false }] },
@@ -137,22 +162,19 @@ export const createEntities = async ({
             generateVersionedUrlMatchingFilter(entityTypeId),
           ] satisfies AllFilter["all"];
 
-          const labelProperty = entityType.schema.labelProperty;
+          const maximumSemanticDistance = 0.07;
 
           /**
-           * First match on individual properties
+           * First find suitable specific properties to match on
            */
-          const propertySchemasToMatchOn: Record<
-            BaseUrl,
-            DereferencedEntityType["properties"][BaseUrl]
-          > =
+          const labelProperty = entityType.schema.labelProperty;
+
+          const propertyBaseUrlsToMatchOn: BaseUrl[] =
             labelProperty &&
             entityType.schema.properties[labelProperty] &&
             properties[labelProperty]
-              ? {
-                  [labelProperty]: entityType.schema.properties[labelProperty]!,
-                }
-              : {};
+              ? [labelProperty]
+              : [];
 
           const nameProperties = [
             "name",
@@ -172,27 +194,38 @@ export const createEntities = async ({
               ) &&
               properties[key]
             ) {
-              propertySchemasToMatchOn[key] = schema;
+              propertyBaseUrlsToMatchOn.push(key);
             }
           }
 
-          const semanticDistanceFilters = typedEntries(
-            propertySchemasToMatchOn,
-          ).map(([key, schema]) => {
-            return {
-              equal: [
-                { path: ["embedding"] },
-                {
-                  parameter: createPropertyEmbeddingInput({
-                    propertyTypeSchema:
-                      "items" in schema ? schema.items : schema,
-                    propertyValue: properties[key]!,
-                  }),
-                },
-                { parameter: 0.07 }, // starting point for a threshold that will get only values which are a semantic match
-              ],
-            };
-          });
+          /** Create the filters for any of label or name-like property values */
+          const semanticDistanceFilters: CosineDistanceFilter[] =
+            propertyBaseUrlsToMatchOn
+              .map((baseUrl) => {
+                const foundEmbedding = embeddings.find(
+                  (embedding) => embedding.property === baseUrl,
+                )?.embedding;
+
+                if (!foundEmbedding) {
+                  log(
+                    `Could not find embedding for property ${baseUrl} of entity with temporary id ${proposedEntity.entityId} – skipping`,
+                  );
+                  return null;
+                }
+
+                return {
+                  cosineDistance: [
+                    { path: ["embedding"] },
+                    {
+                      parameter: foundEmbedding,
+                    },
+                    { parameter: maximumSemanticDistance }, // starting point for a threshold that will get only values which are a semantic match
+                  ],
+                } satisfies CosineDistanceFilter;
+              })
+              .filter(
+                <T>(filter: T): filter is NonNullable<T> => filter !== null,
+              );
 
           let existingEntity: Entity | undefined;
 
@@ -213,13 +246,34 @@ export const createEntities = async ({
 
           if (!existingEntity) {
             // If we didn't find a match on individual properties, try matching on the entire properties object
-            const semanticDistanceFilter = {
-              equal: [
-                { path: ["embedding"] },
-                {},
-                { parameter: 0.07 }, // starting point for a threshold that will get only values which are a semantic match
-              ],
-            };
+            const propertyObjectEmbedding = embeddings.find(
+              (embedding) => !embedding.property,
+            );
+
+            if (!propertyObjectEmbedding) {
+              log(
+                `Could not find embedding for properties object of entity with temporary id ${proposedEntity.entityId} – skipping`,
+              );
+            } else {
+              existingEntity = await getEntityByFilter({
+                actorId,
+                graphApiClient,
+                filter: {
+                  all: [
+                    ...existingEntityBaseAllFilter,
+                    {
+                      cosineDistance: [
+                        { path: ["embedding"] },
+                        {
+                          parameter: propertyObjectEmbedding.embedding,
+                        },
+                        { parameter: maximumSemanticDistance },
+                      ],
+                    },
+                  ],
+                },
+              });
+            }
           }
 
           if (existingEntity) {
@@ -247,7 +301,7 @@ export const createEntities = async ({
               internalEntityStatusMap.unchangedEntities[
                 proposedEntity.entityId
               ] = {
-                entity: existingEntity,
+                entity: existingEntity as BrandedEntity,
                 entityTypeId,
                 operation: "already-exists-as-proposed",
                 proposedEntity,

@@ -44,10 +44,7 @@ type UpdateEntityEmbeddingsParams = {
 
 export const createEmbeddings = async (
   params: CreateEmbeddingsParams,
-): Promise<{
-  embeddings: number[][];
-  usage: CreateEmbeddingsReturn;
-}> => {
+): Promise<CreateEmbeddingsReturn> => {
   return await aiActivities.createEmbeddingsActivity(params);
 };
 

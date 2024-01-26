@@ -152,7 +152,8 @@ export const persistEntities = async (params: {
   const nextMessage = {
     role: "user",
     content: dedent(
-      `Please make calls to ${innerMessage}. Remember to include as many properties as you can find matching values for in the website content.`,
+      `Please make calls to ${innerMessage}. Remember to include as many properties as you can find matching values for in the website content.
+      If you can't find a value for a specified property, just omit it – don't pass 'null' as a value.`,
     ),
   } as const;
 

@@ -1,5 +1,4 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
   EntityPermission,
   EntityStructuralQuery,
@@ -144,7 +143,12 @@ export const getEntities: ImpureGraphFunction<
   },
   Promise<Subgraph<EntityRootType>>
 > = async ({ graphApi }, { actorId }, { query, temporalClient }) => {
-  for (const [filterName, expression] of typedEntries(query.filter)) {
+  /**
+   * Convert any strings provided under a top-level 'cosineDistance' filter into embeddings
+   * This doesn't deal with 'cosineDistance' inside a nested filter (e.g. 'any'), so for now
+   * this is only good for single-string inputs.
+   */
+  for (const [filterName, expression] of Object.entries(query.filter)) {
     if (filterName === "cosineDistance") {
       if (
         Array.isArray(expression) &&

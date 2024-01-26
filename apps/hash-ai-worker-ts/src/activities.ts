@@ -14,11 +14,11 @@ import { StatusCode } from "@local/status";
 import { ApplicationFailure } from "@temporalio/activity";
 import { CreateEmbeddingResponse } from "openai/resources";
 
+import { inferEntities } from "./activities/infer-entities";
 import {
   createEmbeddings,
   createEntityEmbeddings,
-} from "./activities/embeddings";
-import { inferEntities } from "./activities/infer-entities";
+} from "./activities/shared/embeddings";
 
 export { createGraphActivities } from "./activities/graph";
 
@@ -51,6 +51,12 @@ export const createAiActivities = ({
     embeddings: { property?: BaseUrl; embedding: number[] }[];
     usage: CreateEmbeddingResponse.Usage;
   }> {
-    return createEntityEmbeddings(params);
+    return createEntityEmbeddings({
+      entityProperties: params.entityProperties,
+      propertyTypes: params.propertyTypes.map((propertyType) => ({
+        title: propertyType.schema.title,
+        $id: propertyType.schema.$id,
+      })),
+    });
   },
 });

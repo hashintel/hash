@@ -157,7 +157,7 @@ export const queryEntitiesResolver: NonNullable<
     hasRightEntity,
     includeDrafts,
   },
-  { logger, dataSources, authentication, temporal },
+  { logger, dataSources, authentication },
   info,
 ) => {
   if (operation.multiSort !== undefined && operation.multiSort !== null) {

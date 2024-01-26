@@ -1,13 +1,14 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { PropertyType } from "@local/hash-graph-client";
 import type {
   BaseUrl,
   EntityPropertiesObject,
-  PropertyTypeWithMetadata,
+  EntityPropertyValue,
 } from "@local/hash-subgraph";
-import OpenAI from "openai/index";
-import { CreateEmbeddingResponse } from "openai/resources";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import OpenAI from "openai";
 
-import { createPropertyEmbeddingInput } from "./shared/create-embedding-input";
-import Usage = CreateEmbeddingResponse.Usage;
+import Usage = OpenAI.CreateEmbeddingResponse.Usage;
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -25,16 +26,30 @@ export const createEmbeddings = async (params: { input: string[] }) => {
   };
 };
 
+const createPropertyEmbeddingInput = (params: {
+  propertyTypeSchema: Pick<PropertyType, "title">;
+  propertyValue: EntityPropertyValue;
+}): string => {
+  return `${params.propertyTypeSchema.title}: ${typeof params.propertyValue === "string" ? params.propertyValue : JSON.stringify(params.propertyValue)}`;
+};
+
+/**
+ * Creates embeddings for (a) each property and finally (b) a new line-separated list of all properties.
+ */
 export const createEntityEmbeddings = async (params: {
   entityProperties: EntityPropertiesObject;
-  propertyTypes: PropertyTypeWithMetadata[];
+  propertyTypes: { title: string; $id: VersionedUrl }[];
 }): Promise<{
-  embeddings: { property?: BaseUrl; embedding: number[] }[];
+  embeddings: {
+    /** If 'property' is absent, this is the combined embedding for all properties */
+    property?: BaseUrl;
+    embedding: number[];
+  }[];
   usage: Usage;
 }> => {
   // sort property types by their base url
   params.propertyTypes.sort((a, b) =>
-    a.metadata.recordId.baseUrl.localeCompare(b.metadata.recordId.baseUrl),
+    extractBaseUrl(a.$id).localeCompare(extractBaseUrl(b.$id)),
   );
 
   // We want to create embeddings for:
@@ -43,26 +58,30 @@ export const createEntityEmbeddings = async (params: {
   //
   // We use the last item in the array to store the combined 'all properties' list.
   const propertyEmbeddings: string[] = [];
-  const usedPropertyTypes: PropertyTypeWithMetadata[] = [];
+  const usedPropertyBaseUrls: BaseUrl[] = [];
   let combinedEntityEmbedding = "";
   for (const propertyType of params.propertyTypes) {
-    const property =
-      params.entityProperties[propertyType.metadata.recordId.baseUrl];
+    const baseUrl = extractBaseUrl(propertyType.$id);
+
+    const property = params.entityProperties[baseUrl];
+
     if (property === undefined) {
       // `property` could be `null` or `false` as well but that is part of the semantic meaning of the property
       // and should be included in the embedding.
       continue;
     }
+
     const embeddingInput = createPropertyEmbeddingInput({
-      propertyTypeSchema: propertyType.schema,
+      propertyTypeSchema: propertyType,
       propertyValue: property,
     });
+
     combinedEntityEmbedding += `${embeddingInput}\n`;
     propertyEmbeddings.push(embeddingInput);
-    usedPropertyTypes.push(propertyType);
+    usedPropertyBaseUrls.push(baseUrl);
   }
 
-  if (usedPropertyTypes.length === 0) {
+  if (usedPropertyBaseUrls.length === 0) {
     return {
       embeddings: [],
       usage: {
@@ -79,7 +98,7 @@ export const createEntityEmbeddings = async (params: {
   return {
     usage,
     embeddings: embeddings.map((embedding, idx) => ({
-      property: usedPropertyTypes[idx]?.metadata.recordId.baseUrl,
+      property: usedPropertyBaseUrls[idx],
       embedding,
     })),
   };
