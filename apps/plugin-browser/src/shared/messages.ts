@@ -13,6 +13,11 @@ export type InferEntitiesRequest = {
   textInput: string;
 };
 
+export type CancelInferEntitiesRequest = {
+  type: "cancel-infer-entities";
+  requestUuid: string;
+};
+
 export type GetSiteContentRequest = {
   type: "get-site-content";
 };
@@ -23,4 +28,7 @@ export type GetSiteContentReturn = {
   pageUrl: string;
 };
 
-export type Message = InferEntitiesRequest | GetSiteContentRequest;
+export type Message =
+  | InferEntitiesRequest
+  | CancelInferEntitiesRequest
+  | GetSiteContentRequest;

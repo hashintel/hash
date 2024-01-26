@@ -1,22 +1,19 @@
 import http from "node:http";
 
+import { DistributiveOmit } from "@local/advanced-types/distribute";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
-  inferenceModelNames,
-  InferEntitiesCallerParams,
+  InferenceWebsocketRequestMessage,
   InferEntitiesRequestMessage,
-  InferEntitiesResponseMessage,
-  InferEntitiesReturn,
-  inferEntitiesUserArgumentKeys,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { StatusCode } from "@local/status";
-import { ApplicationFailure, Client } from "@temporalio/client";
-import { WorkflowFailedError } from "@temporalio/client/src/errors";
+import { Client } from "@temporalio/client";
 import { WebSocket, WebSocketServer } from "ws";
 
 import { getUserAndSession } from "../auth/create-auth-handlers";
 import { ImpureGraphContext } from "../graph/context-types";
 import { User } from "../graph/knowledge/system-types/user";
+import { handleCancelInferEntitiesRequest } from "./infer-entities-websocket/handle-cancel-infer-entities-request";
+import { handleInferEntitiesRequest } from "./infer-entities-websocket/handle-infer-entities-request";
 
 const inferEntitiesMessageHandler = async ({
   socket,
@@ -26,84 +23,28 @@ const inferEntitiesMessageHandler = async ({
 }: {
   socket: WebSocket;
   temporalClient: Client;
-  message: Omit<InferEntitiesRequestMessage, "cookie">;
+  message: DistributiveOmit<InferenceWebsocketRequestMessage, "cookie">;
   user: User;
 }) => {
-  const { requestUuid, payload: userArguments } = message;
-
-  const sendResponse = (payload: InferEntitiesReturn) => {
-    const responseMessage: InferEntitiesResponseMessage = {
-      payload,
-      requestUuid,
-      type: "inference-response",
-    };
-    socket.send(JSON.stringify(responseMessage));
-  };
-
-  if (inferEntitiesUserArgumentKeys.some((key) => !(key in userArguments))) {
-    sendResponse({
-      code: StatusCode.InvalidArgument,
-      contents: [],
-      message: `Invalid request body – expected an object containing all of ${inferEntitiesUserArgumentKeys.join(
-        ", ",
-      )}`,
-    });
-    return;
-  }
-
-  if (!inferenceModelNames.includes(userArguments.model)) {
-    sendResponse({
-      code: StatusCode.InvalidArgument,
-      contents: [],
-      message: `Invalid request body – expected 'model' to be one of ${inferenceModelNames.join(
-        ", ",
-      )}`,
-    });
-    return;
-  }
-
-  try {
-    const status = await temporalClient.workflow.execute<
-      (params: InferEntitiesCallerParams) => Promise<InferEntitiesReturn>
-    >("inferEntities", {
-      taskQueue: "ai",
-      args: [
-        {
-          authentication: { actorId: user.accountId },
-          requestUuid,
-          userArguments,
-        },
-      ],
-      workflowId: requestUuid,
-      retry: {
-        maximumAttempts: 1,
-      },
-    });
-
-    sendResponse(status);
-  } catch (err) {
-    const errorCause = (err as WorkflowFailedError).cause?.cause as
-      | ApplicationFailure
-      | undefined;
-
-    const errorDetails = errorCause?.details?.[0] as
-      | InferEntitiesReturn
-      | undefined;
-
-    if (!errorDetails) {
-      sendResponse({
-        code: StatusCode.Internal,
-        contents: [],
-        message: `Unexpected error from Infer Entities workflow: ${
-          (err as Error).message
-        }`,
+  switch (message.type) {
+    case "inference-request":
+      await handleInferEntitiesRequest({
+        socket,
+        temporalClient,
+        message,
+        user,
       });
-
       return;
-    }
-
-    sendResponse(errorDetails);
+    case "cancel-inference-request":
+      await handleCancelInferEntitiesRequest({
+        socket,
+        temporalClient,
+        message,
+        user,
+      });
+      return;
   }
+  socket.send(`Unrecognized message '${JSON.stringify(message)}'`);
 };
 
 export const openInferEntitiesWebSocket = ({
