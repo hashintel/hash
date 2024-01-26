@@ -22,6 +22,7 @@ import { useMemo } from "react";
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import { useUsers } from "../../../components/hooks/use-users";
 import { MinimalUser } from "../../../lib/user-and-org";
+import { stringifyPropertyValue } from "./stringify-property-value";
 
 export interface TypeEntitiesRow {
   rowId: string;
@@ -198,9 +199,11 @@ export const useEntitiesTable = (params: {
                 if (column.id) {
                   const propertyValue = entity.properties[column.id as BaseUrl];
 
-                  const value = Array.isArray(propertyValue)
-                    ? propertyValue.join(", ")
-                    : propertyValue;
+                  const value =
+                    typeof propertyValue === "undefined"
+                      ? ""
+                      : stringifyPropertyValue(propertyValue);
+
                   return { ...fields, [column.id]: value };
                 }
 
