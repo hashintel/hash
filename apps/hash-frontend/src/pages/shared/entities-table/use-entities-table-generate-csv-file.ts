@@ -1,7 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
 import { EntityType, PropertyType } from "@blockprotocol/type-system";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
@@ -14,11 +13,7 @@ import {
   extractEntityUuidFromEntityId,
   isBaseUrl,
 } from "@local/hash-subgraph";
-import {
-  getEntityTypeById,
-  getRightEntityForLinkEntity,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
+import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
 import {
   extractBaseUrl,
   LinkEntity,
@@ -59,8 +54,6 @@ export const useEntitiesTableGenerateCsvFile = (props: {
     }): Promise<
       {
         linkEntity: LinkEntity;
-        rightEntity: Entity;
-        rightEntityLabel: string;
         linkEntityType: EntityTypeWithMetadata;
       }[]
     > => {
@@ -84,9 +77,7 @@ export const useEntitiesTableGenerateCsvFile = (props: {
             temporalAxes: currentTimeInstantTemporalAxes,
             graphResolveDepths: {
               ...zeroedGraphResolveDepths,
-              inheritsFrom: { outgoing: 255 },
-              isOfType: { outgoing: 2 },
-              hasRightEntity: { outgoing: 1, incoming: 0 },
+              isOfType: { outgoing: 1 },
             },
             includeDrafts: false,
           },
@@ -110,26 +101,6 @@ export const useEntitiesTableGenerateCsvFile = (props: {
 
       return outgoingLinkEntities
         .map((linkEntity) => {
-          const rightEntityRevisions = getRightEntityForLinkEntity(
-            outgoingLinksSubgraph,
-            linkEntity.metadata.recordId.entityId,
-          )!;
-
-          const rightEntity = rightEntityRevisions[0];
-
-          if (!rightEntity) {
-            /**
-             * The user may not have access to the right entity of the
-             * link, so we should handle this gracefully.
-             */
-            return [];
-          }
-
-          const rightEntityLabel = generateEntityLabel(
-            outgoingLinksSubgraph,
-            rightEntity,
-          );
-
           const linkEntityType = getEntityTypeById(
             outgoingLinksSubgraph,
             linkEntity.metadata.entityTypeId,
@@ -137,8 +108,6 @@ export const useEntitiesTableGenerateCsvFile = (props: {
 
           return {
             linkEntity,
-            rightEntity,
-            rightEntityLabel,
             linkEntityType,
           };
         })
@@ -253,7 +222,7 @@ export const useEntitiesTableGenerateCsvFile = (props: {
 
           if (outgoingLinksOfType.length > 0) {
             return outgoingLinksOfType
-              .map(({ rightEntityLabel }) => rightEntityLabel)
+              .map(({ linkEntity }) => linkEntity.linkData.rightEntityId)
               .join(", ");
           }
 
