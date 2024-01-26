@@ -221,9 +221,9 @@ export const useEntitiesTableGenerateCsvFile = (props: {
           );
 
           if (outgoingLinksOfType.length > 0) {
-            return outgoingLinksOfType
+            return `[${outgoingLinksOfType
               .map(({ linkEntity }) => linkEntity.linkData.rightEntityId)
-              .join(", ");
+              .join(", ")}]`;
           }
 
           return "";
