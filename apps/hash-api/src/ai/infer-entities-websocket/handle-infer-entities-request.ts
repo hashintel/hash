@@ -1,4 +1,5 @@
 import {
+  GetResultsFromCancelledInferenceRequestQuery,
   inferenceModelNames,
   InferEntitiesCallerParams,
   InferEntitiesRequestMessage,
@@ -15,6 +16,7 @@ import type {
 import type { WebSocket } from "ws";
 
 import { User } from "../../graph/knowledge/system-types/user";
+import { logger } from "../../logger";
 
 export const handleInferEntitiesRequest = async ({
   socket,
@@ -93,9 +95,27 @@ export const handleInferEntitiesRequest = async ({
 
     sendResponse(
       status,
-      status.code === "CANCELLED" ? "user-cancelled" : "complete",
+      status.code === StatusCode.Cancelled ? "user-cancelled" : "complete",
     );
   } catch (err) {
+    const handle = temporalClient.workflow.getHandle(requestUuid);
+
+    try {
+      // See if we can get the results from the cancelled workflow via a query
+      const partialResultsFromCancellation =
+        await handle.query<InferEntitiesReturn>(
+          "getResultsFromCancelledInference" satisfies GetResultsFromCancelledInferenceRequestQuery["name"],
+        );
+      sendResponse(partialResultsFromCancellation, "user-cancelled");
+      return;
+    } catch (queryError) {
+      logger.error(
+        "Error calling AI inference for results from cancelled workflow:",
+        err,
+      );
+      // fallback to the error handling below
+    }
+
     const errorCause = (err as WorkflowFailedError).cause?.cause as
       | ApplicationFailure
       | undefined;

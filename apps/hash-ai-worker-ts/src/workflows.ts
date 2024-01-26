@@ -1,12 +1,18 @@
 import type { Filter } from "@local/hash-graph-client";
-import type { InferEntitiesCallerParams } from "@local/hash-isomorphic-utils/ai-inference-types";
+import type {
+  InferEntitiesCallerParams,
+  InferEntitiesReturn,
+} from "@local/hash-isomorphic-utils/ai-inference-types";
+import { GetResultsFromCancelledInferenceRequestQuery } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { AccountId, Entity } from "@local/hash-subgraph";
 import { CancelledFailure } from "@temporalio/common";
 import {
   ActivityCancellationType,
   ActivityFailure,
+  defineQuery,
   isCancellation,
   proxyActivities,
+  setHandler,
 } from "@temporalio/workflow";
 import { CreateEmbeddingResponse } from "openai/resources";
 
@@ -29,6 +35,9 @@ const graphActivities = proxyActivities<
   },
 });
 
+const getResultsFromCancelledInferenceQuery: GetResultsFromCancelledInferenceRequestQuery =
+  defineQuery("getResultsFromCancelledInference");
+
 export const inferEntities = async (params: InferEntitiesCallerParams) => {
   try {
     return await aiActivities.inferEntitiesActivity(params);
@@ -41,14 +50,17 @@ export const inferEntities = async (params: InferEntitiesCallerParams) => {
         err.cause.details[0] !== null &&
         "code" in err.cause.details[0]
       ) {
+        const results = err.cause.details[0] as InferEntitiesReturn;
+
         /**
-         * We've been given a cancellation failure with the return in the cause's details, return it.
+         * For some reason the `details` are not returned to the client as part of the 'CancelledFailure' error,
+         * so we set up a query handler instead which the client can call for partial results when it receives a cancellation.
          *
-         * Ideally we'd throw the `CancelledFailure` error here, so that Temporal treats it as a cancellation,
-         * but the client doesn't see the `details` if we do that for some reason.
-         * @see https://temporalio.slack.com/archives/C01DKSMU94L/p1705927971571849
+         * @todo figure out why 'details' is not being returned in the error - @see https://temporalio.slack.com/archives/C01DKSMU94L/p1705927971571849
          */
-        return err.cause.details[0];
+        setHandler(getResultsFromCancelledInferenceQuery, () => results);
+
+        throw err;
       }
     }
     throw err;

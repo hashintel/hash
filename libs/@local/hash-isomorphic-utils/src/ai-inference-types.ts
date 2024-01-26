@@ -8,6 +8,7 @@ import {
   OwnedById,
 } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
+import type { QueryDefinition } from "@temporalio/workflow";
 
 export const inferEntitiesUserArgumentKeys = [
   "entityTypeIds",
@@ -168,3 +169,9 @@ export type InferEntitiesResponseMessage = {
   status: "complete" | "user-cancelled" | "bad-request";
   type: "inference-response";
 };
+
+export type GetResultsFromCancelledInferenceRequestQuery = QueryDefinition<
+  InferEntitiesReturn,
+  never,
+  "getResultsFromCancelledInference"
+>;
