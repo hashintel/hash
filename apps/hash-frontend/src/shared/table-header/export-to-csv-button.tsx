@@ -1,3 +1,4 @@
+import { unparse } from "papaparse";
 import { FunctionComponent, useCallback } from "react";
 
 import { TableHeaderButton } from "./table-header-button";
@@ -21,7 +22,7 @@ export const ExportToCsvButton: FunctionComponent<{
 
     const { title, content } = generatedCsvFile;
 
-    const stringifiedContent = content.map((row) => row.join(",")).join("\n");
+    const stringifiedContent = unparse(content);
 
     // Create a blob with the CSV content
     const blob = new Blob([stringifiedContent], {
