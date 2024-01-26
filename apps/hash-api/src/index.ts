@@ -176,6 +176,8 @@ const main = async () => {
 
   const redisHost = getRequiredEnv("HASH_REDIS_HOST");
   const redisPort = parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10);
+  const redisEncryptedTransit =
+    process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true";
 
   const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
   const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
@@ -189,6 +191,7 @@ const main = async () => {
   const redis = new RedisCache(logger, {
     host: redisHost,
     port: redisPort,
+    tls: redisEncryptedTransit,
   });
   shutdown.addCleanup("Redis", async () => redis.close());
 

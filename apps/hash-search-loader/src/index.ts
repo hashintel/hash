@@ -125,6 +125,7 @@ const main = async () => {
   const redis = new AsyncRedisClient(logger, {
     host: REDIS_HOST,
     port: REDIS_PORT,
+    tls: process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true",
   });
   shutdown.addCleanup("Redis", () => redis.close());
 

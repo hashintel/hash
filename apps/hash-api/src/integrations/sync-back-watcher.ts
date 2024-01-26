@@ -39,6 +39,7 @@ export const createIntegrationSyncBackWatcher = async (
   const redisClient = new AsyncRedisClient(logger, {
     host: getRequiredEnv("HASH_REDIS_HOST"),
     port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
+    tls: process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true",
   });
 
   const queue = new RedisQueueExclusiveConsumer(redisClient);
