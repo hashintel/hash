@@ -41,16 +41,16 @@ pub struct CompilerArtifacts<'p> {
     uses_cursor: bool,
 }
 
-pub struct SelectCompiler<'p, T: Record> {
+pub struct SelectCompiler<'p, 'q: 'p, T: Record> {
     statement: SelectStatement,
     artifacts: CompilerArtifacts<'p>,
     temporal_axes: Option<&'p QueryTemporalAxes>,
     table_hooks: HashMap<Table, fn(&mut Self, Alias)>,
     selections:
-        HashMap<&'p T::QueryPath<'p>, (AliasedColumn, usize, Distinctness, Option<Ordering>)>,
+        HashMap<&'p T::QueryPath<'q>, (AliasedColumn, usize, Distinctness, Option<Ordering>)>,
 }
 
-impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
+impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     /// Creates a new, empty compiler.
     pub fn new(temporal_axes: Option<&'p QueryTemporalAxes>, include_drafts: bool) -> Self {
         let mut table_hooks = HashMap::<_, fn(&mut Self, Alias)>::new();
@@ -260,9 +260,9 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
     ///
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
-    pub fn add_selection_path(&mut self, path: &'p R::QueryPath<'p>) -> usize
+    pub fn add_selection_path(&mut self, path: &'p R::QueryPath<'q>) -> usize
     where
-        R::QueryPath<'p>: PostgresQueryPath,
+        R::QueryPath<'q>: PostgresQueryPath,
     {
         self.add_distinct_selection_with_ordering(path, Distinctness::Indistinct, None)
     }
@@ -273,12 +273,12 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
     /// and [`Ordering`].
     pub fn add_distinct_selection_with_ordering(
         &mut self,
-        path: &'p R::QueryPath<'p>,
+        path: &'p R::QueryPath<'q>,
         distinctness: Distinctness,
         ordering: Option<Ordering>,
     ) -> usize
     where
-        R::QueryPath<'p>: PostgresQueryPath,
+        R::QueryPath<'q>: PostgresQueryPath,
     {
         if let Some((column, index, stored_distinctness, stored_ordering)) =
             self.selections.get_mut(path)
@@ -319,13 +319,13 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
     /// Adds a new path to the selection which can be used as cursor.
     pub fn add_cursor_selection(
         &mut self,
-        path: &'p R::QueryPath<'p>,
+        path: &'p R::QueryPath<'q>,
         lhs: impl FnOnce(Expression) -> Expression,
         rhs: Expression,
         ordering: Ordering,
     ) -> usize
     where
-        R::QueryPath<'p>: PostgresQueryPath,
+        R::QueryPath<'q>: PostgresQueryPath,
     {
         let column = self.compile_path_column(path);
         self.statement
@@ -336,9 +336,9 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
     }
 
     /// Adds a new filter to the selection.
-    pub fn add_filter<'f: 'p>(&mut self, filter: &'p Filter<'f, R>)
+    pub fn add_filter(&mut self, filter: &'p Filter<'q, R>)
     where
-        R::QueryPath<'f>: PostgresQueryPath,
+        R::QueryPath<'q>: PostgresQueryPath,
     {
         let condition = self.compile_filter(filter);
         self.artifacts.condition_index += 1;
@@ -355,9 +355,9 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
 
     /// Compiles a [`Filter`] to a `Condition`.
     #[expect(clippy::too_many_lines)]
-    pub fn compile_filter<'f: 'p>(&mut self, filter: &'p Filter<'f, R>) -> Condition
+    pub fn compile_filter(&mut self, filter: &'p Filter<'q, R>) -> Condition
     where
-        R::QueryPath<'f>: PostgresQueryPath,
+        R::QueryPath<'q>: PostgresQueryPath,
     {
         if let Some(condition) = self.compile_special_filter(filter) {
             return condition;
@@ -555,7 +555,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
     //          statement to ensure compatibility
     // TODO: Remove CTE to allow limit or cursor selection
     //   see https://linear.app/hash/issue/H-1442
-    fn compile_latest_ontology_version_filter<'q>(
+    fn compile_latest_ontology_version_filter(
         &mut self,
         path: &R::QueryPath<'q>,
         operator: EqualityOperator,
@@ -626,9 +626,9 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
     ///
     /// The following [`Filter`]s will be special cased:
     /// - Comparing the `"version"` field on [`Table::OntologyIds`] with `"latest"` for equality.
-    fn compile_special_filter<'f: 'p>(&mut self, filter: &Filter<'f, R>) -> Option<Condition>
+    fn compile_special_filter(&mut self, filter: &'p Filter<'q, R>) -> Option<Condition>
     where
-        R::QueryPath<'f>: PostgresQueryPath,
+        R::QueryPath<'q>: PostgresQueryPath,
     {
         match filter {
             Filter::Equal(lhs, rhs) | Filter::NotEqual(lhs, rhs) => match (lhs, rhs) {
@@ -662,7 +662,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
         }
     }
 
-    pub fn compile_path_column<'q>(&mut self, path: &'p R::QueryPath<'q>) -> AliasedColumn
+    pub fn compile_path_column(&mut self, path: &'p R::QueryPath<'q>) -> AliasedColumn
     where
         R::QueryPath<'q>: PostgresQueryPath,
     {
@@ -732,12 +732,12 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
         )
     }
 
-    pub fn compile_filter_expression<'f: 'p>(
+    pub fn compile_filter_expression(
         &mut self,
-        expression: &'p FilterExpression<'f, R>,
+        expression: &'p FilterExpression<'q, R>,
     ) -> (Expression, ParameterType)
     where
-        R::QueryPath<'f>: PostgresQueryPath,
+        R::QueryPath<'q>: PostgresQueryPath,
     {
         match expression {
             FilterExpression::Path(path) => {
@@ -771,7 +771,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
     /// compiled, each subsequent call will result in a new join-chain.
     ///
     /// [`Relation`]: super::table::Relation
-    fn add_join_statements<'q>(&mut self, path: &R::QueryPath<'q>) -> Alias
+    fn add_join_statements(&mut self, path: &R::QueryPath<'q>) -> Alias
     where
         R::QueryPath<'q>: PostgresQueryPath,
     {

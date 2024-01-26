@@ -45,7 +45,7 @@ impl<Cl, R, S> ReadPaginated<R, S> for PostgresStore<Cl>
 where
     Cl: AsClient,
     for<'c> R: PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
-    S: PostgresSorting<R> + Sync + 'static,
+    for<'s> S: PostgresSorting<'s, R> + Sync + 'static,
 {
     type QueryResult = Row;
 
