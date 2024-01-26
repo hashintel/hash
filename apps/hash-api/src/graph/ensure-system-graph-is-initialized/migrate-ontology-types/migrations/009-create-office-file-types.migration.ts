@@ -14,7 +14,7 @@ const migrate: MigrationFunction = async ({
   migrationState,
 }) => {
   /**
-   * Step 1. Create the `Text Document` entity type and its child entity types.
+   * Step 1. Create the `Document File` entity type and its child entity types.
    */
 
   const fileEntityTypeBaseUrl = systemEntityTypes.file
@@ -87,7 +87,7 @@ const migrate: MigrationFunction = async ({
   );
 
   /**
-   * Step 2. Create the `Slideshow` entity type and its child entity types.
+   * Step 2. Create the `Presentation File` entity type and its child entity types.
    */
 
   const slideshowFileEntityType = await createSystemEntityTypeIfNotExists(
@@ -128,7 +128,7 @@ const migrate: MigrationFunction = async ({
   );
 
   /**
-   * Step 3. Create the `Spreadsheet` entity type and its child entity types.
+   * Step 3. Create the `Spreadsheet File` entity type and its child entity types.
    */
 
   const spreadsheetFileEntityType = await createSystemEntityTypeIfNotExists(
