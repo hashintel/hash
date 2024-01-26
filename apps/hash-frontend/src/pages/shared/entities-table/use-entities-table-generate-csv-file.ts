@@ -170,13 +170,7 @@ export const useEntitiesTableGenerateCsvFile = (props: {
       return null;
     }
 
-    // Table contents
-
-    const columnRowKeys = columns.map(({ id }) => id).flat();
-
-    const tableContentColumnTitles = columns.map(({ title }) => title);
-
-    // Entity Properties
+    // Entity property columns
 
     const propertyColumns = currentlyDisplayedRows.reduce<PropertyType[]>(
       (prev, row) => {
@@ -209,7 +203,7 @@ export const useEntitiesTableGenerateCsvFile = (props: {
       [],
     );
 
-    // Outgoing links
+    // Entity outgoing link columns
 
     const outgoingLinksWithRightEntities = await fetchOutgoingLinksOfEntities({
       leftEntities: currentlyDisplayedRows.map(({ entity }) => entity),
@@ -230,6 +224,20 @@ export const useEntitiesTableGenerateCsvFile = (props: {
       return prev;
     }, []);
 
+    // Entity metadata columns (i.e. what's already being displayed in the entities table)
+
+    const columnRowKeys = columns.map(({ id }) => id).flat();
+
+    const tableContentColumnTitles = columns.map(({ title, id }) =>
+      /**
+       * If the column is the entity label column, add the word "label" to the
+       * column title. Otherwise we'd end up with an "Entity" or "Page" column title,
+       * making it harder to distinguish from the property/outgoing link columns.
+       */
+      id === "entityLabel" ? `${title} label` : title,
+    );
+
+    // Collate the contents of the CSV file row by row (including the header)
     const content: string[][] = [
       [
         "Entity ID",
