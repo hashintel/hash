@@ -20,8 +20,7 @@ import { format } from "date-fns";
 import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
-import { useUsers } from "../../../components/hooks/use-users";
-import { MinimalUser } from "../../../lib/user-and-org";
+import { MinimalActor, useActors } from "../../../shared/use-actors";
 import { stringifyPropertyValue } from "./stringify-property-value";
 
 export interface TypeEntitiesRow {
@@ -33,7 +32,7 @@ export interface TypeEntitiesRow {
   namespace: string;
   archived?: boolean;
   lastEdited: string;
-  lastEditedBy?: MinimalUser;
+  lastEditedBy?: MinimalActor;
   properties?: {
     [k: string]: string;
   };
@@ -61,7 +60,13 @@ export const useEntitiesTable = (params: {
     isViewingPages = false,
   } = params;
 
-  const { users } = useUsers();
+  const lastEditedByAccountIds = useMemo(
+    () =>
+      entities?.map(({ metadata }) => metadata.provenance.edition.createdById),
+    [entities],
+  );
+
+  const { actors } = useActors({ accountIds: lastEditedByAccountIds });
 
   const getOwnerForEntity = useGetOwnerForEntity();
 
@@ -173,7 +178,7 @@ export const useEntitiesTable = (params: {
               "yyyy-MM-dd HH:mm",
             );
 
-            const lastEditedBy = users?.find(
+            const lastEditedBy = actors?.find(
               ({ accountId }) =>
                 accountId === entity.metadata.provenance.edition.createdById,
             );
@@ -224,6 +229,6 @@ export const useEntitiesTable = (params: {
     hideEntityTypeVersionColumn,
     hidePropertiesColumns,
     isViewingPages,
-    users,
+    actors,
   ]);
 };

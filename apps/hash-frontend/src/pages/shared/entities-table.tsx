@@ -252,15 +252,21 @@ export const EntitiesTable: FunctionComponent<{
               data: row.lastEdited,
             };
           } else if (columnId === "lastEditedBy") {
-            const lastEditedBy = row.lastEditedBy?.preferredName;
+            const { lastEditedBy } = row;
+            const lastEditedByName = lastEditedBy
+              ? "displayName" in lastEditedBy
+                ? lastEditedBy.displayName
+                : lastEditedBy.preferredName
+              : undefined;
+
             return {
               kind: GridCellKind.Custom,
               readonly: true,
               allowOverlay: false,
-              copyData: String(lastEditedBy),
+              copyData: String(lastEditedByName),
               data: {
                 kind: "chip-cell",
-                chips: lastEditedBy ? [{ text: lastEditedBy }] : [],
+                chips: lastEditedByName ? [{ text: lastEditedByName }] : [],
                 color: "gray",
                 variant: "filled",
               },
@@ -347,27 +353,27 @@ export const EntitiesTable: FunctionComponent<{
     ("archived" | "not-archived")[]
   >(["archived", "not-archived"]);
 
-  const lastEditedByUsers = useMemo(
+  const lastEditedByActors = useMemo(
     () =>
       rows
         ?.map(({ lastEditedBy }) => lastEditedBy ?? [])
         .flat()
         .filter(
-          (user, index, all) =>
-            all.findIndex(({ accountId }) => accountId === user.accountId) ===
+          (actor, index, all) =>
+            all.findIndex(({ accountId }) => accountId === actor.accountId) ===
             index,
         ) ?? [],
     [rows],
   );
 
   const [selectedLastEditedByAccountIds, setSelectedLastEditedByAccountIds] =
-    useState<string[]>(lastEditedByUsers.map(({ accountId }) => accountId));
+    useState<string[]>(lastEditedByActors.map(({ accountId }) => accountId));
 
   useEffect(() => {
     setSelectedLastEditedByAccountIds(
-      lastEditedByUsers.map(({ accountId }) => accountId),
+      lastEditedByActors.map(({ accountId }) => accountId),
     );
-  }, [lastEditedByUsers]);
+  }, [lastEditedByActors]);
 
   const columnFilters = useMemo<ColumnFilter<string, TypeEntitiesRow>[]>(
     () => [
@@ -416,9 +422,12 @@ export const EntitiesTable: FunctionComponent<{
       },
       {
         columnKey: "lastEditedBy",
-        filterItems: lastEditedByUsers.map(({ accountId, preferredName }) => ({
-          id: accountId,
-          label: preferredName ?? "Unknown User",
+        filterItems: lastEditedByActors.map((actor) => ({
+          id: actor.accountId,
+          label:
+            ("displayName" in actor
+              ? actor.displayName
+              : actor.preferredName) ?? "Unknown Actor",
         })),
         selectedFilterItemIds: selectedLastEditedByAccountIds,
         setSelectedFilterItemIds: setSelectedLastEditedByAccountIds,
@@ -435,7 +444,7 @@ export const EntitiesTable: FunctionComponent<{
       selectedNamespaces,
       entityTypeVersions,
       selectedEntityTypeVersions,
-      lastEditedByUsers,
+      lastEditedByActors,
       selectedLastEditedByAccountIds,
       selectedArchivedStatus,
     ],
