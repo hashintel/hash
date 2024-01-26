@@ -274,7 +274,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
           </IconButton>
         ) : null}
       </Box>
-      <Box display="flex" columnGap={1}>
+      <Box display="flex" alignItems="center" columnGap={1}>
         <Box
           sx={{
             display: "flex",
