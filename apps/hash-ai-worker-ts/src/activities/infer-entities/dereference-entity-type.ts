@@ -171,7 +171,7 @@ export const dereferenceEntityType = (
   for (const entityType of entityTypeWithAncestors) {
     /**
      * Take the label property from the first entity type in the inheritance chain which has one.
-     * The first item in the array is th entity type itself.
+     * The first item in the array is the entity type itself.
      */
     if (!labelProperty && entityType.metadata.labelProperty) {
       labelProperty = entityType.metadata.labelProperty;
