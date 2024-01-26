@@ -54,6 +54,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -553,8 +554,11 @@ export const EntitiesTable: FunctionComponent<{
     [structuralQueryEntities],
   );
 
+  const currentlyDisplayedRowsRef = useRef<TypeEntitiesRow[] | null>(null);
+
   const generateCsvFile = useCallback(async () => {
-    if (!rows) {
+    const currentlyDisplayedRows = currentlyDisplayedRowsRef.current;
+    if (!currentlyDisplayedRows) {
       return null;
     }
 
@@ -567,38 +571,41 @@ export const EntitiesTable: FunctionComponent<{
 
     // Entity Properties
 
-    const propertyColumns = rows.reduce<PropertyType[]>((prev, row) => {
-      const { entity } = row;
+    const propertyColumns = currentlyDisplayedRows.reduce<PropertyType[]>(
+      (prev, row) => {
+        const { entity } = row;
 
-      const propertyTypesUsedInEntity = Object.keys(entity.properties).map(
-        (baseUrl) => {
-          const propertyType = propertyTypes?.find(
-            ({ $id }) => extractBaseUrl($id) === baseUrl,
-          );
+        const propertyTypesUsedInEntity = Object.keys(entity.properties).map(
+          (baseUrl) => {
+            const propertyType = propertyTypes?.find(
+              ({ $id }) => extractBaseUrl($id) === baseUrl,
+            );
 
-          if (!propertyType) {
-            throw new Error(`Could not find property type for ${baseUrl}`);
-          }
+            if (!propertyType) {
+              throw new Error(`Could not find property type for ${baseUrl}`);
+            }
 
-          return propertyType;
-        },
-      );
+            return propertyType;
+          },
+        );
 
-      const newPropertyTypes = propertyTypesUsedInEntity.filter(
-        (propertyType) =>
-          !prev.some(
-            (previouslyAddedPropertyType) =>
-              previouslyAddedPropertyType.$id === propertyType.$id,
-          ),
-      );
+        const newPropertyTypes = propertyTypesUsedInEntity.filter(
+          (propertyType) =>
+            !prev.some(
+              (previouslyAddedPropertyType) =>
+                previouslyAddedPropertyType.$id === propertyType.$id,
+            ),
+        );
 
-      return [...prev, ...newPropertyTypes];
-    }, []);
+        return [...prev, ...newPropertyTypes];
+      },
+      [],
+    );
 
     // Outgoing links
 
     const outgoingLinksWithRightEntities = await fetchOutgoingLinksOfEntities({
-      leftEntities: rows.map(({ entity }) => entity),
+      leftEntities: currentlyDisplayedRows.map(({ entity }) => entity),
     });
 
     const outgoingLinkColumns = outgoingLinksWithRightEntities.reduce<
@@ -623,7 +630,7 @@ export const EntitiesTable: FunctionComponent<{
         ...outgoingLinkColumns.map(({ title }) => title),
         ...tableContentColumnTitles,
       ],
-      ...rows.map((row) => {
+      ...currentlyDisplayedRows.map((row) => {
         const { entity } = row;
 
         const propertyValues = propertyColumns.map((propertyType) => {
@@ -690,7 +697,12 @@ export const EntitiesTable: FunctionComponent<{
       title: "Entities",
       content,
     };
-  }, [rows, columns, propertyTypes, fetchOutgoingLinksOfEntities]);
+  }, [
+    currentlyDisplayedRowsRef,
+    columns,
+    propertyTypes,
+    fetchOutgoingLinksOfEntities,
+  ]);
 
   return (
     <Box>
@@ -828,6 +840,7 @@ export const EntitiesTable: FunctionComponent<{
             renderChipCell,
           ]}
           freezeColumns={1}
+          currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
         />
       )}
     </Box>

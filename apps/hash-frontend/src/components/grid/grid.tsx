@@ -19,7 +19,15 @@ import {
 import { Box, PopperProps, useTheme } from "@mui/material";
 import type { Instance as PopperInstance } from "@popperjs/core";
 import { uniqueId } from "lodash";
-import { Ref, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  MutableRefObject,
+  Ref,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { getCellHorizontalPadding } from "./utils";
 import { ColumnFilterMenu } from "./utils/column-filter-menu";
@@ -57,6 +65,7 @@ export type GridProps<T extends Row & { rowId: string }> = Omit<
   initialSortedColumnKey?: string;
   firstColumnLeftPadding?: number;
   gridRef?: Ref<DataEditorRef>;
+  currentlyDisplayedRowsRef?: MutableRefObject<T[] | null>;
   createGetCellContent: (rows: T[]) => (cell: Item) => GridCell;
   createOnCellEdited?: (rows: T[]) => DataEditorProps["onCellEdited"];
   sortRows?: (rows: T[], sort: ColumnSort<string>) => T[];
@@ -87,6 +96,7 @@ export const Grid = <T extends Row & { rowId: string }>({
   gridRef,
   createOnCellEdited,
   selectedRows,
+  currentlyDisplayedRowsRef,
   onSelectedRowsChange,
   ...rest
 }: GridProps<T>) => {
@@ -201,7 +211,7 @@ export const Grid = <T extends Row & { rowId: string }>({
     }
   }, [rows, columnFilters]);
 
-  const sortedRows = useMemo<T[] | undefined>(() => {
+  const sortedAndFilteredRows = useMemo<T[] | undefined>(() => {
     if (filteredRows) {
       if (!sortable) {
         return filteredRows;
@@ -233,11 +243,11 @@ export const Grid = <T extends Row & { rowId: string }>({
   ]);
 
   const gridSelection = useMemo(() => {
-    if (sortedRows && selectedRows) {
+    if (sortedAndFilteredRows && selectedRows) {
       let mergedRowSelection = CompactSelection.empty();
 
       for (const selectedRow of selectedRows) {
-        const selectedRowIndex = sortedRows.findIndex(
+        const selectedRowIndex = sortedAndFilteredRows.findIndex(
           (row) => row.rowId === selectedRow.rowId,
         );
 
@@ -251,7 +261,7 @@ export const Grid = <T extends Row & { rowId: string }>({
     }
 
     return selection;
-  }, [selection, sortedRows, selectedRows]);
+  }, [selection, sortedAndFilteredRows, selectedRows]);
 
   const gridTheme: Partial<Theme> = useMemo(
     () => ({
@@ -469,6 +479,11 @@ export const Grid = <T extends Row & { rowId: string }>({
     [columns, openFilterColumnKey],
   );
 
+  if (currentlyDisplayedRowsRef && sortedAndFilteredRows) {
+    // eslint-disable-next-line no-param-reassign
+    currentlyDisplayedRowsRef.current = sortedAndFilteredRows;
+  }
+
   return (
     <Box
       ref={wrapperRef}
@@ -512,10 +527,16 @@ export const Grid = <T extends Row & { rowId: string }>({
         drawHeader={drawHeader ?? defaultDrawHeader}
         onHeaderClicked={handleHeaderClicked}
         getCellContent={
-          sortedRows ? createGetCellContent(sortedRows) : getSkeletonCellContent
+          sortedAndFilteredRows
+            ? createGetCellContent(sortedAndFilteredRows)
+            : getSkeletonCellContent
         }
-        onCellEdited={sortedRows ? createOnCellEdited?.(sortedRows) : undefined}
-        rows={sortedRows ? sortedRows.length : 1}
+        onCellEdited={
+          sortedAndFilteredRows
+            ? createOnCellEdited?.(sortedAndFilteredRows)
+            : undefined
+        }
+        rows={sortedAndFilteredRows ? sortedAndFilteredRows.length : 1}
         maxColumnWidth={1000}
         verticalBorder={
           typeof rest.verticalBorder === "undefined"
@@ -540,11 +561,11 @@ export const Grid = <T extends Row & { rowId: string }>({
                 ? (updatedGridSelection) => {
                     updatedGridSelection.rows.toArray();
 
-                    if (!sortedRows) {
+                    if (!sortedAndFilteredRows) {
                       return;
                     }
 
-                    const updatedSelectedRows = sortedRows.filter(
+                    const updatedSelectedRows = sortedAndFilteredRows.filter(
                       (_, rowIndex) =>
                         updatedGridSelection.rows.hasIndex(rowIndex),
                     );
