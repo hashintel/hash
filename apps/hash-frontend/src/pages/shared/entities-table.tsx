@@ -73,7 +73,7 @@ import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 export const EntitiesTable: FunctionComponent<{
   hideEntityTypeVersionColumn?: boolean;
   hidePropertiesColumns?: boolean;
-}> = ({ hideEntityTypeVersionColumn, hidePropertiesColumns }) => {
+}> = ({ hideEntityTypeVersionColumn, hidePropertiesColumns = false }) => {
   const router = useRouter();
 
   const { authenticatedUser } = useAuthenticatedUser();
@@ -447,6 +447,11 @@ export const EntitiesTable: FunctionComponent<{
     currentlyDisplayedRowsRef,
     columns,
     propertyTypes,
+    /**
+     * If the properties columns are hidden, we want to add
+     * them to the CSV file.
+     */
+    addPropertiesColumns: hidePropertiesColumns,
   });
 
   return (

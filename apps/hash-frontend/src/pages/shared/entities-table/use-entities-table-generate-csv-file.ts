@@ -13,6 +13,7 @@ import {
   EntityRootType,
   EntityTypeWithMetadata,
   extractEntityUuidFromEntityId,
+  isBaseUrl,
 } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
@@ -71,9 +72,15 @@ const stringifyPropertyValue = (propertyValue: EntityPropertyValue): string => {
 export const useEntitiesTableGenerateCsvFile = (props: {
   currentlyDisplayedRowsRef: MutableRefObject<TypeEntitiesRow[] | null>;
   columns: SizedGridColumn[];
+  addPropertiesColumns: boolean;
   propertyTypes?: PropertyType[];
 }) => {
-  const { currentlyDisplayedRowsRef, columns, propertyTypes } = props;
+  const {
+    currentlyDisplayedRowsRef,
+    columns,
+    propertyTypes,
+    addPropertiesColumns,
+  } = props;
 
   const [structuralQueryEntities] = useLazyQuery<
     StructuralQueryEntitiesQuery,
@@ -182,36 +189,35 @@ export const useEntitiesTableGenerateCsvFile = (props: {
 
     // Entity property columns
 
-    const propertyColumns = currentlyDisplayedRows.reduce<PropertyType[]>(
-      (prev, row) => {
-        const { entity } = row;
+    const propertyColumns = addPropertiesColumns
+      ? currentlyDisplayedRows.reduce<PropertyType[]>((prev, row) => {
+          const { entity } = row;
 
-        const propertyTypesUsedInEntity = Object.keys(entity.properties).map(
-          (baseUrl) => {
-            const propertyType = propertyTypes?.find(
-              ({ $id }) => extractBaseUrl($id) === baseUrl,
-            );
+          const propertyTypesUsedInEntity = Object.keys(entity.properties).map(
+            (baseUrl) => {
+              const propertyType = propertyTypes?.find(
+                ({ $id }) => extractBaseUrl($id) === baseUrl,
+              );
 
-            if (!propertyType) {
-              throw new Error(`Could not find property type for ${baseUrl}`);
-            }
+              if (!propertyType) {
+                throw new Error(`Could not find property type for ${baseUrl}`);
+              }
 
-            return propertyType;
-          },
-        );
+              return propertyType;
+            },
+          );
 
-        const newPropertyTypes = propertyTypesUsedInEntity.filter(
-          (propertyType) =>
-            !prev.some(
-              (previouslyAddedPropertyType) =>
-                previouslyAddedPropertyType.$id === propertyType.$id,
-            ),
-        );
+          const newPropertyTypes = propertyTypesUsedInEntity.filter(
+            (propertyType) =>
+              !prev.some(
+                (previouslyAddedPropertyType) =>
+                  previouslyAddedPropertyType.$id === propertyType.$id,
+              ),
+          );
 
-        return [...prev, ...newPropertyTypes];
-      },
-      [],
-    );
+          return [...prev, ...newPropertyTypes];
+        }, [])
+      : [];
 
     // Entity outgoing link columns
 
@@ -297,6 +303,12 @@ export const useEntitiesTableGenerateCsvFile = (props: {
             const user: MinimalUser | undefined = value;
 
             return user?.preferredName ?? "";
+          } else if (isBaseUrl(key)) {
+            /**
+             * If the key is a base URL, then the value needs to be obtained
+             * from the nested `properties` field on the row.
+             */
+            return row.properties?.[key] ?? "";
           }
 
           return "";
@@ -320,6 +332,7 @@ export const useEntitiesTableGenerateCsvFile = (props: {
     columns,
     propertyTypes,
     fetchOutgoingLinksOfEntities,
+    addPropertiesColumns,
   ]);
 
   return { generateCsvFile };

@@ -47,7 +47,7 @@ export const useEntitiesTable = (params: {
   propertyTypes?: PropertyType[];
   subgraph?: Subgraph<EntityRootType>;
   hideEntityTypeVersionColumn?: boolean;
-  hidePropertiesColumns?: boolean;
+  hidePropertiesColumns: boolean;
   isViewingPages?: boolean;
 }) => {
   const {
@@ -56,7 +56,7 @@ export const useEntitiesTable = (params: {
     propertyTypes,
     subgraph,
     hideEntityTypeVersionColumn = false,
-    hidePropertiesColumns = false,
+    hidePropertiesColumns,
     isViewingPages = false,
   } = params;
 
