@@ -1,11 +1,8 @@
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { BaseUrl } from "@local/hash-subgraph";
-import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
-
 import { MigrationFunction } from "../types";
 import {
   anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
+  getCurrentHashSystemEntityTypeId,
 } from "../util";
 
 const migrate: MigrationFunction = async ({
@@ -17,29 +14,17 @@ const migrate: MigrationFunction = async ({
    * Step 1. Create the `Document File` entity type and its child entity types.
    */
 
-  const fileEntityTypeBaseUrl = systemEntityTypes.file
-    .entityTypeBaseUrl as BaseUrl;
-
-  const fileEntityTypeVersion =
-    migrationState.entityTypeVersions[fileEntityTypeBaseUrl];
-
-  if (typeof fileEntityTypeVersion === "undefined") {
-    throw new Error(
-      `Expected entity type version for ${fileEntityTypeBaseUrl} to be defined`,
-    );
-  }
-
-  const fileEntityTypeId = versionedUrlFromComponents(
-    fileEntityTypeBaseUrl,
-    fileEntityTypeVersion,
-  );
+  const currentFileEntityTypeId = getCurrentHashSystemEntityTypeId({
+    entityTypeKey: "file",
+    migrationState,
+  });
 
   const documentFileEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [fileEntityTypeId],
+        allOf: [currentFileEntityTypeId],
         title: "Document File",
         description: "A document file.",
         properties: [
@@ -95,7 +80,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [fileEntityTypeId],
+        allOf: [currentFileEntityTypeId],
         title: "Presentation File",
         description: "A presentation file.",
         properties: [
@@ -136,7 +121,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [fileEntityTypeId],
+        allOf: [currentFileEntityTypeId],
         title: "Spreadsheet File",
         description: "A spreadsheet file.",
         /** @todo: add property definition */
