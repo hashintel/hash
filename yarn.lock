@@ -5242,12 +5242,12 @@
     require-from-string "^2.0.2"
     uri-js "^4.2.2"
 
-"@redocly/cli@1.6.0":
-  version "1.6.0"
-  resolved "https://registry.yarnpkg.com/@redocly/cli/-/cli-1.6.0.tgz#d3f6c8d6822eead487c2cb814d131e17d05c961f"
-  integrity sha512-0naVFJGR2tVcpMIHSFRr2HAoyy70qMqDAP6kXcnOdkGkwLRJ8s/5n1STwsym/yZwNkhrt2M0cKT6KAMlTUeCeg==
+"@redocly/cli@1.7.0":
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/@redocly/cli/-/cli-1.7.0.tgz#4325aa88b9fdd6ef11453e34bd8bf7c72c53d1a6"
+  integrity sha512-TwIMNzUbLrQycRrLqOwep2XiMxdwuYeFXFDOdptgDM9mN78hIvSO7hUyZNFwkDbxCCj2gvBRF8C/8zpI9ToJHw==
   dependencies:
-    "@redocly/openapi-core" "1.6.0"
+    "@redocly/openapi-core" "1.7.0"
     chokidar "^3.5.1"
     colorette "^1.2.0"
     core-js "^3.32.1"
@@ -5264,13 +5264,12 @@
     styled-components "^6.0.7"
     yargs "17.0.1"
 
-"@redocly/openapi-core@1.6.0", "@redocly/openapi-core@^1.0.0-rc.2":
-  version "1.6.0"
-  resolved "https://registry.yarnpkg.com/@redocly/openapi-core/-/openapi-core-1.6.0.tgz#09aee5e21a9cbad08f3230ced16685d043a9b197"
-  integrity sha512-oao6Aey4peLKfagzWGb6N7OBI6CoDWEP4ka/XjrUNZw+UoKVVg3hVBXW4Vr3CJ2O8j6wEa2i+Lbb92VQQsoxwg==
+"@redocly/openapi-core@1.7.0", "@redocly/openapi-core@^1.0.0-rc.2":
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/@redocly/openapi-core/-/openapi-core-1.7.0.tgz#bb42c98700966da758b480bbd04f04e99145b9fc"
+  integrity sha512-mDl9tq96WjMElX4RX+oyqfTiquBNXzFRWres/JN6AlWhBbhFOz2nXnCCIILcjZkRchKFDKShU+pqHpvPJ7xVDQ==
   dependencies:
     "@redocly/ajv" "^8.11.0"
-    "@types/node" "^14.11.8"
     colorette "^1.2.0"
     js-levenshtein "^1.1.6"
     js-yaml "^4.1.0"
@@ -8023,11 +8022,6 @@
   version "12.20.55"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-12.20.55.tgz#c329cbd434c42164f846b909bd6f85b5537f6240"
   integrity "sha1-wynL1DTEIWT4RrkJvW+FtVN/YkA= sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ=="
-
-"@types/node@^14.11.8":
-  version "14.18.54"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.18.54.tgz#fc304bd66419030141fa997dc5a9e0e374029ae8"
-  integrity sha512-uq7O52wvo2Lggsx1x21tKZgqkJpvwCseBBPtX/nKQfpVlEsLOb11zZ1CRsWUKvJF0+lzuA9jwvA7Pr2Wt7i3xw==
 
 "@types/node@^16.0.0", "@types/node@^16.9.2":
   version "16.18.9"
