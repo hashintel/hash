@@ -6,14 +6,11 @@ import { Entity } from "@blockprotocol/graph";
 
 import {
   BooleanDataType,
+  DateTimeDataType,
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
-  File,
   FileHashPropertyValue,
   FileNamePropertyValue,
-  FileOutgoingLinkAndTarget,
-  FileOutgoingLinksByLinkEntityTypeId,
-  FileProperties,
   FileSizePropertyValue,
   FileStorageBucketPropertyValue,
   FileStorageEndpointPropertyValue,
@@ -22,6 +19,10 @@ import {
   FileStorageProviderPropertyValue,
   FileStorageRegionPropertyValue,
   FileURLPropertyValue,
+  FileV2,
+  FileV2OutgoingLinkAndTarget,
+  FileV2OutgoingLinksByLinkEntityTypeId,
+  FileV2Properties,
   MIMETypePropertyValue,
   NumberDataType,
   ObjectDataType,
@@ -34,18 +35,16 @@ import {
   PresentationFileProperties,
   TextDataType,
   TextualContentPropertyValue,
+  UploadCompletedAtPropertyValue,
 } from "./shared";
 
 export type {
   BooleanDataType,
+  DateTimeDataType,
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
-  File,
   FileHashPropertyValue,
   FileNamePropertyValue,
-  FileOutgoingLinkAndTarget,
-  FileOutgoingLinksByLinkEntityTypeId,
-  FileProperties,
   FileSizePropertyValue,
   FileStorageBucketPropertyValue,
   FileStorageEndpointPropertyValue,
@@ -54,6 +53,10 @@ export type {
   FileStorageProviderPropertyValue,
   FileStorageRegionPropertyValue,
   FileURLPropertyValue,
+  FileV2,
+  FileV2OutgoingLinkAndTarget,
+  FileV2OutgoingLinksByLinkEntityTypeId,
+  FileV2Properties,
   MIMETypePropertyValue,
   NumberDataType,
   ObjectDataType,
@@ -66,6 +69,7 @@ export type {
   PresentationFileProperties,
   TextDataType,
   TextualContentPropertyValue,
+  UploadCompletedAtPropertyValue,
 };
 
 export type PPTXPresentation = Entity<PPTXPresentationProperties>;

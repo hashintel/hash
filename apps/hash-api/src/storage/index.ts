@@ -9,7 +9,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { FileV2Properties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
   EntityId,
@@ -108,7 +108,7 @@ export const setupStorageProviders = (
   return getUploadStorageProvider();
 };
 
-const isFileEntity = (entity: Entity): entity is Entity<FileProperties> =>
+const isFileEntity = (entity: Entity): entity is Entity<FileV2Properties> =>
   systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl in entity.properties &&
   blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl in entity.properties;
 

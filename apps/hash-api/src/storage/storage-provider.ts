@@ -1,4 +1,4 @@
-import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { FileV2Properties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Entity, EntityId } from "@local/hash-subgraph";
 import { DataSource } from "apollo-datasource";
 
@@ -75,7 +75,7 @@ export interface PresignedStorageRequest {
 /** Parameters needed to allow the download of a stored file */
 export interface PresignedDownloadRequest {
   /** The file entity to provide a download URL for */
-  entity: Entity<FileProperties>;
+  entity: Entity<FileV2Properties>;
   /** File storage key * */
   key: string;
   /** Expiry delay for the download authorisation */

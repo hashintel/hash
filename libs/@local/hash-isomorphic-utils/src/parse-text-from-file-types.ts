@@ -1,9 +1,9 @@
 import { AccountId, Entity } from "@local/hash-subgraph";
 
-import { FileProperties } from "./system-types/shared";
+import { FileV2Properties } from "./system-types/shared";
 
 export type ParseTextFromFileParams = {
   presignedFileDownloadUrl: string;
-  fileEntity: Entity<FileProperties>;
+  fileEntity: Entity<FileV2Properties>;
   webMachineActorId: AccountId;
 };

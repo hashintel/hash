@@ -178,7 +178,7 @@ export type DocumentFileOutgoingLinksByLinkEntityTypeId = {};
  */
 export type DocumentFileProperties = DocumentFileProperties1 &
   DocumentFileProperties2;
-export type DocumentFileProperties1 = FileProperties;
+export type DocumentFileProperties1 = FileV2Properties;
 
 export type DocumentFileProperties2 = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
@@ -209,8 +209,6 @@ export type ExpiredAtPropertyValue = TextDataType;
  */
 export type FeatureNamePropertyValue = TextDataType;
 
-export type File = Entity<FileProperties>;
-
 /**
  * A unique signature derived from a file's contents
  */
@@ -220,32 +218,6 @@ export type FileHashPropertyValue = TextDataType;
  * The name of a file.
  */
 export type FileNamePropertyValue = TextDataType;
-
-export type FileOutgoingLinkAndTarget = never;
-
-export type FileOutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * A file hosted at a URL
- */
-export type FileProperties = {
-  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/"?: FileNamePropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/"?: FileSizePropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": FileURLPropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/"?: MIMETypePropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/"?: OriginalFileNamePropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/"?: OriginalSourcePropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/"?: OriginalURLPropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-storage-bucket/"?: FileStorageBucketPropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-storage-endpoint/"?: FileStorageEndpointPropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/"?: FileStorageForcePathStylePropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-storage-key/"?: FileStorageKeyPropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValue;
-  "https://hash.ai/@hash/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValue;
-};
 
 /**
  * The size of a file
@@ -286,6 +258,63 @@ export type FileStorageRegionPropertyValue = TextDataType;
  * A URL that serves a file.
  */
 export type FileURLPropertyValue = TextDataType;
+
+export type FileV1 = Entity<FileV1Properties>;
+
+export type FileV1OutgoingLinkAndTarget = never;
+
+export type FileV1OutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A file hosted at a URL
+ */
+export type FileV1Properties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/"?: FileNamePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/"?: FileSizePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": FileURLPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/"?: MIMETypePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/"?: OriginalFileNamePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/"?: OriginalSourcePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/"?: OriginalURLPropertyValue;
+  "https://hash.ai/@hash/types/property-type/file-storage-bucket/"?: FileStorageBucketPropertyValue;
+  "https://hash.ai/@hash/types/property-type/file-storage-endpoint/"?: FileStorageEndpointPropertyValue;
+  "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/"?: FileStorageForcePathStylePropertyValue;
+  "https://hash.ai/@hash/types/property-type/file-storage-key/"?: FileStorageKeyPropertyValue;
+  "https://hash.ai/@hash/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValue;
+  "https://hash.ai/@hash/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValue;
+};
+
+export type FileV2 = Entity<FileV2Properties>;
+
+export type FileV2OutgoingLinkAndTarget = never;
+
+export type FileV2OutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A file hosted at a URL
+ */
+export type FileV2Properties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/"?: FileNamePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/"?: FileSizePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": FileURLPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/"?: MIMETypePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/"?: OriginalFileNamePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/"?: OriginalSourcePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/"?: OriginalURLPropertyValue;
+  "https://hash.ai/@hash/types/property-type/file-storage-bucket/"?: FileStorageBucketPropertyValue;
+  "https://hash.ai/@hash/types/property-type/file-storage-endpoint/"?: FileStorageEndpointPropertyValue;
+  "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/"?: FileStorageForcePathStylePropertyValue;
+  "https://hash.ai/@hash/types/property-type/file-storage-key/"?: FileStorageKeyPropertyValue;
+  "https://hash.ai/@hash/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValue;
+  "https://hash.ai/@hash/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValue;
+  "https://hash.ai/@hash/types/property-type/upload-completed-at/"?: UploadCompletedAtPropertyValue;
+};
 
 /**
  * The fractional index indicating the current position of something.
@@ -444,7 +473,7 @@ export type ImageOutgoingLinksByLinkEntityTypeId = {};
  * An image file hosted at a URL
  */
 export type ImageProperties = ImageProperties1 & ImageProperties2;
-export type ImageProperties1 = FileProperties;
+export type ImageProperties1 = FileV1Properties;
 
 export type ImageProperties2 = {};
 
@@ -700,7 +729,7 @@ export type PresentationFileOutgoingLinksByLinkEntityTypeId = {};
  */
 export type PresentationFileProperties = PresentationFileProperties1 &
   PresentationFileProperties2;
-export type PresentationFileProperties1 = FileProperties;
+export type PresentationFileProperties1 = FileV2Properties;
 
 export type PresentationFileProperties2 = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
@@ -802,7 +831,7 @@ export type SpreadsheetFileOutgoingLinksByLinkEntityTypeId = {};
  */
 export type SpreadsheetFileProperties = SpreadsheetFileProperties1 &
   SpreadsheetFileProperties2;
-export type SpreadsheetFileProperties1 = FileProperties;
+export type SpreadsheetFileProperties1 = FileV2Properties;
 
 export type SpreadsheetFileProperties2 = {};
 
@@ -855,6 +884,11 @@ export type TriggeredByUserProperties = TriggeredByUserProperties1 &
 export type TriggeredByUserProperties1 = LinkProperties;
 
 export type TriggeredByUserProperties2 = {};
+
+/**
+ * The timestamp when the upload of something has completed
+ */
+export type UploadCompletedAtPropertyValue = DateTimeDataType;
 
 export type User = Entity<UserProperties>;
 

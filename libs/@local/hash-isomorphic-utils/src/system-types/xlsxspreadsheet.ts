@@ -6,14 +6,11 @@ import { Entity } from "@blockprotocol/graph";
 
 import {
   BooleanDataType,
+  DateTimeDataType,
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
-  File,
   FileHashPropertyValue,
   FileNamePropertyValue,
-  FileOutgoingLinkAndTarget,
-  FileOutgoingLinksByLinkEntityTypeId,
-  FileProperties,
   FileSizePropertyValue,
   FileStorageBucketPropertyValue,
   FileStorageEndpointPropertyValue,
@@ -22,6 +19,10 @@ import {
   FileStorageProviderPropertyValue,
   FileStorageRegionPropertyValue,
   FileURLPropertyValue,
+  FileV2,
+  FileV2OutgoingLinkAndTarget,
+  FileV2OutgoingLinksByLinkEntityTypeId,
+  FileV2Properties,
   MIMETypePropertyValue,
   NumberDataType,
   OriginalFileNamePropertyValue,
@@ -32,18 +33,16 @@ import {
   SpreadsheetFileOutgoingLinksByLinkEntityTypeId,
   SpreadsheetFileProperties,
   TextDataType,
+  UploadCompletedAtPropertyValue,
 } from "./shared";
 
 export type {
   BooleanDataType,
+  DateTimeDataType,
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
-  File,
   FileHashPropertyValue,
   FileNamePropertyValue,
-  FileOutgoingLinkAndTarget,
-  FileOutgoingLinksByLinkEntityTypeId,
-  FileProperties,
   FileSizePropertyValue,
   FileStorageBucketPropertyValue,
   FileStorageEndpointPropertyValue,
@@ -52,6 +51,10 @@ export type {
   FileStorageProviderPropertyValue,
   FileStorageRegionPropertyValue,
   FileURLPropertyValue,
+  FileV2,
+  FileV2OutgoingLinkAndTarget,
+  FileV2OutgoingLinksByLinkEntityTypeId,
+  FileV2Properties,
   MIMETypePropertyValue,
   NumberDataType,
   OriginalFileNamePropertyValue,
@@ -62,6 +65,7 @@ export type {
   SpreadsheetFileOutgoingLinksByLinkEntityTypeId,
   SpreadsheetFileProperties,
   TextDataType,
+  UploadCompletedAtPropertyValue,
 };
 
 export type XLSXSpreadsheet = Entity<XLSXSpreadsheetProperties>;

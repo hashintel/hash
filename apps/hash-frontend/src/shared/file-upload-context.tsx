@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { FileProperties } from "@local/hash-isomorphic-utils/system-types/file";
+import { FileV2Properties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
   EntityId,
@@ -76,7 +76,7 @@ type FileUploadRequestData = {
 };
 
 type FileUploadEntities = {
-  fileEntity: Entity<FileProperties>;
+  fileEntity: Entity<FileV2Properties>;
   linkEntity?: LinkEntity;
 };
 
@@ -276,7 +276,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           }
 
           fileEntity =
-            data.createFileFromUrl as unknown as Entity<FileProperties>;
+            data.createFileFromUrl as unknown as Entity<FileV2Properties>;
 
           if (makePublic) {
             /** @todo: make entity public as part of `createEntity` query once this is supported */
@@ -339,7 +339,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             }
 
             fileEntity = data.requestFileUpload
-              .entity as unknown as Entity<FileProperties>;
+              .entity as unknown as Entity<FileV2Properties>;
 
             if (makePublic) {
               /** @todo: make entity public as part of `createEntity` query once this is supported */
