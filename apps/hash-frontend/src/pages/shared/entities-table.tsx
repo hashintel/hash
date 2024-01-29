@@ -57,6 +57,7 @@ import {
   TableHeader,
   tableHeaderHeight,
 } from "../../shared/table-header";
+import { isAiMachineActor } from "../../shared/use-actors";
 import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { renderChipCell } from "./chip-cell";
@@ -260,6 +261,14 @@ export const EntitiesTable: FunctionComponent<{
                 : lastEditedBy.preferredName
               : undefined;
 
+            const lastEditedByIcon = lastEditedBy
+              ? ((lastEditedBy.kind === "machine"
+                  ? isAiMachineActor(lastEditedBy)
+                    ? "wandMagicSparklesRegular"
+                    : "hashSolid"
+                  : "userRegular") satisfies CustomIcon)
+              : undefined;
+
             return {
               kind: GridCellKind.Custom,
               readonly: true,
@@ -271,10 +280,7 @@ export const EntitiesTable: FunctionComponent<{
                   ? [
                       {
                         text: lastEditedByName,
-                        icon:
-                          lastEditedBy && "displayName" in lastEditedBy
-                            ? ("wandMagicSparklesRegular" satisfies CustomIcon)
-                            : ("userRegular" satisfies CustomIcon),
+                        icon: lastEditedByIcon,
                       },
                     ]
                   : [],
