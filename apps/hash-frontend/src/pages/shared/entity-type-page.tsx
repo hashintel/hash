@@ -252,7 +252,7 @@ export const EntityTypePage = ({
 
   const isLatest = !requestedVersion || requestedVersion === latestVersion;
 
-  const isReadonly = !userPermissions.edit || !isLatest;
+  const isReadonly = !draftEntityType && (!userPermissions.edit || !isLatest);
 
   return (
     <>
