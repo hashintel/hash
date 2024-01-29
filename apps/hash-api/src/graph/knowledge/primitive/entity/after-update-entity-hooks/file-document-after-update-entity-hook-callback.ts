@@ -72,8 +72,7 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: UpdateEntityHookCal
       );
 
       try {
-        /** @todo: ensure this doesn't crash the node API */
-        void temporalClient.workflow.execute<
+        await temporalClient.workflow.execute<
           (params: ParseTextFromFileParams) => Promise<void>
         >("parseTextFromFile", {
           taskQueue: "ai",
