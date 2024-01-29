@@ -169,7 +169,10 @@ export const createApolloServer = ({
         },
       },
       ApolloServerPluginLandingPageGraphQLPlayground({
-        settings: { "request.credentials": "include" },
+        settings: {
+          "request.credentials": "include",
+          "schema.polling.enable": false,
+        },
       }),
     ],
   });

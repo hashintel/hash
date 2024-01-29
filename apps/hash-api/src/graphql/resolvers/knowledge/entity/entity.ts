@@ -212,6 +212,7 @@ export const structuralQueryEntitiesResolver: ResolverFn<
     context.dataSources,
     context.authentication,
     {
+      temporalClient: context.temporal,
       query,
     },
   );

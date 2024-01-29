@@ -170,6 +170,18 @@ export type InferEntitiesResponseMessage = {
   type: "inference-response";
 };
 
+export type CreateEmbeddingsParams = {
+  input: string[];
+};
+
+export type CreateEmbeddingsReturn = {
+  embeddings: number[][];
+  usage: {
+    prompt_tokens: number;
+    total_tokens: number;
+  };
+};
+
 export type GetResultsFromCancelledInferenceRequestQuery = QueryDefinition<
   InferEntitiesReturn,
   never,

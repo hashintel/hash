@@ -1,6 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { typedKeys } from "@local/advanced-types/typed-entries";
-import type { Entity, GraphApi } from "@local/hash-graph-client";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import type {
+  AllFilter,
+  CosineDistanceFilter,
+  Entity,
+  GraphApi,
+} from "@local/hash-graph-client";
 import type {
   InferredEntityCreationFailure,
   InferredEntityCreationSuccess,
@@ -9,6 +14,8 @@ import type {
 import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   AccountId,
+  BaseUrl,
+  Entity as BrandedEntity,
   EntityId,
   LinkData,
   OwnedById,
@@ -20,6 +27,7 @@ import {
 import { mapGraphApiEntityMetadataToMetadata } from "@local/hash-subgraph/stdlib";
 import isMatch from "lodash.ismatch";
 
+import { createEntityEmbeddings } from "../../shared/embeddings";
 import type { DereferencedEntityType } from "../dereference-entity-type";
 import { InferenceState, UpdateCandidate } from "../inference-types";
 import { extractErrorMessage } from "../shared/extract-validation-failure-details";
@@ -106,8 +114,9 @@ export const createEntities = async ({
 
           if (hasNoProperties) {
             /**
-             * This prevents the proposed entity's properties object causing problems elsewhere, as it isn't present on the schema.
-             * Repeatedly advising the AI that it is providing a property not in the schema does not seem to stop it from doing so.
+             * This prevents the proposed entity's properties object causing problems elsewhere, as it isn't present on
+             * the schema. Repeatedly advising the AI that it is providing a property not in the schema does not seem
+             * to stop it from doing so.
              */
             log(
               `Overwriting properties of entity with temporary id ${proposedEntity.entityId} to an empty object, as the target type has no properties`,
@@ -116,82 +125,190 @@ export const createEntities = async ({
             proposedEntity.properties = {};
           }
 
+          /**
+           * Search for an existing entity that seems to semantically match the proposed entity, based on:
+           * 1. The value for the label property, or other properties which are good candidates for unique identifying
+           * an entity
+           * 2. The entire entity properties object, if there is no match from (1)
+           */
+
+          /** We are going to need the embeddings in both cases, so create these first */
+          const { embeddings } = await createEntityEmbeddings({
+            entityProperties: properties,
+            propertyTypes: Object.values(entityType.schema.properties).map(
+              (propertySchema) => ({
+                title:
+                  "items" in propertySchema
+                    ? propertySchema.items.title
+                    : propertySchema.title,
+                $id:
+                  "items" in propertySchema
+                    ? propertySchema.items.$id
+                    : propertySchema.$id,
+              }),
+            ),
+          });
+
+          const existingEntityBaseAllFilter = [
+            { equal: [{ path: ["archived"] }, { parameter: false }] },
+            {
+              equal: [
+                { path: ["ownedById"] },
+                {
+                  parameter: ownedById,
+                },
+              ],
+            },
+            generateVersionedUrlMatchingFilter(entityTypeId),
+          ] satisfies AllFilter["all"];
+
+          const maximumSemanticDistance = 0.07;
+
+          /**
+           * First find suitable specific properties to match on
+           */
+          const labelProperty = entityType.schema.labelProperty;
+
+          const propertyBaseUrlsToMatchOn: BaseUrl[] =
+            labelProperty &&
+            entityType.schema.properties[labelProperty] &&
+            properties[labelProperty]
+              ? [labelProperty]
+              : [];
+
           const nameProperties = [
             "name",
-            "display-name",
-            "legal-name",
-            "preferred-name",
-            "profile-url",
+            "legal name",
+            "preferred name",
+            "profile url",
+            "shortname",
           ];
-          const propertyKeysToMatchOn = typedKeys(properties).filter((key) =>
-            nameProperties.includes(
-              // capture the last part of the path, e.g. /@example/property-type/name/ -> name
-              key.match(/([^/]+)\/$/)?.[1] ?? "",
-            ),
-          );
+          for (const [key, schema] of typedEntries(
+            entityType.schema.properties,
+          )) {
+            if (
+              nameProperties.includes(
+                "items" in schema
+                  ? schema.items.title.toLowerCase()
+                  : schema.title.toLowerCase(),
+              ) &&
+              properties[key]
+            ) {
+              propertyBaseUrlsToMatchOn.push(key);
+            }
+          }
 
-          if (propertyKeysToMatchOn.length > 0) {
-            const existingEntity = await getEntityByFilter({
+          /** Create the filters for any of label or name-like property values */
+          const semanticDistanceFilters: CosineDistanceFilter[] =
+            propertyBaseUrlsToMatchOn
+              .map((baseUrl) => {
+                const foundEmbedding = embeddings.find(
+                  (embedding) => embedding.property === baseUrl,
+                )?.embedding;
+
+                if (!foundEmbedding) {
+                  log(
+                    `Could not find embedding for property ${baseUrl} of entity with temporary id ${proposedEntity.entityId} – skipping`,
+                  );
+                  return null;
+                }
+
+                return {
+                  cosineDistance: [
+                    { path: ["embedding"] },
+                    {
+                      parameter: foundEmbedding,
+                    },
+                    { parameter: maximumSemanticDistance }, // starting point for a threshold that will get only values which are a semantic match
+                  ],
+                } satisfies CosineDistanceFilter;
+              })
+              .filter(
+                <T>(filter: T): filter is NonNullable<T> => filter !== null,
+              );
+
+          let existingEntity: Entity | undefined;
+
+          if (semanticDistanceFilters.length > 0) {
+            existingEntity = await getEntityByFilter({
               actorId,
               graphApiClient,
               filter: {
                 all: [
-                  { equal: [{ path: ["archived"] }, { parameter: false }] },
+                  ...existingEntityBaseAllFilter,
                   {
-                    any: propertyKeysToMatchOn.map((key) => ({
-                      equal: [
-                        { path: ["properties", key] },
-                        { parameter: properties[key] },
-                      ],
-                    })),
+                    any: semanticDistanceFilters,
                   },
-                  {
-                    equal: [
-                      { path: ["ownedById"] },
-                      {
-                        parameter: ownedById,
-                      },
-                    ],
-                  },
-                  generateVersionedUrlMatchingFilter(entityTypeId),
                 ],
               },
             });
+          }
 
-            if (existingEntity) {
-              /**
-               * If we have an existing entity, propose an update any of the proposed properties are different.
-               * Otherwise, do nothing.
-               */
-              if (
-                !isMatch(
-                  existingEntity.properties,
-                  proposedEntity.properties ?? {},
-                )
-              ) {
-                internalEntityStatusMap.updateCandidates[
-                  proposedEntity.entityId
-                ] = {
-                  entity: existingEntity,
-                  proposedEntity,
-                  status: "update-candidate",
-                };
-              } else {
-                log(
-                  `Proposed entity ${proposedEntity.entityId} exactly matches existing entity – continuing`,
-                );
-                internalEntityStatusMap.unchangedEntities[
-                  proposedEntity.entityId
-                ] = {
-                  entity: existingEntity,
-                  entityTypeId,
-                  operation: "already-exists-as-proposed",
-                  proposedEntity,
-                  status: "success",
-                };
-              }
-              return;
+          if (!existingEntity) {
+            // If we didn't find a match on individual properties, try matching on the entire properties object
+            const propertyObjectEmbedding = embeddings.find(
+              (embedding) => !embedding.property,
+            );
+
+            if (!propertyObjectEmbedding) {
+              log(
+                `Could not find embedding for properties object of entity with temporary id ${proposedEntity.entityId} – skipping`,
+              );
+            } else {
+              existingEntity = await getEntityByFilter({
+                actorId,
+                graphApiClient,
+                filter: {
+                  all: [
+                    ...existingEntityBaseAllFilter,
+                    {
+                      cosineDistance: [
+                        { path: ["embedding"] },
+                        {
+                          parameter: propertyObjectEmbedding.embedding,
+                        },
+                        { parameter: maximumSemanticDistance },
+                      ],
+                    },
+                  ],
+                },
+              });
             }
+          }
+
+          if (existingEntity) {
+            /**
+             * If we have an existing entity, propose an update any of the proposed properties are different.
+             * Otherwise, do nothing.
+             */
+            if (
+              !isMatch(
+                existingEntity.properties,
+                proposedEntity.properties ?? {},
+              )
+            ) {
+              internalEntityStatusMap.updateCandidates[
+                proposedEntity.entityId
+              ] = {
+                entity: existingEntity,
+                proposedEntity,
+                status: "update-candidate",
+              };
+            } else {
+              log(
+                `Proposed entity ${proposedEntity.entityId} exactly matches existing entity – continuing`,
+              );
+              internalEntityStatusMap.unchangedEntities[
+                proposedEntity.entityId
+              ] = {
+                entity: existingEntity as BrandedEntity,
+                entityTypeId,
+                operation: "already-exists-as-proposed",
+                proposedEntity,
+                status: "success",
+              };
+            }
+            return;
           }
 
           try {
