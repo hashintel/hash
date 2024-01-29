@@ -9,6 +9,7 @@ import {
   Item,
   TextCell,
 } from "@glideapps/glide-data-grid";
+import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
 import { ListRegularIcon } from "@hashintel/design-system";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
@@ -266,7 +267,17 @@ export const EntitiesTable: FunctionComponent<{
               copyData: String(lastEditedByName),
               data: {
                 kind: "chip-cell",
-                chips: lastEditedByName ? [{ text: lastEditedByName }] : [],
+                chips: lastEditedByName
+                  ? [
+                      {
+                        text: lastEditedByName,
+                        icon:
+                          lastEditedBy && "displayName" in lastEditedBy
+                            ? ("wandMagicSparklesRegular" satisfies CustomIcon)
+                            : ("userRegular" satisfies CustomIcon),
+                      },
+                    ]
+                  : [],
                 color: "gray",
                 variant: "filled",
               },
