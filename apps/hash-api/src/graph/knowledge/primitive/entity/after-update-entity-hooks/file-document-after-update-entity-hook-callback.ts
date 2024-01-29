@@ -3,7 +3,10 @@ import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { DOCXDocumentProperties } from "@local/hash-isomorphic-utils/system-types/docxdocument";
+import type {
+  DOCXDocumentProperties,
+  FileV2Properties,
+} from "@local/hash-isomorphic-utils/system-types/docxdocument";
 import type { PDFDocumentProperties } from "@local/hash-isomorphic-utils/system-types/pdfdocument";
 import type { PPTXPresentationProperties } from "@local/hash-isomorphic-utils/system-types/pptxpresentation";
 import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
@@ -79,7 +82,10 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: UpdateEntityHookCal
           args: [
             {
               presignedFileDownloadUrl,
-              fileEntity,
+              fileEntity: {
+                ...fileEntity,
+                properties: updatedProperties as FileV2Properties,
+              },
               webMachineActorId,
             },
           ],
