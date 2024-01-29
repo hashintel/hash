@@ -9,7 +9,6 @@ import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../../shared/layout";
-import { useIsReadonlyModeForType } from "../../../../shared/readonly-mode";
 import { EntityTypePage } from "../../../shared/entity-type-page";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { getEntityTypeBaseUrl } from "./[...slug-maybe-version].page/get-entity-type-base-url";
@@ -54,10 +53,6 @@ const Page: NextPageWithLayout = () => {
     ? parseInt(requestedVersionString, 10)
     : null;
 
-  const userUnauthorized = useIsReadonlyModeForType(
-    routeNamespace?.accountId as OwnedById,
-  );
-
   if (!routeNamespace) {
     if (loadingNamespace) {
       return null;
@@ -72,7 +67,6 @@ const Page: NextPageWithLayout = () => {
       draftEntityType={draftEntityType}
       entityTypeBaseUrl={entityTypeBaseUrl}
       requestedVersion={requestedVersion}
-      readonly={userUnauthorized}
     />
   );
 };

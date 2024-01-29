@@ -32,6 +32,7 @@ import { useIsSpecialEntityType } from "../../shared/entity-types-context/hooks"
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { isTypeArchived } from "../../shared/is-archived";
 import { isHrefExternal } from "../../shared/is-href-external";
+import { useUserPermissionsOnEntityType } from "../../shared/use-user-permissions-on-entity-type";
 import { ArchiveMenuItem } from "../[shortname]/shared/archive-menu-item";
 import { ConvertTypeMenuItem } from "./entity-type-page/convert-type-menu-item";
 import { DefinitionTab } from "./entity-type-page/definition-tab";
@@ -51,7 +52,6 @@ type EntityTypeProps = {
   draftEntityType?: EntityType | null;
   entityTypeBaseUrl?: BaseUrl;
   requestedVersion: number | null;
-  readonly: boolean;
 };
 
 export const EntityTypePage = ({
@@ -59,7 +59,6 @@ export const EntityTypePage = ({
   draftEntityType,
   entityTypeBaseUrl,
   requestedVersion,
-  readonly,
 }: EntityTypeProps) => {
   const router = useRouter();
 
@@ -113,10 +112,6 @@ export const EntityTypePage = ({
     $id: entityType?.$id,
   });
 
-  const isLatest = !requestedVersion || requestedVersion === latestVersion;
-
-  const isReadonly = readonly || !isLatest;
-
   const entityTypeAndPropertyTypes = useMemo(
     () =>
       entityType
@@ -130,6 +125,8 @@ export const EntityTypePage = ({
 
   const isDirty = formMethods.formState.isDirty;
   const isDraft = !!draftEntityType;
+
+  const { userPermissions } = useUserPermissionsOnEntityType(entityType?.$id);
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     if (!isDirty && !isDraft) {
@@ -225,6 +222,10 @@ export const EntityTypePage = ({
     }
   }
 
+  if (!userPermissions) {
+    return null;
+  }
+
   const currentVersion = draftEntityType ? 0 : extractVersion(entityType.$id);
 
   const convertToLinkType = wrapHandleSubmit(async (data) => {
@@ -248,6 +249,10 @@ export const EntityTypePage = ({
   });
 
   const icon = watch("icon");
+
+  const isLatest = !requestedVersion || requestedVersion === latestVersion;
+
+  const isReadonly = !userPermissions.edit || !isLatest;
 
   return (
     <>
@@ -362,6 +367,7 @@ export const EntityTypePage = ({
                   />
 
                   <EntityTypeTabs
+                    canCreateEntity={userPermissions.instantiate}
                     isDraft={isDraft}
                     isFile={isFile}
                     isImage={isImage}
