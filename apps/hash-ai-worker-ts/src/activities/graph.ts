@@ -31,8 +31,12 @@ export const createGraphActivities = ({
     query: EntityStructuralQuery;
   }): Promise<Subgraph<EntityRootType>> {
     return graphApiClient
-      .getEntitiesByQuery(params.authentication.actorId, params.query)
-      .then((response) => mapGraphApiSubgraphToSubgraph(response.data));
+      .getEntitiesByQuery(params.authentication.actorId, {
+        query: params.query,
+      })
+      .then((response) =>
+        mapGraphApiSubgraphToSubgraph(response.data.subgraph),
+      );
   },
 
   async getEntityTypesByQuery(params: {

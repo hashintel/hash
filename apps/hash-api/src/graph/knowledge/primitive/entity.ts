@@ -179,26 +179,34 @@ export const getEntities: ImpureGraphFunction<
     }
   }
 
-  return await graphApi.getEntitiesByQuery(actorId, query).then(({ data }) => {
-    // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
-    for (const [entityId, editionMap] of Object.entries(data.vertices)) {
-      const latestEditionTimestamp = Object.keys(editionMap).sort().pop();
+  return await graphApi
+    .getEntitiesByQuery(actorId, { query })
+    .then(({ data }) => {
+      // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
+      for (const [entityId, editionMap] of Object.entries(
+        data.subgraph.vertices,
+      )) {
+        const latestEditionTimestamp = Object.keys(editionMap).sort().pop();
 
-      if (
-        (editionMap[latestEditionTimestamp!]!.inner.metadata as EntityMetadata)
-          .archived &&
-        // if the vertex is in the roots of the query, then it is intentionally included
-        !data.roots.find((root) => root.baseId === entityId)
-      ) {
-        // eslint-disable-next-line no-param-reassign -- temporary hack
-        delete data.vertices[entityId];
+        if (
+          (
+            editionMap[latestEditionTimestamp!]!.inner
+              .metadata as EntityMetadata
+          ).archived &&
+          // if the vertex is in the roots of the query, then it is intentionally included
+          !data.subgraph.roots.find((root) => root.baseId === entityId)
+        ) {
+          // eslint-disable-next-line no-param-reassign -- temporary hack
+          delete data.subgraph.vertices[entityId];
+        }
       }
-    }
 
-    const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+      );
 
-    return subgraph;
-  });
+      return subgraph;
+    });
 };
 
 /**
