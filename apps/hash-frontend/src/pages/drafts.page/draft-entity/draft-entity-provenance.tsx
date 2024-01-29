@@ -20,8 +20,7 @@ const DraftEntityTypography = styled(Typography)(({ theme }) => ({
 
 export const DraftEntityProvenance: FunctionComponent<{
   entity: Entity;
-  createdAt: Date;
-}> = ({ entity, createdAt }) => {
+}> = ({ entity }) => {
   const { authenticatedUser } = useAuthenticatedUser();
 
   const editionCreatedById = entity.metadata.provenance.edition.createdById;
@@ -34,6 +33,11 @@ export const DraftEntityProvenance: FunctionComponent<{
   const createdBy = useMemo(
     () => actors?.find(({ accountId }) => accountId === editionCreatedById),
     [actors, editionCreatedById],
+  );
+
+  const createdAt = useMemo(
+    () => new Date(entity.metadata.provenance.createdAtDecisionTime),
+    [entity],
   );
 
   const formattedCreatedAt = useMemo(
