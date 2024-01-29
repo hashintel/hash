@@ -23,13 +23,13 @@ use axum::{
 };
 use error_stack::{Report, ResultExt};
 use graph::{
-    knowledge::{EntityQueryPath, EntityQueryToken},
+    knowledge::{EntityQueryPath, EntityQuerySortingToken, EntityQueryToken},
     store::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         AccountStore, EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
         EntityValidationType, Ordering, StorePool,
     },
-    subgraph::query::{EntityStructuralQuery, StructuralQuery},
+    subgraph::query::EntityStructuralQuery,
 };
 use graph_types::{
     knowledge::{
@@ -95,6 +95,13 @@ use crate::rest::{
             ModifyEntityAuthorizationRelationship,
             ModifyRelationshipOperation,
             EntitySetting,
+
+            GetEntityByQueryRequest,
+            EntityQueryCursor,
+            Ordering,
+            EntityQuerySortingRecord,
+            EntityQuerySortingToken,
+            GetEntityByQueryResponse,
 
             Entity,
             EntityUuid,
@@ -369,11 +376,12 @@ where
     }))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct GetEntityByQueryRequest<'q, 's, 'p> {
     #[serde(borrow)]
-    query: StructuralQuery<'q, Entity>,
+    #[schema(format = "EntityStructuralQuery")]
+    query: EntityStructuralQuery<'q>,
     limit: Option<usize>,
     #[serde(borrow)]
     sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
@@ -381,7 +389,7 @@ struct GetEntityByQueryRequest<'q, 's, 'p> {
     cursor: Option<EntityQueryCursor<'s>>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct GetEntityByQueryResponse<'r> {
     subgraph: Subgraph,

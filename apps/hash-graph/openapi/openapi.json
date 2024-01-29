@@ -895,7 +895,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EntityStructuralQuery"
+                "$ref": "#/components/schemas/GetEntityByQueryRequest"
               }
             }
           },
@@ -904,18 +904,10 @@
         "responses": {
           "200": {
             "description": "A subgraph rooted at entities that satisfy the given query, each resolved to the requested depth.",
-            "headers": {
-              "Link": {
-                "schema": {
-                  "type": "string"
-                },
-                "description": "The link to be used to query the next page of entities"
-              }
-            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Subgraph"
+                  "$ref": "#/components/schemas/GetEntityByQueryResponse"
                 }
               }
             }
@@ -3299,6 +3291,55 @@
         },
         "additionalProperties": false
       },
+      "EntityQueryCursor": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "EntityQuerySortingPath": {
+        "type": "array",
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "#/components/schemas/EntityQuerySortingToken"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "EntityQuerySortingRecord": {
+        "type": "object",
+        "required": [
+          "path",
+          "ordering"
+        ],
+        "properties": {
+          "ordering": {
+            "$ref": "#/components/schemas/Ordering"
+          },
+          "path": {
+            "$ref": "#/components/schemas/EntityQuerySortingPath"
+          }
+        }
+      },
+      "EntityQuerySortingToken": {
+        "type": "string",
+        "enum": [
+          "archived",
+          "draft",
+          "properties",
+          "recordCreatedAtTransactionTime",
+          "recordCreatedAtDecisionTime",
+          "createdAtTransactionTime",
+          "createdAtDecisionTime"
+        ]
+      },
       "EntityQueryToken": {
         "type": "string",
         "description": "A single token in an [`EntityQueryPath`].",
@@ -4200,6 +4241,57 @@
           }
         ]
       },
+      "GetEntityByQueryRequest": {
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "properties": {
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityQueryCursor"
+              }
+            ],
+            "nullable": true
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "query": {
+            "$ref": "#/components/schemas/EntityStructuralQuery"
+          },
+          "sortingPaths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityQuerySortingRecord"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetEntityByQueryResponse": {
+        "type": "object",
+        "required": [
+          "subgraph"
+        ],
+        "properties": {
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityQueryCursor"
+              }
+            ],
+            "nullable": true
+          },
+          "subgraph": {
+            "$ref": "#/components/schemas/Subgraph"
+          }
+        }
+      },
       "GraphElementVertexId": {
         "oneOf": [
           {
@@ -4930,6 +5022,13 @@
         "discriminator": {
           "propertyName": "kind"
         }
+      },
+      "Ordering": {
+        "type": "string",
+        "enum": [
+          "ascending",
+          "descending"
+        ]
       },
       "OutgoingEdgeResolveDepth": {
         "type": "object",

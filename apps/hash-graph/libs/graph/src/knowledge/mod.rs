@@ -3,4 +3,6 @@
 
 mod query;
 
-pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken};
+pub use self::query::{
+    EntityQueryPath, EntityQueryPathVisitor, EntityQuerySortingToken, EntityQueryToken,
+};

@@ -14,6 +14,11 @@ use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use type_system::{url::VersionedUrl, EntityType};
+use utoipa::{
+    openapi,
+    openapi::{schema, Ref, RefOr, Schema},
+    ToSchema,
+};
 use validation::ValidationProfile;
 
 use crate::{
@@ -52,6 +57,23 @@ pub struct EntityQuerySortingRecord<'s> {
     pub ordering: Ordering,
 }
 
+impl ToSchema<'_> for EntityQuerySortingRecord<'_> {
+    fn schema() -> (&'static str, RefOr<Schema>) {
+        (
+            "EntityQuerySortingRecord",
+            Schema::Object(
+                schema::ObjectBuilder::new()
+                    .property("path", Ref::from_schema_name("EntityQuerySortingPath"))
+                    .required("path")
+                    .property("ordering", Ref::from_schema_name("Ordering"))
+                    .required("ordering")
+                    .build(),
+            )
+            .into(),
+        )
+    }
+}
+
 impl EntityQuerySortingRecord<'_> {
     #[must_use]
     pub fn into_owned(self) -> EntityQuerySortingRecord<'static> {
@@ -75,6 +97,15 @@ pub struct EntityQuerySorting<'s> {
 pub struct EntityQueryCursor<'s> {
     #[serde(borrow)]
     pub values: Vec<CursorField<'s>>,
+}
+
+impl ToSchema<'_> for EntityQueryCursor<'_> {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "EntityQueryCursor",
+            openapi::Schema::Array(openapi::schema::Array::default()).into(),
+        )
+    }
 }
 
 impl EntityQueryCursor<'_> {
