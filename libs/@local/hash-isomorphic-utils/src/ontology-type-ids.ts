@@ -148,12 +148,6 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/service-feature/",
   },
-  spreadsheetFile: {
-    entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/spreadsheet-file/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/spreadsheet-file/",
-  },
   text: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/text/v/1",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/text/",
@@ -179,12 +173,6 @@ export const systemEntityTypes = {
   userSecret: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/user-secret/v/1",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/user-secret/",
-  },
-  xlsxSpreadsheet: {
-    entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/xlsx-spreadsheet/v/1",
-    entityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/xlsx-spreadsheet/",
   },
 } as const;
 

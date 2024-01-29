@@ -820,21 +820,6 @@ export type ServiceUnitCostPropertyValue = {
  */
 export type ShortnamePropertyValue = TextDataType;
 
-export type SpreadsheetFile = Entity<SpreadsheetFileProperties>;
-
-export type SpreadsheetFileOutgoingLinkAndTarget = never;
-
-export type SpreadsheetFileOutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * A spreadsheet file.
- */
-export type SpreadsheetFileProperties = SpreadsheetFileProperties1 &
-  SpreadsheetFileProperties2;
-export type SpreadsheetFileProperties1 = FileV2Properties;
-
-export type SpreadsheetFileProperties2 = {};
-
 /**
  * The summary of the something.
  */

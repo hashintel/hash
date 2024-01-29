@@ -112,41 +112,6 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  /**
-   * Step 3. Create the `Spreadsheet File` entity type and its child entity types.
-   */
-
-  const spreadsheetFileEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [currentFileEntityTypeId],
-        title: "Spreadsheet File",
-        description: "A spreadsheet file.",
-        /** @todo: add property definition */
-      },
-      webShortname: "hash",
-      migrationState,
-      instantiator: anyUserInstantiator,
-    },
-  );
-
-  const _microsoftExcelFileEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [spreadsheetFileEntityType.schema.$id],
-        title: "XLSX Spreadsheet",
-        description: "A Microsoft Excel spreadsheet.",
-      },
-      webShortname: "hash",
-      migrationState,
-      instantiator: anyUserInstantiator,
-    },
-  );
-
   return migrationState;
 };
 

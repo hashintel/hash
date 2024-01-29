@@ -37,8 +37,6 @@ const fileMimeTypeStartsWithToEntityTypeId: Record<string, VersionedUrl> = {
     systemEntityTypes.docxDocument.entityTypeId,
   "application/vnd.openxmlformats-officedocument.presentationml.presentation":
     systemEntityTypes.pptxPresentation.entityTypeId,
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-    systemEntityTypes.xlsxSpreadsheet.entityTypeId,
 };
 
 const getEntityTypeIdForMimeType = (mimeType: string) =>
