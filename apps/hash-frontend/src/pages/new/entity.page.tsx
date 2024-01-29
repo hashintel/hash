@@ -1,23 +1,32 @@
 import { validateVersionedUrl, VersionedUrl } from "@blockprotocol/type-system";
 import { Container, Paper, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import { FunctionComponent, useContext, useMemo } from "react";
+import {
+  FunctionComponent,
+  PropsWithChildren,
+  useContext,
+  useMemo,
+} from "react";
 
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
+import { Link } from "../../shared/ui/link";
+import { useUserPermissionsOnEntityType } from "../../shared/use-user-permissions-on-entity-type";
 import { CreateEntityPage } from "../[shortname]/entities/[entity-uuid].page/create-entity-page";
 import { EntityPageLoadingState } from "../[shortname]/entities/[entity-uuid].page/entity-page-loading-state";
 import { SelectEntityTypePage } from "../[shortname]/entities/[entity-uuid].page/select-entity-type-page";
 import { WorkspaceContext } from "../shared/workspace-context";
 
-const CreateLinkEntityError: FunctionComponent<{
-  linkEntityTypeId?: VersionedUrl;
-}> = ({ linkEntityTypeId }) => {
+const CreateEntityError: FunctionComponent<
+  PropsWithChildren<{
+    entityTypeId?: VersionedUrl;
+  }>
+> = ({ entityTypeId, children }) => {
   const { entityTypes } = useEntityTypesContextRequired();
 
   const linkEntityType = useMemo(
-    () => entityTypes?.find(({ schema }) => schema.$id === linkEntityTypeId),
-    [entityTypes, linkEntityTypeId],
+    () => entityTypes?.find(({ schema }) => schema.$id === entityTypeId),
+    [entityTypes, entityTypeId],
   );
 
   return (
@@ -36,10 +45,7 @@ const CreateLinkEntityError: FunctionComponent<{
           Cannot create an entity of type{" "}
           <strong>{linkEntityType?.schema.title}</strong>
         </Typography>
-        <Typography textAlign="center">
-          Create links with type <strong>{linkEntityType?.schema.title}</strong>{" "}
-          by editing the source entity.
-        </Typography>
+        {children}
       </Paper>
     </Container>
   );
@@ -47,25 +53,33 @@ const CreateLinkEntityError: FunctionComponent<{
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
-  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
-
   const queryEntityId = router.query["entity-type-id"]?.toString();
   const entityTypeId = !queryEntityId
     ? null
     : validateVersionedUrl(queryEntityId);
 
+  const isValidEntityTypeId = entityTypeId?.type === "Ok";
+
+  const { userPermissions, loading: userPermissionsLoading } =
+    useUserPermissionsOnEntityType(
+      isValidEntityTypeId ? entityTypeId.inner : undefined,
+    );
+
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+
   const isLinkEntity = useMemo(
     () =>
-      entityTypeId && entityTypeId.type === "Ok"
+      isValidEntityTypeId
         ? isSpecialEntityTypeLookup?.[entityTypeId.inner]?.isLink
         : undefined,
-    [entityTypeId, isSpecialEntityTypeLookup],
+    [entityTypeId?.inner, isSpecialEntityTypeLookup, isValidEntityTypeId],
   );
 
   const { activeWorkspace } = useContext(WorkspaceContext);
   const shouldBeCreatingEntity = entityTypeId?.type === "Ok";
 
   if (
+    userPermissionsLoading ||
     !activeWorkspace ||
     (entityTypeId?.type === "Ok" && typeof isLinkEntity === "undefined")
   ) {
@@ -74,11 +88,32 @@ const Page: NextPageWithLayout = () => {
 
   if (isLinkEntity) {
     return (
-      <CreateLinkEntityError
-        linkEntityTypeId={
+      <CreateEntityError
+        entityTypeId={
           entityTypeId?.type === "Ok" ? entityTypeId.inner : undefined
         }
-      />
+      >
+        <Typography textAlign="center">
+          Create links by editing the entity that you want to link from.
+        </Typography>
+      </CreateEntityError>
+    );
+  }
+
+  if (userPermissions && !userPermissions?.instantiate) {
+    return (
+      <CreateEntityError
+        entityTypeId={
+          entityTypeId?.type === "Ok" ? entityTypeId.inner : undefined
+        }
+      >
+        <Typography textAlign="center">
+          You don't have permission to create entities of this type.
+        </Typography>
+        <Typography textAlign="center" mt={2}>
+          Go back and <Link href="/new/entity">select another type</Link>
+        </Typography>
+      </CreateEntityError>
     );
   }
 
