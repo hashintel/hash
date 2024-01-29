@@ -29,7 +29,7 @@ use graph::{
         AccountStore, EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
         EntityValidationType, Ordering, StorePool,
     },
-    subgraph::query::EntityStructuralQuery,
+    subgraph::{query::EntityStructuralQuery, temporal_axes::QueryTemporalAxesUnresolved},
 };
 use graph_types::{
     knowledge::{
@@ -443,30 +443,48 @@ where
         .convert_parameters()
         .map_err(report_to_response)?;
 
-    let sorting = request.sorting_paths.unwrap_or_else(|| {
-        if request.limit.is_some() || request.cursor.is_some() {
-            vec![
-                EntityQuerySortingRecord {
-                    path: EntityQueryPath::DecisionTime,
-                    ordering: Ordering::Descending,
-                },
-                EntityQuerySortingRecord {
-                    path: EntityQueryPath::TransactionTime,
-                    ordering: Ordering::Descending,
-                },
-                EntityQuerySortingRecord {
-                    path: EntityQueryPath::Uuid,
-                    ordering: Ordering::Ascending,
-                },
-                EntityQuerySortingRecord {
-                    path: EntityQueryPath::OwnedById,
-                    ordering: Ordering::Ascending,
-                },
-            ]
-        } else {
-            Vec::new()
-        }
-    });
+    let temporal_axes_sorting_path = match &request.query.temporal_axes {
+        QueryTemporalAxesUnresolved::TransactionTime { .. } => EntityQueryPath::TransactionTime,
+        QueryTemporalAxesUnresolved::DecisionTime { .. } => EntityQueryPath::DecisionTime,
+    };
+
+    let sorting = request
+        .sorting_paths
+        .map(|mut paths| {
+            paths.push(EntityQuerySortingRecord {
+                path: temporal_axes_sorting_path.clone(),
+                ordering: Ordering::Descending,
+            });
+            paths.push(EntityQuerySortingRecord {
+                path: EntityQueryPath::Uuid,
+                ordering: Ordering::Ascending,
+            });
+            paths.push(EntityQuerySortingRecord {
+                path: EntityQueryPath::OwnedById,
+                ordering: Ordering::Ascending,
+            });
+            paths
+        })
+        .unwrap_or_else(|| {
+            if request.limit.is_some() || request.cursor.is_some() {
+                vec![
+                    EntityQuerySortingRecord {
+                        path: temporal_axes_sorting_path,
+                        ordering: Ordering::Descending,
+                    },
+                    EntityQuerySortingRecord {
+                        path: EntityQueryPath::Uuid,
+                        ordering: Ordering::Ascending,
+                    },
+                    EntityQuerySortingRecord {
+                        path: EntityQueryPath::OwnedById,
+                        ordering: Ordering::Ascending,
+                    },
+                ]
+            } else {
+                Vec::new()
+            }
+        });
 
     let (subgraph, cursor) = store
         .get_entity(
@@ -478,14 +496,6 @@ where
                     .into_iter()
                     .map(EntityQuerySortingRecord::into_owned)
                     .collect(),
-                // paths: vec![(
-                //     EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(vec![
-                //         PathToken::Field(Cow::Borrowed(
-                //             "http://localhost:3000/@alice/types/property-type/name/",
-                //         )),
-                //     ]))),
-                //     Ordering::Ascending,
-                // )],
                 cursor: request.cursor.map(EntityQueryCursor::into_owned),
             },
             request.limit,

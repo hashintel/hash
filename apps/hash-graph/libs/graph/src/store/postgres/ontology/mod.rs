@@ -182,13 +182,13 @@ macro_rules! impl_ontology_cursor {
                         base_url: compiler.add_cursor_selection(
                             &<$query_path>::BaseUrl,
                             identity,
-                            base_url_expression,
+                            Some(base_url_expression),
                             Ordering::Ascending,
                         ),
                         version: compiler.add_cursor_selection(
                             &<$query_path>::Version,
                             identity,
-                            version_expression,
+                            Some(version_expression),
                             Ordering::Descending,
                         ),
                     }

@@ -6,7 +6,7 @@ use temporal_versioning::TimeAxis;
 use crate::{
     store::{
         postgres::query::{
-            expression::GroupByExpression,
+            expression::{GroupByExpression, Nullability},
             table::{
                 EntityEditions, EntityEmbeddings, EntityTemporalMetadata, OntologyIds,
                 OntologyTemporalMetadata,
@@ -321,16 +321,23 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         &mut self,
         path: &'p R::QueryPath<'q>,
         lhs: impl FnOnce(Expression) -> Expression,
-        rhs: Expression,
+        rhs: Option<Expression>,
         ordering: Ordering,
     ) -> usize
     where
         R::QueryPath<'q>: PostgresQueryPath,
     {
         let column = self.compile_path_column(path);
-        self.statement
-            .where_expression
-            .add_cursor(lhs(Expression::Column(column)), rhs, ordering);
+        self.statement.where_expression.add_cursor(
+            lhs(Expression::Column(column)),
+            rhs,
+            ordering,
+            if path.terminating_column().nullable() {
+                Nullability::LhsNullable
+            } else {
+                Nullability::NotNullable
+            },
+        );
         self.artifacts.uses_cursor = true;
         self.add_distinct_selection_with_ordering(path, Distinctness::Distinct, Some(ordering))
     }

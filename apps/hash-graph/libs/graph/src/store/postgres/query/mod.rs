@@ -24,7 +24,8 @@ use error_stack::Context;
 use graph_types::knowledge::entity::Entity;
 use postgres_types::{FromSql, IsNull, ToSql, Type, WasNull};
 use serde::{Deserialize, Serialize};
-use temporal_versioning::TemporalInterval;
+use serde_json::Value;
+use temporal_versioning::{TemporalInterval, Timestamp};
 use tokio_postgres::Row;
 use uuid::Uuid;
 
@@ -119,13 +120,14 @@ impl<'a> FromSql<'a> for OntologyTypeVersion {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum CursorField<'a> {
     Bool(bool),
     I32(i32),
     F64(f64),
     #[serde(borrow)]
     String(Cow<'a, str>),
+    Timestamp(Timestamp<()>),
     TimeInterval(TemporalInterval<()>),
     Json(serde_json::Value),
     Uuid(Uuid),
@@ -138,6 +140,7 @@ impl CursorField<'_> {
             Self::I32(value) => CursorField::I32(value),
             Self::F64(value) => CursorField::F64(value),
             Self::String(value) => CursorField::String(Cow::Owned(value.into_owned())),
+            Self::Timestamp(value) => CursorField::Timestamp(value),
             Self::TimeInterval(value) => CursorField::TimeInterval(value),
             Self::Json(value) => CursorField::Json(value),
             Self::Uuid(value) => CursorField::Uuid(value),
@@ -146,7 +149,17 @@ impl CursorField<'_> {
 }
 
 impl FromSql<'_> for CursorField<'static> {
-    tokio_postgres::types::accepts!(BOOL, INT4, FLOAT8, TEXT, VARCHAR, TSTZ_RANGE, JSONB, UUID);
+    tokio_postgres::types::accepts!(
+        BOOL,
+        INT4,
+        FLOAT8,
+        TEXT,
+        VARCHAR,
+        TIMESTAMPTZ,
+        TSTZ_RANGE,
+        JSONB,
+        UUID
+    );
 
     fn from_sql(ty: &Type, raw: &[u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         match *ty {
@@ -154,6 +167,7 @@ impl FromSql<'_> for CursorField<'static> {
             Type::INT4 => Ok(Self::I32(i32::from_sql(ty, raw)?)),
             Type::FLOAT8 => Ok(Self::F64(f64::from_sql(ty, raw)?)),
             Type::TEXT | Type::VARCHAR => Ok(Self::String(Cow::Owned(String::from_sql(ty, raw)?))),
+            Type::TIMESTAMPTZ => Ok(Self::Timestamp(Timestamp::from_sql(ty, raw)?)),
             Type::TSTZ_RANGE => Ok(Self::TimeInterval(TemporalInterval::from_sql(ty, raw)?)),
             Type::JSONB => Ok(Self::Json(serde_json::Value::from_sql(ty, raw)?)),
             Type::UUID => Ok(Self::Uuid(Uuid::from_sql(ty, raw)?)),
@@ -170,7 +184,17 @@ impl FromSql<'_> for CursorField<'static> {
 }
 
 impl ToSql for CursorField<'_> {
-    tokio_postgres::types::accepts!(BOOL, INT4, FLOAT8, TEXT, VARCHAR, TSTZ_RANGE, JSONB, UUID);
+    tokio_postgres::types::accepts!(
+        BOOL,
+        INT4,
+        FLOAT8,
+        TEXT,
+        VARCHAR,
+        TIMESTAMPTZ,
+        TSTZ_RANGE,
+        JSONB,
+        UUID
+    );
 
     postgres_types::to_sql_checked!();
 
@@ -183,6 +207,7 @@ impl ToSql for CursorField<'_> {
             Self::I32(value) => value.to_sql(ty, out),
             Self::F64(value) => value.to_sql(ty, out),
             Self::String(value) => value.to_sql(ty, out),
+            Self::Timestamp(value) => value.to_sql(ty, out),
             Self::TimeInterval(value) => value.to_sql(ty, out),
             Self::Json(value) => value.to_sql(ty, out),
             Self::Uuid(value) => value.to_sql(ty, out),
@@ -226,7 +251,8 @@ where
                 .iter()
                 .zip(&cursor.values)
                 .map(|(sorting_record, parameter)| {
-                    let expression = compiler.add_parameter(parameter);
+                    let expression = (*parameter != CursorField::Json(Value::Null))
+                        .then(|| compiler.add_parameter(parameter));
                     compiler.add_cursor_selection(
                         &sorting_record.path,
                         identity,

@@ -103,19 +103,19 @@ impl<'s> PostgresSorting<'s, Entity> for VertexIdSorting<Entity> {
                 owned_by_id: compiler.add_cursor_selection(
                     &EntityQueryPath::OwnedById,
                     identity,
-                    owned_by_id_expression,
+                    Some(owned_by_id_expression),
                     Ordering::Ascending,
                 ),
                 entity_uuid: compiler.add_cursor_selection(
                     &EntityQueryPath::Uuid,
                     identity,
-                    entity_uuid_expression,
+                    Some(entity_uuid_expression),
                     Ordering::Ascending,
                 ),
                 revision_id: compiler.add_cursor_selection(
                     revision_id_path,
                     |column| Expression::Function(Function::Lower(Box::new(column))),
-                    revision_id_expression,
+                    Some(revision_id_expression),
                     Ordering::Descending,
                 ),
             }

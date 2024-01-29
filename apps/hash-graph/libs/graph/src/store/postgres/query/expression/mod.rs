@@ -12,6 +12,6 @@ pub use self::{
     join_clause::JoinExpression,
     order_clause::OrderByExpression,
     select_clause::SelectExpression,
-    where_clause::WhereExpression,
+    where_clause::{Nullability, WhereExpression},
     with_clause::WithExpression,
 };

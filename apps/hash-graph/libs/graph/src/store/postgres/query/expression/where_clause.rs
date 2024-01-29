@@ -5,10 +5,16 @@ use crate::store::{
     Ordering,
 };
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Nullability {
+    LhsNullable,
+    NotNullable,
+}
+
 #[derive(Debug, Default, PartialEq, Eq, Hash)]
 pub struct WhereExpression {
     conditions: Vec<Condition>,
-    cursor: Vec<(Expression, Expression, Ordering)>,
+    cursor: Vec<(Expression, Option<Expression>, Ordering, Nullability)>,
 }
 
 impl WhereExpression {
@@ -16,8 +22,14 @@ impl WhereExpression {
         self.conditions.push(condition);
     }
 
-    pub fn add_cursor(&mut self, lhs: Expression, rhs: Expression, ordering: Ordering) {
-        self.cursor.push((lhs, rhs, ordering));
+    pub fn add_cursor(
+        &mut self,
+        lhs: Expression,
+        rhs: Option<Expression>,
+        ordering: Ordering,
+        nullability: Nullability,
+    ) {
+        self.cursor.push((lhs, rhs, ordering, nullability));
     }
 
     pub fn len(&self) -> usize {
@@ -47,17 +59,41 @@ impl Transpile for WhereExpression {
             fmt.write_str(" AND (")?;
         }
         for current in (0..self.cursor.len()).rev() {
-            for (idx, (lhs, rhs, ordering)) in self.cursor.iter().enumerate() {
+            for (idx, (lhs, rhs, ordering, null)) in self.cursor.iter().enumerate() {
                 if idx > 0 {
                     fmt.write_str(" AND ")?;
                 }
                 if idx == current {
-                    lhs.transpile(fmt)?;
-                    match ordering {
-                        Ordering::Ascending => fmt.write_str(" > ")?,
-                        Ordering::Descending => fmt.write_str(" < ")?,
+                    if let Some(rhs) = rhs {
+                        fmt.write_char('(')?;
+                        lhs.transpile(fmt)?;
+                        match ordering {
+                            Ordering::Ascending => fmt.write_str(" > ")?,
+                            Ordering::Descending => fmt.write_str(" < ")?,
+                        }
+                        rhs.transpile(fmt)?;
+                        if *null == Nullability::LhsNullable && *ordering == Ordering::Ascending {
+                            // If the ordering is ascending, we need to check if the lhs is null as
+                            // nulls are sorted last.
+                            fmt.write_str(" OR ")?;
+                            lhs.transpile(fmt)?;
+                            fmt.write_str(" IS NULL")?;
+                        }
+                        fmt.write_char(')')?;
+                    } else {
+                        match ordering {
+                            Ordering::Ascending => {
+                                // If the cursor is `null` and the ordering is ascending, we need to
+                                // skip this condition
+                                fmt.write_str("FALSE")?
+                            }
+                            Ordering::Descending => {
+                                lhs.transpile(fmt)?;
+                                fmt.write_str(" IS NOT NULL")?
+                            }
+                        }
                     }
-                    rhs.transpile(fmt)?;
+
                     break;
                 }
 
