@@ -53,7 +53,6 @@ import {
 import { TemporalClient } from "../../../temporal";
 import { genId, linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../../context-types";
-import { checkEntityTypePermission } from "../../ontology/primitive/entity-type";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
 import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
@@ -915,8 +914,6 @@ export const checkPermissionsOnEntity: ImpureGraphFunction<
             .then(({ data }) => data.has_permission)
       : null,
   ]);
-
-  checkEntityTypePermission();
 
   return {
     edit: entityEditable,
