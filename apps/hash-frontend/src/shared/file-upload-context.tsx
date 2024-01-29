@@ -32,11 +32,14 @@ import {
   PresignedPut,
   RequestFileUploadMutation,
   RequestFileUploadMutationVariables,
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
 } from "../graphql/api-types.gen";
 import {
   addEntityViewerMutation,
   archiveEntityMutation,
   createEntityMutation,
+  updateEntityMutation,
 } from "../graphql/queries/knowledge/entity.queries";
 import {
   createFileFromUrl,
@@ -172,6 +175,11 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
     CreateEntityMutation,
     CreateEntityMutationVariables
   >(createEntityMutation);
+
+  const [updateEntity] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation);
 
   const [requestFileUploadFn] = useMutation<
     RequestFileUploadMutation,
@@ -382,6 +390,21 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
               }));
             },
           );
+
+          const uploadCompletedAt = new Date();
+
+          await updateEntity({
+            variables: {
+              entityUpdate: {
+                entityId: fileEntity.metadata.recordId.entityId,
+                updatedProperties: {
+                  ...fileEntity.properties,
+                  "https://hash.ai/@hash/types/property-type/upload-completed-at/":
+                    uploadCompletedAt.toISOString(),
+                } as FileV2Properties,
+              },
+            },
+          });
         } catch (err) {
           // requestFileUploadFn might itself throw rather than return errors, thus this catch
 
@@ -538,6 +561,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
       createFileFromUrlFn,
       requestFileUploadFn,
       updateUpload,
+      updateEntity,
       uploads,
     ],
   );
