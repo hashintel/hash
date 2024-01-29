@@ -26,16 +26,21 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: UpdateEntityHookCal
   async ({ entity, updatedProperties, context, authentication }) => {
     const { temporalClient } = context;
 
-    const docxFileEntity =
-      entity as unknown as Entity<FileEntityToParseProperties>;
+    const fileEntity = entity as unknown as Entity<FileEntityToParseProperties>;
 
-    const { textualContent, fileStorageKey, fileStorageProvider } =
-      simplifyProperties(updatedProperties as FileEntityToParseProperties);
+    const {
+      textualContent,
+      fileStorageKey,
+      fileStorageProvider,
+      uploadCompletedAt,
+    } = simplifyProperties(updatedProperties as FileEntityToParseProperties);
 
     if (
       !textualContent &&
       fileStorageKey &&
       fileStorageProvider &&
+      // We only want to trigger the temporal workflow if the file upload has completed
+      uploadCompletedAt &&
       isStorageType(fileStorageProvider) &&
       temporalClient
     ) {
@@ -47,7 +52,7 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: UpdateEntityHookCal
       }
 
       const presignedFileDownloadUrl = await storageProvider.presignDownload({
-        entity: docxFileEntity,
+        entity: fileEntity,
         key: fileStorageKey,
         expiresInSeconds: 60 * 60, // 1 hour
       });
@@ -55,7 +60,7 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: UpdateEntityHookCal
       const workflowId = `${entity.metadata.recordId.editionId}-parse-text-from-file-workflow-id`;
 
       const fileEntityOwnedById = extractOwnedByIdFromEntityId(
-        docxFileEntity.metadata.recordId.entityId,
+        fileEntity.metadata.recordId.entityId,
       );
 
       const webMachineActorId = await getWebMachineActorId(
@@ -75,7 +80,7 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: UpdateEntityHookCal
           args: [
             {
               presignedFileDownloadUrl,
-              fileEntity: docxFileEntity,
+              fileEntity,
               webMachineActorId,
             },
           ],
