@@ -3,7 +3,7 @@ import { FunctionComponent } from "react";
 
 export const HashSolidIcon: FunctionComponent<SvgIconProps> = (props) => {
   return (
-    <SvgIcon {...props} width="18" height="16" viewBox="0 0 18 16" fill="none">
+    <SvgIcon {...props} width="16" height="16" viewBox="0 0 18 16" fill="none">
       <path
         fillRule="evenodd"
         clipRule="evenodd"
