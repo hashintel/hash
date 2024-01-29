@@ -4,6 +4,7 @@ import {
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { UserPermissionsOnEntityType } from "@local/hash-isomorphic-utils/types";
 import {
   EntityTypeRootType,
   EntityTypeWithMetadata,
@@ -14,6 +15,8 @@ import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 
 import {
   archiveEntityType,
+  checkEntityTypePermission,
+  checkPermissionsOnEntityType,
   createEntityType,
   getEntityTypeSubgraphById,
   unarchiveEntityType,
@@ -24,6 +27,7 @@ import {
   MutationCreateEntityTypeArgs,
   MutationUnarchiveEntityTypeArgs,
   MutationUpdateEntityTypeArgs,
+  QueryCheckUserPermissionsOnEntityTypeArgs,
   QueryGetEntityTypeArgs,
   QueryQueryEntityTypesArgs,
   ResolverFn,
@@ -195,6 +199,14 @@ export const updateEntityTypeResolver: ResolverFn<
       ],
     },
   );
+
+export const checkUserPermissionsOnEntityTypeResolver: ResolverFn<
+  Promise<UserPermissionsOnEntityType>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  QueryCheckUserPermissionsOnEntityTypeArgs
+> = async (_, params, { dataSources, authentication }) =>
+  checkPermissionsOnEntityType(dataSources, authentication, params);
 
 export const archiveEntityTypeResolver: ResolverFn<
   Promise<OntologyTemporalMetadata>,

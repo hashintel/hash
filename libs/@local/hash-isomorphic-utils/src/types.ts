@@ -45,6 +45,12 @@ export type UserPermissions = {
   editPermissions: boolean;
 };
 
+export type UserPermissionsOnEntityType = {
+  view: boolean;
+  edit: boolean;
+  instantiate: boolean;
+};
+
 export type UserPermissionsOnEntities = {
   [key: EntityId]: UserPermissions | undefined;
 };
