@@ -6,6 +6,7 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
  */
 export const hiddenEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.block.entityTypeId,
+  systemEntityTypes.browserPluginSettings.entityTypeId,
   systemEntityTypes.comment.entityTypeId,
   systemEntityTypes.commentNotification.entityTypeId,
   systemEntityTypes.graphChangeNotification.entityTypeId,

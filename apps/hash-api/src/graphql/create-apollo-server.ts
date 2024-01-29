@@ -99,14 +99,7 @@ export const createApolloServer = ({
             executionDidStart: async ({ request }) => {
               const scope = Sentry.getCurrentScope();
 
-              const user: Express.Request["user"] = ctx.context.user;
-              scope.setUser({
-                id: ctx.context.authentication.actorId,
-                email: user?.emails[0],
-                username: user?.shortname ?? "public",
-              });
-
-              scope.setExtras({
+              scope.setContext("graphql", {
                 query: request.query,
                 variables: request.variables,
               });
@@ -176,7 +169,10 @@ export const createApolloServer = ({
         },
       },
       ApolloServerPluginLandingPageGraphQLPlayground({
-        settings: { "request.credentials": "include" },
+        settings: {
+          "request.credentials": "include",
+          "schema.polling.enable": false,
+        },
       }),
     ],
   });

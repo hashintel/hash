@@ -7,6 +7,10 @@ import {
   ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
 import {
+  CreateEmbeddingsParams,
+  CreateEmbeddingsReturn,
+} from "@local/hash-isomorphic-utils/ai-inference-types";
+import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -46,7 +50,8 @@ import {
   EntityDefinition,
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
-import { linkedTreeFlatten } from "../../../util";
+import { TemporalClient } from "../../../temporal";
+import { genId, linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../../context-types";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
@@ -149,9 +154,46 @@ export const createEntity: ImpureGraphFunction<
 export const getEntities: ImpureGraphFunction<
   {
     query: EntityStructuralQuery;
+    temporalClient?: TemporalClient;
   },
   Promise<Subgraph<EntityRootType>>
-> = async ({ graphApi }, { actorId }, { query }) => {
+> = async ({ graphApi }, { actorId }, { query, temporalClient }) => {
+  /**
+   * Convert any strings provided under a top-level 'cosineDistance' filter into embeddings
+   * This doesn't deal with 'cosineDistance' inside a nested filter (e.g. 'any'), so for now
+   * this is only good for single-string inputs.
+   */
+  for (const [filterName, expression] of Object.entries(query.filter)) {
+    if (filterName === "cosineDistance") {
+      if (
+        Array.isArray(expression) &&
+        expression[1] &&
+        "parameter" in expression[1] &&
+        typeof expression[1].parameter === "string"
+      ) {
+        if (!temporalClient) {
+          throw new Error(
+            "Cannot query cosine distance without temporal client",
+          );
+        }
+
+        const stringInputValue = expression[1].parameter;
+        const { embeddings } = await temporalClient.workflow.execute<
+          (params: CreateEmbeddingsParams) => Promise<CreateEmbeddingsReturn>
+        >("createEmbeddings", {
+          taskQueue: "ai",
+          args: [
+            {
+              input: [stringInputValue],
+            },
+          ],
+          workflowId: genId(),
+        });
+        expression[1].parameter = embeddings[0];
+      }
+    }
+  }
+
   return await graphApi.getEntitiesByQuery(actorId, query).then(({ data }) => {
     // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
     for (const [entityId, editionMap] of Object.entries(data.vertices)) {

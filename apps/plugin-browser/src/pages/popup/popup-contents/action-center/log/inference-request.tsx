@@ -91,10 +91,31 @@ const InferenceMetadata = ({ request }: { request: PageEntityInference }) => {
           View source page
         </Link>
         <MetadataItem label="Model" value={request.model} />
-        {usage && <MetadataItem label="Tokens" value={usage.toString()} />}
+        {usage ? (
+          <MetadataItem label="Tokens" value={usage.toString()} />
+        ) : null}
         <MetadataItem label="Time" value={timeElapsed} />
       </Stack>
-      <CopyableRequestId requestId={request.requestUuid} />
+      <Stack
+        alignItems="center"
+        direction="row"
+        justifyContent="space-between"
+        mt={0.8}
+      >
+        <Box>
+          {request.status === "user-cancelled" && (
+            <Typography
+              sx={{
+                color: ({ palette }) => palette.red[80],
+                fontSize: metadataFontSize,
+              }}
+            >
+              Cancelled
+            </Typography>
+          )}
+        </Box>
+        <CopyableRequestId requestId={request.requestUuid} />
+      </Stack>
     </Box>
   );
 };
@@ -119,9 +140,11 @@ export const InferenceRequest = ({
     return entityTypes.reduce(
       (acc, type) => {
         acc[type.schema.$id] =
-          status === "complete"
+          status === "complete" || status === "user-cancelled"
             ? request.data.contents[0]?.results.filter(
-                (result) => result.entityTypeId === type.schema.$id,
+                (result) =>
+                  result.entityTypeId === type.schema.$id &&
+                  result.status === "success",
               ) ?? []
             : [];
         return acc;

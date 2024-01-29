@@ -21,6 +21,7 @@ export const generateQueues = (
         new AsyncRedisClient(logger, {
           host: getRequiredEnv("HASH_REDIS_HOST"),
           port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
+          tls: process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true",
         }),
       ),
     },
@@ -30,6 +31,7 @@ export const generateQueues = (
         new AsyncRedisClient(logger, {
           host: getRequiredEnv("HASH_REDIS_HOST"),
           port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
+          tls: process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true",
         }),
       ),
     },

@@ -216,6 +216,7 @@ export const structuralQueryEntitiesResolver: ResolverFn<
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
     {
+      temporalClient: context.temporal,
       query,
     },
   );

@@ -1,5 +1,7 @@
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
+  CreateEmbeddingsParams,
+  CreateEmbeddingsReturn,
   InferEntitiesCallerParams,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
@@ -13,9 +15,12 @@ import { StatusCode } from "@local/status";
 import { ApplicationFailure } from "@temporalio/activity";
 import { CreateEmbeddingResponse } from "openai/resources";
 
-import { createEmbeddings } from "./activities/embeddings";
-import { inferEntities } from "./activities/infer-entities";
+import { inferEntitiesActivity } from "./activities/infer-entities";
 import { parseTextFromFile } from "./activities/parse-text-from-file";
+import {
+  createEmbeddings,
+  createEntityEmbeddings,
+} from "./activities/shared/embeddings";
 
 export { createGraphActivities } from "./activities/graph";
 
@@ -27,7 +32,7 @@ export const createAiActivities = ({
   async inferEntitiesActivity(
     params: InferEntitiesCallerParams,
   ): Promise<InferEntitiesReturn> {
-    const status = await inferEntities({ ...params, graphApiClient });
+    const status = await inferEntitiesActivity({ ...params, graphApiClient });
     if (status.code !== StatusCode.Ok) {
       throw new ApplicationFailure(status.message, status.code, true, [status]);
     }
@@ -41,13 +46,25 @@ export const createAiActivities = ({
     return parseTextFromFile({ graphApiClient }, params);
   },
 
-  async createEmbeddingsActivity(params: {
+  async createEmbeddingsActivity(
+    params: CreateEmbeddingsParams,
+  ): Promise<CreateEmbeddingsReturn> {
+    return createEmbeddings(params);
+  },
+
+  async createEntityEmbeddingsActivity(params: {
     entityProperties: EntityPropertiesObject;
     propertyTypes: PropertyTypeWithMetadata[];
   }): Promise<{
     embeddings: { property?: BaseUrl; embedding: number[] }[];
     usage: CreateEmbeddingResponse.Usage;
   }> {
-    return createEmbeddings(params);
+    return createEntityEmbeddings({
+      entityProperties: params.entityProperties,
+      propertyTypes: params.propertyTypes.map((propertyType) => ({
+        title: propertyType.schema.title,
+        $id: propertyType.schema.$id,
+      })),
+    });
   },
 });

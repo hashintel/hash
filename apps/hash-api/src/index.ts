@@ -5,7 +5,7 @@ import {
   realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
-import express, { raw } from "express";
+import express, { ErrorRequestHandler, raw } from "express";
 
 // eslint-disable-next-line import/order
 import { initSentry } from "./sentry";
@@ -39,6 +39,7 @@ import {
   addKratosAfterRegistrationHandler,
   createAuthMiddleware,
 } from "./auth/create-auth-handlers";
+import { getActorIdFromRequest } from "./auth/get-actor-id";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { RedisCache } from "./cache";
 import {
@@ -144,17 +145,37 @@ const main = async () => {
     logger.error(`Could not start StatsD client: ${err}`);
   }
 
-  // Configure the Express server
+  // Configure Sentry error / trace handling
   app.use(
     Sentry.Handlers.requestHandler({
       ip: true,
-      user: ["emails", "shortname"],
     }),
   );
+  app.use(Sentry.Handlers.tracingHandler());
+
   app.use(cors(CORS_CONFIG));
+
+  // Add logging of requests
+  app.use((req, res, next) => {
+    const requestId = nanoid();
+    res.set("x-hash-request-id", requestId);
+    logger.info({
+      requestId,
+      method: req.method,
+      ip: req.ip,
+      path: req.path,
+      message: "request",
+      userAgent: req.headers["user-agent"],
+      graphqlClient: req.headers["apollographql-client-name"],
+    });
+
+    next();
+  });
 
   const redisHost = getRequiredEnv("HASH_REDIS_HOST");
   const redisPort = parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10);
+  const redisEncryptedTransit =
+    process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true";
 
   const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
   const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
@@ -168,6 +189,7 @@ const main = async () => {
   const redis = new RedisCache(logger, {
     host: redisHost,
     port: redisPort,
+    tls: redisEncryptedTransit,
   });
   shutdown.addCleanup("Redis", async () => redis.close());
 
@@ -221,6 +243,39 @@ const main = async () => {
   addKratosAfterRegistrationHandler({ app, context });
   const authMiddleware = createAuthMiddleware({ logger, context });
   app.use(authMiddleware);
+
+  /**
+   * Add scope to Sentry, now the user has been checked.
+   * We could set some of this scope earlier, but it doesn't get picked up for GraphQL requests for some reason
+   * if the middleware comes earlier.
+   */
+  app.use((req, _res, next) => {
+    const scope = Sentry.getCurrentScope();
+
+    // Clear the scope and breadcrumbs – requests seem to bleed into each other otherwise
+    scope.clear();
+    scope.clearBreadcrumbs();
+
+    /**
+     * Sentry automatically populates a 'Headers' object, but for some reason it doesn't do this for GraphQL requests.
+     * This might be something to do with how Sentry hooks into fetch that doesn't play nicely with ApolloServer,
+     * or how we're loading it.
+     */
+    const userAgent = req.header("user-agent");
+    const origin = req.header("origin");
+    const ip = req.ip;
+
+    scope.setContext("request", { ip, origin, userAgent });
+
+    const user = req.user;
+    scope.setUser({
+      id: getActorIdFromRequest(req),
+      email: user?.emails[0],
+      username: user?.shortname ?? "public",
+    });
+
+    next();
+  });
 
   // Create an email transporter
   const emailTransporter =
@@ -385,8 +440,6 @@ const main = async () => {
   app.get("/oauth/linear/callback", rateLimiter, oAuthLinearCallback);
   app.post("/webhooks/linear", linearWebhook);
 
-  app.use(Sentry.Handlers.tracingHandler());
-
   /**
    * This middleware MUST:
    * 1. Come AFTER all non-error controllers
@@ -402,6 +455,14 @@ const main = async () => {
       },
     }),
   );
+
+  // Fallback error handler for errors that haven't been caught and sent as a response already
+  const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+    Sentry.captureException(err);
+
+    res.status(500).send(err.message);
+  };
+  app.use(errorHandler);
 
   // Create the HTTP server.
   // Note: calling `close` on a `http.Server` stops new connections, but it does not

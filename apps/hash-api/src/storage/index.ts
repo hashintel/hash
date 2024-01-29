@@ -85,6 +85,7 @@ export const initialiseStorageProvider = (
   const initialiser = storageProviderInitialiserLookup[provider];
 
   const newProvider = initialiser(app);
+
   storageProviderLookup[provider] = newProvider;
   return newProvider;
 };
@@ -260,6 +261,7 @@ export const setupFileDownloadProxyHandler = (
       }
 
       let storageProvider = storageProviderLookup[storageProviderName];
+
       if (!storageProvider) {
         try {
           storageProvider = initialiseStorageProvider(app, storageProviderName);
