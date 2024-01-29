@@ -11,10 +11,12 @@ import { useEntityType } from "./shared/entity-type-context";
 import { getTabUrl, getTabValue, useCurrentTab } from "./shared/tabs";
 
 export const EntityTypeTabs = ({
+  canCreateEntity,
   isDraft,
   isFile,
   isImage,
 }: {
+  canCreateEntity: boolean;
   isDraft: boolean;
   isFile: boolean;
   isImage: boolean;
@@ -60,7 +62,7 @@ export const EntityTypeTabs = ({
               />,
               isLinkEntityType ? (
                 []
-              ) : (
+              ) : canCreateEntity ? (
                 <TabLink
                   key={isFile ? "upload" : "create"}
                   value={isFile ? "upload" : "create"}
@@ -97,7 +99,7 @@ export const EntityTypeTabs = ({
                     />
                   }
                 />
-              ),
+              ) : null,
             ].flat()}
       </Tabs>
     </Box>
