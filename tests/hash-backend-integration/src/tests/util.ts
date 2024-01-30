@@ -6,6 +6,7 @@ import { createOrg } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import { createUser } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
+import { TemporalClient } from "@apps/hash-api/src/temporal";
 import { getRequiredEnv } from "@apps/hash-api/src/util";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
@@ -21,7 +22,10 @@ const randomStringSuffix = () => {
     .join("");
 };
 
-export const createTestImpureGraphContext = (): ImpureGraphContext<true> => {
+export const createTestImpureGraphContext = (): ImpureGraphContext<
+  true,
+  true
+> => {
   const logger = new Logger({
     mode: "dev",
     level: "debug",
@@ -35,6 +39,13 @@ export const createTestImpureGraphContext = (): ImpureGraphContext<true> => {
     host: graphApiHost,
     port: graphApiPort,
   });
+
+  const mockedTemporalClient = {
+    workflow: {
+      execute: jest.fn(),
+    },
+  } as unknown as TemporalClient;
+
   return {
     graphApi,
     uploadProvider: {
@@ -55,7 +66,7 @@ export const createTestImpureGraphContext = (): ImpureGraphContext<true> => {
       },
       storageType: "LOCAL_FILE_SYSTEM",
     },
-    temporalClient: null,
+    temporalClient: mockedTemporalClient,
   };
 };
 
@@ -63,7 +74,7 @@ export const generateRandomShortname = (prefix?: string) =>
   `${prefix ?? ""}${randomStringSuffix()}`;
 
 export const createTestUser = async (
-  context: ImpureGraphContext,
+  context: ImpureGraphContext<false, true>,
   shortNamePrefix: string,
   logger: Logger,
 ) => {
@@ -103,7 +114,7 @@ export const createTestUser = async (
 };
 
 export const createTestOrg = async (
-  context: ImpureGraphContext,
+  context: ImpureGraphContext<false, true>,
   authentication: AuthenticationContext,
   shortNamePrefix: string,
   logger: Logger,
