@@ -32,11 +32,12 @@ import { CalendarDaysLightIcon } from "../../../shared/icons/calendar-days-light
 import { CalendarLightIcon } from "../../../shared/icons/calendar-light-icon";
 import { CalendarWeekLightIcon } from "../../../shared/icons/calendar-week-light-icon";
 import { CalendarsLightIcon } from "../../../shared/icons/calendars-light-icon";
+import { HashSolidIcon } from "../../../shared/icons/hash-solid-icon";
 import { LinkRegularIcon } from "../../../shared/icons/link-regular-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";
 import { UsersRegularIcon } from "../../../shared/icons/users-regular-icon";
 import { Button } from "../../../shared/ui";
-import { MinimalActor } from "../../../shared/use-actors";
+import { isAiMachineActor, MinimalActor } from "../../../shared/use-actors";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { FilterSection } from "./draft-entities-filters/filter-section";
 import { FilterSectionDefinition } from "./draft-entities-filters/types";
@@ -483,8 +484,12 @@ export const DraftEntitiesFilters: FunctionComponent<{
             )
             .map(({ source, label }) => ({
               icon:
-                "displayName" in source && source.displayName === "HASH AI" ? (
-                  <WandMagicSparklesIcon />
+                source.kind === "machine" ? (
+                  isAiMachineActor(source) ? (
+                    <WandMagicSparklesIcon />
+                  ) : (
+                    <HashSolidIcon />
+                  )
                 ) : (
                   <UserIcon />
                 ),
