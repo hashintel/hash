@@ -4,6 +4,8 @@ import { type BrowserContext, chromium, test as base } from "@playwright/test";
 
 const monorepoRootDir = path.resolve(__dirname, "../../../../");
 
+export * from "@playwright/test";
+
 export const test = base.extend<{
   context: BrowserContext;
   extensionId: string;

@@ -1,7 +1,10 @@
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
-// eslint-disable-next-line no-restricted-imports
-import { Page } from "@playwright/test";
 
+import {
+  entityTypeSelectorLocator,
+  loggedOutHeaderLocator,
+  signOutAndReloadPopup,
+} from "./browser-plugin/actions";
 import { expect, test } from "./browser-plugin/fixtures";
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
 import { resetDb } from "./shared/reset-db";
@@ -10,33 +13,8 @@ test.beforeEach(async () => {
   await resetDb();
 });
 
-const loggedOutHeaderLocator = "text=Connect to HASH";
 const createAccountButtonLocator = "text=Create a free account";
-const entityTypeSelectorLocator = '[placeholder="Search for types..."]';
 const quickNoteInputLocator = '[placeholder="Start typing here..."]';
-
-export const signOutAndReloadPopup = async ({
-  extensionId,
-  page,
-}: {
-  extensionId: string;
-  page: Page;
-}) => {
-  // Sign out from HASH
-  await page.goto("/");
-  await page.click(`[data-testid="user-avatar"]`);
-  await page.click("text=Sign Out");
-  await sleep(1_000);
-
-  // Confirm the popup has been signed out
-  await page.goto(`chrome-extension://${extensionId}/popup.html`);
-  await expect(page.locator(loggedOutHeaderLocator)).toBeVisible();
-
-  // Sign back in again and confirm the tabs are visible again
-  await loginUsingTempForm({ page });
-  await page.goto(`chrome-extension://${extensionId}/popup.html`);
-  await expect(page.locator("text=One-off")).toBeVisible();
-};
 
 test("popup window loads with logged-out state", async ({
   page,
@@ -141,7 +119,8 @@ test("user can configure a one-off inference, and the settings are persisted", a
 
 /**
  * @todo figure out how to check that the correct message is sent from the background script to the API via websocket
- *   - when user visits a page that should trigger automatic inference
+ *   - when user visits a page that should trigger automatic inference.
+ *   Manual tests covering the end-to-end automatic inference process are in ai-inference.spec.ts
  * @see https://github.com/microsoft/playwright/issues/15684#issuecomment-1892644655
  */
 test("user can enable automatic inference, and the settings are persisted", async ({

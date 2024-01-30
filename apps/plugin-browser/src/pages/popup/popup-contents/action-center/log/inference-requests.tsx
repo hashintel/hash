@@ -40,12 +40,11 @@ const InferenceRequestContainer = ({
   const [cancellationRequested, setCancellationRequested] = useState(false);
 
   const isUnproductiveSuccessfulRequest =
-    request.status === "complete" ||
-    (request.status === "user-cancelled" &&
-      (!request.data.contents[0]?.results?.length ||
-        request.data.contents[0].results.every(
-          (result) => result.operation === "already-exists-as-proposed",
-        )));
+    (request.status === "complete" || request.status === "user-cancelled") &&
+    (!request.data.contents[0]?.results?.length ||
+      request.data.contents[0].results.every(
+        (result) => result.operation === "already-exists-as-proposed",
+      ));
 
   const cancelRequest = (event: MouseEvent) => {
     event.stopPropagation();
@@ -118,6 +117,7 @@ const InferenceRequestContainer = ({
                 variant="indeterminate"
                 size={13}
                 sx={{ mr: 1, color: ({ palette }) => palette.red[70] }}
+                title="Cancellation pending..."
               />
             ) : (
               <IconButton
@@ -142,16 +142,19 @@ const InferenceRequestContainer = ({
               variant="indeterminate"
               size={13}
               sx={{ mr: 1 }}
+              title="Job in progress..."
             />
           </Stack>
         ) : request.status === "complete" ||
           request.status === "user-cancelled" ? (
           isUnproductiveSuccessfulRequest ? (
             <DashIcon
+              aria-label="No entities created or updated"
               sx={{ height: 16, fill: ({ palette }) => palette.gray[40] }}
             />
           ) : (
             <CheckIcon
+              aria-label="Entities successfully inferred"
               sx={{ height: 16, fill: ({ palette }) => palette.green[80] }}
             />
           )

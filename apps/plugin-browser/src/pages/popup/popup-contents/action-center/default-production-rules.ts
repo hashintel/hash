@@ -1,16 +1,17 @@
+import { productionCrunchbaseCompanyId } from "@local/hash-isomorphic-utils/production-crunchbase-company-id";
+
 import { LocalStorage } from "../../../../shared/storage";
 
 export const defaultProductionRules: LocalStorage["automaticInferenceConfig"]["rules"] =
   [
     {
       restrictToDomains: ["crunchbase.com"],
-      entityTypeId:
-        "https://hash.ai/@hash/types/entity-type/crunchbase-person/v/11",
+      entityTypeId: productionCrunchbaseCompanyId,
     },
     {
       restrictToDomains: ["crunchbase.com"],
       entityTypeId:
-        "https://hash.ai/@hash/types/entity-type/crunchbase-company/v/13",
+        "https://hash.ai/@hash/types/entity-type/crunchbase-person/v/11",
     },
     {
       restrictToDomains: ["crunchbase.com"],
