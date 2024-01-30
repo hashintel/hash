@@ -9,6 +9,7 @@ import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   OwnedById,
+  Uuid,
 } from "@local/hash-subgraph";
 
 import { isProdEnv } from "../../../../lib/env-config";
@@ -28,7 +29,7 @@ import {
   createMentionNotification,
   getMentionNotification,
 } from "../../system-types/notification";
-import { getPageAuthor, getPageFromEntity } from "../../system-types/page";
+import { getPageFromEntity } from "../../system-types/page";
 import {
   getMentionedUsersInTextualContent,
   getTextById,
@@ -77,8 +78,14 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
         entity: blockCollectionEntity,
       });
 
-      const pageAuthor = await getPageAuthor(context, authentication, {
-        pageEntityId: occurredInEntity.entity.metadata.recordId.entityId,
+      const pageAuthorAccountId =
+        occurredInEntity.entity.metadata.provenance.createdById;
+
+      const pageAuthor = await getUserById(context, authentication, {
+        entityId: entityIdFromOwnedByIdAndEntityUuid(
+          pageAuthorAccountId as Uuid as OwnedById,
+          pageAuthorAccountId as Uuid as EntityUuid,
+        ),
       });
 
       const commentAuthor = await getCommentAuthor(context, authentication, {
