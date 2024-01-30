@@ -44,8 +44,7 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: UpdateEntityHookCal
       fileStorageProvider &&
       // We only want to trigger the temporal workflow if the file upload has completed
       uploadCompletedAt &&
-      isStorageType(fileStorageProvider) &&
-      temporalClient
+      isStorageType(fileStorageProvider)
     ) {
       const storageProvider = storageProviderLookup[fileStorageProvider];
 

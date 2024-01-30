@@ -1180,7 +1180,9 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
     entityTypeBaseUrls: BaseUrl[];
     migrationState: MigrationState;
   },
-  Promise<void>
+  Promise<void>,
+  false,
+  true
 > = async (context, authentication, { entityTypeBaseUrls, migrationState }) => {
   /**
    *  We have to do this web-by-web because we don't have a single actor that can see all entities in all webs

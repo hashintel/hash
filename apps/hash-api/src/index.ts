@@ -203,7 +203,7 @@ const main = async () => {
   // Setup upload storage provider and express routes for local file uploads
   const uploadProvider = setupStorageProviders(app, FILE_UPLOAD_PROVIDER);
 
-  const temporalClient = (await createTemporalClient(logger)) ?? null;
+  const temporalClient = await createTemporalClient(logger);
 
   const vaultClient = createVaultClient();
 

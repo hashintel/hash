@@ -32,7 +32,7 @@ import { AuthenticationContext } from "../../../authentication-context";
 export const createEntityWithPlaceholdersFn =
   (
     authentication: AuthenticationContext,
-    context: ImpureGraphContext,
+    context: ImpureGraphContext<false, true>,
     placeholderResults: PlaceholderResultsMap,
   ) =>
   async (originalDefinition: EntityDefinition, ownedById: OwnedById) => {
@@ -259,7 +259,7 @@ export const handleInsertNewBlock = async (
  * Acts on {@link SwapBlockDataAction}
  */
 export const handleSwapBlockData = async (
-  context: ImpureGraphContext,
+  context: ImpureGraphContext<false, true>,
   params: {
     user: User;
     swapBlockDataAction: SwapBlockDataAction;
@@ -301,7 +301,7 @@ export const handleSwapBlockData = async (
  * Acts on {@link UpdateEntityAction}
  */
 export const handleUpdateEntity = async (
-  context: ImpureGraphContext,
+  context: ImpureGraphContext<false, true>,
   params: {
     user: User;
     action: UpdateEntityAction;

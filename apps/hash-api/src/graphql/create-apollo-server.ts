@@ -23,7 +23,7 @@ export interface CreateApolloServerParams {
   graphApi: GraphApi;
   cache: CacheAdapter;
   uploadProvider: UploadableStorageProvider;
-  temporalClient?: TemporalClient;
+  temporalClient: TemporalClient;
   vaultClient?: VaultClient;
   search?: SearchAdapter;
   emailTransporter: EmailTransporter;

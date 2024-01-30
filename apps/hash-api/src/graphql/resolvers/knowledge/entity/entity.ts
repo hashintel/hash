@@ -212,11 +212,13 @@ export const structuralQueryEntitiesResolver: ResolverFn<
   GraphQLContext,
   QueryStructuralQueryEntitiesArgs
 > = async (_, { query }, graphQLContext, info) => {
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
+
   const subgraph = await getEntities(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
     {
-      temporalClient: context.temporal,
+      temporalClient: context.temporalClient,
       query,
     },
   );

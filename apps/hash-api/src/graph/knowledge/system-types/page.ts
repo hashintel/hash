@@ -103,7 +103,9 @@ export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
  */
 export const getPageById: ImpureGraphFunction<
   { entityId: EntityId },
-  Promise<Page>
+  Promise<Page>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { entityId } = params;
 
@@ -192,7 +194,9 @@ export const createPage: ImpureGraphFunction<
  */
 export const getPageParentPage: ImpureGraphFunction<
   { page: Page },
-  Promise<Page | null>
+  Promise<Page | null>,
+  false,
+  true
 > = async (ctx, authentication, { page }) => {
   const parentPageLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: page.entity.metadata.recordId.entityId,
@@ -226,7 +230,9 @@ export const getPageParentPage: ImpureGraphFunction<
  */
 export const isPageArchived: ImpureGraphFunction<
   { page: Page },
-  Promise<boolean>
+  Promise<boolean>,
+  false,
+  true
 > = async (ctx, authentication, { page }) => {
   if (page.archived) {
     return true;
@@ -250,7 +256,9 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
     includeArchived?: boolean;
     includeDrafts?: boolean;
   },
-  Promise<Page[]>
+  Promise<Page[]>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { graphApi } = ctx;
   const { ownedById, includeArchived = false, includeDrafts = false } = params;
@@ -300,7 +308,9 @@ export const pageHasParentPage: ImpureGraphFunction<
     page: Page;
     parentPage: Page;
   },
-  Promise<boolean>
+  Promise<boolean>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { page, parentPage } = params;
 
@@ -342,7 +352,9 @@ export const removeParentPage: ImpureGraphFunction<
   {
     page: Page;
   },
-  Promise<void>
+  Promise<void>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { page } = params;
   const parentPageLinks = await getEntityOutgoingLinks(ctx, authentication, {
@@ -385,7 +397,9 @@ export const setPageParentPage: ImpureGraphFunction<
     prevFractionalIndex: string | null;
     nextIndex: string | null;
   },
-  Promise<Page>
+  Promise<Page>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { page, parentPage, prevFractionalIndex, nextIndex } = params;
 
@@ -444,7 +458,9 @@ export const setPageParentPage: ImpureGraphFunction<
  */
 export const getPageBlocks: ImpureGraphFunction<
   { pageEntityId: EntityId; type: "canvas" | "document" },
-  Promise<{ linkEntity: LinkEntity<HasDataProperties>; rightEntity: Block }[]>
+  Promise<{ linkEntity: LinkEntity<HasDataProperties>; rightEntity: Block }[]>,
+  false,
+  true
 > = async (ctx, authentication, { pageEntityId, type }) => {
   const outgoingBlockDataLinks = (await getEntityOutgoingLinks(
     ctx,
@@ -480,7 +496,9 @@ export const getPageBlocks: ImpureGraphFunction<
  */
 export const getPageComments: ImpureGraphFunction<
   { pageEntityId: EntityId },
-  Promise<Comment[]>
+  Promise<Comment[]>,
+  false,
+  true
 > = async (ctx, authentication, { pageEntityId }) => {
   const blocks = await getPageBlocks(ctx, authentication, {
     pageEntityId,

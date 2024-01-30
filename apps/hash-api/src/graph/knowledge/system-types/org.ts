@@ -240,7 +240,9 @@ export const getOrgByShortname: ImpureGraphFunction<
  */
 export const updateOrgShortname: ImpureGraphFunction<
   { org: Org; updatedShortname: string },
-  Promise<Org>
+  Promise<Org>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { org, updatedShortname } = params;
 
@@ -289,7 +291,9 @@ export const orgNameIsInvalid: PureGraphFunction<
  */
 export const updateOrgName: ImpureGraphFunction<
   { org: Org; updatedOrgName: string },
-  Promise<Org>
+  Promise<Org>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { org, updatedOrgName } = params;
 

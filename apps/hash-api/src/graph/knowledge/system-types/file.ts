@@ -49,7 +49,7 @@ const getEntityTypeIdForMimeType = (mimeType: string) =>
   )?.[1];
 
 const generateCommonParameters = async (
-  ctx: ImpureGraphContext,
+  ctx: ImpureGraphContext<false, true>,
   authentication: AuthenticationContext,
   entityInput: Pick<
     MutationRequestFileUploadArgs | MutationCreateFileFromUrlArgs,
@@ -131,6 +131,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
     presignedPut: PresignedPutUpload;
     entity: Entity<FileV2Properties>;
   }>,
+  true,
   true
 > = async (ctx, authentication, params) => {
   const { uploadProvider } = ctx;
@@ -226,7 +227,9 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
 
 export const createFileFromExternalUrl: ImpureGraphFunction<
   MutationCreateFileFromUrlArgs,
-  Promise<File>
+  Promise<File>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { description, displayName, url } = params;
 
