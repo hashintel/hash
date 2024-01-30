@@ -1,3 +1,6 @@
+/** @todo: figure out why omitting this import causes a TSC error */
+import "@apps/hash-api/src/express";
+
 import { createKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
