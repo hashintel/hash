@@ -69,7 +69,7 @@ import {
   TypeEntitiesRow,
   useEntitiesTable,
 } from "./entities-table/use-entities-table";
-import { useEntitiesTableGenerateCsvFile } from "./entities-table/use-entities-table-generate-csv-file";
+import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-entities-table-additional-csv-data";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 
 export const EntitiesTable: FunctionComponent<{
@@ -469,16 +469,16 @@ export const EntitiesTable: FunctionComponent<{
 
   const currentlyDisplayedRowsRef = useRef<TypeEntitiesRow[] | null>(null);
 
-  const { generateCsvFile } = useEntitiesTableGenerateCsvFile({
-    currentlyDisplayedRowsRef,
-    columns,
-    propertyTypes,
-    /**
-     * If the properties columns are hidden, we want to add
-     * them to the CSV file.
-     */
-    addPropertiesColumns: hidePropertiesColumns,
-  });
+  const { getEntitiesTableAdditionalCsvData } =
+    useGetEntitiesTableAdditionalCsvData({
+      currentlyDisplayedRowsRef,
+      propertyTypes,
+      /**
+       * If the properties columns are hidden, we want to add
+       * them to the CSV file.
+       */
+      addPropertiesColumns: hidePropertiesColumns,
+    });
 
   return (
     <Box>
@@ -493,7 +493,10 @@ export const EntitiesTable: FunctionComponent<{
             ),
           ) ?? []
         }
-        generateCsvFile={generateCsvFile}
+        title="Entities"
+        columns={columns}
+        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+        getAdditionalCsvData={getEntitiesTableAdditionalCsvData}
         endAdornment={
           <ToggleButtonGroup
             value={view}
