@@ -104,19 +104,19 @@ impl<'s> PostgresSorting<'s, Entity> for VertexIdSorting<Entity> {
                     &EntityQueryPath::OwnedById,
                     identity,
                     Some(owned_by_id_expression),
-                    Ordering::Ascending,
+                    Ordering::AscendingNullsLast,
                 ),
                 entity_uuid: compiler.add_cursor_selection(
                     &EntityQueryPath::Uuid,
                     identity,
                     Some(entity_uuid_expression),
-                    Ordering::Ascending,
+                    Ordering::AscendingNullsLast,
                 ),
                 revision_id: compiler.add_cursor_selection(
                     revision_id_path,
                     |column| Expression::Function(Function::Lower(Box::new(column))),
                     Some(revision_id_expression),
-                    Ordering::Descending,
+                    Ordering::DescendingNullsFirst,
                 ),
             }
         } else {
@@ -124,17 +124,17 @@ impl<'s> PostgresSorting<'s, Entity> for VertexIdSorting<Entity> {
                 owned_by_id: compiler.add_distinct_selection_with_ordering(
                     &EntityQueryPath::OwnedById,
                     Distinctness::Distinct,
-                    Some(Ordering::Ascending),
+                    Some(Ordering::AscendingNullsLast),
                 ),
                 entity_uuid: compiler.add_distinct_selection_with_ordering(
                     &EntityQueryPath::Uuid,
                     Distinctness::Distinct,
-                    Some(Ordering::Ascending),
+                    Some(Ordering::AscendingNullsLast),
                 ),
                 revision_id: compiler.add_distinct_selection_with_ordering(
                     revision_id_path,
                     Distinctness::Distinct,
-                    Some(Ordering::Descending),
+                    Some(Ordering::DescendingNullsFirst),
                 ),
             }
         }

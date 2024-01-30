@@ -478,11 +478,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         });
                     }
 
-                    self.statement.order_by_expression.insert(
-                        0,
-                        distance_column,
-                        Ordering::Ascending,
-                    );
+                    self.statement
+                        .order_by_expression
+                        .push(distance_column, Ordering::AscendingNullsLast);
                     self.statement
                         .selects
                         .push(SelectExpression::from_column(distance_column, None));

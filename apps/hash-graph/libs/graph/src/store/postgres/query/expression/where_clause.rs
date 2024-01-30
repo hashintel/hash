@@ -1,7 +1,7 @@
-use std::{fmt, fmt::Write};
+use std::fmt;
 
 use crate::store::{
-    postgres::query::{Condition, Expression, Transpile},
+    postgres::query::{expression::conditional::Transpiler, Condition, Expression, Transpile},
     Ordering,
 };
 
@@ -55,41 +55,45 @@ impl Transpile for WhereExpression {
             condition.transpile(fmt)?;
         }
 
-        if !self.cursor.is_empty() {
-            fmt.write_str(" AND (")?;
-        }
+        let mut outer_statements = Vec::new();
         for current in (0..self.cursor.len()).rev() {
+            let mut inner_statements = Vec::new();
             for (idx, (lhs, rhs, ordering, null)) in self.cursor.iter().enumerate() {
-                if idx > 0 {
-                    fmt.write_str(" AND ")?;
-                }
                 if idx == current {
                     if let Some(rhs) = rhs {
-                        fmt.write_char('(')?;
-                        lhs.transpile(fmt)?;
-                        match ordering {
-                            Ordering::Ascending => fmt.write_str(" > ")?,
-                            Ordering::Descending => fmt.write_str(" < ")?,
-                        }
-                        rhs.transpile(fmt)?;
-                        if *null == Nullability::LhsNullable && *ordering == Ordering::Ascending {
+                        let statement = format!(
+                            "{} {} {}",
+                            Transpiler(lhs),
+                            match ordering {
+                                Ordering::AscendingNullsLast => '>',
+                                Ordering::DescendingNullsFirst => '<',
+                            },
+                            Transpiler(rhs),
+                        );
+
+                        if *null == Nullability::LhsNullable
+                            && *ordering == Ordering::AscendingNullsLast
+                        {
                             // If the ordering is ascending, we need to check if the lhs is null as
                             // nulls are sorted last.
-                            fmt.write_str(" OR ")?;
-                            lhs.transpile(fmt)?;
-                            fmt.write_str(" IS NULL")?;
+                            inner_statements.push(format!(
+                                "({} OR {} IS NULL)",
+                                statement,
+                                Transpiler(lhs)
+                            ));
+                        } else {
+                            inner_statements.push(statement);
                         }
-                        fmt.write_char(')')?;
                     } else {
                         match ordering {
-                            Ordering::Ascending => {
+                            Ordering::AscendingNullsLast => {
                                 // If the cursor is `null` and the ordering is ascending, we need to
                                 // skip this condition
-                                fmt.write_str("FALSE")?
+                                inner_statements.clear();
+                                break;
                             }
-                            Ordering::Descending => {
-                                lhs.transpile(fmt)?;
-                                fmt.write_str(" IS NOT NULL")?
+                            Ordering::DescendingNullsFirst => {
+                                inner_statements.push(format!("{} IS NOT NULL", Transpiler(lhs)));
                             }
                         }
                     }
@@ -97,19 +101,19 @@ impl Transpile for WhereExpression {
                     break;
                 }
 
-                lhs.transpile(fmt)?;
-                fmt.write_str(" = ")?;
-                rhs.transpile(fmt)?;
+                if let Some(rhs) = rhs {
+                    inner_statements.push(format!("{} = {}", Transpiler(lhs), Transpiler(rhs)));
+                } else {
+                    inner_statements.push(format!("{} IS NULL", Transpiler(lhs)));
+                }
             }
-
-            if current > 0 {
-                fmt.write_str(" OR ")?;
+            if !inner_statements.is_empty() {
+                outer_statements.push(inner_statements.join(" AND "));
             }
         }
-        if !self.cursor.is_empty() {
-            fmt.write_char(')')?;
+        if !outer_statements.is_empty() {
+            write!(fmt, " AND (\n    {}\n)", outer_statements.join("\n OR "))?;
         }
-
         Ok(())
     }
 }

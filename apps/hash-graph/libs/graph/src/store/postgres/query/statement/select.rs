@@ -627,12 +627,12 @@ mod tests {
         compiler.add_distinct_selection_with_ordering(
             &EntityQueryPath::Uuid,
             Distinctness::Distinct,
-            Some(Ordering::Ascending),
+            Some(Ordering::AscendingNullsLast),
         );
         compiler.add_distinct_selection_with_ordering(
             &EntityQueryPath::DecisionTime,
             Distinctness::Distinct,
-            Some(Ordering::Descending),
+            Some(Ordering::DescendingNullsFirst),
         );
         compiler.add_selection_path(&EntityQueryPath::Properties(None));
 

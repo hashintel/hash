@@ -10,6 +10,7 @@ mod entity;
 mod entity_type;
 mod links;
 mod property_type;
+mod sorting;
 
 use std::{borrow::Cow, str::FromStr};
 
@@ -30,8 +31,8 @@ use graph::{
     store::{
         query::{Filter, FilterExpression, Parameter},
         AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
-        EntityQuerySorting, EntityStore, EntityTypeStore, InsertionError, PostgresStore,
-        PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
+        EntityQueryCursor, EntityQuerySorting, EntityStore, EntityTypeStore, InsertionError,
+        PostgresStore, PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
@@ -558,6 +559,42 @@ impl DatabaseApi<'_> {
             .entities
             .into_values()
             .collect())
+    }
+
+    pub async fn get_all_entities(
+        &self,
+        limit: usize,
+        sorting: EntityQuerySorting<'static>,
+    ) -> Result<(Vec<Entity>, Option<EntityQueryCursor<'static>>), QueryError> {
+        let (mut subgraph, cursor) = self
+            .store
+            .get_entity(
+                self.account_id,
+                &NoAuthorization,
+                &StructuralQuery {
+                    filter: Filter::All(Vec::new()),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                },
+                sorting,
+                Some(limit),
+            )
+            .await?;
+        let entities = subgraph
+            .roots
+            .into_iter()
+            .filter_map(|vertex_id| {
+                let GraphElementVertexId::KnowledgeGraph(vertex_id) = vertex_id else {
+                    panic!("unexpected vertex id found: {vertex_id:?}");
+                };
+                subgraph.vertices.entities.remove(&vertex_id)
+            })
+            .collect();
+        Ok((entities, cursor))
     }
 
     pub async fn get_entity_by_timestamp(

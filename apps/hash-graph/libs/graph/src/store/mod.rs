@@ -16,6 +16,7 @@ mod postgres;
 
 use async_trait::async_trait;
 use serde::Deserialize;
+#[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 pub use self::{
@@ -62,9 +63,12 @@ pub enum ConflictBehavior {
     Skip,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Deserialize, ToSchema)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum Ordering {
-    Ascending,
-    Descending,
+    AscendingNullsFirst,
+    AscendingNullsLast,
+    DescendingNullsFirst,
+    DescendingNullsLast,
 }

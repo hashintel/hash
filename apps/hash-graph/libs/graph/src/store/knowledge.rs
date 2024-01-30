@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use type_system::{url::VersionedUrl, EntityType};
+#[cfg(feature = "utoipa")]
 use utoipa::{
     openapi,
     openapi::{schema, Ref, RefOr, Schema},
@@ -47,7 +48,7 @@ impl fmt::Display for ValidateEntityError {
 
 impl Error for ValidateEntityError {}
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct EntityQuerySortingRecord<'s> {
     #[serde(
         borrow,
@@ -57,6 +58,7 @@ pub struct EntityQuerySortingRecord<'s> {
     pub ordering: Ordering,
 }
 
+#[cfg(feature = "utoipa")]
 impl ToSchema<'_> for EntityQuerySortingRecord<'_> {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
@@ -99,6 +101,7 @@ pub struct EntityQueryCursor<'s> {
     pub values: Vec<CursorField<'s>>,
 }
 
+#[cfg(feature = "utoipa")]
 impl ToSchema<'_> for EntityQueryCursor<'_> {
     fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
         (

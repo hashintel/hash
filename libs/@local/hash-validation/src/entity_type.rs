@@ -457,8 +457,14 @@ mod tests {
     async fn person() {
         let entities = [];
         let entity_types = [];
-        let property_types = [graph_test_data::property_type::NAME_V1];
-        let data_types = [graph_test_data::data_type::TEXT_V1];
+        let property_types = [
+            graph_test_data::property_type::NAME_V1,
+            graph_test_data::property_type::AGE_V1,
+        ];
+        let data_types = [
+            graph_test_data::data_type::TEXT_V1,
+            graph_test_data::data_type::NUMBER_V1,
+        ];
 
         validate_entity(
             graph_test_data::entity::PERSON_ALICE_V1,

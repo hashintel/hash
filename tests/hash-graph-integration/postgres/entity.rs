@@ -13,8 +13,8 @@ async fn insert() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
         .seed(
-            [data_type::TEXT_V1],
-            [property_type::NAME_V1],
+            [data_type::TEXT_V1, data_type::NUMBER_V1],
+            [property_type::NAME_V1, property_type::AGE_V1],
             [
                 entity_type::LINK_V1,
                 entity_type::link::FRIEND_OF_V1,

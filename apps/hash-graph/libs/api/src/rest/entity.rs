@@ -418,7 +418,7 @@ struct GetEntityByQueryResponse<'r> {
         (status = 500, description = "Store error occurred"),
     )
 )]
-// #[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
 async fn get_entities_by_query<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -443,48 +443,48 @@ where
         .convert_parameters()
         .map_err(report_to_response)?;
 
-    let temporal_axes_sorting_path = match &request.query.temporal_axes {
-        QueryTemporalAxesUnresolved::TransactionTime { .. } => EntityQueryPath::TransactionTime,
-        QueryTemporalAxesUnresolved::DecisionTime { .. } => EntityQueryPath::DecisionTime,
+    let temporal_axes_sorting_path = match request.query.temporal_axes {
+        QueryTemporalAxesUnresolved::TransactionTime { .. } => &EntityQueryPath::TransactionTime,
+        QueryTemporalAxesUnresolved::DecisionTime { .. } => &EntityQueryPath::DecisionTime,
     };
 
-    let sorting = request
-        .sorting_paths
-        .map(|mut paths| {
-            paths.push(EntityQuerySortingRecord {
-                path: temporal_axes_sorting_path.clone(),
-                ordering: Ordering::Descending,
-            });
-            paths.push(EntityQuerySortingRecord {
-                path: EntityQueryPath::Uuid,
-                ordering: Ordering::Ascending,
-            });
-            paths.push(EntityQuerySortingRecord {
-                path: EntityQueryPath::OwnedById,
-                ordering: Ordering::Ascending,
-            });
-            paths
-        })
-        .unwrap_or_else(|| {
+    let sorting = request.sorting_paths.map_or_else(
+        || {
             if request.limit.is_some() || request.cursor.is_some() {
                 vec![
                     EntityQuerySortingRecord {
-                        path: temporal_axes_sorting_path,
-                        ordering: Ordering::Descending,
+                        path: temporal_axes_sorting_path.clone(),
+                        ordering: Ordering::DescendingNullsFirst,
                     },
                     EntityQuerySortingRecord {
                         path: EntityQueryPath::Uuid,
-                        ordering: Ordering::Ascending,
+                        ordering: Ordering::AscendingNullsLast,
                     },
                     EntityQuerySortingRecord {
                         path: EntityQueryPath::OwnedById,
-                        ordering: Ordering::Ascending,
+                        ordering: Ordering::AscendingNullsLast,
                     },
                 ]
             } else {
                 Vec::new()
             }
-        });
+        },
+        |mut paths| {
+            paths.push(EntityQuerySortingRecord {
+                path: temporal_axes_sorting_path.clone(),
+                ordering: Ordering::DescendingNullsFirst,
+            });
+            paths.push(EntityQuerySortingRecord {
+                path: EntityQueryPath::Uuid,
+                ordering: Ordering::AscendingNullsLast,
+            });
+            paths.push(EntityQuerySortingRecord {
+                path: EntityQueryPath::OwnedById,
+                ordering: Ordering::AscendingNullsLast,
+            });
+            paths
+        },
+    );
 
     let (subgraph, cursor) = store
         .get_entity(
@@ -507,7 +507,6 @@ where
         subgraph: subgraph.into(),
         cursor: cursor.map(EntityQueryCursor::into_owned),
     }))
-    // todo!()
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

@@ -52,7 +52,11 @@ where
     type ReadPaginatedStream =
         impl Stream<Item = Result<Self::QueryResult, Report<QueryError>>> + Send + Sync;
 
-    // #[tracing::instrument(level = "info", skip(self, filter, sorting))]
+    #[tracing::instrument(level = "info", skip(self, filter, sorting))]
+    #[expect(
+        clippy::type_complexity,
+        reason = "The complexity comes from the `instrument` macro"
+    )]
     async fn read_paginated(
         &self,
         filter: &Filter<'_, R>,
@@ -80,7 +84,6 @@ where
 
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
-
         let stream = self
             .as_client()
             .query_raw(&statement, parameters.iter().copied())

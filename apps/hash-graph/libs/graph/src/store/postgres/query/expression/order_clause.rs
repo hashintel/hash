@@ -37,8 +37,8 @@ impl Transpile for OrderByExpression {
             }
             column.transpile(fmt)?;
             match ordering {
-                Ordering::Ascending => write!(fmt, " ASC")?,
-                Ordering::Descending => write!(fmt, " DESC")?,
+                Ordering::AscendingNullsLast => write!(fmt, " ASC")?,
+                Ordering::DescendingNullsFirst => write!(fmt, " DESC")?,
             }
         }
 
@@ -65,7 +65,7 @@ mod tests {
                     chain_depth: 2,
                     number: 3,
                 }),
-            Ordering::Ascending,
+            Ordering::AscendingNullsLast,
         );
         assert_eq!(
             order_by_expression.transpile_to_string(),
@@ -84,7 +84,7 @@ mod tests {
                     chain_depth: 2,
                     number: 3,
                 }),
-            Ordering::Ascending,
+            Ordering::AscendingNullsLast,
         );
         order_by_expression.push(
             DataTypeQueryPath::Type.terminating_column().aliased(Alias {
@@ -92,7 +92,7 @@ mod tests {
                 chain_depth: 5,
                 number: 6,
             }),
-            Ordering::Descending,
+            Ordering::DescendingNullsFirst,
         );
 
         assert_eq!(
