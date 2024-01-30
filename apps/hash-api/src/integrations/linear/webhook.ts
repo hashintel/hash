@@ -63,12 +63,6 @@ export const linearWebhook: RequestHandler<
 
   const temporalClient = await createTemporalClient(logger);
 
-  if (!temporalClient) {
-    throw new Error(
-      "Cannot create Temporal client – are there missing environment variables?",
-    );
-  }
-
   const organizationId = payload.organizationId;
 
   if (!payload.data) {

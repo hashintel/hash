@@ -86,11 +86,6 @@ export const processEntityChange = async (
       );
 
   const temporalClient = await createTemporalClient();
-  if (!temporalClient) {
-    throw new Error(
-      "Cannot create Temporal client – are there missing environment variables?",
-    );
-  }
 
   const vaultClient = createVaultClient();
   if (!vaultClient) {

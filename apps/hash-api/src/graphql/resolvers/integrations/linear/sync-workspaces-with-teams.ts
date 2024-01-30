@@ -48,10 +48,6 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
     throw new Error("Vault client not available");
   }
 
-  if (!temporal) {
-    throw new Error("Temporal client not available");
-  }
-
   const impureGraphContext = graphQLContextToImpureGraphContext(graphQLContext);
 
   const linearIntegration = await getLinearIntegrationById(
