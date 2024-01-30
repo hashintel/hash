@@ -16,6 +16,7 @@ export const useUserPermissionsOnEntityType = (entityTypeId?: VersionedUrl) => {
     variables: {
       entityTypeId: entityTypeId!, // query will not be called if there is no entityTypeId
     },
+    fetchPolicy: "cache-and-network",
     skip: !entityTypeId,
   });
 
