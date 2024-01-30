@@ -79,6 +79,7 @@ const typeNamespaceFromTypeId = (typeId: VersionedUrl): string => {
 const typeTableKinds = [
   "all",
   "entity-type",
+  "link-type",
   "property-type",
   "data-type",
 ] as const;
@@ -89,6 +90,7 @@ const typesTablesToTitle: Record<TypeTableKind, string> = {
   all: "Types",
   "entity-type": "Entity Types",
   "property-type": "Property Types",
+  "link-type": "Link Types",
   "data-type": "Data Types",
 };
 
