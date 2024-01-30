@@ -5,6 +5,22 @@ import { DataSource } from "apollo-datasource";
 export const storageTypes = ["AWS_S3", "LOCAL_FILE_SYSTEM"] as const;
 export type StorageType = (typeof storageTypes)[number];
 
+export const isStorageType = (
+  storageType: string,
+): storageType is StorageType =>
+  storageTypes.includes(storageType as StorageType);
+
+/** Helper type to create a typed "dictionary" of storage types to their storage provider instance */
+export type StorageProviderLookup = Partial<
+  Record<StorageType, StorageProvider | UploadableStorageProvider>
+>;
+
+/**
+ * All storage providers usable by the API should be added here.
+ * Even if not currently used for upload, they need to be available for downloads.
+ */
+export const storageProviderLookup: StorageProviderLookup = {};
+
 /** Interface describing a generic storage provider
  * used for allowing the download and upload files via presigned request.
  * The storage provider doesn't upload the file itself, instead it returns a URL

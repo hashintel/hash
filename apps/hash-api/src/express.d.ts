@@ -5,7 +5,6 @@ import { User } from "./graph/knowledge/system-types/user";
 import { VaultClient } from "./vault";
 
 declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       context: ImpureGraphContext<true, true> & {

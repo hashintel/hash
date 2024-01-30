@@ -33,9 +33,10 @@ import { logger } from "../logger";
 import { AwsS3StorageProvider } from "./aws-s3-storage-provider";
 import { LocalFileSystemStorageProvider } from "./local-file-storage";
 import {
+  isStorageType,
   StorageProvider,
+  storageProviderLookup,
   StorageType,
-  storageTypes,
   UploadableStorageProvider,
 } from "./storage-provider";
 
@@ -48,11 +49,6 @@ const DOWNLOAD_URL_EXPIRATION_SECONDS = 60 * 60 * 24 * 7;
 // An offset for the cached URL to prevent serving invalid URL
 // 1 hour.
 const DOWNLOAD_URL_CACHE_OFFSET_SECONDS = 60 * 60;
-
-/** Helper type to create a typed "dictionary" of storage types to their storage provider instance */
-export type StorageProviderLookup = Partial<
-  Record<StorageType, StorageProvider | UploadableStorageProvider>
->;
 
 type StorageProviderInitialiser = (
   app: Express,
@@ -71,11 +67,6 @@ const storageProviderInitialiserLookup: Record<
     }),
 };
 
-/**
- * All storage providers usable by the API should be added here.
- * Even if not currently used for upload, they need to be available for downloads.
- */
-export const storageProviderLookup: StorageProviderLookup = {};
 let uploadStorageProvider: StorageType = "LOCAL_FILE_SYSTEM";
 
 export const initialiseStorageProvider = (
@@ -112,11 +103,6 @@ export const setupStorageProviders = (
 const isFileEntity = (entity: Entity): entity is Entity<FileV2Properties> =>
   systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl in entity.properties &&
   blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl in entity.properties;
-
-export const isStorageType = (
-  storageType: string,
-): storageType is StorageType =>
-  storageTypes.includes(storageType as StorageType);
 
 const getFileEntity = async (
   { graphApi }: ImpureGraphContext,

@@ -11,7 +11,10 @@ import type { PDFDocumentProperties } from "@local/hash-isomorphic-utils/system-
 import type { PPTXPresentationProperties } from "@local/hash-isomorphic-utils/system-types/pptxpresentation";
 import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
-import { isStorageType, storageProviderLookup } from "../../../../../storage";
+import {
+  isStorageType,
+  storageProviderLookup,
+} from "../../../../../storage/storage-provider";
 import { UpdateEntityHookCallback } from "../update-entity-hooks";
 
 export const entityTypesToParseTextFrom: VersionedUrl[] = [
