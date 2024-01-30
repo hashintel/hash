@@ -771,6 +771,22 @@ mod tests {
 
     use super::*;
 
+    #[test]
+    fn sorting_path_deserialization_error() {
+        assert_eq!(
+            EntityQueryPath::deserialize_from_sorting_tokens(de::value::SeqDeserializer::<
+                _,
+                de::value::Error,
+            >::new(once("invalid")))
+            .expect_err("managed to convert entity query sorting path")
+            .to_string(),
+            format!(
+                "unknown variant `invalid`, expected {}",
+                EntityQuerySortingVisitor::EXPECTING
+            )
+        );
+    }
+
     fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> EntityQueryPath<'p> {
         EntityQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
             segments.into_iter(),
