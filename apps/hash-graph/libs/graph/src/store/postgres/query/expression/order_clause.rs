@@ -2,17 +2,17 @@ use std::fmt;
 
 use crate::store::{
     postgres::query::{AliasedColumn, Transpile},
-    Ordering,
+    NullOrdering, Ordering,
 };
 
 #[derive(Debug, Default, PartialEq, Eq, Hash)]
 pub struct OrderByExpression {
-    columns: Vec<(AliasedColumn, Ordering)>,
+    columns: Vec<(AliasedColumn, Ordering, Option<NullOrdering>)>,
 }
 
 impl OrderByExpression {
-    pub fn push(&mut self, column: AliasedColumn, ordering: Ordering) {
-        self.columns.push((column, ordering));
+    pub fn push(&mut self, column: AliasedColumn, ordering: Ordering, nulls: Option<NullOrdering>) {
+        self.columns.push((column, ordering, nulls));
     }
 
     pub fn insert(&mut self, index: usize, column: AliasedColumn, ordering: Ordering) {
@@ -31,14 +31,20 @@ impl Transpile for OrderByExpression {
         }
 
         fmt.write_str("ORDER BY ")?;
-        for (idx, (column, ordering)) in self.columns.iter().enumerate() {
+        for (idx, (column, ordering, nulls)) in self.columns.iter().enumerate() {
             if idx > 0 {
                 fmt.write_str(", ")?;
             }
             column.transpile(fmt)?;
             match ordering {
-                Ordering::AscendingNullsLast => write!(fmt, " ASC")?,
-                Ordering::DescendingNullsFirst => write!(fmt, " DESC")?,
+                Ordering::Ascending => write!(fmt, " ASC")?,
+                Ordering::Descending => write!(fmt, " DESC")?,
+            }
+            if let Some(nulls) = nulls {
+                match nulls {
+                    NullOrdering::First => write!(fmt, " NULLS FIRST")?,
+                    NullOrdering::Last => write!(fmt, " NULLS LAST")?,
+                }
             }
         }
 
@@ -65,7 +71,8 @@ mod tests {
                     chain_depth: 2,
                     number: 3,
                 }),
-            Ordering::AscendingNullsLast,
+            Ordering::Ascending,
+            None,
         );
         assert_eq!(
             order_by_expression.transpile_to_string(),
@@ -84,7 +91,8 @@ mod tests {
                     chain_depth: 2,
                     number: 3,
                 }),
-            Ordering::AscendingNullsLast,
+            Ordering::Ascending,
+            Some(NullOrdering::First),
         );
         order_by_expression.push(
             DataTypeQueryPath::Type.terminating_column().aliased(Alias {
@@ -92,14 +100,15 @@ mod tests {
                 chain_depth: 5,
                 number: 6,
             }),
-            Ordering::DescendingNullsFirst,
+            Ordering::Descending,
+            Some(NullOrdering::Last),
         );
 
         assert_eq!(
             trim_whitespace(order_by_expression.transpile_to_string()),
             trim_whitespace(
-                r#"ORDER BY "ontology_ids_1_2_3"."base_url" ASC,
-                "data_types_4_5_6"."schema"->>'type' DESC"#
+                r#"ORDER BY "ontology_ids_1_2_3"."base_url" ASC NULLS FIRST,
+                "data_types_4_5_6"."schema"->>'type' DESC NULLS LAST"#
             )
         );
     }

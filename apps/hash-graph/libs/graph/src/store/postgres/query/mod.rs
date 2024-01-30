@@ -258,6 +258,7 @@ where
                         identity,
                         expression,
                         sorting_record.ordering,
+                        sorting_record.nulls,
                     )
                 })
                 .collect()
@@ -268,7 +269,7 @@ where
                     compiler.add_distinct_selection_with_ordering(
                         &sorting_record.path,
                         Distinctness::Distinct,
-                        Some(sorting_record.ordering),
+                        Some((sorting_record.ordering, sorting_record.nulls)),
                     )
                 })
                 .collect()

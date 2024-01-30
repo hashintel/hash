@@ -4,7 +4,7 @@ use graph::{
     knowledge::EntityQueryPath,
     store::{
         query::{JsonPath, PathToken},
-        EntityQuerySorting, EntityQuerySortingRecord, Ordering,
+        EntityQuerySorting, EntityQuerySortingRecord, NullOrdering, Ordering,
     },
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
@@ -17,7 +17,7 @@ use crate::{DatabaseApi, DatabaseTestWrapper};
 
 async fn test_root_sorting_chunked<const N: usize, const M: usize>(
     api: &DatabaseApi<'_>,
-    sort: [(EntityQueryPath<'static>, Ordering); N],
+    sort: [(EntityQueryPath<'static>, Ordering, NullOrdering); N],
     expected_order: [EntityProperties; M],
 ) {
     for chunk_size in 0..expected_order.len() {
@@ -28,12 +28,16 @@ async fn test_root_sorting_chunked<const N: usize, const M: usize>(
 async fn test_root_sorting(
     api: &DatabaseApi<'_>,
     chunk_size: usize,
-    sort: impl IntoIterator<Item = (EntityQueryPath<'static>, Ordering)> + Send,
+    sort: impl IntoIterator<Item = (EntityQueryPath<'static>, Ordering, NullOrdering)> + Send,
     expected_order: impl IntoIterator<Item = &EntityProperties> + Send,
 ) {
     let sorting_paths = sort
         .into_iter()
-        .map(|(path, ordering)| EntityQuerySortingRecord { path, ordering })
+        .map(|(path, ordering, nulls)| EntityQuerySortingRecord {
+            path,
+            ordering,
+            nulls: Some(nulls),
+        })
         .collect::<Vec<_>>();
     let mut cursor = None;
 
@@ -168,7 +172,11 @@ async fn uuid_ascending() {
 
     test_root_sorting_chunked(
         &api,
-        [(EntityQueryPath::Uuid, Ordering::AscendingNullsLast)],
+        [(
+            EntityQueryPath::Uuid,
+            Ordering::Ascending,
+            NullOrdering::First,
+        )],
         [alice(), bob(), charles(), page_v1(), page_v2()],
     )
     .await;
@@ -181,22 +189,30 @@ async fn uuid_descending() {
 
     test_root_sorting_chunked(
         &api,
-        [(EntityQueryPath::Uuid, Ordering::DescendingNullsFirst)],
+        [(
+            EntityQueryPath::Uuid,
+            Ordering::Descending,
+            NullOrdering::Last,
+        )],
         [page_v2(), page_v1(), charles(), bob(), alice()],
     )
     .await;
 }
 
 #[tokio::test]
-async fn age_ascending() {
+async fn age_ascending_last() {
     let mut database = DatabaseTestWrapper::new().await;
     let api = insert(&mut database).await;
 
     test_root_sorting_chunked(
         &api,
         [
-            (age_property_path(), Ordering::AscendingNullsLast),
-            (EntityQueryPath::Uuid, Ordering::AscendingNullsLast),
+            (age_property_path(), Ordering::Ascending, NullOrdering::Last),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
         ],
         [bob(), charles(), alice(), page_v1(), page_v2()],
     )
@@ -204,14 +220,23 @@ async fn age_ascending() {
 }
 
 #[tokio::test]
-async fn age_descending() {
+async fn age_ascending_first() {
     let mut database = DatabaseTestWrapper::new().await;
     let api = insert(&mut database).await;
+
     test_root_sorting_chunked(
         &api,
         [
-            (age_property_path(), Ordering::DescendingNullsFirst),
-            (EntityQueryPath::Uuid, Ordering::AscendingNullsLast),
+            (
+                age_property_path(),
+                Ordering::Ascending,
+                NullOrdering::First,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
         ],
         [alice(), page_v1(), page_v2(), bob(), charles()],
     )
@@ -219,15 +244,22 @@ async fn age_descending() {
 }
 
 #[tokio::test]
-async fn age_ascending_name_ascending() {
+async fn age_descending_last() {
     let mut database = DatabaseTestWrapper::new().await;
     let api = insert(&mut database).await;
     test_root_sorting_chunked(
         &api,
         [
-            (age_property_path(), Ordering::AscendingNullsLast),
-            (name_property_path(), Ordering::AscendingNullsLast),
-            (EntityQueryPath::Uuid, Ordering::AscendingNullsLast),
+            (
+                age_property_path(),
+                Ordering::Descending,
+                NullOrdering::Last,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
         ],
         [bob(), charles(), alice(), page_v1(), page_v2()],
     )
@@ -235,15 +267,202 @@ async fn age_ascending_name_ascending() {
 }
 
 #[tokio::test]
-async fn age_ascending_name_descending() {
+async fn age_descending_first() {
     let mut database = DatabaseTestWrapper::new().await;
     let api = insert(&mut database).await;
     test_root_sorting_chunked(
         &api,
         [
-            (age_property_path(), Ordering::AscendingNullsLast),
-            (name_property_path(), Ordering::DescendingNullsFirst),
-            (EntityQueryPath::Uuid, Ordering::AscendingNullsLast),
+            (
+                age_property_path(),
+                Ordering::Descending,
+                NullOrdering::First,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
+        ],
+        [alice(), page_v1(), page_v2(), bob(), charles()],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn age_ascending_last_name_ascending_last() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let api = insert(&mut database).await;
+    test_root_sorting_chunked(
+        &api,
+        [
+            (age_property_path(), Ordering::Ascending, NullOrdering::Last),
+            (
+                name_property_path(),
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
+        ],
+        [bob(), charles(), alice(), page_v1(), page_v2()],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn age_ascending_last_name_ascending_first() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let api = insert(&mut database).await;
+    test_root_sorting_chunked(
+        &api,
+        [
+            (age_property_path(), Ordering::Ascending, NullOrdering::Last),
+            (
+                name_property_path(),
+                Ordering::Ascending,
+                NullOrdering::First,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
+        ],
+        [bob(), charles(), page_v1(), page_v2(), alice()],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn age_ascending_first_name_ascending_last() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let api = insert(&mut database).await;
+    test_root_sorting_chunked(
+        &api,
+        [
+            (
+                age_property_path(),
+                Ordering::Ascending,
+                NullOrdering::First,
+            ),
+            (
+                name_property_path(),
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
+        ],
+        [alice(), page_v1(), page_v2(), bob(), charles()],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn age_ascending_first_name_ascending_first() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let api = insert(&mut database).await;
+    test_root_sorting_chunked(
+        &api,
+        [
+            (
+                age_property_path(),
+                Ordering::Ascending,
+                NullOrdering::First,
+            ),
+            (
+                name_property_path(),
+                Ordering::Ascending,
+                NullOrdering::First,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
+        ],
+        [page_v1(), page_v2(), alice(), bob(), charles()],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn age_ascending_last_name_descending_last() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let api = insert(&mut database).await;
+    test_root_sorting_chunked(
+        &api,
+        [
+            (age_property_path(), Ordering::Ascending, NullOrdering::Last),
+            (
+                name_property_path(),
+                Ordering::Descending,
+                NullOrdering::Last,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
+        ],
+        [charles(), bob(), alice(), page_v1(), page_v2()],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn age_ascending_first_name_descending_last() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let api = insert(&mut database).await;
+    test_root_sorting_chunked(
+        &api,
+        [
+            (
+                age_property_path(),
+                Ordering::Ascending,
+                NullOrdering::First,
+            ),
+            (
+                name_property_path(),
+                Ordering::Descending,
+                NullOrdering::Last,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
+        ],
+        [alice(), page_v1(), page_v2(), charles(), bob()],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn age_ascending_last_name_descending_first() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let api = insert(&mut database).await;
+    test_root_sorting_chunked(
+        &api,
+        [
+            (age_property_path(), Ordering::Ascending, NullOrdering::Last),
+            (
+                name_property_path(),
+                Ordering::Descending,
+                NullOrdering::First,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
         ],
         [charles(), bob(), page_v1(), page_v2(), alice()],
     )
@@ -251,15 +470,83 @@ async fn age_ascending_name_descending() {
 }
 
 #[tokio::test]
-async fn age_descending_name_ascending() {
+async fn age_ascending_first_name_descending_first() {
     let mut database = DatabaseTestWrapper::new().await;
     let api = insert(&mut database).await;
     test_root_sorting_chunked(
         &api,
         [
-            (age_property_path(), Ordering::DescendingNullsFirst),
-            (name_property_path(), Ordering::AscendingNullsLast),
-            (EntityQueryPath::Uuid, Ordering::AscendingNullsLast),
+            (
+                age_property_path(),
+                Ordering::Ascending,
+                NullOrdering::First,
+            ),
+            (
+                name_property_path(),
+                Ordering::Descending,
+                NullOrdering::First,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
+        ],
+        [page_v1(), page_v2(), alice(), charles(), bob()],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn age_descending_last_name_ascending_last() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let api = insert(&mut database).await;
+    test_root_sorting_chunked(
+        &api,
+        [
+            (
+                age_property_path(),
+                Ordering::Descending,
+                NullOrdering::Last,
+            ),
+            (
+                name_property_path(),
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
+        ],
+        [bob(), charles(), alice(), page_v1(), page_v2()],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn age_descending_first_name_ascending_last() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let api = insert(&mut database).await;
+    test_root_sorting_chunked(
+        &api,
+        [
+            (
+                age_property_path(),
+                Ordering::Descending,
+                NullOrdering::First,
+            ),
+            (
+                name_property_path(),
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
         ],
         [alice(), page_v1(), page_v2(), bob(), charles()],
     )
@@ -267,15 +554,167 @@ async fn age_descending_name_ascending() {
 }
 
 #[tokio::test]
-async fn age_descending_name_descending() {
+async fn age_descending_last_name_ascending_first() {
     let mut database = DatabaseTestWrapper::new().await;
     let api = insert(&mut database).await;
     test_root_sorting_chunked(
         &api,
         [
-            (age_property_path(), Ordering::DescendingNullsFirst),
-            (name_property_path(), Ordering::DescendingNullsFirst),
-            (EntityQueryPath::Uuid, Ordering::AscendingNullsLast),
+            (
+                age_property_path(),
+                Ordering::Descending,
+                NullOrdering::Last,
+            ),
+            (
+                name_property_path(),
+                Ordering::Ascending,
+                NullOrdering::First,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
+        ],
+        [bob(), charles(), page_v1(), page_v2(), alice()],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn age_descending_first_name_ascending_first() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let api = insert(&mut database).await;
+    test_root_sorting_chunked(
+        &api,
+        [
+            (
+                age_property_path(),
+                Ordering::Descending,
+                NullOrdering::First,
+            ),
+            (
+                name_property_path(),
+                Ordering::Ascending,
+                NullOrdering::First,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
+        ],
+        [page_v1(), page_v2(), alice(), bob(), charles()],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn age_descending_last_name_descending_last() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let api = insert(&mut database).await;
+    test_root_sorting_chunked(
+        &api,
+        [
+            (
+                age_property_path(),
+                Ordering::Descending,
+                NullOrdering::Last,
+            ),
+            (
+                name_property_path(),
+                Ordering::Descending,
+                NullOrdering::Last,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
+        ],
+        [charles(), bob(), alice(), page_v1(), page_v2()],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn age_descending_first_name_descending_last() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let api = insert(&mut database).await;
+    test_root_sorting_chunked(
+        &api,
+        [
+            (
+                age_property_path(),
+                Ordering::Descending,
+                NullOrdering::First,
+            ),
+            (
+                name_property_path(),
+                Ordering::Descending,
+                NullOrdering::Last,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
+        ],
+        [alice(), page_v1(), page_v2(), charles(), bob()],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn age_descending_last_name_descending_first() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let api = insert(&mut database).await;
+    test_root_sorting_chunked(
+        &api,
+        [
+            (
+                age_property_path(),
+                Ordering::Descending,
+                NullOrdering::Last,
+            ),
+            (
+                name_property_path(),
+                Ordering::Descending,
+                NullOrdering::First,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
+        ],
+        [charles(), bob(), page_v1(), page_v2(), alice()],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn age_descending_first_name_descending_first() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let api = insert(&mut database).await;
+    test_root_sorting_chunked(
+        &api,
+        [
+            (
+                age_property_path(),
+                Ordering::Descending,
+                NullOrdering::First,
+            ),
+            (
+                name_property_path(),
+                Ordering::Descending,
+                NullOrdering::First,
+            ),
+            (
+                EntityQueryPath::Uuid,
+                Ordering::Ascending,
+                NullOrdering::Last,
+            ),
         ],
         [page_v1(), page_v2(), alice(), charles(), bob()],
     )

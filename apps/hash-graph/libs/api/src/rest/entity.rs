@@ -27,7 +27,7 @@ use graph::{
     store::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         AccountStore, EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
-        EntityValidationType, Ordering, StorePool,
+        EntityValidationType, NullOrdering, Ordering, StorePool,
     },
     subgraph::{query::EntityStructuralQuery, temporal_axes::QueryTemporalAxesUnresolved},
 };
@@ -99,6 +99,7 @@ use crate::rest::{
             GetEntityByQueryRequest,
             EntityQueryCursor,
             Ordering,
+            NullOrdering,
             EntityQuerySortingRecord,
             EntityQuerySortingToken,
             GetEntityByQueryResponse,
@@ -454,15 +455,18 @@ where
                 vec![
                     EntityQuerySortingRecord {
                         path: temporal_axes_sorting_path.clone(),
-                        ordering: Ordering::DescendingNullsFirst,
+                        ordering: Ordering::Descending,
+                        nulls: None,
                     },
                     EntityQuerySortingRecord {
                         path: EntityQueryPath::Uuid,
-                        ordering: Ordering::AscendingNullsLast,
+                        ordering: Ordering::Ascending,
+                        nulls: None,
                     },
                     EntityQuerySortingRecord {
                         path: EntityQueryPath::OwnedById,
-                        ordering: Ordering::AscendingNullsLast,
+                        ordering: Ordering::Ascending,
+                        nulls: None,
                     },
                 ]
             } else {
@@ -472,15 +476,18 @@ where
         |mut paths| {
             paths.push(EntityQuerySortingRecord {
                 path: temporal_axes_sorting_path.clone(),
-                ordering: Ordering::DescendingNullsFirst,
+                ordering: Ordering::Descending,
+                nulls: None,
             });
             paths.push(EntityQuerySortingRecord {
                 path: EntityQueryPath::Uuid,
-                ordering: Ordering::AscendingNullsLast,
+                ordering: Ordering::Ascending,
+                nulls: None,
             });
             paths.push(EntityQuerySortingRecord {
                 path: EntityQueryPath::OwnedById,
-                ordering: Ordering::AscendingNullsLast,
+                ordering: Ordering::Ascending,
+                nulls: None,
             });
             paths
         },

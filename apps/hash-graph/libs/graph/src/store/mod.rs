@@ -67,8 +67,14 @@ pub enum ConflictBehavior {
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum Ordering {
-    AscendingNullsFirst,
-    AscendingNullsLast,
-    DescendingNullsFirst,
-    DescendingNullsLast,
+    Ascending,
+    Descending,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum NullOrdering {
+    First,
+    Last,
 }

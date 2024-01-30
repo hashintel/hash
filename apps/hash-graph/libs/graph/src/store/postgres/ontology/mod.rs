@@ -183,13 +183,15 @@ macro_rules! impl_ontology_cursor {
                             &<$query_path>::BaseUrl,
                             identity,
                             Some(base_url_expression),
-                            Ordering::AscendingNullsLast,
+                            Ordering::Ascending,
+                            None,
                         ),
                         version: compiler.add_cursor_selection(
                             &<$query_path>::Version,
                             identity,
                             Some(version_expression),
-                            Ordering::DescendingNullsFirst,
+                            Ordering::Descending,
+                            None,
                         ),
                     }
                 } else {
@@ -197,12 +199,12 @@ macro_rules! impl_ontology_cursor {
                         base_url: compiler.add_distinct_selection_with_ordering(
                             &<$query_path>::BaseUrl,
                             Distinctness::Distinct,
-                            Some(Ordering::AscendingNullsLast),
+                            Some((Ordering::Ascending, None)),
                         ),
                         version: compiler.add_distinct_selection_with_ordering(
                             &<$query_path>::Version,
                             Distinctness::Distinct,
-                            Some(Ordering::DescendingNullsFirst),
+                            Some((Ordering::Descending, None)),
                         ),
                     }
                 }

@@ -2,19 +2,18 @@ use std::fmt;
 
 use crate::store::{
     postgres::query::{expression::conditional::Transpiler, Condition, Expression, Transpile},
-    Ordering,
+    NullOrdering, Ordering,
 };
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Nullability {
-    LhsNullable,
-    NotNullable,
-}
 
 #[derive(Debug, Default, PartialEq, Eq, Hash)]
 pub struct WhereExpression {
     conditions: Vec<Condition>,
-    cursor: Vec<(Expression, Option<Expression>, Ordering, Nullability)>,
+    cursor: Vec<(
+        Expression,
+        Option<Expression>,
+        Ordering,
+        Option<NullOrdering>,
+    )>,
 }
 
 impl WhereExpression {
@@ -27,9 +26,9 @@ impl WhereExpression {
         lhs: Expression,
         rhs: Option<Expression>,
         ordering: Ordering,
-        nullability: Nullability,
+        null_location: Option<NullOrdering>,
     ) {
-        self.cursor.push((lhs, rhs, ordering, nullability));
+        self.cursor.push((lhs, rhs, ordering, null_location));
     }
 
     pub fn len(&self) -> usize {
@@ -65,35 +64,36 @@ impl Transpile for WhereExpression {
                             "{} {} {}",
                             Transpiler(lhs),
                             match ordering {
-                                Ordering::AscendingNullsLast => '>',
-                                Ordering::DescendingNullsFirst => '<',
+                                Ordering::Ascending => '>',
+                                Ordering::Descending => '<',
                             },
                             Transpiler(rhs),
                         );
 
-                        if *null == Nullability::LhsNullable
-                            && *ordering == Ordering::AscendingNullsLast
-                        {
-                            // If the ordering is ascending, we need to check if the lhs is null as
-                            // nulls are sorted last.
-                            inner_statements.push(format!(
-                                "({} OR {} IS NULL)",
-                                statement,
-                                Transpiler(lhs)
-                            ));
-                        } else {
-                            inner_statements.push(statement);
+                        match null {
+                            None | Some(NullOrdering::First) => {
+                                inner_statements.push(statement);
+                            }
+                            Some(NullOrdering::Last) => {
+                                // If the ordering is ascending, we need to check if the lhs is null
+                                // as nulls are sorted last.
+                                inner_statements.push(format!(
+                                    "({} OR {} IS NULL)",
+                                    statement,
+                                    Transpiler(lhs)
+                                ));
+                            }
                         }
                     } else {
-                        match ordering {
-                            Ordering::AscendingNullsLast => {
+                        match null {
+                            None | Some(NullOrdering::First) => {
+                                inner_statements.push(format!("{} IS NOT NULL", Transpiler(lhs)));
+                            }
+                            Some(NullOrdering::Last) => {
                                 // If the cursor is `null` and the ordering is ascending, we need to
                                 // skip this condition
                                 inner_statements.clear();
                                 break;
-                            }
-                            Ordering::DescendingNullsFirst => {
-                                inner_statements.push(format!("{} IS NOT NULL", Transpiler(lhs)));
                             }
                         }
                     }

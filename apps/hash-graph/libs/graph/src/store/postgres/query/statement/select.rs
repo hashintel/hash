@@ -106,7 +106,7 @@ mod tests {
                 test_helper::trim_whitespace, Distinctness, PostgresRecord, SelectCompiler,
             },
             query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
-            Ordering,
+            NullOrdering, Ordering,
         },
         subgraph::{
             edges::{EdgeDirection, KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
@@ -627,12 +627,12 @@ mod tests {
         compiler.add_distinct_selection_with_ordering(
             &EntityQueryPath::Uuid,
             Distinctness::Distinct,
-            Some(Ordering::AscendingNullsLast),
+            Some((Ordering::Ascending, None)),
         );
         compiler.add_distinct_selection_with_ordering(
             &EntityQueryPath::DecisionTime,
             Distinctness::Distinct,
-            Some(Ordering::DescendingNullsFirst),
+            Some((Ordering::Descending, Some(NullOrdering::Last))),
         );
         compiler.add_selection_path(&EntityQueryPath::Properties(None));
 
@@ -657,7 +657,7 @@ mod tests {
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
               AND "entity_editions_0_1_0"."edition_created_by_id" = $3
             ORDER BY "entity_temporal_metadata_0_0_0"."entity_uuid" ASC,
-                     "entity_temporal_metadata_0_0_0"."decision_time" DESC
+                     "entity_temporal_metadata_0_0_0"."decision_time" DESC NULLS LAST
             "#,
             &[
                 &pinned_timestamp,

@@ -6,7 +6,7 @@ use temporal_versioning::TimeAxis;
 use crate::{
     store::{
         postgres::query::{
-            expression::{GroupByExpression, Nullability},
+            expression::GroupByExpression,
             table::{
                 EntityEditions, EntityEmbeddings, EntityTemporalMetadata, OntologyIds,
                 OntologyTemporalMetadata,
@@ -17,7 +17,7 @@ use crate::{
             WhereExpression, WindowStatement, WithExpression,
         },
         query::{Filter, FilterExpression, Parameter, ParameterList, ParameterType},
-        Ordering, Record,
+        NullOrdering, Ordering, Record,
     },
     subgraph::temporal_axes::QueryTemporalAxes,
 };
@@ -46,8 +46,15 @@ pub struct SelectCompiler<'p, 'q: 'p, T: Record> {
     artifacts: CompilerArtifacts<'p>,
     temporal_axes: Option<&'p QueryTemporalAxes>,
     table_hooks: HashMap<Table, fn(&mut Self, Alias)>,
-    selections:
-        HashMap<&'p T::QueryPath<'q>, (AliasedColumn, usize, Distinctness, Option<Ordering>)>,
+    selections: HashMap<
+        &'p T::QueryPath<'q>,
+        (
+            AliasedColumn,
+            usize,
+            Distinctness,
+            Option<(Ordering, Option<NullOrdering>)>,
+        ),
+    >,
 }
 
 impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
@@ -275,7 +282,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         &mut self,
         path: &'p R::QueryPath<'q>,
         distinctness: Distinctness,
-        ordering: Option<Ordering>,
+        ordering: Option<(Ordering, Option<NullOrdering>)>,
     ) -> usize
     where
         R::QueryPath<'q>: PostgresQueryPath,
@@ -290,10 +297,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 *stored_distinctness = Distinctness::Distinct;
             }
             if stored_ordering.is_none()
-                && let Some(ordering) = ordering
+                && let Some((ordering, nulls)) = ordering
             {
-                self.statement.order_by_expression.push(*column, ordering);
-                *stored_ordering = Some(ordering);
+                self.statement
+                    .order_by_expression
+                    .push(*column, ordering, nulls);
+                *stored_ordering = Some((ordering, nulls));
             }
             *index
         } else {
@@ -305,8 +314,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             if distinctness == Distinctness::Distinct {
                 self.statement.distinct.push(column);
             }
-            if let Some(ordering) = ordering {
-                self.statement.order_by_expression.push(column, ordering);
+            if let Some((ordering, nulls)) = ordering {
+                self.statement
+                    .order_by_expression
+                    .push(column, ordering, nulls);
             }
 
             let index = self.statement.selects.len() - 1;
@@ -323,6 +334,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         lhs: impl FnOnce(Expression) -> Expression,
         rhs: Option<Expression>,
         ordering: Ordering,
+        null_ordering: Option<NullOrdering>,
     ) -> usize
     where
         R::QueryPath<'q>: PostgresQueryPath,
@@ -332,14 +344,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             lhs(Expression::Column(column)),
             rhs,
             ordering,
-            if path.terminating_column().nullable() {
-                Nullability::LhsNullable
-            } else {
-                Nullability::NotNullable
-            },
+            null_ordering,
         );
         self.artifacts.uses_cursor = true;
-        self.add_distinct_selection_with_ordering(path, Distinctness::Distinct, Some(ordering))
+        self.add_distinct_selection_with_ordering(
+            path,
+            Distinctness::Distinct,
+            Some((ordering, null_ordering)),
+        )
     }
 
     /// Adds a new filter to the selection.
@@ -478,9 +490,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         });
                     }
 
-                    self.statement
-                        .order_by_expression
-                        .push(distance_column, Ordering::AscendingNullsLast);
+                    self.statement.order_by_expression.push(
+                        distance_column,
+                        Ordering::Ascending,
+                        None,
+                    );
                     self.statement
                         .selects
                         .push(SelectExpression::from_column(distance_column, None));

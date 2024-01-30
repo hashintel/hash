@@ -41,15 +41,15 @@ use crate::{
 
 #[derive(Debug, Copy, Clone)]
 pub struct EntityVertexIdIndices {
-    pub owned_by_id: usize,
-    pub entity_uuid: usize,
     pub revision_id: usize,
+    pub entity_uuid: usize,
+    pub owned_by_id: usize,
 }
 
 pub struct EntityVertexIdCursorParameters<'p> {
-    owned_by_id: Parameter<'p>,
-    entity_uuid: Parameter<'p>,
     revision_id: Parameter<'p>,
+    entity_uuid: Parameter<'p>,
+    owned_by_id: Parameter<'p>,
 }
 
 impl QueryRecordDecode for VertexIdSorting<Entity> {
@@ -95,46 +95,49 @@ impl<'s> PostgresSorting<'s, Entity> for VertexIdSorting<Entity> {
 
         if let Some(parameters) = parameters {
             // We already had a cursor, add them as parameters:
-            let owned_by_id_expression = compiler.compile_parameter(&parameters.owned_by_id).0;
-            let entity_uuid_expression = compiler.compile_parameter(&parameters.entity_uuid).0;
             let revision_id_expression = compiler.compile_parameter(&parameters.revision_id).0;
+            let entity_uuid_expression = compiler.compile_parameter(&parameters.entity_uuid).0;
+            let owned_by_id_expression = compiler.compile_parameter(&parameters.owned_by_id).0;
 
             EntityVertexIdIndices {
-                owned_by_id: compiler.add_cursor_selection(
-                    &EntityQueryPath::OwnedById,
-                    identity,
-                    Some(owned_by_id_expression),
-                    Ordering::AscendingNullsLast,
+                revision_id: compiler.add_cursor_selection(
+                    revision_id_path,
+                    |column| Expression::Function(Function::Lower(Box::new(column))),
+                    Some(revision_id_expression),
+                    Ordering::Descending,
+                    None,
                 ),
                 entity_uuid: compiler.add_cursor_selection(
                     &EntityQueryPath::Uuid,
                     identity,
                     Some(entity_uuid_expression),
-                    Ordering::AscendingNullsLast,
+                    Ordering::Ascending,
+                    None,
                 ),
-                revision_id: compiler.add_cursor_selection(
-                    revision_id_path,
-                    |column| Expression::Function(Function::Lower(Box::new(column))),
-                    Some(revision_id_expression),
-                    Ordering::DescendingNullsFirst,
+                owned_by_id: compiler.add_cursor_selection(
+                    &EntityQueryPath::OwnedById,
+                    identity,
+                    Some(owned_by_id_expression),
+                    Ordering::Ascending,
+                    None,
                 ),
             }
         } else {
             EntityVertexIdIndices {
-                owned_by_id: compiler.add_distinct_selection_with_ordering(
-                    &EntityQueryPath::OwnedById,
+                revision_id: compiler.add_distinct_selection_with_ordering(
+                    revision_id_path,
                     Distinctness::Distinct,
-                    Some(Ordering::AscendingNullsLast),
+                    Some((Ordering::Descending, None)),
                 ),
                 entity_uuid: compiler.add_distinct_selection_with_ordering(
                     &EntityQueryPath::Uuid,
                     Distinctness::Distinct,
-                    Some(Ordering::AscendingNullsLast),
+                    Some((Ordering::Ascending, None)),
                 ),
-                revision_id: compiler.add_distinct_selection_with_ordering(
-                    revision_id_path,
+                owned_by_id: compiler.add_distinct_selection_with_ordering(
+                    &EntityQueryPath::OwnedById,
                     Distinctness::Distinct,
-                    Some(Ordering::DescendingNullsFirst),
+                    Some((Ordering::Ascending, None)),
                 ),
             }
         }

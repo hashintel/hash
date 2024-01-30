@@ -25,8 +25,8 @@ use validation::ValidationProfile;
 use crate::{
     knowledge::EntityQueryPath,
     store::{
-        crud, crud::Sorting, postgres::CursorField, InsertionError, Ordering, QueryError,
-        UpdateError,
+        crud, crud::Sorting, postgres::CursorField, InsertionError, NullOrdering, Ordering,
+        QueryError, UpdateError,
     },
     subgraph::{query::StructuralQuery, Subgraph},
 };
@@ -56,6 +56,7 @@ pub struct EntityQuerySortingRecord<'s> {
     )]
     pub path: EntityQueryPath<'s>,
     pub ordering: Ordering,
+    pub nulls: Option<NullOrdering>,
 }
 
 #[cfg(feature = "utoipa")]
@@ -69,6 +70,8 @@ impl ToSchema<'_> for EntityQuerySortingRecord<'_> {
                     .required("path")
                     .property("ordering", Ref::from_schema_name("Ordering"))
                     .required("ordering")
+                    .property("nulls", Ref::from_schema_name("NullOrdering"))
+                    .required("nulls")
                     .build(),
             )
             .into(),
@@ -82,6 +85,7 @@ impl EntityQuerySortingRecord<'_> {
         EntityQuerySortingRecord {
             path: self.path.into_owned(),
             ordering: self.ordering,
+            nulls: self.nulls,
         }
     }
 }

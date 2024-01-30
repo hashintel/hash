@@ -3317,9 +3317,13 @@
         "type": "object",
         "required": [
           "path",
-          "ordering"
+          "ordering",
+          "nulls"
         ],
         "properties": {
+          "nulls": {
+            "$ref": "#/components/schemas/NullOrdering"
+          },
           "ordering": {
             "$ref": "#/components/schemas/Ordering"
           },
@@ -4770,6 +4774,13 @@
             "$ref": "#/components/schemas/OwnedById"
           }
         }
+      },
+      "NullOrdering": {
+        "type": "string",
+        "enum": [
+          "first",
+          "last"
+        ]
       },
       "NullableTimestamp": {
         "type": "string",
