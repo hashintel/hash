@@ -480,6 +480,13 @@ export const Grid = <T extends Row & { rowId: string }>({
   );
 
   if (currentlyDisplayedRowsRef && sortedAndFilteredRows) {
+    /**
+     * This allows the parent component to be aware of the currently displayed rows
+     * with filtering and sorting applied, after the render function has been called.
+     * We may want to look into alternative ways of the parent becoming aware of the
+     * column filter state in the future, but it's simplest to keep this encapsulated
+     * in the `Grid` component for now.
+     */
     // eslint-disable-next-line no-param-reassign
     currentlyDisplayedRowsRef.current = sortedAndFilteredRows;
   }
