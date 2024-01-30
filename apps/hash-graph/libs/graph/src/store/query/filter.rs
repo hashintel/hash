@@ -204,8 +204,82 @@ pub enum ParameterList<'p> {
     Uuid(&'p [Uuid]),
 }
 
-impl Parameter<'_> {
-    fn to_owned(&self) -> Parameter<'static> {
+impl<'p> Parameter<'p> {
+    /// Creates a `Parameter` from a JSON value.
+    ///
+    /// # Errors
+    ///
+    /// - Returns [`ParameterConversionError`] if conversion fails.
+    #[expect(
+        clippy::todo,
+        reason = "https://linear.app/hash/issue/H-2005/allow-reading-arbitrary-values-from-postgres"
+    )]
+    pub fn from_value(
+        value: &'p serde_json::Value,
+        ty: ParameterType,
+    ) -> Result<Self, ParameterConversionError> {
+        match ty {
+            ParameterType::Boolean => {
+                value
+                    .as_bool()
+                    .map(Parameter::Boolean)
+                    .ok_or_else(|| ParameterConversionError {
+                        actual: ActualParameterType::Value(value.clone()),
+                        expected: ty,
+                    })
+            }
+            ParameterType::I32 => value
+                .as_i64()
+                .and_then(|number| Some(Parameter::I32(number.try_into().ok()?)))
+                .ok_or_else(|| ParameterConversionError {
+                    actual: ActualParameterType::Value(value.clone()),
+                    expected: ty,
+                }),
+            ParameterType::F64 => {
+                value
+                    .as_f64()
+                    .map(Parameter::F64)
+                    .ok_or_else(|| ParameterConversionError {
+                        actual: ActualParameterType::Value(value.clone()),
+                        expected: ty,
+                    })
+            }
+            ParameterType::OntologyTypeVersion => value
+                .as_i64()
+                .and_then(|number| {
+                    Some(Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
+                        number.try_into().ok()?,
+                    )))
+                })
+                .ok_or_else(|| ParameterConversionError {
+                    actual: ActualParameterType::Value(value.clone()),
+                    expected: ty,
+                }),
+            ParameterType::Text | ParameterType::BaseUrl | ParameterType::VersionedUrl => value
+                .as_str()
+                .map(|text| Parameter::Text(Cow::Borrowed(text)))
+                .ok_or_else(|| ParameterConversionError {
+                    actual: ActualParameterType::Value(value.clone()),
+                    expected: ty,
+                }),
+            ParameterType::Vector => todo!("Converting vectors is not yet supported"),
+            ParameterType::Uuid => value
+                .as_str()
+                .and_then(|text| Uuid::from_str(text).ok())
+                .map(Parameter::Uuid)
+                .ok_or_else(|| ParameterConversionError {
+                    actual: ActualParameterType::Value(value.clone()),
+                    expected: ty,
+                }),
+            ParameterType::TimeInterval => todo!("Converting time intervals is not yet supported"),
+            ParameterType::Timestamp => todo!("Converting timestamps is not yet supported"),
+            ParameterType::Object => todo!("Converting objects is not yet supported"),
+            ParameterType::Any => Ok(Parameter::Any(value.clone())),
+        }
+    }
+
+    #[must_use]
+    pub fn to_owned(&self) -> Parameter<'static> {
         match self {
             Parameter::Boolean(bool) => Parameter::Boolean(*bool),
             Parameter::I32(number) => Parameter::I32(*number),
@@ -221,30 +295,58 @@ impl Parameter<'_> {
 }
 
 #[derive(Debug)]
+enum ActualParameterType {
+    Parameter(Parameter<'static>),
+    Value(serde_json::Value),
+}
+
+impl From<Parameter<'static>> for ActualParameterType {
+    fn from(value: Parameter<'static>) -> Self {
+        Self::Parameter(value)
+    }
+}
+
+impl From<serde_json::Value> for ActualParameterType {
+    fn from(value: serde_json::Value) -> Self {
+        Self::Value(value)
+    }
+}
+
+#[derive(Debug)]
 #[must_use]
 pub struct ParameterConversionError {
-    actual: Parameter<'static>,
+    actual: ActualParameterType,
     expected: ParameterType,
 }
 
 impl fmt::Display for ParameterConversionError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let actual = match &self.actual {
-            Parameter::Any(Value::Null) => "null".to_owned(),
-            Parameter::Boolean(boolean) | Parameter::Any(Value::Bool(boolean)) => {
-                boolean.to_string()
-            }
-            Parameter::I32(number) => number.to_string(),
-            Parameter::F64(number) => number.to_string(),
-            Parameter::Any(Value::Number(number)) => number.to_string(),
-            Parameter::Text(text) => text.to_string(),
-            Parameter::Vector(_) => "vector".to_owned(),
-            Parameter::Any(Value::String(string)) => string.clone(),
-            Parameter::Uuid(uuid) => uuid.to_string(),
-            Parameter::OntologyTypeVersion(version) => version.inner().to_string(),
-            Parameter::Timestamp(timestamp) => timestamp.to_string(),
-            Parameter::Any(Value::Object(_)) => "object".to_owned(),
-            Parameter::Any(Value::Array(_)) => "array".to_owned(),
+            ActualParameterType::Parameter(parameter) => match parameter {
+                Parameter::Any(Value::Null) => "null".to_owned(),
+                Parameter::Boolean(boolean) | Parameter::Any(Value::Bool(boolean)) => {
+                    boolean.to_string()
+                }
+                Parameter::I32(number) => number.to_string(),
+                Parameter::F64(number) => number.to_string(),
+                Parameter::Any(Value::Number(number)) => number.to_string(),
+                Parameter::Text(text) => text.to_string(),
+                Parameter::Vector(_) => "vector".to_owned(),
+                Parameter::Any(Value::String(string)) => string.clone(),
+                Parameter::Uuid(uuid) => uuid.to_string(),
+                Parameter::OntologyTypeVersion(version) => version.inner().to_string(),
+                Parameter::Timestamp(timestamp) => timestamp.to_string(),
+                Parameter::Any(Value::Object(_)) => "object".to_owned(),
+                Parameter::Any(Value::Array(_)) => "array".to_owned(),
+            },
+            ActualParameterType::Value(value) => match value {
+                Value::Null => "null".to_owned(),
+                Value::Bool(boolean) => boolean.to_string(),
+                Value::Number(number) => number.to_string(),
+                Value::String(string) => string.clone(),
+                Value::Array(_) => "array".to_owned(),
+                Value::Object(_) => "object".to_owned(),
+            },
         };
 
         write!(fmt, "could not convert {actual} to {}", self.expected)
@@ -287,13 +389,13 @@ impl Parameter<'_> {
             (Parameter::Any(Value::Number(number)), ParameterType::I32) => {
                 let number = number.as_i64().ok_or_else(|| {
                     Report::new(ParameterConversionError {
-                        actual: self.to_owned(),
+                        actual: self.to_owned().into(),
                         expected,
                     })
                 })?;
                 *self = Parameter::I32(i32::try_from(number).change_context_lazy(|| {
                     ParameterConversionError {
-                        actual: self.to_owned(),
+                        actual: self.to_owned().into(),
                         expected: ParameterType::OntologyTypeVersion,
                     }
                 })?);
@@ -301,7 +403,7 @@ impl Parameter<'_> {
             (Parameter::I32(number), ParameterType::OntologyTypeVersion) => {
                 *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
                     u32::try_from(*number).change_context_lazy(|| ParameterConversionError {
-                        actual: self.to_owned(),
+                        actual: self.to_owned().into(),
                         expected: ParameterType::OntologyTypeVersion,
                     })?,
                 ));
@@ -315,7 +417,7 @@ impl Parameter<'_> {
                 *self = Parameter::Any(Value::Number(Number::from_f64(*number).ok_or_else(
                     || {
                         Report::new(ParameterConversionError {
-                            actual: self.to_owned(),
+                            actual: self.to_owned().into(),
                             expected,
                         })
                     },
@@ -324,7 +426,7 @@ impl Parameter<'_> {
             (Parameter::Any(Value::Number(number)), ParameterType::F64) => {
                 *self = Parameter::F64(number.as_f64().ok_or_else(|| {
                     Report::new(ParameterConversionError {
-                        actual: self.to_owned(),
+                        actual: self.to_owned().into(),
                         expected,
                     })
                 })?);
@@ -348,7 +450,7 @@ impl Parameter<'_> {
             (Parameter::Text(text), ParameterType::Uuid) => {
                 *self = Parameter::Uuid(Uuid::from_str(&*text).change_context_lazy(|| {
                     ParameterConversionError {
-                        actual: self.to_owned(),
+                        actual: self.to_owned().into(),
                         expected: ParameterType::Uuid,
                     }
                 })?);
@@ -363,7 +465,7 @@ impl Parameter<'_> {
                             Number::from_f64(f64::from(value))
                                 .ok_or_else(|| {
                                     Report::new(ParameterConversionError {
-                                        actual: Parameter::Vector(vector.to_owned()),
+                                        actual: Parameter::Vector(vector.to_owned()).into(),
                                         expected,
                                     })
                                 })
@@ -385,7 +487,7 @@ impl Parameter<'_> {
                                 .as_f64()
                                 .ok_or_else(|| {
                                     Report::new(ParameterConversionError {
-                                        actual: self.to_owned(),
+                                        actual: self.to_owned().into(),
                                         expected,
                                     })
                                 })
@@ -398,7 +500,7 @@ impl Parameter<'_> {
             // Fallback
             (actual, expected) => {
                 bail!(ParameterConversionError {
-                    actual: actual.to_owned(),
+                    actual: actual.to_owned().into(),
                     expected
                 });
             }

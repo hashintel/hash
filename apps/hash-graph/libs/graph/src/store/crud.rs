@@ -48,21 +48,13 @@ impl<R: Record> Sorting for VertexIdSorting<R> {
     }
 }
 
-#[expect(
-    dead_code,
-    reason = "https://linear.app/hash/issue/H-1440/implement-sorting-for-subgraph-roots"
-)]
 pub struct CustomSorting<'p, R: Record> {
-    keys: Vec<R::QueryPath<'p>>,
-    cursor: Option<CustomCursor>,
+    pub paths: Vec<R::QueryPath<'p>>,
+    pub cursor: Option<CustomCursor>,
 }
 
-#[expect(
-    dead_code,
-    reason = "https://linear.app/hash/issue/H-1440/implement-sorting-for-subgraph-roots"
-)]
 pub struct CustomCursor {
-    values: Vec<serde_json::Value>,
+    pub values: Vec<serde_json::Value>,
 }
 
 impl<R: Record> Sorting for CustomSorting<'_, R> {
@@ -137,7 +129,7 @@ impl<'f, R: Record, S> ReadParameter<'f, R, S> {
             temporal_axes: self.temporal_axes,
             include_drafts: self.include_drafts,
             sorting: Some(CustomSorting {
-                keys: keys.into_iter().collect(),
+                paths: keys.into_iter().collect(),
                 cursor: None,
             }),
             limit: self.limit,

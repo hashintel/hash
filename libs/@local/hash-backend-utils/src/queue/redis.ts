@@ -22,7 +22,7 @@ export class RedisQueueProducer implements QueueProducer {
   }
 
   push(name: string, ...items: string[]): Promise<number> {
-    return this.client.lpush(name, ...items);
+    return this.client.lpush(name, items);
   }
 }
 

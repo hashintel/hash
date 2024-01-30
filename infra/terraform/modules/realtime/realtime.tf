@@ -158,6 +158,10 @@ resource "aws_ecs_task_definition" "task" {
         name  = "HASH_REDIS_PORT"
         value = tostring(local.redis_nodes[0].port)
       },
+      {
+        name = "HASH_REDIS_ENCRYPTED_TRANSIT",
+        value = "true"
+      },
     ]
     secrets = [
       {

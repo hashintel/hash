@@ -181,6 +181,10 @@ resource "aws_ecs_task_definition" "task" {
         value = tostring(local.redis_nodes[0].port)
       },
       {
+        name = "HASH_REDIS_ENCRYPTED_TRANSIT",
+        value = "true"
+      },
+      {
         name  = "HASH_OPENSEARCH_ENABLED"
         value = "true"
       },

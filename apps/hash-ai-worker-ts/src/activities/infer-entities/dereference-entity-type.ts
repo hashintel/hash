@@ -12,7 +12,12 @@ import {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import { BaseUrl, linkEntityTypeUrl, Subgraph } from "@local/hash-subgraph";
+import {
+  BaseUrl,
+  EntityTypeMetadata,
+  linkEntityTypeUrl,
+  Subgraph,
+} from "@local/hash-subgraph";
 import {
   getDataTypeById,
   getEntityTypeAndParentsById,
@@ -43,7 +48,7 @@ export type DereferencedEntityType = Pick<
     BaseUrl,
     DereferencedPropertyType | Array<DereferencedPropertyType>
   >;
-};
+} & Pick<EntityTypeMetadata, "labelProperty">;
 
 function dereferencePropertyTypeValue(
   valueReference: PropertyValues,
@@ -160,8 +165,18 @@ export const dereferenceEntityType = (
     (entityType) => entityType.schema.$id === linkEntityTypeUrl,
   );
 
+  let labelProperty: BaseUrl | undefined;
   const mergedProperties: DereferencedEntityType["properties"] = {};
+
   for (const entityType of entityTypeWithAncestors) {
+    /**
+     * Take the label property from the first entity type in the inheritance chain which has one.
+     * The first item in the array is the entity type itself.
+     */
+    if (!labelProperty && entityType.metadata.labelProperty) {
+      labelProperty = entityType.metadata.labelProperty;
+    }
+
     for (const propertyRefSchema of Object.values(
       entityType.schema.properties,
     )) {
@@ -219,6 +234,7 @@ export const dereferenceEntityType = (
     $id: entityType.schema.$id,
     title: entityType.schema.title,
     description: entityType.schema.description,
+    labelProperty,
     links: mergedLinks,
     properties: mergedProperties,
   };
