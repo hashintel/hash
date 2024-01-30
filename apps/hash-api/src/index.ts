@@ -83,7 +83,7 @@ declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
-      context: ImpureGraphContext<true> & {
+      context: ImpureGraphContext<true, true> & {
         vaultClient?: VaultClient;
       };
       session: Session | undefined;
@@ -327,7 +327,7 @@ const main = async () => {
     graphApi,
     search,
     uploadProvider,
-    temporalClient: temporalClient ?? undefined,
+    temporalClient,
     vaultClient,
     cache: redis,
     emailTransporter,
@@ -472,14 +472,12 @@ const main = async () => {
   const httpTerminator = createHttpTerminator({ server: httpServer });
   shutdown.addCleanup("HTTP Server", async () => httpTerminator.terminate());
 
-  if (temporalClient) {
-    openInferEntitiesWebSocket({
-      context,
-      httpServer,
-      logger,
-      temporalClient,
-    });
-  }
+  openInferEntitiesWebSocket({
+    context,
+    httpServer,
+    logger,
+    temporalClient,
+  });
 
   // Start the Apollo GraphQL server.
   // Note: the server must be started before the middleware can be applied
