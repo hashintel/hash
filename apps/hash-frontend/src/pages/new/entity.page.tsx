@@ -100,7 +100,7 @@ const Page: NextPageWithLayout = () => {
     );
   }
 
-  if (userPermissions && !userPermissions?.instantiate) {
+  if (userPermissions && !userPermissions.instantiate) {
     return (
       <CreateEntityError
         entityTypeId={

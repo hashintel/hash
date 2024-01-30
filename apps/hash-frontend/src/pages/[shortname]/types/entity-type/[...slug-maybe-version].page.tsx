@@ -1,6 +1,5 @@
 import { validateEntityType } from "@blockprotocol/type-system";
 import { EntityType } from "@blockprotocol/type-system/slim";
-import { OwnedById } from "@local/hash-subgraph";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo } from "react";

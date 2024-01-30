@@ -15,7 +15,6 @@ import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 
 import {
   archiveEntityType,
-  checkEntityTypePermission,
   checkPermissionsOnEntityType,
   createEntityType,
   getEntityTypeSubgraphById,
