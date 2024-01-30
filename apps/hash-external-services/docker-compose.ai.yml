@@ -1,0 +1,22 @@
+services:
+  hash-temporal-ai-worker:
+    image: hash-ai-worker-ts
+    restart: unless-stopped
+    depends_on:
+      graph:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+      temporal-setup:
+        condition: service_completed_successfully
+    environment:
+      HASH_TEMPORAL_SERVER_HOST: "http://temporal"
+      HASH_TEMPORAL_SERVER_PORT: "${HASH_TEMPORAL_SERVER_PORT}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      HASH_GRAPH_API_HOST: graph
+      HASH_GRAPH_API_PORT: "${HASH_GRAPH_API_PORT}"
+    tmpfs:
+      - /tmp
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
