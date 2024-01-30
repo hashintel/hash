@@ -61,11 +61,12 @@ async fn seed_db(
     seed(
         &mut transaction,
         account_id,
-        [data_type::TEXT_V1],
+        [data_type::TEXT_V1, data_type::NUMBER_V1],
         [
             property_type::NAME_V1,
             property_type::BLURB_V1,
             property_type::PUBLISHED_ON_V1,
+            property_type::AGE_V1,
         ],
         [
             entity_type::LINK_V1,
