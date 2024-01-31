@@ -10,6 +10,8 @@ testTolerateConsoleErrors.beforeEach(async () => {
   await resetDb();
 });
 
+const blockCollectionMountTimeout = 5_000;
+
 /**
  * @todo H-2006 fix bugs on profile page and revert to using 'test' from ./shared/runtime
  */
@@ -27,7 +29,7 @@ testTolerateConsoleErrors("a user's profile page renders", async ({ page }) => {
 
   await page.click("text=Add a bio for Alice...");
 
-  await sleep(2_000);
+  await sleep(blockCollectionMountTimeout);
 
   const bioText = "Alice's bio";
 
@@ -64,7 +66,7 @@ testTolerateConsoleErrors(
 
     await page.click("text=Add a bio for Example...");
 
-    await sleep(2_000);
+    await sleep(blockCollectionMountTimeout);
 
     const bioText = "Example Org's bio";
     await page.keyboard.type(bioText);

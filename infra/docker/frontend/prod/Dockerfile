@@ -20,7 +20,7 @@ COPY --from=builder /app/out/yarn.lock yarn.lock
 COPY --from=builder /app/out/full/patches patches
 
 # Required dependencies for compiling the re2 NPM package
-RUN apk add --no-cache libc6-compat python3 make g++
+RUN apk add --no-cache libc6-compat python3 make g++ linux-headers
 
 RUN yarn install --frozen-lockfile --prefer-offline \
     && yarn cache clean

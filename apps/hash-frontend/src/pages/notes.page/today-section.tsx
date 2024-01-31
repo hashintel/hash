@@ -12,7 +12,6 @@ import { EditableQuickNote } from "./editable-quick-note";
 import { NotesSectionWrapper } from "./notes-section-wrapper";
 import { NotesWrapper } from "./notes-wrapper";
 import { TimestampColumn } from "./timestamp-column";
-import { QuickNoteEntityWithCreatedAt } from "./types";
 
 // const CreateChip = styled(Chip)(({ theme }) => ({
 //   background: theme.palette.common.white,
@@ -25,7 +24,7 @@ import { QuickNoteEntityWithCreatedAt } from "./types";
 export const TodaySection = forwardRef<
   HTMLDivElement,
   {
-    quickNoteEntities?: QuickNoteEntityWithCreatedAt[];
+    quickNoteEntities?: Entity[];
     quickNotesSubgraph?: Subgraph<EntityRootType> | null;
     refetchQuickNotes: () => Promise<void>;
     navigateDown?: () => void;
@@ -43,8 +42,7 @@ export const TodaySection = forwardRef<
         return undefined;
       }
 
-      const { quickNoteEntity: latestQuickNoteEntity } =
-        quickNoteEntities[0] ?? {};
+      const latestQuickNoteEntity = quickNoteEntities[0];
 
       if (!latestQuickNoteEntity || !quickNotesSubgraph) {
         return null;
@@ -65,7 +63,7 @@ export const TodaySection = forwardRef<
     const displayedQuickNoteEntities = useMemo(
       () =>
         quickNoteEntities?.filter(
-          ({ quickNoteEntity }) =>
+          (quickNoteEntity) =>
             (!creatingQuickNote ||
               quickNoteEntity.metadata.recordId.entityId !==
                 creatingQuickNote.metadata.recordId.entityId) &&
@@ -146,33 +144,24 @@ export const TodaySection = forwardRef<
             {displayedQuickNoteEntities &&
             displayedQuickNoteEntities.length > 0 ? (
               <NotesWrapper marginTop={3}>
-                {displayedQuickNoteEntities.map(
-                  (quickNoteEntityWithCreatedAt, index) => (
-                    <Fragment
-                      key={
-                        quickNoteEntityWithCreatedAt.quickNoteEntity.metadata
-                          .recordId.entityId
-                      }
-                    >
-                      {index !== 0 ? (
-                        <Divider
-                          sx={{
-                            backgroundColor: ({ palette }) => palette.gray[30],
-                          }}
-                        />
-                      ) : null}
-                      <Box paddingY={3.25} paddingX={4.5}>
-                        <EditableQuickNote
-                          quickNoteEntityWithCreatedAt={
-                            quickNoteEntityWithCreatedAt
-                          }
-                          quickNoteSubgraph={quickNotesSubgraph ?? undefined}
-                          refetchQuickNotes={refetchQuickNotes}
-                        />
-                      </Box>
-                    </Fragment>
-                  ),
-                )}
+                {displayedQuickNoteEntities.map((quickNoteEntity, index) => (
+                  <Fragment key={quickNoteEntity.metadata.recordId.entityId}>
+                    {index !== 0 ? (
+                      <Divider
+                        sx={{
+                          backgroundColor: ({ palette }) => palette.gray[30],
+                        }}
+                      />
+                    ) : null}
+                    <Box paddingY={3.25} paddingX={4.5}>
+                      <EditableQuickNote
+                        quickNoteEntity={quickNoteEntity}
+                        quickNoteSubgraph={quickNotesSubgraph ?? undefined}
+                        refetchQuickNotes={refetchQuickNotes}
+                      />
+                    </Box>
+                  </Fragment>
+                ))}
               </NotesWrapper>
             ) : null}
           </Collapse>

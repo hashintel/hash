@@ -159,24 +159,21 @@ const PageRelatedNotificationContent = ({
   );
 };
 
-const NotificationRow: FunctionComponent<Notification> = (notification) => {
+const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
+  notification,
+}) => {
   const { markNotificationAsRead } = useNotificationEntities();
-  const {
-    kind,
-    occurredInEntity,
-    readAt,
-    createdAt,
-    entity: notificationEntity,
-  } = notification;
 
   const handleNotificationClick = useCallback(async () => {
-    await markNotificationAsRead({ notificationEntity });
-  }, [markNotificationAsRead, notificationEntity]);
+    await markNotificationAsRead({ notificationEntity: notification.entity });
+  }, [markNotificationAsRead, notification]);
 
   const ownedById = useMemo(
     () =>
-      extractOwnedByIdFromEntityId(occurredInEntity.metadata.recordId.entityId),
-    [occurredInEntity],
+      extractOwnedByIdFromEntityId(
+        notification.occurredInEntity.metadata.recordId.entityId,
+      ),
+    [notification],
   );
 
   const { shortname: entityOwningShortname } = useUserOrOrgShortnameByOwnedById(
@@ -188,9 +185,9 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
       return undefined;
     }
 
-    if (kind === "graph-change") {
+    if (notification.kind === "graph-change") {
       return `/@${entityOwningShortname}/entities/${extractEntityUuidFromEntityId(
-        occurredInEntity.metadata.recordId.entityId,
+        notification.occurredInEntity.metadata.recordId.entityId,
       )}`;
     }
 
@@ -200,14 +197,22 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
     return constructPageRelativeUrl({
       workspaceShortname: entityOwningShortname,
       pageEntityUuid: extractEntityUuidFromEntityId(
-        occurredInEntity.metadata.recordId.entityId,
+        notification.occurredInEntity.metadata.recordId.entityId,
       ),
       highlightedBlockEntityId: occurredInBlock.metadata.recordId.entityId,
     });
-  }, [entityOwningShortname, kind, occurredInEntity, notification]);
+  }, [entityOwningShortname, notification]);
 
   const humanReadableCreatedAt = useMemo(() => {
     const now = new Date();
+
+    const createdAtTimestamp =
+      notification.kind === "graph-change"
+        ? notification.occurredInEntityEditionTimestamp ??
+          notification.entity.metadata.provenance.createdAtDecisionTime
+        : notification.entity.metadata.provenance.createdAtDecisionTime;
+
+    const createdAt = new Date(createdAtTimestamp);
 
     const numberOfMinutesAgo = differenceInMinutes(now, createdAt);
 
@@ -235,13 +240,15 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
     }
 
     return format(createdAt, "h:mma MMMM do, yyyy"); // "12:00AM December 24th, 2022"
-  }, [createdAt]);
+  }, [notification]);
 
   return (
     <TableRow
       sx={{
-        background: readAt ? ({ palette }) => palette.gray[20] : undefined,
-        opacity: readAt ? 0.6 : 1,
+        background: notification.readAt
+          ? ({ palette }) => palette.gray[20]
+          : undefined,
+        opacity: notification.readAt ? 0.6 : 1,
       }}
     >
       <TableCell
@@ -262,7 +269,7 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
           },
         }}
       >
-        {kind === "graph-change" ? (
+        {notification.kind === "graph-change" ? (
           <GraphChangeNotificationContent
             notification={notification}
             handleNotificationClick={handleNotificationClick}
@@ -278,19 +285,23 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
       </TableCell>
       <TableCell sx={{ display: "flex", columnGap: 1 }}>
         <Button href={targetHref} onClick={handleNotificationClick} size="xs">
-          {kind === "new-comment" ||
-          kind === "comment-reply" ||
-          kind === "comment-mention"
+          {notification.kind === "new-comment" ||
+          notification.kind === "comment-reply" ||
+          notification.kind === "comment-mention"
             ? "View comment"
-            : kind === "graph-change"
+            : notification.kind === "graph-change"
               ? "View entity"
               : "View page"}
         </Button>
-        {readAt ? null : (
+        {notification.readAt ? null : (
           <Button
             variant="tertiary"
             size="xs"
-            onClick={() => markNotificationAsRead({ notificationEntity })}
+            onClick={() =>
+              markNotificationAsRead({
+                notificationEntity: notification.entity,
+              })
+            }
           >
             Mark as read
           </Button>
@@ -337,7 +348,7 @@ const InboxPage: NextPageWithLayout = () => {
               notifications.map((notification) => (
                 <NotificationRow
                   key={notification.entity.metadata.recordId.entityId}
-                  {...notification}
+                  notification={notification}
                 />
               ))
             ) : (
