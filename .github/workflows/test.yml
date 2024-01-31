@@ -484,6 +484,8 @@ jobs:
       - name: Re-launch external services to support loading hash.ai types as external
         run: |
           turbo codegen --filter '@apps/hash-external-services'
+          echo 'HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN="(?:http://localhost:3000)/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type))/[\\w\\-_%]+/"' \
+            >> .env.local
           yarn workspace @apps/hash-external-services deploy up --wait
 
       - name: Re-launch HASH-API to support loading hash.ai types as external
