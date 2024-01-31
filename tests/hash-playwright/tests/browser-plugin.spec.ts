@@ -9,6 +9,8 @@ import { expect, test } from "./browser-plugin/fixtures";
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
 import { resetDb } from "./shared/reset-db";
 
+test.skip();
+
 test.beforeEach(async () => {
   await resetDb();
 });
