@@ -144,6 +144,7 @@ const InferenceRequestContainer = ({
             )}
             <Tooltip title="Job in progress...">
               <CircularProgress
+                data-testid="job-in-progress"
                 variant="indeterminate"
                 size={13}
                 sx={{ mr: 1 }}

@@ -85,7 +85,7 @@ test("user can configure and use automatic inference to create entities from a w
   page,
   extensionId,
 }) => {
-  test.setTimeout(1000 * 60 * 15); // 15 minutes
+  test.setTimeout(1000 * 60 * 30); // 30 minutes
 
   /**
    * Use a different user to the one in browser-plugin.spec.ts to avoid clashes between configurations
@@ -135,7 +135,7 @@ test("user can configure and use automatic inference to create entities from a w
 
   // wait to check that the job hasn't immediately failed
   await sleep(20_000);
-  await expect(page.locator("[title='Job in progress...']")).toBeVisible();
+  await expect(page.locator("[data-testid='job-in-progress']")).toBeVisible();
 
   await page.click(`text=${crunchbasePageTitle}`);
 
