@@ -13,7 +13,13 @@ import {
 } from "@local/hash-subgraph";
 import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
-import { FunctionComponent, useCallback, useMemo, useState } from "react";
+import {
+  FunctionComponent,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
   Grid,
@@ -53,7 +59,7 @@ type TypesTableColumn = {
   id: LinkColumnId;
 } & SizedGridColumn;
 
-type TypesTableRow = {
+export type TypesTableRow = {
   rowId: string;
   kind: "entity-type" | "property-type" | "link-type" | "data-type";
   typeId: VersionedUrl;
@@ -70,13 +76,31 @@ const typeNamespaceFromTypeId = (typeId: VersionedUrl): string => {
   return `${domain}/${firstPathSegment}`;
 };
 
+const typeTableKinds = [
+  "all",
+  "entity-type",
+  "link-type",
+  "property-type",
+  "data-type",
+] as const;
+
+type TypeTableKind = (typeof typeTableKinds)[number];
+
+const typesTablesToTitle: Record<TypeTableKind, string> = {
+  all: "Types",
+  "entity-type": "Entity Types",
+  "property-type": "Property Types",
+  "link-type": "Link Types",
+  "data-type": "Data Types",
+};
+
 export const TypesTable: FunctionComponent<{
   types?: (
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata
   )[];
-  kind: "all" | "entity-type" | "property-type" | "link-type" | "data-type";
+  kind: TypeTableKind;
 }> = ({ types, kind }) => {
   const router = useRouter();
 
@@ -251,12 +275,17 @@ export const TypesTable: FunctionComponent<{
 
   const theme = useTheme();
 
+  const currentlyDisplayedRowsRef = useRef<TypesTableRow[] | null>(null);
+
   return (
     <Box>
       <TableHeader
         internalWebIds={internalWebIds}
         itemLabelPlural="types"
         items={types}
+        title={typesTablesToTitle[kind]}
+        columns={typesTableColumns}
+        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
         filterState={filterState}
         setFilterState={setFilterState}
         selectedItems={types?.filter((type) =>
@@ -271,6 +300,7 @@ export const TypesTable: FunctionComponent<{
         rows={filteredRows}
         enableCheckboxSelection
         selectedRows={selectedRows}
+        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
         onSelectedRowsChange={(updatedSelectedRows) =>
           setSelectedRows(updatedSelectedRows)
         }

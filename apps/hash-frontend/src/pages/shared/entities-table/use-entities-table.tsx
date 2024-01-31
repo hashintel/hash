@@ -20,18 +20,19 @@ import { format } from "date-fns";
 import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
-import { useUsers } from "../../../components/hooks/use-users";
-import { MinimalUser } from "../../../lib/user-and-org";
+import { MinimalActor, useActors } from "../../../shared/use-actors";
+import { stringifyPropertyValue } from "./stringify-property-value";
 
 export interface TypeEntitiesRow {
   rowId: string;
   entityId: EntityId;
-  entity: string;
+  entity: Entity;
+  entityLabel: string;
   entityTypeVersion: string;
   namespace: string;
   archived?: boolean;
   lastEdited: string;
-  lastEditedBy?: MinimalUser;
+  lastEditedBy?: MinimalActor;
   properties?: {
     [k: string]: string;
   };
@@ -46,7 +47,7 @@ export const useEntitiesTable = (params: {
   propertyTypes?: PropertyType[];
   subgraph?: Subgraph<EntityRootType>;
   hideEntityTypeVersionColumn?: boolean;
-  hidePropertiesColumns?: boolean;
+  hidePropertiesColumns: boolean;
   isViewingPages?: boolean;
 }) => {
   const {
@@ -55,11 +56,17 @@ export const useEntitiesTable = (params: {
     propertyTypes,
     subgraph,
     hideEntityTypeVersionColumn = false,
-    hidePropertiesColumns = false,
+    hidePropertiesColumns,
     isViewingPages = false,
   } = params;
 
-  const { users } = useUsers();
+  const lastEditedByAccountIds = useMemo(
+    () =>
+      entities?.map(({ metadata }) => metadata.provenance.edition.createdById),
+    [entities],
+  );
+
+  const { actors } = useActors({ accountIds: lastEditedByAccountIds });
 
   const getOwnerForEntity = useGetOwnerForEntity();
 
@@ -98,7 +105,7 @@ export const useEntitiesTable = (params: {
               ({ $id }) => $id === entities?.[0]?.metadata.entityTypeId,
             )?.title ?? "Entity"
           : "Entity",
-        id: "entity",
+        id: "entityLabel",
         width: 252,
         grow: 1,
       },
@@ -171,7 +178,7 @@ export const useEntitiesTable = (params: {
               "yyyy-MM-dd HH:mm",
             );
 
-            const lastEditedBy = users?.find(
+            const lastEditedBy = actors?.find(
               ({ accountId }) =>
                 accountId === entity.metadata.provenance.edition.createdById,
             );
@@ -179,7 +186,8 @@ export const useEntitiesTable = (params: {
             return {
               rowId: entityId,
               entityId,
-              entity: entityLabel,
+              entity,
+              entityLabel,
               entityTypeVersion: entityType
                 ? `v${extractVersion(entityType.$id)} ${entityType.title}`
                 : "",
@@ -196,9 +204,11 @@ export const useEntitiesTable = (params: {
                 if (column.id) {
                   const propertyValue = entity.properties[column.id as BaseUrl];
 
-                  const value = Array.isArray(propertyValue)
-                    ? propertyValue.join(", ")
-                    : propertyValue;
+                  const value =
+                    typeof propertyValue === "undefined"
+                      ? ""
+                      : stringifyPropertyValue(propertyValue);
+
                   return { ...fields, [column.id]: value };
                 }
 
@@ -219,6 +229,6 @@ export const useEntitiesTable = (params: {
     hideEntityTypeVersionColumn,
     hidePropertiesColumns,
     isViewingPages,
-    users,
+    actors,
   ]);
 };
