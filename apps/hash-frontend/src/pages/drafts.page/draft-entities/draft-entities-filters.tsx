@@ -120,13 +120,12 @@ const getDraftEntityTypes = (params: {
     });
 
 const getDraftEntitySources = (params: {
-  draftEntitiesWithCreatedAtAndCreators: {
+  draftEntitiesWithCreators: {
     entity: Entity;
-    createdAt: Date;
     creator: MinimalActor;
   }[];
 }): MinimalActor[] =>
-  params.draftEntitiesWithCreatedAtAndCreators
+  params.draftEntitiesWithCreators
     .map(({ creator }) => creator)
     .filter(
       (creator, index, all) =>
@@ -144,31 +143,25 @@ const getDraftEntityWebOwnedByIds = (params: {
     .filter((webOwnedById, index, all) => all.indexOf(webOwnedById) === index);
 
 export const generateDefaultFilterState = (params: {
-  draftEntitiesWithCreatedAtAndCreators: {
+  draftEntitiesWithCreators: {
     entity: Entity;
-    createdAt: Date;
     creator: MinimalActor;
   }[];
   draftEntitiesSubgraph: Subgraph<EntityRootType>;
 }): DraftEntityFilterState => {
-  const { draftEntitiesWithCreatedAtAndCreators, draftEntitiesSubgraph } =
-    params;
+  const { draftEntitiesWithCreators, draftEntitiesSubgraph } = params;
 
   const entityTypes = getDraftEntityTypes({
-    draftEntities: draftEntitiesWithCreatedAtAndCreators.map(
-      ({ entity }) => entity,
-    ),
+    draftEntities: draftEntitiesWithCreators.map(({ entity }) => entity),
     draftEntitiesSubgraph,
   });
 
   const sources = getDraftEntitySources({
-    draftEntitiesWithCreatedAtAndCreators,
+    draftEntitiesWithCreators,
   });
 
   const webOwnedByIds = getDraftEntityWebOwnedByIds({
-    draftEntities: draftEntitiesWithCreatedAtAndCreators.map(
-      ({ entity }) => entity,
-    ),
+    draftEntities: draftEntitiesWithCreators.map(({ entity }) => entity),
   });
 
   return {
@@ -183,25 +176,21 @@ export const generateDefaultFilterState = (params: {
 
 export const isFilerStateDefaultFilterState =
   (params: {
-    draftEntitiesWithCreatedAtAndCreators: {
+    draftEntitiesWithCreators: {
       entity: Entity;
-      createdAt: Date;
       creator: MinimalActor;
     }[];
     draftEntitiesSubgraph: Subgraph<EntityRootType>;
   }) =>
   (filterState: DraftEntityFilterState): boolean => {
-    const { draftEntitiesWithCreatedAtAndCreators, draftEntitiesSubgraph } =
-      params;
+    const { draftEntitiesWithCreators, draftEntitiesSubgraph } = params;
 
     if (filterState.lastEditedTimeRange !== "anytime") {
       return false;
     }
 
     const entityTypes = getDraftEntityTypes({
-      draftEntities: draftEntitiesWithCreatedAtAndCreators.map(
-        ({ entity }) => entity,
-      ),
+      draftEntities: draftEntitiesWithCreators.map(({ entity }) => entity),
       draftEntitiesSubgraph,
     });
 
@@ -210,7 +199,7 @@ export const isFilerStateDefaultFilterState =
     }
 
     const sources = getDraftEntitySources({
-      draftEntitiesWithCreatedAtAndCreators,
+      draftEntitiesWithCreators,
     });
 
     if (filterState.sourceAccountIds.length !== sources.length) {
@@ -252,18 +241,16 @@ const draftEntityFilterKinds = [
 type DraftEntityFilterKind = (typeof draftEntityFilterKinds)[number];
 
 export const filterDraftEntities = (params: {
-  draftEntitiesWithCreatedAtAndCreators: {
+  draftEntitiesWithCreators: {
     entity: Entity;
-    createdAt: Date;
     creator: MinimalActor;
   }[];
   filterState: DraftEntityFilterState;
   omitFilters?: DraftEntityFilterKind[];
 }) => {
-  const { draftEntitiesWithCreatedAtAndCreators, filterState, omitFilters } =
-    params;
+  const { draftEntitiesWithCreators, filterState, omitFilters } = params;
 
-  return draftEntitiesWithCreatedAtAndCreators.filter(
+  return draftEntitiesWithCreators.filter(
     ({ entity, creator }) =>
       (omitFilters?.includes("type") ||
         filterState.entityTypeBaseUrls.includes(
@@ -286,16 +273,15 @@ export const filterDraftEntities = (params: {
 };
 
 export const DraftEntitiesFilters: FunctionComponent<{
-  draftEntitiesWithCreatedAtAndCreators?: {
+  draftEntitiesWithCreators?: {
     entity: Entity;
-    createdAt: Date;
     creator: MinimalActor;
   }[];
   draftEntitiesSubgraph?: Subgraph<EntityRootType>;
   filterState?: DraftEntityFilterState;
   setFilterState: Dispatch<SetStateAction<DraftEntityFilterState | undefined>>;
 }> = ({
-  draftEntitiesWithCreatedAtAndCreators,
+  draftEntitiesWithCreators,
   draftEntitiesSubgraph,
   filterState,
   setFilterState,
@@ -304,51 +290,47 @@ export const DraftEntitiesFilters: FunctionComponent<{
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
   const handleClearAll = useCallback(() => {
-    if (draftEntitiesWithCreatedAtAndCreators && draftEntitiesSubgraph) {
+    if (draftEntitiesWithCreators && draftEntitiesSubgraph) {
       setFilterState(
         generateDefaultFilterState({
-          draftEntitiesWithCreatedAtAndCreators,
+          draftEntitiesWithCreators,
           draftEntitiesSubgraph,
         }),
       );
     }
-  }, [
-    setFilterState,
-    draftEntitiesWithCreatedAtAndCreators,
-    draftEntitiesSubgraph,
-  ]);
+  }, [setFilterState, draftEntitiesWithCreators, draftEntitiesSubgraph]);
 
   const entityTypes = useMemo(
     () =>
-      draftEntitiesWithCreatedAtAndCreators && draftEntitiesSubgraph
+      draftEntitiesWithCreators && draftEntitiesSubgraph
         ? getDraftEntityTypes({
-            draftEntities: draftEntitiesWithCreatedAtAndCreators.map(
+            draftEntities: draftEntitiesWithCreators.map(
               ({ entity }) => entity,
             ),
             draftEntitiesSubgraph,
           }).sort((a, b) => a.schema.title.localeCompare(b.schema.title))
         : undefined,
-    [draftEntitiesWithCreatedAtAndCreators, draftEntitiesSubgraph],
+    [draftEntitiesWithCreators, draftEntitiesSubgraph],
   );
 
   const sources = useMemo(
     () =>
-      draftEntitiesWithCreatedAtAndCreators
-        ? getDraftEntitySources({ draftEntitiesWithCreatedAtAndCreators })
+      draftEntitiesWithCreators
+        ? getDraftEntitySources({ draftEntitiesWithCreators })
         : undefined,
-    [draftEntitiesWithCreatedAtAndCreators],
+    [draftEntitiesWithCreators],
   );
 
   const webOwnedByIds = useMemo(
     () =>
-      draftEntitiesWithCreatedAtAndCreators
+      draftEntitiesWithCreators
         ? getDraftEntityWebOwnedByIds({
-            draftEntities: draftEntitiesWithCreatedAtAndCreators.map(
+            draftEntities: draftEntitiesWithCreators.map(
               ({ entity }) => entity,
             ),
           })
         : undefined,
-    [draftEntitiesWithCreatedAtAndCreators],
+    [draftEntitiesWithCreators],
   );
 
   const { orgs } = useOrgs();
@@ -391,13 +373,12 @@ export const DraftEntitiesFilters: FunctionComponent<{
      * used to display the count of draft entities per filter option.
      */
     const filteredDraftEntitiesExceptForFilter =
-      draftEntitiesWithCreatedAtAndCreators && filterState
+      draftEntitiesWithCreators && filterState
         ? draftEntityFilterKinds.reduce<
             Record<
               DraftEntityFilterKind,
               {
                 entity: Entity;
-                createdAt: Date;
                 creator: MinimalActor;
               }[]
             >
@@ -405,7 +386,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
             (prev, currentFilterKind) => ({
               ...prev,
               [currentFilterKind]: filterDraftEntities({
-                draftEntitiesWithCreatedAtAndCreators,
+                draftEntitiesWithCreators,
                 filterState,
                 omitFilters: [currentFilterKind],
               }),
@@ -608,7 +589,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
     sources,
     authenticatedUser,
     webs,
-    draftEntitiesWithCreatedAtAndCreators,
+    draftEntitiesWithCreators,
     filterState,
     isSpecialEntityTypeLookup,
     setFilterState,

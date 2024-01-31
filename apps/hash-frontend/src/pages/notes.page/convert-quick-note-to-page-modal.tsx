@@ -19,7 +19,7 @@ import {
   Typography,
 } from "@mui/material";
 import { generateKeyBetween } from "fractional-indexing";
-import { FunctionComponent, useCallback } from "react";
+import { FunctionComponent, useCallback, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { useBlockProtocolCreateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
@@ -32,7 +32,6 @@ import { PageIcon } from "../../components/page-icon";
 import { XMarkRegularIcon } from "../../shared/icons/x-mark-regular-icon";
 import { Button } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
-import { QuickNoteEntityWithCreatedAt } from "./types";
 
 export type PageWithParentLink = SimplePage & { parentLinkEntity?: Entity };
 
@@ -45,20 +44,20 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
   Omit<ModalProps, "children" | "onClose"> & {
     onClose: () => void;
     onConvertedToPage: (page: PageWithParentLink) => void;
-    quickNoteEntityWithCreatedAt: QuickNoteEntityWithCreatedAt;
+    quickNoteEntity: Entity;
   }
-> = ({
-  quickNoteEntityWithCreatedAt,
-  onClose,
-  onConvertedToPage,
-  ...modalProps
-}) => {
+> = ({ quickNoteEntity, onClose, onConvertedToPage, ...modalProps }) => {
   const { authenticatedUser } = useAuthenticatedUser();
 
   const { control, reset, handleSubmit, register, setValue } =
     useForm<ConvertToPageFormData>();
 
-  const defaultTitle = `Quick Note - ${quickNoteEntityWithCreatedAt.createdAt.toLocaleString()}`;
+  const createdAt = useMemo(
+    () => new Date(quickNoteEntity.metadata.provenance.createdAtDecisionTime),
+    [quickNoteEntity],
+  );
+
+  const defaultTitle = `Quick Note - ${createdAt.toLocaleString()}`;
 
   const { data: pages } = useAccountPages(
     authenticatedUser.accountId as OwnedById,
@@ -92,9 +91,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
 
     const { data: pageEntity, errors } = await updateEntity({
       data: {
-        entityId:
-          quickNoteEntityWithCreatedAt.quickNoteEntity.metadata.recordId
-            .entityId,
+        entityId: quickNoteEntity.metadata.recordId.entityId,
         entityTypeId: systemEntityTypes.document.entityTypeId,
         properties: {
           "https://hash.ai/@hash/types/property-type/title/": title,

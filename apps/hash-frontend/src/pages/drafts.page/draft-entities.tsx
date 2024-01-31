@@ -1,20 +1,11 @@
-import { useQuery } from "@apollo/client";
 import { Skeleton } from "@hashintel/design-system";
-import { Filter } from "@local/hash-graph-client";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
-  fullDecisionTimeAxis,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   Entity,
   EntityId,
   EntityRootType,
-  extractEntityUuidFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Container, Divider, Typography } from "@mui/material";
 import {
   Dispatch,
@@ -29,13 +20,7 @@ import {
   useState,
 } from "react";
 
-import {
-  StructuralQueryEntitiesQuery,
-  StructuralQueryEntitiesQueryVariables,
-} from "../../graphql/api-types.gen";
-import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../shared/draft-entities-context";
-import { getFirstRevision } from "../../shared/entity-utils";
 import { Button } from "../../shared/ui";
 import { MinimalActor, useActors } from "../../shared/use-actors";
 import { DraftEntitiesContextBar } from "./draft-entities/draft-entities-context-bar";
@@ -49,17 +34,6 @@ import {
 import { DraftEntity } from "./draft-entity";
 
 const incrementNumberOfEntitiesToDisplay = 20;
-
-const doesSubgraphIncludeEntitiesInRoots = (params: {
-  subgraph: Subgraph<EntityRootType>;
-  entityIds: EntityId[];
-}) => {
-  const roots = getRoots(params.subgraph);
-
-  return params.entityIds.every((entityId) =>
-    roots.some((root) => root.metadata.recordId.entityId === entityId),
-  );
-};
 
 export type SortOrder = "created-at-asc" | "created-at-desc";
 
@@ -78,111 +52,32 @@ export const DraftEntities: FunctionComponent<{
 
   const { draftEntities } = useDraftEntities();
 
-  const getDraftEntitiesFilter = useMemo<Filter>(
-    () => ({
-      any:
-        draftEntities?.map((draftEntity) => ({
-          equal: [
-            { path: ["uuid"] },
-            {
-              parameter: extractEntityUuidFromEntityId(
-                draftEntity.metadata.recordId.entityId,
-              ),
-            },
-          ],
-        })) ?? [],
-    }),
+  const creatorAccountIds = useMemo(
+    () =>
+      draftEntities?.map(
+        (entity) => entity.metadata.provenance.edition.createdById,
+      ),
     [draftEntities],
   );
 
-  const [
-    previouslyFetchedDraftEntityHistoriesData,
-    setPreviouslyFetchedDraftEntityHistoriesData,
-  ] = useState<StructuralQueryEntitiesQuery>();
-
-  const { data: draftEntityHistoriesResponse } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
-    variables: {
-      query: {
-        filter: getDraftEntitiesFilter,
-        includeDrafts: true,
-        temporalAxes: fullDecisionTimeAxis,
-        graphResolveDepths: zeroedGraphResolveDepths,
-      },
-      includePermissions: false,
-    },
-    skip: !draftEntities,
-    onCompleted: (data) => setPreviouslyFetchedDraftEntityHistoriesData(data),
-    fetchPolicy: "network-only",
-  });
-
-  const draftEntityHistoriesSubgraph = useMemo(
-    () =>
-      draftEntityHistoriesResponse ?? previouslyFetchedDraftEntityHistoriesData
-        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-            (draftEntityHistoriesResponse ??
-              previouslyFetchedDraftEntityHistoriesData)!
-              .structuralQueryEntities.subgraph,
-          )
-        : undefined,
-    [draftEntityHistoriesResponse, previouslyFetchedDraftEntityHistoriesData],
-  );
-
-  const creatorAccountIds = useMemo(() => {
-    if (
-      !draftEntities ||
-      !draftEntityHistoriesSubgraph ||
-      // We may have a stale subgraph that doesn't contain the revisions for all of the draft entities yet
-      !doesSubgraphIncludeEntitiesInRoots({
-        subgraph: draftEntityHistoriesSubgraph,
-        entityIds: draftEntities.map(
-          (entity) => entity.metadata.recordId.entityId,
-        ),
-      })
-    ) {
-      return undefined;
-    }
-
-    const derivedCreatorAccountIds = draftEntities.map((entity) => {
-      const firstRevision = getFirstRevision(
-        draftEntityHistoriesSubgraph,
-        entity.metadata.recordId.entityId,
-      );
-
-      return firstRevision.metadata.provenance.edition.createdById;
-    });
-
-    return derivedCreatorAccountIds;
-  }, [draftEntities, draftEntityHistoriesSubgraph]);
-
   const { actors } = useActors({ accountIds: creatorAccountIds });
 
-  const previousDraftEntitiesWithCreatedAtAndCreators = useRef<
+  const previousDraftEntitiesWithCreators = useRef<
     | {
         entity: Entity;
-        createdAt: Date;
         creator: MinimalActor;
       }[]
     | null
   >(null);
 
-  const draftEntitiesWithCreatedAtAndCreators = useMemo(() => {
-    if (!draftEntities || !draftEntityHistoriesSubgraph || !actors) {
-      return previousDraftEntitiesWithCreatedAtAndCreators.current ?? undefined;
+  const draftEntitiesWithCreators = useMemo(() => {
+    if (!draftEntities || !actors) {
+      return previousDraftEntitiesWithCreators.current ?? undefined;
     }
 
     const derived = draftEntities.map((entity) => {
-      const firstRevision = getFirstRevision(
-        draftEntityHistoriesSubgraph,
-        entity.metadata.recordId.entityId,
-      );
-
       const creator = actors.find(
-        (actor) =>
-          actor.accountId ===
-          firstRevision.metadata.provenance.edition.createdById,
+        (actor) => actor.accountId === entity.metadata.provenance.createdById,
       );
 
       if (!creator) {
@@ -191,28 +86,22 @@ export const DraftEntities: FunctionComponent<{
         );
       }
 
-      return {
-        entity,
-        createdAt: new Date(
-          firstRevision.metadata.temporalVersioning.decisionTime.start.limit,
-        ),
-        creator,
-      };
+      return { entity, creator };
     });
 
-    previousDraftEntitiesWithCreatedAtAndCreators.current = derived;
+    previousDraftEntitiesWithCreators.current = derived;
 
     return derived;
-  }, [actors, draftEntityHistoriesSubgraph, draftEntities]);
+  }, [actors, draftEntities]);
 
   if (
     !filterState &&
-    draftEntitiesWithCreatedAtAndCreators &&
+    draftEntitiesWithCreators &&
     draftEntitiesWithLinkedDataSubgraph
   ) {
     setFilterState(
       generateDefaultFilterState({
-        draftEntitiesWithCreatedAtAndCreators,
+        draftEntitiesWithCreators,
         draftEntitiesSubgraph: draftEntitiesWithLinkedDataSubgraph,
       }),
     );
@@ -221,15 +110,15 @@ export const DraftEntities: FunctionComponent<{
   const isDefaultFilterState = useMemo(
     () =>
       !!filterState &&
-      !!draftEntitiesWithCreatedAtAndCreators &&
+      !!draftEntitiesWithCreators &&
       !!draftEntitiesWithLinkedDataSubgraph &&
       isFilerStateDefaultFilterState({
-        draftEntitiesWithCreatedAtAndCreators,
+        draftEntitiesWithCreators,
         draftEntitiesSubgraph: draftEntitiesWithLinkedDataSubgraph,
       })(filterState),
     [
       filterState,
-      draftEntitiesWithCreatedAtAndCreators,
+      draftEntitiesWithCreators,
       draftEntitiesWithLinkedDataSubgraph,
     ],
   );
@@ -237,13 +126,20 @@ export const DraftEntities: FunctionComponent<{
   const filteredAndSortedDraftEntitiesWithCreatedAt = useMemo(
     () =>
       filterState &&
-      draftEntitiesWithCreatedAtAndCreators &&
+      draftEntitiesWithCreators &&
       draftEntitiesWithLinkedDataSubgraph
         ? filterDraftEntities({
-            draftEntitiesWithCreatedAtAndCreators,
+            draftEntitiesWithCreators,
             filterState,
-          }).sort((a, b) =>
-            a.createdAt.getTime() === b.createdAt.getTime()
+          }).sort((a, b) => {
+            const aCreatedAt = new Date(
+              a.entity.metadata.provenance.createdAtDecisionTime,
+            );
+            const bCreatedAt = new Date(
+              b.entity.metadata.provenance.createdAtDecisionTime,
+            );
+
+            return aCreatedAt.getTime() === bCreatedAt.getTime()
               ? generateEntityLabel(
                   draftEntitiesWithLinkedDataSubgraph,
                   a.entity,
@@ -254,12 +150,12 @@ export const DraftEntities: FunctionComponent<{
                   ),
                 )
               : sortOrder === "created-at-asc"
-                ? a.createdAt.getTime() - b.createdAt.getTime()
-                : b.createdAt.getTime() - a.createdAt.getTime(),
-          )
+                ? aCreatedAt.getTime() - bCreatedAt.getTime()
+                : bCreatedAt.getTime() - aCreatedAt.getTime();
+          })
         : undefined,
     [
-      draftEntitiesWithCreatedAtAndCreators,
+      draftEntitiesWithCreators,
       sortOrder,
       filterState,
       draftEntitiesWithLinkedDataSubgraph,
@@ -345,7 +241,7 @@ export const DraftEntities: FunctionComponent<{
         {filteredAndSortedDraftEntitiesWithCreatedAt &&
         filteredAndSortedDraftEntitiesWithCreatedAt.length === 0 ? (
           <Typography textAlign="center">
-            {draftEntitiesWithCreatedAtAndCreators?.length === 0
+            {draftEntitiesWithCreators?.length === 0
               ? "You have no drafts currently awaiting review."
               : "No draft entities match the selected filters."}
           </Typography>
@@ -377,7 +273,7 @@ export const DraftEntities: FunctionComponent<{
               draftEntitiesWithLinkedDataSubgraph ? (
                 <>
                   {displayedDraftEntitiesWithCreatedAt.map(
-                    ({ entity, createdAt }, i, all) => {
+                    ({ entity }, i, all) => {
                       const isSelected = selectedDraftEntityIds.includes(
                         entity.metadata.recordId.entityId,
                       );
@@ -385,7 +281,6 @@ export const DraftEntities: FunctionComponent<{
                         <Fragment key={entity.metadata.recordId.entityId}>
                           <DraftEntity
                             entity={entity}
-                            createdAt={createdAt}
                             subgraph={draftEntitiesWithLinkedDataSubgraph}
                             selected={isSelected}
                             toggleSelected={() =>
@@ -457,12 +352,10 @@ export const DraftEntities: FunctionComponent<{
           </>
         )}
       </Box>
-      {draftEntitiesWithCreatedAtAndCreators &&
-      draftEntitiesWithCreatedAtAndCreators.length === 0 ? null : (
+      {draftEntitiesWithCreators &&
+      draftEntitiesWithCreators.length === 0 ? null : (
         <DraftEntitiesFilters
-          draftEntitiesWithCreatedAtAndCreators={
-            draftEntitiesWithCreatedAtAndCreators
-          }
+          draftEntitiesWithCreators={draftEntitiesWithCreators}
           draftEntitiesSubgraph={draftEntitiesWithLinkedDataSubgraph}
           filterState={filterState}
           setFilterState={handleFilterStateChange}

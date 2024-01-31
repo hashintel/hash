@@ -58,17 +58,7 @@ const ProfilePage: NextPageWithLayout = () => {
         hasRightEntity: { incoming: 1, outgoing: 1 },
       },
       includePermissions: true,
-      /**
-       * We need to obtain all revisions of the user or org entity
-       * to determine when the user joined or the org was created.
-       */
-      temporalAxes: {
-        pinned: { axis: "transactionTime", timestamp: null },
-        variable: {
-          axis: "decisionTime",
-          interval: { start: { kind: "unbounded" }, end: null },
-        },
-      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     });
 
   const profile = useMemo(() => {
