@@ -1111,19 +1111,23 @@ export const getEntitiesByType: ImpureGraphFunction<
 > = async (context, authentication, { entityTypeId }) => {
   return await context.graphApi
     .getEntitiesByQuery(authentication.actorId, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(entityTypeId, {
-            ignoreParents: true,
-          }),
-        ],
+      query: {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(entityTypeId, {
+              ignoreParents: true,
+            }),
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        includeDrafts: false,
+        temporalAxes: currentTimeInstantTemporalAxes,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      includeDrafts: false,
-      temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then((resp) =>
-      getRoots(mapGraphApiSubgraphToSubgraph<EntityRootType>(resp.data)),
+      getRoots(
+        mapGraphApiSubgraphToSubgraph<EntityRootType>(resp.data.subgraph),
+      ),
     );
 };
 

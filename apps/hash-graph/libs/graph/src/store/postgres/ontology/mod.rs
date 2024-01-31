@@ -27,10 +27,10 @@ use crate::{
         error::DeletionError,
         postgres::{
             crud::QueryRecordDecode,
-            query::{Distinctness, Ordering, PostgresSorting, SelectCompiler},
+            query::{Distinctness, PostgresSorting, SelectCompiler},
         },
         query::Parameter,
-        AsClient, PostgresStore, Record,
+        AsClient, Ordering, PostgresStore, Record,
     },
     subgraph::temporal_axes::QueryTemporalAxes,
 };
@@ -182,14 +182,16 @@ macro_rules! impl_ontology_cursor {
                         base_url: compiler.add_cursor_selection(
                             &<$query_path>::BaseUrl,
                             identity,
-                            base_url_expression,
+                            Some(base_url_expression),
                             Ordering::Ascending,
+                            None,
                         ),
                         version: compiler.add_cursor_selection(
                             &<$query_path>::Version,
                             identity,
-                            version_expression,
+                            Some(version_expression),
                             Ordering::Descending,
+                            None,
                         ),
                     }
                 } else {
@@ -197,12 +199,12 @@ macro_rules! impl_ontology_cursor {
                         base_url: compiler.add_distinct_selection_with_ordering(
                             &<$query_path>::BaseUrl,
                             Distinctness::Distinct,
-                            Some(Ordering::Ascending),
+                            Some((Ordering::Ascending, None)),
                         ),
                         version: compiler.add_distinct_selection_with_ordering(
                             &<$query_path>::Version,
                             Distinctness::Distinct,
-                            Some(Ordering::Descending),
+                            Some((Ordering::Descending, None)),
                         ),
                     }
                 }

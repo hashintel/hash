@@ -1,4 +1,4 @@
-use std::fmt::{self, Write};
+use std::fmt::{self, Display, Formatter, Write};
 
 use crate::store::postgres::query::{AliasedColumn, Transpile, WindowStatement};
 
@@ -140,6 +140,16 @@ impl Transpile for Expression {
                 fmt.write_char(')')
             }
         }
+    }
+}
+
+pub struct Transpiler<'t, T>(pub &'t T);
+impl<'t, T> Display for Transpiler<'t, T>
+where
+    T: Transpile,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        self.0.transpile(f)
     }
 }
 
