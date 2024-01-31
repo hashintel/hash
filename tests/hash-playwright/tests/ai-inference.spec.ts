@@ -81,7 +81,7 @@ test.use({
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 });
 
-test.only("user can enable automatic inference, and the settings are persisted", async ({
+test("user can enable automatic inference, and the settings are persisted", async ({
   page,
   extensionId,
 }) => {
