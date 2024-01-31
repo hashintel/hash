@@ -28,7 +28,7 @@ jobs:
           fetch-depth: 2
 
       - name: Install turbo
-        run: yarn global add turbo
+        uses: ./.github/actions/install-turbo
 
       - name: Determine changed packages
         id: packages
@@ -56,7 +56,7 @@ jobs:
           fetch-depth: 2
 
       - name: Install turbo
-        run: yarn global add turbo
+        uses: ./.github/actions/install-turbo
 
       - name: Find lint steps to run
         id: lints

@@ -9,8 +9,7 @@ runs:
   using: "composite"
   steps:
     - name: Install turbo
-      shell: bash
-      run: yarn global add turbo
+      uses: ./.github/actions/install-turbo
 
     - name: Prune repository
       shell: bash
