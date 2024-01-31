@@ -85,7 +85,7 @@ test("user can configure and use automatic inference to create entities from a w
   page,
   extensionId,
 }) => {
-  test.setTimeout(1000 * 15); // 30 minutes
+  test.setTimeout(1000 * 60 * 15); // 15 minutes
 
   /**
    * Use a different user to the one in browser-plugin.spec.ts to avoid clashes between configurations
