@@ -9,6 +9,7 @@ import {
   Item,
   TextCell,
 } from "@glideapps/glide-data-grid";
+import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
 import { ListRegularIcon } from "@hashintel/design-system";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
@@ -35,6 +36,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -55,6 +57,7 @@ import {
   TableHeader,
   tableHeaderHeight,
 } from "../../shared/table-header";
+import { isAiMachineActor } from "../../shared/use-actors";
 import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { renderChipCell } from "./chip-cell";
@@ -66,12 +69,13 @@ import {
   TypeEntitiesRow,
   useEntitiesTable,
 } from "./entities-table/use-entities-table";
+import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-entities-table-additional-csv-data";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 
 export const EntitiesTable: FunctionComponent<{
   hideEntityTypeVersionColumn?: boolean;
   hidePropertiesColumns?: boolean;
-}> = ({ hideEntityTypeVersionColumn, hidePropertiesColumns }) => {
+}> = ({ hideEntityTypeVersionColumn, hidePropertiesColumns = false }) => {
   const router = useRouter();
 
   const { authenticatedUser } = useAuthenticatedUser();
@@ -198,17 +202,17 @@ export const EntitiesTable: FunctionComponent<{
             };
           }
 
-          if (columnId === "entity") {
+          if (columnId === "entityLabel") {
             return {
               kind: GridCellKind.Custom,
               allowOverlay: false,
               readonly: true,
-              copyData: row.entity,
+              copyData: row.entityLabel,
               cursor: "pointer",
               data: {
                 kind: "text-icon-cell",
                 icon: "bpAsterisk",
-                value: row.entity,
+                value: row.entityLabel,
                 onClick: () =>
                   router.push(
                     isViewingPages
@@ -250,15 +254,36 @@ export const EntitiesTable: FunctionComponent<{
               data: row.lastEdited,
             };
           } else if (columnId === "lastEditedBy") {
-            const lastEditedBy = row.lastEditedBy?.preferredName;
+            const { lastEditedBy } = row;
+            const lastEditedByName = lastEditedBy
+              ? "displayName" in lastEditedBy
+                ? lastEditedBy.displayName
+                : lastEditedBy.preferredName
+              : undefined;
+
+            const lastEditedByIcon = lastEditedBy
+              ? ((lastEditedBy.kind === "machine"
+                  ? isAiMachineActor(lastEditedBy)
+                    ? "wandMagicSparklesRegular"
+                    : "hashSolid"
+                  : "userRegular") satisfies CustomIcon)
+              : undefined;
+
             return {
               kind: GridCellKind.Custom,
               readonly: true,
               allowOverlay: false,
-              copyData: String(lastEditedBy),
+              copyData: String(lastEditedByName),
               data: {
                 kind: "chip-cell",
-                chips: lastEditedBy ? [{ text: lastEditedBy }] : [],
+                chips: lastEditedByName
+                  ? [
+                      {
+                        text: lastEditedByName,
+                        icon: lastEditedByIcon,
+                      },
+                    ]
+                  : [],
                 color: "gray",
                 variant: "filled",
               },
@@ -345,27 +370,27 @@ export const EntitiesTable: FunctionComponent<{
     ("archived" | "not-archived")[]
   >(["archived", "not-archived"]);
 
-  const lastEditedByUsers = useMemo(
+  const lastEditedByActors = useMemo(
     () =>
       rows
         ?.map(({ lastEditedBy }) => lastEditedBy ?? [])
         .flat()
         .filter(
-          (user, index, all) =>
-            all.findIndex(({ accountId }) => accountId === user.accountId) ===
+          (actor, index, all) =>
+            all.findIndex(({ accountId }) => accountId === actor.accountId) ===
             index,
         ) ?? [],
     [rows],
   );
 
   const [selectedLastEditedByAccountIds, setSelectedLastEditedByAccountIds] =
-    useState<string[]>(lastEditedByUsers.map(({ accountId }) => accountId));
+    useState<string[]>(lastEditedByActors.map(({ accountId }) => accountId));
 
   useEffect(() => {
     setSelectedLastEditedByAccountIds(
-      lastEditedByUsers.map(({ accountId }) => accountId),
+      lastEditedByActors.map(({ accountId }) => accountId),
     );
-  }, [lastEditedByUsers]);
+  }, [lastEditedByActors]);
 
   const columnFilters = useMemo<ColumnFilter<string, TypeEntitiesRow>[]>(
     () => [
@@ -414,9 +439,12 @@ export const EntitiesTable: FunctionComponent<{
       },
       {
         columnKey: "lastEditedBy",
-        filterItems: lastEditedByUsers.map(({ accountId, preferredName }) => ({
-          id: accountId,
-          label: preferredName ?? "Unknown User",
+        filterItems: lastEditedByActors.map((actor) => ({
+          id: actor.accountId,
+          label:
+            ("displayName" in actor
+              ? actor.displayName
+              : actor.preferredName) ?? "Unknown Actor",
         })),
         selectedFilterItemIds: selectedLastEditedByAccountIds,
         setSelectedFilterItemIds: setSelectedLastEditedByAccountIds,
@@ -433,11 +461,24 @@ export const EntitiesTable: FunctionComponent<{
       selectedNamespaces,
       entityTypeVersions,
       selectedEntityTypeVersions,
-      lastEditedByUsers,
+      lastEditedByActors,
       selectedLastEditedByAccountIds,
       selectedArchivedStatus,
     ],
   );
+
+  const currentlyDisplayedRowsRef = useRef<TypeEntitiesRow[] | null>(null);
+
+  const { getEntitiesTableAdditionalCsvData } =
+    useGetEntitiesTableAdditionalCsvData({
+      currentlyDisplayedRowsRef,
+      propertyTypes,
+      /**
+       * If the properties columns are hidden, we want to add
+       * them to the CSV file.
+       */
+      addPropertiesColumns: hidePropertiesColumns,
+    });
 
   return (
     <Box>
@@ -452,6 +493,10 @@ export const EntitiesTable: FunctionComponent<{
             ),
           ) ?? []
         }
+        title="Entities"
+        columns={columns}
+        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+        getAdditionalCsvData={getEntitiesTableAdditionalCsvData}
         endAdornment={
           <ToggleButtonGroup
             value={view}
@@ -574,6 +619,7 @@ export const EntitiesTable: FunctionComponent<{
             renderChipCell,
           ]}
           freezeColumns={1}
+          currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
         />
       )}
     </Box>
