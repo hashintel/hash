@@ -3,7 +3,7 @@ FROM node:18.15-alpine AS builder
 WORKDIR /app
 
 COPY package.json .
-RUN yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
+RUN apk add --no-cache jq && yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
 COPY . .
 RUN turbo prune --scope='@apps/hash-frontend' --docker
 # Turbo isn't aware of our patches by default (it would be if we use Yarn 2+ or pnpm).
