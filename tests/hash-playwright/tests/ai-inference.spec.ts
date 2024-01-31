@@ -81,13 +81,21 @@ test.use({
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 });
 
-test("user can enable automatic inference, and the settings are persisted", async ({
+test("user can configure and use automatic inference to create entities from a webpage", async ({
   page,
   extensionId,
 }) => {
   test.setTimeout(1000 * 15); // 30 minutes
 
-  await loginUsingTempForm({ page });
+  /**
+   * Use a different user to the one in browser-plugin.spec.ts to avoid clashes between configurations
+   * @todo enable wiping the db between tests
+   */
+  await loginUsingTempForm({
+    page,
+    userEmail: "bob@example.com",
+    userPassword: "password",
+  });
 
   await page.goto(`chrome-extension://${extensionId}/popup.html`);
 
@@ -108,7 +116,7 @@ test("user can enable automatic inference, and the settings are persisted", asyn
   await page.keyboard.press("Enter");
 
   // Enable automatic inference config, and confirm the configuration
-  await page.click("text=Disabled");
+  await page.click("text=Disabled", { timeout: 10_000 });
   await expect(page.locator("text=Enabled")).toBeVisible();
   await expect(page.locator("[value='Crunchbase Company']")).toBeVisible();
   await expect(page.locator("[value='Crunchbase Person']")).toBeVisible();
