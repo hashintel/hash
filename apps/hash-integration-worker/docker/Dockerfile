@@ -2,7 +2,8 @@ FROM node:18.15-slim AS base
 
 WORKDIR /app
 
-RUN yarn global add turbo
+COPY package.json .
+RUN yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
 COPY . .
 RUN turbo prune --scope='@apps/hash-integration-worker' --docker
 
