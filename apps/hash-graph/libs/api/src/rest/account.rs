@@ -16,6 +16,7 @@ use authorization::{
 use axum::{
     extract::Path,
     http::StatusCode,
+    response::Response,
     routing::{get, post},
     Extension, Router,
 };
@@ -28,7 +29,9 @@ use utoipa::OpenApi;
 use uuid::Uuid;
 
 use super::api_resource::RoutedResource;
-use crate::rest::{json::Json, AuthenticatedUserHeader, PermissionResponse};
+use crate::rest::{
+    json::Json, status::report_to_response, AuthenticatedUserHeader, PermissionResponse,
+};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -102,31 +105,23 @@ async fn create_account<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     authorization_api_pool: Extension<Arc<A>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<AccountId>, StatusCode>
+) -> Result<Json<AccountId>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let mut store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
 
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let mut authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
 
     let account_id = AccountId::new(Uuid::new_v4());
     store
         .insert_account_id(actor_id, &mut authorization_api, account_id)
         .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not create account id");
-
-            // Insertion/update errors are considered internal server errors.
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+        .map_err(report_to_response)?;
 
     Ok(Json(account_id))
 }

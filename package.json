@@ -24,7 +24,6 @@
     "external-services": "turbo deploy --filter '@apps/hash-external-services' --",
     "external-services:offline": "turbo deploy:offline --filter '@apps/hash-external-services' --",
     "external-services:test": "turbo deploy:test --filter '@apps/hash-external-services' --",
-    "external-services:prototype": "turbo deploy:prototype --filter '@apps/hash-external-services' --",
     "external-services:prod": "turbo deploy:prod --filter '@apps/hash-external-services' --",
     "generate-system-types": "yarn workspace @local/hash-isomorphic-utils generate-system-types",
     "generate-ontology-type-ids": "yarn workspace @apps/hash-api generate-ontology-type-ids",

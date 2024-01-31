@@ -1,4 +1,6 @@
 services:
+  # TODO: Services below this line are developed by HASH and should not be part of this file
+
   type-fetcher:
     init: true
     image: hash-graph
