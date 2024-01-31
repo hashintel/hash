@@ -1,7 +1,7 @@
 [
   {
     "name": "Linear",
-    "logoUrl": "https://dummyimage.com/160x160/000/fff&text=Linear",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_linear.svg",
     "summaryHtml": "Issues, users, organizations, projects, milestones, and much more",
     "connectUrl": "/integrations/linear/connect",
     "aboutParas": ["two-way sync", "jointly maintained"],
@@ -123,7 +123,7 @@
   },
   {
     "name": "Slack",
-    "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d5/Slack_icon_2019.svg",
+    "logoUrl": "https://app.hash.ai/icons/integrations/slack.svg",
     "summaryHtml": "<div><strong>In HASH:</strong> see messages and teammates</div><div><strong>In Slack:</strong> create/find entities and types</div>",
     "availability": "Considered",
     "votes": 15320
