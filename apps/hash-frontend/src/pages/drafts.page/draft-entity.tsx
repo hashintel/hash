@@ -35,10 +35,9 @@ const generateEntityRootedSubgraph = (
 export const DraftEntity: FunctionComponent<{
   subgraph: Subgraph<EntityRootType>;
   entity: Entity;
-  createdAt: Date;
   selected: boolean;
   toggleSelected: () => void;
-}> = ({ entity, subgraph, createdAt, selected, toggleSelected }) => {
+}> = ({ entity, subgraph, selected, toggleSelected }) => {
   const { refetch } = useDraftEntities();
 
   const getOwnerForEntity = useGetOwnerForEntity();
@@ -180,7 +179,7 @@ export const DraftEntity: FunctionComponent<{
            */}
           {/* <DraftEntityViewers entity={entity} /> */}
         </Box>
-        <DraftEntityProvenance entity={entity} createdAt={createdAt} />
+        <DraftEntityProvenance entity={entity} />
       </Box>
     </Box>
   );

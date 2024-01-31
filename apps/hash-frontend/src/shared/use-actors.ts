@@ -19,13 +19,16 @@ import {
 import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
 import { MinimalUser } from "../lib/user-and-org";
 
-export type MinimalActor =
-  | MinimalUser
-  | {
-      accountId: AccountId;
-      kind: "machine";
-      displayName: string;
-    };
+type MachineActor = {
+  accountId: AccountId;
+  kind: "machine";
+  displayName: string;
+};
+
+export const isAiMachineActor = (actor: MachineActor): actor is MachineActor =>
+  actor.displayName.toLowerCase() === "hash ai";
+
+export type MinimalActor = MinimalUser | MachineActor;
 
 export const useActors = (params: {
   accountIds?: AccountId[];
@@ -34,8 +37,9 @@ export const useActors = (params: {
 
   const { users, loading: usersLoading } = useUsers();
 
-  const userActors = users?.filter((user) =>
-    accountIds?.includes(user.accountId),
+  const userActors = useMemo(
+    () => users?.filter((user) => accountIds?.includes(user.accountId)),
+    [users, accountIds],
   );
 
   const { data: machineActorsData, loading: machinesLoading } = useQuery<

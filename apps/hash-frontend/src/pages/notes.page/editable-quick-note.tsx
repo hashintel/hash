@@ -12,6 +12,7 @@ import { QuickNoteProperties } from "@local/hash-isomorphic-utils/system-types/q
 import { TextToken } from "@local/hash-isomorphic-utils/types";
 import {
   BaseUrl,
+  Entity,
   EntityRootType,
   extractEntityUuidFromEntityId,
   OwnedById,
@@ -44,7 +45,6 @@ import {
   ConvertQuickNoteToPageModal,
   PageWithParentLink,
 } from "./convert-quick-note-to-page-modal";
-import { QuickNoteEntityWithCreatedAt } from "./types";
 
 const Statistic: FunctionComponent<{ amount?: number; unit: string }> = ({
   amount,
@@ -83,14 +83,14 @@ const parseTextFromTextBlock = ({
 export const EditableQuickNote: FunctionComponent<{
   displayLabel?: boolean;
   displayActionButtons?: boolean;
-  quickNoteEntityWithCreatedAt: QuickNoteEntityWithCreatedAt;
+  quickNoteEntity: Entity;
   quickNoteSubgraph?: Subgraph<EntityRootType>;
   refetchQuickNotes?: () => Promise<void>;
   autoFocus?: boolean;
 }> = ({
   displayLabel = true,
   displayActionButtons = true,
-  quickNoteEntityWithCreatedAt,
+  quickNoteEntity,
   quickNoteSubgraph,
   refetchQuickNotes,
   autoFocus = false,
@@ -113,8 +113,6 @@ export const EditableQuickNote: FunctionComponent<{
   const { refetch: refetchPageTree } = useAccountPages(
     authenticatedUser.accountId as OwnedById,
   );
-
-  const { quickNoteEntity } = quickNoteEntityWithCreatedAt;
 
   const blockCollectionEntityId = quickNoteEntity.metadata.recordId.entityId;
 
@@ -345,7 +343,7 @@ export const EditableQuickNote: FunctionComponent<{
                 </Tooltip>
                 <ConvertQuickNoteToPageModal
                   open={isConvertToPageModalOpen}
-                  quickNoteEntityWithCreatedAt={quickNoteEntityWithCreatedAt}
+                  quickNoteEntity={quickNoteEntity}
                   onConvertedToPage={handleConvertedToPage}
                   onClose={() => setIsConvertToPageModalOpen(false)}
                 />

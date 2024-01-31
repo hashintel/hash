@@ -4,7 +4,8 @@ FROM node:20-alpine3.18 AS base
 
 WORKDIR /app
 
-RUN yarn global add turbo && apk add --no-cache yq
+COPY package.json .
+RUN apk add --no-cache jq yq && yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
 RUN turbo prune --scope='@apps/hash-graph' --docker && \

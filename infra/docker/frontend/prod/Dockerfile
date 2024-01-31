@@ -2,7 +2,8 @@ FROM node:18.15-alpine AS builder
 
 WORKDIR /app
 
-RUN yarn global add turbo
+COPY package.json .
+RUN apk add --no-cache jq && yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
 COPY . .
 RUN turbo prune --scope='@apps/hash-frontend' --docker
 # Turbo isn't aware of our patches by default (it would be if we use Yarn 2+ or pnpm).
@@ -19,7 +20,7 @@ COPY --from=builder /app/out/yarn.lock yarn.lock
 COPY --from=builder /app/out/full/patches patches
 
 # Required dependencies for compiling the re2 NPM package
-RUN apk add --no-cache libc6-compat python3 make g++
+RUN apk add --no-cache libc6-compat python3 make g++ linux-headers
 
 RUN yarn install --frozen-lockfile --prefer-offline \
     && yarn cache clean

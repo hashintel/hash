@@ -10,7 +10,6 @@ import {
   FunctionComponent,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -146,27 +145,14 @@ export const CreateQuickNote: FunctionComponent<{
     return () => unsetKeyboardShortcuts(shortcuts);
   }, [handleCommandEnter, setKeyboardShortcuts, unsetKeyboardShortcuts]);
 
-  const quickNoteEntityWithCreatedAt = useMemo(
-    () =>
-      quickNoteEntity
-        ? {
-            quickNoteEntity,
-            createdAt: new Date(
-              quickNoteEntity.metadata.temporalVersioning.decisionTime.start.limit,
-            ),
-          }
-        : undefined,
-    [quickNoteEntity],
-  );
-
   return (
     <Box sx={{ width: "100%" }} onClick={handleClick} ref={wrapperRef}>
-      {quickNoteEntityWithCreatedAt && quickNoteSubgraph ? (
+      {quickNoteEntity && quickNoteSubgraph ? (
         <>
           <EditableQuickNote
             autoFocus
             displayActionButtons={false}
-            quickNoteEntityWithCreatedAt={quickNoteEntityWithCreatedAt}
+            quickNoteEntity={quickNoteEntity}
             quickNoteSubgraph={quickNoteSubgraph}
           />
           <Box

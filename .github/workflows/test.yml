@@ -32,7 +32,7 @@ jobs:
           fetch-depth: 2
 
       - name: Install turbo
-        run: yarn global add turbo
+        uses: ./.github/actions/install-turbo
 
       - name: Determine changed packages
         id: packages
@@ -128,7 +128,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Install turbo
-        run: yarn global add turbo
+        uses: ./.github/actions/install-turbo
 
       - name: Find test steps to run
         id: tests
@@ -198,7 +198,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - uses: codecov/codecov-action@4fe8c5f003fae66aa5ebb77cfd3e7bfbbda0b6b0 # v3.1.5
+      - uses: codecov/codecov-action@ab904c41d6ece82784817410c45d8b8c02684457 # v3.1.6
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
@@ -242,7 +242,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Install turbo
-        run: yarn global add turbo
+        uses: ./.github/actions/install-turbo
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
@@ -354,7 +354,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - uses: codecov/codecov-action@4fe8c5f003fae66aa5ebb77cfd3e7bfbbda0b6b0 # v3.1.5
+      - uses: codecov/codecov-action@ab904c41d6ece82784817410c45d8b8c02684457 # v3.1.6
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
@@ -382,7 +382,7 @@ jobs:
         run: mkdir -p var/logs
 
       - name: Install turbo
-        run: yarn global add turbo
+        uses: ./.github/actions/install-turbo
 
       - name: Find test steps to run
         id: tests
