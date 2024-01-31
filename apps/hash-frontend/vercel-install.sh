@@ -25,7 +25,7 @@ curl https://zyedidia.github.io/eget.sh | sh
 # Setup TurboRepo and get a pruned src folder and lockfile
 
 echo "Installing turbo"
-yarn global add turbo
+yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
 
 # TODO: investigate why producing a pruned repo results in a broken Vercel build
 #   update: Probably due to missing `patches/` folder, needs investigation
