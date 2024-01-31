@@ -123,7 +123,7 @@
   },
   {
     "name": "Slack",
-    "logoUrl": "https://app.hash.ai/icons/integrations/slack.svg",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_slack.svg",
     "summaryHtml": "<div><strong>In HASH:</strong> see messages and teammates</div><div><strong>In Slack:</strong> create/find entities and types</div>",
     "availability": "Considered",
     "votes": 15320
