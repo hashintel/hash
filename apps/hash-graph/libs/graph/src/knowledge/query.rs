@@ -387,7 +387,7 @@ pub enum EntityQueryPath<'p> {
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!(["embedding"]))?;
-    /// assert_eq!(path, EntityQueryPath::Embedding,);
+    /// assert_eq!(path, EntityQueryPath::Embedding);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Embedding,

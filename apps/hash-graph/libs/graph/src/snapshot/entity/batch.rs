@@ -14,7 +14,10 @@ use validation::{Validate, ValidationProfile};
 
 use crate::{
     snapshot::{
-        entity::{EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityTemporalMetadataRow},
+        entity::{
+            table::EntityEmbeddingRow, EntityEditionRow, EntityIdRow, EntityLinkEdgeRow,
+            EntityTemporalMetadataRow,
+        },
         WriteBatch,
     },
     store::{
@@ -29,6 +32,7 @@ pub enum EntityRowBatch {
     TemporalMetadata(Vec<EntityTemporalMetadataRow>),
     Links(Vec<EntityLinkEdgeRow>),
     Relations(Vec<(EntityUuid, EntityRelationAndSubject)>),
+    Embeddings(Vec<EntityEmbeddingRow>),
 }
 
 #[async_trait]
@@ -70,6 +74,10 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         right_web_id UUID NOT NULL,
                         right_entity_uuid UUID NOT NULL
                     ) ON COMMIT DROP;
+
+                    CREATE TEMPORARY TABLE entity_embeddings_tmp
+                        (LIKE entity_embeddings INCLUDING ALL)
+                        ON COMMIT DROP;
                 ",
             )
             .await
@@ -157,6 +165,22 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     .await
                     .change_context(InsertionError)?;
             }
+            Self::Embeddings(embeddings) => {
+                let rows = client
+                    .query(
+                        "
+                            INSERT INTO entity_embeddings_tmp
+                            SELECT * FROM UNNEST($1::entity_embeddings_tmp[])
+                            RETURNING 1;
+                        ",
+                        &[&embeddings],
+                    )
+                    .await
+                    .change_context(InsertionError)?;
+                if !rows.is_empty() {
+                    tracing::info!("Read {} entity embeddings", rows.len());
+                }
+            }
         }
         Ok(())
     }
@@ -210,6 +234,9 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             right_web_id UUID,
                             right_entity_uuid UUID
                         FROM entity_link_edges_tmp;
+
+                    INSERT INTO entity_embeddings
+                        SELECT * FROM entity_embeddings_tmp;
             ",
             )
             .await
