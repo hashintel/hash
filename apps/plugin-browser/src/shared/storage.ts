@@ -53,6 +53,7 @@ export type InferenceStatus =
   | InferenceCompleteStatus;
 
 export type PageEntityInference = InferenceStatus & {
+  createAs: "draft" | "live";
   createdAt: string;
   entityTypeIds: VersionedUrl[];
   finishedAt?: string;
