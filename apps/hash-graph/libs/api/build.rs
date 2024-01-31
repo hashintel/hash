@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-const CODEGEN_PACKAGE_PATH: &str = "../../libs/@local/status";
+const CODEGEN_PACKAGE_PATH: &str = "../../libs/@local/status/typescript";
 const CODEGEN_SCRIPT_PATH: &str = "scripts/codegen.ts";
 const TYPE_DEFS_PATH: &str = "./type-defs";
 
