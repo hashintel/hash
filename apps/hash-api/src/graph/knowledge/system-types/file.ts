@@ -89,20 +89,33 @@ const generateCommonParameters = async (
     let entityTypeId: VersionedUrl;
 
     if (specifiedEntityTypeId) {
-      /**
-       * If there is a mime entity type ID and it is not the same
-       * as the specified entity type ID, override it. Otherwise,
-       * use the specified entity type ID.
-       *
-       * @todo when not using the specified entity ID, consider
-       * ensuring that the mime entity type ID is a sub-type of
-       * the specified type ID
-       */
-      entityTypeId =
-        entityTypeIdByMimeType &&
-        specifiedEntityTypeId !== entityTypeIdByMimeType
-          ? entityTypeIdByMimeType
-          : specifiedEntityTypeId;
+      const isHashEntityType = specifiedEntityTypeId.startsWith(
+        "https://hash.ai/@hash/",
+      );
+
+      if (isHashEntityType) {
+        /**
+         * If the entity type ID is from a HASH entity type, and
+         * if there is a mime entity type ID and it is not the same
+         * as the specified entity type ID, override it. Otherwise,
+         * use the specified entity type ID.
+         *
+         * @todo when not using the specified entity ID, consider
+         * ensuring that the mime entity type ID is a sub-type of
+         * the specified type ID
+         */
+        entityTypeId =
+          entityTypeIdByMimeType &&
+          specifiedEntityTypeId !== entityTypeIdByMimeType
+            ? entityTypeIdByMimeType
+            : specifiedEntityTypeId;
+      } else {
+        /**
+         * If the specified entity type ID is not a hash entity type,
+         * we use it directly.
+         */
+        entityTypeId = specifiedEntityTypeId;
+      }
     } else {
       /**
        * If no entity type ID was specified, we use the mime entity type ID
