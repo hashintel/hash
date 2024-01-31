@@ -2,7 +2,11 @@ FROM node:18.15-slim AS base
 
 WORKDIR /app
 
-RUN yarn global add turbo
+COPY package.json .
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends jq && \
+    rm -rf /var/lib/apt/lists/* && \
+    yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
 COPY . .
 RUN turbo prune --scope='@apps/hash-integration-worker' --docker
 
