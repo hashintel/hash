@@ -1,0 +1,9 @@
+name: Install turbo
+description: "Installs `turbo` as specified in `package.json`"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install turbo
+      shell: bash
+      run: yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
