@@ -3,7 +3,10 @@ FROM node:18.15-slim AS base
 WORKDIR /app
 
 COPY package.json .
-RUN apk add --no-cache jq && yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends jq && \
+    rm -rf /var/lib/apt/lists/* && \
+    yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
 COPY . .
 RUN turbo prune --scope='@apps/hash-ai-worker-ts' --docker
 
