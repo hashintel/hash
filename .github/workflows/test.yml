@@ -39,7 +39,7 @@ jobs:
           fetch-depth: 2
 
       - name: Install turbo
-        run: yarn global add turbo
+        uses: ./.github/actions/install-turbo
 
       - name: Determine changed packages
         id: packages
@@ -135,7 +135,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Install turbo
-        run: yarn global add turbo
+        uses: ./.github/actions/install-turbo
 
       - name: Find test steps to run
         id: tests
@@ -249,7 +249,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Install turbo
-        run: yarn global add turbo
+        uses: ./.github/actions/install-turbo
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
@@ -389,7 +389,7 @@ jobs:
         run: mkdir -p var/logs
 
       - name: Install turbo
-        run: yarn global add turbo
+        uses: ./.github/actions/install-turbo
 
       - name: Find test steps to run
         id: tests
