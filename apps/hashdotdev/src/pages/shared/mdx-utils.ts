@@ -44,7 +44,7 @@ type FAQ = {
   name: "FAQ";
   attributes: {
     type: "mdxJsxAttribute";
-    name: "question" | string;
+    name: string;
     value: string;
   }[];
 } & Parent;
@@ -228,7 +228,7 @@ export const getDocsPage = (params: {
   pathToDirectory: string;
   fileName: string;
   isRfc?: boolean;
-}): SiteMapPage => {
+}): Omit<SiteMapPage, "subPages"> => {
   const { pathToDirectory, fileName, isRfc = false } = params;
 
   const markdownFilePath = isRfc
@@ -281,44 +281,69 @@ export const getDocsPage = (params: {
         return prev;
       }, [])
       .filter((heading) => heading.anchor !== "proposed-changes"),
-    subPages: [],
   };
 };
 
-// Get the structure of a all MDX files in a given directory
-export const getAllDocsPages = (params: {
+export const recursivelyGetDocsPages = (params: {
   pathToDirectory: string;
-  filterIndexPage?: boolean;
 }): SiteMapPage[] => {
-  const { pathToDirectory, filterIndexPage = false } = params;
-
-  const thisPath = `src/_pages/${pathToDirectory}`;
+  const { pathToDirectory } = params;
 
   const directoryItems = fs
-    .readdirSync(path.join(process.cwd(), thisPath))
-    .filter((item) => !filterIndexPage || item !== "00_index.mdx");
+    .readdirSync(path.join(process.cwd(), `src/_pages/${pathToDirectory}`))
+    .filter((item) => item !== "00_index.mdx");
 
   return directoryItems.flatMap((directoryItem) => {
-    if (fs.lstatSync(`${thisPath}/${directoryItem}`).isDirectory()) {
-      const indexPage = getDocsPage({
-        pathToDirectory: `${pathToDirectory}/${directoryItem}`,
-        fileName: "00_index.mdx",
-      });
+    const isDirectory = fs
+      .lstatSync(`src/_pages/${pathToDirectory}/${directoryItem}`)
+      .isDirectory();
 
-      const subPages = getAllDocsPages({
-        pathToDirectory: `${pathToDirectory}/${directoryItem}`,
-        filterIndexPage: true,
-      });
+    if (isDirectory) {
+      const hasIndexPage = fs.existsSync(
+        `src/_pages/${pathToDirectory}/${directoryItem}/00_index.mdx`,
+      );
+
+      const indexPage = hasIndexPage
+        ? getDocsPage({
+            pathToDirectory: `${pathToDirectory}/${directoryItem}`,
+            fileName: "00_index.mdx",
+          })
+        : undefined;
+
+      if (indexPage) {
+        return {
+          ...indexPage,
+          subPages: recursivelyGetDocsPages({
+            pathToDirectory: `${pathToDirectory}/${directoryItem}`,
+          }),
+        };
+      }
+
+      const directoryNameWithoutIndex = directoryItem.split("_")[1] ?? "";
+
+      const title = directoryNameWithoutIndex
+        .split("-")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
 
       return {
-        ...indexPage,
-        subPages,
+        title,
+        href: `/${pathToDirectory.replace(/\d+_/g, "")}/${directoryNameWithoutIndex}`,
+        sections: [],
+        subPages: recursivelyGetDocsPages({
+          pathToDirectory: `${pathToDirectory}/${directoryItem}`,
+        }),
+      };
+    } else if (directoryItem.endsWith(".mdx")) {
+      return {
+        ...getDocsPage({
+          pathToDirectory,
+          fileName: directoryItem,
+        }),
+        subPages: [],
       };
     }
 
-    return getDocsPage({
-      pathToDirectory,
-      fileName: directoryItem,
-    });
+    return [];
   });
 };

@@ -1,4 +1,4 @@
-import { getAllDocsPages } from "./mdx-utils";
+import { recursivelyGetDocsPages } from "./mdx-utils";
 
 export type SiteMapPageSection = {
   title: string;
@@ -30,24 +30,10 @@ export const generateSiteMap = (): SiteMap => ({
       title: "Docs",
       href: "/docs",
       sections: [],
-      subPages: [
-        {
-          title: "Getting Started",
-          href: "/docs/get-started",
-          sections: [],
-          subPages: [
-            ...getAllDocsPages({ pathToDirectory: "docs/get-started" }),
-          ],
-        },
-        {
-          title: "Apps",
-          href: "/docs/apps",
-          sections: [],
-          subPages: [...getAllDocsPages({ pathToDirectory: "docs/apps" })],
-        },
-      ],
+      subPages: recursivelyGetDocsPages({
+        pathToDirectory: "docs",
+      }),
     },
-
     {
       title: "Roadmap",
       href: "/roadmap",
