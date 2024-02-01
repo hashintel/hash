@@ -54,21 +54,22 @@ export type GridProps<T extends Row & { rowId: string }> = Omit<
   | "rows"
   | "onCellEdited"
 > & {
-  columns: SizedGridColumn[];
   columnFilters?: ColumnFilter<string, T>[];
-  enableCheckboxSelection?: boolean;
-  selectedRows?: T[];
-  onSelectedRowsChange?: (selectedRows: T[]) => void;
-  rows?: T[];
-  resizable?: boolean;
-  sortable?: boolean;
-  initialSortedColumnKey?: string;
-  firstColumnLeftPadding?: number;
-  gridRef?: Ref<DataEditorRef>;
-  currentlyDisplayedRowsRef?: MutableRefObject<T[] | null>;
+  columns: SizedGridColumn[];
   createGetCellContent: (rows: T[]) => (cell: Item) => GridCell;
   createOnCellEdited?: (rows: T[]) => DataEditorProps["onCellEdited"];
+  currentlyDisplayedRowsRef?: MutableRefObject<T[] | null>;
+  dataLoading: boolean;
+  enableCheckboxSelection?: boolean;
+  firstColumnLeftPadding?: number;
+  gridRef?: Ref<DataEditorRef>;
+  initialSortedColumnKey?: string;
+  onSelectedRowsChange?: (selectedRows: T[]) => void;
+  resizable?: boolean;
+  rows?: T[];
+  selectedRows?: T[];
   sortRows?: (rows: T[], sort: ColumnSort<string>) => T[];
+  sortable?: boolean;
 };
 
 const gridHeaderHeight = 42;
@@ -80,24 +81,25 @@ export const gridRowHeight = 42;
 export const gridHorizontalScrollbarHeight = 17;
 
 export const Grid = <T extends Row & { rowId: string }>({
-  customRenderers,
-  onVisibleRegionChanged,
-  drawHeader,
-  columns,
-  rows,
-  firstColumnLeftPadding,
-  enableCheckboxSelection = false,
-  resizable = true,
-  sortable = true,
-  columnFilters,
-  initialSortedColumnKey,
   createGetCellContent,
-  sortRows,
-  gridRef,
   createOnCellEdited,
-  selectedRows,
+  columnFilters,
+  columns,
   currentlyDisplayedRowsRef,
+  customRenderers,
+  dataLoading,
+  drawHeader,
+  enableCheckboxSelection = false,
+  firstColumnLeftPadding,
+  gridRef,
+  initialSortedColumnKey,
   onSelectedRowsChange,
+  onVisibleRegionChanged,
+  resizable = true,
+  rows,
+  selectedRows,
+  sortable = true,
+  sortRows,
   ...rest
 }: GridProps<T>) => {
   useRenderGridPortal();
@@ -363,18 +365,20 @@ export const Grid = <T extends Row & { rowId: string }>({
     });
   }, [columns, columnSizes]);
 
+  const emptyStateText = dataLoading ? "Loading..." : "No results";
+
   const getSkeletonCellContent = useCallback(
     ([colIndex]: Item): TextCell => ({
       kind: GridCellKind.Text,
-      displayData: colIndex === 0 ? "Loading..." : "",
-      data: colIndex === 0 ? "Loading..." : "",
+      displayData: colIndex === 0 ? emptyStateText : "",
+      data: colIndex === 0 ? emptyStateText : "",
       allowOverlay: false,
       themeOverride: {
         cellHorizontalPadding: 15,
       },
       style: "faded",
     }),
-    [],
+    [emptyStateText],
   );
 
   const wrapperRef = useRef<HTMLDivElement>(null);
