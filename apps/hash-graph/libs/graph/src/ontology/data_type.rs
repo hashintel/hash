@@ -22,7 +22,7 @@ use crate::{
 /// [`DataType`]: type_system::DataType
 // TODO: Adjust enum and docs when adding non-primitive data types
 //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DataTypeQueryPath<'p> {
     /// The [`BaseUrl`] of the [`DataType`].
     ///
@@ -341,6 +341,35 @@ impl<'de: 'p, 'p> Deserialize<'de> for DataTypeQueryPath<'p> {
         D: Deserializer<'de>,
     {
         deserializer.deserialize_seq(DataTypeQueryPathVisitor::new(0))
+    }
+}
+
+impl DataTypeQueryPath<'_> {
+    #[must_use]
+    pub fn into_owned(self) -> DataTypeQueryPath<'static> {
+        match self {
+            DataTypeQueryPath::BaseUrl => DataTypeQueryPath::BaseUrl,
+            DataTypeQueryPath::Version => DataTypeQueryPath::Version,
+            DataTypeQueryPath::VersionedUrl => DataTypeQueryPath::VersionedUrl,
+            DataTypeQueryPath::TransactionTime => DataTypeQueryPath::TransactionTime,
+            DataTypeQueryPath::OwnedById => DataTypeQueryPath::OwnedById,
+            DataTypeQueryPath::EditionCreatedById => DataTypeQueryPath::EditionCreatedById,
+            DataTypeQueryPath::EditionArchivedById => DataTypeQueryPath::EditionArchivedById,
+            DataTypeQueryPath::Title => DataTypeQueryPath::Title,
+            DataTypeQueryPath::Description => DataTypeQueryPath::Description,
+            DataTypeQueryPath::OntologyId => DataTypeQueryPath::OntologyId,
+            DataTypeQueryPath::Schema(path) => {
+                DataTypeQueryPath::Schema(path.map(JsonPath::into_owned))
+            }
+            DataTypeQueryPath::AdditionalMetadata => DataTypeQueryPath::AdditionalMetadata,
+            DataTypeQueryPath::Type => DataTypeQueryPath::Type,
+            DataTypeQueryPath::PropertyTypeEdge { path, edge_kind } => {
+                DataTypeQueryPath::PropertyTypeEdge {
+                    path: Box::new(path.into_owned()),
+                    edge_kind,
+                }
+            }
+        }
     }
 }
 

@@ -4,7 +4,7 @@ use authorization::{schema::WebOwnerSubject, NoAuthorization};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
 use graph::{
-    store::{query::Filter, AccountStore, EntityStore},
+    store::{query::Filter, AccountStore, EntityQuerySorting, EntityStore},
     subgraph::{
         edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth},
         query::StructuralQuery,
@@ -72,11 +72,12 @@ async fn seed_db(
     seed(
         &mut transaction,
         account_id,
-        [data_type::TEXT_V1],
+        [data_type::TEXT_V1, data_type::NUMBER_V1],
         [
             property_type::NAME_V1,
             property_type::BLURB_V1,
             property_type::PUBLISHED_ON_V1,
+            property_type::AGE_V1,
         ],
         [
             entity_type::LINK_V1,
@@ -188,7 +189,10 @@ pub fn bench_get_entity_by_id(
                         },
                         include_drafts: false,
                     },
-                    None,
+                    EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
                     None,
                 )
                 .await

@@ -6,7 +6,7 @@ use graph::{
     knowledge::EntityQueryPath,
     store::{
         query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
-        EntityStore,
+        EntityQuerySorting, EntityStore,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind},
@@ -58,7 +58,10 @@ pub fn bench_get_entity_by_id(
                         },
                         include_drafts: false,
                     },
-                    None,
+                    EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
                     None,
                 )
                 .await
@@ -106,7 +109,10 @@ pub fn bench_get_entities_by_property(
                     },
                     include_drafts: false,
                 },
-                None,
+                EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
                 None,
             )
             .await
@@ -156,7 +162,10 @@ pub fn bench_get_link_by_target_by_property(
                     },
                     include_drafts: false,
                 },
-                None,
+                EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
                 None,
             )
             .await

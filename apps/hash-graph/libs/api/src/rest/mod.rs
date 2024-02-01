@@ -750,6 +750,20 @@ impl Modify for FilterSchemaAddon {
                 )
                 .into(),
             );
+            components.schemas.insert(
+                "EntityQuerySortingPath".to_owned(),
+                schema::Schema::Array(
+                    ArrayBuilder::new()
+                        .items(
+                            OneOfBuilder::new()
+                                .item(Ref::from_schema_name("EntityQuerySortingToken"))
+                                .item(ObjectBuilder::new().schema_type(SchemaType::String))
+                                .item(ObjectBuilder::new().schema_type(SchemaType::Number)),
+                        )
+                        .build(),
+                )
+                .into(),
+            );
         }
     }
 }

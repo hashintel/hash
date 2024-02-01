@@ -46,6 +46,7 @@ use type_system::{
 
 pub use self::{
     pool::{AsClient, PostgresStorePool},
+    query::CursorField,
     traversal_context::TraversalContext,
 };
 use crate::store::{

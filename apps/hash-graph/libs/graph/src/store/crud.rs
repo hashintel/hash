@@ -48,27 +48,6 @@ impl<R: Record> Sorting for VertexIdSorting<R> {
     }
 }
 
-pub struct CustomSorting<'p, R: Record> {
-    pub paths: Vec<R::QueryPath<'p>>,
-    pub cursor: Option<CustomCursor>,
-}
-
-pub struct CustomCursor {
-    pub values: Vec<serde_json::Value>,
-}
-
-impl<R: Record> Sorting for CustomSorting<'_, R> {
-    type Cursor = CustomCursor;
-
-    fn cursor(&self) -> Option<&Self::Cursor> {
-        self.cursor.as_ref()
-    }
-
-    fn set_cursor(&mut self, cursor: Self::Cursor) {
-        self.cursor = Some(cursor);
-    }
-}
-
 pub struct ReadParameter<'f, R: Record, S> {
     filters: Option<&'f Filter<'f, R>>,
     temporal_axes: Option<&'f QueryTemporalAxes>,
@@ -115,23 +94,6 @@ impl<'f, R: Record, S> ReadParameter<'f, R, S> {
             temporal_axes: self.temporal_axes,
             include_drafts: self.include_drafts,
             sorting: Some(VertexIdSorting { cursor: None }),
-            limit: self.limit,
-        }
-    }
-
-    #[must_use]
-    pub fn sort_by_keys<'p>(
-        self,
-        keys: impl IntoIterator<Item = R::QueryPath<'p>>,
-    ) -> ReadParameter<'f, R, CustomSorting<'p, R>> {
-        ReadParameter {
-            filters: self.filters,
-            temporal_axes: self.temporal_axes,
-            include_drafts: self.include_drafts,
-            sorting: Some(CustomSorting {
-                paths: keys.into_iter().collect(),
-                cursor: None,
-            }),
             limit: self.limit,
         }
     }

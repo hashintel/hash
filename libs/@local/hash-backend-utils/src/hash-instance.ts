@@ -60,16 +60,20 @@ export const getHashInstance = async (
 ): Promise<HashInstance> => {
   const entities = await graphApi
     .getEntitiesByQuery(actorId, {
-      filter: generateVersionedUrlMatchingFilter(
-        systemEntityTypes.hashInstance.entityTypeId,
-        { ignoreParents: true },
-      ),
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
+      query: {
+        filter: generateVersionedUrlMatchingFilter(
+          systemEntityTypes.hashInstance.entityTypeId,
+          { ignoreParents: true },
+        ),
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+      },
     })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+      );
 
       return getRoots(subgraph);
     });

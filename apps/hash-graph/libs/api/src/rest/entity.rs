@@ -15,23 +15,21 @@ use authorization::{
     AuthorizationApi, AuthorizationApiPool,
 };
 use axum::{
-    extract::{OriginalUri, Path, Query},
-    http::{header::LINK, HeaderMap, StatusCode},
+    extract::Path,
+    http::StatusCode,
     response::Response,
     routing::{get, post},
     Extension, Router,
 };
 use error_stack::{Report, ResultExt};
 use graph::{
-    knowledge::EntityQueryToken,
+    knowledge::{EntityQueryPath, EntityQuerySortingToken, EntityQueryToken},
     store::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
-        AccountStore, EntityStore, EntityValidationType, StorePool,
+        AccountStore, EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
+        EntityValidationType, NullOrdering, Ordering, StorePool,
     },
-    subgraph::{
-        identifier::EntityVertexId,
-        query::{EntityStructuralQuery, StructuralQuery},
-    },
+    subgraph::{query::EntityStructuralQuery, temporal_axes::QueryTemporalAxesUnresolved},
 };
 use graph_types::{
     knowledge::{
@@ -45,7 +43,7 @@ use graph_types::{
     owned_by_id::OwnedById,
     Embedding,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use type_system::url::VersionedUrl;
@@ -54,8 +52,7 @@ use validation::ValidationProfile;
 
 use crate::rest::{
     api_resource::RoutedResource, json::Json, status::report_to_response,
-    utoipa_typedef::subgraph::Subgraph, AuthenticatedUserHeader, Cursor, Pagination,
-    PermissionResponse,
+    utoipa_typedef::subgraph::Subgraph, AuthenticatedUserHeader, PermissionResponse,
 };
 
 #[derive(OpenApi)]
@@ -98,6 +95,14 @@ use crate::rest::{
             ModifyEntityAuthorizationRelationship,
             ModifyRelationshipOperation,
             EntitySetting,
+
+            GetEntityByQueryRequest,
+            EntityQueryCursor,
+            Ordering,
+            NullOrdering,
+            EntityQuerySortingRecord,
+            EntityQuerySortingToken,
+            GetEntityByQueryResponse,
 
             Entity,
             EntityUuid,
@@ -372,10 +377,31 @@ where
     }))
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct GetEntityByQueryRequest<'q, 's, 'p> {
+    #[serde(borrow)]
+    #[schema(format = "EntityStructuralQuery")]
+    query: EntityStructuralQuery<'q>,
+    limit: Option<usize>,
+    #[serde(borrow)]
+    sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
+    #[serde(borrow)]
+    cursor: Option<EntityQueryCursor<'s>>,
+}
+
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct GetEntityByQueryResponse<'r> {
+    subgraph: Subgraph,
+    #[serde(borrow)]
+    cursor: Option<EntityQueryCursor<'r>>,
+}
+
 #[utoipa::path(
     post,
     path = "/entities/query",
-    request_body = EntityStructuralQuery,
+    request_body = GetEntityByQueryRequest,
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -386,25 +412,20 @@ where
         (
             status = 200,
             content_type = "application/json",
-            body = Subgraph,
+            body = GetEntityByQueryResponse,
             description = "A subgraph rooted at entities that satisfy the given query, each resolved to the requested depth.",
-            headers(
-                ("Link" = String, description = "The link to be used to query the next page of entities"),
-            ),
         ),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, query))]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, request))]
 async fn get_entities_by_query<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
-    Query(pagination): Query<Pagination<EntityVertexId>>,
-    OriginalUri(uri): OriginalUri,
-    Json(query): Json<serde_json::Value>,
-) -> Result<(HeaderMap, Json<Subgraph>), Response>
+    Json(request): Json<serde_json::Value>,
+) -> Result<Json<GetEntityByQueryResponse<'static>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -416,27 +437,83 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let mut query = StructuralQuery::deserialize(&query).map_err(report_to_response)?;
-    query
+    let mut request = GetEntityByQueryRequest::deserialize(&request).map_err(report_to_response)?;
+    request
+        .query
         .filter
         .convert_parameters()
         .map_err(report_to_response)?;
-    let (subgraph, last) = store
+
+    let temporal_axes_sorting_path = match request.query.temporal_axes {
+        QueryTemporalAxesUnresolved::TransactionTime { .. } => &EntityQueryPath::TransactionTime,
+        QueryTemporalAxesUnresolved::DecisionTime { .. } => &EntityQueryPath::DecisionTime,
+    };
+
+    let sorting = request.sorting_paths.map_or_else(
+        || {
+            if request.limit.is_some() || request.cursor.is_some() {
+                vec![
+                    EntityQuerySortingRecord {
+                        path: temporal_axes_sorting_path.clone(),
+                        ordering: Ordering::Descending,
+                        nulls: None,
+                    },
+                    EntityQuerySortingRecord {
+                        path: EntityQueryPath::Uuid,
+                        ordering: Ordering::Ascending,
+                        nulls: None,
+                    },
+                    EntityQuerySortingRecord {
+                        path: EntityQueryPath::OwnedById,
+                        ordering: Ordering::Ascending,
+                        nulls: None,
+                    },
+                ]
+            } else {
+                Vec::new()
+            }
+        },
+        |mut paths| {
+            paths.push(EntityQuerySortingRecord {
+                path: temporal_axes_sorting_path.clone(),
+                ordering: Ordering::Descending,
+                nulls: None,
+            });
+            paths.push(EntityQuerySortingRecord {
+                path: EntityQueryPath::Uuid,
+                ordering: Ordering::Ascending,
+                nulls: None,
+            });
+            paths.push(EntityQuerySortingRecord {
+                path: EntityQueryPath::OwnedById,
+                ordering: Ordering::Ascending,
+                nulls: None,
+            });
+            paths
+        },
+    );
+
+    let (subgraph, cursor) = store
         .get_entity(
             actor_id,
             &authorization_api,
-            &query,
-            pagination.after.as_ref().map(|cursor| &cursor.0),
-            pagination.limit,
+            &request.query,
+            EntityQuerySorting {
+                paths: sorting
+                    .into_iter()
+                    .map(EntityQuerySortingRecord::into_owned)
+                    .collect(),
+                cursor: request.cursor.map(EntityQueryCursor::into_owned),
+            },
+            request.limit,
         )
         .await
         .map_err(report_to_response)?;
 
-    let mut headers = HeaderMap::new();
-    if let (Some(last), Some(limit)) = (last, pagination.limit) {
-        headers.insert(LINK, Cursor(last).link_header("next", uri, limit)?);
-    }
-    Ok((headers, Json(Subgraph::from(subgraph))))
+    Ok(Json(GetEntityByQueryResponse {
+        subgraph: subgraph.into(),
+        cursor: cursor.map(EntityQueryCursor::into_owned),
+    }))
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

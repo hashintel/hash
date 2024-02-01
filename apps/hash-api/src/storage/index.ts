@@ -114,35 +114,39 @@ const getFileEntity = async (
 
   const [fileEntity, ...unexpectedEntities] = await graphApi
     .getEntitiesByQuery(actorId, {
-      filter: {
-        all: [
-          {
-            equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-          },
-          {
-            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
-          },
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  extractBaseUrl(
-                    systemPropertyTypes.fileStorageKey.propertyTypeId,
-                  ),
-                ],
-              },
-              { parameter: key },
-            ],
-          },
-        ],
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+            },
+            {
+              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+            },
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    extractBaseUrl(
+                      systemPropertyTypes.fileStorageKey.propertyTypeId,
+                    ),
+                  ],
+                },
+                { parameter: key },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
     })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+      );
 
       return getRoots(subgraph);
     });
