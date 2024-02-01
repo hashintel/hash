@@ -74,9 +74,11 @@ export const GridViewItem: FunctionComponent<{
   sx?: GridProps["sx"];
 }> = ({ entity, numberOfItems, index, sx }) => {
   const theme = useTheme();
+
+  const isLg = useMediaQuery(theme.breakpoints.up("lg"));
   const isMd = useMediaQuery(theme.breakpoints.up("md"));
 
-  const numberOfItemsPerRow = isMd ? 4 : 2;
+  const numberOfItemsPerRow = isLg ? 4 : isMd ? 3 : 2;
 
   const isInLastRow = useMemo(() => {
     const numberOfRows = Math.ceil(numberOfItems / numberOfItemsPerRow);
@@ -158,7 +160,8 @@ export const GridViewItem: FunctionComponent<{
     <Grid
       item
       xs={6}
-      md={3}
+      md={4}
+      lg={3}
       sx={[
         {
           background: ({ palette }) => palette.common.white,
