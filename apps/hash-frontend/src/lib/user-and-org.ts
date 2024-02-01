@@ -474,13 +474,8 @@ export const constructUser = (params: {
    */
   const isInstanceAdmin = false;
 
-  const firstRevision = getFirstEntityRevision(
-    subgraph,
-    userEntity.metadata.recordId.entityId,
-  );
-
   const joinedAt = new Date(
-    firstRevision.metadata.temporalVersioning.decisionTime.start.limit,
+    userEntity.metadata.provenance.createdAtDecisionTime,
   );
 
   return {

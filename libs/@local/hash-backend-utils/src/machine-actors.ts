@@ -48,33 +48,37 @@ export const getMachineActorId = async (
 ): Promise<AccountId> => {
   const [machineEntity, ...unexpectedEntities] = await context.graphApi
     .getEntitiesByQuery(authentication.actorId, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.machine.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  extractBaseUrl(
-                    systemPropertyTypes.machineIdentifier.propertyTypeId,
-                  ),
-                ],
-              },
-              { parameter: identifier },
-            ],
-          },
-        ],
+      query: {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.machine.entityTypeId,
+              { ignoreParents: true },
+            ),
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    extractBaseUrl(
+                      systemPropertyTypes.machineIdentifier.propertyTypeId,
+                    ),
+                  ],
+                },
+                { parameter: identifier },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
     })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+      );
 
       return getRoots(subgraph);
     });

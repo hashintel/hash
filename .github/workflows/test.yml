@@ -32,7 +32,7 @@ jobs:
           fetch-depth: 2
 
       - name: Install turbo
-        run: yarn global add turbo
+        uses: ./.github/actions/install-turbo
 
       - name: Determine changed packages
         id: packages
@@ -128,7 +128,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Install turbo
-        run: yarn global add turbo
+        uses: ./.github/actions/install-turbo
 
       - name: Find test steps to run
         id: tests
@@ -155,7 +155,7 @@ jobs:
         run: sudo apt install protobuf-compiler
 
       - name: Install yarn dependencies
-        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
         env:
           HUSKY: 0
         with:
@@ -198,7 +198,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - uses: codecov/codecov-action@4fe8c5f003fae66aa5ebb77cfd3e7bfbbda0b6b0 # v3.1.5
+      - uses: codecov/codecov-action@f30e4959ba63075080d4f7f90cacc18d9f3fafd7 # v4.0.0
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
@@ -242,7 +242,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Install turbo
-        run: yarn global add turbo
+        uses: ./.github/actions/install-turbo
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
@@ -252,7 +252,7 @@ jobs:
             @apps/hash-external-services
 
       - name: Install yarn dependencies
-        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
         env:
           HUSKY: 0
         with:
@@ -354,7 +354,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - uses: codecov/codecov-action@4fe8c5f003fae66aa5ebb77cfd3e7bfbbda0b6b0 # v3.1.5
+      - uses: codecov/codecov-action@f30e4959ba63075080d4f7f90cacc18d9f3fafd7 # v4.0.0
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
@@ -382,7 +382,7 @@ jobs:
         run: mkdir -p var/logs
 
       - name: Install turbo
-        run: yarn global add turbo
+        uses: ./.github/actions/install-turbo
 
       - name: Find test steps to run
         id: tests
@@ -411,7 +411,7 @@ jobs:
         run: sudo apt install protobuf-compiler
 
       - name: Install yarn dependencies
-        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
         env:
           HUSKY: 0
         with:
@@ -442,7 +442,7 @@ jobs:
 
       - name: Install playwright
         if: matrix.package == '@tests/hash-playwright'
-        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
         with:
           max_attempts: 3
           timeout_minutes: 10

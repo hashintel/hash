@@ -28,7 +28,7 @@ jobs:
           fetch-depth: 2
 
       - name: Install turbo
-        run: yarn global add turbo
+        uses: ./.github/actions/install-turbo
 
       - name: Determine changed packages
         id: packages
@@ -56,7 +56,7 @@ jobs:
           fetch-depth: 2
 
       - name: Install turbo
-        run: yarn global add turbo
+        uses: ./.github/actions/install-turbo
 
       - name: Find lint steps to run
         id: lints
@@ -97,7 +97,7 @@ jobs:
         run: sudo apt install protobuf-compiler
 
       - name: Install yarn dependencies
-        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
         env:
           HUSKY: 0
         with:

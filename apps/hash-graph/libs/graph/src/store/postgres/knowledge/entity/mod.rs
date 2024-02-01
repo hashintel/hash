@@ -34,7 +34,7 @@ use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
 use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp, TransactionTime};
-use tokio_postgres::GenericClient;
+use tokio_postgres::{GenericClient, Row};
 use type_system::{url::VersionedUrl, EntityType};
 use uuid::Uuid;
 use validation::{Validate, ValidationProfile};
@@ -42,9 +42,11 @@ use validation::{Validate, ValidationProfile};
 use crate::{
     ontology::EntityTypeQueryPath,
     store::{
-        crud::{QueryResult, Read, ReadPaginated, VertexIdSorting},
+        crud::{QueryResult, Read, ReadPaginated, Sorting},
         error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
-        knowledge::{EntityValidationType, ValidateEntityError},
+        knowledge::{
+            EntityQueryCursor, EntityQuerySorting, EntityValidationType, ValidateEntityError,
+        },
         postgres::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
             TraversalContext,
@@ -883,15 +885,15 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .collect())
     }
 
-    #[tracing::instrument(level = "info", skip(self, authorization_api, query))]
+    #[tracing::instrument(level = "info", skip(self, authorization_api, query, sorting))]
     async fn get_entity<A: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,
         authorization_api: &A,
         query: &StructuralQuery<'_, Entity>,
-        cursor: Option<&EntityVertexId>,
+        mut sorting: EntityQuerySorting<'static>,
         limit: Option<usize>,
-    ) -> Result<(Subgraph, Option<EntityVertexId>), QueryError> {
+    ) -> Result<(Subgraph, Option<EntityQueryCursor<'static>>), QueryError> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
@@ -904,26 +906,30 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let time_axis = temporal_axes.variable_time_axis();
 
         let mut root_entities = Vec::new();
-        let mut cursor = cursor.copied();
 
         let (latest_zookie, last) = loop {
             // We query one more than requested to determine if there are more entities to return.
-            let (stream, artifacts) = ReadPaginated::<Entity>::read_paginated(
-                self,
-                filter,
-                Some(&temporal_axes),
-                &VertexIdSorting { cursor },
-                limit,
-                include_drafts,
-            )
-            .await?;
-            let entities = stream
-                .map_ok(|row| (row.decode_record(&artifacts), row))
-                .try_collect::<Vec<_>>()
+            let (rows, artifacts) =
+                ReadPaginated::<Entity, EntityQuerySorting>::read_paginated_vec(
+                    self,
+                    filter,
+                    Some(&temporal_axes),
+                    &sorting,
+                    limit,
+                    include_drafts,
+                )
                 .await?;
-            cursor = entities
+            let entities = rows
+                .into_iter()
+                .map(|row: Row| (row.decode_record(&artifacts), row))
+                .collect::<Vec<_>>();
+            if let Some(cursor) = entities
                 .last()
-                .map(|(_, row)| row.decode_cursor(&artifacts));
+                .map(|(_, row): &(Entity, Row)| row.decode_cursor(&artifacts))
+            {
+                sorting.set_cursor(cursor);
+            }
+
             let num_returned_entities = entities.len();
 
             // TODO: The subgraph structure differs from the API interface. At the API the vertices

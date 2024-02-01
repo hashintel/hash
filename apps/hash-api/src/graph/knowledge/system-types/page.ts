@@ -1,6 +1,5 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
-import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -26,12 +25,8 @@ import {
 import {
   Entity,
   EntityId,
-  entityIdFromOwnedByIdAndEntityUuid,
   EntityRootType,
-  EntityUuid,
-  extractEntityUuidFromEntityId,
   OwnedById,
-  Uuid,
 } from "@local/hash-subgraph";
 import {
   getEntities as getEntitiesFromSubgraph,
@@ -49,7 +44,6 @@ import {
   archiveEntity,
   createEntity,
   CreateEntityParams,
-  getEntities,
   getEntityOutgoingLinks,
   getLatestEntityById,
   updateEntityProperty,
@@ -61,7 +55,6 @@ import {
 import { Block, getBlockComments, getBlockFromEntity } from "./block";
 import { addBlockToBlockCollection } from "./block-collection";
 import { Comment } from "./comment";
-import { getUserById, User } from "./user";
 
 export type Page = {
   title: string;
@@ -256,20 +249,24 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
   const { ownedById, includeArchived = false, includeDrafts = false } = params;
   const pageEntities = await graphApi
     .getEntitiesByQuery(authentication.actorId, {
-      filter: {
-        all: [
-          pageEntityTypeFilter,
-          {
-            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
-          },
-        ],
+      query: {
+        filter: {
+          all: [
+            pageEntityTypeFilter,
+            {
+              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
     })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+      );
 
       return getEntitiesFromSubgraph(subgraph);
     });
@@ -496,61 +493,4 @@ export const getPageComments: ImpureGraphFunction<
   return comments
     .flat()
     .filter((comment) => !comment.resolvedAt && !comment.deletedAt);
-};
-
-/**
- * Get the author of the page (i.e. the creator of the first revision).
- *
- * @param params.page - the page
- */
-export const getPageAuthor: ImpureGraphFunction<
-  { pageEntityId: EntityId; includeDrafts?: boolean },
-  Promise<User>
-> = async (context, authentication, params) => {
-  const { pageEntityId, includeDrafts = false } = params;
-
-  const pageEntityRevisionsSubgraph = await getEntities(
-    context,
-    authentication,
-    {
-      query: {
-        filter: {
-          all: [
-            {
-              equal: [
-                { path: ["uuid"] },
-                { parameter: extractEntityUuidFromEntityId(pageEntityId) },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: {
-          pinned: { axis: "transactionTime", timestamp: null },
-          variable: {
-            axis: "decisionTime",
-            interval: { start: { kind: "unbounded" }, end: null },
-          },
-        },
-        includeDrafts,
-      },
-    },
-  );
-
-  const firstRevision = getFirstEntityRevision(
-    pageEntityRevisionsSubgraph,
-    pageEntityId,
-  );
-
-  const firstRevisionCreatorId =
-    firstRevision.metadata.provenance.edition.createdById;
-
-  const user = await getUserById(context, authentication, {
-    entityId: entityIdFromOwnedByIdAndEntityUuid(
-      firstRevisionCreatorId as Uuid as OwnedById,
-      firstRevisionCreatorId as Uuid as EntityUuid,
-    ),
-  });
-
-  return user;
 };

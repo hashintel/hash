@@ -12,12 +12,12 @@ use crate::{
                 OntologyTemporalMetadata,
             },
             Alias, AliasedColumn, AliasedTable, Column, Condition, Constant, Distinctness,
-            EqualityOperator, Expression, Function, JoinExpression, OrderByExpression, Ordering,
+            EqualityOperator, Expression, Function, JoinExpression, OrderByExpression,
             PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table, Transpile,
             WhereExpression, WindowStatement, WithExpression,
         },
         query::{Filter, FilterExpression, Parameter, ParameterList, ParameterType},
-        Record,
+        NullOrdering, Ordering, Record,
     },
     subgraph::temporal_axes::QueryTemporalAxes,
 };
@@ -41,13 +41,19 @@ pub struct CompilerArtifacts<'p> {
     uses_cursor: bool,
 }
 
+struct PathSelection {
+    column: AliasedColumn,
+    index: usize,
+    distinctness: Distinctness,
+    ordering: Option<(Ordering, Option<NullOrdering>)>,
+}
+
 pub struct SelectCompiler<'p, 'q: 'p, T: Record> {
     statement: SelectStatement,
     artifacts: CompilerArtifacts<'p>,
     temporal_axes: Option<&'p QueryTemporalAxes>,
     table_hooks: HashMap<Table, fn(&mut Self, Alias)>,
-    selections:
-        HashMap<&'p T::QueryPath<'q>, (AliasedColumn, usize, Distinctness, Option<Ordering>)>,
+    selections: HashMap<&'p T::QueryPath<'q>, PathSelection>,
 }
 
 impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
@@ -275,27 +281,27 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         &mut self,
         path: &'p R::QueryPath<'q>,
         distinctness: Distinctness,
-        ordering: Option<Ordering>,
+        ordering: Option<(Ordering, Option<NullOrdering>)>,
     ) -> usize
     where
         R::QueryPath<'q>: PostgresQueryPath,
     {
-        if let Some((column, index, stored_distinctness, stored_ordering)) =
-            self.selections.get_mut(path)
-        {
+        if let Some(stored) = self.selections.get_mut(path) {
             if distinctness == Distinctness::Distinct
-                && *stored_distinctness == Distinctness::Indistinct
+                && stored.distinctness == Distinctness::Indistinct
             {
-                self.statement.distinct.push(*column);
-                *stored_distinctness = Distinctness::Distinct;
+                self.statement.distinct.push(stored.column);
+                stored.distinctness = Distinctness::Distinct;
             }
-            if stored_ordering.is_none()
-                && let Some(ordering) = ordering
+            if stored.ordering.is_none()
+                && let Some((ordering, nulls)) = ordering
             {
-                self.statement.order_by_expression.push(*column, ordering);
-                *stored_ordering = Some(ordering);
+                self.statement
+                    .order_by_expression
+                    .push(stored.column, ordering, nulls);
+                stored.ordering = Some((ordering, nulls));
             }
-            *index
+            stored.index
         } else {
             let column = self.compile_path_column(path);
             self.statement
@@ -305,13 +311,22 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             if distinctness == Distinctness::Distinct {
                 self.statement.distinct.push(column);
             }
-            if let Some(ordering) = ordering {
-                self.statement.order_by_expression.push(column, ordering);
+            if let Some((ordering, nulls)) = ordering {
+                self.statement
+                    .order_by_expression
+                    .push(column, ordering, nulls);
             }
 
             let index = self.statement.selects.len() - 1;
-            self.selections
-                .insert(path, (column, index, distinctness, ordering));
+            self.selections.insert(
+                path,
+                PathSelection {
+                    column,
+                    index,
+                    distinctness,
+                    ordering,
+                },
+            );
             index
         }
     }
@@ -321,18 +336,26 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         &mut self,
         path: &'p R::QueryPath<'q>,
         lhs: impl FnOnce(Expression) -> Expression,
-        rhs: Expression,
+        rhs: Option<Expression>,
         ordering: Ordering,
+        null_ordering: Option<NullOrdering>,
     ) -> usize
     where
         R::QueryPath<'q>: PostgresQueryPath,
     {
         let column = self.compile_path_column(path);
-        self.statement
-            .where_expression
-            .add_cursor(lhs(Expression::Column(column)), rhs, ordering);
+        self.statement.where_expression.add_cursor(
+            lhs(Expression::Column(column)),
+            rhs,
+            ordering,
+            null_ordering,
+        );
         self.artifacts.uses_cursor = true;
-        self.add_distinct_selection_with_ordering(path, Distinctness::Distinct, Some(ordering))
+        self.add_distinct_selection_with_ordering(
+            path,
+            Distinctness::Distinct,
+            Some((ordering, null_ordering)),
+        )
     }
 
     /// Adds a new filter to the selection.
@@ -471,10 +494,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         });
                     }
 
-                    self.statement.order_by_expression.insert(
-                        0,
+                    self.statement.order_by_expression.push(
                         distance_column,
                         Ordering::Ascending,
+                        None,
                     );
                     self.statement
                         .selects
@@ -681,6 +704,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
 
         column.aliased(alias)
+    }
+
+    pub fn add_parameter(&mut self, parameter: &'p (dyn ToSql + Sync)) -> Expression {
+        self.artifacts.parameters.push(parameter);
+        Expression::Parameter(self.artifacts.parameters.len())
     }
 
     pub fn compile_parameter<'f: 'p>(

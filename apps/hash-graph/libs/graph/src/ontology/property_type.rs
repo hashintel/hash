@@ -18,7 +18,7 @@ use crate::{
 /// A path to a [`PropertyType`] field.
 ///
 /// [`PropertyType`]: type_system::PropertyType
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PropertyTypeQueryPath<'p> {
     /// The [`BaseUrl`] of the [`PropertyType`].
     ///
@@ -432,6 +432,54 @@ impl<'de: 'p, 'p> Deserialize<'de> for PropertyTypeQueryPath<'p> {
         D: Deserializer<'de>,
     {
         deserializer.deserialize_seq(PropertyTypeQueryPathVisitor::new(0))
+    }
+}
+
+impl PropertyTypeQueryPath<'_> {
+    #[must_use]
+    pub fn into_owned(self) -> PropertyTypeQueryPath<'static> {
+        match self {
+            PropertyTypeQueryPath::BaseUrl => PropertyTypeQueryPath::BaseUrl,
+            PropertyTypeQueryPath::Version => PropertyTypeQueryPath::Version,
+            PropertyTypeQueryPath::VersionedUrl => PropertyTypeQueryPath::VersionedUrl,
+            PropertyTypeQueryPath::TransactionTime => PropertyTypeQueryPath::TransactionTime,
+            PropertyTypeQueryPath::OwnedById => PropertyTypeQueryPath::OwnedById,
+            PropertyTypeQueryPath::EditionCreatedById => PropertyTypeQueryPath::EditionCreatedById,
+            PropertyTypeQueryPath::EditionArchivedById => {
+                PropertyTypeQueryPath::EditionArchivedById
+            }
+            PropertyTypeQueryPath::Title => PropertyTypeQueryPath::Title,
+            PropertyTypeQueryPath::Description => PropertyTypeQueryPath::Description,
+            PropertyTypeQueryPath::DataTypeEdge { path, edge_kind } => {
+                PropertyTypeQueryPath::DataTypeEdge {
+                    path: path.into_owned(),
+                    edge_kind,
+                }
+            }
+            PropertyTypeQueryPath::PropertyTypeEdge {
+                path,
+                edge_kind,
+                direction,
+            } => PropertyTypeQueryPath::PropertyTypeEdge {
+                path: Box::new(path.into_owned()),
+                edge_kind,
+                direction,
+            },
+            PropertyTypeQueryPath::EntityTypeEdge {
+                path,
+                edge_kind,
+                inheritance_depth,
+            } => PropertyTypeQueryPath::EntityTypeEdge {
+                path: Box::new(path.into_owned()),
+                edge_kind,
+                inheritance_depth,
+            },
+            PropertyTypeQueryPath::OntologyId => PropertyTypeQueryPath::OntologyId,
+            PropertyTypeQueryPath::Schema(path) => {
+                PropertyTypeQueryPath::Schema(path.map(JsonPath::into_owned))
+            }
+            PropertyTypeQueryPath::AdditionalMetadata => PropertyTypeQueryPath::AdditionalMetadata,
+        }
     }
 }
 

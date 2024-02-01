@@ -21,7 +21,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum EntityQueryPath<'p> {
     /// The [`EntityUuid`] of the [`EntityId`] belonging to the [`Entity`].
     ///
@@ -607,6 +607,137 @@ impl<'de: 'p, 'p> Deserialize<'de> for EntityQueryPath<'p> {
     }
 }
 
+#[derive(Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum EntityQuerySortingToken {
+    Archived,
+    Draft,
+    Properties,
+    RecordCreatedAtTransactionTime,
+    RecordCreatedAtDecisionTime,
+    CreatedAtTransactionTime,
+    CreatedAtDecisionTime,
+}
+
+/// Deserializes an [`EntityQueryPath`] from a string sequence.
+pub struct EntityQuerySortingVisitor {
+    /// The current position in the sequence when deserializing.
+    position: usize,
+}
+
+impl EntityQuerySortingVisitor {
+    pub const EXPECTING: &'static str =
+        "one of `archived`, `draft`, `properties`, `recordCreatedAtTransactionTime`, \
+         `recordCreatedAtDecisionTime`, `createdAtTransactionTime`, `createdAtDecisionTime`";
+
+    #[must_use]
+    pub const fn new(position: usize) -> Self {
+        Self { position }
+    }
+}
+
+impl<'de> Visitor<'de> for EntityQuerySortingVisitor {
+    type Value = EntityQueryPath<'de>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str(Self::EXPECTING)
+    }
+
+    fn visit_seq<A>(mut self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let token: EntityQuerySortingToken = seq
+            .next_element()?
+            .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+        self.position += 1;
+
+        Ok(match token {
+            EntityQuerySortingToken::Archived => EntityQueryPath::Archived,
+            EntityQuerySortingToken::Draft => EntityQueryPath::Draft,
+            EntityQuerySortingToken::RecordCreatedAtTransactionTime => {
+                EntityQueryPath::TransactionTime
+            }
+            EntityQuerySortingToken::RecordCreatedAtDecisionTime => EntityQueryPath::DecisionTime,
+            EntityQuerySortingToken::CreatedAtTransactionTime => {
+                EntityQueryPath::CreatedAtTransactionTime
+            }
+            EntityQuerySortingToken::CreatedAtDecisionTime => {
+                EntityQueryPath::CreatedAtDecisionTime
+            }
+            EntityQuerySortingToken::Properties => {
+                let mut path_tokens = Vec::new();
+                while let Some(property) = seq.next_element::<PathToken<'de>>()? {
+                    path_tokens.push(property);
+                    self.position += 1;
+                }
+
+                if path_tokens.is_empty() {
+                    EntityQueryPath::Properties(None)
+                } else {
+                    EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(path_tokens)))
+                }
+            }
+        })
+    }
+}
+
+impl<'de: 'p, 'p> EntityQueryPath<'p> {
+    /// Deserializes an [`EntityQueryPath`] from a string sequence represeting sorting keys
+    ///
+    /// # Errors
+    ///
+    /// If the sequence could not be deserialized
+    pub fn deserialize_from_sorting_tokens<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_seq(EntityQuerySortingVisitor::new(0))
+    }
+
+    #[must_use]
+    pub fn into_owned(self) -> EntityQueryPath<'static> {
+        match self {
+            EntityQueryPath::Uuid => EntityQueryPath::Uuid,
+            EntityQueryPath::OwnedById => EntityQueryPath::OwnedById,
+            EntityQueryPath::EditionId => EntityQueryPath::EditionId,
+            EntityQueryPath::DecisionTime => EntityQueryPath::DecisionTime,
+            EntityQueryPath::TransactionTime => EntityQueryPath::TransactionTime,
+            EntityQueryPath::CreatedAtTransactionTime => EntityQueryPath::CreatedAtTransactionTime,
+            EntityQueryPath::CreatedAtDecisionTime => EntityQueryPath::CreatedAtDecisionTime,
+            EntityQueryPath::Draft => EntityQueryPath::Draft,
+            EntityQueryPath::Archived => EntityQueryPath::Archived,
+            EntityQueryPath::EditionCreatedById => EntityQueryPath::EditionCreatedById,
+            EntityQueryPath::CreatedById => EntityQueryPath::CreatedById,
+            EntityQueryPath::EntityTypeEdge {
+                path,
+                edge_kind,
+                inheritance_depth,
+            } => EntityQueryPath::EntityTypeEdge {
+                path: path.into_owned(),
+                edge_kind,
+                inheritance_depth,
+            },
+            EntityQueryPath::EntityEdge {
+                path,
+                edge_kind,
+                direction,
+            } => EntityQueryPath::EntityEdge {
+                path: Box::new(path.into_owned()),
+                edge_kind,
+                direction,
+            },
+            EntityQueryPath::LeftToRightOrder => EntityQueryPath::LeftToRightOrder,
+            EntityQueryPath::RightToLeftOrder => EntityQueryPath::RightToLeftOrder,
+            EntityQueryPath::Properties(path) => {
+                EntityQueryPath::Properties(path.map(JsonPath::into_owned))
+            }
+            EntityQueryPath::Embedding => EntityQueryPath::Embedding,
+        }
+    }
+}
+
 impl Record for Entity {
     type QueryPath<'p> = EntityQueryPath<'p>;
     type VertexId = EntityVertexId;
@@ -639,6 +770,22 @@ mod tests {
     use std::{borrow::Cow, iter::once};
 
     use super::*;
+
+    #[test]
+    fn sorting_path_deserialization_error() {
+        assert_eq!(
+            EntityQueryPath::deserialize_from_sorting_tokens(de::value::SeqDeserializer::<
+                _,
+                de::value::Error,
+            >::new(once("invalid")))
+            .expect_err("managed to convert entity query sorting path")
+            .to_string(),
+            format!(
+                "unknown variant `invalid`, expected {}",
+                EntityQuerySortingVisitor::EXPECTING
+            )
+        );
+    }
 
     fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> EntityQueryPath<'p> {
         EntityQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(

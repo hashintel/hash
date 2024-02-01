@@ -57,6 +57,7 @@ export const blockCollectionContentsDepths: GraphResolveDepths = {
   ...zeroedGraphResolveDepths,
   hasLeftEntity: { incoming: 4, outgoing: 4 },
   hasRightEntity: { incoming: 4, outgoing: 4 },
+  isOfType: { outgoing: 1 },
 };
 
 export const blockCollectionContentsGetEntityVariables = {

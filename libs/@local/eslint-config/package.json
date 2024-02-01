@@ -7,11 +7,11 @@
     "lint:eslint": "eslint --report-unused-disable-directives ."
   },
   "dependencies": {
-    "@babel/core": "7.20.12",
-    "@babel/eslint-parser": "7.19.1",
-    "@babel/preset-react": "7.18.6",
-    "@typescript-eslint/eslint-plugin": "6.19.1",
-    "@typescript-eslint/parser": "6.19.1",
+    "@babel/core": "7.23.9",
+    "@babel/eslint-parser": "7.23.10",
+    "@babel/preset-react": "7.23.3",
+    "@typescript-eslint/eslint-plugin": "6.20.0",
+    "@typescript-eslint/parser": "6.20.0",
     "eslint": "8.56.0",
     "eslint-config-airbnb": "19.0.4",
     "eslint-config-prettier": "9.1.0",

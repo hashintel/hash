@@ -188,36 +188,40 @@ export const getOrgByShortname: ImpureGraphFunction<
 > = async ({ graphApi }, { actorId }, params) => {
   const [orgEntity, ...unexpectedEntities] = await graphApi
     .getEntitiesByQuery(actorId, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.organization.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  extractBaseUrl(systemPropertyTypes.shortname.propertyTypeId),
-                ],
-              },
-              { parameter: params.shortname },
-            ],
-          },
-        ],
+      query: {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.organization.entityTypeId,
+              { ignoreParents: true },
+            ),
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    extractBaseUrl(
+                      systemPropertyTypes.shortname.propertyTypeId,
+                    ),
+                  ],
+                },
+                { parameter: params.shortname },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        // TODO: Should this be an all-time query? What happens if the org is
+        //       archived/deleted, do we want to allow orgs to replace their
+        //       shortname?
+        //   see https://linear.app/hash/issue/H-757
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: params.includeDrafts ?? false,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      // TODO: Should this be an all-time query? What happens if the org is
-      //       archived/deleted, do we want to allow orgs to replace their
-      //       shortname?
-      //   see https://linear.app/hash/issue/H-757
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: params.includeDrafts ?? false,
     })
     .then(({ data }) => {
       const userEntitiesSubgraph =
-        mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+        mapGraphApiSubgraphToSubgraph<EntityRootType>(data.subgraph);
 
       return getRoots(userEntitiesSubgraph);
     });
