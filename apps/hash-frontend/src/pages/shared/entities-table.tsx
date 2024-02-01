@@ -50,7 +50,9 @@ import { BlankCell, blankCell } from "../../components/grid/utils";
 import { ColumnFilter } from "../../components/grid/utils/filtering";
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { useEntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
+import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
+import { GridSolidIcon } from "../../shared/icons/grid-solid-icon";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import {
   FilterState,
@@ -61,6 +63,7 @@ import { isAiMachineActor } from "../../shared/use-actors";
 import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { renderChipCell } from "./chip-cell";
+import { GridView } from "./entities-table/grid-view";
 import {
   createRenderTextIconCell,
   TextIconCell,
@@ -85,7 +88,7 @@ export const EntitiesTable: FunctionComponent<{
   });
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
-  const [view, setView] = useState<"table" | "graph">("table");
+  const [view, setView] = useState<"table" | "graph" | "grid">("table");
 
   const {
     entityTypeBaseUrl,
@@ -480,6 +483,16 @@ export const EntitiesTable: FunctionComponent<{
       addPropertiesColumns: hidePropertiesColumns,
     });
 
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+
+  const isDisplayingFilesOnly = useMemo(
+    () =>
+      entityTypes?.every(({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile),
+    [entityTypes, isSpecialEntityTypeLookup],
+  );
+
+  const supportGridView = isDisplayingFilesOnly;
+
   return (
     <Box>
       <TableHeader
@@ -531,7 +544,6 @@ export const EntitiesTable: FunctionComponent<{
                 svg: {
                   transition: ({ transitions }) => transitions.create("color"),
                   color: ({ palette }) => palette.gray[50],
-                  fontSize: 18,
                 },
               },
             }}
@@ -539,14 +551,23 @@ export const EntitiesTable: FunctionComponent<{
             <ToggleButton disableRipple value="table" aria-label="table">
               <Tooltip title="Table view" placement="top">
                 <Box sx={{ lineHeight: 0 }}>
-                  <ListRegularIcon />
+                  <ListRegularIcon sx={{ fontSize: 18 }} />
                 </Box>
               </Tooltip>
             </ToggleButton>
+            {supportGridView ? (
+              <ToggleButton disableRipple value="grid" aria-label="grid">
+                <Tooltip title="Grid view" placement="top">
+                  <Box sx={{ lineHeight: 0 }}>
+                    <GridSolidIcon sx={{ fontSize: 14 }} />
+                  </Box>
+                </Tooltip>
+              </ToggleButton>
+            ) : null}
             <ToggleButton disableRipple value="graph" aria-label="graph">
               <Tooltip title="Graph view" placement="top">
                 <Box sx={{ lineHeight: 0 }}>
-                  <ChartNetworkRegularIcon />
+                  <ChartNetworkRegularIcon sx={{ fontSize: 18 }} />
                 </Box>
               </Tooltip>
             </ToggleButton>
@@ -587,6 +608,8 @@ export const EntitiesTable: FunctionComponent<{
           }}
           subgraph={subgraph as unknown as BpSubgraph<BpEntityRootType>}
         />
+      ) : view === "grid" ? (
+        <GridView entities={entities} />
       ) : (
         <Grid
           showSearch={showSearch}
