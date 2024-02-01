@@ -83,7 +83,7 @@
     "mime-types": "2.1.35",
     "nanoid": "3.1.31",
     "node-fetch": "^2.6.7",
-    "nodemailer": "6.6.3",
+    "nodemailer": "6.9.9",
     "oembed-providers": "1.0.20220105",
     "ts-node": "10.9.1",
     "tsx": "3.13.0",
