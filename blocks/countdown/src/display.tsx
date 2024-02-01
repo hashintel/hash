@@ -50,7 +50,7 @@ export const Display: FunctionComponent<DisplayProps> = ({
     if (!displayTime && ["hours", "minutes"].includes(val)) {
       return acc;
     }
-    if (duration[val] || acc.length > 0) {
+    if (duration[val] ?? acc.length > 0) {
       return [...acc, val];
     }
     return acc;

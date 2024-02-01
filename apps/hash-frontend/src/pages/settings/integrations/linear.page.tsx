@@ -1,6 +1,6 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import { Box, Container, Typography } from "@mui/material";
 import {
   FunctionComponent,
@@ -63,7 +63,10 @@ const DataAccess: FunctionComponent<{
   >(syncLinearIntegrationWithWorkspacesMutation, { awaitRefetchQueries: true });
 
   const possibleWorkspaces = useMemo(
-    () => [authenticatedUser, ...authenticatedUser.memberOf],
+    () => [
+      authenticatedUser,
+      ...authenticatedUser.memberOf.map(({ org }) => org),
+    ],
     [authenticatedUser],
   );
 
@@ -80,9 +83,9 @@ const DataAccess: FunctionComponent<{
   const handleSave = useCallback(async () => {
     await Promise.all(
       linearIntegrations.map(({ entity }) => {
-        const linearOrgId = entity.properties[
-          extractBaseUrl(types.propertyType.linearOrgId.propertyTypeId)
-        ] as string;
+        const { linearOrgId } = simplifyProperties(
+          entity.properties as LinearIntegrationProperties,
+        );
 
         const linearOrganization = linearOrganizations.find(
           ({ id }) => id === linearOrgId,
@@ -147,9 +150,9 @@ const LinearIntegrationsPage: NextPageWithLayout = () => {
       if (linearIntegrations) {
         const linearOrganizations = await Promise.all(
           linearIntegrations.map(async ({ entity }) => {
-            const linearOrgId = entity.properties[
-              extractBaseUrl(types.propertyType.linearOrgId.propertyTypeId)
-            ] as string;
+            const { linearOrgId } = simplifyProperties(
+              entity.properties as LinearIntegrationProperties,
+            );
 
             const { data } = await getLinearOrganization({
               variables: { linearOrgId },

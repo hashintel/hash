@@ -2,7 +2,7 @@ import {
   Array,
   BaseUrl,
   extractBaseUrl,
-  Object,
+  Object as BpObject,
   OneOf,
   PropertyType,
   PropertyTypeReference,
@@ -25,7 +25,7 @@ const getPrimitiveSchema = ($ref: VersionedUrl): PropertyTypeReference => ({
 
 const getObjectSchema = (
   properties: Property[],
-): Object<ValueOrArray<PropertyTypeReference>> => {
+): BpObject<ValueOrArray<PropertyTypeReference>> => {
   const propertyList: Record<BaseUrl, ValueOrArray<PropertyTypeReference>> = {};
   const requiredArray: BaseUrl[] = [];
 

@@ -2,6 +2,7 @@ import { gql } from "@apollo/client";
 
 export const commentFieldsFragment = gql`
   fragment CommentFields on Comment {
+    canUserEdit
     hasText
     textUpdatedAt
     author
@@ -11,8 +12,14 @@ export const commentFieldsFragment = gql`
 `;
 
 export const createComment = gql`
-  mutation createComment($parentEntityId: EntityId!, $tokens: [TextToken!]!) {
-    createComment(parentEntityId: $parentEntityId, tokens: $tokens) {
+  mutation createComment(
+    $parentEntityId: EntityId!
+    $textualContent: [TextToken!]!
+  ) {
+    createComment(
+      parentEntityId: $parentEntityId
+      textualContent: $textualContent
+    ) {
       metadata
     }
   }
@@ -37,8 +44,11 @@ export const deleteComment = gql`
 `;
 
 export const updateCommentText = gql`
-  mutation updateCommentText($entityId: EntityId!, $tokens: [TextToken!]!) {
-    updateCommentText(entityId: $entityId, tokens: $tokens) {
+  mutation updateCommentText(
+    $entityId: EntityId!
+    $textualContent: [TextToken!]!
+  ) {
+    updateCommentText(entityId: $entityId, textualContent: $textualContent) {
       ...CommentFields
     }
   }

@@ -3,7 +3,8 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { customColors } from "@hashintel/design-system";
+import { customColors } from "@hashintel/design-system/theme";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { EntityId } from "@local/hash-subgraph";
 
 import {
@@ -13,7 +14,8 @@ import {
 import { drawCellFadeOutGradient } from "../../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
 import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/draw-chip-with-icon";
 import { InteractableManager } from "../../../../../../../../components/grid/utils/interactable-manager";
-import { generateEntityLabel } from "../../../../../../../../lib/entities";
+import { Interactable } from "../../../../../../../../components/grid/utils/interactable-manager/types";
+import { getImageUrlFromEntityProperties } from "../../../../../../../shared/get-image-url-from-properties";
 import { LinkRow } from "../types";
 import { LinkedWithCellEditor } from "./linked-with-cell/linked-with-cell-editor";
 import { sortLinkAndTargetEntities } from "./sort-link-and-target-entities";
@@ -30,14 +32,15 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
   kind: GridCellKind.Custom,
   needsHover: true,
   isMatch: (cell: CustomCell): cell is LinkedWithCell =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (cell.data as any).kind === "linked-with-cell",
   draw: (args, cell) => {
     const { rect, ctx, theme, spriteManager, hoverAmount, highlighted } = args;
     const { linkRow, readonly } = cell.data;
     const {
       linkAndTargetEntities,
-      entitySubgraph,
       markLinkAsArchived,
+      onEntityClick,
       isFile,
       isList,
       isLoading,
@@ -57,10 +60,10 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       const text = isLoading
         ? "Uploading file, please stay on the page..."
         : isFile
-        ? `No file${isList ? "s" : ""}`
-        : isList
-        ? "No entities"
-        : "No entity";
+          ? `No file${isList ? "s" : ""}`
+          : isList
+            ? "No entities"
+            : "No entity";
       ctx.fillText(text, left, yCenter);
 
       // before returning, set interactables to empty array to clear any stale interactables saved on previous draw
@@ -75,16 +78,41 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       linkAndTargetEntities,
     );
 
+    const entityChipInteractables: Interactable[] = [];
+
     // draw linked entity chips
-    for (const { rightEntity } of sortedLinkedEntities) {
-      const label = generateEntityLabel(entitySubgraph, rightEntity);
+    for (const { rightEntity, sourceSubgraph } of sortedLinkedEntities) {
+      const label = generateEntityLabel(sourceSubgraph, rightEntity);
+
+      const imageSrc = getImageUrlFromEntityProperties(rightEntity.properties);
+
       const chipWidth = drawChipWithIcon({
         args,
+        color: "white",
+        imageSrc,
         text: label,
         left: accumulatedLeft,
       });
+
+      entityChipInteractables.push(
+        InteractableManager.createCellInteractable(args, {
+          id: rightEntity.metadata.recordId.entityId,
+          pos: {
+            left: accumulatedLeft,
+            right: accumulatedLeft + chipWidth,
+            top: yCenter - 16,
+            bottom: yCenter + 16,
+          },
+          onClick: () => {
+            onEntityClick({ entity: rightEntity });
+          },
+        }),
+      );
+
       accumulatedLeft += chipWidth + chipGap;
     }
+
+    InteractableManager.setInteractablesForCell(args, entityChipInteractables);
 
     // do not draw delete button if multiple links are allowed
     if (isList) {
@@ -117,7 +145,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
 
     drawCellFadeOutGradient(args, iconSize + cellPadding);
 
-    const deleteButton = InteractableManager.create(args, {
+    const deleteButton = InteractableManager.createCellInteractable(args, {
       id: "delete",
       pos: {
         left: buttonRight - iconSize,
@@ -149,7 +177,10 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       hoverAmount > 0 ? hoverAmount : highlighted ? 1 : 0,
     );
 
-    InteractableManager.setInteractablesForCell(args, [deleteButton]);
+    InteractableManager.setInteractablesForCell(args, [
+      deleteButton,
+      ...entityChipInteractables,
+    ]);
   },
   provideEditor: () => {
     return {

@@ -74,8 +74,7 @@ export const getDerivedPayloadFromMostRecentEmail = async (
 
   if (typeof mostRecentEmailDump !== "object") {
     throw new Error(
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      `Expected most recent email to be an object, got ${mostRecentEmailDump}`,
+      `Expected most recent email to be an object, got ${JSON.stringify(mostRecentEmailDump)}`,
     );
   }
 

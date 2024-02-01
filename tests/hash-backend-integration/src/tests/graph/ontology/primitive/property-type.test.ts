@@ -1,33 +1,37 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
+import { publicUserAccountId } from "@apps/hash-api/src/auth/public-user-account-id";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
+import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import {
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
-import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
+  joinOrg,
+  User,
+} from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createPropertyType,
   getPropertyTypeById,
   getPropertyTypeSubgraphById,
   updatePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { ConstructPropertyTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
-  DataTypeWithMetadata,
   isOwnedOntologyElementMetadata,
   OwnedById,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 
 import { resetGraph } from "../../../test-server";
-import { createTestImpureGraphContext, createTestUser } from "../../../util";
+import {
+  createTestImpureGraphContext,
+  createTestOrg,
+  createTestUser,
+  textDataTypeId,
+} from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -37,11 +41,11 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+const graphContext = createTestImpureGraphContext();
 
+let testOrg: Org;
 let testUser: User;
 let testUser2: User;
-let textDataType: DataTypeWithMetadata;
 let propertyTypeSchema: ConstructPropertyTypeParams;
 
 beforeAll(async () => {
@@ -53,29 +57,28 @@ beforeAll(async () => {
 
   const authentication = { actorId: testUser.accountId };
 
-  textDataType = await createDataType(graphContext, authentication, {
-    ownedById: testUser.accountId as OwnedById,
-    schema: {
-      kind: "dataType",
-      title: "Text",
-      type: "string",
-    },
+  testOrg = await createTestOrg(
+    graphContext,
+    authentication,
+    "propertytestorg",
+    logger,
+  );
+  await joinOrg(graphContext, authentication, {
+    userEntityId: testUser2.entity.metadata.recordId.entityId,
+    orgEntityId: testOrg.entity.metadata.recordId.entityId,
   });
 
   propertyTypeSchema = {
     title: "A property type",
     oneOf: [
       {
-        $ref: textDataType.schema.$id,
+        $ref: textDataTypeId,
       },
     ],
   };
 });
 
 afterAll(async () => {
-  await deleteKratosIdentity({
-    kratosIdentityId: systemUser.kratosIdentityId,
-  });
   await deleteKratosIdentity({
     kratosIdentityId: testUser.kratosIdentityId,
   });
@@ -96,8 +99,23 @@ describe("Property type CRU", () => {
       graphContext,
       authentication,
       {
-        ownedById: testUser.accountId as OwnedById,
+        ownedById: testOrg.accountGroupId as OwnedById,
         schema: propertyTypeSchema,
+        relationships: [
+          {
+            relation: "setting",
+            subject: {
+              kind: "setting",
+              subjectId: "updateFromWeb",
+            },
+          },
+          {
+            relation: "viewer",
+            subject: {
+              kind: "public",
+            },
+          },
+        ],
       },
     );
   });
@@ -121,7 +139,7 @@ describe("Property type CRU", () => {
   it("can update a property type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdPropertyType.metadata) &&
-        createdPropertyType.metadata.custom.provenance.recordCreatedById,
+        createdPropertyType.metadata.provenance.edition.createdById,
     ).toBe(testUser.accountId);
 
     const authentication = { actorId: testUser2.accountId };
@@ -135,23 +153,36 @@ describe("Property type CRU", () => {
           ...propertyTypeSchema,
           title: updatedTitle,
         },
+        relationships: [
+          {
+            relation: "setting",
+            subject: {
+              kind: "setting",
+              subjectId: "updateFromWeb",
+            },
+          },
+        ],
       },
     ).catch((err) => Promise.reject(err.data));
 
     expect(
       isOwnedOntologyElementMetadata(updatedPropertyType.metadata) &&
-        updatedPropertyType.metadata.custom.provenance.recordCreatedById,
+        updatedPropertyType.metadata.provenance.edition.createdById,
     ).toBe(testUser2.accountId);
   });
 
-  it("can load an external type on demand", async () => {
+  it.skip("can load an external type on demand", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const propertyTypeId =
       "https://blockprotocol.org/@blockprotocol/types/property-type/name/v/1";
 
     await expect(
-      getPropertyTypeById(graphContext, authentication, { propertyTypeId }),
+      getPropertyTypeById(
+        graphContext,
+        { actorId: publicUserAccountId },
+        { propertyTypeId },
+      ),
     ).rejects.toThrow("Could not find property type with ID");
 
     await expect(

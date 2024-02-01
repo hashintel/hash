@@ -1,50 +1,52 @@
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { DataTypeWithMetadata } from "@local/hash-subgraph";
 import { isPlainObject } from "lodash";
 
-import { editorSpecs } from "./editor-specs";
 import { EditorType } from "./types";
 
 const isEmptyArray = (value: unknown) => Array.isArray(value) && !value.length;
 
 export const guessEditorTypeFromValue = (
   value: unknown,
-  expectedTypes: string[],
+  expectedTypes: DataTypeWithMetadata["schema"][],
 ): EditorType => {
   if (
     typeof value === "string" &&
-    expectedTypes.includes(types.dataType.text.title)
+    expectedTypes.some((dataType) => dataType.type === "string")
   ) {
-    return "text";
+    return "string";
   }
 
   if (
     typeof value === "boolean" &&
-    expectedTypes.includes(types.dataType.boolean.title)
+    expectedTypes.some((dataType) => dataType.type === "boolean")
   ) {
     return "boolean";
   }
 
   if (
     typeof value === "number" &&
-    expectedTypes.includes(types.dataType.number.title)
+    expectedTypes.some((dataType) => dataType.type === "number")
   ) {
     return "number";
   }
 
   if (
     isPlainObject(value) &&
-    expectedTypes.includes(types.dataType.object.title)
+    expectedTypes.some((dataType) => dataType.type === "object")
   ) {
     return "object";
   }
 
-  if (value === null && expectedTypes.includes(types.dataType.null.title)) {
+  if (
+    value === null &&
+    expectedTypes.some((dataType) => dataType.type === "null")
+  ) {
     return "null";
   }
 
   if (
     isEmptyArray(value) &&
-    expectedTypes.includes(types.dataType.emptyList.title)
+    expectedTypes.some((dataType) => dataType.title === "Empty List")
   ) {
     return "emptyList";
   }
@@ -52,29 +54,18 @@ export const guessEditorTypeFromValue = (
   return "unknown";
 };
 
-export const guessEditorTypeFromExpectedType = (type: string): EditorType => {
-  const editorSpecEntries = Object.entries(editorSpecs);
-
-  const foundEntry = editorSpecEntries.find(([_, val]) => val.title === type);
-
-  if (foundEntry) {
-    const editorSpecsKey = foundEntry[0];
-    return editorSpecsKey as EditorType;
+export const guessEditorTypeFromExpectedType = (
+  dataType: DataTypeWithMetadata["schema"],
+): EditorType => {
+  if (dataType.title === "Empty List") {
+    return "emptyList";
   }
 
-  return "unknown";
-};
-
-export const findDataTypeDefinitionByTitle = (title: string) => {
-  const foundDataTypeDef = Object.values(types.dataType).find(
-    (val) => val.title === title,
-  );
-
-  if (!foundDataTypeDef) {
-    throw new Error(`Not found matching data type definition with ${title}`);
+  if (dataType.type === "array") {
+    throw new Error("Array data types are not yet handled.");
   }
 
-  return foundDataTypeDef;
+  return dataType.type === "integer" ? "number" : dataType.type;
 };
 
 export const isBlankStringOrNullish = (value: unknown) => {

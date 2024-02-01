@@ -5,23 +5,24 @@ import {
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
 import { EditableField, theme } from "@hashintel/block-design-system";
-import { ThemeProvider } from "@mui/material";
-import { useRef, useState } from "react";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { Box, ThemeProvider } from "@mui/material";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { isMobile } from "react-device-detect";
 import { SizeMe } from "react-sizeme";
 
 import { RootKey } from "./additional-types";
-import styles from "./base.module.scss";
 import { SettingsBar } from "./components/settings-bar/settings-bar";
 import { Table } from "./components/table/table";
 import { TableWithQuery } from "./components/table/table-with-query";
+import { WelcomeModal } from "./components/welcome-modal";
 import {
   BlockEntity,
   TableBlockOutgoingLinkAndTarget,
 } from "./types/generated/block-entity";
 
 const titleKey: RootKey =
-  "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/";
+  "https://blockprotocol.org/@blockprotocol/types/property-type/title/";
 
 export const App: BlockComponent<BlockEntity> = ({
   graph: { blockEntitySubgraph, readonly },
@@ -34,9 +35,10 @@ export const App: BlockComponent<BlockEntity> = ({
     TableBlockOutgoingLinkAndTarget[]
   >(blockEntitySubgraph);
 
-  /** @todo use the real query object here, instead of the staging one */
-  const query = linkedEntities[0]?.rightEntity?.properties[
-    "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/query-object/"
+  const linkedQueryEntity = linkedEntities[0]?.rightEntity;
+
+  const linkedQuery = linkedQueryEntity?.properties[
+    "https://blockprotocol.org/@hash/types/property-type/query/"
   ] as MultiFilter | undefined;
 
   const {
@@ -60,6 +62,42 @@ export const App: BlockComponent<BlockEntity> = ({
   const [hovered, setHovered] = useState(false);
   const [titleValue, setTitleValue] = useState(title);
 
+  const hasLinkedQuery = !!linkedQuery;
+
+  const isLocalTableEmpty = useMemo(() => {
+    const { tableLocalColumn, tableLocalRow } = simplifyProperties(
+      blockEntity.properties,
+    );
+
+    return (
+      (!tableLocalColumn || tableLocalColumn.length === 0) &&
+      (!tableLocalRow || tableLocalRow.length === 0)
+    );
+  }, [blockEntity]);
+
+  const [isUsingLocalTable, setIsUsingLocalTable] =
+    useState(!isLocalTableEmpty);
+
+  /**
+   * The table block entity may have been populated with data elsewhere
+   * after the component is first mounted, in which case we know the table
+   * is using local data rather than a linked query.
+   */
+  if (!isUsingLocalTable && !isLocalTableEmpty) {
+    setIsUsingLocalTable(true);
+  }
+
+  const isWelcomeModalOpen =
+    !hasLinkedQuery && !isUsingLocalTable && isLocalTableEmpty;
+
+  const handleJustStartTypingClick = useCallback(() => {
+    setIsUsingLocalTable(true);
+  }, []);
+
+  const handleLoadExistingEntitiesClick = useCallback(() => {
+    void graphModule.requestLinkedQuery();
+  }, [graphModule]);
+
   return (
     <ThemeProvider theme={theme}>
       <SizeMe>
@@ -67,12 +105,20 @@ export const App: BlockComponent<BlockEntity> = ({
           const collapseSettings = (size.width ?? 0) < 670;
 
           return (
-            <div
-              className={styles.block}
+            <Box
               ref={blockRootRef}
               onMouseEnter={() => setHovered(true)}
               onMouseLeave={() => setHovered(false)}
+              sx={{
+                position: "relative",
+              }}
             >
+              <WelcomeModal
+                onJustStartTypingClick={handleJustStartTypingClick}
+                onLoadExistingEntitiesClick={handleLoadExistingEntitiesClick}
+                open={isWelcomeModalOpen}
+                container={blockRootRef.current}
+              />
               {!readonly ? (
                 <SettingsBar
                   show={isMobile || hovered}
@@ -81,11 +127,19 @@ export const App: BlockComponent<BlockEntity> = ({
                   updateEntity={updateEntity}
                 />
               ) : null}
-              <div className={styles.titleWrapper}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: "16px",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
                 <div>
                   <EditableField
                     value={titleValue}
-                    placeholder="Untitled Board"
+                    placeholder="Untitled Table"
                     onChange={(event) => setTitleValue(event.target.value)}
                     onBlur={(event) =>
                       updateEntity({ [titleKey]: event.target.value })
@@ -100,12 +154,12 @@ export const App: BlockComponent<BlockEntity> = ({
                     wrapperSx={{ mb: 1.5 }}
                   />
                 </div>
-              </div>
+              </Box>
 
-              {query ? (
+              {hasLinkedQuery ? (
                 <TableWithQuery
                   graphModule={graphModule}
-                  query={query}
+                  query={linkedQuery}
                   blockEntity={blockEntity}
                   readonly={readonly}
                 />
@@ -116,7 +170,7 @@ export const App: BlockComponent<BlockEntity> = ({
                   readonly={readonly}
                 />
               )}
-            </div>
+            </Box>
           );
         }}
       </SizeMe>

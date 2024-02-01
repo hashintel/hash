@@ -29,15 +29,10 @@ export const FileUploadDropzone = ({
     onDrop,
     accept: image
       ? {
-          "image/gif": [".gif"],
-          "image/png": [".png"],
-          "image/jpeg": [".jpeg"],
-          "image/jpg": [".jpg"],
-          "image/svg+xml": [".svg"],
+          "image/*": [],
         }
       : undefined,
     maxFiles: 1,
-    maxSize: image ? 10_000_000 : undefined, // 10 MB
     multiple: false,
   });
 
@@ -73,26 +68,19 @@ export const FileUploadDropzone = ({
         variant="smallTextLabels"
         sx={{ color: "blue.70", display: "block", fontWeight: 600 }}
       >
-        Upload {image ? "an image" : "a file"}
+        Click to upload
       </Typography>
       <Typography
         variant="smallTextLabels"
         sx={{ color: "gray.90", display: "block", fontWeight: 600 }}
       >
-        or drag and drop
+        or drag and drop a file
       </Typography>
       <Typography
         variant="microText"
         sx={{ color: "gray.50", display: "block", mt: 1, fontWeight: 500 }}
       >
-        {image ? (
-          <>
-            PNG, JPG, GIF, SVG
-            <br /> up to 10MB
-          </>
-        ) : (
-          "All file types are accepted"
-        )}
+        {image ? "Any image file accepted" : "All file types accepted"}
       </Typography>
     </Box>
   );

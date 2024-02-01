@@ -69,6 +69,8 @@ export type CreatePropertyTypeMessageCallback = MessageCallback<
 >;
 
 export type QueryPropertyTypesRequest = {
+  latestOnly?: boolean;
+  includeArchived?: boolean;
   graphResolveDepths?: Partial<
     Pick<Subgraph["depths"], "constrainsValuesOn" | "constrainsPropertiesOn">
   >;

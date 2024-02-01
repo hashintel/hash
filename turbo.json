@@ -1,58 +1,50 @@
 {
   "$schema": "https://turborepo.org/schema.json",
   "pipeline": {
+    "codegen": {
+      "dependsOn": ["^codegen"]
+    },
     "build": {
-      "dependsOn": ["^build", "codegen"]
+      "dependsOn": ["codegen"]
     },
-    "codegen": {},
-    "test": {
-      "dependsOn": ["^build", "codegen"]
+    "test:unit": {
+      "dependsOn": ["codegen"],
+      "env": ["TEST_COVERAGE"]
     },
+    "test:integration": {
+      "dependsOn": ["codegen"],
+      "env": ["TEST_COVERAGE"]
+    },
+    "test:system": {},
+    "test:miri": {},
+    "dev": {
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["codegen"]
+    },
+    "lint:clippy": {},
     "lint:eslint": {
       "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
-      "dependsOn": ["^build", "codegen"]
+      "dependsOn": ["codegen"]
     },
     "lint:tsc": {
-      "dependsOn": ["^build", "codegen"]
+      "dependsOn": ["codegen"]
     },
     "fix:eslint": {
-      "dependsOn": ["^build", "codegen"]
+      "dependsOn": ["codegen"]
     },
-    "dev": {
-      "persistent": true,
-      "dependsOn": ["^build", "codegen"]
-    },
-    "dev:backend": {
-      "persistent": true,
-      "dependsOn": ["^build", "codegen"]
-    },
-    "dev:api": {
-      "persistent": true,
-      "dependsOn": ["^build", "codegen"]
-    },
-    "dev:realtime": {
-      "persistent": true,
-      "dependsOn": ["^build", "codegen"]
-    },
-    "dev:search-loader": {
-      "persistent": true,
-      "dependsOn": ["^build", "codegen"]
-    },
-    "dev:frontend": {
-      "persistent": true,
-      "dependsOn": ["^build", "codegen"]
-    },
-    "start": {
-      "persistent": true,
-      "dependsOn": ["^build", "codegen"]
-    }
+    "fix:clippy": {}
   },
   "globalDependencies": [
     "**/turbo.json",
-    ".env",
-    ".env.local",
+    ".github/actions/**/**/*.yml",
+    ".github/scripts/**/*.rs",
+    ".github/workflows/**/*",
+    ".env*",
     ".justfile",
     ".yarnrc",
+    "Cargo.toml",
     "package.json"
   ]
 }

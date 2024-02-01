@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
@@ -10,25 +10,28 @@ import {
   QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { constructUser, User } from "../../lib/user-and-org";
+import {
+  constructMinimalUser,
+  isEntityUserEntity,
+  MinimalUser,
+} from "../../lib/user-and-org";
 import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 
-export const useUsers = (
-  cache = false,
-): {
+export const useUsers = (): {
   loading: boolean;
-  users?: User[];
+  users?: MinimalUser[];
 } => {
   const { data, loading } = useQuery<
     QueryEntitiesQuery,
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
     variables: {
+      includePermissions: false,
       operation: {
         multiFilter: {
           filters: [
             entityHasEntityTypeByVersionedUrlFilter(
-              types.entityType.user.entityTypeId,
+              systemEntityTypes.user.entityTypeId,
             ),
           ],
           operator: "AND",
@@ -40,34 +43,35 @@ export const useUsers = (
       constrainsLinkDestinationsOn: { outgoing: 0 },
       inheritsFrom: { outgoing: 0 },
       isOfType: { outgoing: 0 },
-      hasLeftEntity: { incoming: 1, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 1 },
+      // as there may be a lot of users, we don't fetch anything linked to them (e.g. org memberships, avatars)
+      // @todo don't fetch all users, fetch a sensible short list on load and others dynamically as needed
+      hasLeftEntity: { incoming: 0, outgoing: 0 },
+      hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: cache ? "cache-first" : "no-cache",
+    fetchPolicy: "cache-and-network",
   });
 
-  const { queryEntities: subgraph } = data ?? {};
+  const { queryEntities: queryEntitiesData } = data ?? {};
 
   const users = useMemo(() => {
-    if (!subgraph) {
+    if (!queryEntitiesData) {
       return undefined;
     }
 
-    // Sharing the same resolved map makes the map below slightly more efficient
-    const resolvedUsers = {};
-    const resolvedOrgs = {};
-
-    /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-    return getRoots(subgraph as Subgraph<EntityRootType>).map((userEntity) =>
-      constructUser({
-        subgraph,
-        userEntity: userEntity as Entity<UserProperties>,
-        resolvedUsers,
-        resolvedOrgs,
-      }),
+    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+      queryEntitiesData.subgraph,
     );
-  }, [subgraph]);
+
+    return getRoots(subgraph).map((userEntity) => {
+      if (!isEntityUserEntity(userEntity)) {
+        throw new Error(
+          `Entity with type ${userEntity.metadata.entityTypeId} is not a user entity`,
+        );
+      }
+
+      return constructMinimalUser({ userEntity });
+    });
+  }, [queryEntitiesData]);
 
   return {
     loading,

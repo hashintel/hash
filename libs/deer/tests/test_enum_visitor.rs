@@ -198,7 +198,7 @@ fn newtype_variant() {
         &[
             Token::Object { length: Some(1) },
             Token::String("Variant"),
-            Token::Number(12u8.into()),
+            Token::Number(12_u8.into()),
             Token::ObjectEnd,
         ],
     );
@@ -372,13 +372,13 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                             .change_context(VisitorError);
 
                         match &mut errors {
-                            Ok(_) => errors = Err(error),
+                            Ok(()) => errors = Err(error),
                             Err(errors) => errors.extend_one(error),
                         }
                     }
                     Some(Ok(VariantField::Id(value))) => id = Some(value),
                     Some(Err(error)) => match &mut errors {
-                        Ok(_) => errors = Err(error.change_context(VisitorError)),
+                        Ok(()) => errors = Err(error.change_context(VisitorError)),
                         Err(errors) => errors.extend_one(error.change_context(VisitorError)),
                     },
                 }
@@ -389,7 +389,7 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                         .attach(ExpectedType::new(u8::reflection()));
 
                     match &mut errors {
-                        Ok(_) => errors = Err(error.change_context(VisitorError)),
+                        Ok(()) => errors = Err(error.change_context(VisitorError)),
                         Err(errors) => errors.extend_one(error.change_context(VisitorError)),
                     }
                 }
@@ -453,7 +453,7 @@ fn struct_variant() {
             Token::String("Variant"),
             Token::Object { length: Some(1) },
             Token::String("id"),
-            Token::Number(12u8.into()),
+            Token::Number(12_u8.into()),
             Token::ObjectEnd,
             Token::ObjectEnd,
         ],

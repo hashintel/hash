@@ -4,18 +4,17 @@ import { URL } from "node:url";
 
 import appRoot from "app-root-path";
 import express, { Express } from "express";
-import multer, { Multer, StorageEngine } from "multer";
 
 import {
   GetFileEntityStorageKeyParams,
   PresignedDownloadRequest,
-  PresignedPostUpload,
+  PresignedPutUpload,
   PresignedStorageRequest,
-  StorageProvider,
   StorageType,
+  UploadableStorageProvider,
 } from "./storage-provider";
 
-const UPLOAD_BASE_URL = "/local-file-storage-upload";
+export const UPLOAD_BASE_URL = "/local-file-storage-upload";
 const DOWNLOAD_BASE_URL = "/uploads";
 
 export interface LocalFileSystemStorageProviderConstructorArgs {
@@ -25,15 +24,16 @@ export interface LocalFileSystemStorageProviderConstructorArgs {
   /** Base URL of the API for generating upload/download URLs */
   apiOrigin: string;
 }
+
 /** Implementation of the storage provider for local file storage.
  * NOTE: NOT MEANT TO BE USED IN PRODUCTION
  * This storage provider is given as an easy to setup alternative to S3 file uploads for simple setups.
  */
-export class LocalFileSystemStorageProvider implements StorageProvider {
-  public storageType: StorageType = StorageType.LocalFileSystem;
+export class LocalFileSystemStorageProvider
+  implements UploadableStorageProvider
+{
+  public storageType: StorageType = "LOCAL_FILE_SYSTEM";
 
-  private storage: StorageEngine;
-  private upload: Multer;
   private fileUploadPath: string;
   private apiOrigin: string;
 
@@ -47,27 +47,21 @@ export class LocalFileSystemStorageProvider implements StorageProvider {
     if (!fs.existsSync(this.fileUploadPath)) {
       fs.mkdirSync(this.fileUploadPath, { recursive: true });
     }
-    this.storage = multer.diskStorage({
-      destination: (_req, _file, cb) => {
-        cb(null, this.fileUploadPath);
-      },
-      filename: (req, file, cb) => this.getFilenameForUpload(req, file, cb),
-    });
-    this.upload = multer({ storage: this.storage });
 
     this.setupExpressRoutes(app);
   }
 
-  async presignUpload(
-    params: PresignedStorageRequest,
-  ): Promise<PresignedPostUpload> {
-    const presignedPost = {
-      url: new URL(UPLOAD_BASE_URL, this.apiOrigin).href,
-      fields: {
-        key: params.key,
+  async presignUpload({ key }: PresignedStorageRequest) {
+    const presignedPut: PresignedPutUpload = {
+      url: `${new URL(UPLOAD_BASE_URL, this.apiOrigin).href}?key=${key}`,
+    };
+    return {
+      presignedPut,
+      fileStorageProperties: {
+        key,
+        provider: "LOCAL_FILE_SYSTEM" as const,
       },
     };
-    return presignedPost;
   }
 
   async presignDownload(params: PresignedDownloadRequest): Promise<string> {
@@ -76,43 +70,57 @@ export class LocalFileSystemStorageProvider implements StorageProvider {
   }
 
   getFileEntityStorageKey({
-    accountId,
+    entityId,
     editionIdentifier,
     filename,
   }: GetFileEntityStorageKeyParams) {
-    const folder = `${accountId}/${editionIdentifier}`;
+    const folder = `${entityId}/${editionIdentifier}` as const;
 
     if (!fs.existsSync(path.join(this.fileUploadPath, folder))) {
       fs.mkdirSync(path.join(this.fileUploadPath, folder), { recursive: true });
     }
 
-    return `${accountId}/${editionIdentifier}/${filename}`;
+    return `${folder}/${filename}` as const;
   }
 
   /** Sets up express routes required for uploading and downloading files */
   setupExpressRoutes(app: Express) {
-    app.post(
-      UPLOAD_BASE_URL,
-      this.upload.single("file"),
-      (_req, res, _next) => {
-        res.status(200).send();
-      },
-    );
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    app.put(UPLOAD_BASE_URL, async (req, res, _next) => {
+      await new Promise<void>((resolve, reject) => {
+        const fileData: Uint8Array[] = [];
+        req.on("data", (chunk) => {
+          fileData.push(chunk);
+        });
+        req.on("end", () => {
+          if (typeof req.query.key !== "string") {
+            res.status(400).send("Missing key query parameter");
+            return;
+          }
+
+          const fileWritePath = path.join(
+            this.fileUploadPath,
+            path.normalize(req.query.key),
+          );
+
+          if (!fileWritePath.startsWith(this.fileUploadPath)) {
+            res.status(400).send("Invalid key query parameter");
+            return;
+          }
+
+          const file = Buffer.concat(fileData);
+          fs.writeFile(fileWritePath, file, (err) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
+        });
+      });
+      res.status(200).send();
+    });
 
     app.use(DOWNLOAD_BASE_URL, express.static(this.fileUploadPath));
-  }
-
-  /** Uses the `key` generated in the previous upload request to know where to store the file */
-  getFilenameForUpload(
-    req: express.Request,
-    _file: any,
-    cb: (error: Error | null, destination: string) => void,
-  ) {
-    const key = req.body.key;
-    if (!key) {
-      cb(new Error(`Parameter 'key' is missing from the upload request'`), "");
-    } else {
-      cb(null, req.body.key);
-    }
   }
 }

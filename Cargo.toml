@@ -1,0 +1,71 @@
+[workspace]
+members = [
+    "apps/hash-graph/bench",
+    "apps/hash-graph/bins/cli",
+    "apps/hash-graph/libs/*",
+    "libs/@local/codec",
+    "libs/@local/tracing",
+    "libs/@local/status/rust",
+    "libs/@local/hash-authorization",
+    "libs/@local/hash-graph-types/rust",
+    "libs/@local/hash-validation",
+    "libs/@local/temporal-client",
+    "libs/@local/temporal-versioning",
+    "tests/hash-graph-integration",
+    "tests/hash-graph-test-data/rust",
+]
+exclude = [
+    "libs/antsi",
+    "libs/deer",
+    "libs/error-stack",
+    "libs/sarif",
+]
+default-members = [
+    "apps/hash-graph/bins/*",
+]
+resolver = "2"
+
+[workspace.package]
+authors = ["HASH"]
+edition = "2021"
+
+
+[workspace.dependencies]
+# Workspace members
+authorization.path = "libs/@local/hash-authorization"
+codec.path = "libs/@local/codec"
+graph-test-data.path = "tests/hash-graph-test-data/rust"
+graph-types.path = "libs/@local/hash-graph-types/rust"
+hash-status.path = "libs/@local/status/rust"
+temporal-client.path = "libs/@local/temporal-client"
+temporal-versioning.path = "libs/@local/temporal-versioning"
+type-fetcher.path = "apps/hash-graph/libs/type-fetcher"
+graph.path = "apps/hash-graph/libs/graph"
+graph-api.path = "apps/hash-graph/libs/api"
+validation.path = "libs/@local/hash-validation"
+hash-tracing.path = "libs/@local/tracing"
+
+# External dependencies owned by HASH
+error-stack = { version = "0.4.1", default-features = false }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "b87db85", default-features = false }
+
+# Shared third-party dependencies
+bytes = "1.5.0"
+clap = { version = "4.4.18", default-features = false, features = ["std"] }
+email_address = { version = "0.2.4", default-features = false }
+futures = { version = "0.3.30", default-features = false }
+postgres-types = { version = "0.2.6", default-features = false }
+serde = { version = "1.0.196", default-features = false }
+serde_json = "1.0.113"
+time = { version = "0.3.31", default-features = false }
+tokio = { version = "1.35.1", default-features = false }
+tokio-util = { version = "0.7.10", default-features = false }
+tracing = "0.1.40"
+utoipa = "4.2.0"
+url = { version = "2.5.0", default-features = false }
+uuid = { version = "1.7.0", default-features = false }
+
+[profile.production]
+inherits = "release"
+lto = "fat"
+strip = "symbols"

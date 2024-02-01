@@ -1,6 +1,6 @@
 {
   "name": "@blocks/chart",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "A block for plotting entities in a 2D chart",
   "keywords": [
@@ -17,44 +17,68 @@
   "author": "HASH",
   "scripts": {
     "build": "block-scripts build",
+    "codegen": "block-scripts codegen && yarn format",
     "dev": "block-scripts dev",
     "fix:eslint": "eslint --fix .",
+    "format": "prettier --write --ignore-unknown .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@mui/material": "5.11.8",
-    "blockprotocol": "0.0.12",
+    "@blockprotocol/graph": "0.3.1-canary-20240108132503",
+    "@hashintel/block-design-system": "0.0.1",
+    "@hashintel/design-system": "0.0.7",
+    "@mui/material": "5.14.11",
     "echarts": "^5.3.2",
-    "lodash.debounce": "4.0.8"
+    "lodash.debounce": "4.0.8",
+    "react-hook-form": "7.48.2"
   },
   "devDependencies": {
+    "@emotion/react": "11.11.1",
+    "@emotion/styled": "11.11.0",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.debounce": "4.0.7",
-    "block-scripts": "0.0.14",
-    "eslint": "8.33.0",
-    "mock-block-dock": "0.0.10",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "typescript": "5.0.4"
+    "@types/react-dom": "18.0.10",
+    "@types/react-is": "18.2.0",
+    "block-scripts": "0.3.1",
+    "eslint": "8.56.0",
+    "mock-block-dock": "0.1.6",
+    "prettier": "3.2.4",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "typescript": "5.1.6"
   },
   "peerDependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "block-scripts": {
-    "devPort": 9090,
-    "servePort": 63217
+    "port": 63212
   },
   "blockprotocol": {
-    "name": "@ben/chart",
+    "name": "@hash/chart",
     "displayName": "Chart",
+    "blockType": {
+      "entryPoint": "react"
+    },
+    "protocol": "0.3",
+    "blockEntityType": "https://blockprotocol.org/@hash/types/entity-type/chart-block/v/1",
+    "codegen": {
+      "outputFolder": "src/types/generated",
+      "targets": {
+        "block-entity.ts": [
+          {
+            "blockEntityType": true
+          }
+        ]
+      }
+    },
     "examples": [
       {}
     ],
-    "icon": "public/omega.svg",
+    "icon": "public/chart-line-regular.svg",
     "image": "public/block-preview.svg"
   }
 }

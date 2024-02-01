@@ -12,9 +12,9 @@ import { useContext, useState } from "react";
 
 import { useSnackbar } from "../../../../components/hooks/use-snackbar";
 import { Button } from "../../../../shared/ui";
+import { EntityTypeSelector } from "../../../shared/entity-type-selector";
 import { WorkspaceContext } from "../../../shared/workspace-context";
 import { SectionWrapper } from "../../shared/section-wrapper";
-import { EntityTypeSelector } from "./create-entity-page/entity-type-selector";
 import { EntityPageWrapper } from "./entity-page-wrapper";
 import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
 import { LinksSectionEmptyState } from "./shared/links-section-empty-state";
@@ -22,7 +22,7 @@ import { PropertiesSectionEmptyState } from "./shared/properties-section-empty-s
 
 export const SelectEntityTypePage = () => {
   const router = useRouter();
-  const snackbar = useSnackbar();
+  const { triggerSnackbar } = useSnackbar();
   const [isSelectingType, setIsSelectingType] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -41,23 +41,7 @@ export const SelectEntityTypePage = () => {
           chip={
             <OntologyChip
               domain={frontendDomain}
-              path={
-                <>
-                  <Typography
-                    color={(theme) => theme.palette.blue[70]}
-                    fontWeight="bold"
-                    component="span"
-                  >
-                    @{activeWorkspace.shortname}
-                  </Typography>
-                  <Typography
-                    color={(theme) => theme.palette.blue[70]}
-                    component="span"
-                  >
-                    /entities
-                  </Typography>
-                </>
-              }
+              path={`@${activeWorkspace.shortname}/entities`}
             />
           }
         />
@@ -121,11 +105,11 @@ export const SelectEntityTypePage = () => {
 
                       await router.push(
                         `/new/entity?entity-type-id=${encodeURIComponent(
-                          entityType.$id,
+                          entityType.schema.$id,
                         )}`,
                       );
-                    } catch (error: any) {
-                      snackbar.error(error.message);
+                    } catch (error) {
+                      triggerSnackbar.error((error as Error).message);
                     } finally {
                       setLoading(false);
                     }

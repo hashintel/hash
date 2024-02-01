@@ -10,11 +10,11 @@ import { BlockEntity } from "../../types/generated/block-entity";
 import styles from "./styles.module.scss";
 
 const isStripedKey: RootKey =
-  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-rows-are-striped/";
+  "https://blockprotocol.org/@hash/types/property-type/table-rows-are-striped/";
 const hideHeaderRowKey: RootKey =
-  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-header-row-is-hidden/";
+  "https://blockprotocol.org/@hash/types/property-type/table-header-row-is-hidden/";
 const hideRowNumbersKey: RootKey =
-  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-row-numbers-are-hidden/";
+  "https://blockprotocol.org/@hash/types/property-type/table-row-numbers-are-hidden/";
 
 interface SettingSwitchProps {
   label: string;

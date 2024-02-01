@@ -1,26 +1,17 @@
 import {
   createKratosIdentity,
-  deleteKratosIdentity,
   kratosIdentityApi,
 } from "@apps/hash-api/src/auth/ory-kratos";
-import {
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
   createUser,
   getUserByKratosIdentityId,
   getUserByShortname,
   isUserMemberOfOrg,
   joinOrg,
-  updateUserPreferredName,
-  updateUserShortname,
   User,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import {
-  systemUser,
-  systemUserAccountId,
-} from "@apps/hash-api/src/graph/system-user";
+import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
@@ -40,7 +31,7 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+const graphContext = createTestImpureGraphContext();
 
 const shortname = generateRandomShortname("userTest");
 
@@ -51,10 +42,6 @@ describe("User model class", () => {
   });
 
   afterAll(async () => {
-    await deleteKratosIdentity({
-      kratosIdentityId: systemUser.kratosIdentityId,
-    });
-
     await resetGraph();
   });
 
@@ -63,7 +50,7 @@ describe("User model class", () => {
   let kratosIdentityId: string;
 
   it("can create a user", async () => {
-    const authentication = { actorId: systemUserAccountId };
+    const authentication = { actorId: systemAccountId };
 
     const identity = await createKratosIdentity({
       traits: {
@@ -76,11 +63,13 @@ describe("User model class", () => {
     createdUser = await createUser(graphContext, authentication, {
       emails: ["alice@example.com"],
       kratosIdentityId,
+      shortname,
+      preferredName: "Alice",
     });
   });
 
   it("cannot create a user with a kratos identity id that is already taken", async () => {
-    const authentication = { actorId: systemUserAccountId };
+    const authentication = { actorId: systemAccountId };
 
     await expect(
       createUser(graphContext, authentication, {
@@ -88,24 +77,6 @@ describe("User model class", () => {
         kratosIdentityId,
       }),
     ).rejects.toThrowError(`"${kratosIdentityId}" already exists.`);
-  });
-
-  it("can update the shortname of a user", async () => {
-    const authentication = { actorId: createdUser.accountId };
-
-    createdUser = await updateUserShortname(graphContext, authentication, {
-      user: createdUser,
-      updatedShortname: shortname,
-    });
-  });
-
-  it("can update the preferred name of a user", async () => {
-    const authentication = { actorId: createdUser.accountId };
-
-    createdUser = await updateUserPreferredName(graphContext, authentication, {
-      user: createdUser,
-      updatedPreferredName: "Alice",
-    });
   });
 
   it("can get a user by its shortname", async () => {
@@ -137,8 +108,13 @@ describe("User model class", () => {
   });
 
   it("can join an org", async () => {
-    const authentication = { actorId: systemUserAccountId };
-    const testOrg = await createTestOrg(graphContext, "userModelTest", logger);
+    const authentication = { actorId: systemAccountId };
+    const testOrg = await createTestOrg(
+      graphContext,
+      authentication,
+      "userModelTest",
+      logger,
+    );
 
     const orgEntityUuid = extractEntityUuidFromEntityId(
       testOrg.entity.metadata.recordId.entityId,

@@ -1,6 +1,6 @@
 /* eslint-disable import/first */
 // @todo have webpack polyfill this
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 
 require("setimmediate");
 
@@ -10,11 +10,12 @@ import { ApolloProvider } from "@apollo/client/react";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import wasm from "@blockprotocol/type-system/type-system.wasm";
 import { CacheProvider, EmotionCache } from "@emotion/react";
-import { createEmotionCache, theme } from "@hashintel/design-system";
+import { createEmotionCache, theme } from "@hashintel/design-system/theme";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
-import { configureScope } from "@sentry/nextjs";
+import { configureScope, ErrorBoundary } from "@sentry/nextjs";
 import { AppProps as NextAppProps } from "next/app";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
@@ -27,25 +28,27 @@ import {
   useState,
 } from "react";
 
-import { MeQuery } from "../graphql/api-types.gen";
-import { meQuery } from "../graphql/queries/user.queries";
+import { HasAccessToHashQuery, MeQuery } from "../graphql/api-types.gen";
+import { hasAccessToHashQuery, meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
-import {
-  AuthenticatedUser,
-  constructAuthenticatedUser,
-} from "../lib/user-and-org";
+import { constructMinimalUser } from "../lib/user-and-org";
+import { DraftEntitiesContextProvider } from "../shared/draft-entities-context";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { FileUploadsProvider } from "../shared/file-upload-context";
-import { LatestPropertyTypesContextProvider } from "../shared/latest-property-types-context";
-import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
-import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
+import { KeyboardShortcutsContextProvider } from "../shared/keyboard-shortcuts-context";
 import {
-  RoutePageInfoProvider,
-  RouteWorkspaceInfoProvider,
-} from "../shared/routing";
+  getLayoutWithSidebar,
+  getPlainLayout,
+  NextPageWithLayout,
+} from "../shared/layout";
+import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
+import { NotificationEntitiesContextProvider } from "../shared/notification-entities-context";
+import { PropertyTypesContextProvider } from "../shared/property-types-context";
+import { RoutePageInfoProvider } from "../shared/routing";
+import { ErrorFallback } from "./_app.page/error-fallback";
 import { AppPage, redirectInGetInitialProps } from "./shared/_app.util";
 import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
-import { fetchKratosSession } from "./shared/ory-kratos";
+import { DataTypesContextProvider } from "./shared/data-types-context";
 import { setSentryUser } from "./shared/sentry";
 import { WorkspaceContextProvider } from "./shared/workspace-context";
 
@@ -86,7 +89,7 @@ const InitTypeSystem = dynamic(
 const clientSideEmotionCache = createEmotionCache();
 
 type AppInitialProps = {
-  initialAuthenticatedUser?: AuthenticatedUser;
+  initialAuthenticatedUserSubgraph?: Subgraph<EntityRootType>;
 };
 
 type AppProps = {
@@ -138,23 +141,40 @@ const App: FunctionComponent<AppProps> = ({
         <CacheProvider value={emotionCache}>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            <RouteWorkspaceInfoProvider>
-              <RoutePageInfoProvider>
-                <WorkspaceContextProvider>
+            <RoutePageInfoProvider>
+              <WorkspaceContextProvider>
+                <KeyboardShortcutsContextProvider>
                   <SnackbarProvider maxSnack={3}>
-                    <EntityTypesContextProvider>
-                      <LatestPropertyTypesContextProvider>
-                        <FileUploadsProvider>
-                          <SidebarContextProvider>
-                            {getLayout(<Component {...pageProps} />)}
-                          </SidebarContextProvider>
-                        </FileUploadsProvider>
-                      </LatestPropertyTypesContextProvider>
-                    </EntityTypesContextProvider>
+                    <NotificationEntitiesContextProvider>
+                      <DraftEntitiesContextProvider>
+                        <EntityTypesContextProvider>
+                          <PropertyTypesContextProvider includeArchived>
+                            <DataTypesContextProvider>
+                              <FileUploadsProvider>
+                                <SidebarContextProvider>
+                                  <ErrorBoundary
+                                    beforeCapture={(scope) => {
+                                      scope.setTag("error-boundary", "_app");
+                                    }}
+                                    fallback={(props) =>
+                                      getLayoutWithSidebar(
+                                        <ErrorFallback {...props} />,
+                                      )
+                                    }
+                                  >
+                                    {getLayout(<Component {...pageProps} />)}
+                                  </ErrorBoundary>
+                                </SidebarContextProvider>
+                              </FileUploadsProvider>
+                            </DataTypesContextProvider>
+                          </PropertyTypesContextProvider>
+                        </EntityTypesContextProvider>
+                      </DraftEntitiesContextProvider>
+                    </NotificationEntitiesContextProvider>
                   </SnackbarProvider>
-                </WorkspaceContextProvider>
-              </RoutePageInfoProvider>
-            </RouteWorkspaceInfoProvider>
+                </KeyboardShortcutsContextProvider>
+              </WorkspaceContextProvider>
+            </RoutePageInfoProvider>
           </ThemeProvider>
         </CacheProvider>
         {/* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */}
@@ -179,11 +199,13 @@ const App: FunctionComponent<AppProps> = ({
 const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
   props,
 ) => {
-  const { initialAuthenticatedUser } = props;
+  const { initialAuthenticatedUserSubgraph } = props;
 
   return (
     <ApolloProvider client={apolloClient}>
-      <AuthInfoProvider initialAuthenticatedUser={initialAuthenticatedUser}>
+      <AuthInfoProvider
+        initialAuthenticatedUserSubgraph={initialAuthenticatedUserSubgraph}
+      >
         <App {...props} />
       </AuthInfoProvider>
     </ApolloProvider>
@@ -210,19 +232,24 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
    *   on subsequent loads it will be cached so long as the cookie value remains the same.
    * We leave it up to the client to re-fetch the user as necessary in response to user-initiated actions.
    */
-  const [subgraph, kratosSession] = await Promise.all([
-    apolloClient
-      .query<MeQuery>({
-        query: meQuery,
-        context: { headers: { cookie } },
-      })
-      .then(({ data }) => data.me)
-      .catch(() => undefined),
-    fetchKratosSession(cookie),
-  ]);
+  const initialAuthenticatedUserSubgraph = await apolloClient
+    .query<MeQuery>({
+      query: meQuery,
+      context: { headers: { cookie } },
+    })
+    .then(({ data }) =>
+      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(data.me.subgraph),
+    )
+    .catch(() => undefined);
+
+  const userEntity = initialAuthenticatedUserSubgraph
+    ? (getRoots<EntityRootType>(initialAuthenticatedUserSubgraph)[0] as
+        | Entity<UserProperties>
+        | undefined)
+    : undefined;
 
   /** @todo: make additional pages publicly accessible */
-  if (!subgraph || !kratosSession) {
+  if (!userEntity) {
     // If the user is logged out and not on a page that should be publicly accessible...
     if (!publiclyAccessiblePagePathnames.includes(pathname)) {
       // ...redirect them to the login page
@@ -232,27 +259,32 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     return {};
   }
 
-  const userEntity = getRoots(subgraph as Subgraph<EntityRootType>)[0]!;
-
   // The type system package needs to be initialized before calling `constructAuthenticatedUser`
-  await TypeSystemInitializer.initialize();
+  // await TypeSystemInitializer.initialize();
 
-  const initialAuthenticatedUser = constructAuthenticatedUser({
-    userEntity: userEntity as Entity<UserProperties>,
-    subgraph,
-    kratosSession,
-  });
+  const user = constructMinimalUser({ userEntity });
 
-  // If the user is logged in but hasn't completed signup and isn't on the signup page...
-  if (
-    !initialAuthenticatedUser.accountSignupComplete &&
-    !pathname.startsWith("/signup")
-  ) {
-    // ...then redirect them to the signup page.
-    redirectInGetInitialProps({ appContext, location: "/signup" });
+  // If the user is logged in but hasn't completed signup...
+  if (!user.accountSignupComplete) {
+    const hasAccessToHash = await apolloClient
+      .query<HasAccessToHashQuery>({
+        query: hasAccessToHashQuery,
+        context: { headers: { cookie } },
+      })
+      .then(({ data }) => data.hasAccessToHash);
+
+    // ...if they have access to HASH but aren't on the signup page...
+    if (hasAccessToHash && !pathname.startsWith("/signup")) {
+      // ...then redirect them to the signup page.
+      redirectInGetInitialProps({ appContext, location: "/signup" });
+      // ...if they don't have access to HASH but aren't on the home page...
+    } else if (!hasAccessToHash && pathname !== "/") {
+      // ...then redirect them to the home page.
+      redirectInGetInitialProps({ appContext, location: "/" });
+    }
   }
 
-  return { initialAuthenticatedUser };
+  return { initialAuthenticatedUserSubgraph };
 };
 
 export default AppWithTypeSystemContextProvider;

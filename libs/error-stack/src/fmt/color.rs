@@ -97,7 +97,7 @@ impl Report<()> {
     /// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
     /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
     /// #
-    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// #     ansi_to_html::convert(value.as_ref()).unwrap()
     /// # }
     /// #
     /// Report::set_color_mode(ColorMode::None);

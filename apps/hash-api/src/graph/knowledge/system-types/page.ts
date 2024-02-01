@@ -1,26 +1,45 @@
-import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
-import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
+import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import {
+  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  AccountId,
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  isPageEntityTypeId,
+  pageEntityTypeFilter,
+  pageEntityTypeIds,
+} from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
+import {
+  HasDataProperties,
+  HasIndexedContentProperties,
+  PageProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
+import {
   Entity,
   EntityId,
-  EntityPropertiesObject,
   EntityRootType,
-  extractOwnedByIdFromEntityId,
   OwnedById,
-  Subgraph,
 } from "@local/hash-subgraph";
-import { getEntities } from "@local/hash-subgraph/stdlib";
-import { ApolloError, UserInputError } from "apollo-server-errors";
+import {
+  getEntities as getEntitiesFromSubgraph,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
+import {
+  extractBaseUrl,
+  LinkEntity,
+} from "@local/hash-subgraph/type-system-patch";
+import { ApolloError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
-import { EntityTypeMismatchError } from "../../../lib/error";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
-import { SYSTEM_TYPES } from "../../system-types";
+import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import {
   archiveEntity,
   createEntity,
@@ -32,21 +51,15 @@ import {
 import {
   createLinkEntity,
   getLinkEntityRightEntity,
-  LinkEntity,
-  updateLinkEntity,
 } from "../primitive/link-entity";
-import {
-  Block,
-  createBlock,
-  getBlockComments,
-  getBlockFromEntity,
-} from "./block";
+import { Block, getBlockComments, getBlockFromEntity } from "./block";
+import { addBlockToBlockCollection } from "./block-collection";
 import { Comment } from "./comment";
 
 export type Page = {
   title: string;
   summary?: string;
-  index?: string;
+  fractionalIndex?: string;
   icon?: string;
   archived?: boolean;
   entity: Entity;
@@ -55,40 +68,21 @@ export type Page = {
 export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
   entity,
 }) => {
-  if (
-    entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.page.schema.$id
-  ) {
+  if (!isPageEntityTypeId(entity.metadata.entityTypeId)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.block.schema.$id,
+      pageEntityTypeIds,
       entity.metadata.entityTypeId,
     );
   }
 
-  const title = entity.properties[
-    SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUrl
-  ] as string;
-
-  const summary = entity.properties[
-    SYSTEM_TYPES.propertyType.summary.metadata.recordId.baseUrl
-  ] as string | undefined;
-
-  const index = entity.properties[
-    SYSTEM_TYPES.propertyType.index.metadata.recordId.baseUrl
-  ] as string | undefined;
-
-  const icon = entity.properties[
-    SYSTEM_TYPES.propertyType.icon.metadata.recordId.baseUrl
-  ] as string | undefined;
-
-  const archived = entity.properties[
-    SYSTEM_TYPES.propertyType.archived.metadata.recordId.baseUrl
-  ] as boolean | undefined;
+  const { title, summary, fractionalIndex, icon, archived } =
+    simplifyProperties(entity.properties as PageProperties);
 
   return {
     title,
     summary,
-    index,
+    fractionalIndex,
     icon,
     archived,
     entity,
@@ -102,7 +96,9 @@ export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
  */
 export const getPageById: ImpureGraphFunction<
   { entityId: EntityId },
-  Promise<Page>
+  Promise<Page>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { entityId } = params;
 
@@ -121,61 +117,64 @@ export const getPageById: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createPage: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
+  Pick<CreateEntityParams, "ownedById"> & {
     title: string;
     summary?: string;
-    prevIndex?: string;
+    prevFractionalIndex?: string;
     initialBlocks?: Block[];
+    type: "canvas" | "document";
   },
   Promise<Page>
 > = async (ctx, authentication, params): Promise<Page> => {
-  const { title, summary, prevIndex, ownedById } = params;
+  const { title, type, summary, prevFractionalIndex, ownedById } = params;
 
-  const index = generateKeyBetween(prevIndex ?? null, null);
+  const fractionalIndex = generateKeyBetween(prevFractionalIndex ?? null, null);
 
-  const properties: EntityPropertiesObject = {
-    [SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUrl]: title,
+  const properties: PageProperties = {
+    "https://hash.ai/@hash/types/property-type/title/": title,
+    "https://hash.ai/@hash/types/property-type/fractional-index/":
+      fractionalIndex,
     ...(summary
       ? {
-          [SYSTEM_TYPES.propertyType.summary.metadata.recordId.baseUrl]:
-            summary,
+          "https://hash.ai/@hash/types/property-type/summary/": summary,
         }
-      : {}),
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- account for old browsers
-    ...(index !== undefined
-      ? { [SYSTEM_TYPES.propertyType.index.metadata.recordId.baseUrl]: index }
       : {}),
   };
 
   const entity = await createEntity(ctx, authentication, {
     ownedById,
     properties,
-    entityTypeId: SYSTEM_TYPES.entityType.page.schema.$id,
+    entityTypeId:
+      type === "document"
+        ? systemEntityTypes.document.entityTypeId
+        : systemEntityTypes.canvas.entityTypeId,
+    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
   const page = getPageFromEntity({ entity });
 
-  const initialBlocks =
-    params.initialBlocks && params.initialBlocks.length > 0
-      ? params.initialBlocks
-      : [
-          await createBlock(ctx, authentication, {
-            ownedById,
-            componentId: paragraphBlockComponentId,
-            blockData: await createEntity(ctx, authentication, {
-              ownedById,
-              properties: {
-                [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl]:
-                  [],
+  for (const block of params.initialBlocks ?? []) {
+    await addBlockToBlockCollection(ctx, authentication, {
+      blockCollectionEntityId: page.entity.metadata.recordId.entityId,
+      block,
+      position:
+        type === "document"
+          ? {
+              indexPosition: {
+                "https://hash.ai/@hash/types/property-type/fractional-index/":
+                  generateKeyBetween(null, null),
               },
-              entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
-            }),
-          }),
-        ];
-
-  for (const block of initialBlocks) {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    await addBlockToPage(ctx, authentication, { page, block });
+            }
+          : {
+              canvasPosition: {
+                "https://hash.ai/@hash/types/property-type/x-position/": 0,
+                "https://hash.ai/@hash/types/property-type/y-position/": 0,
+                "https://hash.ai/@hash/types/property-type/width-in-pixels/": 500,
+                "https://hash.ai/@hash/types/property-type/height-in-pixels/": 200,
+                "https://hash.ai/@hash/types/property-type/rotation-in-rads/": 0,
+              },
+            },
+    });
   }
 
   return page;
@@ -188,11 +187,14 @@ export const createPage: ImpureGraphFunction<
  */
 export const getPageParentPage: ImpureGraphFunction<
   { page: Page },
-  Promise<Page | null>
+  Promise<Page | null>,
+  false,
+  true
 > = async (ctx, authentication, { page }) => {
   const parentPageLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: page.entity.metadata.recordId.entityId,
-    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.parent.schema.$id,
+    linkEntityTypeVersionedUrl:
+      systemLinkEntityTypes.hasParent.linkEntityTypeId,
   });
 
   const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
@@ -221,7 +223,9 @@ export const getPageParentPage: ImpureGraphFunction<
  */
 export const isPageArchived: ImpureGraphFunction<
   { page: Page },
-  Promise<boolean>
+  Promise<boolean>,
+  false,
+  true
 > = async (ctx, authentication, { page }) => {
   if (page.archived) {
     return true;
@@ -241,34 +245,39 @@ export const isPageArchived: ImpureGraphFunction<
  */
 export const getAllPagesInWorkspace: ImpureGraphFunction<
   {
-    accountId: AccountId;
+    ownedById: OwnedById;
     includeArchived?: boolean;
+    includeDrafts?: boolean;
   },
-  Promise<Page[]>
+  Promise<Page[]>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { graphApi } = ctx;
-  const { accountId, includeArchived = false } = params;
+  const { ownedById, includeArchived = false, includeDrafts = false } = params;
   const pageEntities = await graphApi
     .getEntitiesByQuery(authentication.actorId, {
-      filter: {
-        all: [
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
-              { parameter: SYSTEM_TYPES.entityType.page.schema.$id },
-            ],
-          },
-          {
-            equal: [{ path: ["ownedById"] }, { parameter: accountId }],
-          },
-        ],
+      query: {
+        filter: {
+          all: [
+            pageEntityTypeFilter,
+            {
+              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data: subgraph }) =>
-      getEntities(subgraph as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+      );
+
+      return getEntitiesFromSubgraph(subgraph);
+    });
 
   const pages = pageEntities.map((entity) => getPageFromEntity({ entity }));
 
@@ -296,7 +305,9 @@ export const pageHasParentPage: ImpureGraphFunction<
     page: Page;
     parentPage: Page;
   },
-  Promise<boolean>
+  Promise<boolean>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { page, parentPage } = params;
 
@@ -338,12 +349,15 @@ export const removeParentPage: ImpureGraphFunction<
   {
     page: Page;
   },
-  Promise<void>
+  Promise<void>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { page } = params;
   const parentPageLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: page.entity.metadata.recordId.entityId,
-    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.parent.schema.$id,
+    linkEntityTypeVersionedUrl:
+      systemLinkEntityTypes.hasParent.linkEntityTypeId,
   });
 
   const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
@@ -369,22 +383,24 @@ export const removeParentPage: ImpureGraphFunction<
  * @param params.page - the page
  * @param params.parentPage - the new parent page (or `null`)
  * @param params.actorId - the account that is setting the parent page
- * @param params.prevIndex - the index of the previous page
- * @param params.nextIndex- the index of the next page
+ * @param params.prevFractionalIndex - the fractionalIndex of the previous page
+ * @param params.nextIndex- the fractionalIndex of the next page
  */
 export const setPageParentPage: ImpureGraphFunction<
   {
     page: Page;
     parentPage: Page | null;
 
-    prevIndex: string | null;
+    prevFractionalIndex: string | null;
     nextIndex: string | null;
   },
-  Promise<Page>
+  Promise<Page>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
-  const { page, parentPage, prevIndex, nextIndex } = params;
+  const { page, parentPage, prevFractionalIndex, nextIndex } = params;
 
-  const newIndex = generateKeyBetween(prevIndex, nextIndex);
+  const newIndex = generateKeyBetween(prevFractionalIndex, nextIndex);
 
   const existingParentPage = await getPageParentPage(ctx, authentication, {
     page,
@@ -409,18 +425,20 @@ export const setPageParentPage: ImpureGraphFunction<
     }
 
     await createLinkEntity(ctx, authentication, {
-      linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
+      linkEntityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
       leftEntityId: page.entity.metadata.recordId.entityId,
       rightEntityId: parentPage.entity.metadata.recordId.entityId,
       ownedById: authentication.actorId as OwnedById,
+      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   }
 
-  if (page.index !== newIndex) {
+  if (page.fractionalIndex !== newIndex) {
     const updatedPageEntity = await updateEntityProperty(ctx, authentication, {
       entity: page.entity,
-      propertyTypeBaseUrl:
-        SYSTEM_TYPES.propertyType.index.metadata.recordId.baseUrl,
+      propertyTypeBaseUrl: extractBaseUrl(
+        systemPropertyTypes.fractionalIndex.propertyTypeId,
+      ),
       value: newIndex,
     });
 
@@ -436,32 +454,29 @@ export const setPageParentPage: ImpureGraphFunction<
  * @param params.page - the page
  */
 export const getPageBlocks: ImpureGraphFunction<
-  { pageEntityId: EntityId },
-  Promise<{ linkEntity: LinkEntity; rightEntity: Block }[]>
-> = async (ctx, authentication, { pageEntityId }) => {
-  const outgoingBlockDataLinks = await getEntityOutgoingLinks(
+  { pageEntityId: EntityId; type: "canvas" | "document" },
+  Promise<{ linkEntity: LinkEntity<HasDataProperties>; rightEntity: Block }[]>,
+  false,
+  true
+> = async (ctx, authentication, { pageEntityId, type }) => {
+  const outgoingBlockDataLinks = (await getEntityOutgoingLinks(
     ctx,
     authentication,
     {
       entityId: pageEntityId,
       linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.contains.schema.$id,
+        type === "document"
+          ? systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId
+          : systemLinkEntityTypes.hasSpatiallyPositionedContent
+              .linkEntityTypeId,
     },
-  );
+  )) as
+    | LinkEntity<HasIndexedContentProperties>[]
+    | LinkEntity<HasSpatiallyPositionedContentProperties>[];
 
   return await Promise.all(
     outgoingBlockDataLinks
-      .sort(
-        (a, b) =>
-          (a.linkData.leftToRightOrder ?? 0) -
-            (b.linkData.leftToRightOrder ?? 0) ||
-          a.metadata.recordId.entityId.localeCompare(
-            b.metadata.recordId.entityId,
-          ) ||
-          a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
-            b.metadata.temporalVersioning.decisionTime.start.limit,
-          ),
-      )
+      .sort(sortBlockCollectionLinks)
       .map(async (linkEntity) => ({
         linkEntity,
         rightEntity: await getLinkEntityRightEntity(ctx, authentication, {
@@ -472,163 +487,19 @@ export const getPageBlocks: ImpureGraphFunction<
 };
 
 /**
- * Insert a block into this page
- *
- * @param params.block - the block to insert in the page
- * @param params.position (optional) - the position of the block in the page
- * @param params.insertedById - the id of the account that is inserting the block into the page
- */
-export const addBlockToPage: ImpureGraphFunction<
-  {
-    page: Page;
-    block: Block;
-    canvasPosition?: CanvasPosition;
-    position?: number;
-  },
-  Promise<void>
-> = async (ctx, authentication, params) => {
-  const { position: specifiedPosition, canvasPosition, page, block } = params;
-
-  await createLinkEntity(ctx, authentication, {
-    leftEntityId: page.entity.metadata.recordId.entityId,
-    rightEntityId: block.entity.metadata.recordId.entityId,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.contains,
-    leftToRightOrder:
-      specifiedPosition ??
-      // if position is not specified and there are no blocks currently in the page, specify the index of the link is `0`
-      ((
-        await getPageBlocks(ctx, authentication, {
-          pageEntityId: page.entity.metadata.recordId.entityId,
-        })
-      ).length === 0
-        ? 0
-        : undefined),
-    // assume that link to block is owned by the same account as the page
-    ownedById: extractOwnedByIdFromEntityId(
-      page.entity.metadata.recordId.entityId,
-    ),
-    properties: canvasPosition ?? {},
-  });
-};
-
-/**
- * Move a block in the page from one position to another.
- *
- * @param params.page - the page
- * @param params.currentPosition - the current position of the block being moved
- * @param params.newPosition - the new position of the block being moved
- * @param params.movedById - the id of the account that is moving the block
- */
-export const moveBlockInPage: ImpureGraphFunction<
-  {
-    page: Page;
-    canvasPosition?: CanvasPosition;
-    currentPosition: number;
-    newPosition: number;
-  },
-  Promise<void>
-> = async (ctx, authentication, params) => {
-  const { page, canvasPosition, currentPosition, newPosition } = params;
-
-  const contentLinks = await getEntityOutgoingLinks(ctx, authentication, {
-    entityId: page.entity.metadata.recordId.entityId,
-    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.contains.schema.$id,
-  });
-
-  if (currentPosition < 0 || currentPosition >= contentLinks.length) {
-    throw new UserInputError(
-      `invalid currentPosition: ${params.currentPosition}`,
-    );
-  }
-  if (newPosition < 0 || newPosition >= contentLinks.length) {
-    throw new UserInputError(`invalid newPosition: ${params.newPosition}`);
-  }
-
-  const linkEntity = contentLinks.find(
-    ({ linkData }) => linkData.leftToRightOrder === currentPosition,
-  );
-
-  if (!linkEntity) {
-    throw new Error(
-      `Critical: could not find contents link with index ${currentPosition} for page with entityId ${page.entity.metadata.recordId.entityId}`,
-    );
-  }
-
-  await updateLinkEntity(ctx, authentication, {
-    properties: {
-      ...linkEntity.properties,
-      ...canvasPosition,
-    },
-    linkEntity,
-    leftToRightOrder: newPosition,
-  });
-};
-
-/**
- * Remove a block from the page.
- *
- * @param params.page - the page
- * @param params.position - the position of the block being removed
- * @param params.actorId - the id of the account that is removing the block
- * @param params.allowRemovingFinal (optional) - whether or not removing the final block in the page should be permitted (defaults to `true`)
- */
-export const removeBlockFromPage: ImpureGraphFunction<
-  {
-    page: Page;
-    position: number;
-
-    allowRemovingFinal?: boolean;
-  },
-  Promise<void>
-> = async (ctx, authentication, params) => {
-  const { page, allowRemovingFinal = false, position } = params;
-
-  const contentLinkEntities = await getEntityOutgoingLinks(
-    ctx,
-    authentication,
-    {
-      entityId: page.entity.metadata.recordId.entityId,
-      linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.contains.schema.$id,
-    },
-  );
-
-  /**
-   * @todo currently the count of outgoing links are not the best indicator of a valid position
-   *   as page saving could assume index positions higher than the number of blocks.
-   *   Ideally we'd be able to atomically rearrange all blocks as we're removing/adding blocks.
-   *   see: https://app.asana.com/0/1200211978612931/1203031430417465/f
-   */
-
-  const linkEntity = contentLinkEntities.find(
-    (contentLinkEntity) =>
-      contentLinkEntity.linkData.leftToRightOrder === position,
-  );
-
-  if (!linkEntity) {
-    throw new Error(
-      `Critical: could not find contents link with index ${position} for page with entity ID ${page.entity.metadata.recordId.entityId}`,
-    );
-  }
-
-  if (!allowRemovingFinal && contentLinkEntities.length === 1) {
-    throw new Error("Cannot remove final block from page");
-  }
-
-  await archiveEntity(ctx, authentication, { entity: linkEntity });
-};
-
-/**
  * Get the comments in this page's blocks.
  *
  * @param params.page - the page
  */
 export const getPageComments: ImpureGraphFunction<
   { pageEntityId: EntityId },
-  Promise<Comment[]>
+  Promise<Comment[]>,
+  false,
+  true
 > = async (ctx, authentication, { pageEntityId }) => {
   const blocks = await getPageBlocks(ctx, authentication, {
     pageEntityId,
+    type: "document", // @todo this will need updating to implement commenting on canvas pages
   });
 
   const comments = await Promise.all(

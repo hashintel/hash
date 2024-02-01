@@ -4,7 +4,7 @@
     "allowJs": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["dom", "es2020"],
+    "lib": ["dom", "es2022"],
     "module": "commonjs",
     "moduleResolution": "node",
     "noUncheckedIndexedAccess": true,
@@ -15,7 +15,6 @@
     "baseUrl": ".",
     "paths": {
       "@local/hash-backend-utils/*": ["../hash-backend-utils/src/*"],
-      "@local/hash-graphql-shared/*": ["../hash-graphql-shared/src/*"],
       "@local/hash-isomorphic-utils/*": ["../hash-isomorphic-utils/src/*"]
     }
   },

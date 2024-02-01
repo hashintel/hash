@@ -1,5 +1,5 @@
 import createEmotionServer from "@emotion/server/create-instance";
-import { createEmotionCache } from "@hashintel/design-system";
+import { createEmotionCache } from "@hashintel/design-system/theme";
 import NextDocument, { Head, Html, Main, NextScript } from "next/document";
 import { Children } from "react";
 
@@ -53,6 +53,7 @@ Document.getInitialProps = async (ctx) => {
 
   ctx.renderPage = () =>
     originalRenderPage({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       enhanceApp: (App: any) =>
         function EnhanceApp(props) {
           return <App emotionCache={cache} {...props} />;

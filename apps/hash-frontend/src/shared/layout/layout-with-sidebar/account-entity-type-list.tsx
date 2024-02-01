@@ -1,6 +1,6 @@
 import { IconButton } from "@hashintel/design-system";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
-import { Box, Collapse, Tooltip } from "@mui/material";
+import { Box, Collapse, Fade, Tooltip } from "@mui/material";
 import { orderBy } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useMemo, useState } from "react";
@@ -18,6 +18,7 @@ import {
   SortType,
 } from "./account-entity-type-list/sort-actions-dropdown";
 import { NavLink } from "./nav-link";
+import { LoadingSkeleton } from "./shared/loading-skeleton";
 import { ViewAllLink } from "./view-all-link";
 
 type AccountEntityTypeListProps = {
@@ -27,6 +28,7 @@ type AccountEntityTypeListProps = {
 export const AccountEntityTypeList: FunctionComponent<
   AccountEntityTypeListProps
 > = ({ ownedById }) => {
+  const [expanded, setExpanded] = useState<boolean>(false);
   const [sortType, setSortType] = useState<SortType>("asc");
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -35,19 +37,19 @@ export const AccountEntityTypeList: FunctionComponent<
     popupId: "type-sort-actions-menu",
   });
 
-  const allEntityTypes = useLatestEntityTypesOptional();
+  const { latestEntityTypes, loading } = useLatestEntityTypesOptional();
 
   const accountEntityTypes = useMemo(() => {
-    if (allEntityTypes) {
-      return allEntityTypes.filter(
+    if (latestEntityTypes) {
+      return latestEntityTypes.filter(
         (root) =>
           isOwnedOntologyElementMetadata(root.metadata) &&
-          root.metadata.custom.ownedById === ownedById,
+          root.metadata.ownedById === ownedById,
       );
     }
 
     return null;
-  }, [allEntityTypes, ownedById]);
+  }, [latestEntityTypes, ownedById]);
 
   // todo: handle search server side
   const filteredEntityTypes = useMemo(() => {
@@ -72,32 +74,36 @@ export const AccountEntityTypeList: FunctionComponent<
   return (
     <Box>
       <NavLink
+        expanded={expanded}
+        toggleExpanded={() => setExpanded((prev) => !prev)}
         title="Types"
         endAdornment={
           <Box display="flex" gap={1}>
-            <Tooltip title="Sort types" placement="top">
-              <IconButton
-                {...bindTrigger(sortActionsPopupState)}
-                size="small"
-                unpadded
-                rounded
-                sx={({ palette }) => ({
-                  color: palette.gray[80],
-                  ...(sortActionsPopupState.isOpen && {
-                    backgroundColor: palette.gray[30],
-                  }),
-                  svg: {
-                    fontSize: 13,
-                  },
-                })}
-              >
-                {sortType === "asc" ? (
-                  <ArrowDownAZRegularIcon />
-                ) : (
-                  <ArrowUpZARegularIcon />
-                )}
-              </IconButton>
-            </Tooltip>
+            <Fade in={expanded}>
+              <Tooltip title="Sort types" placement="top">
+                <IconButton
+                  {...bindTrigger(sortActionsPopupState)}
+                  size="small"
+                  unpadded
+                  rounded
+                  sx={({ palette }) => ({
+                    color: palette.gray[80],
+                    ...(sortActionsPopupState.isOpen && {
+                      backgroundColor: palette.gray[30],
+                    }),
+                    svg: {
+                      fontSize: 13,
+                    },
+                  })}
+                >
+                  {sortType === "asc" ? (
+                    <ArrowDownAZRegularIcon />
+                  ) : (
+                    <ArrowUpZARegularIcon />
+                  )}
+                </IconButton>
+              </Tooltip>
+            </Fade>
             <SortActionsDropdown
               popupState={sortActionsPopupState}
               setSortType={setSortType}
@@ -123,16 +129,17 @@ export const AccountEntityTypeList: FunctionComponent<
         }
       >
         <Box component="ul">
-          <TransitionGroup>
-            {filteredEntityTypes.map((root) => (
-              <Collapse key={root.schema.$id}>
-                <EntityTypeItem
-                  title={root.schema.title}
-                  entityTypeId={root.schema.$id}
-                />
-              </Collapse>
-            ))}
-          </TransitionGroup>
+          {loading && filteredEntityTypes.length === 0 ? (
+            <LoadingSkeleton />
+          ) : (
+            <TransitionGroup>
+              {filteredEntityTypes.map((root) => (
+                <Collapse key={root.schema.$id}>
+                  <EntityTypeItem entityType={root} variant="entity-type" />
+                </Collapse>
+              ))}
+            </TransitionGroup>
+          )}
           <Box
             tabIndex={0}
             component="li"
@@ -141,7 +148,6 @@ export const AccountEntityTypeList: FunctionComponent<
               alignItems: "center",
               mx: 0.5,
               minHeight: 36,
-              my: 0.25,
               borderRadius: "4px",
               // "&:hover": {
               //   backgroundColor: palette.gray[20],

@@ -68,7 +68,6 @@ Secret environment should be provided in HashiCorp Vault. These are expected in 
       "shortname": "instance-admin"
     }
   ],
-  "hash_system_user_password": "changeme",
   "kratos_api_key": "changeme",
   "kratos_secrets_cipher": "32-LONG-SECRET-NOT-SECURE-AT-ALL",
   "kratos_secrets_cookie": "changeme",
@@ -141,7 +140,7 @@ $ docker run --rm \
   -e HASH_GRAPH_PG_HOST=localhost \
   -e HASH_GRAPH_PG_PORT=5554 \
   -e HASH_GRAPH_PG_DATABASE=graph \
-  -e RUST_LOG=debug \
+  -e HASH_GRAPH_LOG_LEVEL=debug \
   000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-graphecr:latest \
   migrate
 ..
@@ -229,10 +228,6 @@ To build and push the temporal workers you may use these commands:
 $ # AI Typescript worker
 $ DOCKER_BUILDKIT=1 docker build . -f ./apps/hash-ai-worker-ts/docker/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkeraits:latest
 $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkeraits:latest
-..
-$ # AI Python worker
-$ DOCKER_BUILDKIT=1 docker build . -f ./apps/hash-ai-worker-py/docker/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkeraipy:latest
-$ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkeraipy:latest
 ..
 $ # Integration worker
 $ DOCKER_BUILDKIT=1 docker build . -f ./apps/hash-integration-worker/docker/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkerintegration:latest
@@ -324,7 +319,7 @@ $ docker run --rm \
   -e HASH_GRAPH_PG_HOST=$HASH_PG_HOST \
   -e HASH_GRAPH_PG_PORT=$HASH_PG_PORT \
   -e HASH_GRAPH_PG_DATABASE \
-  -e RUST_LOG=info \
+  -e HASH_GRAPH_LOG_LEVEL=info \
   hash-graph \
   migrate
 ..

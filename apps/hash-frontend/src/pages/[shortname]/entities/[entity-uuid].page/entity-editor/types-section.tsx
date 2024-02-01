@@ -16,7 +16,8 @@ import { useEntityEditor } from "./entity-editor-context";
 import { EntityTypeUpdateModal } from "./types-section/entity-type-update-modal";
 
 export const TypesSection = () => {
-  const { entitySubgraph, refetch, readonly } = useEntityEditor();
+  const { entitySubgraph, replaceWithLatestDbVersion, readonly } =
+    useEntityEditor();
 
   const entity = getRoots(entitySubgraph)[0]!;
   const { updateEntity } = useBlockProtocolUpdateEntity();
@@ -92,7 +93,7 @@ export const TypesSection = () => {
       });
 
       if (res.data) {
-        await refetch();
+        await replaceWithLatestDbVersion();
         setNewVersion(undefined);
       }
     } finally {
@@ -113,11 +114,11 @@ export const TypesSection = () => {
       <Box display="flex" gap={2}>
         <TypeCard
           LinkComponent={Link}
-          url={entityTypeBaseUrl}
+          url={entityTypeId}
           title={entityTypeTitle}
           version={currentVersion}
           newVersionConfig={
-            newVersion
+            !readonly && newVersion
               ? {
                   newVersion,
                   onUpdateVersion: openModal,

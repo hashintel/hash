@@ -12,20 +12,34 @@
     }
   },
   "scripts": {
-    "build": "echo to build the graph please follow the instructions in the README. This script is here to help orchestrate Turborepo.",
-    "build:docker": "docker buildx build --build-arg PROFILE=dev --tag hash-graph --file docker/Dockerfile ../../",
-    "build:docker:offline": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_TYPE_FETCHER=no --tag hash-graph --file docker/Dockerfile ../../",
-    "build:docker:prod": "docker buildx build --build-arg PROFILE=production --tag hash-graph --tag hash-graph:prod --file docker/Dockerfile ../../",
-    "build:docker:test": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_TEST_SERVER=yes --tag hash-graph --tag hash-graph:test --file docker/Dockerfile ../../",
+    "build:docker": "docker buildx build --build-arg PROFILE=dev --tag hash-graph --file docker/Dockerfile ../../ --load",
+    "build:docker:offline": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_TYPE_FETCHER=no --tag hash-graph --file docker/Dockerfile ../../ --load",
+    "build:docker:prod": "docker buildx build --build-arg PROFILE=production --tag hash-graph --tag hash-graph:prod --file docker/Dockerfile ../../ --load",
+    "build:docker:test": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_TEST_SERVER=yes --tag hash-graph --tag hash-graph:test --file docker/Dockerfile ../../ --load",
     "codegen:generate-openapi-specs": "just generate-openapi-specs",
-    "exe": "ts-node"
+    "dev": "cargo run --bin hash-graph --all-features -- server",
+    "dev:test-server": "cargo run --bin hash-graph --all-features -- test-server --api-port 4001",
+    "exe": "ts-node",
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy",
+    "reset-database": "httpyac send --all tests/reset-database.http",
+    "test:integration": "just test-integration",
+    "test:unit": "just test-unit"
   },
   "dependencies": {
-    "@local/status": "0.0.0-private",
+    "@local/codec-rs": "0.0.0-private",
+    "@local/hash-authorization-rs": "0.0.0-private",
+    "@local/hash-graph-types-rs": "0.0.0-private",
+    "@local/hash-validation-rs": "0.0.0-private",
+    "@local/status-rust": "0.0.0-private",
+    "@local/temporal-client-rs": "0.0.0-private",
+    "@local/temporal-versioning-rs": "0.0.0-private",
+    "@local/tracing-rs": "0.0.0-private",
     "ts-node": "10.9.1"
   },
   "devDependencies": {
-    "httpyac": "6.6.5",
+    "@tests/hash-graph-test-data-rs": "0.0.0-private",
+    "httpyac": "6.11.1",
     "quicktype": "^16.0.43",
     "typescript": "5.1.6"
   }

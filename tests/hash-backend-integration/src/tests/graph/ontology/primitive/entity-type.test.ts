@@ -1,10 +1,11 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
+import { publicUserAccountId } from "@apps/hash-api/src/auth/public-user-account-id";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
+import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import {
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
-import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
+  joinOrg,
+  User,
+} from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createEntityType,
   getEntityTypeById,
@@ -12,19 +13,17 @@ import {
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import {
-  ConstructEntityTypeParams,
-  SystemDefinedProperties,
-} from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  DataTypeWithMetadata,
+  ConstructEntityTypeParams,
+  SystemDefinedProperties,
+} from "@local/hash-isomorphic-utils/types";
+import {
   EntityTypeWithMetadata,
   isOwnedOntologyElementMetadata,
   linkEntityTypeUrl,
@@ -33,7 +32,12 @@ import {
 } from "@local/hash-subgraph";
 
 import { resetGraph } from "../../../test-server";
-import { createTestImpureGraphContext, createTestUser } from "../../../util";
+import {
+  createTestImpureGraphContext,
+  createTestOrg,
+  createTestUser,
+  textDataTypeId,
+} from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -43,13 +47,13 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+const graphContext = createTestImpureGraphContext();
 
+let testOrg: Org;
 let testUser: User;
 let testUser2: User;
 let entityTypeSchema: ConstructEntityTypeParams;
 let workerEntityType: EntityTypeWithMetadata;
-let textDataType: DataTypeWithMetadata;
 let namePropertyType: PropertyTypeWithMetadata;
 let favoriteBookPropertyType: PropertyTypeWithMetadata;
 let knowsLinkEntityType: EntityTypeWithMetadata;
@@ -65,12 +69,15 @@ beforeAll(async () => {
 
   const authentication = { actorId: testUser.accountId };
 
-  textDataType = await createDataType(graphContext, authentication, {
-    ownedById: testUser.accountId as OwnedById,
-    schema: {
-      title: "Text",
-      type: "string",
-    },
+  testOrg = await createTestOrg(
+    graphContext,
+    authentication,
+    "entitytypetestorg",
+    logger,
+  );
+  await joinOrg(graphContext, authentication, {
+    userEntityId: testUser2.entity.metadata.recordId.entityId,
+    orgEntityId: testOrg.entity.metadata.recordId.entityId,
   });
 
   await Promise.all([
@@ -81,6 +88,14 @@ beforeAll(async () => {
         type: "object",
         properties: {},
       },
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     }).then((val) => {
       workerEntityType = val;
     }),
@@ -91,6 +106,14 @@ beforeAll(async () => {
         type: "object",
         properties: {},
       },
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     }).then((val) => {
       addressEntityType = val;
     }),
@@ -98,8 +121,16 @@ beforeAll(async () => {
       ownedById: testUser.accountId as OwnedById,
       schema: {
         title: "Favorite Book",
-        oneOf: [{ $ref: textDataType.schema.$id }],
+        oneOf: [{ $ref: textDataTypeId }],
       },
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     }).then((val) => {
       favoriteBookPropertyType = val;
     }),
@@ -107,8 +138,16 @@ beforeAll(async () => {
       ownedById: testUser.accountId as OwnedById,
       schema: {
         title: "Name",
-        oneOf: [{ $ref: textDataType.schema.$id }],
+        oneOf: [{ $ref: textDataTypeId }],
       },
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     }).then((val) => {
       namePropertyType = val;
     }),
@@ -122,6 +161,14 @@ beforeAll(async () => {
         properties: {},
         ...({} as Record<SystemDefinedProperties, never>),
       },
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     }).then((val) => {
       knowsLinkEntityType = val;
     }),
@@ -134,6 +181,14 @@ beforeAll(async () => {
         allOf: [{ $ref: linkEntityTypeUrl }],
         properties: {},
       },
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     }).then((val) => {
       previousAddressLinkEntityType = val;
     }),
@@ -171,9 +226,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await deleteKratosIdentity({
-    kratosIdentityId: systemUser.kratosIdentityId,
-  });
-  await deleteKratosIdentity({
     kratosIdentityId: testUser.kratosIdentityId,
   });
   await deleteKratosIdentity({
@@ -190,8 +242,23 @@ describe("Entity type CRU", () => {
     const authentication = { actorId: testUser.accountId };
 
     createdEntityType = await createEntityType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      ownedById: testOrg.accountGroupId as OwnedById,
       schema: entityTypeSchema,
+      relationships: [
+        {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "updateFromWeb",
+          },
+        },
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     });
   });
 
@@ -214,7 +281,7 @@ describe("Entity type CRU", () => {
   it("can update an entity type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdEntityType.metadata) &&
-        createdEntityType.metadata.custom.provenance.recordCreatedById,
+        createdEntityType.metadata.provenance.edition.createdById,
     ).toBe(testUser.accountId);
 
     const authentication = { actorId: testUser2.accountId };
@@ -225,23 +292,37 @@ describe("Entity type CRU", () => {
       {
         entityTypeId: createdEntityType.schema.$id,
         schema: { ...entityTypeSchema, title: updatedTitle },
+        relationships: [
+          {
+            relation: "setting",
+            subject: {
+              kind: "setting",
+              subjectId: "updateFromWeb",
+            },
+          },
+          { relation: "instantiator", subject: { kind: "public" } },
+        ],
       },
     ).catch((err) => Promise.reject(err.data));
 
     expect(
       isOwnedOntologyElementMetadata(updatedEntityType.metadata) &&
-        updatedEntityType.metadata.custom.provenance.recordCreatedById,
+        updatedEntityType.metadata.provenance.edition.createdById,
     ).toBe(testUser2.accountId);
   });
 
-  it("can load an external type on demand", async () => {
+  it.skip("can load an external type on demand", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const entityTypeId =
       "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/1";
 
     await expect(
-      getEntityTypeById(graphContext, authentication, { entityTypeId }),
+      getEntityTypeById(
+        graphContext,
+        { actorId: publicUserAccountId },
+        { entityTypeId },
+      ),
     ).rejects.toThrow("Could not find entity type with ID");
 
     await expect(

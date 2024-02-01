@@ -1,16 +1,12 @@
-import { LinkEntityAndRightEntity } from "@blockprotocol/graph/.";
+import { LinkEntityAndRightEntity } from "@blockprotocol/graph";
 import {
   type BlockComponent,
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
 import { EditableField, GetHelpLink } from "@hashintel/block-design-system";
-import {
-  Button,
-  faPlus,
-  FontAwesomeIcon,
-  theme,
-} from "@hashintel/design-system";
+import { Button, faPlus, FontAwesomeIcon } from "@hashintel/design-system";
+import { theme } from "@hashintel/design-system/theme";
 import {
   Card,
   Collapse,

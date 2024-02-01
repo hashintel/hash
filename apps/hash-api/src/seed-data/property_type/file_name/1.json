@@ -1,0 +1,12 @@
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+  "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/v/1",
+  "kind": "propertyType",
+  "title": "File Name",
+  "description": "The name of a file.",
+  "oneOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+    }
+  ]
+}

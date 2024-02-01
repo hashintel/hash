@@ -1,10 +1,10 @@
-import { Subgraph } from "@blockprotocol/graph/.";
+import { Subgraph } from "@blockprotocol/graph";
 import {
   type BlockComponent,
   useEntitySubgraph,
 } from "@blockprotocol/graph/react";
 import { getOutgoingLinkAndTargetEntities } from "@blockprotocol/graph/stdlib";
-import { theme } from "@hashintel/design-system";
+import { theme } from "@hashintel/design-system/theme";
 import { ThemeProvider } from "@mui/material";
 import { useMemo, useState } from "react";
 

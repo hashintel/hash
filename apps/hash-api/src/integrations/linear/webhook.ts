@@ -1,11 +1,25 @@
 import crypto from "node:crypto";
 
 import { tupleIncludes } from "@local/advanced-types/includes";
-import { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-workflow-types";
-import { OwnedById } from "@local/hash-subgraph";
+import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import {
+  supportedLinearTypes,
+  WorkflowTypeMap,
+} from "@local/hash-backend-utils/temporal-workflow-types";
+import {
+  extractEntityUuidFromEntityId,
+  OwnedById,
+  Uuid,
+} from "@local/hash-subgraph";
 import { RequestHandler } from "express";
 
-import { publicUserAccountId } from "../../graphql/context";
+import { ImpureGraphContext } from "../../graph/context-types";
+import {
+  getAllLinearIntegrationsWithLinearOrgId,
+  getSyncedWorkspacesForLinearIntegration,
+} from "../../graph/knowledge/system-types/linear-integration-entity";
+import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret";
+import { systemAccountId } from "../../graph/system-account";
 import { logger } from "../../logger";
 import { createTemporalClient } from "../../temporal";
 import { genId } from "../../util";
@@ -13,21 +27,22 @@ import { genId } from "../../util";
 type LinearWebhookPayload = {
   action: "create" | "update" | "delete";
   createdAt: string; // ISO timestamp when the action took place.
-  data?: any; // The serialized value of the subject entity.
+  data?: { id: string }; // The serialized value of the subject entity.
   organizationId: string;
   type: "Cycle" | "Issue" | "Project" | "Reaction" | "User";
   url: string; // The URL of the subject entity.
-  updatedFrom?: any; // an object containing the previous values of updated properties;
+  updatedFrom?: unknown; // an object containing the previous values of updated properties;
   webhookId: string;
   webhookTimestamp: number; // UNIX timestamp of webhook delivery in milliseconds.
 };
 
-// @todo upgrade to Express 5 which handles async controllers automatically
-// eslint-disable-next-line @typescript-eslint/no-misused-promises
-export const linearWebhook: RequestHandler<{}, string, string> = async (
-  req,
-  res,
-) => {
+export const linearWebhook: RequestHandler<
+  Record<string, never>,
+  string,
+  string
+  // @todo upgrade to Express 5 which handles async controllers automatically
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
+> = async (req, res) => {
   const secret = process.env.LINEAR_WEBHOOK_SECRET;
 
   if (!secret) {
@@ -48,42 +63,109 @@ export const linearWebhook: RequestHandler<{}, string, string> = async (
 
   const temporalClient = await createTemporalClient(logger);
 
-  if (!temporalClient) {
-    throw new Error(
-      "Cannot create Temporal client – are there missing environment variables?",
-    );
+  const organizationId = payload.organizationId;
+
+  if (!payload.data) {
+    res
+      .status(400)
+      .send(
+        `No data sent with ${payload.action} ${payload.type} webhook payload`,
+      );
+    return;
   }
+
+  const linearId = payload.data.id;
+
+  if (!linearId) {
+    res
+      .status(400)
+      .send(`No ID found in ${payload.action} ${payload.type} webhook payload`);
+    return;
+  }
+
+  const { graphApi, vaultClient } = req.context;
+
+  if (!vaultClient) {
+    return;
+  }
+
+  const linearBotAccountId = await getMachineActorId(
+    req.context,
+    { actorId: systemAccountId },
+    { identifier: "linear" },
+  );
+
+  const graphContext: ImpureGraphContext = { graphApi, temporalClient };
+
+  const linearIntegrations = await getAllLinearIntegrationsWithLinearOrgId(
+    graphContext,
+    { actorId: linearBotAccountId },
+    { linearOrgId: organizationId },
+  );
 
   if (
     tupleIncludes(["create", "update"], payload.action) &&
-    tupleIncludes(["Issue", "User"], payload.type)
+    tupleIncludes(supportedLinearTypes, payload.type)
   ) {
-    if (!payload.data) {
-      res
-        .status(400)
-        .send(
-          `No data sent with ${payload.action} ${payload.type} webhook payload`,
-        );
-      return;
-    }
+    const payloadAction = payload.action;
+    const linearType = payload.type;
 
-    const workflow =
-      `${payload.action}Hash${payload.type}` as const satisfies keyof WorkflowTypeMap;
-
-    await temporalClient.workflow.start<WorkflowTypeMap[typeof workflow]>(
-      workflow,
-      {
-        taskQueue: "integration",
-        args: [
+    await Promise.all(
+      linearIntegrations.map(async (linearIntegration) => {
+        const syncedWorkspaces = await getSyncedWorkspacesForLinearIntegration(
+          graphContext,
+          { actorId: linearBotAccountId },
           {
-            // @todo Use correct account IDs
-            authentication: { actorId: publicUserAccountId },
-            ownedById: publicUserAccountId as OwnedById,
-            payload: payload.data,
+            linearIntegrationEntityId:
+              linearIntegration.entity.metadata.recordId.entityId,
           },
-        ],
-        workflowId: `${workflow}-${genId()}`,
-      },
+        );
+
+        await Promise.all(
+          syncedWorkspaces.map(async (workspace) => {
+            /**
+             * @todo sync items from specific teams rather than syncing all items
+             *
+             * @see https://linear.app/hash/issue/H-1467/in-the-linear-webhook-only-sync-items-from-specific-teams-rather-than
+             */
+
+            const hashWorkspaceEntityId =
+              workspace.workspaceEntity.metadata.recordId.entityId;
+
+            const ownedById = extractEntityUuidFromEntityId(
+              hashWorkspaceEntityId,
+            ) as Uuid as OwnedById;
+
+            const workflow =
+              `${payloadAction}HashEntityFromLinearData` as const satisfies keyof WorkflowTypeMap;
+
+            const linearApiKey = await getLinearSecretValueByHashWorkspaceId(
+              graphContext,
+              { actorId: linearBotAccountId },
+              {
+                hashWorkspaceEntityId,
+                vaultClient,
+              },
+            );
+
+            await temporalClient.workflow.start<
+              WorkflowTypeMap[typeof workflow]
+            >(workflow, {
+              taskQueue: "integration",
+              args: [
+                {
+                  authentication: { actorId: linearBotAccountId },
+                  linearType,
+                  linearId,
+                  linearApiKey,
+                  ownedById,
+                },
+              ],
+              workflowId: `${workflow}-${genId()}`,
+            });
+          }),
+        );
+      }),
     );
   }
 

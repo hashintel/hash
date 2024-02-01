@@ -20,10 +20,7 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
       ...theme.typography.smallTextLabels,
 
       [`& .${listItemIconClasses.root}`]: {
-        color: theme.palette.gray[50],
         minWidth: "unset",
-        marginRight: 12,
-        alignItems: "flex-start",
       },
 
       [`& .${listItemAvatarClasses.root}`]: {

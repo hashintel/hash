@@ -11,23 +11,13 @@ runs:
   using: composite
 
   steps:
-    - uses: actions/setup-node@5e21ff4d9bc1a8cf6de233a3057d20ec6b3fb69d # v3.8.1
+    - uses: actions/setup-node@b39b52d1213e96004bfcb1c61a8a6fa8ab84f3e8 # v4.0.1
       with:
         node-version: 18 ## aligned with Node version on Vercel
         # cache: yarn ## Currently disabled because of frequent timeouts
 
-    - name: Install poetry
-      run: pipx install poetry
-      shell: bash
-
-    - name: Set up Python 3.11
-      uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4.7.0
-      with:
-        python-version: "^3.11"
-        cache: poetry
-
     - name: yarn install
-      uses: nick-fields/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd # v2.8.3
+      uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
       with:
         max_attempts: 3
         timeout_minutes: 10
@@ -38,7 +28,7 @@ runs:
 
     - name: npx playwright install
       if: ${{ inputs.playwright-deps != '' }}
-      uses: nick-fields/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd # v2.8.3
+      uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
       with:
         max_attempts: 3
         timeout_minutes: 10

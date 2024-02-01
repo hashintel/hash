@@ -515,6 +515,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::std_instead_of_alloc)] // Reason: `assert_serde_eq!` uses `std`
     fn serialize_single() {
         // simulates that we expected to receive `id` (of type int) at `.0.a.b`, but did not
         let report = Report::new(Error::new(MissingError))
@@ -552,6 +553,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::std_instead_of_alloc)] // Reason: `assert_serde_eq!` uses `std`
     fn serialize_multiple() {
         // simulates that we have two errors:
         // * ValueError: u8 @ `.0.a`, received 256
@@ -563,7 +565,7 @@ mod tests {
             .change_context(VisitorError);
 
         let value = Report::new(Error::new(ValueError))
-            .attach(ReceivedValue::new(256u16))
+            .attach(ReceivedValue::new(256_u16))
             .attach(ExpectedType::new(u8::reflection()))
             .attach(Location::Field("a"))
             .change_context(VisitorError);

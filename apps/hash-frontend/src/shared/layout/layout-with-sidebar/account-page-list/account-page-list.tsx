@@ -19,13 +19,12 @@ import {
 } from "@dnd-kit/sortable";
 import { IconButton } from "@hashintel/design-system";
 import {
-  AccountId,
   EntityUuid,
   extractEntityUuidFromEntityId,
   isEntityId,
   OwnedById,
 } from "@local/hash-subgraph";
-import { Box, Collapse, Tooltip } from "@mui/material";
+import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import {
   FunctionComponent,
   useCallback,
@@ -40,14 +39,14 @@ import { useArchivePage } from "../../../../components/hooks/use-archive-page";
 import { useCreatePage } from "../../../../components/hooks/use-create-page";
 import { useCreateSubPage } from "../../../../components/hooks/use-create-sub-page";
 import { useReorderPage } from "../../../../components/hooks/use-reorder-page";
-import { useWorkspaceShortnameByAccountId } from "../../../../components/hooks/use-workspace-shortname-by-account-id";
+import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { constructPageRelativeUrl } from "../../../../lib/routes";
 import { PlusRegularIcon } from "../../../icons/plus-regular";
 import { NavLink } from "../nav-link";
+import { LoadingSkeleton } from "../shared/loading-skeleton";
 import { ViewAllLink } from "../view-all-link";
 import { AccountPageListItem } from "./account-page-list-item";
 import { IDENTATION_WIDTH } from "./page-tree-item";
-import { PagesLoadingState } from "./pages-loading-state";
 import {
   getLastIndex,
   getProjection,
@@ -57,7 +56,7 @@ import {
 } from "./utils";
 
 type AccountPageListProps = {
-  accountId: AccountId;
+  ownedById: OwnedById;
   currentPageEntityUuid?: EntityUuid;
 };
 
@@ -69,21 +68,23 @@ const measuringConfig = {
 
 export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   currentPageEntityUuid,
-  accountId,
+  ownedById,
 }) => {
-  const { data, loading: pagesLoading } = useAccountPages(
-    accountId as OwnedById,
-  );
+  const { data, loading: pagesLoading } = useAccountPages(ownedById);
 
-  const { shortname: ownerShortname } = useWorkspaceShortnameByAccountId({
-    accountId,
+  const [expanded, setExpanded] = useState<boolean>(true);
+
+  const { shortname: ownerShortname } = useUserOrOrgShortnameByOwnedById({
+    ownedById,
   });
 
   const [createUntitledPage, { loading: createUntitledPageLoading }] =
-    useCreatePage(accountId as OwnedById);
-  const [createSubPage, { loading: createSubpageLoading }] = useCreateSubPage(
-    accountId as OwnedById,
-  );
+    useCreatePage({ ownedById, shortname: ownerShortname });
+
+  const [createSubPage, { loading: createSubpageLoading }] = useCreateSubPage({
+    ownedById,
+    shortname: ownerShortname,
+  });
   const [reorderPage, { loading: reorderLoading }] = useReorderPage();
   const { archivePage, loading: archivePageLoading } = useArchivePage();
 
@@ -119,7 +120,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     }
 
     try {
-      await createUntitledPage(getLastIndex(treeItems));
+      await createUntitledPage(getLastIndex(treeItems), "document");
     } catch (err) {
       // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error("Could not create page: ", err);
@@ -206,52 +207,91 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     if (projected && over) {
       const { depth, parentPageEntityId } = projected;
 
-      const clonedItems = [...treeItems];
-
-      const overIndex = clonedItems.findIndex(
-        ({ page }) => page.metadata.recordId.entityId === over.id,
-      );
-      const activeIndex = clonedItems.findIndex(
+      // The page that's being repositioned
+      const activePage = treeItems.find(
         ({ page }) => page.metadata.recordId.entityId === active.id,
       );
-      const activeTreeItem = clonedItems[activeIndex];
 
-      if (
-        activeTreeItem &&
-        (activeTreeItem.depth !== depth || active.id !== over.id)
-      ) {
-        clonedItems[activeIndex] = {
-          page: activeTreeItem.page,
-          depth,
-        };
+      // The page that's being dragged "over"
+      const overPage = treeItems.find(
+        ({ page }) => page.metadata.recordId.entityId === over.id,
+      );
 
-        const sortedItems = arrayMove(clonedItems, activeIndex, overIndex);
+      if (activePage && (activePage.depth !== depth || active.id !== over.id)) {
+        const activePageIndex = treeItems.findIndex(
+          ({ page }) => page.metadata.recordId.entityId === active.id,
+        );
 
-        const parentSortedItems = sortedItems.filter(
+        const overPageIndex = treeItems.findIndex(
+          ({ page }) => page.metadata.recordId.entityId === over.id,
+        );
+
+        const pagesWithParent = treeItems.filter(({ page }) =>
+          parentPageEntityId
+            ? page.parentPage?.metadata.recordId.entityId === parentPageEntityId
+            : !page.parentPage,
+        );
+
+        // The new sibling pages of the active page (i.e. all other pages with the same parent)
+        const siblingPages = pagesWithParent.filter(
           ({ page }) =>
-            page.parentPage?.metadata.recordId.entityId === parentPageEntityId,
+            page.metadata.recordId.entityId !==
+            activePage.page.metadata.recordId.entityId,
         );
 
-        const newIndex = parentSortedItems.findIndex(
-          ({ page }) => page.metadata.recordId.entityId === activeId,
+        const overPageLocalIndex = pagesWithParent.findIndex(
+          ({ page }) => page.metadata.recordId.entityId === over.id,
         );
 
-        const beforeIndex = parentSortedItems[newIndex - 1]?.page.index ?? null;
-        const afterIndex = parentSortedItems[newIndex + 1]?.page.index ?? null;
+        /**
+         * If the over page is at a lower depth than the active page, we want to
+         * insert the active page at the over page's index. Otherwise, we want to
+         * insert it before the over page's index.
+         */
+        const newIndex =
+          overPage && overPage.depth < activePage.depth
+            ? overPageLocalIndex
+            : overPageLocalIndex - 1;
+
+        const beforeFractionalIndex =
+          siblingPages[newIndex]?.page.fractionalIndex ?? null;
+
+        const afterFractionalIndex =
+          siblingPages[newIndex + 1]?.page.fractionalIndex ?? null;
 
         if (typeof active.id !== "string" || !isEntityId(active.id)) {
           throw new Error("Expected draggable element ID to be an `EntityId`");
         }
 
-        setTreeItems(sortedItems);
+        /**
+         * Manually construct the updated page tree so that the state can be
+         * updated immediately, without waiting for the API response.
+         */
+        const clonedTreeItems = [...treeItems];
+
+        const parentPage = treeItems.find(
+          ({ page }) => page.metadata.recordId.entityId === parentPageEntityId,
+        )?.page;
+
+        clonedTreeItems[activePageIndex] = {
+          page: { ...activePage.page, parentPage },
+          depth,
+        };
+
+        const sortedTreeItems = arrayMove(
+          clonedTreeItems,
+          activePageIndex,
+          overPageIndex,
+        );
+
+        setTreeItems(sortedTreeItems);
+
         reorderPage(
           active.id,
           parentPageEntityId,
-          beforeIndex,
-          afterIndex,
-        ).catch(() => {
-          setTreeItems(getTreeItemList(data));
-        });
+          beforeFractionalIndex,
+          afterFractionalIndex,
+        ).catch(() => setTreeItems(getTreeItemList(data)));
       }
     }
   };
@@ -270,14 +310,13 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           ? parentPage?.metadata.recordId.entityId === parentId
           : !parentPage,
       )
-      .map(({ page: { icon, metadata, title }, depth }) => {
+      .map(({ page: { icon, metadata, title, type }, depth }) => {
         const { entityId } = metadata.recordId;
 
-        const expanded =
+        const isPageExpanded =
           expandedPageIds.includes(entityId) && activeId !== entityId;
         const children = renderPageTree(treeItemList, entityId);
 
-        const expandable = !!children.length;
         const collapsed = collapsedPageIds.includes(entityId);
 
         const pageEntityUuid = extractEntityUuidFromEntityId(entityId);
@@ -287,6 +326,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             key={entityId}
             title={title}
             pageEntityId={entityId}
+            pageEntityTypeId={metadata.entityTypeId}
             icon={icon}
             pagePath={
               !ownerShortname
@@ -297,12 +337,11 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
                   })
             }
             depth={entityId === activeId && projected ? projected.depth : depth}
-            onCollapse={expandable ? () => handleToggle(entityId) : undefined}
+            onCollapse={() => handleToggle(entityId)}
             selected={
               currentPageEntityUuid === extractEntityUuidFromEntityId(entityId)
             }
-            expandable={expandable}
-            expanded={expanded}
+            expanded={isPageExpanded}
             collapsed={collapsed}
             createSubPage={async () => {
               if (loading) {
@@ -312,6 +351,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
               await createSubPage(
                 entityId,
                 getLastIndex(treeItemList, entityId),
+                type, // just make the subpage the same type as the parent (doc or canvas) for now
               );
 
               setExpandedPageIds((expandedIds) => {
@@ -329,11 +369,21 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         return (
           <Box key={entityId}>
             {item}
-            {expandable ? (
-              <Collapse key={`${entityId}-children`} in={expanded}>
-                {children}
-              </Collapse>
-            ) : null}
+            <Collapse key={`${entityId}-children`} in={isPageExpanded}>
+              {children.length > 0 ? (
+                children
+              ) : (
+                <Typography
+                  variant="smallTextLabels"
+                  sx={{
+                    color: ({ palette }) => palette.gray[60],
+                    paddingLeft: `${IDENTATION_WIDTH * depth + 28}px`,
+                  }}
+                >
+                  No sub-pages inside
+                </Typography>
+              )}
+            </Collapse>
           </Box>
         );
       });
@@ -355,15 +405,18 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         strategy={verticalListSortingStrategy}
       >
         <NavLink
+          expanded={expanded}
+          toggleExpanded={() => setExpanded((prev) => !prev)}
           title="Pages"
           loading={loading}
           endAdornment={
-            <Tooltip title="Create new Page">
+            <Tooltip title="Create new page">
               <IconButton
                 size="small"
                 unpadded
                 rounded
                 className="end-adornment-button"
+                data-testid="create-page-btn"
                 onClick={addPage}
                 sx={({ palette }) => ({
                   color: palette.gray[80],
@@ -375,7 +428,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           }
         >
           {pagesLoading ? (
-            <PagesLoadingState />
+            <LoadingSkeleton page />
           ) : (
             <Box sx={{ marginX: 0.75 }} data-testid="pages-tree">
               {renderPageTree(treeItems)}
@@ -383,10 +436,10 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
               <DragOverlay dropAnimation={null} />
             </Box>
           )}
+          <Box marginLeft={1} marginTop={0.5}>
+            <ViewAllLink href="/pages">View all pages</ViewAllLink>
+          </Box>
         </NavLink>
-        <ViewAllLink href="/pages" sx={{ marginLeft: 1 }}>
-          View all pages
-        </ViewAllLink>
       </SortableContext>
     </DndContext>
   );

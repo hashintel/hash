@@ -3,21 +3,25 @@ import {
   ENTITY_TYPE_META_SCHEMA,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
   EntityType,
+  EntityTypePermission,
   EntityTypeStructuralQuery,
+  ModifyRelationshipOperation,
   OntologyTemporalMetadata,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
-import { ConstructEntityTypeParams } from "@local/hash-graphql-shared/graphql/types";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
+  EntityTypeAuthorizationRelationship,
   EntityTypeMetadata,
+  EntityTypeRelationAndSubject,
   EntityTypeRootType,
   EntityTypeWithMetadata,
   linkEntityTypeUrl,
@@ -26,16 +30,61 @@ import {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 
-import { NotFoundError } from "../../../lib/error";
-import { ImpureGraphFunction } from "../..";
-import { getNamespaceOfAccountOwner } from "./util";
+import { ImpureGraphFunction } from "../../context-types";
+import { getWebShortname, isExternalTypeId } from "./util";
+
+export const getEntityTypeAuthorizationRelationships: ImpureGraphFunction<
+  { entityTypeId: VersionedUrl },
+  Promise<EntityTypeAuthorizationRelationship[]>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .getEntityTypeAuthorizationRelationships(actorId, params.entityTypeId)
+    .then(({ data }) =>
+      data.map(
+        (relationship) =>
+          ({
+            resource: { kind: "entityType", resourceId: params.entityTypeId },
+            ...relationship,
+          }) as EntityTypeAuthorizationRelationship,
+      ),
+    );
+
+export const modifyEntityTypeAuthorizationRelationships: ImpureGraphFunction<
+  {
+    operation: ModifyRelationshipOperation;
+    relationship: EntityTypeAuthorizationRelationship;
+  }[],
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.modifyEntityTypeAuthorizationRelationships(
+    actorId,
+    params.map(({ operation, relationship }) => ({
+      operation,
+      resource: relationship.resource.resourceId,
+      relationAndSubject: relationship,
+    })),
+  );
+};
+
+export const checkEntityTypePermission: ImpureGraphFunction<
+  { entityTypeId: VersionedUrl; permission: EntityTypePermission },
+  Promise<boolean>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .checkEntityTypePermission(actorId, params.entityTypeId, params.permission)
+    .then(({ data }) => data.has_permission);
 
 /**
  * Create an entity type.
  *
  * @param params.ownedById - the id of the account who owns the entity type
+ * @param [params.webShortname] – the shortname of the web that owns the entity type, if the web entity does not yet exist.
+ *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the ownedById.
  * @param params.schema - the `EntityType`
  * @param params.actorId - the id of the account that is creating the entity type
  */
@@ -43,20 +92,25 @@ export const createEntityType: ImpureGraphFunction<
   {
     ownedById: OwnedById;
     schema: ConstructEntityTypeParams;
-
     labelProperty?: BaseUrl;
+    icon?: string | null;
+    webShortname?: string;
+    relationships: EntityTypeRelationAndSubject[];
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, labelProperty } = params;
-  const namespace = await getNamespaceOfAccountOwner(ctx, authentication, {
-    ownerId: params.ownedById,
-  });
+  const { ownedById, labelProperty, icon, webShortname } = params;
+
+  const shortname =
+    webShortname ??
+    (await getWebShortname(ctx, authentication, {
+      accountOrAccountGroupId: ownedById,
+    }));
 
   const entityTypeId = generateTypeId({
-    namespace,
     kind: "entity-type",
     title: params.schema.title,
+    webShortname: shortname,
   });
 
   const schema = {
@@ -74,6 +128,8 @@ export const createEntityType: ImpureGraphFunction<
       ownedById,
       schema,
       labelProperty,
+      icon,
+      relationships: params.relationships,
     },
   );
 
@@ -87,13 +143,17 @@ export const createEntityType: ImpureGraphFunction<
  */
 export const getEntityTypes: ImpureGraphFunction<
   {
-    query: EntityTypeStructuralQuery;
+    query: Omit<EntityTypeStructuralQuery, "includeDrafts">;
   },
   Promise<Subgraph<EntityTypeRootType>>
 > = async ({ graphApi }, { actorId }, { query }) => {
   return await graphApi
-    .getEntityTypesByQuery(actorId, query)
-    .then(({ data: subgraph }) => subgraph as Subgraph<EntityTypeRootType>);
+    .getEntityTypesByQuery(actorId, { includeDrafts: false, ...query })
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(data);
+
+      return subgraph;
+    });
 };
 
 /**
@@ -134,7 +194,7 @@ export const getEntityTypeById: ImpureGraphFunction<
  * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
  */
 export const getEntityTypeSubgraphById: ImpureGraphFunction<
-  Omit<EntityTypeStructuralQuery, "filter"> & {
+  Omit<EntityTypeStructuralQuery, "filter" | "includeDrafts"> & {
     entityTypeId: VersionedUrl;
   },
   Promise<Subgraph<EntityTypeRootType>>
@@ -147,13 +207,14 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
     },
     graphResolveDepths,
     temporalAxes,
+    includeDrafts: false,
   };
 
   let subgraph = await getEntityTypes(context, authentication, {
     query,
   });
 
-  if (subgraph.roots.length === 0 && !entityTypeId.startsWith(frontendUrl)) {
+  if (subgraph.roots.length === 0 && isExternalTypeId(entityTypeId)) {
     await context.graphApi.loadExternalEntityType(authentication.actorId, {
       entityTypeId,
     });
@@ -177,12 +238,13 @@ export const updateEntityType: ImpureGraphFunction<
   {
     entityTypeId: VersionedUrl;
     schema: ConstructEntityTypeParams;
-
     labelProperty?: BaseUrl;
+    icon?: string | null;
+    relationships: EntityTypeRelationAndSubject[];
   },
   Promise<EntityTypeWithMetadata>
-> = async ({ graphApi }, authentication, params) => {
-  const { entityTypeId, schema, labelProperty } = params;
+> = async (ctx, authentication, params) => {
+  const { entityTypeId, schema, labelProperty, icon } = params;
   const updateArguments: UpdateEntityTypeRequest = {
     typeToUpdate: entityTypeId,
     schema: {
@@ -191,21 +253,25 @@ export const updateEntityType: ImpureGraphFunction<
       ...schema,
     },
     labelProperty,
+    icon,
+    relationships: params.relationships,
   };
 
-  const { data: metadata } = await graphApi.updateEntityType(
+  const { data: metadata } = await ctx.graphApi.updateEntityType(
     authentication.actorId,
     updateArguments,
   );
 
-  const { recordId } = metadata;
+  const newEntityTypeId = ontologyTypeRecordIdToVersionedUrl(
+    metadata.recordId as OntologyTypeRecordId,
+  );
 
   return {
     schema: {
       kind: "entityType",
       $schema: ENTITY_TYPE_META_SCHEMA,
       ...schema,
-      $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
+      $id: newEntityTypeId,
     },
     metadata: metadata as EntityTypeMetadata,
   };

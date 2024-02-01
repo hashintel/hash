@@ -1,8 +1,8 @@
 import { BlockMetadata, BlockVariant } from "@blockprotocol/core";
-import { VersionedUrl } from "@blockprotocol/type-system";
+import { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 
 /** @todo: might need refactor: https://github.com/hashintel/dev/pull/206#discussion_r723210329 */
-// eslint-disable-next-line global-require
+// eslint-disable-next-line global-require, @typescript-eslint/no-explicit-any
 const fetch = (globalThis as any).fetch ?? require("node-fetch");
 
 export interface HashBlockMeta extends BlockMetadata {
@@ -12,6 +12,7 @@ export interface HashBlockMeta extends BlockMetadata {
 
 export type HashBlock = {
   meta: HashBlockMeta;
+  schema?: EntityType | null;
 };
 
 export type ComponentIdHashBlockMap = Record<string, HashBlock>;
@@ -54,7 +55,6 @@ const configureAppReloadWhenBlockChanges = (
             window.location.reload();
           }
         } catch {
-          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need improvement
           reportProblem(`Could not parse socket message: ${data}`);
         }
       });
@@ -153,14 +153,16 @@ export const prepareBlockCache = (
 // @todo deal with errors, loading, abort etc.
 export const fetchBlock = async (
   componentId: string,
-  options?: { bustCache: boolean },
+  options: { useCachedData: boolean },
 ): Promise<HashBlock> => {
   const baseUrl = componentIdToUrl(componentId);
 
-  if (options?.bustCache) {
-    blockCache.delete(baseUrl);
+  const cachedPromise = blockCache.get(baseUrl);
+
+  if (options.useCachedData && cachedPromise) {
+    return cachedPromise;
   } else if (blockCache.has(baseUrl)) {
-    return blockCache.get(baseUrl)!;
+    blockCache.delete(baseUrl);
   }
 
   const promise = (async () => {
@@ -232,10 +234,15 @@ export const componentIdBase = `https://blockprotocol${
 
 export const paragraphBlockComponentId = `${componentIdBase}/blocks/hash/paragraph`;
 
-const textBlockComponentIds = new Set([
+const richTextBlockComponentIds = new Set([
   paragraphBlockComponentId,
   `${componentIdBase}/blocks/hash/heading`,
   `${componentIdBase}/blocks/hash/callout`,
+]);
+
+const componentIdsWithTextualContentProperty = new Set([
+  ...Array.from(richTextBlockComponentIds),
+  `${componentIdBase}/blocks/hash/code`,
 ]);
 
 /**
@@ -247,7 +254,7 @@ const textBlockComponentIds = new Set([
  *    we currently store this in localStorage - see UserBlocksProvider.
  */
 export const defaultBlockComponentIds = [
-  ...Array.from(textBlockComponentIds),
+  ...Array.from(richTextBlockComponentIds),
   `${componentIdBase}/blocks/hash/person`,
   `${componentIdBase}/blocks/hash/image`,
   `${componentIdBase}/blocks/hash/table`,
@@ -262,7 +269,10 @@ export const defaultBlockComponentIds = [
  * text block to another
  */
 export const isHashTextBlock = (componentId: string) =>
-  textBlockComponentIds.has(componentId);
+  richTextBlockComponentIds.has(componentId);
+
+export const isBlockWithTextualContentProperty = (componentId: string) =>
+  componentIdsWithTextualContentProperty.has(componentId);
 
 /**
  * In some places, we need to know if the current component and a target
@@ -278,5 +288,5 @@ export const areComponentsCompatible = (
   currentComponentId &&
   targetComponentId &&
   (currentComponentId === targetComponentId ||
-    (isHashTextBlock(currentComponentId) &&
-      isHashTextBlock(targetComponentId)));
+    (isBlockWithTextualContentProperty(currentComponentId) &&
+      isBlockWithTextualContentProperty(targetComponentId)));

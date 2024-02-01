@@ -38,7 +38,7 @@ impl StackLimit {
     }
 
     #[must_use]
-    pub const fn limit(&self) -> usize {
+    pub const fn limit(self) -> usize {
         self.0
     }
 }
@@ -76,10 +76,11 @@ pub struct Deserializer<'a, 'de> {
 }
 
 impl<'a, 'de> Deserializer<'a, 'de> {
+    #[must_use]
     pub fn new(slice: &'de [u8], context: &'a Context) -> Self {
         let limit = context
             .request_ref::<StackLimit>()
-            .map_or(usize::MAX, StackLimit::limit);
+            .map_or(usize::MAX, |limit| limit.limit());
 
         Self {
             tokenizer: Tokenizer::for_json_bytes(slice),
@@ -331,7 +332,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
                 .change_context(DeserializerError)),
             Some(PeekableTokenKind::Null) => {
                 // we know the value will be `null`, therefore we can just discard the next token
-                let _ = self.tokenizer.next();
+                _ = self.tokenizer.next();
 
                 visitor.visit_null().change_context(DeserializerError)
             }
@@ -348,7 +349,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         let is_map = match token {
             Some(PeekableTokenKind::Object) => {
                 // eat the token, so that we're at the key (that we need)
-                let _ = self.next();
+                _ = self.next();
                 true
             }
             Some(_) => false,
@@ -390,8 +391,8 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
                     value.extend_one(errors);
                     Err(value)
                 }
-                (Err(error), Ok(_)) | (Ok(_), Err(error)) => Err(error),
-                (Ok(value), Ok(_)) => Ok(value),
+                (Err(error), Ok(())) | (Ok(_), Err(error)) => Err(error),
+                (Ok(value), Ok(())) => Ok(value),
             }
         } else {
             visitor
@@ -403,7 +404,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
             if self.peek() == Some(PeekableTokenKind::ObjectEnd) {
                 // we can safely continue
                 // we know this won't error because parsing of `ObjectEnd` will never fail
-                let _ = self.next();
+                _ = self.next();
             } else {
                 // we have received multiple objects, error out
                 // make sure we close the object

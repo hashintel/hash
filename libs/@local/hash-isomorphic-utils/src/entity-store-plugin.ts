@@ -1,4 +1,10 @@
-import { EntityId, EntityPropertiesObject } from "@local/hash-subgraph";
+import { Block } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import {
+  EntityId,
+  EntityPropertiesObject,
+  OwnedById,
+  Timestamp,
+} from "@local/hash-subgraph";
 import { castDraft, Draft, produce } from "immer";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
@@ -6,7 +12,11 @@ import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
 
-import { BlockEntity, getEntityChildEntity, isTextEntity } from "./entity";
+import {
+  BlockEntity,
+  getEntityChildEntity,
+  isRichTextContainingEntity,
+} from "./entity";
 import {
   createEntityStore,
   DraftEntity,
@@ -15,6 +25,7 @@ import {
   getDraftEntityByEntityId,
   isBlockEntity,
   isDraftBlockEntity,
+  textualContentPropertyTypeBaseUrl,
 } from "./entity-store";
 import {
   ComponentNode,
@@ -75,7 +86,7 @@ export type EntityStorePluginAction = { received?: boolean } & (
   | {
       type: "newDraftEntity";
       payload: {
-        accountId: string;
+        ownedById: OwnedById;
         draftId: string;
         entityId: EntityId | null;
       };
@@ -200,11 +211,7 @@ const setBlockChildEntity = (
       targetEntity.metadata.recordId.entityId,
     );
     targetDraftEntity = {
-      metadata: {
-        recordId: {
-          entityId: targetEntity.metadata.recordId.entityId,
-        },
-      },
+      metadata: targetEntity.metadata,
       draftId: targetEntityDraftId,
       properties: targetEntity.properties,
       /** @todo use the actual updated date here https://app.asana.com/0/0/1203099452204542/f */
@@ -223,6 +230,7 @@ const setBlockChildEntity = (
   }
 
   // @todo sort out entity store types – search https://app.asana.com/0/0/1203099452204542/f
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   draftBlockEntity.blockChildEntity = targetDraftEntity as any;
 };
 
@@ -278,7 +286,9 @@ const entityStoreReducer = (
               draftEntity.componentId =
                 action.payload.blockEntityMetadata.componentId;
               draftEntity.blockChildEntity = action.payload.blockEntityMetadata
-                .blockChildEntity as any;
+                .blockChildEntity as Draft<
+                Block & { draftId?: string | undefined }
+              >;
             }
 
             if ("properties" in action.payload) {
@@ -293,6 +303,36 @@ const entityStoreReducer = (
                 );
               }
             }
+
+            const now = new Date().toISOString();
+
+            /**
+             * When we merge the updated entity store in from the API in createEntityStore, after a save,
+             * we compare the decision time of the local draft entities to that of the API-provided ones to see which to prefer.
+             * Although this is fragile and not a robust solution given the possibility of the API and the frontend having different clocks,
+             * it's better than nothing. We should instead have a proper collaborative server which manages document state.
+             * H-1234
+             */
+            draftEntity.metadata.temporalVersioning = {
+              decisionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: now as Timestamp,
+                },
+                end: {
+                  kind: "unbounded",
+                },
+              },
+              transactionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: now as Timestamp,
+                },
+                end: {
+                  kind: "unbounded",
+                },
+              },
+            };
           },
         );
       });
@@ -336,10 +376,37 @@ const entityStoreReducer = (
           draftState.trackedActions.push({ action, id: uuid() });
         }
 
+        const now = new Date().toISOString();
+
         draftState.store.draft[action.payload.draftId] = {
           metadata: {
+            archived: false,
+            // @todo use the Graph to create draft entities
+            //   see https://linear.app/hash/issue/H-1083/draft-entities
+            draft: false,
             recordId: {
               entityId: action.payload.entityId,
+              editionId: now,
+            },
+            temporalVersioning: {
+              decisionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: now as Timestamp,
+                },
+                end: {
+                  kind: "unbounded",
+                },
+              },
+              transactionTime: {
+                start: {
+                  kind: "inclusive",
+                  limit: now as Timestamp,
+                },
+                end: {
+                  kind: "unbounded",
+                },
+              },
             },
           },
           draftId: action.payload.draftId,
@@ -452,7 +519,7 @@ class ProsemirrorStateChangeHandler {
 
   constructor(
     private state: EditorState,
-    private accountId: string,
+    private ownedById: OwnedById,
   ) {
     this.tr = state.tr;
   }
@@ -583,21 +650,28 @@ class ProsemirrorStateChangeHandler {
     // and we'd like to update the child entity's text contents appropriately.
 
     if (
-      isTextEntity(childEntity) &&
+      isRichTextContainingEntity(childEntity) &&
       node.firstChild &&
       node.firstChild.firstChild &&
       // Check if the next entity node's child is a component node
       isComponentNode(node.firstChild.firstChild)
     ) {
-      const nextProps = textBlockNodeToEntityProperties(node.firstChild);
+      const nextTextProperties = textBlockNodeToEntityProperties(
+        node.firstChild,
+      );
 
-      if (!isEqual(childEntity.properties, nextProps)) {
+      if (
+        !isEqual(
+          childEntity.properties[textualContentPropertyTypeBaseUrl],
+          nextTextProperties[textualContentPropertyTypeBaseUrl],
+        )
+      ) {
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
-            merge: false,
+            merge: true,
             draftId: childEntity.draftId,
-            properties: nextProps,
+            properties: nextTextProperties,
           },
         });
       }
@@ -624,7 +698,7 @@ class ProsemirrorStateChangeHandler {
       addEntityStoreAction(this.state, this.tr, {
         type: "newDraftEntity",
         payload: {
-          accountId: this.accountId,
+          ownedById: this.ownedById,
           draftId,
           entityId: entityId ?? null,
         },
@@ -705,9 +779,9 @@ const scheduleNotifyEntityStoreSubscribers = collect<
 });
 
 export const createEntityStorePlugin = ({
-  accountId,
+  ownedById,
 }: {
-  accountId: string;
+  ownedById: OwnedById;
 }) => {
   const entityStorePlugin = new Plugin<EntityStorePluginState>({
     key: entityStorePluginKey,
@@ -753,7 +827,7 @@ export const createEntityStorePlugin = ({
         return;
       }
 
-      return new ProsemirrorStateChangeHandler(state, accountId).handleDoc();
+      return new ProsemirrorStateChangeHandler(state, ownedById).handleDoc();
     },
   });
   return entityStorePlugin;

@@ -1,12 +1,11 @@
 import { OntologyChip } from "@hashintel/design-system";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
-import { EntityPropertiesObject } from "@local/hash-subgraph";
-import { Typography } from "@mui/material";
+import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
 import { NextSeo } from "next-seo";
 import { ReactNode, useState } from "react";
 
 import { useSnackbar } from "../../../../components/hooks/use-snackbar";
-import { QUERY_PROPERTY_TYPE_BASE_URL } from "./create-entity-page";
 import { EntityEditor, EntityEditorProps } from "./entity-editor";
 import { EntityPageWrapper } from "./entity-page-wrapper";
 import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
@@ -14,18 +13,21 @@ import { QueryEditorPage } from "./query-editor-page";
 import { QueryEditorToggle } from "./query-editor-toggle";
 
 interface EntityEditorPageProps extends EntityEditorProps {
+  entity?: Entity;
   entityLabel: string;
   editBar: ReactNode;
   owner: string;
   entityUuid: string;
   isQueryEntity?: boolean;
   isDraft?: boolean;
+  isModifyingEntity?: boolean;
   handleSaveChanges: (
     overrideProperties?: EntityPropertiesObject,
   ) => Promise<void>;
 }
 
 export const EntityEditorPage = ({
+  entity,
   entityLabel,
   editBar,
   entityUuid,
@@ -33,10 +35,13 @@ export const EntityEditorPage = ({
   isDraft,
   isQueryEntity,
   handleSaveChanges,
+  isModifyingEntity,
   ...entityEditorProps
 }: EntityEditorPageProps) => {
   const [shouldShowQueryEditor, setShouldShowQueryEditor] = useState(true);
-  const snackbar = useSnackbar();
+  const { triggerSnackbar } = useSnackbar();
+
+  const { entitySubgraph, replaceWithLatestDbVersion } = entityEditorProps;
 
   return (
     <>
@@ -53,13 +58,13 @@ export const EntityEditorPage = ({
           mode={isDraft ? "create" : "edit"}
           handleSaveQuery={async (value) => {
             const properties = {
-              [QUERY_PROPERTY_TYPE_BASE_URL]: value,
+              [blockProtocolPropertyTypes.query.propertyTypeBaseUrl]: value,
             };
 
             await handleSaveChanges(properties);
 
             if (!isDraft) {
-              snackbar.success("Changes saved successfully");
+              triggerSnackbar.success("Changes saved successfully");
             }
           }}
           entityLabel={entityLabel}
@@ -71,35 +76,17 @@ export const EntityEditorPage = ({
         <EntityPageWrapper
           header={
             <EntityPageHeader
+              entity={entity}
+              entitySubgraph={entitySubgraph}
+              isModifyingEntity={isModifyingEntity}
+              /** @todo: figure out how to replace the entity in the form state directly */
+              onEntityUpdated={() => replaceWithLatestDbVersion()}
               entityLabel={entityLabel}
               editBar={editBar}
               chip={
                 <OntologyChip
                   domain={frontendDomain}
-                  path={
-                    <Typography>
-                      <Typography
-                        color={(theme) => theme.palette.blue[70]}
-                        component="span"
-                        fontWeight="bold"
-                      >
-                        {owner}
-                      </Typography>
-                      <Typography
-                        color={(theme) => theme.palette.blue[70]}
-                        component="span"
-                      >
-                        /entities/
-                      </Typography>
-                      <Typography
-                        color={(theme) => theme.palette.blue[70]}
-                        component="span"
-                        fontWeight="bold"
-                      >
-                        {entityUuid}
-                      </Typography>
-                    </Typography>
-                  }
+                  path={`${owner}/entities/${entityUuid}`}
                 />
               }
             />

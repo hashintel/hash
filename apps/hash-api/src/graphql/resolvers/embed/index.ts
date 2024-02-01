@@ -90,7 +90,7 @@ async function getEmbedResponse({
 
 export const embedCode: ResolverFn<
   Promise<Embed>,
-  {},
+  Record<string, never>,
   GraphQLContext,
   QueryEmbedCodeArgs
 > = async (_, { url, type }) => {

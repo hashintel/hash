@@ -2,9 +2,17 @@ FROM node:18.15-slim AS base
 
 WORKDIR /app
 
-RUN yarn global add turbo
+COPY package.json .
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends jq && \
+    rm -rf /var/lib/apt/lists/* && \
+    yarn global add "turbo@$(jq -r '.devDependencies.turbo' < package.json)"
 COPY . .
 RUN turbo prune --scope='@apps/hash-ai-worker-ts' --docker
+
+# Turbo isn't aware of our patches by default (it would be if we use Yarn 2+ or pnpm).
+# Therefore we manually add the patches to the pruned output to allow for the patches to be applied.
+COPY patches /app/out/full/patches
 
 FROM node:18.15-slim as installer
 
@@ -14,6 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends default-jre-hea
 
 COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
+COPY --from=base /app/out/full/patches patches
 
 RUN yarn install --frozen-lockfile --prefer-offline \
     && yarn cache clean
@@ -36,6 +45,9 @@ RUN apt-get update && \
     groupadd --system --gid 60000 hash && \
     useradd --system tsworker -G hash && \
     install -d -m 0775 -o tsworker -g hash /log
+
+RUN mkdir -p officeParserTemp/tempfiles && \
+    chown -R tsworker:hash officeParserTemp
 
 USER tsworker:hash
 ENV NODE_ENV production

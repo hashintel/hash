@@ -1,17 +1,18 @@
 import { gql } from "@apollo/client";
-
-import { subgraphFieldsFragment } from "../subgraph";
+import { subgraphFieldsFragment } from "@local/hash-isomorphic-utils/graphql/queries/subgraph";
 
 export const getPropertyTypeQuery = gql`
   query getPropertyType(
     $propertyTypeId: VersionedUrl!
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+    $includeArchived: Boolean = false
   ) {
     getPropertyType(
       propertyTypeId: $propertyTypeId
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
+      includeArchived: $includeArchived
     ) {
       ...SubgraphFields
     }
@@ -23,10 +24,14 @@ export const queryPropertyTypesQuery = gql`
   query queryPropertyTypes(
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+    $latestOnly: Boolean = true
+    $includeArchived: Boolean = false
   ) {
     queryPropertyTypes(
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
+      latestOnly: $latestOnly
+      includeArchived: $includeArchived
     ) {
       ...SubgraphFields
     }
@@ -54,5 +59,17 @@ export const updatePropertyTypeMutation = gql`
       propertyTypeId: $propertyTypeId
       updatedPropertyType: $updatedPropertyType
     )
+  }
+`;
+
+export const archivePropertyTypeMutation = gql`
+  mutation archivePropertyType($propertyTypeId: VersionedUrl!) {
+    archivePropertyType(propertyTypeId: $propertyTypeId)
+  }
+`;
+
+export const unarchivePropertyTypeMutation = gql`
+  mutation unarchivePropertyType($propertyTypeId: VersionedUrl!) {
+    unarchivePropertyType(propertyTypeId: $propertyTypeId)
   }
 `;

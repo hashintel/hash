@@ -1,8 +1,9 @@
-import { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   EntityPropertiesObject,
   extractEntityUuidFromEntityId,
-  OwnedById,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useRouter } from "next/router";
@@ -10,9 +11,8 @@ import { useContext, useState } from "react";
 
 import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { PageErrorState } from "../../../../components/page-error-state";
-import { generateEntityLabel } from "../../../../lib/entities";
 import { WorkspaceContext } from "../../../shared/workspace-context";
-import { EditBar } from "../../types/entity-type/[...slug-maybe-version].page/shared/edit-bar";
+import { EditBar } from "../../shared/edit-bar";
 import { EntityEditorPage } from "./entity-editor-page";
 import { EntityPageLoadingState } from "./entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
@@ -23,12 +23,6 @@ import { useDraftLinkState } from "./shared/use-draft-link-state";
 interface CreateEntityPageProps {
   entityTypeId: VersionedUrl;
 }
-
-/** @todo replace these with published system types */
-export const QUERY_ENTITY_TYPE_ID =
-  "http://localhost:3000/@alice/types/entity-type/query/v/2" as VersionedUrl;
-export const QUERY_PROPERTY_TYPE_BASE_URL =
-  "http://localhost:3000/@alice/types/property-type/query-object/" as BaseUrl;
 
 export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   const router = useRouter();
@@ -44,10 +38,10 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   const [draftEntitySubgraph, setDraftEntitySubgraph, loading] =
     useDraftEntitySubgraph(entityTypeId);
 
-  const { activeWorkspace, activeWorkspaceAccountId } =
+  const { activeWorkspace, activeWorkspaceOwnedById } =
     useContext(WorkspaceContext);
   const { createEntity } = useBlockProtocolCreateEntity(
-    (activeWorkspaceAccountId as OwnedById | undefined) ?? null,
+    activeWorkspaceOwnedById ?? null,
   );
 
   const [creating, setCreating] = useState(false);
@@ -85,7 +79,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       }
 
       await applyDraftLinkEntityChanges(
-        entity.metadata.recordId.entityId,
+        entity,
         draftLinksToCreate,
         draftLinksToArchive,
       );
@@ -110,7 +104,8 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   const entityLabel = generateEntityLabel(draftEntitySubgraph);
 
-  const isQueryEntity = entityTypeId === QUERY_ENTITY_TYPE_ID;
+  const isQueryEntity =
+    entityTypeId === blockProtocolEntityTypes.query.entityTypeId;
 
   return (
     <EntityEditorPage
@@ -133,6 +128,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       entityUuid="draft"
       owner={`@${activeWorkspace?.shortname}`}
       isQueryEntity={isQueryEntity}
+      isDirty
       isDraft
       handleSaveChanges={handleCreateEntity}
       setEntity={(entity) => {
@@ -144,7 +140,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       setDraftLinksToArchive={setDraftLinksToArchive}
       entitySubgraph={draftEntitySubgraph}
       readonly={false}
-      refetch={async () => {}}
+      replaceWithLatestDbVersion={async () => {}}
     />
   );
 };

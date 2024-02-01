@@ -3,7 +3,6 @@ import { faCopy } from "@fortawesome/free-regular-svg-icons";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import {
   faCheck,
-  fluidFontClassName,
   FontAwesomeIcon,
   IconButton,
   MenuItem,
@@ -11,6 +10,7 @@ import {
   OntologyChip,
   parseUrlForOntologyChip,
 } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 import {
   Box,
   Divider,
@@ -240,25 +240,6 @@ export const TypeMenuCell = ({
                 sx={{
                   cursor: "pointer",
                 }}
-                path={
-                  <>
-                    {ontology.path.split("/").map((part, idx, parts) => {
-                      const last = idx === parts.length - 1;
-                      return (
-                        // eslint-disable-next-line react/no-array-index-key
-                        <Fragment key={idx}>
-                          <Typography
-                            component="span"
-                            maxWidth={last ? "5ch" : "6ch"}
-                          >
-                            {part}
-                          </Typography>
-                          {last ? null : <>/</>}
-                        </Fragment>
-                      );
-                    })}
-                  </>
-                }
               />
             </Box>
           </NoMaxWidthTooltip>

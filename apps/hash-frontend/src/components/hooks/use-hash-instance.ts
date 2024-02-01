@@ -26,8 +26,7 @@ export const useHashInstance = (): {
     GetHashInstanceEntityQueryQuery,
     GetHashInstanceEntityQueryQueryVariables
   >(getHashInstanceEntityQuery, {
-    /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: "no-cache",
+    fetchPolicy: "cache-and-network",
   });
 
   const { hashInstanceEntity } = data ?? {};

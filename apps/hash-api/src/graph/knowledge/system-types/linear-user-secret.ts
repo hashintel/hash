@@ -1,22 +1,37 @@
 import {
+  EntityTypeMismatchError,
+  NotFoundError,
+} from "@local/hash-backend-utils/error";
+import {
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
+import { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountId,
   Entity,
   EntityId,
   EntityRootType,
   extractOwnedByIdFromEntityId,
+  OwnedById,
   splitEntityId,
-  Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import { VaultClient } from "../../../vault";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
-import { SYSTEM_TYPES } from "../../system-types";
+import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 
 export type LinearUserSecret = {
   connectionSourceName: string;
@@ -29,23 +44,18 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
   LinearUserSecret
 > = ({ entity }) => {
   if (
-    entity.metadata.entityTypeId !==
-    SYSTEM_TYPES.entityType.userSecret.schema.$id
+    entity.metadata.entityTypeId !== systemEntityTypes.userSecret.entityTypeId
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.user.schema.$id,
+      systemEntityTypes.userSecret.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
 
-  const connectionSourceName = entity.properties[
-    SYSTEM_TYPES.propertyType.connectionSourceName.metadata.recordId.baseUrl
-  ] as string;
-
-  const vaultPath = entity.properties[
-    SYSTEM_TYPES.propertyType.vaultPath.metadata.recordId.baseUrl
-  ] as string;
+  const { connectionSourceName, vaultPath } = simplifyProperties(
+    entity.properties as UserSecretProperties,
+  );
 
   return {
     connectionSourceName,
@@ -58,61 +68,66 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
  * Get a Linear user secret by the linear org ID
  */
 export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
-  { userAccountId: AccountId; linearOrgId: string },
+  { userAccountId: AccountId; linearOrgId: string; includeDrafts?: boolean },
   Promise<LinearUserSecret>
-> = async ({ graphApi }, { actorId }, { userAccountId, linearOrgId }) => {
+> = async ({ graphApi }, { actorId }, params) => {
+  const { userAccountId, linearOrgId, includeDrafts = false } = params;
+
   const entities = await graphApi
     .getEntitiesByQuery(actorId, {
-      filter: {
-        all: [
-          {
-            equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
-          },
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [
+                { path: ["ownedById"] },
+                { parameter: userAccountId as OwnedById },
+              ],
+            },
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.userSecret.entityTypeId,
+              { ignoreParents: true },
+            ),
+            generateVersionedUrlMatchingFilter(
+              systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
+              { ignoreParents: true, pathPrefix: ["incomingLinks"] },
+            ),
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.linearIntegration.entityTypeId,
               {
-                parameter: SYSTEM_TYPES.entityType.userSecret.schema.$id,
+                ignoreParents: true,
+                pathPrefix: ["incomingLinks", "leftEntity"],
               },
-            ],
-          },
-          {
-            equal: [
-              { path: ["incomingLinks", "type", "versionedUrl"] },
-              {
-                parameter:
-                  SYSTEM_TYPES.linkEntityType.usesUserSecret.schema.$id,
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["incomingLinks", "leftEntity", "type", "versionedUrl"] },
-              {
-                parameter: SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
-              },
-            ],
-          },
-          {
-            equal: [
-              {
-                path: [
-                  "incomingLinks",
-                  "leftEntity",
-                  "properties",
-                  SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId
-                    .baseUrl,
-                ],
-              },
-              { parameter: linearOrgId },
-            ],
-          },
-        ],
+            ),
+            {
+              equal: [
+                {
+                  path: [
+                    "incomingLinks",
+                    "leftEntity",
+                    "properties",
+                    extractBaseUrl(
+                      systemPropertyTypes.linearOrgId.propertyTypeId,
+                    ),
+                  ],
+                },
+                { parameter: linearOrgId },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data }) => getRoots(data as Subgraph<EntityRootType>));
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+      );
+
+      return getRoots(subgraph);
+    });
 
   if (entities.length > 1) {
     throw new Error(
@@ -139,48 +154,59 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
  */
 
 export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
-  { hashWorkspaceEntityId: EntityId; vaultClient: VaultClient },
+  {
+    hashWorkspaceEntityId: EntityId;
+    vaultClient: VaultClient;
+    includeDrafts?: boolean;
+  },
   Promise<string>
-> = async (context, authentication, { hashWorkspaceEntityId, vaultClient }) => {
+> = async (context, authentication, params) => {
+  const { hashWorkspaceEntityId, vaultClient, includeDrafts = false } = params;
   const [workspaceOwnedById, workspaceUuid] = splitEntityId(
     hashWorkspaceEntityId,
   );
 
   const linearIntegrationEntities = await context.graphApi
     .getEntitiesByQuery(authentication.actorId, {
-      filter: {
-        all: [
-          {
-            equal: [
-              { path: ["outgoingLinks", "type", "versionedUrl"] },
+      query: {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
               {
-                parameter:
-                  SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
+                ignoreParents: true,
+                pathPrefix: ["outgoingLinks"],
               },
-            ],
-          },
-          {
-            equal: [
-              { path: ["outgoingLinks", "rightEntity", "uuid"] },
-              {
-                parameter: workspaceUuid,
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["outgoingLinks", "rightEntity", "ownedById"] },
-              {
-                parameter: workspaceOwnedById,
-              },
-            ],
-          },
-        ],
+            ),
+            {
+              equal: [
+                { path: ["outgoingLinks", "rightEntity", "uuid"] },
+                {
+                  parameter: workspaceUuid,
+                },
+              ],
+            },
+            {
+              equal: [
+                { path: ["outgoingLinks", "rightEntity", "ownedById"] },
+                {
+                  parameter: workspaceOwnedById,
+                },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data }) => getRoots(data as Subgraph<EntityRootType>));
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+      );
+      return getRoots(subgraph);
+    });
 
   const integrationEntity = linearIntegrationEntities[0];
 
@@ -196,20 +222,22 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
     );
   }
 
+  const { linearOrgId } = simplifyProperties(
+    integrationEntity.properties as LinearIntegrationProperties,
+  );
+
   const secretEntity = await getLinearUserSecretByLinearOrgId(
     context,
     authentication,
     {
-      linearOrgId: integrationEntity.properties[
-        SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl
-      ] as string,
+      linearOrgId,
       userAccountId: extractOwnedByIdFromEntityId(
         integrationEntity.metadata.recordId.entityId,
-      ),
+      ) as AccountId,
     },
   );
 
-  const secret = await vaultClient.read({
+  const secret = await vaultClient.read<{ value: string }>({
     path: secretEntity.vaultPath,
     secretMountPath: "secret",
   });

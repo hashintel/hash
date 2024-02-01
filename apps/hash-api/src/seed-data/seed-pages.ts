@@ -1,12 +1,13 @@
 import { Logger } from "@local/hash-backend-utils/logger";
-import { AccountId, OwnedById } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 
-import { ImpureGraphContext } from "../graph";
+import { ImpureGraphContext } from "../graph/context-types";
 import {
   createPage,
   Page,
   setPageParentPage,
 } from "../graph/knowledge/system-types/page";
+import { AuthenticationContext } from "../graphql/authentication-context";
 
 export type PageDefinition = {
   title: string;
@@ -14,41 +15,43 @@ export type PageDefinition = {
 };
 
 export const seedPages = async (
+  authentication: AuthenticationContext,
   pageDefinitions: PageDefinition[],
-  owningActorId: AccountId,
+  ownedById: OwnedById,
   sharedParams: {
     logger: Logger;
-    context: ImpureGraphContext;
+    context: ImpureGraphContext<false, true>;
   },
   parentPage?: Page,
 ) => {
   const { context } = sharedParams;
-  const authentication = { actorId: owningActorId };
 
-  let prevIndex: string | undefined;
+  let prevFractionalIndex: string | undefined;
 
   for (const pageDefinition of pageDefinitions) {
     const newPage: Page = await createPage(context, authentication, {
-      ownedById: owningActorId as OwnedById,
+      ownedById,
       title: pageDefinition.title,
-      prevIndex,
+      prevFractionalIndex,
+      type: "document",
     });
 
     if (parentPage) {
       await setPageParentPage(context, authentication, {
         page: newPage,
         parentPage,
-        prevIndex: parentPage.index ?? null,
+        prevFractionalIndex: parentPage.fractionalIndex ?? null,
         nextIndex: null,
       });
     }
 
-    prevIndex = newPage.index;
+    prevFractionalIndex = newPage.fractionalIndex;
 
     if (pageDefinition.nestedPages) {
       await seedPages(
+        authentication,
         pageDefinition.nestedPages,
-        owningActorId,
+        ownedById,
         sharedParams,
         newPage,
       );

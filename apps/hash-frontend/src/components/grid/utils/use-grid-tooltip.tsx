@@ -90,11 +90,15 @@ export const useGridTooltip = (
           sx: {
             py: 0.75,
             px: 1.5,
-            backgroundColor: "gray.90",
+            backgroundColor: ({ palette }) => palette.gray[90],
           },
         }}
       >
-        <Typography textAlign="center" color="white">
+        <Typography
+          sx={{ fontSize: 13, fontWeight: 500, lineHeight: "18px" }}
+          textAlign="center"
+          color="white"
+        >
           {gridTooltip?.text}
         </Typography>
       </Popover>

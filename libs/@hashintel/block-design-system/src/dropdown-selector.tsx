@@ -1,3 +1,4 @@
+import { CaretDownSolidIcon, CheckIcon } from "@hashintel/design-system";
 import {
   Box,
   ListSubheader,
@@ -10,9 +11,6 @@ import {
   Typography,
 } from "@mui/material";
 import { ReactNode, useMemo, useState } from "react";
-
-import { CaretDownIcon } from "./icons/caret-down";
-import { CheckIcon } from "./icons/check";
 
 export interface Option<OptionId extends string = string> {
   id: OptionId;
@@ -61,7 +59,7 @@ const getSelectorItems = (options: Option[], value: string) =>
             },
           })}
         >
-          {active ? <CheckIcon /> : icon}
+          {active ? <CheckIcon sx={{ fontSize: 22 }} /> : icon}
         </Box>
 
         <Box>
@@ -228,7 +226,7 @@ export const DropdownSelector = <OptionId extends string = string>({
           },
         },
       }}
-      IconComponent={CaretDownIcon}
+      IconComponent={CaretDownSolidIcon}
       sx={[
         {
           background: "none !important",

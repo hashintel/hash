@@ -1,29 +1,36 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import {
+  AccountGroupId,
+  AccountId,
   Entity,
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
-  EntityTypeWithMetadata,
+  EntityRelationAndSubject,
   LinkData,
   OwnedById,
 } from "@local/hash-subgraph";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
-import { ImpureGraphFunction } from "../..";
-import { isEntityTypeLinkEntityType } from "../../ontology/primitive/entity-type";
+import { ImpureGraphFunction } from "../../context-types";
+import {
+  getEntityTypeById,
+  isEntityTypeLinkEntityType,
+} from "../../ontology/primitive/entity-type";
 import { getLatestEntityById } from "./entity";
+import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 
 export type CreateLinkEntityParams = {
   ownedById: OwnedById;
   properties?: EntityPropertiesObject;
-  linkEntityType: EntityTypeWithMetadata;
+  linkEntityTypeId: VersionedUrl;
+  owner?: AccountId | AccountGroupId;
+  draft?: boolean;
   leftEntityId: EntityId;
   leftToRightOrder?: number;
   rightEntityId: EntityId;
   rightToLeftOrder?: number;
-};
-
-export type LinkEntity = Entity & {
-  linkData: NonNullable<Entity["linkData"]>;
+  relationships: EntityRelationAndSubject[];
 };
 
 export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
@@ -33,7 +40,7 @@ export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
  * Create a link entity between a left and a right entity.
  *
  * @param params.ownedById - the id of the account who owns the new link entity
- * @param params.linkEntityType - the link entity type of the link entity
+ * @param params.linkEntityTypeId - the link entity type ID of the link entity
  * @param params.leftEntityId - the ID of the left entity
  * @param params.leftToRightOrder (optional) - the left to right order of the link entity
  * @param params.rightEntityId - the ID of the right entity
@@ -46,14 +53,23 @@ export const createLinkEntity: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const {
     ownedById,
-    linkEntityType,
+    linkEntityTypeId,
     leftEntityId,
     leftToRightOrder,
     rightEntityId,
     rightToLeftOrder,
     properties = {},
+    draft = false,
   } = params;
 
+  const linkEntityType = await getEntityTypeById(context, authentication, {
+    entityTypeId: linkEntityTypeId,
+  });
+
+  /**
+   * @todo: remove this check once it is made in the Graph API
+   * @see https://linear.app/hash/issue/H-972/validate-links-when-creatingupdating-an-entity-or-links-tofrom-an
+   */
   if (
     !(await isEntityTypeLinkEntityType(
       context,
@@ -80,14 +96,28 @@ export const createLinkEntity: ImpureGraphFunction<
       linkData,
       entityTypeId: linkEntityType.schema.$id,
       properties,
+      draft,
+      relationships: params.relationships,
     },
   );
 
-  return {
+  const linkEntity = {
     metadata: metadata as EntityMetadata,
     properties,
     linkData,
   };
+
+  for (const afterCreateHook of afterCreateEntityHooks) {
+    if (afterCreateHook.entityTypeId === linkEntity.metadata.entityTypeId) {
+      void afterCreateHook.callback({
+        context,
+        entity: linkEntity,
+        authentication,
+      });
+    }
+  }
+
+  return linkEntity;
 };
 
 /**
@@ -105,6 +135,7 @@ export const updateLinkEntity: ImpureGraphFunction<
     properties?: EntityPropertiesObject;
     leftToRightOrder?: number;
     rightToLeftOrder?: number;
+    draft?: boolean;
   },
   Promise<LinkEntity>
 > = async ({ graphApi }, { actorId }, params) => {
@@ -117,6 +148,10 @@ export const updateLinkEntity: ImpureGraphFunction<
     entityTypeId: linkEntity.metadata.entityTypeId,
     properties,
     archived: linkEntity.metadata.archived,
+    draft:
+      typeof params.draft === "undefined"
+        ? linkEntity.metadata.draft
+        : params.draft,
     leftToRightOrder,
     rightToLeftOrder,
   });

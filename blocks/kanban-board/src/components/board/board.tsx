@@ -16,6 +16,7 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
+import { PlusIcon } from "@hashintel/design-system";
 import cloneDeep from "lodash.clonedeep";
 import debounce from "lodash.debounce";
 import isEqual from "lodash.isequal";
@@ -30,7 +31,6 @@ import {
   BlockEntity,
   KanbanBoardColumnPropertyValue,
 } from "../../types/generated/block-entity";
-import { PlusIcon } from "../icons/plus-icon";
 import { StaticCard } from "./card/static-card";
 import { Column } from "./column/column";
 import { SortableColumn } from "./column/sortable-column";

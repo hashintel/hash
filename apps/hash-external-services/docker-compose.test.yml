@@ -9,32 +9,19 @@ services:
       - "4434:4434" # admin
 
   spicedb:
-    image: authzed/spicedb:v${HASH_SPICEDB_VERSION}
     depends_on:
       postgres:
         condition: service_healthy
     ports:
       - "${HASH_SPICEDB_HTTP_PORT}:${HASH_SPICEDB_HTTP_PORT}"
       - "${HASH_SPICEDB_GRPC_PORT}:${HASH_SPICEDB_GRPC_PORT}"
-    restart: on-failure
-    environment:
-      SPICEDB_HTTP_ENABLED: "True"
-      # Mimic the Database Version for now
-      SPICEDB_HTTP_ADDR: ":${HASH_SPICEDB_HTTP_PORT}"
-      HASH_SPICEDB_GRPC_PORT: ":${HASH_SPICEDB_GRPC_PORT}"
-      SPICEDB_READONLY_GRPC_ENABLED: "False"
-      SPICEDB_SCHEMA_PREFIXES_REQUIRED: "True"
-      SPICEDB_TELEMETRY_ENDPOINT: ""
-      SPICEDB_LOG_FORMAT: "console"
     command: serve-testing
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    healthcheck:
-      test: ["CMD", "grpc_health_probe", "-addr=localhost:50051"]
-      interval: 5s
-      timeout: 2s
-      retries: 10
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  # TODO: Services below this line are developed by HASH and should not be part of this file
 
   graph-test-server:
     init: true
@@ -56,11 +43,12 @@ services:
       HASH_GRAPH_PG_HOST: "postgres"
       HASH_GRAPH_PG_PORT: "5432"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
-      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
+      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-full}"
       HASH_GRAPH_LOG_FOLDER: "/logs/graph-test-service"
       HASH_GRAPH_API_HOST: "0.0.0.0"
       HASH_GRAPH_API_PORT: "${HASH_GRAPH_TEST_API_PORT}"
-      RUST_LOG: "info"
+      HASH_SPICEDB_HOST: http://spicedb
+      HASH_SPICEDB_HTTP_PORT: "${HASH_SPICEDB_HTTP_PORT}"
       RUST_BACKTRACE: 1
     ports:
       - "${HASH_GRAPH_TEST_API_PORT}:${HASH_GRAPH_TEST_API_PORT}"
@@ -81,8 +69,6 @@ services:
   graph:
     depends_on:
       graph-test-server:
-        condition: service_healthy
-      spicedb:
         condition: service_healthy
     ports:
       - "${HASH_GRAPH_API_PORT}:${HASH_GRAPH_API_PORT}"

@@ -1,13 +1,14 @@
 import * as http from "node:http";
 import * as path from "node:path";
 
+import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+import { Logger } from "@local/hash-backend-utils/logger";
 import { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-workflow-types";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
 import * as activities from "./activities";
-import { createGraphClient } from "./graph";
 import * as workflows from "./workflows";
 
 // This is a workaround to ensure that all functions defined in WorkflowTypeMap are exported from the workflows file
@@ -19,9 +20,16 @@ export const monorepoRootDir = path.resolve(__dirname, "../../..");
 
 config({ silent: true, path: monorepoRootDir });
 
-const TEMPORAL_HOST = process.env.HASH_TEMPORAL_HOST ?? "localhost";
-const TEMPORAL_PORT = process.env.HASH_TEMPORAL_PORT
-  ? parseInt(process.env.HASH_TEMPORAL_PORT, 10)
+export const logger = new Logger({
+  mode: process.env.NODE_ENV === "production" ? "prod" : "dev",
+  serviceName: "api",
+});
+
+const TEMPORAL_HOST = new URL(
+  process.env.HASH_TEMPORAL_SERVER_HOST ?? "http://localhost",
+).hostname;
+const TEMPORAL_PORT = process.env.HASH_TEMPORAL_SERVER_PORT
+  ? parseInt(process.env.HASH_TEMPORAL_SERVER_PORT, 10)
   : 7233;
 
 const createHealthCheckServer = () => {
@@ -53,7 +61,7 @@ const workflowOption = () =>
     : { workflowsPath: require.resolve("./workflows") };
 
 async function run() {
-  const graphApiClient = createGraphClient({
+  const graphApiClient = createGraphClient(logger, {
     host: getRequiredEnv("HASH_GRAPH_API_HOST"),
     port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
   });

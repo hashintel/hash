@@ -1,0 +1,17 @@
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+  "$id": "https://blockprotocol.org/@hash/types/entity-type/query/v/1",
+  "kind": "entityType",
+  "title": "Query",
+  "type": "object",
+  "allOf": [],
+  "description": "",
+  "examples": [],
+  "links": {},
+  "properties": {
+    "https://blockprotocol.org/@hash/types/property-type/query/": {
+      "$ref": "https://blockprotocol.org/@hash/types/property-type/query/v/1"
+    }
+  },
+  "required": ["https://blockprotocol.org/@hash/types/property-type/query/"]
+}

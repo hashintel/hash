@@ -16,10 +16,7 @@ export const useBlockProtocolUpdateEntity = (
   const [updateFn] = useMutation<
     UpdateEntityMutation,
     UpdateEntityMutationVariables
-  >(updateEntityMutation, {
-    /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: "no-cache",
-  });
+  >(updateEntityMutation);
 
   const updateEntity = useCallback<UpdateEntityMessageCallback>(
     async ({ data }) => {
@@ -55,11 +52,13 @@ export const useBlockProtocolUpdateEntity = (
 
       const { data: updateEntityResponseData } = await updateFn({
         variables: {
-          entityId, // @todo-0.3 consider validating that this matches the id format,
-          entityTypeId,
-          updatedProperties: properties,
-          leftToRightOrder,
-          rightToLeftOrder,
+          entityUpdate: {
+            entityId, // @todo-0.3 consider validating that this matches the id format,
+            entityTypeId,
+            updatedProperties: properties,
+            leftToRightOrder,
+            rightToLeftOrder,
+          },
         },
       });
 

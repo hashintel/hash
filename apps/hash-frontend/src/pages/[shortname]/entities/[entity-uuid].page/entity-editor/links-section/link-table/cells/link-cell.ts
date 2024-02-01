@@ -3,7 +3,7 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { customColors } from "@hashintel/design-system";
+import { customColors } from "@hashintel/design-system/theme";
 
 import {
   getCellHorizontalPadding,
@@ -22,6 +22,7 @@ export type LinkCell = CustomCell<LinkCellProps>;
 export const renderLinkCell: CustomRenderer<LinkCell> = {
   kind: GridCellKind.Custom,
   isMatch: (cell: CustomCell): cell is LinkCell =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (cell.data as any).kind === "link-cell",
   draw: (args, cell) => {
     const { rect, ctx, theme, spriteManager } = args;

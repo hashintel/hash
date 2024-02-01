@@ -54,7 +54,7 @@ export const InheritedTypeCard = ({
       onDelete={isReadOnly ? undefined : onRemove}
       LinkComponent={Link}
       newVersionConfig={
-        newVersion
+        !isReadOnly && newVersion
           ? {
               newVersion,
               onUpdateVersion: upgradeToVersion,

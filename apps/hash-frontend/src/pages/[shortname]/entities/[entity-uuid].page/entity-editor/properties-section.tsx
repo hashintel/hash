@@ -1,7 +1,7 @@
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Paper, Stack } from "@mui/material";
-import { useState } from "react";
+import { FunctionComponent, useState } from "react";
 
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { WhiteChip } from "../../../shared/white-chip";
@@ -10,7 +10,9 @@ import { getPropertyCountSummary } from "./properties-section/get-property-count
 import { PropertyTable } from "./properties-section/property-table";
 import { useRows } from "./properties-section/property-table/use-rows";
 
-export const PropertiesSection = () => {
+export const PropertiesSection: FunctionComponent<{
+  hideSectionHeading?: boolean;
+}> = ({ hideSectionHeading = false }) => {
   const [showSearch, setShowSearch] = useState(false);
 
   const [rows] = useRows();
@@ -22,7 +24,14 @@ export const PropertiesSection = () => {
     return <PropertiesSectionEmptyState />;
   }
 
-  return (
+  return hideSectionHeading ? (
+    <Paper sx={{ overflow: "hidden" }}>
+      <PropertyTable
+        onSearchClose={() => setShowSearch(false)}
+        showSearch={showSearch}
+      />
+    </Paper>
+  ) : (
     <SectionWrapper
       title="Properties"
       titleTooltip="The properties on an entity are determined by its type. To add a new property to this entity, specify an additional type or edit an existing one."

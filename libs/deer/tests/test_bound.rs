@@ -80,13 +80,15 @@ impl<'de> Visitor<'de> for ArrayStatsVisitor {
         let error = array.end();
 
         match (errors, error) {
-            (Err(errors), Ok(_)) | (Ok(_), Err(errors)) => Err(errors.change_context(VisitorError)),
+            (Err(errors), Ok(())) | (Ok(()), Err(errors)) => {
+                Err(errors.change_context(VisitorError))
+            }
             (Err(mut errors), Err(error)) => {
                 errors.extend_one(error);
 
                 Err(errors.change_context(VisitorError))
             }
-            (Ok(_), Ok(_)) => Ok(stats),
+            (Ok(()), Ok(())) => Ok(stats),
         }
     }
 }
@@ -167,7 +169,7 @@ impl<'de> Visitor<'de> for DirtyArrayVisitor {
         T: ArrayAccess<'de>,
     {
         // simulate dirty by taking one item
-        let _ = array.next::<Option<u8>>();
+        _ = array.next::<Option<u8>>();
 
         array.into_bound(2).change_context(VisitorError)?;
 
@@ -331,13 +333,15 @@ impl<'de> Visitor<'de> for ObjectStatsVisitor {
         let error = object.end();
 
         match (errors, error) {
-            (Err(errors), Ok(_)) | (Ok(_), Err(errors)) => Err(errors.change_context(VisitorError)),
+            (Err(errors), Ok(())) | (Ok(()), Err(errors)) => {
+                Err(errors.change_context(VisitorError))
+            }
             (Err(mut errors), Err(error)) => {
                 errors.extend_one(error);
 
                 Err(errors.change_context(VisitorError))
             }
-            (Ok(_), Ok(_)) => Ok(stats),
+            (Ok(()), Ok(())) => Ok(stats),
         }
     }
 }
@@ -445,7 +449,7 @@ impl<'de> Visitor<'de> for DirtyObjectVisitor {
         T: ObjectAccess<'de>,
     {
         // simulate dirty by taking one item
-        let _ = object.next::<Option<()>, Option<()>>();
+        _ = object.next::<Option<()>, Option<()>>();
 
         object.into_bound(3).change_context(VisitorError)?;
 

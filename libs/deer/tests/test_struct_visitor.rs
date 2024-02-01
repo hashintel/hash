@@ -211,7 +211,7 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
             })
             .attach(Location::Tuple(2));
 
-        let (a, b, c, _) = (a, b, c, array.end())
+        let (a, b, c, ()) = (a, b, c, array.end())
             .fold_reports()
             .change_context(VisitorError)?;
 

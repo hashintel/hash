@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/file";
+import { FileV2 as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
 import { OwnedById } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
@@ -8,32 +8,13 @@ import {
   CreateFileFromUrlMutationVariables,
   RequestFileUploadMutation,
   RequestFileUploadMutationVariables,
-  RequestFileUploadResponse,
 } from "../../../../graphql/api-types.gen";
 import {
   createFileFromUrl,
   requestFileUpload,
 } from "../../../../graphql/queries/knowledge/file.queries";
+import { uploadFileToStorageProvider } from "../../../../shared/upload-to-storage-provider";
 import { UploadFileRequestCallback } from "./knowledge-shim";
-
-const uploadFileToStorageProvider = async (
-  presignedPostData: RequestFileUploadResponse["presignedPost"],
-  file: File,
-) => {
-  const formData = new FormData();
-  const { url, fields } = presignedPostData;
-
-  for (const [key, val] of Object.entries(fields)) {
-    formData.append(key, val as string);
-  }
-
-  formData.append("file", file);
-
-  return await fetch(url, {
-    method: "POST",
-    body: formData,
-  });
-};
 
 export const useBlockProtocolFileUpload = (
   ownedById?: OwnedById,
@@ -65,14 +46,20 @@ export const useBlockProtocolFileUpload = (
         };
       }
       if ("url" in fileUploadData && fileUploadData.url.trim()) {
-        const { description, entityTypeId, name, url } = fileUploadData;
+        const { description, name, url } = fileUploadData;
         const result = await createFileFromUrlFn({
           variables: {
             description,
-            entityTypeId,
-            ownedById,
             displayName: name,
             url,
+            ...("fileEntityUpdateInput" in fileUploadData
+              ? { fileEntityUpdateInput: fileUploadData.fileEntityUpdateInput }
+              : {
+                  fileEntityCreationInput: {
+                    ownedById,
+                    ...fileUploadData.fileEntityCreationInput,
+                  },
+                }),
           },
         });
 
@@ -104,16 +91,22 @@ export const useBlockProtocolFileUpload = (
         };
       }
 
-      const { description, entityTypeId, name, file } = fileUploadData;
+      const { description, name, file } = fileUploadData;
 
       const { data } = await requestFileUploadFn({
         variables: {
           description,
-          entityTypeId,
-          ownedById,
           displayName: name,
           name: file.name,
           size: file.size,
+          ...("fileEntityUpdateInput" in fileUploadData
+            ? { fileEntityUpdateInput: fileUploadData.fileEntityUpdateInput }
+            : {
+                fileEntityCreationInput: {
+                  ownedById,
+                  ...fileUploadData.fileEntityCreationInput,
+                },
+              }),
         },
       });
 
@@ -132,10 +125,10 @@ export const useBlockProtocolFileUpload = (
        * Upload file with presignedPost data to storage provider
        */
       const {
-        requestFileUpload: { presignedPost, entity: uploadedFileEntity },
+        requestFileUpload: { presignedPut, entity: uploadedFileEntity },
       } = data;
 
-      await uploadFileToStorageProvider(presignedPost, file);
+      await uploadFileToStorageProvider(presignedPut, file);
 
       return { data: uploadedFileEntity as unknown as FileEntityType };
     },

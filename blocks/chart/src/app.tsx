@@ -1,346 +1,394 @@
-import { BlockProtocolEntityType } from "blockprotocol";
-import { BlockComponent } from "blockprotocol/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-
+import { EntityRootType, MultiFilter, Subgraph } from "@blockprotocol/graph";
 import {
-  Chart,
-  ChartConfigProperties,
-  SeriesDefinition,
-  SeriesType,
-} from "./chart";
+  type BlockComponent,
+  useEntitySubgraph,
+  useGraphBlockModule,
+} from "@blockprotocol/graph/react";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@blockprotocol/graph/stdlib";
+import { EntitiesGraphChart, GearIcon } from "@hashintel/block-design-system";
+import { theme } from "@hashintel/design-system/theme";
+import {
+  Box,
+  CircularProgress,
+  Collapse,
+  Divider,
+  Fade,
+  IconButton,
+  ThemeProvider,
+} from "@mui/material";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-const generateUniqueSeriesId = (params: {
-  seriesDefinitions: SeriesDefinition[];
-  potentialSeriesIdIndex?: number;
-}): string => {
-  const { seriesDefinitions } = params;
-  const potentialSeriesIdIndex = params.potentialSeriesIdIndex ?? 1;
-  const potentialSeriesId = `series${potentialSeriesIdIndex}`;
-  if (
-    params.seriesDefinitions.find(
-      ({ seriesId }) => seriesId === potentialSeriesId,
-    )
-  ) {
-    return generateUniqueSeriesId({
-      seriesDefinitions,
-      potentialSeriesIdIndex: potentialSeriesIdIndex + 1,
-    });
-  }
-  return potentialSeriesId;
-};
+import { BarChart } from "./bar-chart";
+import { EditChartDefinition } from "./edit-chart-definition";
+import { generateInitialChartDefinition as generateInitialCountLinkedEntitiesBarChartDefinition } from "./edit-chart-definition/bar-graph-definition-form/count-linked-entities-form";
+import { generateInitialChartDefinition as generateInitialGroupByPropertyBarChartDefinition } from "./edit-chart-definition/bar-graph-definition-form/group-by-property-form";
+import { EditableChartTitle } from "./edit-chart-title";
+import {
+  BarChartDefinitionVariant,
+  ChartDefinition,
+} from "./types/chart-definition";
+import {
+  BlockEntity,
+  BlockEntityOutgoingLinkAndTarget,
+  Query,
+} from "./types/generated/block-entity";
 
-type ChartEntityConfigProperties = Partial<ChartConfigProperties>;
-
-type ChartEntityProperties = {
-  title?: string;
-  xAxisLabel?: string;
-  yAxisLabel?: string;
-  series?: {
-    seriesId: string;
-    seriesName: string;
-    seriesType: SeriesType;
-    xAxisPropertyKey: string;
-    yAxisPropertyKey: string;
-  }[];
-} & ChartEntityConfigProperties;
-
-type BlockEntityProperties = ChartEntityProperties;
-
-export const App: BlockComponent<BlockEntityProperties> = ({
-  entityId,
-  accountId,
-  aggregateEntityTypes,
-  updateEntities,
-  createLinkedAggregations,
-  updateLinkedAggregations,
-  deleteLinkedAggregations,
-  linkedAggregations,
-  title = "Chart Title",
-  xAxisLabel = "X Axis Label",
-  yAxisLabel = "Y Axis Label",
-  series = [],
-  displayDataPointLabels = false,
-  displayLegend = false,
+export const App: BlockComponent<BlockEntity> = ({
+  graph: { blockEntitySubgraph, readonly },
 }) => {
-  if (!linkedAggregations) {
-    throw new Error("linkedAggregations is required to render the Chart block");
+  const blockRootRef = useRef<HTMLDivElement>(null);
+  const { graphModule } = useGraphBlockModule(blockRootRef);
+
+  const [displayEditChartDefinition, setDisplayEditChartDefinition] =
+    useState<boolean>(true);
+
+  const { rootEntity: blockEntity } = useEntitySubgraph<
+    BlockEntity,
+    BlockEntityOutgoingLinkAndTarget[]
+  >(blockEntitySubgraph);
+
+  const linkedQueryEntity = useMemo(() => {
+    const linkedQueryEntities = getOutgoingLinkAndTargetEntities(
+      /** @todo: figure out why there is a type mismatch here */
+      blockEntitySubgraph as unknown as Subgraph,
+      blockEntity.metadata.recordId.entityId,
+    )
+      .filter(
+        ({ linkEntity: linkEntityRevisions }) =>
+          linkEntityRevisions.metadata.entityTypeId ===
+          "https://blockprotocol.org/@hash/types/entity-type/has-query/v/1",
+      )
+      .map(
+        ({ rightEntity: rightEntityRevisions }) =>
+          rightEntityRevisions as unknown as Query,
+      );
+
+    return linkedQueryEntities[0];
+  }, [blockEntity, blockEntitySubgraph]);
+
+  const [initialLinkedQueryEditionId, setInitialLinkedQueryEditionId] =
+    useState<string>();
+
+  if (!initialLinkedQueryEditionId && linkedQueryEntity) {
+    setInitialLinkedQueryEditionId(
+      linkedQueryEntity.metadata.recordId.editionId,
+    );
   }
 
-  const currentConfigProperties = useMemo<ChartConfigProperties>(
-    () => ({
-      displayDataPointLabels,
-      displayLegend,
-    }),
-    [displayDataPointLabels, displayLegend],
+  const [
+    fetchedQueryForLinkedQueryEditionId,
+    setFetchedQueryForLinkedQueryEditionId,
+  ] = useState<string>();
+  const [queryResult, setQueryResult] = useState<Subgraph<EntityRootType>>();
+  const [loadingQueryResult, setLoadingQueryResult] = useState<boolean>(false);
+
+  const fetchQueryEntityResults = useCallback(
+    async (params: {
+      queryEntity: Query;
+      incomingLinksDepth?: number;
+      outgoingLinksDepth?: number;
+    }) => {
+      const { queryEntity, incomingLinksDepth, outgoingLinksDepth } = params;
+
+      setLoadingQueryResult(true);
+
+      const { data } = await graphModule.queryEntities({
+        data: {
+          operation: {
+            multiFilter: queryEntity.properties[
+              "https://blockprotocol.org/@hash/types/property-type/query/"
+            ] as MultiFilter,
+          },
+          graphResolveDepths: {
+            inheritsFrom: { outgoing: 255 },
+            isOfType: { outgoing: 1 },
+            constrainsPropertiesOn: { outgoing: 255 },
+            hasLeftEntity: {
+              outgoing: incomingLinksDepth ?? 0,
+              incoming: outgoingLinksDepth ?? 0,
+            },
+            hasRightEntity: {
+              outgoing: outgoingLinksDepth ?? 0,
+              incoming: incomingLinksDepth ?? 0,
+            },
+          },
+        },
+      });
+
+      setLoadingQueryResult(false);
+
+      /** @todo: improve error handling */
+      if (!data) {
+        throw new Error("Could not fetch query entity results");
+      }
+
+      setFetchedQueryForLinkedQueryEditionId(
+        queryEntity.metadata.recordId.editionId,
+      );
+      setQueryResult(data.results);
+    },
+    [graphModule],
   );
 
-  const currentProperties = useMemo<ChartEntityProperties>(
-    () => ({
-      title,
-      xAxisLabel,
-      yAxisLabel,
-      series,
-      ...currentConfigProperties,
-    }),
-    [title, xAxisLabel, yAxisLabel, series, currentConfigProperties],
-  );
-
-  const [possibleEntityTypes, setPossibleEntityTypes] = useState<
-    BlockProtocolEntityType[]
-  >([]);
+  const chartDefinition = blockEntity.properties[
+    "https://blockprotocol.org/@hash/types/property-type/chart-defintion/"
+  ] as ChartDefinition | undefined;
 
   useEffect(() => {
-    if (!aggregateEntityTypes) {
-      throw new Error(
-        "aggregateEntityTypes is required to render the Chart block",
-      );
+    if (linkedQueryEntity) {
+      const incomingLinksDepth =
+        chartDefinition?.kind === "graph-chart" &&
+        chartDefinition.variant === "default"
+          ? chartDefinition.incomingLinksDepth
+          : chartDefinition?.kind === "bar-chart" &&
+              chartDefinition.variant === "count-links"
+            ? 1
+            : undefined;
+
+      const outgoingLinksDepth =
+        chartDefinition?.kind === "graph-chart" &&
+        chartDefinition.variant === "default"
+          ? chartDefinition.outgoingLinksDepth
+          : chartDefinition?.kind === "bar-chart" &&
+              chartDefinition.variant === "count-links"
+            ? 1
+            : undefined;
+
+      void fetchQueryEntityResults({
+        queryEntity: linkedQueryEntity,
+        incomingLinksDepth,
+        outgoingLinksDepth,
+      });
     }
-    void aggregateEntityTypes({ accountId }).then(({ results }) =>
-      setPossibleEntityTypes(results),
-    );
-  }, [aggregateEntityTypes, accountId]);
+  }, [chartDefinition, linkedQueryEntity, fetchQueryEntityResults]);
 
-  const updateChartEntityProperties = useCallback(
-    async (updatedProperties: Partial<ChartEntityProperties>) => {
-      if (!updateEntities) {
-        throw new Error("updateEntities is required to render the Chart block");
-      }
-      if (!entityId) {
-        throw new Error("entityId is required to render the Chart block");
-      }
-
-      await updateEntities([
-        {
-          accountId,
-          entityId,
-          data: {
-            ...currentProperties,
-            ...updatedProperties,
-          },
+  const updateChartDefinition = useCallback(
+    async (updatedChartDefinition: ChartDefinition) => {
+      await graphModule.updateEntity({
+        data: {
+          entityId: blockEntity.metadata.recordId.entityId,
+          entityTypeId: blockEntity.metadata.entityTypeId,
+          properties: {
+            ...blockEntity.properties,
+            "https://blockprotocol.org/@hash/types/property-type/chart-defintion/":
+              updatedChartDefinition,
+          } as BlockEntity["properties"],
         },
-      ]);
-    },
-    [updateEntities, entityId, accountId, currentProperties],
-  );
-
-  const seriesDefinitions = useMemo<SeriesDefinition[]>(
-    () =>
-      series
-        .map(({ seriesId, ...definition }) => {
-          const aggregation = linkedAggregations.find(
-            ({ path }) => path === `$.${seriesId}`,
-          );
-
-          if (!aggregation) {
-            return [];
-          }
-
-          if (!aggregation.operation.entityTypeId) {
-            throw new Error(
-              "entityTypeId is not defined on aggregation operation",
-            );
-          }
-
-          return {
-            seriesId,
-            ...definition,
-            entityTypeId: aggregation.operation.entityTypeId,
-            aggregationResults: aggregation.results,
-          };
-        })
-        .flat(),
-    [series, linkedAggregations],
-  );
-
-  const handleUpdateSeriesDefinition = useCallback(
-    async (params: {
-      seriesId: string;
-      updatedDefinition: Partial<Omit<SeriesDefinition, "seriesId">>;
-    }): Promise<void> => {
-      if (!updateLinkedAggregations) {
-        throw new Error(
-          "updateLinkedAggregations is required to update a series definition",
-        );
-      }
-
-      const seriesIndex = series.findIndex(
-        ({ seriesId }) => seriesId === params.seriesId,
-      );
-
-      const previousSeries = series[seriesIndex];
-
-      if (!previousSeries) {
-        throw new Error(
-          `Could not find series with seriesId ${params.seriesId}`,
-        );
-      }
-
-      const previousAggregation = linkedAggregations.find(
-        ({ path }) => path === `$.${params.seriesId}`,
-      );
-
-      if (!previousAggregation || !previousAggregation.operation.entityTypeId) {
-        throw new Error(
-          `Could not find linked aggregation with path that contains seriesId ${params.seriesId}`,
-        );
-      }
-
-      if (
-        params.updatedDefinition.entityTypeId &&
-        params.updatedDefinition.entityTypeId !==
-          previousAggregation.operation.entityTypeId
-      ) {
-        await updateLinkedAggregations([
-          {
-            sourceAccountId: previousAggregation.sourceAccountId,
-            aggregationId: previousAggregation.aggregationId,
-            operation: {
-              entityTypeId: params.updatedDefinition.entityTypeId,
-            },
-          },
-        ]);
-      }
-
-      if (
-        params.updatedDefinition.seriesType ||
-        params.updatedDefinition.xAxisPropertyKey ||
-        params.updatedDefinition.yAxisPropertyKey ||
-        params.updatedDefinition.seriesName
-        /** @todo: check these values actually changed */
-      ) {
-        await updateChartEntityProperties({
-          series: [
-            ...series.slice(0, seriesIndex),
-            {
-              ...previousSeries,
-              seriesType:
-                params.updatedDefinition.seriesType ??
-                previousSeries.seriesType,
-              seriesName:
-                params.updatedDefinition.seriesName ??
-                previousSeries.seriesName,
-              xAxisPropertyKey:
-                params.updatedDefinition.xAxisPropertyKey ??
-                previousSeries.xAxisPropertyKey,
-              yAxisPropertyKey:
-                params.updatedDefinition.yAxisPropertyKey ??
-                previousSeries.yAxisPropertyKey,
-            },
-            ...series.slice(seriesIndex + 1),
-          ],
-        });
-      }
-    },
-    [
-      series,
-      linkedAggregations,
-      updateChartEntityProperties,
-      updateLinkedAggregations,
-    ],
-  );
-
-  const handleCreateSeriesDefinition = useCallback(
-    async (params: {
-      definition: Omit<SeriesDefinition, "seriesId" | "aggregationResults">;
-    }): Promise<void> => {
-      if (!createLinkedAggregations) {
-        throw new Error(
-          "createLinkedAggregations is requried to create a series definition",
-        );
-      }
-      const { definition } = params;
-
-      const seriesId = generateUniqueSeriesId({ seriesDefinitions });
-
-      const { seriesType, xAxisPropertyKey, yAxisPropertyKey, seriesName } =
-        definition;
-
-      await updateChartEntityProperties({
-        series: [
-          ...series,
-          {
-            seriesId,
-            seriesName,
-            seriesType,
-            xAxisPropertyKey,
-            yAxisPropertyKey,
-          },
-        ],
       });
-
-      await createLinkedAggregations([
-        {
-          sourceEntityId: entityId,
-          sourceAccountId: accountId,
-          path: `$.${seriesId}`,
-          operation: {
-            entityTypeId: definition.entityTypeId,
-          },
-        },
-      ]);
     },
-    [
-      series,
-      updateChartEntityProperties,
-      createLinkedAggregations,
-      seriesDefinitions,
-      accountId,
-      entityId,
-    ],
+    [graphModule, blockEntity],
   );
 
-  const handleDeleteSeriesDefinition = useCallback(
-    async (params: { seriesId: string }) => {
-      if (!deleteLinkedAggregations) {
-        throw new Error(
-          "deleteLinkedAggregations is requried to delete a series definition",
-        );
-      }
+  const title =
+    blockEntity.properties[
+      "https://blockprotocol.org/@blockprotocol/types/property-type/title/"
+    ];
 
-      const aggregation = linkedAggregations.find(
-        ({ path }) => path === `$.${params.seriesId}`,
-      );
-
-      if (!aggregation) {
-        throw new Error(
-          `cannot find aggregation with path '$.${params.seriesId}'`,
-        );
-      }
-
-      await updateChartEntityProperties({
-        series: series.filter(({ seriesId }) => seriesId !== params.seriesId),
+  const updateTitle = useCallback(
+    async (updatedTitle: string) => {
+      await graphModule.updateEntity({
+        data: {
+          entityId: blockEntity.metadata.recordId.entityId,
+          entityTypeId: blockEntity.metadata.entityTypeId,
+          properties: {
+            ...blockEntity.properties,
+            "https://blockprotocol.org/@blockprotocol/types/property-type/title/":
+              updatedTitle,
+          } as BlockEntity["properties"],
+        },
       });
-
-      await deleteLinkedAggregations([
-        {
-          sourceAccountId: accountId,
-          aggregationId: aggregation.aggregationId,
-        },
-      ]);
     },
-    [
-      updateChartEntityProperties,
-      deleteLinkedAggregations,
-      accountId,
-      linkedAggregations,
-      series,
-    ],
+    [graphModule, blockEntity],
   );
+
+  const generatedChartDefinitionForQueryEditionIdRef = useRef<string | null>(
+    null,
+  );
+
+  if (
+    !generatedChartDefinitionForQueryEditionIdRef.current &&
+    chartDefinition &&
+    fetchedQueryForLinkedQueryEditionId
+  ) {
+    generatedChartDefinitionForQueryEditionIdRef.current =
+      fetchedQueryForLinkedQueryEditionId;
+  }
+
+  useEffect(() => {
+    if (queryResult && fetchedQueryForLinkedQueryEditionId) {
+      if (
+        !chartDefinition ||
+        (Object.entries(chartDefinition).length === 1 &&
+          chartDefinition.kind === "bar-chart")
+      ) {
+        /**
+         * If there isn't an existing chart definition, or if it just specifies `kind: "bar-chart"`,
+         * try to generate a bar chart definition from the query result.
+         */
+        let generatedChartDefinition: BarChartDefinitionVariant | undefined =
+          generateInitialGroupByPropertyBarChartDefinition({
+            queryResult,
+          });
+
+        if (!generatedChartDefinition) {
+          generatedChartDefinition =
+            generateInitialCountLinkedEntitiesBarChartDefinition({
+              queryResult,
+            });
+        }
+
+        if (generatedChartDefinition) {
+          generatedChartDefinitionForQueryEditionIdRef.current =
+            fetchedQueryForLinkedQueryEditionId;
+
+          void updateChartDefinition({
+            ...generatedChartDefinition,
+            kind: "bar-chart",
+          });
+        }
+      } else if (
+        chartDefinition.kind === "bar-chart" &&
+        generatedChartDefinitionForQueryEditionIdRef.current !==
+          fetchedQueryForLinkedQueryEditionId
+      ) {
+        /**
+         * If there is an existing bar chart definition, but the query entity edition has changed,
+         * re-generate the chart definition depending on its variant.
+         *
+         * A more robust approach would be to check which of the individual chart definition fields
+         * have become invalid, and only update those to persist prior changes made by the user.
+         */
+        if (chartDefinition.variant === "count-links") {
+          const generatedChartDefinition =
+            generateInitialCountLinkedEntitiesBarChartDefinition({
+              queryResult,
+            });
+
+          if (generatedChartDefinition) {
+            generatedChartDefinitionForQueryEditionIdRef.current =
+              fetchedQueryForLinkedQueryEditionId;
+            void updateChartDefinition({
+              ...generatedChartDefinition,
+              kind: "bar-chart",
+            });
+          }
+        } else if (chartDefinition.variant === "group-by-property") {
+          const generatedChartDefinition =
+            generateInitialGroupByPropertyBarChartDefinition({
+              queryResult,
+            });
+
+          if (generatedChartDefinition) {
+            generatedChartDefinitionForQueryEditionIdRef.current =
+              fetchedQueryForLinkedQueryEditionId;
+            void updateChartDefinition({
+              ...generatedChartDefinition,
+              kind: "bar-chart",
+            });
+          }
+        }
+      }
+    }
+  }, [
+    queryResult,
+    updateChartDefinition,
+    chartDefinition,
+    fetchedQueryForLinkedQueryEditionId,
+  ]);
 
   return (
-    <Chart
-      title={title}
-      updateTitle={(updatedTitle) =>
-        updateChartEntityProperties({ title: updatedTitle })
-      }
-      yAxisName={xAxisLabel}
-      xAxisName={yAxisLabel}
-      possibleEntityTypes={possibleEntityTypes}
-      seriesDefinitions={seriesDefinitions}
-      updateSeriesDefinition={handleUpdateSeriesDefinition}
-      createSeriesDefinition={handleCreateSeriesDefinition}
-      deleteSeriesDefinition={handleDeleteSeriesDefinition}
-      config={currentConfigProperties}
-    />
+    <ThemeProvider theme={theme}>
+      <Box
+        ref={blockRootRef}
+        sx={{
+          position: "relative",
+          borderRadius: "6px",
+          borderColor: ({ palette }) => palette.gray[20],
+          borderWidth: 1,
+          borderStyle: "solid",
+        }}
+      >
+        <EditableChartTitle
+          title={title ?? "Untitled Chart"}
+          updateTitle={updateTitle}
+          sx={
+            chartDefinition?.kind === "graph-chart"
+              ? {
+                  position: "absolute",
+                  top: 0,
+                  zIndex: 1,
+                }
+              : undefined
+          }
+        />
+        <Box
+          sx={{
+            zIndex: 2,
+            position: "absolute",
+            right: ({ spacing }) => spacing(1),
+            top: ({ spacing }) => spacing(1),
+            display: "flex",
+            columnGap: 1,
+            alignItems: "center",
+          }}
+        >
+          <Fade in={loadingQueryResult}>
+            <CircularProgress
+              size={16}
+              sx={{ color: ({ palette }) => palette.gray[40] }}
+            />
+          </Fade>
+          {readonly ? null : (
+            <IconButton
+              onClick={() =>
+                setDisplayEditChartDefinition(!displayEditChartDefinition)
+              }
+            >
+              <GearIcon />
+            </IconButton>
+          )}
+        </Box>
+        {chartDefinition ? (
+          chartDefinition.kind === "bar-chart" ? (
+            queryResult ? (
+              <BarChart
+                /** @todo: figure out why TS is not inferring this */
+                definition={chartDefinition as ChartDefinition<"bar-chart">}
+                queryResult={queryResult}
+              />
+            ) : null
+          ) : (
+            /** @todo: account for multiple query results */
+            <EntitiesGraphChart
+              subgraph={queryResult}
+              isPrimaryEntity={(entity) =>
+                !!queryResult &&
+                getRoots(queryResult).some(
+                  (rootEntity) =>
+                    entity.metadata.recordId.entityId ===
+                    rootEntity.metadata.recordId.entityId,
+                )
+              }
+            />
+          )
+        ) : null}
+        <Collapse in={displayEditChartDefinition}>
+          <Divider />
+          <Box sx={{ marginTop: 2, padding: 3 }}>
+            {queryResult ? (
+              <EditChartDefinition
+                key={blockEntity.metadata.recordId.editionId}
+                initialChartDefinition={chartDefinition}
+                queryResult={queryResult}
+                onSubmit={updateChartDefinition}
+              />
+            ) : null}
+          </Box>
+        </Collapse>
+      </Box>
+    </ThemeProvider>
   );
 };

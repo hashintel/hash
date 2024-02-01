@@ -1,43 +1,56 @@
+import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
+import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
 import {
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import {
+  AccountEntityId,
+  AccountGroupId,
   AccountId,
   Entity,
   EntityId,
-  EntityPropertiesObject,
   EntityRootType,
   EntityUuid,
+  extractAccountId,
   extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
   OwnedById,
-  Subgraph,
-  Uuid,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import {
   kratosIdentityApi,
   KratosUserIdentity,
   KratosUserIdentityTraits,
 } from "../../../auth/ory-kratos";
-import { EntityTypeMismatchError } from "../../../lib/error";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
-import { SYSTEM_TYPES } from "../../system-types";
-import { systemUserAccountId } from "../../system-user";
+import { createAccount, createWeb } from "../../account-permission-management";
+import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import { systemAccountId } from "../../system-account";
 import {
   createEntity,
-  CreateEntityParams,
   getEntityOutgoingLinks,
   getLatestEntityById,
-  updateEntityProperty,
 } from "../primitive/entity";
 import {
   shortnameIsInvalid,
   shortnameIsRestricted,
   shortnameIsTaken,
 } from "./account.fields";
-import { addHashInstanceAdmin, getHashInstance } from "./hash-instance";
+import { addHashInstanceAdmin } from "./hash-instance";
 import {
   createOrgMembership,
   getOrgMembershipFromLinkEntity,
@@ -58,38 +71,27 @@ export type User = {
 export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
   entity,
 }) => {
-  if (
-    entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.user.schema.$id
-  ) {
+  if (entity.metadata.entityTypeId !== systemEntityTypes.user.entityTypeId) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.user.schema.$id,
+      systemEntityTypes.user.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
 
-  const kratosIdentityId = entity.properties[
-    SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.recordId.baseUrl
-  ] as string;
-
-  const shortname = entity.properties[
-    SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl
-  ] as string | undefined;
-
-  const preferredName = entity.properties[
-    SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl
-  ] as string | undefined;
-
-  const emails = entity.properties[
-    SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUrl
-  ] as string[];
+  const {
+    kratosIdentityId,
+    shortname,
+    preferredName,
+    email: emails,
+  } = simplifyProperties(entity.properties as UserProperties);
 
   const isAccountSignupComplete = !!shortname && !!preferredName;
 
   return {
-    accountId: extractEntityUuidFromEntityId(
-      entity.metadata.recordId.entityId,
-    ) as Uuid as AccountId,
+    accountId: extractAccountId(
+      entity.metadata.recordId.entityId as AccountEntityId,
+    ),
     shortname,
     preferredName,
     isAccountSignupComplete,
@@ -119,38 +121,49 @@ export const getUserById: ImpureGraphFunction<
  * @param params.shortname - the shortname of the user
  */
 export const getUserByShortname: ImpureGraphFunction<
-  { shortname: string },
+  { shortname: string; includeDrafts?: boolean },
   Promise<User | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
     .getEntitiesByQuery(actorId, {
-      filter: {
-        all: [
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
-              { parameter: SYSTEM_TYPES.entityType.user.schema.$id },
-            ],
-          },
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
-                ],
-              },
-              { parameter: params.shortname },
-            ],
-          },
-        ],
+      query: {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.user.entityTypeId,
+              { ignoreParents: true },
+            ),
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    extractBaseUrl(
+                      systemPropertyTypes.shortname.propertyTypeId,
+                    ),
+                  ],
+                },
+                { parameter: params.shortname },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        // TODO: Should this be an all-time query? What happens if the user is
+        //       archived/deleted, do we want to allow users to replace their
+        //       shortname?
+        //   see https://linear.app/hash/issue/H-757
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: params.includeDrafts ?? false,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data: userEntitiesSubgraph }) =>
-      getRoots(userEntitiesSubgraph as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+      );
+
+      return getRoots(subgraph);
+    });
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -167,39 +180,45 @@ export const getUserByShortname: ImpureGraphFunction<
  * @param params.kratosIdentityId - the kratos identity id
  */
 export const getUserByKratosIdentityId: ImpureGraphFunction<
-  { kratosIdentityId: string },
+  { kratosIdentityId: string; includeDrafts?: boolean },
   Promise<User | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
     .getEntitiesByQuery(actorId, {
-      filter: {
-        all: [
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
-              { parameter: SYSTEM_TYPES.entityType.user.schema.$id },
-            ],
-          },
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.recordId
-                    .baseUrl,
-                ],
-              },
-              { parameter: params.kratosIdentityId },
-            ],
-          },
-        ],
+      query: {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.user.entityTypeId,
+              { ignoreParents: true },
+            ),
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    extractBaseUrl(
+                      systemPropertyTypes.kratosIdentityId.propertyTypeId,
+                    ),
+                  ],
+                },
+                { parameter: params.kratosIdentityId },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: params.includeDrafts ?? false,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data: userEntitiesSubgraph }) =>
-      getRoots(userEntitiesSubgraph as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+      );
+
+      return getRoots(subgraph);
+    });
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -221,7 +240,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
  * @param params.accountId (optional) - the pre-populated account Id of the user
  */
 export const createUser: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId" | "ownedById"> & {
+  {
     emails: string[];
     kratosIdentityId: string;
     shortname?: string;
@@ -268,36 +287,138 @@ export const createUser: ImpureGraphFunction<
     }
   }
 
-  const { graphApi } = ctx;
+  const userShouldHavePermissionsOnWeb = shortname && preferredName;
 
-  const userAccountId =
-    params.userAccountId ??
-    (await graphApi.createAccountId(authentication.actorId)).data;
+  let userAccountId: AccountId;
+  if (params.userAccountId) {
+    userAccountId = params.userAccountId;
+  } else {
+    userAccountId = await createAccount(ctx, authentication, {});
 
-  const properties: EntityPropertiesObject = {
-    [SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUrl]: emails,
-    [SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.recordId.baseUrl]:
+    await createWeb(
+      ctx,
+      { actorId: systemAccountId },
+      {
+        ownedById: userAccountId as OwnedById,
+        owner: {
+          kind: "account",
+          /**
+           * Creating a web allows users to create further entities in it
+           * – we don't want them to do that until they've completed signup (have a shortname and preferredName)
+           * - the web is created with the system account as the owner and will be updated to the user account as the
+           *   owner once the user has completed signup
+           */
+          subjectId: userShouldHavePermissionsOnWeb
+            ? userAccountId
+            : systemAccountId,
+        },
+      },
+    );
+  }
+
+  const userWebMachineActorId = await createWebMachineActor(
+    ctx,
+    {
+      actorId: userShouldHavePermissionsOnWeb ? userAccountId : systemAccountId,
+    },
+    {
+      ownedById: userAccountId as OwnedById,
+    },
+  );
+
+  const properties: UserProperties = {
+    "https://hash.ai/@hash/types/property-type/email/": emails as [
+      string,
+      ...string[],
+    ],
+    "https://hash.ai/@hash/types/property-type/kratos-identity-id/":
       kratosIdentityId,
     ...(shortname
       ? {
-          [SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl]:
-            shortname,
+          "https://hash.ai/@hash/types/property-type/shortname/": shortname,
         }
       : {}),
     ...(preferredName
       ? {
-          [SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUrl]:
+          "https://hash.ai/@hash/types/property-type/preferred-name/":
             preferredName,
         }
       : {}),
   };
 
-  const entity = await createEntity(ctx, authentication, {
-    ownedById: systemUserAccountId as OwnedById,
-    properties,
-    entityTypeId: SYSTEM_TYPES.entityType.user.schema.$id,
-    entityUuid: userAccountId as EntityUuid,
-  });
+  const hashInstance = await getHashInstance(ctx, authentication);
+  const hashInstanceAdmins = extractOwnedByIdFromEntityId(
+    hashInstance.entity.metadata.recordId.entityId,
+  ) as AccountGroupId;
+
+  /** Grant permissions to the web machine actor to create a user entity */
+  await ctx.graphApi.modifyEntityTypeAuthorizationRelationships(
+    systemAccountId,
+    [
+      {
+        operation: "create",
+        resource: systemEntityTypes.user.entityTypeId,
+        relationAndSubject: {
+          subject: {
+            kind: "account",
+            subjectId: userWebMachineActorId,
+          },
+          relation: "instantiator",
+        },
+      },
+    ],
+  );
+
+  const entity = await createEntity(
+    ctx,
+    { actorId: userWebMachineActorId },
+    {
+      ownedById: userAccountId as OwnedById,
+      properties,
+      entityTypeId: systemEntityTypes.user.entityTypeId,
+      entityUuid: userAccountId as string as EntityUuid,
+      relationships: [
+        {
+          relation: "administrator",
+          subject: {
+            kind: "accountGroup",
+            subjectId: hashInstanceAdmins,
+          },
+        },
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+        {
+          relation: "setting",
+          subject: {
+            kind: "setting",
+            subjectId: "updateFromWeb",
+          },
+        },
+      ],
+    },
+  );
+
+  /** Remove permission from the web machine actor to create a user entity */
+  await ctx.graphApi.modifyEntityTypeAuthorizationRelationships(
+    systemAccountId,
+    [
+      {
+        operation: "delete",
+        resource: systemEntityTypes.user.entityTypeId,
+        relationAndSubject: {
+          subject: {
+            kind: "account",
+            subjectId: userWebMachineActorId,
+          },
+          relation: "instantiator",
+        },
+      },
+    ],
+  );
 
   const user = getUserFromEntity({ entity });
 
@@ -362,90 +483,6 @@ export const updateUserKratosIdentityTraits: ImpureGraphFunction<
 };
 
 /**
- * Update the shortname of a User.
- *
- * @param params.user - the user
- * @param params.updatedShortname - the new shortname to assign to the User
- * @param params.actorId - the id of the account that is updating the shortname
- */
-export const updateUserShortname: ImpureGraphFunction<
-  { user: User; updatedShortname: string },
-  Promise<User>
-> = async (ctx, authentication, params) => {
-  const { user, updatedShortname } = params;
-
-  if (shortnameIsInvalid({ shortname: updatedShortname })) {
-    throw new Error(`The shortname "${updatedShortname}" is invalid`);
-  }
-
-  if (
-    shortnameIsRestricted({ shortname: updatedShortname }) ||
-    (await shortnameIsTaken(ctx, authentication, {
-      shortname: updatedShortname,
-    }))
-  ) {
-    throw new Error(
-      `An account with shortname "${updatedShortname}" already exists.`,
-    );
-  }
-
-  const previousShortname = user.shortname;
-
-  const updatedUser = await updateEntityProperty(ctx, authentication, {
-    entity: user.entity,
-    propertyTypeBaseUrl:
-      SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
-    value: updatedShortname,
-  }).then((updatedEntity) => getUserFromEntity({ entity: updatedEntity }));
-
-  await updateUserKratosIdentityTraits(ctx, authentication, {
-    user: updatedUser,
-    updatedTraits: { shortname: updatedShortname },
-  }).catch(async (error) => {
-    // If an error occurred updating the entity, set the property to have the previous shortname
-    await updateEntityProperty(ctx, authentication, {
-      entity: user.entity,
-      propertyTypeBaseUrl:
-        SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
-      value: previousShortname,
-    });
-
-    return Promise.reject(error);
-  });
-
-  return updatedUser;
-};
-
-/**
- * Update the preferred name of a User.
- *
- * @param params.user - the user
- * @param params.updatedPreferredName - the new preferred name to assign to the User
- * @param params.actorId - the id of the account that is updating the preferred name
- */
-export const updateUserPreferredName: ImpureGraphFunction<
-  { user: User; updatedPreferredName: string },
-  Promise<User>
-> = async (ctx, authentication, params) => {
-  const { user, updatedPreferredName } = params;
-
-  if (updatedPreferredName === "") {
-    throw new Error(
-      `Preferred name "${updatedPreferredName}" cannot be removed.`,
-    );
-  }
-
-  const updatedEntity = await updateEntityProperty(ctx, authentication, {
-    entity: user.entity,
-    propertyTypeBaseUrl:
-      SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUrl,
-    value: updatedPreferredName,
-  });
-
-  return getUserFromEntity({ entity: updatedEntity });
-};
-
-/**
  * Make the user a member of an organization.
  *
  * @param params.user - the user
@@ -482,7 +519,7 @@ export const getUserOrgMemberships: ImpureGraphFunction<
     {
       entityId: userEntityId,
       linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.orgMembership.schema.$id,
+        systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
     },
   );
 
@@ -509,7 +546,9 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
 
   const orgs = await Promise.all(
     orgMemberships.map((orgMembership) =>
-      getOrgMembershipOrg(ctx, authentication, { orgMembership }),
+      getOrgMembershipOrg(ctx, authentication, {
+        orgMembership,
+      }),
     ),
   );
 
@@ -518,34 +557,4 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
       extractEntityUuidFromEntityId(org.entity.metadata.recordId.entityId) ===
       params.orgEntityUuid,
   );
-};
-
-/**
- * Check whether or not the user is a hash instance admin.
- *
- * @param params.user - the user that may be a hash instance admin.
- */
-export const isUserHashInstanceAdmin: ImpureGraphFunction<
-  { user: User },
-  Promise<boolean>
-> = async (ctx, authentication, { user }) => {
-  const hashInstance = await getHashInstance(ctx, authentication, {});
-
-  const outgoingAdminLinkEntities = await getEntityOutgoingLinks(
-    ctx,
-    authentication,
-    {
-      entityId: hashInstance.entity.metadata.recordId.entityId,
-      linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.admin.schema.$id,
-      rightEntityId: user.entity.metadata.recordId.entityId,
-    },
-  );
-
-  if (outgoingAdminLinkEntities.length > 1) {
-    throw new Error(
-      "Critical: more than one outgoing admin link from the HASH instance entity to the same user was found.",
-    );
-  }
-
-  return outgoingAdminLinkEntities.length === 1;
 };

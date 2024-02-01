@@ -1,15 +1,24 @@
+import { useQuery } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   ArrowLeftIcon,
   AutocompleteDropdown,
-  GRID_CLICK_IGNORE_CLASS,
   SelectorAutocomplete,
 } from "@hashintel/design-system";
+import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import {
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   Entity,
   EntityId,
+  EntityRootType,
   EntityTypeWithMetadata,
-  OwnedById,
+  Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { PaperProps, Stack, Typography } from "@mui/material";
@@ -17,24 +26,29 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 
-import { useBlockProtocolQueryEntities } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
-import { generateEntityLabel } from "../../../../../../../../../lib/entities";
+import {
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
+} from "../../../../../../../../../graphql/api-types.gen";
+import { structuralQueryEntitiesQuery } from "../../../../../../../../../graphql/queries/knowledge/entity.queries";
 import { useEntityTypesContextRequired } from "../../../../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useFileUploads } from "../../../../../../../../../shared/file-upload-context";
-import { entityHasEntityTypeByVersionedUrlFilter } from "../../../../../../../../../shared/filters";
 import { Button } from "../../../../../../../../../shared/ui/button";
 import { FileUploadDropzone } from "../../../../../../../../settings/shared/file-upload-dropzone";
 import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";
 import { useEntityEditor } from "../../../../entity-editor-context";
 
 interface EntitySelectorProps {
-  onSelect: (option: Entity) => void;
+  includeDrafts: boolean;
+  onSelect: (
+    option: Entity,
+    sourceSubgraph: Subgraph<EntityRootType> | null,
+  ) => void;
   onFinishedEditing: () => void;
   expectedEntityTypes: EntityTypeWithMetadata[];
   entityIdsToFilterOut?: EntityId[];
@@ -69,6 +83,7 @@ const FileCreationPane = (props: PaperProps) => {
 };
 
 export const EntitySelector = ({
+  includeDrafts,
   onSelect,
   onFinishedEditing,
   expectedEntityTypes,
@@ -76,7 +91,6 @@ export const EntitySelector = ({
   linkEntityTypeId,
 }: EntitySelectorProps) => {
   const { entitySubgraph } = useEntityEditor();
-  const { queryEntities } = useBlockProtocolQueryEntities();
   const [search, setSearch] = useState("");
 
   const entityId = getRoots(entitySubgraph)[0]?.metadata.recordId
@@ -88,59 +102,67 @@ export const EntitySelector = ({
 
   const isFileType = expectedEntityTypes.some(
     (expectedType) =>
-      isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.file,
+      isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.isFile,
   );
   const isImage =
     isFileType &&
     expectedEntityTypes.some(
       (expectedType) =>
-        isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.image,
+        isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.isImage,
     );
 
-  const [entities, setEntities] = useState<Entity[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: entitiesData, loading } = useQuery<
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
+    variables: {
+      query: {
+        filter:
+          expectedEntityTypes.length === 0
+            ? { all: [] }
+            : {
+                any: expectedEntityTypes.map(({ schema }) =>
+                  generateVersionedUrlMatchingFilter(schema.$id, {
+                    ignoreParents: true,
+                  }),
+                ),
+              },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          inheritsFrom: { outgoing: 255 },
+          isOfType: { outgoing: 1 },
+        },
+        includeDrafts,
+      },
+      includePermissions: false,
+    },
+  });
+
+  const entitiesSubgraph = entitiesData
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        entitiesData.structuralQueryEntities.subgraph,
+      )
+    : undefined;
+
   const highlightedRef = useRef<null | Entity>(null);
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        setLoading(true);
-        const { data } = await queryEntities({
-          data: {
-            operation: {
-              multiFilter: {
-                filters: expectedEntityTypes.map(({ schema }) =>
-                  entityHasEntityTypeByVersionedUrlFilter(schema.$id),
-                ),
-                operator: expectedEntityTypes.length > 0 ? "OR" : "AND",
-              },
-            },
-          },
-        });
-
-        if (data) {
-          setEntities(getRoots(data));
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void init();
-  }, [queryEntities, expectedEntityTypes]);
-
   const sortedAndFilteredEntities = useMemo(() => {
-    return [...entities]
+    if (!entitiesSubgraph) {
+      return [];
+    }
+    return [...getRoots(entitiesSubgraph)]
       .filter(
         (entity) =>
-          !entityIdsToFilterOut?.includes(entity.metadata.recordId.entityId),
+          !entityIdsToFilterOut?.includes(entity.metadata.recordId.entityId) &&
+          !entity.metadata.archived,
       )
       .sort((a, b) =>
         a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
           b.metadata.temporalVersioning.decisionTime.start.limit,
         ),
       );
-  }, [entities, entityIdsToFilterOut]);
+  }, [entitiesSubgraph, entityIdsToFilterOut]);
 
   const onCreateNew = () => {
     if (!expectedEntityTypes[0]) {
@@ -162,11 +184,11 @@ export const EntitySelector = ({
   };
 
   const { uploadFile } = useFileUploads();
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
   const onFileProvided = useCallback(
     async (file: File) => {
-      if (!activeWorkspaceAccountId) {
+      if (!activeWorkspaceOwnedById) {
         throw new Error("Cannot upload file without active workspace");
       }
 
@@ -174,8 +196,14 @@ export const EntitySelector = ({
       onFinishedEditing();
 
       const upload = await uploadFile({
-        fileData: { entityTypeId: expectedEntityTypes[0]?.schema.$id, file },
-        ownedById: activeWorkspaceAccountId as OwnedById,
+        fileData: {
+          file,
+          fileEntityCreationInput: {
+            entityTypeId: expectedEntityTypes[0]?.schema.$id,
+          },
+        },
+        makePublic: false,
+        ownedById: activeWorkspaceOwnedById,
         /**
          * Link creation is handled in the onSelect, since we might need to manage drafts,
          * but we supply linkEntityTypeId so we can track which files are being loaded against which link on an entity
@@ -188,13 +216,19 @@ export const EntitySelector = ({
       });
 
       if (upload.status === "complete") {
-        onSelect(upload.createdEntities.fileEntity as unknown as Entity);
+        onSelect(
+          upload.createdEntities.fileEntity as unknown as Entity,
+          // the entity's subgraph should mostly contain the file's type, since we're choosing it based on the expected type
+          // it will not if the expected type is File and we automatically choose a narrower type of e.g. Image based on the upload
+          entitySubgraph,
+        );
       }
       // @todo handle errored uploads – H-724
     },
     [
-      activeWorkspaceAccountId,
+      activeWorkspaceOwnedById,
       entityId,
+      entitySubgraph,
       expectedEntityTypes,
       linkEntityTypeId,
       onFinishedEditing,
@@ -235,12 +269,13 @@ export const EntitySelector = ({
         optionToRenderData={(entity) => ({
           entityProperties: entity.properties,
           uniqueId: entity.metadata.recordId.entityId,
-          Icon: null,
+          icon: null,
           /**
            * @todo update SelectorAutocomplete to show an entity's namespace as well as / instead of its entityTypeId
            * */
           typeId: entity.metadata.entityTypeId,
-          title: generateEntityLabel(entitySubgraph, entity),
+          title: generateEntityLabel(entitiesSubgraph!, entity),
+          draft: entity.metadata.draft,
         })}
         inputPlaceholder={isFileType ? "No file" : "No entity"}
         inputValue={search}
@@ -249,7 +284,7 @@ export const EntitySelector = ({
           highlightedRef.current = value;
         }}
         onChange={(_, option) => {
-          onSelect(option);
+          onSelect(option, entitiesSubgraph ?? null);
         }}
         onKeyUp={(evt) => {
           if (evt.key === "Enter" && !highlightedRef.current) {
@@ -261,7 +296,7 @@ export const EntitySelector = ({
             onFinishedEditing();
           }
         }}
-        onBlur={() => {
+        onClickAway={() => {
           if (!showUploadFileMenu) {
             onFinishedEditing();
           }

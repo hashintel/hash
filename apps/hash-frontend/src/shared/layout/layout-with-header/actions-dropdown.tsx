@@ -1,11 +1,21 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import { AccountId } from "@local/hash-subgraph";
+import {
+  AsteriskRegularIcon,
+  FontAwesomeIcon,
+  LinkIcon,
+} from "@hashintel/design-system";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {
   Box,
+  Divider,
+  ListItemIcon,
+  listItemIconClasses,
   listItemSecondaryActionClasses,
   ListItemText,
+  listItemTextClasses,
   Menu,
+  Typography,
   useTheme,
 } from "@mui/material";
 import {
@@ -17,13 +27,14 @@ import { FunctionComponent, useContext } from "react";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
+import { HashtagRegularIcon } from "../../icons/hashtag-regular-icon";
+import { InfinitySolidIcon } from "../../icons/infinity-solid-icon";
+import { UploadRegularIcon } from "../../icons/upload-regular-icon";
 import { MenuItem } from "../../ui";
-import { CreatePageMenuItem } from "./actions-dropdown/create-page-menu-item";
+import { CreatePageMenuItems } from "./actions-dropdown/create-page-menu-items";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
-const ActionsDropdownInner: FunctionComponent<{
-  activeWorkspaceAccountId: AccountId;
-}> = ({ activeWorkspaceAccountId }) => {
+const ActionsDropdownInner: FunctionComponent = () => {
   const theme = useTheme();
 
   const { hashInstance } = useHashInstance();
@@ -39,7 +50,6 @@ const ActionsDropdownInner: FunctionComponent<{
         size="medium"
         rounded
         sx={({ palette }) => ({
-          mr: 1,
           color: popupState.isOpen ? palette.common.white : palette.gray[40],
           backgroundColor: popupState.isOpen
             ? palette.blue["70"]
@@ -73,29 +83,82 @@ const ActionsDropdownInner: FunctionComponent<{
           },
         }}
       >
+        <Typography
+          sx={{
+            marginTop: 1,
+            marginX: 1.5,
+            color: ({ palette }) => palette.gray[50],
+            fontSize: 12,
+            fontWeight: 600,
+            textTransform: "uppercase",
+          }}
+        >
+          Create New
+        </Typography>
         {hashInstance?.properties.pagesAreEnabled ? (
-          <CreatePageMenuItem
-            activeWorkspaceAccountId={activeWorkspaceAccountId}
-            onClick={popupState.close}
-          />
+          <CreatePageMenuItems onClick={popupState.close} />
         ) : null}
-        {[
-          { href: "/new/entity", label: "Create Entity" },
-          { href: "/new/types/entity-type", label: "Create Entity Type" },
-        ].map(({ href, label }) => (
-          <MenuItem key={href} href={href} onClick={popupState.close}>
-            <ListItemText primary={label} />
-          </MenuItem>
-        ))}
+        <MenuItem href="/new/entity" onClick={popupState.close}>
+          <ListItemIcon>
+            <HashtagRegularIcon />
+          </ListItemIcon>
+          <ListItemText primary="Entity" />
+        </MenuItem>
+        <MenuItem href="/new/types/entity-type" onClick={popupState.close}>
+          <ListItemIcon>
+            <AsteriskRegularIcon />
+          </ListItemIcon>
+          <ListItemText primary="Entity type" />
+        </MenuItem>
+        <MenuItem
+          href={`/new/types/entity-type?extends=${linkEntityTypeUrl}`}
+          onClick={popupState.close}
+        >
+          <ListItemIcon>
+            <LinkIcon />
+          </ListItemIcon>
+          <ListItemText primary="Link type" />
+        </MenuItem>
+        <Divider />
+        <MenuItem
+          href={`${systemEntityTypes.file.entityTypeId}?tab=upload`}
+          onClick={popupState.close}
+        >
+          <ListItemIcon>
+            <UploadRegularIcon />
+          </ListItemIcon>
+          <ListItemText primary="Upload a file" />
+        </MenuItem>
+        <Divider />
+        <MenuItem
+          href="/settings/integrations"
+          onClick={popupState.close}
+          sx={{
+            [`& .${listItemTextClasses.primary}, .${listItemIconClasses.root} svg`]:
+              {
+                color: ({ palette }) => palette.blue[70],
+                fontWeight: 600,
+              },
+            "&:hover": {
+              [`& .${listItemTextClasses.primary}, .${listItemIconClasses.root} svg`]:
+                {
+                  color: ({ palette }) => palette.blue[70],
+                },
+            },
+          }}
+        >
+          <ListItemIcon>
+            <InfinitySolidIcon />
+          </ListItemIcon>
+          <ListItemText primary="Sync external data" />
+        </MenuItem>
       </Menu>
     </Box>
   );
 };
 
 export const ActionsDropdown: FunctionComponent = () => {
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
-  return activeWorkspaceAccountId ? (
-    <ActionsDropdownInner activeWorkspaceAccountId={activeWorkspaceAccountId} />
-  ) : null;
+  return activeWorkspaceOwnedById ? <ActionsDropdownInner /> : null;
 };

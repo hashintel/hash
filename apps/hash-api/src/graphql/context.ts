@@ -1,21 +1,14 @@
 import { Logger } from "@local/hash-backend-utils/logger";
 import { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
-import { AccountId } from "@local/hash-subgraph";
 
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
-import { GraphApi } from "../graph";
+import { GraphApi } from "../graph/context-types";
 import { User } from "../graph/knowledge/system-types/user";
-import { UploadableStorageProvider } from "../storage";
+import { UploadableStorageProvider } from "../storage/storage-provider";
 import { TemporalClient } from "../temporal";
 import { VaultClient } from "../vault";
-
-export const publicUserAccountId: AccountId =
-  "00000000-0000-0000-0000-000000000000" as AccountId;
-
-export type AuthenticationContext = {
-  actorId: AccountId;
-};
+import { AuthenticationContext } from "./authentication-context";
 
 /**
  * Apollo context object with dataSources. For details see:
@@ -32,7 +25,7 @@ export interface GraphQLContext {
   logger: Logger;
   authentication: AuthenticationContext;
   user?: User;
-  temporal?: TemporalClient;
+  temporal: TemporalClient;
   vault?: VaultClient;
 }
 

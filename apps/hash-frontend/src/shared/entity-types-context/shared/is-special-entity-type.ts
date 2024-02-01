@@ -1,6 +1,6 @@
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system/dist/cjs";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   EntityTypeWithMetadata,
   linkEntityTypeUrl,
@@ -30,23 +30,26 @@ export const getParentIds = (
 export const isSpecialEntityType = (
   entityType: Pick<EntityType, "allOf"> & { $id?: EntityType["$id"] },
   allEntityTypes: Record<VersionedUrl, EntityTypeWithMetadata>,
-): { file: boolean; image: boolean; link: boolean } => {
+): { isFile: boolean; isImage: boolean; isLink: boolean } => {
   const parentIds = getParentIds(entityType, allEntityTypes);
 
-  let isFile = entityType.$id === types.entityType.file.entityTypeId;
-  let isImage = entityType.$id === types.entityType.imageFile.entityTypeId;
+  let isFile = entityType.$id
+    ? extractBaseUrl(entityType.$id) ===
+      systemEntityTypes.file.entityTypeBaseUrl
+    : false;
+
+  let isImage = entityType.$id
+    ? extractBaseUrl(entityType.$id) ===
+      systemEntityTypes.image.entityTypeBaseUrl
+    : false;
+
   let isLink = false;
 
   for (const id of parentIds) {
-    if (
-      extractBaseUrl(id) === extractBaseUrl(types.entityType.file.entityTypeId)
-    ) {
+    if (extractBaseUrl(id) === systemEntityTypes.file.entityTypeBaseUrl) {
       isFile = true;
     }
-    if (
-      extractBaseUrl(id) ===
-      extractBaseUrl(types.entityType.imageFile.entityTypeId)
-    ) {
+    if (extractBaseUrl(id) === systemEntityTypes.image.entityTypeBaseUrl) {
       isImage = true;
     }
     if (extractBaseUrl(id) === extractBaseUrl(linkEntityTypeUrl)) {
@@ -55,8 +58,8 @@ export const isSpecialEntityType = (
   }
 
   return {
-    file: isFile,
-    image: isImage,
-    link: isLink,
+    isFile,
+    isImage,
+    isLink,
   };
 };

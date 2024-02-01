@@ -91,7 +91,7 @@ export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
   },
   styleOverrides: {
     root: ({ ownerState, theme }) => {
-      const { color, variant, onClick } = ownerState;
+      const { color, variant, onClick, clickable } = ownerState;
 
       const {
         textColor,
@@ -115,7 +115,7 @@ export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
 
         // only apply hover ui and show a pointer cursor
         // when the chip is clickable
-        ...(onClick
+        ...(onClick ?? clickable
           ? {
               cursor: "pointer",
               "&:hover": {

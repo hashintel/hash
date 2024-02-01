@@ -62,7 +62,7 @@ export const QueryPreview = ({ query, queryEntities }: QueryPreviewProps) => {
                 entity.metadata.recordId.entityId.split("%")[1];
 
               return (
-                <ListItem key={entityUuid}>
+                <ListItem key={entity.metadata.recordId.entityId}>
                   <b style={{ marginRight: 8 }}>{`- Entity ${index + 1}`}</b>
                   {entityUuid}
                 </ListItem>

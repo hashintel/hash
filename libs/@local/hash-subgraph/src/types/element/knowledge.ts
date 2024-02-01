@@ -6,9 +6,9 @@ import {
   type EntityRecordId as EntityRecordIdBp,
   type EntityRevisionId as EntityRevisionIdBp,
   type EntityTemporalVersioningMetadata as EntityTemporalVersioningMetadataBp,
+  isEntityRecordId as isEntityRecordIdBp,
   type LinkData as LinkDataBp,
   type LinkEntityAndRightEntity as LinkEntityAndRightEntityBp,
-  isEntityRecordId as isEntityRecordIdBp,
 } from "@blockprotocol/graph/temporal";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Brand } from "@local/advanced-types/brand";
@@ -17,10 +17,10 @@ import { Subtype } from "@local/advanced-types/subtype";
 import {
   BaseUrl,
   EntityId,
+  EntityProvenanceMetadata,
   ExclusiveLimitedTemporalBound,
   InclusiveLimitedTemporalBound,
   isEntityId,
-  ProvenanceMetadata,
   TemporalAxis,
   TimeInterval,
   Timestamp,
@@ -91,7 +91,8 @@ export type EntityMetadata = Subtype<
     entityTypeId: VersionedUrl;
     temporalVersioning: EntityTemporalVersioningMetadata;
     archived: boolean;
-    provenance: ProvenanceMetadata;
+    draft: boolean;
+    provenance: EntityProvenanceMetadata;
   }
 >;
 
@@ -115,7 +116,9 @@ export type Entity<
   {
     metadata: EntityMetadata;
     linkData?: LinkData;
-  } & (Properties extends null ? {} : { properties: Properties })
+  } & (Properties extends null
+    ? Record<string, never>
+    : { properties: Properties })
 >;
 
 export type LinkEntityAndRightEntity = Subtype<

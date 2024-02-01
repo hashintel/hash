@@ -1,5 +1,7 @@
 import { BlockVariant, JsonObject } from "@blockprotocol/core";
-import { EntityId } from "@local/hash-subgraph";
+import { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
+import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { Node, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";
@@ -8,9 +10,14 @@ import {
   areComponentsCompatible,
   fetchBlock,
   HashBlock,
+  isBlockWithTextualContentProperty,
   prepareBlockCache,
 } from "./blocks";
-import { BlockEntity, getBlockChildEntity, isTextEntity } from "./entity";
+import {
+  BlockEntity,
+  getBlockChildEntity,
+  isRichTextContainingEntity,
+} from "./entity";
 import {
   createEntityStore,
   DraftEntity,
@@ -18,6 +25,7 @@ import {
   EntityStoreType,
   isBlockEntity,
   isDraftBlockEntity,
+  textualContentPropertyTypeBaseUrl,
 } from "./entity-store";
 import {
   addEntityStoreAction,
@@ -44,7 +52,7 @@ type ComponentNodeViewFactory = (block: HashBlock) => NodeViewFactory;
 export class ProsemirrorManager {
   constructor(
     private schema: Schema,
-    private accountId: string,
+    private ownedById: OwnedById,
     private view: EditorView | null = null,
     private componentNodeViewFactory: ComponentNodeViewFactory | null = null,
   ) {}
@@ -89,6 +97,7 @@ export class ProsemirrorManager {
       this.view.setProps({
         nodeViews: {
           // Private API
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ...(this.view as any).nodeViews,
           [componentId]: this.componentNodeViewFactory(block),
         },
@@ -107,7 +116,7 @@ export class ProsemirrorManager {
     options?: { bustCache: boolean },
   ): Promise<HashBlock> {
     const block = await fetchBlock(componentId, {
-      bustCache: !!options?.bustCache,
+      useCachedData: !options?.bustCache,
     });
 
     this.defineBlock(block);
@@ -153,6 +162,7 @@ export class ProsemirrorManager {
       }
 
       /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       blockEntity = entityInStore as any;
     }
 
@@ -164,7 +174,7 @@ export class ProsemirrorManager {
         : null;
 
     const content =
-      blockData && isTextEntity(blockData)
+      blockData && isRichTextContainingEntity(blockData)
         ? childrenForTextEntity(blockData, this.schema)
         : [];
 
@@ -299,7 +309,10 @@ export class ProsemirrorManager {
 
     const { tr } = this.view.state;
 
-    const entityProperties = targetVariant?.properties ?? {};
+    const entityProperties = targetVariant?.properties
+      ? JSON.parse(JSON.stringify(targetVariant.properties))
+      : {};
+
     const entityStoreState = entityStorePluginState(this.view.state);
     const blockEntity = draftBlockId
       ? entityStoreState.store.draft[draftBlockId]
@@ -323,6 +336,7 @@ export class ProsemirrorManager {
         addEntityStoreAction(this.view.state, tr, {
           type: "updateEntityProperties",
           payload: {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain -- TODO check blockChildEntity or type this better
             draftId: blockEntity.blockChildEntity?.draftId!,
             properties: entityProperties,
             merge: true,
@@ -330,12 +344,33 @@ export class ProsemirrorManager {
         });
         targetBlockId = blockEntity.draftId;
       } else {
-        /**
-         * @todo fix data retention when swapping blocks
-         *   – this currently doesn't take account of different properties for Heading, Text etc
-         */
-
         const newBlockProperties = entityProperties;
+
+        // Retain any text from the old entity if we have some and we know it accepts textual-content
+        if (isBlockWithTextualContentProperty(targetComponentId)) {
+          const existingTextContent = blockEntity.blockChildEntity?.properties[
+            textualContentPropertyTypeBaseUrl
+          ] as TextualContentPropertyValue | undefined;
+
+          const newTextContent =
+            newBlockProperties[textualContentPropertyTypeBaseUrl];
+
+          if (
+            existingTextContent &&
+            (!newTextContent ||
+              (Array.isArray(newTextContent) && !newTextContent[0]))
+          ) {
+            const textAsTokens =
+              typeof existingTextContent === "string"
+                ? ([
+                    { tokenType: "text", text: existingTextContent },
+                  ] satisfies TextToken[])
+                : existingTextContent;
+
+            newBlockProperties[textualContentPropertyTypeBaseUrl] =
+              textAsTokens;
+          }
+        }
 
         targetBlockId = this.createBlockEntity(
           tr,
@@ -500,7 +535,7 @@ export class ProsemirrorManager {
   private createBlockEntity(
     tr: Transaction,
     targetComponentId: string,
-    blockDataProperties: {},
+    blockDataProperties: Record<string, unknown>,
   ) {
     if (!this.view) {
       throw new Error("Cannot trigger createBlockEntity without view");
@@ -510,7 +545,7 @@ export class ProsemirrorManager {
     addEntityStoreAction(this.view.state, tr, {
       type: "newDraftEntity",
       payload: {
-        accountId: this.accountId,
+        ownedById: this.ownedById,
         draftId: newBlockId,
         entityId: null,
       },
@@ -520,7 +555,7 @@ export class ProsemirrorManager {
     addEntityStoreAction(this.view.state, tr, {
       type: "newDraftEntity",
       payload: {
-        accountId: this.accountId,
+        ownedById: this.ownedById,
         draftId: blockDataDraftId,
         entityId: null,
       },

@@ -3,25 +3,27 @@ import { performance } from "node:perf_hooks";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
-import { schema } from "@local/hash-graphql-shared/graphql/type-defs/schema";
+import { schema } from "@local/hash-isomorphic-utils/graphql/type-defs/schema";
+import * as Sentry from "@sentry/node";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 import { ApolloServer } from "apollo-server-express";
 import { StatsD } from "hot-shots";
 
+import { getActorIdFromRequest } from "../auth/get-actor-id";
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
-import { GraphApi } from "../graph";
-import { UploadableStorageProvider } from "../storage";
+import { GraphApi } from "../graph/context-types";
+import { UploadableStorageProvider } from "../storage/storage-provider";
 import { TemporalClient } from "../temporal";
 import { VaultClient } from "../vault/index";
-import { GraphQLContext, publicUserAccountId } from "./context";
+import { GraphQLContext } from "./context";
 import { resolvers } from "./resolvers";
 
 export interface CreateApolloServerParams {
   graphApi: GraphApi;
   cache: CacheAdapter;
   uploadProvider: UploadableStorageProvider;
-  temporalClient?: TemporalClient;
+  temporalClient: TemporalClient;
   vaultClient?: VaultClient;
   search?: SearchAdapter;
   emailTransporter: EmailTransporter;
@@ -46,6 +48,7 @@ export const createApolloServer = ({
     resolvers,
     inheritResolversFromInterfaces: true,
   });
+
   const getDataSources = () => {
     const sources: GraphQLContext["dataSources"] = {
       graphApi,
@@ -64,7 +67,7 @@ export const createApolloServer = ({
     context: (ctx): Omit<GraphQLContext, "dataSources"> => ({
       ...ctx,
       authentication: {
-        actorId: ctx.req.user?.accountId ?? publicUserAccountId,
+        actorId: getActorIdFromRequest(ctx.req),
       },
       user: ctx.req.user,
       emailTransporter,
@@ -77,17 +80,47 @@ export const createApolloServer = ({
     // @todo: we may want to disable introspection at some point for production
     introspection: true,
     debug: true, // required for stack traces to be captured
+    // See https://www.apollographql.com/docs/apollo-server/integrations/plugins/#request-lifecycle-event-flow
     plugins: [
       {
         requestDidStart: async (ctx) => {
           ctx.logger = ctx.context.logger as Logger;
-          const startedAt = performance.now();
+
+          const startTimestamp = performance.now();
+
           return {
             didResolveOperation: async (didResolveOperationCtx) => {
-              if (didResolveOperationCtx.operationName) {
-                statsd?.increment(didResolveOperationCtx.operationName, [
-                  "graphql",
-                ]);
+              const operationName = didResolveOperationCtx.operationName;
+              if (operationName) {
+                statsd?.increment(operationName, ["graphql"]);
+              }
+            },
+
+            executionDidStart: async ({ request }) => {
+              const scope = Sentry.getCurrentScope();
+
+              scope.setContext("graphql", {
+                query: request.query,
+                variables: request.variables,
+              });
+            },
+
+            didEncounterErrors: async (errorContext) => {
+              for (const err of errorContext.errors) {
+                // Don't send ForbiddenErrors to Sentry – we can add more here as needed
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this may be undefined
+                if (err.extensions?.code === "FORBIDDEN") {
+                  continue;
+                }
+
+                if (err.path) {
+                  Sentry.getCurrentScope().addBreadcrumb({
+                    category: "query-path",
+                    message: err.path.join(" > "),
+                  });
+                }
+
+                Sentry.captureException(err);
               }
             },
 
@@ -96,7 +129,7 @@ export const createApolloServer = ({
                 // Ignore introspection queries from graphiql
                 return;
               }
-              const elapsed = performance.now() - startedAt;
+              const elapsed = performance.now() - startTimestamp;
 
               // take the first part of the UA to help identify browser vs server requests
               const userAgent =
@@ -136,7 +169,10 @@ export const createApolloServer = ({
         },
       },
       ApolloServerPluginLandingPageGraphQLPlayground({
-        settings: { "request.credentials": "include" },
+        settings: {
+          "request.credentials": "include",
+          "schema.polling.enable": false,
+        },
       }),
     ],
   });

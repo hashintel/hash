@@ -132,8 +132,8 @@ export const PropertyTypeRow = ({
     return !canEdit?.allowed
       ? canEdit?.message
       : currentVersion !== latestVersion
-      ? "Update the property type to the latest version to edit"
-      : undefined;
+        ? "Update the property type to the latest version to edit"
+        : undefined;
   }, [ontologyFunctions, property, currentVersion, latestVersion]);
 
   return (
@@ -321,6 +321,7 @@ export const PropertyListCard = () => {
       },
     });
 
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     if (res.errors?.length || !res.data) {
       // @todo handle this
       throw new Error("Could not create");

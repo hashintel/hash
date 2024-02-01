@@ -5,6 +5,7 @@ import * as http from "node:http";
 
 import {
   getRequiredEnv,
+  realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -20,6 +21,14 @@ import {
 import { sql } from "slonik";
 
 import { generateQueues, MONITOR_TABLES } from "./config";
+
+if (!realtimeSyncEnabled) {
+  // eslint-disable-next-line no-console
+  console.log(
+    "*********** Realtime sync is not enabled – exiting. ***********",
+  );
+  process.exit();
+}
 
 // The number of milliseconds between queries to the replication slot
 const POLL_INTERVAL_MILLIS = 250;
@@ -125,7 +134,7 @@ const updateSlotOwnership = async (pool: PgPool, slotName: string) => {
       } * interval '1 second'
     where slot_name = ${slotName} and slot_owner = ${INSTANCE_ID}
   `);
-  logger.debug(`Updated ownership of slot "${slotName}"`);
+  logger.silly(`Updated ownership of slot "${slotName}"`);
 };
 
 /** Release ownership of the slot. Does nothing if this instance is not the current
@@ -285,7 +294,7 @@ const main = async () => {
       ]);
     } catch (error) {
       logger.error(
-        "An error occoured while polling/updating replication owner.",
+        "An error occurred while polling/updating replication owner.",
         error,
       );
     }

@@ -1,12 +1,7 @@
-import {
-  faCheck,
-  faFile,
-  faPencilRuler,
-} from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faFile } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   Collapse,
@@ -14,8 +9,6 @@ import {
   Switch,
   SxProps,
   Theme,
-  ToggleButton,
-  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/router";
@@ -27,14 +20,16 @@ import {
   useState,
 } from "react";
 
-import { isTypeArchived } from "../../shared/entity-types-context/util";
+import { isItemArchived } from "../../shared/is-archived";
+import { isEntityPageEntity } from "../../shared/is-of-type";
 import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
 import { Breadcrumbs, BreadcrumbsProps } from "./breadcrumbs";
 import { ArchivedItemBanner } from "./top-context-bar/archived-item-banner";
 import { ContextBarActionsDropdown } from "./top-context-bar/context-bar-actions-dropdown";
-import { isEntityPageEntity, isItemEntityType } from "./top-context-bar/util";
+import { ShareDropdownMenu } from "./top-context-bar/share-dropdown-menu";
+import { isItemEntityType } from "./top-context-bar/util";
 
-export { isEntityPageEntity, isItemEntityType };
+export { isItemEntityType };
 export { useContextBarActionsContext } from "./top-context-bar/context-bar-actions-context";
 
 const PageRestoredMessageWrapper: FunctionComponent<{
@@ -115,8 +110,9 @@ type TopContextBarProps = {
   crumbs: BreadcrumbsProps["crumbs"];
   item?: Entity | EntityTypeWithMetadata;
   defaultCrumbIcon?: ReactNode;
-  scrollToTop: () => void;
+  scrollToTop?: () => void;
   sx?: SxProps<Theme>;
+  breadcrumbsEndAdornment?: ReactNode;
 };
 
 export const TopContextBar = ({
@@ -126,6 +122,7 @@ export const TopContextBar = ({
   defaultCrumbIcon = <FontAwesomeIcon icon={faFile} />,
   scrollToTop = () => {},
   sx = [],
+  breadcrumbsEndAdornment,
 }: TopContextBarProps) => {
   const [displayRestoredMessage, setDisplayRestoredMessage] = useState(false);
 
@@ -133,41 +130,27 @@ export const TopContextBar = ({
 
   const { replace, query } = useRouter();
 
+  const isCanvasPage =
+    item &&
+    "entityTypeId" in item &&
+    item.entityTypeId === systemEntityTypes.canvas.entityTypeId;
+
   // @todo make 'additional buttons' a prop and move this to the page page
-  const setPageMode = (type: "canvas" | "document", lockCanvas?: boolean) => {
-    const newQuery: { canvas?: true; locked?: true } = {};
-    if (type === "canvas") {
-      newQuery.canvas = true;
-      if (lockCanvas) {
-        newQuery.locked = true;
-      }
-    }
-    const { canvas: _, locked: __, ...otherParams } = query;
-    void replace({ query: { ...otherParams, ...newQuery } }, undefined, {
+  const setCanvasLockState = (shouldLock: boolean) => {
+    const { locked: __, ...otherParams } = query;
+    void replace({ query: { ...otherParams, locked: shouldLock } }, undefined, {
       shallow: true,
     });
   };
 
   // @todo make 'additional banner' a prop and move this logic to the (1) page page and (2) entity type pages
-  const isItemArchived = useMemo(() => {
+  const archived = useMemo(() => {
     if (!item) {
       return false;
     }
 
-    if (isItemEntityType(item)) {
-      return isTypeArchived(item);
-    } else if (isEntityPageEntity(item)) {
-      return item.properties[
-        extractBaseUrl(types.propertyType.archived.propertyTypeId)
-      ] as boolean;
-    }
-    return false;
+    return isItemArchived(item);
   }, [item]);
-
-  const isBlockPage = useMemo(
-    () => item && !isItemEntityType(item) && isEntityPageEntity(item),
-    [item],
-  );
 
   return (
     <>
@@ -196,18 +179,23 @@ export const TopContextBar = ({
               isItemEntityType(item)
                 ? "Type"
                 : isEntityPageEntity(item)
-                ? "Page"
-                : "Entity"
+                  ? "Page"
+                  : "Entity"
             } restored!`}</PageRestoredMessageWrapper>
           ) : null}
+          {breadcrumbsEndAdornment}
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          {item && !isItemEntityType(item) && !isEntityPageEntity(item) && (
+            <ShareDropdownMenu entity={item} />
+          )}
+
           {actionMenuItems?.length ? (
             <ContextBarActionsDropdown>
               {actionMenuItems}
             </ContextBarActionsDropdown>
           ) : null}
-          {isBlockPage && query.canvas && (
+          {isCanvasPage && (
             <FormControlLabel
               labelPlacement="start"
               slotProps={{
@@ -219,7 +207,7 @@ export const TopContextBar = ({
               control={
                 <Switch
                   checked={!!query.locked}
-                  onChange={() => setPageMode("canvas", !query.locked)}
+                  onChange={() => setCanvasLockState(!query.locked)}
                   inputProps={{ "aria-label": "controlled" }}
                   size="medium"
                 />
@@ -227,38 +215,10 @@ export const TopContextBar = ({
               label="Locked"
             />
           )}
-          {isBlockPage && (
-            <ToggleButtonGroup value={query.canvas ? "canvas" : "document"}>
-              <ToggleButton
-                value="document"
-                aria-label="document"
-                onClick={() => setPageMode("document")}
-              >
-                <FontAwesomeIcon
-                  icon={faFile}
-                  sx={(theme) => ({
-                    color: theme.palette.gray[40],
-                  })}
-                />
-              </ToggleButton>
-              <ToggleButton
-                value="canvas"
-                aria-label="canvas"
-                onClick={() => setPageMode("canvas", false)}
-              >
-                <FontAwesomeIcon
-                  icon={faPencilRuler}
-                  sx={(theme) => ({
-                    color: theme.palette.gray[40],
-                  })}
-                />
-              </ToggleButton>
-            </ToggleButtonGroup>
-          )}
         </Box>
       </Box>
-      {item ? (
-        <Collapse in={isItemArchived}>
+      {item && !(!isItemEntityType(item) && !isEntityPageEntity(item)) ? (
+        <Collapse in={archived}>
           <ArchivedItemBanner
             item={item}
             onUnarchived={() => {

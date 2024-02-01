@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { ImpureGraphContext } from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { getEntities } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
   archiveDataType,
@@ -18,7 +18,6 @@ import {
   getPropertyTypes,
   unarchivePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { publicUserAccountId } from "@apps/hash-api/src/graphql/context";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   DataTypeStructuralQuery,
@@ -32,6 +31,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  AccountId,
   BaseUrl,
   Entity,
   EntityTypeWithMetadata,
@@ -143,7 +143,9 @@ let aliceEntities: Entity[];
 let bobEntities: Entity[];
 let linkEntities: Entity[];
 
-const authentication = { actorId: publicUserAccountId };
+const authentication = {
+  actorId: "00000000-0001-0000-0000-000000000000" as AccountId,
+};
 
 beforeAll(async () => {
   await restoreSnapshot(path.join(__dirname, "pass", "friendship.jsonl"));
@@ -159,6 +161,7 @@ beforeAll(async () => {
       filter: aliceFilter,
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: fullDecisionTimeAxis,
+      includeDrafts: false,
     },
   })
     .then(getRoots)
@@ -175,6 +178,7 @@ beforeAll(async () => {
       filter: bobFilter,
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: fullDecisionTimeAxis,
+      includeDrafts: false,
     },
   })
     .then(getRoots)
@@ -191,6 +195,7 @@ beforeAll(async () => {
       filter: linkFilter,
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: fullDecisionTimeAxis,
+      includeDrafts: false,
     },
   })
     .then(getRoots)
@@ -259,6 +264,7 @@ describe("Ontology queries", () => {
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
     };
 
     const initialSubgraph = await getDataTypes(graphContext, authentication, {
@@ -267,8 +273,7 @@ describe("Ontology queries", () => {
     expect(initialSubgraph.roots.length).toEqual(1);
 
     const actorId =
-      getRoots(initialSubgraph)[0]!.metadata.custom.provenance
-        .recordCreatedById;
+      getRoots(initialSubgraph)[0]!.metadata.provenance.edition.createdById;
 
     await archiveDataType(
       graphContext,
@@ -351,6 +356,7 @@ describe("Ontology queries", () => {
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
     };
 
     const initialSubgraph = await getPropertyTypes(
@@ -361,8 +367,7 @@ describe("Ontology queries", () => {
     expect(initialSubgraph.roots.length).toEqual(1);
 
     const actorId =
-      getRoots(initialSubgraph)[0]!.metadata.custom.provenance
-        .recordCreatedById;
+      getRoots(initialSubgraph)[0]!.metadata.provenance.edition.createdById;
 
     await archivePropertyType(
       graphContext,
@@ -443,7 +448,7 @@ describe("Ontology queries", () => {
         ({ schema }) =>
           schema.$id ===
           "http://localhost:3000/@alice/types/entity-type/person/v/1",
-      )!.metadata.custom.labelProperty,
+      )!.metadata.labelProperty,
     ).toBeUndefined();
 
     expect(
@@ -451,7 +456,7 @@ describe("Ontology queries", () => {
         ({ schema }) =>
           schema.$id ===
           "http://localhost:3000/@alice/types/entity-type/person/v/2",
-      )!.metadata.custom.labelProperty,
+      )!.metadata.labelProperty,
     ).toStrictEqual("http://localhost:3000/@alice/types/property-type/name/");
   });
 });
@@ -473,6 +478,7 @@ it("archives/unarchives entity types", async () => {
     },
     graphResolveDepths: zeroedGraphResolveDepths,
     temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: false,
   };
 
   const initialSubgraph = await getEntityTypes(graphContext, authentication, {
@@ -481,7 +487,7 @@ it("archives/unarchives entity types", async () => {
   expect(initialSubgraph.roots.length).toEqual(1);
 
   const actorId =
-    getRoots(initialSubgraph)[0]!.metadata.custom.provenance.recordCreatedById;
+    getRoots(initialSubgraph)[0]!.metadata.provenance.edition.createdById;
 
   await archiveEntityType(
     graphContext,
@@ -519,6 +525,7 @@ describe("Simple queries", () => {
         },
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: fullDecisionTimeAxis,
+        includeDrafts: false,
       },
     });
     expect(subgraph.roots.length).toEqual(5);
@@ -540,6 +547,7 @@ describe("Simple queries", () => {
           "2000-01-01T00:00Z" as Timestamp,
           null,
         ),
+        includeDrafts: false,
       },
     });
     expect(subgraph.roots.length).toEqual(0);
@@ -561,6 +569,7 @@ describe("Simple queries", () => {
           "2001-01-01T00:00Z" as Timestamp,
           null,
         ),
+        includeDrafts: false,
       },
     });
     expect(subgraph.roots.length).toEqual(1);
@@ -582,6 +591,7 @@ describe("Simple queries", () => {
           "2001-01-01T00:00Z" as Timestamp,
           "2001-01-01T00:00Z" as Timestamp,
         ),
+        includeDrafts: false,
       },
     });
     expect(subgraph.roots.length).toEqual(0);
@@ -603,6 +613,7 @@ describe("Simple queries", () => {
           "2001-01-01T00:00Z" as Timestamp,
           "2001-01-20T00:00Z" as Timestamp,
         ),
+        includeDrafts: false,
       },
     });
     expect(subgraph.roots.length).toEqual(1);
@@ -624,6 +635,7 @@ describe("Simple queries", () => {
           "2002-01-01T00:00Z" as Timestamp,
           "2001-01-01T00:00Z" as Timestamp,
         ),
+        includeDrafts: false,
       },
     });
     expect(subgraph.roots.length).toEqual(0);
@@ -645,6 +657,7 @@ describe("Simple queries", () => {
           "2001-02-01T00:00Z" as Timestamp,
           null,
         ),
+        includeDrafts: false,
       },
     });
     expect(subgraph.roots.length).toEqual(1);
@@ -665,6 +678,7 @@ describe("Simple queries", () => {
         filter: aliceFilter,
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
     });
     expect(subgraph.roots.length).toEqual(1);
@@ -682,6 +696,7 @@ describe("Simple queries", () => {
         filter: friendshipFilter,
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
     });
     expect(subgraph.roots.length).toEqual(1);
@@ -710,6 +725,7 @@ describe("non-zero, simple resolve depths", () => {
           },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
     });
     expect(subgraph.roots.length).toEqual(1);
@@ -763,6 +779,7 @@ describe("non-zero, simple resolve depths", () => {
           },
         },
         temporalAxes: fullDecisionTimeAxis,
+        includeDrafts: false,
       },
     });
     expect(subgraph.roots.length).toEqual(1);
@@ -836,6 +853,7 @@ describe("non-zero, simple resolve depths", () => {
           },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
     });
     expect(subgraph.roots.length).toEqual(1);
@@ -862,6 +880,7 @@ describe("non-zero, simple resolve depths", () => {
           },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
     });
     expect(subgraph.roots.length).toEqual(1);
@@ -902,6 +921,7 @@ describe("non-zero, simple resolve depths", () => {
           },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
     });
     expect(subgraph.roots.length).toEqual(1);
@@ -935,6 +955,7 @@ describe("non-zero, simple resolve depths", () => {
           },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
     });
     expect(subgraph.roots.length).toEqual(1);
@@ -976,6 +997,7 @@ describe("complex resolve depths", () => {
           },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
     });
     expect(subgraph.roots.length).toEqual(1);

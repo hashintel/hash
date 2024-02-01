@@ -1,0 +1,13 @@
+{
+  "allOf": [],
+  "description": "A generic thing",
+  "examples": [],
+  "$id": "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/1",
+  "kind": "entityType",
+  "links": {},
+  "properties": {},
+  "required": [],
+  "title": "Thing",
+  "type": "object",
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
+}

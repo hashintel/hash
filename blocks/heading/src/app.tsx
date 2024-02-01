@@ -16,7 +16,7 @@ export const App: BlockComponent<BlockEntity> = ({
   const {
     [propertyIds.color]: color,
     [propertyIds.level]: level = 1,
-    [propertyIds.text]: text,
+    [propertyIds.textualContent]: textualContent,
   } = rootEntity.properties;
 
   useHook(
@@ -24,10 +24,10 @@ export const App: BlockComponent<BlockEntity> = ({
     headerRef,
     "text",
     rootEntity.metadata.recordId.entityId,
-    [propertyIds.text],
+    [propertyIds.textualContent],
     (node) => {
       // eslint-disable-next-line no-param-reassign
-      node.innerText = text ?? "";
+      node.innerText = typeof textualContent === "string" ? textualContent : "";
 
       return () => {
         // eslint-disable-next-line no-param-reassign

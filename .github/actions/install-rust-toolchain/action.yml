@@ -14,7 +14,6 @@ runs:
   using: "composite"
   steps:
     - name: "Install Rust"
-      working-directory: ${{ inputs.working-directory }}
       shell: bash
       run: |
         # regex for components that are only available on nightly and should not be installed on stable
@@ -22,8 +21,13 @@ runs:
         NIGHTLY_ONLY="miri|llvm-tools|llvm-tools-preview"
         NIGHTLY_TOOLCHAIN="nightly-.*"
 
+        if [[ -f "${{ inputs.working-directory }}/rust-toolchain.toml" ]]; then
+          RUST_TOOLCHAIN_FILE="${{ inputs.working-directory }}/rust-toolchain.toml"
+        else
+          RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
+        fi
         # extract components from the rust-toolchain.toml 
-        COMPONENTS=$(cat rust-toolchain.toml | yq -p toml '.toolchain.components[]')
+        COMPONENTS="$(cat $RUST_TOOLCHAIN_FILE | yq -p toml '.toolchain.components[]')"
 
         rustup toolchain install "${{ inputs.toolchain }}"
 

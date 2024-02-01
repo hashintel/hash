@@ -52,7 +52,7 @@ where
         match discriminant {
             BoundDiscriminant::Unbounded => deserializer
                 .deserialize_optional(UnitVariantVisitor)
-                .map(|_| Bound::Unbounded)
+                .map(|()| Bound::Unbounded)
                 .attach(Location::Variant("Unbounded"))
                 .change_context(VisitorError),
             BoundDiscriminant::Included => T::deserialize(deserializer)
@@ -67,7 +67,7 @@ where
     }
 }
 
-pub struct BoundReflection<T: ?Sized>(fn() -> *const T);
+pub struct BoundReflection<T: ?Sized>(#[allow(dead_code)] fn() -> *const T);
 
 impl<T> Reflection for BoundReflection<T>
 where
@@ -206,7 +206,7 @@ where
             })
             .attach(Location::Tuple(1));
 
-        let (start, end, _) = (start, end, array.end())
+        let (start, end, ()) = (start, end, array.end())
             .fold_reports()
             .change_context(VisitorError)?;
 
@@ -261,7 +261,10 @@ where
     }
 }
 
-pub struct RangeReflection<T: ?Sized, U: ?Sized>(fn() -> *const T, fn() -> *const U);
+pub struct RangeReflection<T: ?Sized, U: ?Sized>(
+    #[allow(dead_code)] fn() -> *const T,
+    #[allow(dead_code)] fn() -> *const U,
+);
 
 impl<T, U> Reflection for RangeReflection<T, U>
 where

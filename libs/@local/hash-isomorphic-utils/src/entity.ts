@@ -1,47 +1,38 @@
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
+import { Entity, EntityId, Subgraph } from "@local/hash-subgraph";
+import { getEntityRevisionsByEntityId } from "@local/hash-subgraph/stdlib";
 
 import {
   DraftEntity,
   EntityStore,
   EntityStoreType,
   isDraftBlockEntity,
-  isDraftEntity,
-  isEntity,
-  TEXT_TOKEN_PROPERTY_TYPE_BASE_URL,
+  textualContentPropertyTypeBaseUrl,
 } from "./entity-store";
 import { Block } from "./graphql/api-types.gen";
-import { flatMapTree } from "./util";
 
 export type BlockEntity = Block;
 
 export type TextProperties = {
-  // As TEXT_TOKEN_PROPERTY_TYPE_BASE_URL (and TEXT_TOKEN_PROPERTY_TYPE_ID) are
-  // not const the type is just `string`. Not ideal.
-  [_ in typeof TEXT_TOKEN_PROPERTY_TYPE_BASE_URL]: TextToken[];
+  [_ in typeof textualContentPropertyTypeBaseUrl]: TextToken[];
 };
 
 export type TextEntityType = Omit<EntityStoreType, "properties"> & {
   properties: TextProperties;
 };
 
-// @todo make this more robust
-export const isTextProperties =
-  (properties: {}): properties is TextEntityType["properties"] =>
-    TEXT_TOKEN_PROPERTY_TYPE_BASE_URL in properties;
+const isRichTextProperties = (
+  properties: Record<string, unknown>,
+): properties is TextEntityType["properties"] =>
+  textualContentPropertyTypeBaseUrl in properties &&
+  Array.isArray(
+    properties[textualContentPropertyTypeBaseUrl as keyof typeof properties],
+  );
 
-export const isTextEntity = (
+export const isRichTextContainingEntity = (
   entity: EntityStoreType | DraftEntity,
 ): entity is TextEntityType =>
-  "properties" in entity &&
-  // Draft text entities would not have an entity type ID assigned yet.
-  // To have this check, we have to make a seperate check for draft text entities.
-  // (entity.entityTypeId ?? "") === TEXT_ENTITY_TYPE_ID &&
-  isTextProperties(entity.properties);
-
-export const isDraftTextEntity = (
-  entity: DraftEntity,
-): entity is DraftEntity<TextEntityType> =>
-  isTextEntity(entity) && isDraftEntity(entity);
+  "properties" in entity && isRichTextProperties(entity.properties);
 
 export const getEntityChildEntity = (
   draftId: string,
@@ -66,8 +57,9 @@ export const getBlockChildEntity = (
   const blockEntity = entityStore.draft[draftBlockId];
 
   if (!isDraftBlockEntity(blockEntity)) {
-    throw new Error("Can only get text entity from block entity");
+    throw new Error("Can only get child entity from block entity");
   }
+
   const childEntity = getEntityChildEntity(
     blockEntity.draftId,
     entityStore.draft,
@@ -80,29 +72,30 @@ export const getBlockChildEntity = (
   return childEntity;
 };
 
-/**
- * Flatmap a list of BlockEntities
- * @param blockEntities blocks to traverse
- * @param mapFn function to match each entity
- * @returns a list of mapped values
- */
-export const flatMapBlocks = <T>(
-  blockEntities: BlockEntity[],
-  mapFn: (entity: EntityStoreType, block: BlockEntity) => T[],
+export const getFirstEntityRevision = (
+  subgraph: Subgraph,
+  entityId: EntityId,
 ) => {
-  const result = [];
+  const entityRevisions = getEntityRevisionsByEntityId(subgraph, entityId);
 
-  for (const block of blockEntities) {
-    result.push(
-      ...flatMapTree(block, (node) => {
-        if (isEntity(node)) {
-          return mapFn(node, block);
-        }
-
-        return [];
-      }),
-    );
+  if (entityRevisions.length === 0) {
+    throw new Error("Could not find entity revisions in subgraph");
   }
 
-  return result;
+  return entityRevisions.reduce<Entity>(
+    (previousEarliestRevision, currentRevision) => {
+      const currentCreatedAt = new Date(
+        currentRevision.metadata.temporalVersioning.decisionTime.start.limit,
+      );
+
+      const previousEarliestRevisionCreatedAt = new Date(
+        previousEarliestRevision.metadata.temporalVersioning.decisionTime.start.limit,
+      );
+
+      return previousEarliestRevisionCreatedAt < currentCreatedAt
+        ? previousEarliestRevision
+        : currentRevision;
+    },
+    entityRevisions[0]!,
+  );
 };

@@ -13,3 +13,6 @@ export const mimeTypePropertyTypeUrl: VersionedUrl =
 
 export const fileUrlPropertyTypeUrl: VersionedUrl =
   "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/v/1";
+
+export const fileNamePropertyTypeUrl: VersionedUrl =
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/v/1";

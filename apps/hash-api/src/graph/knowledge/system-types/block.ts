@@ -1,17 +1,31 @@
+import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import {
+  createDefaultAuthorizationRelationships,
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { contentLinkTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { BlockProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
   EntityId,
-  EntityPropertiesObject,
+  extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
-import { EntityTypeMismatchError } from "../../../lib/error";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
-import { SYSTEM_TYPES } from "../../system-types";
+import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import {
   archiveEntity,
   createEntity,
   CreateEntityParams,
+  getEntities,
   getEntityIncomingLinks,
   getEntityOutgoingLinks,
   getLatestEntityById,
@@ -20,6 +34,7 @@ import {
   createLinkEntity,
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
+  isEntityLinkEntity,
 } from "../primitive/link-entity";
 import { Comment, getCommentFromEntity } from "./comment";
 
@@ -32,19 +47,17 @@ export const getBlockFromEntity: PureGraphFunction<
   { entity: Entity },
   Block
 > = ({ entity }) => {
-  if (
-    entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.block.schema.$id
-  ) {
+  if (entity.metadata.entityTypeId !== systemEntityTypes.block.entityTypeId) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.block.schema.$id,
+      systemEntityTypes.block.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
 
-  const componentId = entity.properties[
-    SYSTEM_TYPES.propertyType.componentId.metadata.recordId.baseUrl
-  ] as string;
+  const { componentId } = simplifyProperties(
+    entity.properties as BlockProperties,
+  );
 
   return {
     componentId,
@@ -75,7 +88,7 @@ export const getBlockById: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createBlock: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
+  Pick<CreateEntityParams, "ownedById"> & {
     componentId: string;
     blockData: Entity;
   },
@@ -83,22 +96,23 @@ export const createBlock: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const { componentId, blockData, ownedById } = params;
 
-  const properties: EntityPropertiesObject = {
-    [SYSTEM_TYPES.propertyType.componentId.metadata.recordId.baseUrl]:
-      componentId,
+  const properties: BlockProperties = {
+    "https://hash.ai/@hash/types/property-type/component-id/": componentId,
   };
 
   const entity = await createEntity(ctx, authentication, {
     ownedById,
     properties,
-    entityTypeId: SYSTEM_TYPES.entityType.block.schema.$id,
+    entityTypeId: systemEntityTypes.block.entityTypeId,
+    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
   await createLinkEntity(ctx, authentication, {
-    linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
+    linkEntityTypeId: systemLinkEntityTypes.hasData.linkEntityTypeId,
     leftEntityId: entity.metadata.recordId.entityId,
     rightEntityId: blockData.metadata.recordId.entityId,
     ownedById,
+    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
   return getBlockFromEntity({ entity });
@@ -119,7 +133,7 @@ export const getBlockData: ImpureGraphFunction<
     {
       entityId: block.entity.metadata.recordId.entityId,
       linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.blockData.schema.$id,
+        systemLinkEntityTypes.hasData.linkEntityTypeId,
     },
   );
 
@@ -157,7 +171,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
     {
       entityId: block.entity.metadata.recordId.entityId,
       linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.blockData.schema.$id,
+        systemLinkEntityTypes.hasData.linkEntityTypeId,
     },
   );
 
@@ -191,12 +205,13 @@ export const updateBlockDataEntity: ImpureGraphFunction<
   });
 
   await createLinkEntity(ctx, authentication, {
-    linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
+    linkEntityTypeId: systemLinkEntityTypes.hasData.linkEntityTypeId,
     leftEntityId: block.entity.metadata.recordId.entityId,
     rightEntityId: newBlockDataEntity.metadata.recordId.entityId,
     ownedById: extractOwnedByIdFromEntityId(
       block.entity.metadata.recordId.entityId,
     ),
+    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 };
 
@@ -211,7 +226,7 @@ export const getBlockComments: ImpureGraphFunction<
 > = async (ctx, authentication, { block }) => {
   const blockCommentLinks = await getEntityIncomingLinks(ctx, authentication, {
     entityId: block.entity.metadata.recordId.entityId,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
+    linkEntityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
   });
 
   const commentEntities = await Promise.all(
@@ -221,4 +236,62 @@ export const getBlockComments: ImpureGraphFunction<
   );
 
   return commentEntities.map((entity) => getCommentFromEntity({ entity }));
+};
+
+/**
+ * Get the page the block collection entity that contains the block, or null if
+ * if the block is in not contained in a block collection.
+ *
+ * @param params.block - the block entity
+ */
+export const getBlockCollectionByBlock: ImpureGraphFunction<
+  { block: Block; includeDrafts?: boolean },
+  Promise<Entity | null>
+> = async (context, authentication, params) => {
+  const { block, includeDrafts = false } = params;
+
+  const blockEntityUuid = extractEntityUuidFromEntityId(
+    block.entity.metadata.recordId.entityId,
+  );
+
+  const matchingContainsLinks = await getEntities(context, authentication, {
+    query: {
+      filter: {
+        all: [
+          contentLinkTypeFilter,
+          {
+            equal: [
+              { path: ["rightEntity", "uuid"] },
+              { parameter: blockEntityUuid },
+            ],
+          },
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.blockCollection.entityTypeId,
+            { ignoreParents: false, pathPrefix: ["leftEntity"] },
+          ),
+        ],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts,
+    },
+  }).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity));
+
+  /** @todo: account for blocks that are in multiple pages */
+
+  const [matchingContainsLink] = matchingContainsLinks;
+
+  if (matchingContainsLink) {
+    const blockCollectionEntity = await getLatestEntityById(
+      context,
+      authentication,
+      {
+        entityId: matchingContainsLink.linkData.leftEntityId,
+      },
+    );
+
+    return blockCollectionEntity;
+  }
+
+  return null;
 };

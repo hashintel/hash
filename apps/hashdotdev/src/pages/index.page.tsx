@@ -421,8 +421,8 @@ const Resource: FunctionComponent<{
     color === "purple"
       ? palette.purple[40]
       : color === "blue"
-      ? palette.blue[50]
-      : palette.teal[40];
+        ? palette.blue[50]
+        : palette.teal[40];
 
   return (
     <Box
@@ -463,8 +463,8 @@ const Resource: FunctionComponent<{
                 color === "purple"
                   ? palette.purple[70]
                   : color === "blue"
-                  ? palette.blue[70]
-                  : palette.teal[70],
+                    ? palette.blue[70]
+                    : palette.teal[70],
               textTransform: "uppercase",
               fontSize: 12,
               fontWeight: 600,

@@ -1,0 +1,120 @@
+definition graph/account {}
+
+definition graph/account_group {
+	// Administration
+	relation level_00_administrator: graph/account
+	permission administrator = level_00_administrator
+
+	permission add_member = administrator
+	permission remove_member = administrator
+
+	// Membership
+	relation level_00_member: graph/account
+	permission member = administrator + level_00_member
+}
+
+definition graph/setting {
+	// Flags to inherit permissions
+    relation level_00_administrator: graph/account:*
+    relation level_00_update: graph/account:*
+    relation level_00_view: graph/account:*
+}
+
+definition graph/web {
+	// Administration
+	relation level_00_owner: graph/account | graph/account_group
+	permission administrator = level_00_owner + level_00_owner->administrator
+
+	permission change_permission = administrator
+
+	// Entities
+	relation level_00_entity_creator: graph/account | graph/account_group#member
+	relation level_00_entity_editor: graph/account | graph/account_group#member
+	relation level_00_entity_viewer: graph/account | graph/account_group#member | graph/account:*
+
+	permission create_entity = administrator + level_00_entity_creator
+	permission update_entity = administrator + level_00_entity_editor
+	permission view_entity = update_entity + level_00_entity_viewer
+
+	// Entity types
+	relation level_00_entity_type_viewer: graph/account:*
+
+	permission create_entity_type = administrator + level_00_owner->member
+	permission update_entity_type = administrator + level_00_owner->member
+	permission view_entity_type = update_entity_type + level_00_entity_type_viewer
+
+	// Property types
+	relation level_00_property_type_viewer: graph/account:*
+
+	permission create_property_type = administrator + level_00_owner->member
+	permission update_property_type = administrator + level_00_owner->member
+	permission view_property_type = update_property_type + level_00_property_type_viewer
+
+	// Data types
+	relation level_00_data_type_viewer: graph/account:*
+
+	permission create_data_type = administrator
+	permission update_data_type = administrator
+	permission view_data_type = update_data_type + level_00_data_type_viewer
+}
+
+definition graph/entity {
+	// Setup
+    relation level_00_setting: graph/setting
+    relation level_00_owner: graph/web
+
+	// Administration
+	relation level_00_administrator: graph/account | graph/account_group#member
+	// the `level_00_owner` relation in the web is an account or an account group. In addition to the manually specified admin on an entity,
+	//   - For account webs: the account who is owning the web will have full access, always
+	//   - For account group webs: if the setting `admin` is set the org admin will have full access
+	permission full_access = level_00_administrator + (level_00_setting->level_00_administrator & level_00_owner->administrator)
+
+	// Permissions
+	relation level_00_editor: graph/account | graph/account_group#member
+	relation level_00_viewer: graph/account | graph/account_group#member | graph/account:*
+
+	permission update = full_access + level_00_editor + (level_00_setting->level_00_update & level_00_owner->update_entity)
+	permission view = update + level_00_viewer + (level_00_setting->level_00_view & level_00_owner->view_entity)
+}
+
+definition graph/entity_type {
+	// Setup
+    relation level_00_setting: graph/setting
+    relation level_00_owner: graph/web
+
+	// Permissions
+	relation level_00_editor: graph/account | graph/account_group#member
+    relation level_00_viewer: graph/account:*
+
+	permission update = level_00_editor + (level_00_setting->level_00_update & level_00_owner->update_entity_type)
+	permission view = update + level_00_viewer + level_00_owner->view_entity_type
+
+	// Allows to create entities from this entity type
+    relation level_00_instantiator: graph/account | graph/account_group#member | graph/account:*
+    permission instantiate = level_00_instantiator
+}
+
+definition graph/property_type {
+	// Setup
+    relation level_00_setting: graph/setting
+    relation level_00_owner: graph/web
+
+	// Permissions
+	relation level_00_editor: graph/account | graph/account_group#member
+    relation level_00_viewer: graph/account:*
+
+	permission update = level_00_editor + (level_00_setting->level_00_update & level_00_owner->update_property_type)
+	permission view = update + level_00_viewer + level_00_owner->view_property_type
+}
+
+definition graph/data_type {
+	// Setup
+    relation level_00_owner: graph/web
+
+	// Permissions
+    relation level_00_viewer: graph/account:*
+
+	permission update = level_00_owner->update_data_type
+	permission view = level_00_viewer + level_00_owner->view_data_type
+}

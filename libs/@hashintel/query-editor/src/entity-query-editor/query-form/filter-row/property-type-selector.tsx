@@ -1,6 +1,7 @@
 import { extractBaseUrl, PropertyType } from "@blockprotocol/graph";
-import { MenuItem } from "@hashintel/design-system";
-import { FormControl } from "@mui/material";
+import { MenuItem, OntologyChip } from "@hashintel/design-system";
+import { FormControl, listClasses } from "@mui/material";
+import { useMemo } from "react";
 import { FieldErrorsImpl, useFormContext } from "react-hook-form";
 
 import { useReadonlyContext } from "../../readonly-context";
@@ -16,6 +17,11 @@ export const PropertyTypeSelector = ({
 }) => {
   const readonly = useReadonlyContext();
   const { control, formState, setValue } = useFormContext<FormValues>();
+
+  const sortedPropertyTypes = useMemo(
+    () => propertyTypes.sort((a, b) => a.title.localeCompare(b.title)),
+    [propertyTypes],
+  );
 
   const filterErrors = formState.errors.filters?.[index] as
     | FieldErrorsImpl<PropertyFilter>
@@ -45,8 +51,8 @@ export const PropertyTypeSelector = ({
                 dataTypeId.includes("data-type/boolean/")
                   ? "boolean"
                   : dataTypeId.includes("data-type/number/")
-                  ? "number"
-                  : "string",
+                    ? "number"
+                    : "string",
               );
             }
           },
@@ -57,12 +63,19 @@ export const PropertyTypeSelector = ({
           displayEmpty: true,
           error: hasError,
           disabled: readonly,
+          MenuProps: {
+            sx: {
+              [`& .${listClasses.root}`]: {
+                maxWidth: 600,
+              },
+            },
+          },
         }}
       >
         <MenuItem disabled noSelectBackground>
           Choose
         </MenuItem>
-        {propertyTypes.map(({ title, $id }) => {
+        {sortedPropertyTypes.map(({ title, $id }) => {
           const baseUrl = extractBaseUrl($id);
 
           /**
@@ -72,6 +85,11 @@ export const PropertyTypeSelector = ({
           return (
             <MenuItem key={baseUrl} value={baseUrl}>
               {title}
+              <OntologyChip
+                domain={new URL($id).hostname}
+                path={new URL($id).pathname}
+                sx={{ marginLeft: 2 }}
+              />
             </MenuItem>
           );
         })}

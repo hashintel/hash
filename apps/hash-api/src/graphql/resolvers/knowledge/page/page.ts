@@ -1,19 +1,14 @@
 import {
   createPage,
-  getAllPagesInWorkspace,
-  getPageById,
   getPageComments,
-  getPageParentPage,
 } from "../../../../graph/knowledge/system-types/page";
 import {
   MutationCreatePageArgs,
-  QueryPageArgs,
   QueryPageCommentsArgs,
-  QueryPagesArgs,
   ResolverFn,
 } from "../../../api-types.gen";
-import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { LoggedInGraphQLContext } from "../../../context";
+import { graphQLContextToImpureGraphContext } from "../../util";
 import {
   mapCommentToGQL,
   mapPageToGQL,
@@ -21,91 +16,43 @@ import {
   UnresolvedPageGQL,
 } from "../graphql-mapping";
 
-export const pageResolver: ResolverFn<
-  Promise<UnresolvedPageGQL>,
-  {},
-  GraphQLContext,
-  QueryPageArgs
-> = async (_, { entityId }, { dataSources, authentication }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
-
-  const page = await getPageById(context, authentication, {
-    entityId,
-  });
-
-  return mapPageToGQL(page);
-};
-
 export const createPageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationCreatePageArgs
 > = async (
   _,
-  { ownedById, properties: { title, prevIndex } },
-  { dataSources, authentication },
+  { ownedById, properties: { title, prevFractionalIndex, type } },
+  graphQLContext,
 ) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const page = await createPage(context, authentication, {
+  const page = await createPage(context, graphQLContext.authentication, {
     ownedById,
     title,
-    prevIndex: prevIndex ?? undefined,
+    prevFractionalIndex: prevFractionalIndex ?? undefined,
+    type,
   });
 
   return mapPageToGQL(page);
 };
 
-export const parentPageResolver: ResolverFn<
-  Promise<UnresolvedPageGQL | null>,
-  UnresolvedPageGQL,
-  GraphQLContext,
-  QueryPagesArgs
-> = async (pageGql, _, { dataSources, authentication }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
-
-  const page = await getPageById(context, authentication, {
-    entityId: pageGql.metadata.recordId.entityId,
-  });
-  const parentPage = await getPageParentPage(context, authentication, { page });
-
-  return parentPage ? mapPageToGQL(parentPage) : null;
-};
-
-export const pagesResolver: ResolverFn<
-  Promise<UnresolvedPageGQL[]>,
-  {},
-  LoggedInGraphQLContext,
-  QueryPagesArgs
-> = async (
-  _,
-  { ownedById, includeArchived },
-  { dataSources, authentication, user },
-) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
-
-  const accountId = ownedById ?? user.accountId;
-
-  const pages = await getAllPagesInWorkspace(context, authentication, {
-    accountId,
-    includeArchived: includeArchived ?? false,
-  });
-
-  return pages.map(mapPageToGQL);
-};
-
 export const pageCommentsResolver: ResolverFn<
   Promise<UnresolvedCommentGQL[]>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   QueryPageCommentsArgs
-> = async (_, { entityId }, { dataSources, authentication }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+> = async (_, { entityId }, graphQLContext) => {
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const comments = await getPageComments(context, authentication, {
-    pageEntityId: entityId,
-  });
+  const comments = await getPageComments(
+    context,
+    graphQLContext.authentication,
+    {
+      pageEntityId: entityId,
+    },
+  );
 
   return comments.map(mapCommentToGQL);
 };

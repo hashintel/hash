@@ -8,6 +8,7 @@ import {
   MuiTooltipThemeOptions,
 } from "./components/data-display";
 import { MuiChipThemeOptions } from "./components/data-display/mui-chip-theme-options";
+import { MuiListItemIconThemeOptions } from "./components/data-display/mui-list-item-icon-theme-options";
 import { MuiSkeletonThemeOptions } from "./components/feedback/mui-skeleton-theme-options";
 import {
   MuiButtonThemeOptions,
@@ -18,6 +19,8 @@ import {
   MuiRadioThemeOptions,
   MuiSwitchThemeOptions,
 } from "./components/inputs";
+import { MuiButtonBaseThemeOptions } from "./components/inputs/mui-button-base-theme-options";
+import { MuiInputBaseThemeOptions } from "./components/inputs/mui-input-base-theme-options";
 import { MuiSelectThemeOptions } from "./components/inputs/mui-select-theme-options";
 import {
   MuiDrawerThemeOptions,
@@ -31,6 +34,7 @@ import { MuiCssBaselineThemeOptions } from "./components/utils";
 export const components: Components<Theme> = {
   /** ===== INPUTS ===== */
   MuiButton: MuiButtonThemeOptions,
+  MuiButtonBase: MuiButtonBaseThemeOptions,
   MuiOutlinedInput: MuiOutlinedInputThemeOptions,
   MuiInputLabel: MuiInputLabelThemeOptions,
   MuiSwitch: MuiSwitchThemeOptions,
@@ -38,12 +42,14 @@ export const components: Components<Theme> = {
   MuiCheckbox: MuiCheckboxThemeOptions,
   MuiSelect: MuiSelectThemeOptions,
   MuiFormHelperText: MuiFormHelperTextThemeOptions,
+  MuiInputBase: MuiInputBaseThemeOptions,
   /** ===== DATA DISPLAY ===== */
   MuiChip: MuiChipThemeOptions,
   MuiIconButton: MuiIconButtonThemeOptions,
   MuiTooltip: MuiTooltipThemeOptions,
   MuiListItemButton: MuiListItemButtonThemeOptions,
   MuiListItemText: MuiListItemTextThemeOptions,
+  MuiListItemIcon: MuiListItemIconThemeOptions,
   MuiListItemSecondaryAction: MuiListItemSecondaryActionThemeOptions,
 
   /** ===== FEEDBACK ===== */

@@ -42,6 +42,19 @@ Although published to package managers, the following libraries were developed f
 | [@hashintel/design-system]       | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/design-system)       | To be written | A collection of styleguide-aligned reusable UI primitives for [HASH] and our [hash.ai] website       |
 | [@hashintel/block-design-system] | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/block-design-system) | To be written | A relatively unopinionated set of reusable UI primitives for use in building [Block Protocol] blocks |
 
+Those packages inside of [`@local`](./@local) are libraries used inside this repository which are **not** published to package managers. All of these libraries may be subject to breaking changes. External consumers should be especially careful when using or upgrading these.
+
+The following list is a non-exhaustive list of packages in `@local`:
+
+| Package                                                         | Language(s) | Docs URL      | Description                                                            |
+| --------------------------------------------------------------- | ----------- | ------------- | ---------------------------------------------------------------------- |
+| [@local/codec-rs](@local/codec)                                 | Rust        | Not hosted    | Implementation of different `serde` or byte codes used in HASH         |
+| [@local/hash-authorization-rs](@local/hash-authorization)       | Rust        | Not hosted    | Provides the authorization interface and logic used in the Graph       |
+| [@local/hash-graph-client](@local/hash-graph-client/typescript) | TypeScript  | To be written | A generator to create a TypeScript/JavaScript client for the Graph API |
+| [@local/hash-graph-types-rs](@local/hash-graph-types/rust)      | Rust        | Not hosted    | Types used inside of the Graph API                                     |
+| [@local/temporal-client-rs](@local/temporal-client)             | Rust        | Not hosted    | Client implementation to connect to our Temporal.io service            |
+| [@local/temporal-versioning-rs](@local/temporal-versioning)     | Rust        | Not hosted    | Implementation of temporal versioning                                  |
+
 ## Contributing
 
 See [CONTRIBUTING.md](../.github/CONTRIBUTING.md).

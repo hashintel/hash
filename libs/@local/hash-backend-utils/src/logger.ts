@@ -2,6 +2,7 @@
  * Structured logging library based on winston.
  */
 import * as winston from "winston";
+import { LeveledLogMethod } from "winston";
 
 export const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
 
@@ -23,11 +24,11 @@ const getDefaultLoggerLevel = () => {
 };
 
 export class Logger {
-  silly: (...msg: any) => void;
-  debug: (...msg: any) => void;
-  info: (...msg: any) => void;
-  warn: (...msg: any) => void;
-  error: (...msg: any) => void;
+  silly: LeveledLogMethod;
+  debug: LeveledLogMethod;
+  info: LeveledLogMethod;
+  warn: LeveledLogMethod;
+  error: LeveledLogMethod;
 
   constructor(private cfg: LoggerConfig) {
     this.cfg = cfg;

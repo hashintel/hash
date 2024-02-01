@@ -33,7 +33,7 @@ just run server
 ### Logging configuration
 
 Some of the libraries used are very talkative in `trace` logging configurations, especially `mio`, `hyper`, and `tokio_util`.
-If you're interested in just increasing the logs for the Graph, we recommend specifically targeting the crates with `RUST_LOG=graph=trace,hash-graph=trace`.
+If you're interested in just increasing the logs for the Graph, we recommend specifically targeting the crates with `HASH_GRAPH_LOG_LEVEL=graph=trace,hash-graph=trace`.
 
 ## Development
 
@@ -77,7 +77,7 @@ Make sure to run this command whenever changes are made to the specification. CI
 
 ### Modifications
 
-The spec is mostly generated from the code using [`utoipa`](https://github.com/juhaku/utoipa/), although some of the more complex types are specified manually within [`lib/graph/src/api/rest/json_schemas`](lib/graph/src/api/rest/json_schemas).
+The spec is mostly generated from the code using [`utoipa`](https://github.com/juhaku/utoipa/), although some of the more complex types are specified manually within [`libs/graph/src/api/rest/json_schemas`](libs/graph/src/api/rest/json_schemas).
 
 As such, when modifying return values related to these types, it's important to update the accompanying schemas.
 
@@ -85,8 +85,8 @@ As such, when modifying return values related to these types, it's important to 
 
 Responses containing non-OK statuses are returned according to the `Status` format defined in the [`@local/status`](/libs/@local/status/README.md) package.
 
-The [`status.json`](lib/graph/src/api/rest/json_schemas/status.json) schema is responsible for the definition of this type, and should be updated whenever new payloads are added within [`./type-defs`](./type-defs).
-JSON schema definitions can be generated within the build directory by uncommenting the line in the lib's [`build.rs`](./lib/graph/build.rs).
+The [`status.json`](libs/graph/src/api/rest/json_schemas/status.json) schema is responsible for the definition of this type, and should be updated whenever new payloads are added within [`./type-defs`](./type-defs).
+JSON schema definitions can be generated within the build directory by uncommenting the line in the lib's [`build.rs`](libs/api/build.rs).
 
 To locate the build directory, run with `cargo build -vv` and search for "Generated files in:"
 
@@ -134,16 +134,3 @@ The benchmarks currently have a fairly costly (in time) setup cost per suite on 
 As such, the benchmark databases **are not cleaned up** between or after runs.
 
 This also means that if breaking changes are made to the seeding logic, **you must manually delete the benchmark tables to have them reseed**.
-
-If you for some reason prefer to not use `just` please note, that for testing it's required to pass `--cfg hash_graph_test_environment` to `rustc`. As typically the invocation happens through `cargo` this can be done by setting the `RUSTFLAGS` environment variable:
-
-```shell
-export RUSTFLAGS="--cfg hash_graph_test_environment"
-```
-
-or by adding the following to your `~/.cargo/config`:
-
-```toml
-[target.'cfg(all())']
-rustflags = ["--cfg", "hash_graph_test_environment"]
-```

@@ -3,7 +3,7 @@ import {
   useEntitySubgraph,
 } from "@blockprotocol/graph/react";
 import { AiAssistantMessage } from "@hashintel/block-design-system";
-import { theme } from "@hashintel/design-system";
+import { theme } from "@hashintel/design-system/theme";
 import { ThemeProvider } from "@mui/material";
 
 import { GenerateText } from "./app/generate-text";

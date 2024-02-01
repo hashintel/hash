@@ -4,11 +4,14 @@ import { Node, NodeSpec, NodeType, Schema } from "prosemirror-model";
 
 import { paragraphBlockComponentId } from "./blocks";
 
-type NodeWithAttrs<Attrs extends {}> = Omit<Node, "attrs"> & {
+type NodeWithAttrs<Attrs extends Record<string, unknown>> = Omit<
+  Node,
+  "attrs"
+> & {
   attrs: Attrs;
 };
 
-type ComponentNodeAttrs = {};
+type ComponentNodeAttrs = Record<string, unknown>;
 export type ComponentNode = NodeWithAttrs<ComponentNodeAttrs>;
 
 export type EntityNode = NodeWithAttrs<{
@@ -43,15 +46,27 @@ export const mentionNode: NodeSpec = {
   inline: true,
   group: "inline",
   atom: true,
-  attrs: { mentionType: { default: null }, entityId: { default: null } },
+  attrs: {
+    mentionType: { default: null },
+    entityId: { default: null },
+    propertyTypeBaseUrl: { default: null },
+    linkEntityTypeBaseUrl: { default: null },
+  },
   toDOM: (node) => {
-    const { mentionType, entityId } = node.attrs;
+    const {
+      mentionType,
+      entityId,
+      propertyTypeBaseUrl,
+      linkEntityTypeBaseUrl,
+    } = node.attrs;
     return [
       "span",
       {
         "data-hash-type": "mention",
         "data-mention-type": mentionType,
         "data-entity-id": entityId,
+        "data-property-type-base-url": propertyTypeBaseUrl,
+        "data-link-entity-type-base-url": linkEntityTypeBaseUrl,
       },
     ];
   },
@@ -62,6 +77,12 @@ export const mentionNode: NodeSpec = {
         return {
           mentionType: (dom as Element).getAttribute("data-mention-type"),
           entityId: (dom as Element).getAttribute("data-entity-id"),
+          propertyTypeBaseUrl: (dom as Element).getAttribute(
+            "data-property-type-base-url",
+          ),
+          linkEntityTypeBaseUrl: (dom as Element).getAttribute(
+            "data-link-entity-type-base-url",
+          ),
         };
       },
     },
@@ -307,6 +328,7 @@ export const mutateSchema = (
   schema: Schema,
   mutate: (map: OrderedMapPrivateInterface<NodeSpec>) => void,
 ) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mutate(schema.spec.nodes as any);
   const loadingType = schema.nodes.loading!;
 

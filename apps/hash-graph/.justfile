@@ -4,7 +4,6 @@ set fallback
 
 repo := `git rev-parse --show-toplevel`
 profile := env_var_or_default('PROFILE', "dev")
-test-env-flags := "--cfg hash_graph_test_environment"
 
 [private]
 default:
@@ -17,26 +16,34 @@ run *arguments:
 
 # Generates the OpenAPI specifications and the clients
 generate-openapi-specs:
-  cargo run --bin hash-graph -- server --write-openapi-specs
-  just yarn codegen --filter @local/hash-graph-client-python
-  just yarn codegen --filter @local/hash-graph-sdk-python
+  just run server --write-openapi-specs
 
 [private]
 test *arguments:
-  @RUSTFLAGS="{{ test-env-flags }}" just --justfile {{repo}}/.justfile test {{arguments}}
-  RUSTFLAGS="{{ test-env-flags }}" cargo test -p graph-benches --benches --profile {{profile}} {{arguments}}
-  @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/friendship.http
-  @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/circular-links.http
-  @RUSTFLAGS="{{ test-env-flags }}" just generate-openapi-specs
+  just test-unit {{arguments}}
+  just test-integration {{arguments}}
 
 [private]
-coverage *arguments:
-  RUSTFLAGS="{{ test-env-flags }}" cargo llvm-cov --workspace --all-features --all-targets {{arguments}}
+test-unit *arguments:
+  @just install-cargo-nextest
+
+  cargo nextest run --workspace --all-features --cargo-profile {{profile}} --lib --bins {{arguments}}
+  cargo test --profile {{profile}} --workspace --all-features --doc
+
+  @just run server --write-openapi-specs
+  git --no-pager diff --exit-code --color openapi
+
+[private]
+test-integration *arguments:
+  @just install-cargo-nextest
+
+  @cargo test --workspace --all-features --bench '*' --profile {{profile}} {{arguments}}
+  @just yarn graph:reset-database
+  @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/friendship.http
+  @just yarn graph:reset-database
+  @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/circular-links.http
+  @just yarn graph:reset-database
 
 [private]
 bench *arguments:
-  @RUSTFLAGS="{{ test-env-flags }}" just --justfile {{repo}}/.justfile bench {{arguments}}
-
-[private]
-miri *arguments:
-  @echo 'miri is disabled for `hash-graph`'
+  @just --justfile {{repo}}/.justfile bench {{arguments}}

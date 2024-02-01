@@ -1,9 +1,10 @@
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Entity } from "@local/hash-subgraph";
 
 import { getPageBlocks } from "../../../../graph/knowledge/system-types/page";
 import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { graphQLContextToImpureGraphContext } from "../../util";
 import {
   mapBlockToGQL,
   mapEntityToGQL,
@@ -12,15 +13,20 @@ import {
 } from "../graphql-mapping";
 
 export const pageContents: ResolverFn<
-  Promise<{ linkEntity: Entity; rightEntity: UnresolvedBlockGQL }[]>,
+  { linkEntity: Entity; rightEntity: UnresolvedBlockGQL }[],
   UnresolvedPageGQL,
   LoggedInGraphQLContext,
-  {}
-> = async (page, _, { dataSources, authentication }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+  Record<string, never>
+> = async (page, _, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   const contentItems = await getPageBlocks(context, authentication, {
     pageEntityId: page.metadata.recordId.entityId,
+    type:
+      page.metadata.entityTypeId === systemEntityTypes.canvas.entityTypeId
+        ? "canvas"
+        : "document",
   });
 
   return contentItems.map(({ linkEntity, rightEntity }) => ({

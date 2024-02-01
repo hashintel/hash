@@ -1,8 +1,6 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import {
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
+import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
 import {
   createEntity,
   createEntityWithLinks,
@@ -11,25 +9,25 @@ import {
   updateEntity,
 } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import { getLinkEntityRightEntity } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
-import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
+import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
+import {
+  joinOrg,
+  User,
+} from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { systemUser } from "@apps/hash-api/src/graph/system-user";
-import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
+  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
-  DataTypeWithMetadata,
   Entity,
   EntityRootType,
   EntityTypeWithMetadata,
-  extractOwnedByIdFromEntityId,
   linkEntityTypeUrl,
   OwnedById,
   PropertyTypeWithMetadata,
@@ -38,7 +36,12 @@ import {
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { resetGraph } from "../../../test-server";
-import { createTestImpureGraphContext, createTestUser } from "../../../util";
+import {
+  createTestImpureGraphContext,
+  createTestOrg,
+  createTestUser,
+  textDataTypeId,
+} from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -48,14 +51,14 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+const graphContext = createTestImpureGraphContext();
 const { graphApi } = graphContext;
 
 describe("Entity CRU", () => {
+  let testOrg: Org;
   let testUser: User;
   let testUser2: User;
   let entityType: EntityTypeWithMetadata;
-  let textDataType: DataTypeWithMetadata;
   let namePropertyType: PropertyTypeWithMetadata;
   let favoriteBookPropertyType: PropertyTypeWithMetadata;
   let linkEntityTypeFriend: EntityTypeWithMetadata;
@@ -69,15 +72,15 @@ describe("Entity CRU", () => {
 
     const authentication = { actorId: testUser.accountId };
 
-    textDataType = await createDataType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
-      schema: {
-        title: "Text",
-        type: "string",
-      },
-    }).catch((err) => {
-      logger.error("Something went wrong making Text", err);
-      throw err;
+    testOrg = await createTestOrg(
+      graphContext,
+      authentication,
+      "entitytestorg",
+      logger,
+    );
+    await joinOrg(graphContext, authentication, {
+      userEntityId: testUser2.entity.metadata.recordId.entityId,
+      orgEntityId: testOrg.entity.metadata.recordId.entityId,
     });
 
     await Promise.all([
@@ -90,6 +93,20 @@ describe("Entity CRU", () => {
           properties: {},
           allOf: [{ $ref: linkEntityTypeUrl }],
         },
+        relationships: [
+          {
+            relation: "viewer",
+            subject: {
+              kind: "public",
+            },
+          },
+          {
+            relation: "instantiator",
+            subject: {
+              kind: "public",
+            },
+          },
+        ],
       })
         .then((val) => {
           linkEntityTypeFriend = val;
@@ -102,8 +119,16 @@ describe("Entity CRU", () => {
         ownedById: testUser.accountId as OwnedById,
         schema: {
           title: "Favorite Book",
-          oneOf: [{ $ref: textDataType.schema.$id }],
+          oneOf: [{ $ref: textDataTypeId }],
         },
+        relationships: [
+          {
+            relation: "viewer",
+            subject: {
+              kind: "public",
+            },
+          },
+        ],
       })
         .then((val) => {
           favoriteBookPropertyType = val;
@@ -116,8 +141,16 @@ describe("Entity CRU", () => {
         ownedById: testUser.accountId as OwnedById,
         schema: {
           title: "Name",
-          oneOf: [{ $ref: textDataType.schema.$id }],
+          oneOf: [{ $ref: textDataTypeId }],
         },
+        relationships: [
+          {
+            relation: "viewer",
+            subject: {
+              kind: "public",
+            },
+          },
+        ],
       })
         .then((val) => {
           namePropertyType = val;
@@ -129,10 +162,10 @@ describe("Entity CRU", () => {
     ]);
 
     entityType = await createEntityType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      ownedById: testOrg.accountGroupId as OwnedById,
       schema: generateSystemEntityTypeSchema({
         entityTypeId: generateTypeId({
-          namespace: testUser.shortname!,
+          webShortname: testOrg.shortname,
           kind: "entity-type",
           title: "Person",
         }),
@@ -148,6 +181,20 @@ describe("Entity CRU", () => {
           },
         ],
       }),
+      relationships: [
+        {
+          relation: "viewer",
+          subject: {
+            kind: "public",
+          },
+        },
+        {
+          relation: "instantiator",
+          subject: {
+            kind: "public",
+          },
+        },
+      ],
     });
   });
 
@@ -158,27 +205,22 @@ describe("Entity CRU", () => {
     await deleteKratosIdentity({
       kratosIdentityId: testUser2.kratosIdentityId,
     });
-    await deleteKratosIdentity({
-      kratosIdentityId: systemUser.kratosIdentityId,
-    });
 
     await resetGraph();
   });
 
   let createdEntity: Entity;
   it("can create an entity", async () => {
-    createdEntity = await createEntity(
-      graphContext,
-      { actorId: testUser.accountId },
-      {
-        ownedById: testUser.accountId as OwnedById,
-        properties: {
-          [namePropertyType.metadata.recordId.baseUrl]: "Bob",
-          [favoriteBookPropertyType.metadata.recordId.baseUrl]: "some text",
-        },
-        entityTypeId: entityType.schema.$id,
+    const authentication = { actorId: testUser.accountId };
+    createdEntity = await createEntity(graphContext, authentication, {
+      ownedById: testOrg.accountGroupId as OwnedById,
+      properties: {
+        [namePropertyType.metadata.recordId.baseUrl]: "Bob",
+        [favoriteBookPropertyType.metadata.recordId.baseUrl]: "some text",
       },
-    );
+      entityTypeId: entityType.schema.$id,
+      relationships: createDefaultAuthorizationRelationships(authentication),
+    });
   });
 
   it("can read an entity", async () => {
@@ -200,7 +242,7 @@ describe("Entity CRU", () => {
 
   let updatedEntity: Entity;
   it("can update an entity", async () => {
-    expect(createdEntity.metadata.provenance.recordCreatedById).toBe(
+    expect(createdEntity.metadata.provenance.edition.createdById).toBe(
       testUser.accountId,
     );
 
@@ -217,27 +259,39 @@ describe("Entity CRU", () => {
       },
     ).catch((err) => Promise.reject(err.data));
 
-    expect(updatedEntity.metadata.provenance.recordCreatedById).toBe(
+    expect(updatedEntity.metadata.provenance.edition.createdById).toBe(
       testUser2.accountId,
     );
   });
 
-  it("can read all latest entities", async () => {
+  it("can read all latest person entities", async () => {
     const allEntities = await graphApi
       .getEntitiesByQuery(testUser.accountId, {
-        filter: {
-          all: [],
+        query: {
+          filter: {
+            all: [
+              {
+                equal: [
+                  { path: ["ownedById"] },
+                  { parameter: testOrg.accountGroupId },
+                ],
+              },
+              {
+                endsWith: [
+                  { path: ["type(inheritanceDepth=0)", "baseUrl"] },
+                  {
+                    parameter: `/types/entity-type/person/`,
+                  },
+                ],
+              },
+            ],
+          },
+          graphResolveDepths: zeroedGraphResolveDepths,
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: false,
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
       })
-      .then(({ data }) =>
-        getRoots(data as Subgraph<EntityRootType>).filter(
-          (entity) =>
-            extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId) ===
-            testUser.accountId,
-        ),
-      );
+      .then(({ data }) => getRoots(data.subgraph as Subgraph<EntityRootType>));
 
     const newlyUpdated = allEntities.find(
       (ent) =>
@@ -245,11 +299,8 @@ describe("Entity CRU", () => {
         updatedEntity.metadata.recordId.entityId,
     );
 
-    // Even though we've inserted two entities, they're the different versions
-    // of the same entity. This should only retrieve a single entity.
-    // Other tests pollute the database, though, so we can't rely on this test's
-    // results in isolation.
-    expect(allEntities.length).toBeGreaterThanOrEqual(1);
+    // Even though we've inserted two entities, they're the different versions of the same entity.
+    expect(allEntities.length).toBe(1);
     expect(newlyUpdated).toBeDefined();
 
     expect(newlyUpdated?.metadata.recordId.editionId).toEqual(
@@ -285,6 +336,9 @@ describe("Entity CRU", () => {
             },
           },
         ],
+        relationships: createDefaultAuthorizationRelationships({
+          actorId: testUser.accountId,
+        }),
       },
     );
 

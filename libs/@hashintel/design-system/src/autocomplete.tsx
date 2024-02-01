@@ -20,12 +20,18 @@ import { TextField } from "./text-field";
 
 type AutocompleteProps<
   T,
-  Multiple extends boolean | undefined = undefined,
-> = Omit<MUIAutocompleteProps<T, Multiple, true, false>, "renderInput"> & {
-  height?: number;
-  inputRef?: Ref<any>;
+  Multiple extends boolean | undefined,
+  DisableClearable extends boolean | undefined,
+  FreeSolo extends boolean | undefined,
+> = Omit<
+  MUIAutocompleteProps<T, Multiple, DisableClearable, FreeSolo>,
+  "renderInput"
+> & {
+  inputHeight?: number | string;
+  inputRef?: Ref<Element>;
+  inputLabel?: string;
   inputPlaceholder?: string;
-  inputProps: InputProps;
+  inputProps?: InputProps;
   autoFocus?: boolean;
   modifiers?: PopperProps["modifiers"];
   /**
@@ -36,15 +42,20 @@ type AutocompleteProps<
   joined?: boolean;
 };
 
+const textFieldLabelHeight = 18;
+
 export const Autocomplete = <
   T,
-  Multiple extends boolean | undefined = undefined,
+  Multiple extends boolean | undefined,
+  DisableClearable extends boolean | undefined,
+  FreeSolo extends boolean | undefined = false,
 >({
-  height = 57,
+  inputHeight = 57,
   open,
   sx,
   inputRef,
   inputPlaceholder,
+  inputLabel,
   inputProps,
   autoFocus = true,
   modifiers,
@@ -53,8 +64,10 @@ export const Autocomplete = <
   componentsProps,
   ...rest
 }: AutocompleteProps<
-  Multiple extends true ? (T extends any[] ? T[number] : T) : T,
-  Multiple
+  Multiple extends true ? (T extends unknown[] ? T[number] : T) : T,
+  Multiple,
+  DisableClearable,
+  FreeSolo
 >) => {
   const allModifiers = useMemo(
     (): PopperProps["modifiers"] => [
@@ -79,15 +92,20 @@ export const Autocomplete = <
   const paperComponent = useCallback(
     ({ children, ...props }: PaperProps) =>
       options.length ? (
-        <AutocompleteDropdown {...props} joined={joined} inputHeight={height}>
+        <AutocompleteDropdown
+          {...props}
+          joined={joined}
+          inputHeight={inputHeight}
+        >
           {children}
         </AutocompleteDropdown>
       ) : null,
-    [joined, height, options],
+    [joined, inputHeight, options],
   );
 
   return (
     <MUIAutocomplete
+      noOptionsText="No options found..."
       open={open}
       options={options}
       sx={[{ width: "100%" }, ...(Array.isArray(sx) ? sx : [sx])]}
@@ -107,6 +125,7 @@ export const Autocomplete = <
           autoFocus={autoFocus}
           inputRef={inputRef}
           placeholder={inputPlaceholder}
+          label={inputLabel}
           sx={{ width: "100%" }}
           /**
            * Prevents backspace deleting chips when in multiple mode
@@ -120,20 +139,26 @@ export const Autocomplete = <
           InputProps={{
             ...params.InputProps,
             ...inputProps,
-            endAdornment: inputProps.endAdornment ?? (
-              <FontAwesomeIcon
-                icon={faSearch}
-                sx={{
-                  fontSize: 14,
-                  color: ({ palette }) => palette.gray[40],
-                }}
-              />
-            ),
+            endAdornment:
+              inputProps && "endAdornment" in inputProps ? (
+                inputProps.endAdornment
+              ) : (
+                <FontAwesomeIcon
+                  icon={faSearch}
+                  sx={{
+                    fontSize: 14,
+                    color: ({ palette }) => palette.gray[40],
+                  }}
+                />
+              ),
             sx: [
               (theme) => ({
                 // The popover needs to know how tall this is to draw
                 // a shadow around it
-                height,
+                height:
+                  typeof inputHeight === "number"
+                    ? inputHeight + (inputLabel ? textFieldLabelHeight : 0)
+                    : undefined,
 
                 // Focus is handled by the options popover
                 "&.Mui-focused": {
@@ -148,7 +173,7 @@ export const Autocomplete = <
                 },
               }),
               open && options.length ? popperOpenStyles : {},
-              ...(inputProps.sx
+              ...(inputProps?.sx
                 ? Array.isArray(inputProps.sx)
                   ? inputProps.sx
                   : [inputProps.sx]
@@ -158,7 +183,6 @@ export const Autocomplete = <
         />
       )}
       popupIcon={null}
-      disableClearable
       forcePopupIcon={false}
       selectOnFocus={false}
       openOnFocus

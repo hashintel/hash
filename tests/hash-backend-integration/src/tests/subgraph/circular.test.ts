@@ -1,14 +1,14 @@
 import path from "node:path";
 
-import { ImpureGraphContext } from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { getEntities } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import { publicUserAccountId } from "@apps/hash-api/src/graphql/context";
 import { EntityStructuralQuery } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  AccountId,
   Entity,
   ENTITY_ID_DELIMITER,
   EntityRootType,
@@ -64,6 +64,7 @@ const createQuery = (
         },
       },
     },
+    includeDrafts: false,
   };
 };
 let graphContext: ImpureGraphContext;
@@ -81,7 +82,9 @@ let link_cb: Entity;
 let link_dc: Entity;
 let link_ad: Entity;
 
-const authentication = { actorId: publicUserAccountId };
+const authentication = {
+  actorId: "00000000-0001-0000-0000-000000000000" as AccountId,
+};
 
 beforeAll(async () => {
   await restoreSnapshot(path.join(__dirname, "pass", "circular.jsonl"));
@@ -95,6 +98,7 @@ beforeAll(async () => {
       },
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
     },
   }).then(getRoots);
 

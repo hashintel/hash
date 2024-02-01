@@ -1,14 +1,20 @@
 import { faHome } from "@fortawesome/free-solid-svg-icons";
-import { IconButton } from "@hashintel/design-system";
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Drawer, Tooltip } from "@mui/material";
 import { useRouter } from "next/router";
-import { FunctionComponent, useContext } from "react";
+import { FunctionComponent } from "react";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
-import { WorkspaceContext } from "../../../pages/shared/workspace-context";
+import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
+import { useDraftEntities } from "../../draft-entities-context";
 import { SidebarToggleIcon } from "../../icons";
+import { FeatherLightIcon } from "../../icons/feather-light-icon";
+import { InboxIcon } from "../../icons/inbox-icon";
+import { NoteIcon } from "../../icons/note-icon";
+import { useNotificationEntities } from "../../notification-entities-context";
 import { useRoutePageInfo } from "../../routing";
 import { HEADER_HEIGHT } from "../layout-with-header/page-header";
+import { AccountEntitiesList } from "./account-entities-list";
 import { AccountEntityTypeList } from "./account-entity-type-list";
 import { AccountPageList } from "./account-page-list/account-page-list";
 import { useSidebarContext } from "./sidebar-context";
@@ -20,11 +26,15 @@ export const SIDEBAR_WIDTH = 260;
 export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useActiveWorkspace();
   const { routePageEntityUuid } =
     useRoutePageInfo({ allowUndefined: true }) ?? {};
 
   const { hashInstance } = useHashInstance();
+
+  const { numberOfUnreadNotifications } = useNotificationEntities();
+
+  const { draftEntities } = useDraftEntities();
 
   return (
     <Drawer
@@ -66,11 +76,34 @@ export const PageSidebar: FunctionComponent = () => {
         </Tooltip>
       </Box>
       <TopNavLink
-        icon={faHome}
+        icon={<FontAwesomeIcon icon={faHome} />}
         title="Home"
         href="/"
         tooltipTitle=""
         active={router.pathname === "/[shortname]"}
+      />
+      <TopNavLink
+        icon={<InboxIcon sx={{ fontSize: 16 }} />}
+        title="Inbox"
+        href="/inbox"
+        tooltipTitle=""
+        count={numberOfUnreadNotifications}
+        active={router.pathname === "/inbox"}
+      />
+      <TopNavLink
+        icon={<FeatherLightIcon sx={{ fontSize: 16 }} />}
+        title="Drafts"
+        href="/drafts"
+        tooltipTitle=""
+        count={draftEntities?.length}
+        active={router.pathname === "/drafts"}
+      />
+      <TopNavLink
+        icon={<NoteIcon sx={{ fontSize: 16 }} />}
+        title="Notes"
+        href="/notes"
+        tooltipTitle=""
+        active={router.pathname === "/notes"}
       />
       {/* 
         Commented out nav links whose functionality have not been 
@@ -79,12 +112,7 @@ export const PageSidebar: FunctionComponent = () => {
         @todo uncomment when the functionalities are implemented
       */}
 
-      {/* <TopNavLink
-        icon={faZap}
-        title="Quick Capture"
-        href="/"
-        tooltipTitle="Quickly create notes, entities, and types"
-      />
+      {/*
       <TopNavLink
         icon={faHistory}
         title="Recently visited"
@@ -98,17 +126,19 @@ export const PageSidebar: FunctionComponent = () => {
           overflowY: "auto",
         }}
       >
-        {activeWorkspaceAccountId ? (
+        {activeWorkspaceOwnedById ? (
           <>
             {/* PAGES */}
             {hashInstance?.properties.pagesAreEnabled ? (
               <AccountPageList
                 currentPageEntityUuid={routePageEntityUuid}
-                accountId={activeWorkspaceAccountId}
+                ownedById={activeWorkspaceOwnedById}
               />
             ) : null}
+            {/* ENTITIES */}
+            <AccountEntitiesList ownedById={activeWorkspaceOwnedById} />
             {/* TYPES */}
-            <AccountEntityTypeList ownedById={activeWorkspaceAccountId} />
+            <AccountEntityTypeList ownedById={activeWorkspaceOwnedById} />
           </>
         ) : null}
       </Box>

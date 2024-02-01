@@ -1,10 +1,10 @@
 use std::{iter::repeat, str::FromStr};
 
-use authorization::NoAuthorization;
+use authorization::{schema::WebOwnerSubject, NoAuthorization};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
-    store::{query::Filter, AccountStore, EntityStore},
+    store::{query::Filter, AccountStore, EntityQuerySorting, EntityStore},
     subgraph::{
         edges::GraphResolveDepths,
         query::StructuralQuery,
@@ -18,12 +18,12 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
     knowledge::entity::{EntityMetadata, EntityProperties},
-    provenance::OwnedById,
+    owned_by_id::OwnedById,
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;
-use type_system::{repr, EntityType};
+use type_system::EntityType;
 use uuid::Uuid;
 
 use crate::util::{seed, setup, Store, StoreWrapper};
@@ -48,19 +48,30 @@ async fn seed_db(
         .insert_account_id(account_id, &mut NoAuthorization, account_id)
         .await
         .expect("could not insert account id");
+    transaction
+        .insert_web_id(
+            account_id,
+            &mut NoAuthorization,
+            OwnedById::new(account_id.into_uuid()),
+            WebOwnerSubject::Account { id: account_id },
+        )
+        .await
+        .expect("could not create web id");
 
     seed(
         &mut transaction,
         account_id,
-        [data_type::TEXT_V1],
+        [data_type::TEXT_V1, data_type::NUMBER_V1],
         [
             property_type::NAME_V1,
             property_type::BLURB_V1,
             property_type::PUBLISHED_ON_V1,
+            property_type::AGE_V1,
         ],
         [
             entity_type::LINK_V1,
             entity_type::link::FRIEND_OF_V1,
+            entity_type::link::ACQUAINTANCE_OF_V1,
             entity_type::link::WRITTEN_BY_V1,
             entity_type::PERSON_V1,
             entity_type::BOOK_V1,
@@ -70,18 +81,22 @@ async fn seed_db(
 
     let properties: EntityProperties =
         serde_json::from_str(entity::BOOK_V1).expect("could not parse entity");
-    let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type::BOOK_V1)
-        .expect("could not parse entity type representation");
-    let entity_type_id = EntityType::try_from(entity_type_repr)
-        .expect("could not parse entity type")
-        .id()
-        .clone();
+    let entity_type: EntityType =
+        serde_json::from_str(entity_type::BOOK_V1).expect("could not parse entity type");
+    let entity_type_id = entity_type.id().clone();
 
     let entity_metadata_list = transaction
         .insert_entities_batched_by_type(
             account_id,
             &mut NoAuthorization,
-            repeat((OwnedById::new(account_id), None, properties, None, None)).take(total),
+            repeat((
+                OwnedById::new(account_id.into_uuid()),
+                None,
+                properties,
+                None,
+                None,
+            ))
+            .take(total),
             &entity_type_id,
         )
         .await
@@ -115,7 +130,7 @@ pub fn bench_get_entity_by_id(
             // query
             entity_metadata_list
                 .iter()
-                .map(EntityMetadata::record_id)
+                .map(|metadata| metadata.record_id)
                 .choose(&mut thread_rng())
                 .expect("could not choose random entity")
         },
@@ -134,7 +149,13 @@ pub fn bench_get_entity_by_id(
                                 None,
                             ),
                         },
+                        include_drafts: false,
                     },
+                    EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    None,
                 )
                 .await
                 .expect("failed to read entity from store");

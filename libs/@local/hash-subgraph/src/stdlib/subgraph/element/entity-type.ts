@@ -46,8 +46,8 @@ export const getEntityTypeById = (
  *
  * @param subgraph a subgraph containing the entity type and its ancestors
  * @param entityTypeId the `VersionedUrl` of the entity type
- * @throws if the entity type or any of its ancestors aren't present in the subgraph
- * @returns an array of `EntityTypeWithMetadata`
+ * @throws Error if the entity type or any of its ancestors aren't present in the subgraph
+ * @returns EntityTypeWithMetadata[] an array of `EntityTypeWithMetadata`, where the first element is the entity type
  */
 export const getEntityTypeAndParentsById = (
   subgraph: Subgraph,
@@ -63,10 +63,43 @@ export const getEntityTypeAndParentsById = (
     (parent) => parent.$ref,
   );
 
+  // Return the entity type, followed by its ancestors
   return [
     entityType,
     ...parentIds.flatMap((parentId) =>
       getEntityTypeAndParentsById(subgraph, parentId),
+    ),
+  ];
+};
+
+/**
+ * Gets an array of `EntityTypeWithMetadata` containing the requested entity type and all its descendants
+ * i.e. entity types which inherit from it, whether directly or indirectly.
+ *
+ * @param subgraph a subgraph containing the entity type and its descendants
+ * @param entityTypeId the `VersionedUrl` of the entity type
+ * @throws Error if the entity type or any of its descendants aren't present in the subgraph
+ * @returns EntityTypeWithMetadata[] an array of `EntityTypeWithMetadata`, where the first element is the entity type
+ */
+export const getEntityTypeAndDescendantsById = (
+  subgraph: Subgraph,
+  entityTypeId: VersionedUrl,
+): EntityTypeWithMetadata[] => {
+  const entityType = getEntityTypeById(subgraph, entityTypeId);
+
+  if (!entityType) {
+    throw new Error(`Entity type ${entityTypeId} not found in subgraph`);
+  }
+
+  const descendants = getEntityTypes(subgraph).filter((type) =>
+    (type.schema.allOf ?? []).some((parent) => parent.$ref === entityTypeId),
+  );
+
+  // Return the entity type, followed by its ancestors
+  return [
+    entityType,
+    ...descendants.flatMap(({ schema }) =>
+      getEntityTypeAndDescendantsById(subgraph, schema.$id),
     ),
   ];
 };

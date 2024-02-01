@@ -3,12 +3,12 @@ import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
   ButtonProps,
-  fluidFontClassName,
   FontAwesomeIcon,
   IconButton,
   Modal,
   TextField,
 } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 import {
   Box,
   Divider,
@@ -195,9 +195,10 @@ type TypeFormModalProps<T extends ElementType = "div"> =
 
 type PolymorphicProps<P, T extends ElementType> = P & TypeFormModalProps<T>;
 
-type PolymorphicComponent<P = {}, D extends ElementType = "div"> = <
-  T extends ElementType = D,
->(
+type PolymorphicComponent<
+  P = Record<string, unknown>,
+  D extends ElementType = "div",
+> = <T extends ElementType = D>(
   props: PolymorphicProps<P, T>,
 ) => ReactElement | null;
 

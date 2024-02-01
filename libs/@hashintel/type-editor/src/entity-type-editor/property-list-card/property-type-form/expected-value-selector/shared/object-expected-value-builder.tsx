@@ -1,11 +1,8 @@
 import { extractBaseUrl } from "@blockprotocol/type-system/slim";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import {
-  Chip,
-  fluidFontClassName,
-  FontAwesomeIcon,
-} from "@hashintel/design-system";
+import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 import {
   Box,
   Checkbox,

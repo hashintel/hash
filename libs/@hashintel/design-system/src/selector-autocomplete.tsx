@@ -2,16 +2,19 @@ import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import {
   Autocomplete,
   AutocompleteProps,
+  ClickAwayListener,
   outlinedInputClasses,
   PaperProps,
   PopperProps,
   Typography,
 } from "@mui/material";
+import clsx from "clsx";
 import { createContext, Ref, useContext, useMemo, useState } from "react";
 
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
 import { Button, ButtonProps } from "./button";
 import { Chip } from "./chip";
+import { GRID_CLICK_IGNORE_CLASS } from "./constants";
 import { fluidFontClassName } from "./fluid-fonts";
 import { FontAwesomeIcon } from "./fontawesome-icon";
 import { StyledPlusCircleIcon } from "./icon-circle-plus";
@@ -119,7 +122,7 @@ type SelectorAutocompleteProps<
   AutocompleteProps<T, Multiple, true, false>,
   "renderInput" | "renderOption" | "getOptionLabel" | "componentsProps"
 > & {
-  inputRef?: Ref<any>;
+  inputRef?: Ref<Element>;
   inputPlaceholder?: string;
   /** Determines if a given option matches a selected value (defaults to strict equality) */
   isOptionEqualToValue?: (option: T, value: T) => boolean;
@@ -133,6 +136,7 @@ type SelectorAutocompleteProps<
    * whatever element it's connected to
    */
   joined?: boolean;
+  onClickAway?: () => void;
 };
 
 export const SelectorAutocomplete = <
@@ -149,10 +153,11 @@ export const SelectorAutocomplete = <
   autoFocus = true,
   modifiers,
   joined,
+  onClickAway,
   PaperComponent,
   ...rest
 }: SelectorAutocompleteProps<
-  Multiple extends true ? (T extends any[] ? T[number] : T) : T,
+  Multiple extends true ? (T extends unknown[] ? T[number] : T) : T,
   Multiple
 >) => {
   const allModifiers = useMemo(
@@ -169,104 +174,106 @@ export const SelectorAutocomplete = <
 
   return (
     <DropdownPropsContext.Provider value={dropdownProps}>
-      <Autocomplete
-        open={open}
-        sx={[{ width: "100%" }, ...(Array.isArray(sx) ? sx : [sx])]}
-        /**
-         * By default, the anchor element for an autocomplete dropdown is the
-         * input base, but we some uses of this component depend on resizing the
-         * autocomplete root in order to attach the popup in a slightly different
-         * place, so we make the autocomplete root the anchor element for the
-         * popup.
-         *
-         * @see LinkEntityTypeSelector
-         */
-        ref={setAnchorEl}
-        renderInput={(props) => (
-          <TextField
-            {...props}
-            autoFocus={autoFocus}
-            inputRef={inputRef}
-            placeholder={inputPlaceholder}
-            sx={{ width: "100%" }}
-            /**
-             * Prevents backspace deleting chips when in multiple mode
-             * @see https://github.com/mui/material-ui/issues/21129#issuecomment-636919142
-             */
-            onKeyDown={(event) => {
-              if (event.key === "Backspace") {
-                event.stopPropagation();
-              }
-            }}
-            InputProps={{
-              ...props.InputProps,
-              endAdornment: (
-                <FontAwesomeIcon
-                  icon={faSearch}
-                  sx={(theme) => ({
-                    fontSize: 12,
-                    mr: 2,
-                    color: theme.palette.gray[50],
-                  })}
-                />
-              ),
-              sx: [
-                (theme) => ({
-                  // The popover needs to know how tall this is to draw
-                  // a shadow around it
-                  height: TYPE_SELECTOR_HEIGHT,
+      <ClickAwayListener onClickAway={() => onClickAway?.()}>
+        <Autocomplete
+          open={open}
+          sx={[{ width: "100%" }, ...(Array.isArray(sx) ? sx : [sx])]}
+          /**
+           * By default, the anchor element for an autocomplete dropdown is the
+           * input base, but we some uses of this component depend on resizing the
+           * autocomplete root in order to attach the popup in a slightly different
+           * place, so we make the autocomplete root the anchor element for the
+           * popup.
+           *
+           * @see LinkEntityTypeSelector
+           */
+          ref={setAnchorEl}
+          renderInput={(props) => (
+            <TextField
+              {...props}
+              autoFocus={autoFocus}
+              inputRef={inputRef}
+              placeholder={inputPlaceholder}
+              sx={{ width: "100%" }}
+              /**
+               * Prevents backspace deleting chips when in multiple mode
+               * @see https://github.com/mui/material-ui/issues/21129#issuecomment-636919142
+               */
+              onKeyDown={(event) => {
+                if (event.key === "Backspace") {
+                  event.stopPropagation();
+                }
+              }}
+              InputProps={{
+                ...props.InputProps,
+                endAdornment: (
+                  <FontAwesomeIcon
+                    icon={faSearch}
+                    sx={(theme) => ({
+                      fontSize: 12,
+                      mr: 2,
+                      color: theme.palette.gray[50],
+                    })}
+                  />
+                ),
+                sx: [
+                  (theme) => ({
+                    // The popover needs to know how tall this is to draw
+                    // a shadow around it
+                    height: TYPE_SELECTOR_HEIGHT,
 
-                  // Focus is handled by the options popover
-                  "&.Mui-focused": {
-                    boxShadow: "none",
-                  },
+                    // Focus is handled by the options popover
+                    "&.Mui-focused": {
+                      boxShadow: "none",
+                    },
 
-                  [`.${outlinedInputClasses.notchedOutline}`]: {
-                    border: `1px solid ${theme.palette.gray[30]} !important`,
-                  },
-                }),
-                ...(open
-                  ? [
-                      popperPlacementInputNoRadius,
-                      popperPlacementInputNoBorder,
-                      joined
-                        ? { borderRadius: "0 !important", boxShadow: "none" }
-                        : {},
-                    ]
-                  : []),
-              ],
-            }}
-          />
-        )}
-        renderOption={(props, option) => {
-          const optionRenderData = optionToRenderData(option);
-
-          return (
-            <SelectorAutocompleteOption
-              liProps={props}
-              key={optionRenderData.uniqueId}
-              {...optionRenderData}
+                    [`.${outlinedInputClasses.notchedOutline}`]: {
+                      border: `1px solid ${theme.palette.gray[30]} !important`,
+                    },
+                  }),
+                  ...(open
+                    ? [
+                        popperPlacementInputNoRadius,
+                        popperPlacementInputNoBorder,
+                        joined
+                          ? { borderRadius: "0 !important", boxShadow: "none" }
+                          : {},
+                      ]
+                    : []),
+                ],
+              }}
             />
-          );
-        }}
-        isOptionEqualToValue={isOptionEqualToValue}
-        popupIcon={null}
-        disableClearable
-        forcePopupIcon={false}
-        selectOnFocus={false}
-        openOnFocus
-        clearOnBlur={false}
-        getOptionLabel={(opt) => optionToRenderData(opt).title}
-        PaperComponent={PaperComponent ?? TypeListSelectorDropdown}
-        componentsProps={{
-          popper: {
-            modifiers: allModifiers,
-            anchorEl,
-            className: fluidFontClassName,
-          },
-        }}
-        {...rest}
-      />
+          )}
+          renderOption={(props, option) => {
+            const optionRenderData = optionToRenderData(option);
+
+            return (
+              <SelectorAutocompleteOption
+                liProps={props}
+                key={optionRenderData.uniqueId}
+                {...optionRenderData}
+              />
+            );
+          }}
+          isOptionEqualToValue={isOptionEqualToValue}
+          popupIcon={null}
+          disableClearable
+          forcePopupIcon={false}
+          selectOnFocus={false}
+          openOnFocus
+          clearOnBlur={false}
+          getOptionLabel={(opt) => optionToRenderData(opt).title}
+          PaperComponent={PaperComponent ?? TypeListSelectorDropdown}
+          componentsProps={{
+            popper: {
+              modifiers: allModifiers,
+              anchorEl,
+              className: clsx([fluidFontClassName, GRID_CLICK_IGNORE_CLASS]),
+            },
+          }}
+          {...rest}
+        />
+      </ClickAwayListener>
     </DropdownPropsContext.Provider>
   );
 };

@@ -1,22 +1,19 @@
 import { createKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import {
-  createGraphClient,
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
+import { migrateOntologyTypes } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types";
 import { createOrg } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import {
-  createUser,
-  updateUserShortname,
-} from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { ensureSystemTypesExist } from "@apps/hash-api/src/graph/system-types";
-import { systemUserAccountId } from "@apps/hash-api/src/graph/system-user";
-import { StorageType } from "@apps/hash-api/src/storage";
+import { createUser } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
+import { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
+import { TemporalClient } from "@apps/hash-api/src/temporal";
 import { getRequiredEnv } from "@apps/hash-api/src/util";
+import { VersionedUrl } from "@blockprotocol/type-system";
+import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { Logger } from "@local/hash-backend-utils/logger";
 
-import { OrgSize } from "../graphql/api-types.gen";
-
+export const textDataTypeId =
+  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" as VersionedUrl;
 const randomStringSuffix = () => {
   const alphabet = "abcdefghijklmnopqrstuvwxyz";
   return new Array(6)
@@ -25,7 +22,10 @@ const randomStringSuffix = () => {
     .join("");
 };
 
-export const createTestImpureGraphContext = (): ImpureGraphContext => {
+export const createTestImpureGraphContext = (): ImpureGraphContext<
+  true,
+  true
+> => {
   const logger = new Logger({
     mode: "dev",
     level: "debug",
@@ -39,26 +39,34 @@ export const createTestImpureGraphContext = (): ImpureGraphContext => {
     host: graphApiHost,
     port: graphApiPort,
   });
+
+  const mockedTemporalClient = {
+    workflow: {
+      execute: jest.fn(),
+    },
+  } as unknown as TemporalClient;
+
   return {
     graphApi,
     uploadProvider: {
-      getFileEntityStorageKey: (_params: any) => {
+      getFileEntityStorageKey: (_params) => {
         throw new Error(
           "File fetching not implemented in tests. Override with mock to test.",
         );
       },
-      presignDownload: (_params: any) => {
+      presignDownload: (_params) => {
         throw new Error(
           "File presign download not implemented in tests. Override with mock to test.",
         );
       },
-      presignUpload: (_params: any) => {
+      presignUpload: (_params) => {
         throw new Error(
           "File presign upload not implemented in tests. Override with mock to test.",
         );
       },
-      storageType: StorageType.LocalFileSystem,
+      storageType: "LOCAL_FILE_SYSTEM",
     },
+    temporalClient: mockedTemporalClient,
   };
 };
 
@@ -66,7 +74,7 @@ export const generateRandomShortname = (prefix?: string) =>
   `${prefix ?? ""}${randomStringSuffix()}`;
 
 export const createTestUser = async (
-  context: ImpureGraphContext,
+  context: ImpureGraphContext<false, true>,
   shortNamePrefix: string,
   logger: Logger,
 ) => {
@@ -80,53 +88,50 @@ export const createTestUser = async (
       emails: [`${shortname}@example.com`],
     },
   }).catch((err) => {
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need improvement
-    logger.error(`Error when creating Kratos Identity, ${shortname}: ${err}`);
+    logger.error(
+      `Error when creating Kratos Identity, ${shortname}: ${
+        (err as Error).message
+      }`,
+    );
     throw err;
   });
 
   const kratosIdentityId = identity.id;
 
-  const createdUser = await createUser(
+  return createUser(
     context,
-    { actorId: systemUserAccountId },
+    { actorId: systemAccountId },
     {
       emails: [`${shortname}@example.com`],
       kratosIdentityId,
+      shortname,
+      preferredName: shortname,
     },
   ).catch((err) => {
     logger.error(`Error making UserModel for ${shortname}`);
     throw err;
   });
-
-  return await updateUserShortname(
-    context,
-    { actorId: createdUser.accountId },
-    {
-      user: createdUser,
-      updatedShortname: shortname,
-    },
-  ).catch((err) => {
-    logger.error(`Error updating shortname for UserModel to ${shortname}`);
-    throw err;
-  });
 };
 
 export const createTestOrg = async (
-  context: ImpureGraphContext,
+  context: ImpureGraphContext<false, true>,
+  authentication: AuthenticationContext,
   shortNamePrefix: string,
   logger: Logger,
 ) => {
-  await ensureSystemTypesExist({ logger, context });
-  const authentication = { actorId: systemUserAccountId };
+  await migrateOntologyTypes({ logger, context });
 
   const shortname = generateRandomShortname(shortNamePrefix);
 
-  return await createOrg(context, authentication, {
+  return createOrg(context, authentication, {
     name: "Test org",
     shortname,
-    providedInfo: {
-      orgSize: OrgSize.ElevenToFifty,
-    },
   });
 };
+
+const afterHookTriggerTimeout = 5_000;
+
+export const waitForAfterHookTriggerToComplete = () =>
+  new Promise((resolve) => {
+    setTimeout(resolve, afterHookTriggerTimeout);
+  });

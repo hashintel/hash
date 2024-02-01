@@ -1,5 +1,6 @@
 import { TextField } from "@hashintel/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import { OwnedById } from "@local/hash-subgraph";
 import { Box, Container, Typography } from "@mui/material";
 import { LoginFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
@@ -26,7 +27,7 @@ const LoginPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
   const router = useRouter();
   const { refetch } = useAuthInfo();
-  const { updateActiveWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { updateActiveWorkspaceOwnedById } = useContext(WorkspaceContext);
   const { hashInstance } = useHashInstance();
 
   const {
@@ -157,7 +158,9 @@ const LoginPage: NextPageWithLayout = () => {
               );
             }
 
-            updateActiveWorkspaceAccountId(authenticatedUser.accountId);
+            updateActiveWorkspaceOwnedById(
+              authenticatedUser.accountId as OwnedById,
+            );
 
             void router.push(returnTo ?? flow.return_to ?? "/");
           })
@@ -215,6 +218,7 @@ const LoginPage: NextPageWithLayout = () => {
             <Typography key={id}>{text}</Typography>
           ))}
           required
+          inputProps={{ "data-1p-ignore": false }}
         />
         <TextField
           label="Password"
@@ -229,31 +233,35 @@ const LoginPage: NextPageWithLayout = () => {
             <Typography key={id}>{text}</Typography>
           ))}
           required
+          inputProps={{ "data-1p-ignore": false }}
         />
         <Button type="submit">Log in to your account</Button>
         {flow?.ui.messages?.map(({ text, id }) => (
           <Typography key={id}>{text}</Typography>
         ))}
         {errorMessage ? <Typography>{errorMessage}</Typography> : null}
-        {aal || refresh ? (
-          <Button variant="secondary" onClick={logout}>
-            Log out
-          </Button>
-        ) : (
-          <>
-            {hashInstance?.properties.userSelfRegistrationIsEnabled ? (
-              <Button variant="secondary" href="/signup">
-                Create account
-              </Button>
-            ) : null}
-            <Button
-              variant="secondary"
-              href={{ pathname: "/recovery", query: { email } }}
-            >
-              Recover your account
+        {
+          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
+          aal || refresh ? (
+            <Button variant="secondary" onClick={logout}>
+              Log out
             </Button>
-          </>
-        )}
+          ) : (
+            <>
+              {hashInstance?.properties.userSelfRegistrationIsEnabled ? (
+                <Button variant="secondary" href="/signup">
+                  Create account
+                </Button>
+              ) : null}
+              <Button
+                variant="secondary"
+                href={{ pathname: "/recovery", query: { email } }}
+              >
+                Recover your account
+              </Button>
+            </>
+          )
+        }
       </Box>
     </Container>
   );

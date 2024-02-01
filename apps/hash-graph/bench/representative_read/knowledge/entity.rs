@@ -6,7 +6,7 @@ use graph::{
     knowledge::EntityQueryPath,
     store::{
         query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
-        EntityStore,
+        EntityQuerySorting, EntityStore,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind},
@@ -48,7 +48,7 @@ pub fn bench_get_entity_by_id(
                         filter: Filter::Equal(
                             Some(FilterExpression::Path(EntityQueryPath::Uuid)),
                             Some(FilterExpression::Parameter(Parameter::Uuid(
-                                entity_uuid.as_uuid(),
+                                entity_uuid.into_uuid(),
                             ))),
                         ),
                         graph_resolve_depths: GraphResolveDepths::default(),
@@ -56,11 +56,17 @@ pub fn bench_get_entity_by_id(
                             pinned: PinnedTemporalAxisUnresolved::new(None),
                             variable: VariableTemporalAxisUnresolved::new(None, None),
                         },
+                        include_drafts: false,
                     },
+                    EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    None,
                 )
                 .await
                 .expect("failed to read entity from store");
-            assert_eq!(subgraph.roots.len(), 1);
+            assert_eq!(subgraph.0.roots.len(), 1);
         },
         SmallInput,
     );
@@ -101,11 +107,17 @@ pub fn bench_get_entities_by_property(
                             None,
                         ),
                     },
+                    include_drafts: false,
                 },
+                EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                None,
             )
             .await
             .expect("failed to read entity from store");
-        assert_eq!(subgraph.roots.len(), 100);
+        assert_eq!(subgraph.0.roots.len(), 100);
     });
 }
 
@@ -148,10 +160,16 @@ pub fn bench_get_link_by_target_by_property(
                             None,
                         ),
                     },
+                    include_drafts: false,
                 },
+                EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                None,
             )
             .await
             .expect("failed to read entity from store");
-        assert_eq!(subgraph.roots.len(), 100);
+        assert_eq!(subgraph.0.roots.len(), 100);
     });
 }

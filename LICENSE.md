@@ -31,7 +31,7 @@ As outlined by the license files in the respective directories:
 - Within `/blocks` source code is (unless otherwise noted) generally available under either the [MIT License] or [Apache License 2.0], at your option.
 - Within `/apps`, `/libs` and `/tests`, source code in sub-directories (including those which are nested) named `@local` or prefixed `hash` are typically licensed under the [GNU Affero General Public License 3.0].
 
-These quick reference guidelines are provided as general heuristics only. In all cases, you should follow the above **license determination** rules, outlined in section 2 (above), to verify the actual terms under which work is available.
+These quick reference guidelines are provided as general heuristics only. In all cases, you should follow the above **license determination** rules, outlined in section 1 (above), to verify the actual terms under which work is available.
 
 And remember: anything inside a directory titled `_h` (no matter how deeply nested within) is available under the [HASH License] only. This applies to code repo-wide (including to code within the aforementioned `/apps`, `/libs` and other directories).
 

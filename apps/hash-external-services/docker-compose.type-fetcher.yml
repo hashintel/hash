@@ -1,4 +1,6 @@
 services:
+  # TODO: Services below this line are developed by HASH and should not be part of this file
+
   type-fetcher:
     init: true
     image: hash-graph
@@ -8,12 +10,15 @@ services:
     volumes:
       - logs:/logs
     command: type-fetcher
+    ports:
+      - "${HASH_GRAPH_TYPE_FETCHER_PORT}:4444"
     environment:
-      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
+      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-full}"
       HASH_GRAPH_LOG_FOLDER: "/logs/graph-type-fetcher"
       HASH_GRAPH_TYPE_FETCHER_HOST: "0.0.0.0"
       HASH_GRAPH_TYPE_FETCHER_PORT: "${HASH_GRAPH_TYPE_FETCHER_PORT}"
-      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info,type_fetcher=trace,hash_graph=trace,reqwest=debug}"
+      HASH_GRAPH_SENTRY_DSN: "${HASH_TYPE_FETCHER_SENTRY_DSN-}"
+      HASH_GRAPH_LOG_LEVEL: "${HASH_GRAPH_LOG_LEVEL}"
       RUST_BACKTRACE: 1
     healthcheck:
       test: ["CMD", "/hash-graph", "type-fetcher", "--healthcheck"]

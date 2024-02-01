@@ -49,7 +49,7 @@ jobs:
       matrix:
         env: ${{ fromJson(needs.matrix-eval.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Prepare SSH key
         run: |
@@ -61,3 +61,15 @@ jobs:
           working-directory: infra/terraform/hash
           command: apply
           env: ${{ matrix.env }}
+
+      - name: Notify Slack on failure
+        uses: rtCamp/action-slack-notify@b24d75fe0e728a4bf9fc42ee217caa686d141ee8
+        if: ${{ failure() }}
+        env:
+          SLACK_LINK_NAMES: true
+          SLACK_MESSAGE: "Error applying Terraform configuration <@U0143NL4GMP> <@U027NPY8Y3X> <@U02NLJY0FGX>"
+          SLACK_TITLE: Terraform apply failed
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_USERNAME: GitHub
+          VAULT_ADDR: ""
+          VAULT_TOKEN: ""
