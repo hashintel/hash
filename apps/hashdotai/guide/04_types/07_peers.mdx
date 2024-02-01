@@ -1,0 +1,71 @@
+---
+title: Peers
+description: Types which refer to the same thing
+meta-title: Peers - HASH
+meta-description: Peers of a type are other types which refer to the same "thing".
+sidebar-title: Peers
+sidebar-icon: https://example.com/image.svg
+---
+
+Peers of a type are other types which refer to the same "thing".
+
+Types may be "the same" in one of two ways:
+
+1. **Semantically** identical: two types refer to the same concept, but do not necessarily
+1. **Structurally** identical: types may expect the exact same attributes (properties and links)
+1. **Completely** identical: types that are both semantically _and_ structurally identical
+
+# Semantic sameness
+
+Types are said to be semanitcally identically when they refer to the same type of thing.
+
+Two types which refer to the same concept, or thing, are not necessarilly guaranteed to define the exact same set of expected attributes. For example, let's assume two different people create a `Dog` type in HASH.
+
+The first `Dog` type creator is a vetinarian. They care about certain characteristics of the dog such as its `Name`, `Age`, `Weight`, and `Medical History`.
+
+The second `Dog` type creator is a dogwalker. Like the vetinarian, they care about the dog's `Name`, but they also want to know its `Favorite Toy`. Conversely, its `Weight` doesn't matter.
+
+Both the vetinarian and the dogwalker have created types that unmistakably refer to the same real-world concept, a dog, but have specified different expected attributes, reflecting those characteristics that are important to them.
+
+# Structural sameness
+
+When two types are literally identical in terms of the attributes (properties and links) they define as expected, we say that they are "structurally" the same as each other.
+
+In the real world, semantically different concepts are _never_ "structurally the same". But when concepts are represented in abstract form, they may often appear to be structurally similar or identical.
+
+For example, consider two different user's simplified entity type definitions. One defines "Automobile Repair Shop" and another defines "General Practice Surgery". Neither user has added much specialized information to these entity types, creating them quickly for purposes unknown to us. Both entity types outline the exact same set of expected property types:
+
+- Opening Time
+- Closing Time
+- Address
+- Telephone Number
+- Website
+
+Although an `Automobile Repair Shop` and a `General Practice Surgery` are clearly semantically different things, in this case their type definitions are structurally identical.
+
+# Complete sameness
+
+If two types are both semantically and structurally identical, such as when a type is duplicated in HASH, or recreated exactly, they are said to be "completely" the same.
+
+# Crosswalking
+
+## What is Crosswalking
+
+Crosswalking is the attempt to identify:
+
+- types which are semantically the same as each another
+- entities which refer to the same semantic thing, but which are defined using structurally dissimilar types
+
+## Challenges in Crosswalking
+
+Attempts to automatically crosswalk types face challenges:
+
+- Structural sameness does not imply semantic similarity (as outlined above): two types which expect the exact same attributes may be _more likely_ to be the same as one another, but they do not _necessarily_ refer to the same thing. Care must be taken.
+- Semantic sameness is not the same as semantic similarity: two types may be extremely similar, while one or both of creators perceive some difference between them. For example:
+  - Two people may create `Artwork` types, but disagree with each other on what kinds of things qualify as `Artwork`. These types may even be structurally the same as one another, but still semantically differentiated in subtle, hard-to-ascertain ways.
+  - Two businesses may create `Staff Member` types. One may incude temporary workers and contractors in this definition (producing a 'total headcount'), while another may exclude them as they may not legally qualify as "employees".
+
+Attempts to automatically crosswalk entities may face hurdles:
+
+- Semantically identical entities may not share an exact type. For example, people may use different `Politician` types to refer to `Barack Obama`, while meaning the same person.
+- Semantically identical entities may exist without even having the same semantic types declared on them in the first place. For example, the Internet Movie Database (IMDB) might not care that `Barack Obama` was a `Politician` at all, instead choosing to define him as an `Executive Producer` for his involvement in movies such as _American Symphony_. While this is not what most people will be primarily familiar with him as, the `Barack Obama` entity here is (in this example at least) semantically the same entity referred to by those using the `Politican` type.
