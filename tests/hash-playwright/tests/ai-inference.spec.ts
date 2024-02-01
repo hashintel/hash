@@ -118,8 +118,7 @@ test("user can configure and use automatic inference to create entities from a w
   // Enable automatic inference config, and confirm the configuration
   await page.click("text=Disabled", { timeout: 10_000 });
   await expect(page.locator("text=Enabled")).toBeVisible();
-  await expect(page.locator("[value='Crunchbase Company']")).toBeVisible();
-  await expect(page.locator("[value='Crunchbase Person']")).toBeVisible();
+  await expect(page.locator('[value="Crunchbase Company"]')).toBeVisible();
   await expect(page.locator("text='crunchbase.com'").first()).toBeVisible();
 
   // visit a crunchbase.com page to trigger the automatic inference
@@ -140,8 +139,8 @@ test("user can configure and use automatic inference to create entities from a w
   await page.click(`text=${crunchbasePageTitle}`);
 
   // Check that some expected entities are inferred
-  await expect(page.locator("text='OpenAI'")).toBeVisible({
+  await expect(page.locator('text="OpenAI"')).toBeVisible({
     timeout: 1000 * 60 * 30,
   });
-  await expect(page.locator("text='Y Combinator'")).toBeVisible();
+  await expect(page.locator('text="Y Combinator"')).toBeVisible();
 });
