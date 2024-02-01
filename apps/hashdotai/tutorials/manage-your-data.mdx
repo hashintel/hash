@@ -1,10 +1,47 @@
 ---
-title: Managing your data
+title: Managing Data
+subtitle: Maintaining your HASH web
 slug: managing-data
-objectId: ???
-description: Managing your data in HASH
 ---
 
-# Managing your data {#managing-your-data}
+# Overview
 
-This section provides guides to common data management workflows in HASH, making reference to data objects explained in the Introductory concepts section of the docs.
+HASH contains lots of in-built tools and features for growing and maintaining [webs](https://hash.ai/guide/webs). Using these helps ensure that the data in your web is clean, accurate, and up-to-date.
+
+This tutorial outlines a number of common, best-practice data management workflows in HASH, making reference to the [Core Concepts](https://hash.ai/guide/introduction/core-concepts) explained in the [user guide](https://hash.ai/guide).
+
+# Managing entities
+
+## Merging duplicate entities
+
+Merging entities, where duplicates appear, is an important part of keeping your web healthy.
+
+Not only does removing or merging duplicate clean up your view, but it also helps avoid errors and confusion, by ensuring there is only ever one "source of truth". This means that when an entity's information is updated, it only has to be changed in one place, and there is never any risk of ending up with two conflicting versions (and no idea which is trustworthy and accurate).
+
+....finding similar entities....
+
+## Migrating from properties to links
+
+From time-to-time, you might want to convert property values to linked entities. For example, "Phone Number" might start out as a property on an entity, but over time you might want an individual phone number exist as its own addressable entity.
+
+## Detecting incorrect property values
+
+Occasionally incorrect data finds its way into your web. HASH contains tools that can help you automatically detect unusual or "out of bounds" values. These may be values which technically conform to a data type, or property type's constraints, but which are unexpected or outliers in a given context.
+
+# Managing types
+
+## Visualizing your ontology
+
+It can be helpful to see a visual representation of your types, and the possible relationships that connect them.
+
+## Forking types
+
+Forking an entity type lets you make changes to it, while retaining a link back to the original type. This lets you modify an entity type according to your own needs, while tracking changes to the original over time, enabling you to manually 'sync' your own version with it, and stay up to date.
+
+## Extending types
+
+Extending an entity type or link type lets you create a more specific definition of it, retaining the original shape, but specifying additional attributes (properties and links) that might be expected on it. For example, the entity type "Job Applicant" might be extended to include "Programming Job Applicant", which adds an additional attribute called "Programming Languages Known". 
+
+## Duplicating types
+
+Duplicating a type lets you make changes to it, while 
