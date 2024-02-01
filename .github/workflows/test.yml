@@ -155,7 +155,7 @@ jobs:
         run: sudo apt install protobuf-compiler
 
       - name: Install yarn dependencies
-        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
         env:
           HUSKY: 0
         with:
@@ -252,7 +252,7 @@ jobs:
             @apps/hash-external-services
 
       - name: Install yarn dependencies
-        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
         env:
           HUSKY: 0
         with:
@@ -411,7 +411,7 @@ jobs:
         run: sudo apt install protobuf-compiler
 
       - name: Install yarn dependencies
-        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
         env:
           HUSKY: 0
         with:
@@ -442,7 +442,7 @@ jobs:
 
       - name: Install playwright
         if: matrix.package == '@tests/hash-playwright'
-        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
         with:
           max_attempts: 3
           timeout_minutes: 10
