@@ -5,7 +5,7 @@ mod table;
 
 pub use self::{
     batch::EntityRowBatch,
-    channel::{channel, EntityReceiver, EntitySender},
-    record::EntitySnapshotRecord,
+    channel::{channel, EntityReceiver, EntityRelationSender, EntitySender},
+    record::{EntityRelationRecord, EntitySnapshotRecord},
     table::{EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityTemporalMetadataRow},
 };

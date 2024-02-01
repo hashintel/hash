@@ -24,11 +24,14 @@ use async_trait::async_trait;
 use authorization::{
     backend::ZanzibarBackend,
     schema::{
-        AccountGroupRelationAndSubject, DataTypeId, DataTypeRelationAndSubject,
+        AccountGroupRelationAndSubject, DataTypeId, DataTypeRelationAndSubject, EntityNamespace,
         EntityRelationAndSubject, EntityTypeId, EntityTypeRelationAndSubject, PropertyTypeId,
         PropertyTypeRelationAndSubject, WebRelationAndSubject,
     },
-    zanzibar::{types::RelationshipFilter, Consistency},
+    zanzibar::{
+        types::{RelationshipFilter, ResourceFilter},
+        Consistency,
+    },
 };
 use error_stack::{ensure, Context, Report, Result, ResultExt};
 use futures::{
@@ -77,6 +80,16 @@ pub struct Web {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "namespace")]
+pub enum AuthorizationRelation {
+    Entity {
+        object: EntityUuid,
+        #[serde(flatten)]
+        relationship: EntityRelationAndSubject,
+    },
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", deny_unknown_fields)]
 pub enum SnapshotEntry {
     Snapshot(SnapshotMetadata),
@@ -87,6 +100,7 @@ pub enum SnapshotEntry {
     PropertyType(PropertyTypeSnapshotRecord),
     EntityType(EntityTypeSnapshotRecord),
     Entity(EntitySnapshotRecord),
+    Relation(AuthorizationRelation),
 }
 
 impl SnapshotEntry {
@@ -146,6 +160,17 @@ impl SnapshotEntry {
                             "{}:\n{json}",
                             entity.metadata.record_id.entity_id
                         ));
+                    }
+                }
+            }
+            Self::Relation(AuthorizationRelation::Entity {
+                object: id,
+                relationship: relation,
+            }) => {
+                context.push_body(format!("relation: {id}"));
+                if context.alternate() {
+                    if let Ok(json) = serde_json::to_string_pretty(relation) {
+                        context.push_appendix(format!("{id}:\n{json}"));
                     }
                 }
             }
@@ -236,9 +261,10 @@ where
                         )
                         .await
                         .change_context(SnapshotDumpError::Query)?
-                        .into_iter()
-                        .map(|(_group, relation)| relation)
-                        .collect(),
+                        .map_ok(|(_group, relation)| relation)
+                        .try_collect()
+                        .await
+                        .change_context(SnapshotDumpError::Query)?,
                 })
             }))
     }
@@ -268,9 +294,10 @@ where
                         )
                         .await
                         .change_context(SnapshotDumpError::Query)?
-                        .into_iter()
-                        .map(|(_web_id, relation)| relation)
-                        .collect(),
+                        .map_ok(|(_web_id, relation)| relation)
+                        .try_collect()
+                        .await
+                        .change_context(SnapshotDumpError::Query)?,
                 })
             }))
     }
@@ -368,9 +395,10 @@ where
                                 )
                                 .await
                                 .change_context(SnapshotDumpError::Query)?
-                                .into_iter()
-                                .map(|(_, relation)| relation)
-                                .collect(),
+                                .map_ok(|(_, relation)| relation)
+                                .try_collect()
+                                .await
+                                .change_context(SnapshotDumpError::Query)?,
                             metadata: record.metadata,
                         }))
                     })
@@ -392,9 +420,10 @@ where
                                 )
                                 .await
                                 .change_context(SnapshotDumpError::Query)?
-                                .into_iter()
-                                .map(|(_, relation)| relation)
-                                .collect(),
+                                .map_ok(|(_, relation)| relation)
+                                .try_collect()
+                                .await
+                                .change_context(SnapshotDumpError::Query)?,
                             metadata: record.metadata,
                         }))
                     })
@@ -416,9 +445,10 @@ where
                                 )
                                 .await
                                 .change_context(SnapshotDumpError::Query)?
-                                .into_iter()
-                                .map(|(_, relation)| relation)
-                                .collect(),
+                                .map_ok(|(_, relation)| relation)
+                                .try_collect()
+                                .await
+                                .change_context(SnapshotDumpError::Query)?,
                             metadata: record.metadata,
                         }))
                     })
@@ -432,20 +462,27 @@ where
                         Ok(SnapshotEntry::Entity(EntitySnapshotRecord {
                             properties: entity.properties,
                             link_data: entity.link_data,
-                            relations: authorization_api
-                                .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
-                                    RelationshipFilter::from_resource(
-                                        entity.metadata.record_id.entity_id.entity_uuid,
-                                    ),
-                                    Consistency::FullyConsistent,
-                                )
-                                .await
-                                .change_context(SnapshotDumpError::Query)?
-                                .into_iter()
-                                .map(|(_, relation)| relation)
-                                .collect(),
                             metadata: entity.metadata,
                         }))
+                    })
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                authorization_api
+                    .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
+                        RelationshipFilter::from_resource(ResourceFilter::from_kind(
+                            EntityNamespace::Entity,
+                        )),
+                        Consistency::FullyConsistent,
+                    )
+                    .try_flatten_stream()
+                    .map(|result| result.change_context(SnapshotDumpError::Query))
+                    .map_ok(|(id, relation)| {
+                        SnapshotEntry::Relation(AuthorizationRelation::Entity {
+                            object: id,
+                            relationship: relation,
+                        })
                     })
                     .forward(snapshot_record_tx),
             );

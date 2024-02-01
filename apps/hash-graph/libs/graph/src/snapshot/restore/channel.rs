@@ -12,14 +12,14 @@ use futures::{
 };
 
 use crate::snapshot::{
-    entity::{self, EntitySender},
+    entity::{self, EntityRelationRecord, EntityRelationSender, EntitySender},
     ontology::{self, DataTypeSender, EntityTypeSender, PropertyTypeSender},
     owner,
     owner::{Owner, OwnerSender},
     restore::batch::SnapshotRecordBatch,
     web,
     web::WebSender,
-    SnapshotEntry, SnapshotMetadata, SnapshotRestoreError,
+    AuthorizationRelation, SnapshotEntry, SnapshotMetadata, SnapshotRestoreError,
 };
 
 #[derive(Debug, Clone)]
@@ -31,6 +31,7 @@ pub struct SnapshotRecordSender {
     property_type: PropertyTypeSender,
     entity_type: EntityTypeSender,
     entity: EntitySender,
+    entity_relation: EntityRelationSender,
 }
 
 impl Sink<SnapshotEntry> for SnapshotRecordSender {
@@ -55,6 +56,8 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             .attach_printable("could not poll entity type sender")?;
         ready!(self.entity.poll_ready_unpin(cx))
             .attach_printable("could not poll entity sender")?;
+        ready!(self.entity_relation.poll_ready_unpin(cx))
+            .attach_printable("could not poll entity relation sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -95,6 +98,16 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
                 .entity
                 .start_send_unpin(entity)
                 .attach_printable("could not send entity"),
+            SnapshotEntry::Relation(AuthorizationRelation::Entity {
+                object: entity_uuid,
+                relationship: relation,
+            }) => self
+                .entity_relation
+                .start_send_unpin(EntityRelationRecord {
+                    entity_uuid,
+                    relation,
+                })
+                .attach_printable("could not send entity relation"),
         }
     }
 
@@ -117,6 +130,8 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             .attach_printable("could not flush entity type sender")?;
         ready!(self.entity.poll_flush_unpin(cx))
             .attach_printable("could not flush entity sender")?;
+        ready!(self.entity_relation.poll_flush_unpin(cx))
+            .attach_printable("could not flush entity relation sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -140,6 +155,8 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             .attach_printable("could not close entity type sender")?;
         ready!(self.entity.poll_close_unpin(cx))
             .attach_printable("could not close entity sender")?;
+        ready!(self.entity_relation.poll_close_unpin(cx))
+            .attach_printable("could not close entity relation sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -175,7 +192,7 @@ pub fn channel(
         ontology::property_type_channel(chunk_size, ontology_metadata_tx.clone());
     let (entity_type_tx, entity_type_rx) =
         ontology::entity_type_channel(chunk_size, ontology_metadata_tx);
-    let (entity_tx, entity_rx) = entity::channel(chunk_size);
+    let (entity_tx, entity_relation_tx, entity_rx) = entity::channel(chunk_size);
 
     (
         SnapshotRecordSender {
@@ -186,6 +203,7 @@ pub fn channel(
             property_type: property_type_tx,
             entity_type: entity_type_tx,
             entity: entity_tx,
+            entity_relation: entity_relation_tx,
         },
         SnapshotRecordReceiver {
             stream: select_all(vec![

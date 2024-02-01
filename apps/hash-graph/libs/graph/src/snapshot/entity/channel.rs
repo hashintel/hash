@@ -14,7 +14,8 @@ use graph_types::{knowledge::entity::EntityUuid, ontology::OntologyTypeVersion};
 
 use crate::snapshot::{
     entity::{
-        EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityRowBatch, EntityTemporalMetadataRow,
+        record::EntityRelationRecord, EntityEditionRow, EntityIdRow, EntityLinkEdgeRow,
+        EntityRowBatch, EntityTemporalMetadataRow,
     },
     EntitySnapshotRecord, SnapshotRestoreError,
 };
@@ -29,7 +30,6 @@ pub struct EntitySender {
     edition: Sender<EntityEditionRow>,
     temporal_metadata: Sender<EntityTemporalMetadataRow>,
     links: Sender<EntityLinkEdgeRow>,
-    relations: Sender<(EntityUuid, Vec<EntityRelationAndSubject>)>,
 }
 
 // This is a direct wrapper around several `Sink<mpsc::Sender>` and `AccountSender` with
@@ -51,9 +51,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         ready!(self.links.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll entity link edges sender")?;
-        ready!(self.relations.poll_ready_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll entity relations sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -119,14 +116,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                 .attach_printable("could not send entity link edges")?;
         }
 
-        self.relations
-            .start_send_unpin((
-                entity.metadata.record_id.entity_id.entity_uuid,
-                entity.relations,
-            ))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send entity relations")?;
-
         Ok(())
     }
 
@@ -143,9 +132,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         ready!(self.links.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush entity link edges sender")?;
-        ready!(self.relations.poll_flush_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush entity relations sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -163,6 +149,48 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         ready!(self.links.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close entity link edges sender")?;
+
+        Poll::Ready(Ok(()))
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct EntityRelationSender {
+    relations: Sender<(EntityUuid, EntityRelationAndSubject)>,
+}
+
+impl Sink<EntityRelationRecord> for EntityRelationSender {
+    type Error = Report<SnapshotRestoreError>;
+
+    fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        ready!(self.relations.poll_ready_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not poll entity relations sender")?;
+
+        Poll::Ready(Ok(()))
+    }
+
+    fn start_send(
+        mut self: Pin<&mut Self>,
+        record: EntityRelationRecord,
+    ) -> Result<(), Self::Error> {
+        self.relations
+            .start_send_unpin((record.entity_uuid, record.relation))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not send entity relations")?;
+
+        Ok(())
+    }
+
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        ready!(self.relations.poll_flush_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not flush entity relations sender")?;
+
+        Poll::Ready(Ok(()))
+    }
+
+    fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.relations.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close entity relations sender")?;
@@ -193,7 +221,7 @@ impl Stream for EntityReceiver {
 ///
 /// The `chunk_size` parameter determines the number of rows that are sent in a single
 /// [`EntityRowBatch`].
-pub fn channel(chunk_size: usize) -> (EntitySender, EntityReceiver) {
+pub fn channel(chunk_size: usize) -> (EntitySender, EntityRelationSender, EntityReceiver) {
     let (id_tx, id_rx) = mpsc::channel(chunk_size);
     let (edition_tx, edition_rx) = mpsc::channel(chunk_size);
     let (temporal_metadata_tx, temporal_metadata_rx) = mpsc::channel(chunk_size);
@@ -206,6 +234,8 @@ pub fn channel(chunk_size: usize) -> (EntitySender, EntityReceiver) {
             edition: edition_tx,
             temporal_metadata: temporal_metadata_tx,
             links: left_entity_tx,
+        },
+        EntityRelationSender {
             relations: relation_tx,
         },
         EntityReceiver {
@@ -228,7 +258,7 @@ pub fn channel(chunk_size: usize) -> (EntitySender, EntityReceiver) {
                     .boxed(),
                 relation_rx
                     .ready_chunks(chunk_size)
-                    .map(|relations| EntityRowBatch::Relations(relations.into_iter().collect()))
+                    .map(EntityRowBatch::Relations)
                     .boxed(),
             ]),
         },
