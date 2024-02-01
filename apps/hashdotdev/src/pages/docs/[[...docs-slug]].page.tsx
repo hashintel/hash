@@ -15,37 +15,6 @@ import { DocsContent } from "./docs-content";
 import { DocsHomePage } from "./docs-home-page";
 import { DocsSlugIcon } from "./docs-slug-icon";
 
-const docsTabs: { title: string; href: string }[] = [
-  {
-    title: "Home",
-    href: "/docs",
-  },
-  {
-    title: "Getting Started",
-    href: "/docs/get-started",
-  },
-  {
-    title: "Entities",
-    href: "/docs/entities",
-  },
-  {
-    title: "Types",
-    href: "/docs/types",
-  },
-  {
-    title: "Blocks",
-    href: "/docs/blocks",
-  },
-  {
-    title: "Apps",
-    href: "/docs/apps",
-  },
-  {
-    title: "Simulation",
-    href: "/docs/simulation",
-  },
-];
-
 type DocsPageParsedUrlQuery = {
   "docs-slug"?: string[];
 };
@@ -55,14 +24,22 @@ type DocsPageProps = {
   serializedPage?: MDXRemoteSerializeResult<DocsPageData>;
 };
 
-const docsPages = (siteMap as SiteMap).pages.find(
+const docsTopLevelPages = (siteMap as SiteMap).pages.find(
   ({ title }) => title === "Docs",
 )!.subPages;
+
+const docsTabs: { title: string; href: string }[] = [
+  {
+    title: "Home",
+    href: "/docs",
+  },
+  ...docsTopLevelPages.map(({ title, href }) => ({ title, href })),
+];
 
 export const getStaticPaths: GetStaticPaths<DocsPageParsedUrlQuery> = () => {
   const possibleHrefs = [
     "/docs",
-    ...docsPages
+    ...docsTopLevelPages
       .flatMap((page) => [page, ...page.subPages])
       .map(({ href }) => href),
   ];
@@ -184,7 +161,8 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
           subtitle={serializedPage.scope?.subtitle}
           content={serializedPage}
           sectionPages={
-            docsPages.find(({ href }) => href === currentDocsTab.href)!.subPages
+            docsTopLevelPages.find(({ href }) => href === currentDocsTab.href)!
+              .subPages
           }
         />
       ) : null}
