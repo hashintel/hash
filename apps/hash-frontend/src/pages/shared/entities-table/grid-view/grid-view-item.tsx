@@ -243,6 +243,9 @@ export const GridViewItem: FunctionComponent<{
               fontSize: 15,
               color: ({ palette }) => palette.gray[90],
               fontWeight: 600,
+              overflow: "hidden",
+              whiteSpace: "nowrap",
+              textOverflow: "ellipsis",
             }}
           >
             {fileName}
