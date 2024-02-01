@@ -156,8 +156,8 @@ pub enum EntityQueryPath<'p> {
     /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
     /// [`EntityProvenanceMetadata`]: graph_types::knowledge::entity::EntityProvenanceMetadata
     EditionCreatedById,
-    /// The [`RecordCreatedById`] of the [`ProvenanceMetadata`] belonging to the [`Entity`] when
-    /// it was _first inserted_ into the database.
+    /// The [`CreatedById`] of the [`EntityProvenanceMetadata`] belonging to the [`Entity`]
+    /// when it was _first inserted_ into the database.
     ///
     /// This does not take into account if the [`Entity`] was updated with an earlier decision
     /// time.
@@ -171,8 +171,8 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`RecordCreatedById`]: graph_types::provenance::RecordCreatedById
-    /// [`ProvenanceMetadata`]: graph_types::provenance::ProvenanceMetadata
+    /// [`CreatedById`]: graph_types::account::CreatedById
+    /// [`EntityProvenanceMetadata`]: graph_types::knowledge::entity::EntityProvenanceMetadata
     CreatedById,
     /// An edge from this [`Entity`] to it's [`EntityType`] using a [`SharedEdgeKind`].
     ///
