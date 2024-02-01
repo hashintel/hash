@@ -219,29 +219,19 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
 
       const newRequestId = requestId ? undefined : uuid();
 
-      const upload = existingUpload
-        ? ({
-            createdEntities: existingUpload.createdEntities,
-            fileData: existingUpload.fileData,
-            linkedEntityData: existingUpload.linkedEntityData,
-            makePublic: existingUpload.makePublic,
-            requestId,
-            ownedById: existingUpload.ownedById,
-            status: existingUpload.failedStep,
-          } as FileUpload)
-        : ({
-            fileData,
-            linkedEntityData,
-            makePublic,
-            ownedById,
-            requestId: newRequestId!,
-            status: "creating-file-entity",
-          } satisfies FileUpload);
+      const upload =
+        existingUpload ??
+        ({
+          fileData,
+          linkedEntityData,
+          makePublic,
+          ownedById,
+          requestId: newRequestId!,
+          status: "creating-file-entity",
+        } satisfies FileUpload);
 
       if (!existingUpload) {
         setUploads((prevUploads) => [...prevUploads, upload]);
-      } else {
-        updateUpload(upload);
       }
 
       const { description, name } = fileData;
