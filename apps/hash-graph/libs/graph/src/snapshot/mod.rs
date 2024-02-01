@@ -57,7 +57,7 @@ use crate::{
     snapshot::{entity::EntitySnapshotRecord, restore::SnapshotRecordBatch},
     store::{
         crud::Read, query::Filter, AsClient, InsertionError, PostgresStore, PostgresStorePool,
-        Record, StorePool,
+        QueryRecord, StorePool,
     },
 };
 
@@ -308,7 +308,7 @@ where
     ) -> Result<impl Stream<Item = Result<T, SnapshotDumpError>> + Send + 'pool, SnapshotDumpError>
     where
         <Self as StorePool>::Store<'pool>: Read<T>,
-        T: Record + 'pool,
+        T: QueryRecord + 'pool,
     {
         Ok(Read::<T>::read(
             &self

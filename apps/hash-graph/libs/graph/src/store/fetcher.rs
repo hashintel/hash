@@ -47,7 +47,8 @@ use crate::{
         },
         query::{Filter, OntologyQueryPath},
         AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
-        InsertionError, PropertyTypeStore, QueryError, Record, StoreError, StorePool, UpdateError,
+        InsertionError, PropertyTypeStore, QueryError, QueryRecord, StoreError, StorePool,
+        SubgraphRecord, UpdateError,
     },
     subgraph::{
         edges::GraphResolveDepths,
@@ -222,7 +223,7 @@ where
     ) -> Result<bool, StoreError> {
         fn create_query<'u, T>(versioned_url: &'u VersionedUrl) -> StructuralQuery<'u, T>
         where
-            T: Record<QueryPath<'u>: OntologyQueryPath>,
+            T: SubgraphRecord<QueryPath<'u>: OntologyQueryPath>,
             T::VertexId: VertexId<BaseId = BaseUrl, RevisionId = OntologyTypeVersion>,
         {
             StructuralQuery {
@@ -670,7 +671,7 @@ impl<I, A, R, S> ReadPaginated<R, S> for FetchingStore<I, A>
 where
     A: Send + Sync,
     I: ReadPaginated<R, S> + Send,
-    R: Record,
+    R: QueryRecord,
     S: Sorting + Sync,
 {
     type QueryResult = I::QueryResult;
@@ -701,7 +702,7 @@ impl<S, A, R> Read<R> for FetchingStore<S, A>
 where
     A: Send + Sync,
     S: Read<R> + Send,
-    R: Record,
+    R: QueryRecord,
 {
     type ReadStream = S::ReadStream;
 
