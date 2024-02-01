@@ -14,7 +14,7 @@ import {
   UpdateBlockCollectionContentsResult,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { graphQLContextToImpureGraphContext } from "../../util";
 import {
   createEntityWithPlaceholdersFn,
   filterForAction,
@@ -44,9 +44,10 @@ export const updateBlockCollectionContents: ResolverFn<
 > = async (
   _,
   { entityId: blockCollectionEntityId, actions },
-  { dataSources, authentication, user },
+  graphQLContext,
 ) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+  const { authentication, user } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   for (const [i, action] of actions.entries()) {
     if (

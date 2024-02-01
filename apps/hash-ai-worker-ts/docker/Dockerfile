@@ -46,6 +46,9 @@ RUN apt-get update && \
     useradd --system tsworker -G hash && \
     install -d -m 0775 -o tsworker -g hash /log
 
+RUN mkdir -p officeParserTemp/tempfiles && \
+    chown -R tsworker:hash officeParserTemp
+
 USER tsworker:hash
 ENV NODE_ENV production
 

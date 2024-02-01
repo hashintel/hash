@@ -7,7 +7,7 @@ import { ensureHashSystemAccountExists } from "./system-account";
 
 export const ensureSystemGraphIsInitialized = async (params: {
   logger: Logger;
-  context: ImpureGraphContext;
+  context: ImpureGraphContext<false, true>;
 }) => {
   await ensureHashSystemAccountExists(params);
 

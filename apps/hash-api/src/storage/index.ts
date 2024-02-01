@@ -9,7 +9,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { FileV2Properties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
   EntityId,
@@ -33,9 +33,10 @@ import { logger } from "../logger";
 import { AwsS3StorageProvider } from "./aws-s3-storage-provider";
 import { LocalFileSystemStorageProvider } from "./local-file-storage";
 import {
+  isStorageType,
   StorageProvider,
+  storageProviderLookup,
   StorageType,
-  storageTypes,
   UploadableStorageProvider,
 } from "./storage-provider";
 
@@ -48,11 +49,6 @@ const DOWNLOAD_URL_EXPIRATION_SECONDS = 60 * 60 * 24 * 7;
 // An offset for the cached URL to prevent serving invalid URL
 // 1 hour.
 const DOWNLOAD_URL_CACHE_OFFSET_SECONDS = 60 * 60;
-
-/** Helper type to create a typed "dictionary" of storage types to their storage provider instance */
-export type StorageProviderLookup = Partial<
-  Record<StorageType, StorageProvider | UploadableStorageProvider>
->;
 
 type StorageProviderInitialiser = (
   app: Express,
@@ -71,14 +67,12 @@ const storageProviderInitialiserLookup: Record<
     }),
 };
 
-/**
- * All storage providers usable by the API should be added here.
- * Even if not currently used for upload, they need to be available for downloads.
- */
-const storageProviderLookup: StorageProviderLookup = {};
 let uploadStorageProvider: StorageType = "LOCAL_FILE_SYSTEM";
 
-const initialiseStorageProvider = (app: Express, provider: StorageType) => {
+export const initialiseStorageProvider = (
+  app: Express,
+  provider: StorageType,
+) => {
   const initialiser = storageProviderInitialiserLookup[provider];
 
   const newProvider = initialiser(app);
@@ -106,12 +100,9 @@ export const setupStorageProviders = (
   return getUploadStorageProvider();
 };
 
-const isFileEntity = (entity: Entity): entity is Entity<FileProperties> =>
+const isFileEntity = (entity: Entity): entity is Entity<FileV2Properties> =>
   systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl in entity.properties &&
   blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl in entity.properties;
-
-const isStorageType = (storageType: string): storageType is StorageType =>
-  storageTypes.includes(storageType as StorageType);
 
 const getFileEntity = async (
   { graphApi }: ImpureGraphContext,
@@ -121,7 +112,7 @@ const getFileEntity = async (
   const { entityId, key, includeDrafts = false } = params;
   const [ownedById, entityUuid] = splitEntityId(entityId);
 
-  const [fileEntity, ...unexpectedEntities] = await graphApi
+  const fileEntityRevisions = await graphApi
     .getEntitiesByQuery(actorId, {
       query: {
         filter: {
@@ -160,13 +151,27 @@ const getFileEntity = async (
       return getRoots(subgraph);
     });
 
-  if (unexpectedEntities.length > 0) {
-    throw new Error(
-      `Critical: More than one file entity with entityId ${entityId} and key ${key}.`,
-    );
-  }
+  const latestFileEntityRevision = fileEntityRevisions.reduce<
+    Entity | undefined
+  >((previousLatestRevision, currentRevision) => {
+    if (!previousLatestRevision) {
+      return currentRevision;
+    }
 
-  return fileEntity;
+    const currentCreatedAt = new Date(
+      currentRevision.metadata.temporalVersioning.decisionTime.start.limit,
+    );
+
+    const previousLatestRevisionCreatedAt = new Date(
+      previousLatestRevision.metadata.temporalVersioning.decisionTime.start.limit,
+    );
+
+    return previousLatestRevisionCreatedAt < currentCreatedAt
+      ? currentRevision
+      : previousLatestRevision;
+  }, fileEntityRevisions[0]);
+
+  return latestFileEntityRevision;
 };
 
 /**

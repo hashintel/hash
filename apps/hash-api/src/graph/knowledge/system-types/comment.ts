@@ -223,7 +223,9 @@ export const updateCommentText: ImpureGraphFunction<
     commentEntityId: EntityId;
     textualContent: TextToken[];
   },
-  Promise<void>
+  Promise<void>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { commentEntityId, textualContent } = params;
 
@@ -250,7 +252,9 @@ export const deleteComment: ImpureGraphFunction<
   {
     comment: Comment;
   },
-  Promise<Comment>
+  Promise<Comment>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { comment } = params;
 
@@ -350,7 +354,9 @@ export const getCommentAuthor: ImpureGraphFunction<
  */
 export const getCommentReplies: ImpureGraphFunction<
   { commentEntityId: EntityId },
-  Promise<Comment[]>
+  Promise<Comment[]>,
+  false,
+  true
 > = async (ctx, authentication, { commentEntityId }) => {
   const replyLinks = await getEntityIncomingLinks(ctx, authentication, {
     entityId: commentEntityId,
@@ -376,7 +382,9 @@ export const resolveComment: ImpureGraphFunction<
   {
     comment: Comment;
   },
-  Promise<Comment>
+  Promise<Comment>,
+  false,
+  true
 > = async (ctx, authentication, params): Promise<Comment> => {
   const { comment } = params;
 

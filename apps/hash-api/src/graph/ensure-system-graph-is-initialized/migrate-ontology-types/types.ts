@@ -10,7 +10,7 @@ export type MigrationState = {
 };
 
 export type MigrationFunction = (params: {
-  context: ImpureGraphContext;
+  context: ImpureGraphContext<false, true>;
   authentication: AuthenticationContext;
   migrationState: MigrationState;
 }) => Promise<MigrationState>;

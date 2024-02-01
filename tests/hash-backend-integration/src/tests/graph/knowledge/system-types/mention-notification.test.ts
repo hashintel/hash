@@ -1,5 +1,4 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
   getEntityOutgoingLinks,
@@ -66,7 +65,7 @@ describe.skip("Page Mention Notification", () => {
   let recipientUser: User;
 
   beforeAll(async () => {
-    const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+    const graphContext = createTestImpureGraphContext();
 
     await TypeSystemInitializer.initialize();
 
@@ -101,7 +100,7 @@ describe.skip("Page Mention Notification", () => {
   let occurredInText: Text;
 
   it("can create a page mention notification", async () => {
-    const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+    const graphContext = createTestImpureGraphContext();
     const authentication = { actorId: triggerUser.accountId };
 
     occurredInEntity = await createPage(graphContext, authentication, {
@@ -193,7 +192,7 @@ describe.skip("Page Mention Notification", () => {
   });
 
   it("can get a mention notification by its triggered user, recipient user, page and text", async () => {
-    const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+    const graphContext = createTestImpureGraphContext();
     const authentication = { actorId: recipientUser.accountId };
 
     const fetchedPageMentionNotification = (await getMentionNotification(
@@ -216,7 +215,7 @@ describe.skip("Page Mention Notification", () => {
   });
 
   it("can archive a notification", async () => {
-    const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+    const graphContext = createTestImpureGraphContext();
     const authentication = { actorId: recipientUser.accountId };
 
     await archiveNotification(graphContext, authentication, {
@@ -239,7 +238,7 @@ describe.skip("Page Mention Notification", () => {
   });
 
   it("can create a page mention notification when a user is mentioned in a page via an update to a text entity", async () => {
-    const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+    const graphContext = createTestImpureGraphContext();
 
     const beforePageMentionNotification = await getMentionNotification(
       graphContext,
@@ -304,7 +303,7 @@ describe.skip("Page Mention Notification", () => {
   });
 
   it("can archive a page mention notification when a user mention is removed from a page", async () => {
-    const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+    const graphContext = createTestImpureGraphContext();
 
     const beforePageMentionNotification = await getMentionNotification(
       graphContext,
@@ -367,7 +366,7 @@ describe.skip("Page Mention Notification", () => {
   let commentText: Text;
 
   it("can create a comment mention notification when a user is mentioned in a comment", async () => {
-    const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+    const graphContext = createTestImpureGraphContext();
 
     occurredInComment = await createComment(
       graphContext,
@@ -417,7 +416,7 @@ describe.skip("Page Mention Notification", () => {
   });
 
   it("can archive a comment mention notification when a user mention is removed from a comment", async () => {
-    const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+    const graphContext = createTestImpureGraphContext();
 
     const beforeCommentMentionNotification = await getMentionNotification(
       graphContext,

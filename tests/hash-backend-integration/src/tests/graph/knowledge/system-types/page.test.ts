@@ -1,5 +1,4 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
@@ -44,7 +43,7 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+const graphContext = createTestImpureGraphContext();
 
 describe("Page", () => {
   let testUser: User;

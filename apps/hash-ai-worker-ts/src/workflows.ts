@@ -6,6 +6,7 @@ import type {
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { GetResultsFromCancelledInferenceRequestQuery } from "@local/hash-isomorphic-utils/ai-inference-types";
+import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import type { AccountId, Entity } from "@local/hash-subgraph";
 import { CancelledFailure } from "@temporalio/common";
 import {
@@ -196,4 +197,10 @@ export const updateEntityEmbeddings = async (
   }
 
   return usage;
+};
+
+export const parseTextFromFile = async (
+  params: ParseTextFromFileParams,
+): Promise<void> => {
+  await aiActivities.parseTextFromFileActivity(params);
 };

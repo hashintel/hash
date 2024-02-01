@@ -1,5 +1,4 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import { createBlock } from "@apps/hash-api/src/graph/knowledge/system-types/block";
@@ -44,7 +43,7 @@ describe("Comment Notification", () => {
   let testOrg: Org;
 
   beforeAll(async () => {
-    const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+    const graphContext = createTestImpureGraphContext();
 
     await TypeSystemInitializer.initialize();
 
@@ -87,7 +86,7 @@ describe("Comment Notification", () => {
   });
 
   it("can create a comment notification when a comment is left on a page", async () => {
-    const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+    const graphContext = createTestImpureGraphContext();
 
     const initialBlock = await createBlock(
       graphContext,
@@ -172,7 +171,7 @@ describe("Comment Notification", () => {
   });
 
   it("can create a comment notification when a user replies to an existing comment", async () => {
-    const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+    const graphContext = createTestImpureGraphContext();
 
     const initialBlock = await createBlock(
       graphContext,

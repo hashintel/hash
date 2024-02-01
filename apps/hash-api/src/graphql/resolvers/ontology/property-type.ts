@@ -29,15 +29,17 @@ import {
   ResolverFn,
 } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import { dataSourcesToImpureGraphContext } from "../util";
+import { graphQLContextToImpureGraphContext } from "../util";
 
 export const createPropertyTypeResolver: ResolverFn<
   Promise<PropertyTypeWithMetadata>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationCreatePropertyTypeArgs
-> = async (_, params, { dataSources, authentication, user }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+> = async (_, params, graphQLContext) => {
+  const { authentication, user } = graphQLContext;
+
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   const { ownedById, propertyType } = params;
 
@@ -130,12 +132,12 @@ export const getPropertyTypeResolver: ResolverFn<
     constrainsPropertiesOn,
     includeArchived,
   },
-  { dataSources, authentication },
+  graphQLContext,
   __,
 ) =>
   getPropertyTypeSubgraphById(
-    dataSourcesToImpureGraphContext(dataSources),
-    authentication,
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
     {
       propertyTypeId,
       graphResolveDepths: {
@@ -154,10 +156,10 @@ export const updatePropertyTypeResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationUpdatePropertyTypeArgs
-> = async (_, params, { dataSources, authentication }) =>
+> = async (_, params, graphQLContext) =>
   updatePropertyType(
-    dataSourcesToImpureGraphContext(dataSources),
-    authentication,
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
     {
       propertyTypeId: params.propertyTypeId,
       schema: params.updatedPropertyType,
@@ -184,13 +186,21 @@ export const archivePropertyTypeResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationArchivePropertyTypeArgs
-> = async (_, params, { dataSources, authentication }) =>
-  archivePropertyType(dataSources, authentication, params);
+> = async (_, params, graphQLContext) =>
+  archivePropertyType(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    params,
+  );
 
 export const unarchivePropertyTypeResolver: ResolverFn<
   Promise<OntologyTemporalMetadata>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationUnarchivePropertyTypeArgs
-> = async (_, params, { dataSources, authentication }) =>
-  unarchivePropertyType(dataSources, authentication, params);
+> = async (_, params, graphQLContext) =>
+  unarchivePropertyType(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    params,
+  );

@@ -23,9 +23,7 @@ import { createGraphClient } from "@local/hash-backend-utils/create-graph-client
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { oryKratosPublicUrl } from "@local/hash-isomorphic-utils/environment";
-import { Session } from "@ory/client";
 import * as Sentry from "@sentry/node";
-import type { Client as TemporalClient } from "@temporalio/client";
 import { json } from "body-parser";
 import cors from "cors";
 import proxy from "express-http-proxy";
@@ -48,9 +46,7 @@ import {
   DummyEmailTransporter,
   EmailTransporter,
 } from "./email/transporters";
-import { ImpureGraphContext } from "./graph/context-types";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
-import { User } from "./graph/knowledge/system-types/user";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
@@ -78,21 +74,7 @@ import {
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { createTemporalClient } from "./temporal";
 import { getRequiredEnv } from "./util";
-import { createVaultClient, VaultClient } from "./vault";
-
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Express {
-    interface Request {
-      context: ImpureGraphContext<true> & {
-        temporalClient?: TemporalClient;
-        vaultClient?: VaultClient;
-      };
-      session: Session | undefined;
-      user: User | undefined;
-    }
-  }
-}
+import { createVaultClient } from "./vault";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -209,7 +191,7 @@ const main = async () => {
 
   const vaultClient = createVaultClient();
 
-  const context = { graphApi, uploadProvider };
+  const context = { graphApi, uploadProvider, temporalClient };
 
   await ensureSystemGraphIsInitialized({ logger, context });
 
@@ -474,14 +456,12 @@ const main = async () => {
   const httpTerminator = createHttpTerminator({ server: httpServer });
   shutdown.addCleanup("HTTP Server", async () => httpTerminator.terminate());
 
-  if (temporalClient) {
-    openInferEntitiesWebSocket({
-      context,
-      httpServer,
-      logger,
-      temporalClient,
-    });
-  }
+  openInferEntitiesWebSocket({
+    context,
+    httpServer,
+    logger,
+    temporalClient,
+  });
 
   // Start the Apollo GraphQL server.
   // Note: the server must be started before the middleware can be applied
