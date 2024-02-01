@@ -101,7 +101,7 @@ export const useEntityTypeEntities = (params: {
               ? [
                   {
                     equal: [
-                      { path: ["metadata", "entityTypeBaseUrl"] },
+                      { path: ["type", "baseUrl"] },
                       { parameter: entityTypeBaseUrl },
                     ],
                   },
@@ -110,7 +110,7 @@ export const useEntityTypeEntities = (params: {
                 ? [
                     {
                       equal: [
-                        { path: ["metadata", "entityTypeId"] },
+                        { path: ["type", "versionedUrl"] },
                         { parameter: entityTypeId },
                       ],
                     },
