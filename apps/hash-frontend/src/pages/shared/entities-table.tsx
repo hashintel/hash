@@ -33,6 +33,7 @@ import {
 import { useRouter } from "next/router";
 import {
   FunctionComponent,
+  ReactNode,
   useCallback,
   useEffect,
   useMemo,
@@ -75,6 +76,16 @@ import {
 import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-entities-table-additional-csv-data";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 
+const entitiesTableViews = ["table", "graph", "grid"] as const;
+
+type EntityTableView = (typeof entitiesTableViews)[number];
+
+const entitiesTableViewIcons: Record<EntityTableView, ReactNode> = {
+  table: <ListRegularIcon sx={{ fontSize: 18 }} />,
+  graph: <ChartNetworkRegularIcon sx={{ fontSize: 18 }} />,
+  grid: <GridSolidIcon sx={{ fontSize: 14 }} />,
+};
+
 export const EntitiesTable: FunctionComponent<{
   hideEntityTypeVersionColumn?: boolean;
   hidePropertiesColumns?: boolean;
@@ -88,7 +99,7 @@ export const EntitiesTable: FunctionComponent<{
   });
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
-  const [view, setView] = useState<"table" | "graph" | "grid">("table");
+  const [view, setView] = useState<EntityTableView>("table");
 
   const {
     entityTypeBaseUrl,
@@ -548,29 +559,29 @@ export const EntitiesTable: FunctionComponent<{
               },
             }}
           >
-            <ToggleButton disableRipple value="table" aria-label="table">
-              <Tooltip title="Table view" placement="top">
-                <Box sx={{ lineHeight: 0 }}>
-                  <ListRegularIcon sx={{ fontSize: 18 }} />
-                </Box>
-              </Tooltip>
-            </ToggleButton>
-            {supportGridView ? (
-              <ToggleButton disableRipple value="grid" aria-label="grid">
-                <Tooltip title="Grid view" placement="top">
+            {(
+              [
+                "table",
+                ...(supportGridView ? (["grid"] as const) : []),
+                "graph",
+              ] satisfies EntityTableView[]
+            ).map((viewName) => (
+              <ToggleButton
+                key={viewName}
+                disableRipple
+                value={viewName}
+                aria-label={viewName}
+              >
+                <Tooltip
+                  title={`${viewName[0]?.toUpperCase()}${viewName.slice(1)} view`}
+                  placement="top"
+                >
                   <Box sx={{ lineHeight: 0 }}>
-                    <GridSolidIcon sx={{ fontSize: 14 }} />
+                    {entitiesTableViewIcons[viewName]}
                   </Box>
                 </Tooltip>
               </ToggleButton>
-            ) : null}
-            <ToggleButton disableRipple value="graph" aria-label="graph">
-              <Tooltip title="Graph view" placement="top">
-                <Box sx={{ lineHeight: 0 }}>
-                  <ChartNetworkRegularIcon sx={{ fontSize: 18 }} />
-                </Box>
-              </Tooltip>
-            </ToggleButton>
+            ))}
           </ToggleButtonGroup>
         }
         filterState={filterState}
