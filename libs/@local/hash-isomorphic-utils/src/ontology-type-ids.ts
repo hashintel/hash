@@ -52,7 +52,7 @@ export const systemEntityTypes = {
       "https://hash.ai/@hash/types/entity-type/facebook-account/",
   },
   file: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/file/v/1",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/file/v/2",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/file/",
   },
   githubAccount: {
@@ -71,7 +71,7 @@ export const systemEntityTypes = {
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/hash-instance/",
   },
   image: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/image/v/1",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/image/v/2",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/image/",
   },
   instagramAccount: {
@@ -575,6 +575,12 @@ export const systemPropertyTypes = {
   title: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/title/v/1",
     propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/title/",
+  },
+  uploadCompletedAt: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/upload-completed-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/upload-completed-at/",
   },
   userRegistrationByInvitationIsEnabled: {
     propertyTypeId:
