@@ -1,7 +1,7 @@
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import {
-  fullDecisionTimeAxis,
+  currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -138,7 +138,7 @@ const getFileEntity = async (
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: fullDecisionTimeAxis,
+      temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
     })
     .then(({ data }) => {
