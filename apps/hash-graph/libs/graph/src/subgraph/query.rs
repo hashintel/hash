@@ -43,6 +43,8 @@ use crate::{
 /// see the documentation on the implementation of [`QueryRecord::QueryPath`] for the valid paths
 /// for each type.
 ///
+/// [`QueryRecord::QueryPath`]: crate::store::QueryRecord::QueryPath
+///
 /// # Depth
 ///
 /// The depth of a query determines how many edges the query will follow from the root vertices. For
