@@ -22,7 +22,7 @@ When finding the neighbors of agents in a simulation, HASH depends on a few impo
 
 ## Options
 
-<!-- prettier-ignore -->
+{/* prettier-ignore */}
 | Function Name | Behavior |
 | :--- | :--- |
 | `chebyshev` | The greatest distance between two points in any axis also known as the L-infinity norm. [Wikipedia](https://en.wikipedia.org/wiki/Chebyshev_distance) |
@@ -32,7 +32,8 @@ When finding the neighbors of agents in a simulation, HASH depends on a few impo
 | `euclidean_squared` | Same as euclidean, but the final square root is not taken. This is useful when for high-performance distance calculations when only order matters. [Wikipedia](https://en.wikipedia.org/wiki/Euclidean_distance#Squared_Euclidean_distance) |
 
 <Hint style="info">
-The default distance function is `conway` - make sure to change it depending on your use case!
+  The default distance function is `conway` - make sure to change it depending
+  on your use case!
 </Hint>
 
 Currently, HASH doesn't support multiple distance functions in a single simulation.

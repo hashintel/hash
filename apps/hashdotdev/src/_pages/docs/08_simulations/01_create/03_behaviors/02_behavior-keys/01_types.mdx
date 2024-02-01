@@ -10,7 +10,7 @@ If you've used a statically defined language before - like Rust, Go, or Clojure 
 
 ## Valid Types
 
-<!-- prettier-ignore -->
+{/* prettier-ignore */}
 | Type | Example |
 | :--- | :--- |
 | Strings | "Hello" |
@@ -30,11 +30,13 @@ For complex data types - lists, fixed sized lists, and structs, **you must click
 ![Click the tree icon on the right to assign the next level of data types](https://cdn-us1.hash.ai/site/docs/screen-shot-2020-11-24-at-5.36.17-pm.png)
 
 <Hint style="info">
-Dynamically populated structs should be assigned the `any` type.
+  Dynamically populated structs should be assigned the `any` type.
 </Hint>
 
 Data type fields must be the same across behaviors. For instance if field **foo** in behavior A has type: number, field **foo** \(assuming its the same field\) in behavior B must have type: number.
 
 <Hint style="warning">
-Once you define a field's behavior key, your simulation will return an error if you attempt to assign a value of the incorrect type \(unless it is an `any` type\).
+  Once you define a field's behavior key, your simulation will return an error
+  if you attempt to assign a value of the incorrect type \(unless it is an `any`
+  type\).
 </Hint>
