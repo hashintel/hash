@@ -37,6 +37,14 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/document/v/1",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/document/",
   },
+  documentFile: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/document-file/v/1",
+    entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/document-file/",
+  },
+  docxDocument: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/docx-document/v/1",
+    entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/docx-document/",
+  },
   facebookAccount: {
     entityTypeId:
       "https://hash.ai/@hash/types/entity-type/facebook-account/v/1",
@@ -44,7 +52,7 @@ export const systemEntityTypes = {
       "https://hash.ai/@hash/types/entity-type/facebook-account/",
   },
   file: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/file/v/1",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/file/v/2",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/file/",
   },
   githubAccount: {
@@ -63,7 +71,7 @@ export const systemEntityTypes = {
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/hash-instance/",
   },
   image: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/image/v/1",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/image/v/2",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/image/",
   },
   instagramAccount: {
@@ -105,6 +113,22 @@ export const systemEntityTypes = {
   page: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/page/v/1",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/page/",
+  },
+  pdfDocument: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/pdf-document/v/1",
+    entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/pdf-document/",
+  },
+  pptxPresentation: {
+    entityTypeId:
+      "https://hash.ai/@hash/types/entity-type/pptx-presentation/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/pptx-presentation/",
+  },
+  presentationFile: {
+    entityTypeId:
+      "https://hash.ai/@hash/types/entity-type/presentation-file/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/presentation-file/",
   },
   profileBio: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/profile-bio/v/1",
@@ -552,6 +576,12 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/title/v/1",
     propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/title/",
   },
+  uploadCompletedAt: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/upload-completed-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/upload-completed-at/",
+  },
   userRegistrationByInvitationIsEnabled: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/user-registration-by-invitation-is-enabled/v/1",
@@ -605,13 +635,14 @@ export const systemDataTypes = {
     dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/date/",
     title: "Date",
     description:
-      "A reference to a particular day represented within a calendar system, in the format YYYY-MM-DD.",
+      "A reference to a particular day represented within a calendar system, formatted according to RFC 3339.",
   },
   datetime: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/datetime/v/1",
     dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/datetime/",
     title: "DateTime",
-    description: "A reference to a particular date and time.",
+    description:
+      "A reference to a particular date and time, formatted according to RFC 3339.",
   },
   email: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/email/v/1",
@@ -647,6 +678,13 @@ export const systemDataTypes = {
     title: "Millimeters",
     description:
       "A unit of length in the International System of Units (SI), equal to one thousandth of a meter.",
+  },
+  time: {
+    dataTypeId: "https://hash.ai/@hash/types/data-type/time/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/time/",
+    title: "Time",
+    description:
+      "A reference to a particular clock time, formatted according to RFC 3339.",
   },
   uri: {
     dataTypeId: "https://hash.ai/@hash/types/data-type/uri/v/1",

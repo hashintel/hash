@@ -5,7 +5,7 @@ import { AuthenticationContext } from "../../../../graphql/authentication-contex
 import { ImpureGraphContext } from "../../../context-types";
 
 export type UpdateEntityHookCallback = (params: {
-  context: ImpureGraphContext;
+  context: ImpureGraphContext<false, true>;
   authentication: AuthenticationContext;
   entity: Entity;
   updatedProperties: EntityPropertiesObject;

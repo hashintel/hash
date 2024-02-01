@@ -55,6 +55,7 @@ import { genId, linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../../context-types";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
+import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
 import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
 import {
   createLinkEntity,
@@ -91,7 +92,6 @@ export const createEntity: ImpureGraphFunction<
   const {
     ownedById,
     entityTypeId,
-    properties,
     outgoingLinks,
     entityUuid: overrideEntityUuid,
     draft = false,
@@ -99,6 +99,21 @@ export const createEntity: ImpureGraphFunction<
 
   const { graphApi } = context;
   const { actorId } = authentication;
+
+  let properties = params.properties;
+
+  for (const beforeCreateHook of beforeCreateEntityHooks) {
+    if (beforeCreateHook.entityTypeId === entityTypeId) {
+      const { properties: hookReturnedProperties } =
+        await beforeCreateHook.callback({
+          context,
+          properties,
+          authentication,
+        });
+
+      properties = hookReturnedProperties;
+    }
+  }
 
   const { data: metadata } = await graphApi.createEntity(actorId, {
     ownedById,
@@ -278,7 +293,9 @@ export const getOrCreateEntity: ImpureGraphFunction<
     relationships: EntityRelationAndSubject[];
     draft?: boolean;
   },
-  Promise<Entity>
+  Promise<Entity>,
+  false,
+  true
 > = async (context, authentication, params) => {
   const { entityDefinition, ownedById, relationships, draft } = params;
   const { entityProperties, existingEntityId } = entityDefinition;
@@ -340,7 +357,9 @@ export const createEntityWithLinks: ImpureGraphFunction<
     relationships: EntityRelationAndSubject[];
     draft?: boolean;
   },
-  Promise<Entity>
+  Promise<Entity>,
+  false,
+  true
 > = async (context, authentication, params) => {
   const {
     ownedById,
@@ -439,7 +458,9 @@ export const updateEntity: ImpureGraphFunction<
     properties: EntityPropertiesObject;
     draft?: boolean;
   },
-  Promise<Entity>
+  Promise<Entity>,
+  false,
+  true
 > = async (context, authentication, params) => {
   const { entity, properties, entityTypeId } = params;
 
@@ -548,7 +569,9 @@ export const updateEntityProperties: ImpureGraphFunction<
       value: PropertyValue | undefined;
     }[];
   },
-  Promise<Entity>
+  Promise<Entity>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { entity, updatedProperties } = params;
 
@@ -581,7 +604,9 @@ export const updateEntityProperty: ImpureGraphFunction<
     propertyTypeBaseUrl: BaseUrl;
     value: PropertyValue | undefined;
   },
-  Promise<Entity>
+  Promise<Entity>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { entity, propertyTypeBaseUrl, value } = params;
 
@@ -786,7 +811,9 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
     graphResolveDepths: Partial<GraphResolveDepths>;
     includeDrafts?: boolean;
   },
-  Promise<Subgraph<EntityRootType>>
+  Promise<Subgraph<EntityRootType>>,
+  false,
+  true
 > = async (context, authentication, params) => {
   const { entity, graphResolveDepths, includeDrafts = false } = params;
 

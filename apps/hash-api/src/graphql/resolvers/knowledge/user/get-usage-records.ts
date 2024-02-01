@@ -15,13 +15,15 @@ import { ForbiddenError } from "apollo-server-express";
 import { getEntities } from "../../../../graph/knowledge/primitive/entity";
 import { Query, ResolverFn, UserUsageRecords } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
+import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const getUsageRecordsResolver: ResolverFn<
   Query["getUsageRecords"],
   Record<string, never>,
   LoggedInGraphQLContext,
   Record<string, never>
-> = async (_, __, { dataSources, authentication, user: requestingUser }) => {
+> = async (_, __, graphQLContext) => {
+  const { dataSources, authentication, user: requestingUser } = graphQLContext;
   const userIsAdmin = await isUserHashInstanceAdmin(
     { graphApi: dataSources.graphApi },
     authentication,
@@ -33,7 +35,7 @@ export const getUsageRecordsResolver: ResolverFn<
   }
 
   const users = await getEntities(
-    { graphApi: dataSources.graphApi },
+    graphQLContextToImpureGraphContext(graphQLContext),
     authentication,
     {
       query: {

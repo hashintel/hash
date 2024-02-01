@@ -7,7 +7,7 @@ import {
 } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { FileV2Properties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
@@ -164,7 +164,7 @@ export const FilePreviewSection = () => {
   }
 
   const { description, displayName, fileName } = simplifyProperties(
-    entity.properties as FileProperties,
+    entity.properties as FileV2Properties,
   );
 
   const title = displayName ?? generateEntityLabel(entitySubgraph);
