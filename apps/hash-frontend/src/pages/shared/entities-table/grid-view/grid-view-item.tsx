@@ -1,6 +1,12 @@
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { FileV2Properties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Entity, extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import {
+  BaseUrl,
+  Entity,
+  extractEntityUuidFromEntityId,
+} from "@local/hash-subgraph";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   Grid,
@@ -9,12 +15,61 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { FunctionComponent, useMemo } from "react";
+import { FunctionComponent, ReactNode, useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { FileAudioLightIcon } from "../../../../shared/icons/file-audio-light-icon";
+import { FileExcelLightIcon } from "../../../../shared/icons/file-excel-light-icon";
+import { FileImageLightIcon } from "../../../../shared/icons/file-image-light";
+import { FileLightIcon } from "../../../../shared/icons/file-light-icon";
+import { FilePdfLightIcon } from "../../../../shared/icons/file-pdf-light-icon";
+import { FilePowerpointLightIcon } from "../../../../shared/icons/file-powerpoint-light-icon";
+import { FileVideoLightIcon } from "../../../../shared/icons/file-video-light-icon";
+import { FileWordLightIcon } from "../../../../shared/icons/file-word-light-icon";
 import { Link } from "../../../../shared/ui";
 import { getFileUrlFromFileProperties } from "../../get-image-url-from-properties";
+
+/**
+ * @todo: gradually we will want to rely more on entity types to determine the icon
+ * as we introduce more sub-types of the `File` entity type. We provide these as a
+ * fallback for now.
+ */
+const mimeTypeStartsWithToIcon: Record<string, ReactNode> = {
+  "image/": <FileImageLightIcon />,
+  "video/": <FileVideoLightIcon />,
+  "audio/": <FileAudioLightIcon />,
+  "application/pdf": <FilePdfLightIcon />,
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": (
+    <FileWordLightIcon />
+  ),
+  "application/msword": <FileWordLightIcon />,
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": (
+    <FilePowerpointLightIcon />
+  ),
+  "application/vnd.ms-powerpoint": <FilePowerpointLightIcon />,
+  "application/vnd.ms-excel": <FileExcelLightIcon />,
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": (
+    <FileExcelLightIcon />
+  ),
+};
+
+const entityTypeIdToIcon: Record<BaseUrl, ReactNode> = {
+  [systemEntityTypes.pptxPresentation.entityTypeBaseUrl as BaseUrl]: (
+    <FilePowerpointLightIcon />
+  ),
+  [systemEntityTypes.pdfDocument.entityTypeBaseUrl as BaseUrl]: (
+    <FilePdfLightIcon />
+  ),
+  [systemEntityTypes.docxDocument.entityTypeBaseUrl as BaseUrl]: (
+    <FileWordLightIcon />
+  ),
+  [systemEntityTypes.image.entityTypeBaseUrl as BaseUrl]: (
+    <FileImageLightIcon />
+  ),
+};
+
+const defaultFileIcon = <FileLightIcon />;
 
 export const GridViewItem: FunctionComponent<{
   entity: Entity;
@@ -45,9 +100,9 @@ export const GridViewItem: FunctionComponent<{
 
   const { fileName, fileExtension } = useMemo(() => {
     if (fileEntity) {
-      const simplifiedProperties = simplifyProperties(fileEntity.properties);
-
-      const { fileName: fullFileName } = simplifiedProperties;
+      const { fileName: fullFileName } = simplifyProperties(
+        fileEntity.properties,
+      );
 
       const parsedFileExtension = fullFileName
         ? fullFileName.split(".").pop()
@@ -58,11 +113,34 @@ export const GridViewItem: FunctionComponent<{
           ? fullFileName?.split(".").slice(0, -1).join(".") ?? fullFileName
           : fullFileName,
         fileExtension: parsedFileExtension,
-        mimeType: simplifiedProperties.mimeType,
       };
     }
 
     return {};
+  }, [fileEntity]);
+
+  const icon = useMemo(() => {
+    if (fileEntity) {
+      const iconByEntityType =
+        entityTypeIdToIcon[extractBaseUrl(fileEntity.metadata.entityTypeId)];
+
+      if (iconByEntityType) {
+        return iconByEntityType;
+      }
+
+      const { mimeType } = simplifyProperties(fileEntity.properties);
+
+      const iconByMimeType = mimeType
+        ? Object.entries(mimeTypeStartsWithToIcon).find(([startsWith]) =>
+            mimeType.startsWith(startsWith),
+          )?.[1]
+        : undefined;
+
+      if (iconByMimeType) {
+        return iconByMimeType;
+      }
+    }
+    return defaultFileIcon;
   }, [fileEntity]);
 
   const getOwnerForEntity = useGetOwnerForEntity();
@@ -104,7 +182,7 @@ export const GridViewItem: FunctionComponent<{
       <Link href={href} noLinkStyle>
         <Box
           sx={{
-            padding: 2,
+            padding: 3,
             width: "100%",
             height: "100%",
             background: "transparent",
@@ -116,11 +194,12 @@ export const GridViewItem: FunctionComponent<{
         >
           <Box
             sx={{
-              height: 100,
+              height: 150,
               position: "relative",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              marginBottom: 1,
             }}
           >
             {imageUrl ? (
@@ -143,10 +222,18 @@ export const GridViewItem: FunctionComponent<{
                   borderStyle: "solid",
                   borderWidth: 1,
                   background: ({ palette }) => palette.teal[10],
-                  padding: 3,
+                  width: 100,
+                  height: 100,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  svg: {
+                    color: ({ palette }) => palette.teal[90],
+                    fontSize: 40,
+                  },
                 }}
               >
-                icon
+                {icon}
               </Box>
             )}
           </Box>
