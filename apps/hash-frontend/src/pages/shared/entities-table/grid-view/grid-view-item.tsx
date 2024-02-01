@@ -78,8 +78,12 @@ export const GridViewItem: FunctionComponent<{
 
   const numberOfItemsPerRow = isMd ? 4 : 2;
 
-  const isInLastRow =
-    index >= numberOfItems - (numberOfItems % numberOfItemsPerRow);
+  const isInLastRow = useMemo(() => {
+    const numberOfRows = Math.ceil(numberOfItems / numberOfItemsPerRow);
+    const currentRowNumber = Math.floor(index / numberOfItemsPerRow) + 1;
+
+    return currentRowNumber === numberOfRows;
+  }, [numberOfItems, numberOfItemsPerRow, index]);
 
   const isLastInRow = (index + 1) % numberOfItemsPerRow === 0;
 
