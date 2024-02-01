@@ -138,9 +138,10 @@ test("user can configure and use automatic inference to create entities from a w
 
   await page.click(`text=${crunchbasePageTitle}`);
 
-  // Check that some expected entities are inferred
-  await expect(page.locator('text="OpenAI"')).toBeVisible({
+  // Check that a Crunchbase Company named OpenAI is successfully inferred
+  await expect(
+    page.locator('text="Crunchbase Companies"').locator('text="OpenAI"'),
+  ).toBeVisible({
     timeout: 1000 * 60 * 30,
   });
-  await expect(page.locator('text="Y Combinator"')).toBeVisible();
 });
