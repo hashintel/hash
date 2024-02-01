@@ -1,11 +1,7 @@
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { FileV2Properties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  BaseUrl,
-  Entity,
-  extractEntityUuidFromEntityId,
-} from "@local/hash-subgraph";
+import { BaseUrl, Entity } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
@@ -17,7 +13,6 @@ import {
 } from "@mui/material";
 import { FunctionComponent, ReactNode, useMemo } from "react";
 
-import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { FileAudioLightIcon } from "../../../../shared/icons/file-audio-light-icon";
 import { FileExcelLightIcon } from "../../../../shared/icons/file-excel-light-icon";
@@ -29,6 +24,7 @@ import { FileVideoLightIcon } from "../../../../shared/icons/file-video-light-ic
 import { FileWordLightIcon } from "../../../../shared/icons/file-word-light-icon";
 import { Link } from "../../../../shared/ui";
 import { getFileUrlFromFileProperties } from "../../get-image-url-from-properties";
+import { useEntityHref } from "../../use-entity-href";
 
 /**
  * @todo: gradually we will want to rely more on entity types to determine the icon
@@ -144,15 +140,7 @@ export const GridViewItem: FunctionComponent<{
     return defaultFileIcon;
   }, [fileEntity]);
 
-  const getOwnerForEntity = useGetOwnerForEntity();
-
-  const href = useMemo(() => {
-    const { shortname } = getOwnerForEntity(entity);
-
-    return `/@${shortname}/entities/${extractEntityUuidFromEntityId(
-      entity.metadata.recordId.entityId,
-    )}`;
-  }, [getOwnerForEntity, entity]);
+  const href = useEntityHref(entity);
 
   const imageUrl = useMemo(() => {
     const { isImage, url } = getFileUrlFromFileProperties(entity.properties);
