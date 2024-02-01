@@ -1,7 +1,7 @@
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import {
-  currentTimeInstantTemporalAxes,
+  fullDecisionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -112,7 +112,7 @@ const getFileEntity = async (
   const { entityId, key, includeDrafts = false } = params;
   const [ownedById, entityUuid] = splitEntityId(entityId);
 
-  const [fileEntity, ...unexpectedEntities] = await graphApi
+  const fileEntityRevisions = await graphApi
     .getEntitiesByQuery(actorId, {
       query: {
         filter: {
@@ -139,7 +139,7 @@ const getFileEntity = async (
           ],
         },
         graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
+        temporalAxes: fullDecisionTimeAxis,
         includeDrafts,
       },
     })
@@ -151,13 +151,27 @@ const getFileEntity = async (
       return getRoots(subgraph);
     });
 
-  if (unexpectedEntities.length > 0) {
-    throw new Error(
-      `Critical: More than one file entity with entityId ${entityId} and key ${key}.`,
-    );
-  }
+  const latestFileEntityRevision = fileEntityRevisions.reduce<
+    Entity | undefined
+  >((previousLatestRevision, currentRevision) => {
+    if (!previousLatestRevision) {
+      return currentRevision;
+    }
 
-  return fileEntity;
+    const currentCreatedAt = new Date(
+      currentRevision.metadata.temporalVersioning.decisionTime.start.limit,
+    );
+
+    const previousLatestRevisionCreatedAt = new Date(
+      previousLatestRevision.metadata.temporalVersioning.decisionTime.start.limit,
+    );
+
+    return previousLatestRevisionCreatedAt < currentCreatedAt
+      ? currentRevision
+      : previousLatestRevision;
+  }, fileEntityRevisions[0]);
+
+  return latestFileEntityRevision;
 };
 
 /**
