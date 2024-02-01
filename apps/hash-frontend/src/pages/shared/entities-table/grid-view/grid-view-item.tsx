@@ -98,7 +98,7 @@ export const GridViewItem: FunctionComponent<{
     }
   }, [isSpecialEntityTypeLookup, entity]);
 
-  const { fileName, fileExtension } = useMemo(() => {
+  const { fileName, fileNameWithoutExtension, fileExtension } = useMemo(() => {
     if (fileEntity) {
       const { fileName: fullFileName } = simplifyProperties(
         fileEntity.properties,
@@ -109,7 +109,8 @@ export const GridViewItem: FunctionComponent<{
         : undefined;
 
       return {
-        fileName: parsedFileExtension
+        fileName: fullFileName,
+        fileNameWithoutExtension: parsedFileExtension
           ? fullFileName?.split(".").slice(0, -1).join(".") ?? fullFileName
           : fullFileName,
         fileExtension: parsedFileExtension,
@@ -181,6 +182,7 @@ export const GridViewItem: FunctionComponent<{
     >
       <Link href={href} noLinkStyle>
         <Box
+          title={fileName}
           sx={{
             padding: 3,
             width: "100%",
@@ -190,6 +192,8 @@ export const GridViewItem: FunctionComponent<{
             "&:hover": {
               background: ({ palette }) => palette.gray[15],
             },
+            display: "flex",
+            flexDirection: "column",
           }}
         >
           <Box
@@ -237,30 +241,40 @@ export const GridViewItem: FunctionComponent<{
               </Box>
             )}
           </Box>
-          <Typography
+          <Box
             sx={{
-              textAlign: "center",
-              fontSize: 15,
-              color: ({ palette }) => palette.gray[90],
-              fontWeight: 600,
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-              textOverflow: "ellipsis",
+              flexGrow: 1,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
             }}
           >
-            {fileName}
-            {fileExtension ? (
-              <Box
-                component="span"
-                sx={{
-                  color: ({ palette }) => palette.gray[50],
-                  fontWeight: 400,
-                }}
-              >
-                .{fileExtension}
-              </Box>
-            ) : undefined}
-          </Typography>
+            <Typography
+              sx={{
+                textAlign: "center",
+                fontSize: 15,
+                color: ({ palette }) => palette.gray[90],
+                fontWeight: 600,
+                display: "-webkit-box",
+                "-webkit-line-clamp": "2",
+                "-webkit-box-orient": "vertical",
+                overflow: "hidden",
+              }}
+            >
+              {fileNameWithoutExtension}
+              {fileExtension ? (
+                <Box
+                  component="span"
+                  sx={{
+                    color: ({ palette }) => palette.gray[50],
+                    fontWeight: 400,
+                  }}
+                >
+                  .{fileExtension}
+                </Box>
+              ) : undefined}
+            </Typography>
+          </Box>
         </Box>
       </Link>
     </Grid>
