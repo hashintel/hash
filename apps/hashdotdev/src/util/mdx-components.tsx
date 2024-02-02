@@ -12,6 +12,7 @@ import {
   FunctionComponent,
   HTMLAttributes,
   HTMLProps,
+  PropsWithChildren,
 } from "react";
 import slugify from "slugify";
 
@@ -226,5 +227,21 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
 
   InfoCardWrapper,
 
+  /** @todo: these components need to be defined properly */
+
   Hint,
+
+  Tab: ({ children }: PropsWithChildren) => <Box>{children}</Box>,
+
+  Tabs: ({ children }: PropsWithChildren) => <Box>{children}</Box>,
+
+  TextTab: ({ children }: PropsWithChildren) => <Box>{children}</Box>,
+
+  TextTabs: ({ children }: PropsWithChildren) => <Box>{children}</Box>,
+
+  Math: ({ children }: PropsWithChildren) => <Box>{children}</Box>,
+
+  Embed: ({ children }: PropsWithChildren) => <Box>{children}</Box>,
+
+  Check: ({ children }: PropsWithChildren) => <Box>{children}</Box>,
 };
