@@ -343,6 +343,7 @@ const inferEntities = async ({
     First, let's get a summary of the entities you can infer from the provided text. Please provide a brief description
     of each entity you can infer. It only needs to be long enough to uniquely identify the entity in the text – we'll
     worry about any more details in a future step.
+    Give each entity a unique numerical identifier as its 'entityId' property. These should be ascending from 1.
     For entities that link other entities together, the sourceEntityId must correspond to an entityId of an entity you provide, as must the targetEntityId.
     I'm about to provide you with the content of a website hosted at ${sourceUrl}, titled ${sourceTitle}.
     Pay particular attention to providing responses for entities which are most prominent in the page,
