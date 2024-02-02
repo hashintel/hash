@@ -24,7 +24,7 @@ type DocsPageProps = {
   serializedPage?: MDXRemoteSerializeResult<DocsPageData>;
 };
 
-const docsTopLevelPages = (siteMap as SiteMap).pages.find(
+const topLevelDocsPages = (siteMap as SiteMap).pages.find(
   ({ title }) => title === "Docs",
 )!.subPages;
 
@@ -33,13 +33,13 @@ const docsTabs: { title: string; href: string }[] = [
     title: "Home",
     href: "/docs",
   },
-  ...docsTopLevelPages.map(({ title, href }) => ({ title, href })),
+  ...topLevelDocsPages.map(({ title, href }) => ({ title, href })),
 ];
 
 export const getStaticPaths: GetStaticPaths<DocsPageParsedUrlQuery> = () => {
   const possibleHrefs = [
     "/docs",
-    ...docsTopLevelPages
+    ...topLevelDocsPages
       .flatMap((page) => [page, ...page.subPages])
       .map(({ href }) => href),
   ];
@@ -105,6 +105,21 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
     return tab;
   }, [router, docsSlug]);
 
+  const sectionPages = useMemo(() => {
+    const topLevelDocsPage = currentDocsTab
+      ? topLevelDocsPages.find(({ href }) => href === currentDocsTab.href)
+      : undefined;
+
+    if (!topLevelDocsPage) {
+      return [];
+    }
+
+    return [
+      { ...topLevelDocsPage, subPages: [] },
+      ...topLevelDocsPage.subPages,
+    ];
+  }, [currentDocsTab]);
+
   const isHomePage = currentDocsTab && currentDocsTab.href === "/docs";
 
   return currentDocsTab ? (
@@ -160,10 +175,7 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
           title={serializedPage.scope?.title}
           subtitle={serializedPage.scope?.subtitle}
           content={serializedPage}
-          sectionPages={
-            docsTopLevelPages.find(({ href }) => href === currentDocsTab.href)!
-              .subPages
-          }
+          sectionPages={sectionPages}
         />
       ) : null}
     </>

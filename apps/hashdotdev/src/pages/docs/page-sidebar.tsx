@@ -264,8 +264,8 @@ const SidebarPage: FunctionComponent<SidebarPageProps> = ({
                 prev.includes(href)
                   ? prev.filter((prevHref) => prevHref !== href)
                   : depth === 0
-                  ? [href]
-                  : [...prev, href],
+                    ? [href]
+                    : [...prev, href],
               );
             }}
             sx={(theme) => ({
