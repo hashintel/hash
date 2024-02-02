@@ -13,7 +13,7 @@ use crate::{
     ontology::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
     store::{
         query::{parse_query_token, JsonPath, ParameterType, PathToken, QueryPath},
-        Record,
+        QueryRecord, SubgraphRecord,
     },
     subgraph::{
         edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
@@ -387,7 +387,7 @@ pub enum EntityQueryPath<'p> {
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!(["embedding"]))?;
-    /// assert_eq!(path, EntityQueryPath::Embedding,);
+    /// assert_eq!(path, EntityQueryPath::Embedding);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Embedding,
@@ -738,8 +738,11 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
     }
 }
 
-impl Record for Entity {
+impl QueryRecord for Entity {
     type QueryPath<'p> = EntityQueryPath<'p>;
+}
+
+impl SubgraphRecord for Entity {
     type VertexId = EntityVertexId;
 
     #[must_use]

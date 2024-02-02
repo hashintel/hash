@@ -47,12 +47,12 @@ use crate::{
         knowledge::{EntityQueryCursor, EntityQuerySorting},
         postgres::{crud::QueryRecordDecode, query::table::Relation},
         query::ParameterConversionError,
-        Record,
+        QueryRecord,
     },
     subgraph::temporal_axes::QueryTemporalAxes,
 };
 
-pub trait PostgresRecord: Record + QueryRecordDecode<Output = Self> {
+pub trait PostgresRecord: QueryRecord + QueryRecordDecode<Output = Self> {
     type CompilationParameters: Send + 'static;
 
     /// The [`Table`] used for this `Query`.
@@ -92,7 +92,7 @@ pub trait Transpile: 'static {
     }
 }
 
-pub trait PostgresSorting<'s, R: Record>:
+pub trait PostgresSorting<'s, R: QueryRecord>:
     Sorting + QueryRecordDecode<Output = Self::Cursor>
 {
     type CompilationParameters: Send;

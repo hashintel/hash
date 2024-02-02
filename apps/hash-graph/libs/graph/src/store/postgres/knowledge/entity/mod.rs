@@ -53,8 +53,8 @@ use crate::{
         },
         query::{Filter, FilterExpression, Parameter},
         validation::StoreProvider,
-        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, StoreCache,
-        UpdateError,
+        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, StoreCache,
+        SubgraphRecord, UpdateError,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},

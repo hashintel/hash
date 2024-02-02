@@ -6,7 +6,7 @@ use std::{
 use authorization::schema::EntityRelationAndSubject;
 use error_stack::{Report, ResultExt};
 use futures::{
-    channel::mpsc::{self, Sender},
+    channel::mpsc::{self, Receiver, Sender},
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
@@ -14,7 +14,7 @@ use graph_types::{knowledge::entity::EntityUuid, ontology::OntologyTypeVersion};
 
 use crate::snapshot::{
     entity::{
-        record::EntityRelationRecord, EntityEditionRow, EntityIdRow, EntityLinkEdgeRow,
+        table::EntityEmbeddingRow, EntityEditionRow, EntityIdRow, EntityLinkEdgeRow,
         EntityRowBatch, EntityTemporalMetadataRow,
     },
     EntitySnapshotRecord, SnapshotRestoreError,
@@ -154,51 +154,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct EntityRelationSender {
-    relations: Sender<(EntityUuid, EntityRelationAndSubject)>,
-}
-
-impl Sink<EntityRelationRecord> for EntityRelationSender {
-    type Error = Report<SnapshotRestoreError>;
-
-    fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        ready!(self.relations.poll_ready_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll entity relations sender")?;
-
-        Poll::Ready(Ok(()))
-    }
-
-    fn start_send(
-        mut self: Pin<&mut Self>,
-        record: EntityRelationRecord,
-    ) -> Result<(), Self::Error> {
-        self.relations
-            .start_send_unpin((record.entity_uuid, record.relation))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send entity relations")?;
-
-        Ok(())
-    }
-
-    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        ready!(self.relations.poll_flush_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush entity relations sender")?;
-
-        Poll::Ready(Ok(()))
-    }
-
-    fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        ready!(self.relations.poll_close_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close entity relations sender")?;
-
-        Poll::Ready(Ok(()))
-    }
-}
-
 /// A stream to emit [`EntityRowBatch`]es.
 ///
 /// An [`EntitySender`] with the corresponding `EntityReceiver` are created using the [`channel`]
@@ -221,12 +176,15 @@ impl Stream for EntityReceiver {
 ///
 /// The `chunk_size` parameter determines the number of rows that are sent in a single
 /// [`EntityRowBatch`].
-pub fn channel(chunk_size: usize) -> (EntitySender, EntityRelationSender, EntityReceiver) {
+pub fn channel(
+    chunk_size: usize,
+    relation_rx: Receiver<(EntityUuid, EntityRelationAndSubject)>,
+    embedding_rx: Receiver<EntityEmbeddingRow>,
+) -> (EntitySender, EntityReceiver) {
     let (id_tx, id_rx) = mpsc::channel(chunk_size);
     let (edition_tx, edition_rx) = mpsc::channel(chunk_size);
     let (temporal_metadata_tx, temporal_metadata_rx) = mpsc::channel(chunk_size);
     let (left_entity_tx, left_entity_rx) = mpsc::channel(chunk_size);
-    let (relation_tx, relation_rx) = mpsc::channel(chunk_size);
 
     (
         EntitySender {
@@ -234,9 +192,6 @@ pub fn channel(chunk_size: usize) -> (EntitySender, EntityRelationSender, Entity
             edition: edition_tx,
             temporal_metadata: temporal_metadata_tx,
             links: left_entity_tx,
-        },
-        EntityRelationSender {
-            relations: relation_tx,
         },
         EntityReceiver {
             stream: select_all([
@@ -259,6 +214,10 @@ pub fn channel(chunk_size: usize) -> (EntitySender, EntityRelationSender, Entity
                 relation_rx
                     .ready_chunks(chunk_size)
                     .map(EntityRowBatch::Relations)
+                    .boxed(),
+                embedding_rx
+                    .ready_chunks(chunk_size)
+                    .map(EntityRowBatch::Embeddings)
                     .boxed(),
             ]),
         },
