@@ -20,7 +20,7 @@ import { EntityTypeDescription } from "../entity-type-description";
 interface EntityTypeHeaderProps {
   isPreviewSlide?: boolean;
   ontologyChip: ReactNode;
-  entityType: EntityType;
+  entityTypeSchema: EntityType;
   isDraft: boolean;
   isLink: boolean;
   isReadonly: boolean;
@@ -30,7 +30,7 @@ interface EntityTypeHeaderProps {
 export const EntityTypeHeader = ({
   isPreviewSlide,
   ontologyChip,
-  entityType,
+  entityTypeSchema,
   isDraft,
   isLink,
   isReadonly,
@@ -39,8 +39,11 @@ export const EntityTypeHeader = ({
   const [showExtendTypeModal, setShowExtendTypeModal] = useState(false);
 
   const isLatest =
-    !latestVersion || extractVersion(entityType.$id) === latestVersion;
-  const latestVersionUrl = entityType.$id.replace(/\d+$/, `${latestVersion}`);
+    !latestVersion || extractVersion(entityTypeSchema.$id) === latestVersion;
+  const latestVersionUrl = entityTypeSchema.$id.replace(
+    /\d+$/,
+    `${latestVersion}`,
+  );
 
   const { control } = useEntityTypeFormContext<
     /**
@@ -106,7 +109,7 @@ export const EntityTypeHeader = ({
               )}
             />
             <Typography variant="h1" fontWeight="bold" marginLeft={3}>
-              {entityType.title}
+              {entityTypeSchema.title}
             </Typography>
           </Box>
           {!isDraft && !isPreviewSlide ? (
@@ -144,7 +147,7 @@ export const EntityTypeHeader = ({
             <CreateEntityTypeForm
               afterSubmit={() => setShowExtendTypeModal(false)}
               inModal
-              initialData={{ extendsEntityTypeId: entityType.$id }}
+              initialData={{ extendsEntityTypeId: entityTypeSchema.$id }}
               onCancel={() => setShowExtendTypeModal(false)}
             />
           </Box>

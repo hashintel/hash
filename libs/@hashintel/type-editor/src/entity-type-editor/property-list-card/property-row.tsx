@@ -133,7 +133,10 @@ export const PropertyRow = ({
                   "required" in selectedProperty &&
                   selectedProperty.required?.includes(propertyId),
               );
-              return [...childrenArray, { ...propertyType, array, required }];
+              return [
+                ...childrenArray,
+                { ...propertyType.schema, array, required },
+              ];
             }
 
             return childrenArray;

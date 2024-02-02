@@ -63,8 +63,10 @@ export const DestinationEntityTypeSelector = ({
     name: `links.${linkIndex}.entityTypes`,
   });
 
-  const entityTypesArray = Object.values(entityTypes);
-  const chosenEntityTypes = entityTypesArray.filter((type) =>
+  const entityTypesArray = Object.values(entityTypes).map(
+    (type) => type.schema,
+  );
+  const chosenEntityTypeSchemas = entityTypesArray.filter((type) =>
     chosenEntityTypeIds.includes(type.$id),
   );
 
@@ -141,7 +143,7 @@ export const DestinationEntityTypeSelector = ({
             return (
               <DestinationEntityType
                 key={entityTypeId}
-                entityType={entityType}
+                entityTypeSchema={entityType.schema}
                 updateVersion={(newVersion: VersionedUrl) =>
                   setValue(
                     `links.${linkIndex}.entityTypes`,
@@ -267,7 +269,7 @@ export const DestinationEntityTypeSelector = ({
             joined
             // We render our tags manually, so we don't want MUI doing it for us
             renderTags={() => <Box />}
-            value={chosenEntityTypes}
+            value={chosenEntityTypeSchemas}
             modifiers={[
               /**
                * We need to respond to whether the popup is above or below using
