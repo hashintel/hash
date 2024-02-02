@@ -1086,6 +1086,7 @@ mod tests {
             let entity_id = EntityId {
                 owned_by_id: OwnedById::new(Uuid::new_v4()),
                 entity_uuid: EntityUuid::new(Uuid::new_v4()),
+                draft_id: None,
             };
 
             let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();

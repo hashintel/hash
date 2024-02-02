@@ -1,7 +1,7 @@
 use graph_types::{
     account::{CreatedById, EditionCreatedById},
     knowledge::{
-        entity::{EntityEditionId, EntityProperties, EntityUuid},
+        entity::{DraftId, EntityEditionId, EntityProperties, EntityUuid},
         link::LinkOrder,
     },
     ontology::OntologyTypeVersion,
@@ -19,6 +19,7 @@ pub struct EntityIdRow {
     pub created_at_decision_time: Timestamp<DecisionTime>,
     pub web_id: OwnedById,
     pub entity_uuid: EntityUuid,
+    pub draft_id: Option<DraftId>,
 }
 
 #[derive(Debug, ToSql)]
@@ -30,7 +31,6 @@ pub struct EntityEditionRow {
     pub right_to_left_order: Option<LinkOrder>,
     pub edition_created_by_id: EditionCreatedById,
     pub archived: bool,
-    pub draft: bool,
     pub entity_type_base_url: String,
     pub entity_type_version: OntologyTypeVersion,
 }

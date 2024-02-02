@@ -904,9 +904,76 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         self.client.rollback().await.change_context(StoreError)
     }
 
+    // async fn insert_entity_id(
+    //     &self,
+    //     actor_id: AccountId,
+    //     entity_id: EntityId,
+    //     decision_time: Option<Timestamp<DecisionTime>>,
+    // ) -> Result<u64, InsertionError> {
+    //     if let Some(decision_time) = decision_time {
+    //         self.as_client()
+    //             .query(
+    //                 "
+    //                 INSERT INTO entity_ids (
+    //                     web_id,
+    //                     entity_uuid,
+    //                     created_by_id,
+    //                     created_at_transaction_time,
+    //                     created_at_decision_time
+    //                 ) VALUES ($1, $2, $3, now(), $4);
+    //             ",
+    //                 &[
+    //                     &entity_id.owned_by_id,
+    //                     &entity_id.entity_uuid,
+    //                     &CreatedById::new(actor_id),
+    //                     &decision_time,
+    //                 ],
+    //             )
+    //             .await
+    //             .change_context(InsertionError)?;
+    //     } else {
+    //         self.as_client()
+    //             .query(
+    //                 "
+    //                 INSERT INTO entity_ids (
+    //                     web_id,
+    //                     entity_uuid,
+    //                     created_by_id,
+    //                     created_at_transaction_time,
+    //                     created_at_decision_time
+    //                 ) VALUES ($1, $2, $3, now(), now());
+    //             ",
+    //                 &[
+    //                     &entity_id.owned_by_id,
+    //                     &entity_id.entity_uuid,
+    //                     &CreatedById::new(actor_id),
+    //                 ],
+    //             )
+    //             .await
+    //             .change_context(InsertionError)?;
+    //     }
+    //
+    //     if let Some(draft_id) = entity_id.draft_id {
+    //         transaction
+    //             .as_client()
+    //             .query(
+    //                 "
+    //                 INSERT INTO entity_drafts (
+    //                     web_id,
+    //                     entity_uuid,
+    //                     draft_id
+    //                 ) VALUES ($1, $2, $3);
+    //             ",
+    //                 &[&entity_id.owned_by_id, &entity_id.entity_uuid, &draft_id],
+    //             )
+    //             .await
+    //             .change_context(InsertionError)?;
+    //     }
+    // }
+
     async fn insert_entity_ids(
         &self,
-        entity_uuids: impl IntoIterator<
+        entity_ids: impl IntoIterator<
             Item = (EntityId, CreatedById, Option<Timestamp<DecisionTime>>),
             IntoIter: Send,
         > + Send,
@@ -941,7 +1008,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         );
 
         futures::pin_mut!(writer);
-        for (entity_id, actor_id, decision_time) in entity_uuids {
+        for (entity_id, actor_id, decision_time) in entity_ids {
+            if entity_id.draft_id.is_some() {
+                todo!("https://linear.app/hash/issue/H-2142/support-draft-entities-in-batch-entity-creation")
+            }
             writer
                 .as_mut()
                 .write(&[
@@ -1071,8 +1141,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     left_to_right_order INT,
                     right_to_left_order INT,
                     edition_created_by_id UUID NOT NULL,
-                    archived BOOLEAN NOT NULL,
-                    draft BOOLEAN NOT NULL
+                    archived BOOLEAN NOT NULL
                 );",
             )
             .await
@@ -1086,22 +1155,14 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     left_to_right_order,
                     right_to_left_order,
                     edition_created_by_id,
-                    archived,
-                    draft
+                    archived
                 ) FROM STDIN BINARY",
             )
             .await
             .change_context(InsertionError)?;
         let writer = BinaryCopyInWriter::new(
             sink,
-            &[
-                Type::JSONB,
-                Type::INT4,
-                Type::INT4,
-                Type::UUID,
-                Type::BOOL,
-                Type::BOOL,
-            ],
+            &[Type::JSONB, Type::INT4, Type::INT4, Type::UUID, Type::BOOL],
         );
         futures::pin_mut!(writer);
         for (properties, left_to_right_order, right_to_left_order) in entities {
@@ -1114,7 +1175,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     &left_to_right_order,
                     &right_to_left_order,
                     &actor_id,
-                    &false,
                     &false,
                 ])
                 .await
@@ -1132,8 +1192,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     left_to_right_order,
                     right_to_left_order,
                     edition_created_by_id,
-                    archived,
-                    draft
+                    archived
                 )
                 SELECT
                     gen_random_uuid(),
@@ -1141,8 +1200,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     left_to_right_order,
                     right_to_left_order,
                     edition_created_by_id,
-                    archived,
-                    draft
+                    archived
                 FROM entity_editions_temp
                 RETURNING entity_edition_id;",
                 &[],

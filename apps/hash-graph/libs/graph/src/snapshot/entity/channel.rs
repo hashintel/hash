@@ -66,6 +66,7 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                 created_at_decision_time: entity.metadata.provenance.created_at_decision_time,
                 web_id: entity.metadata.record_id.entity_id.owned_by_id,
                 entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
+                draft_id: entity.metadata.record_id.entity_id.draft_id,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send entity id")?;
@@ -82,7 +83,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                     .and_then(|link_data| link_data.order.right_to_left),
                 edition_created_by_id: entity.metadata.provenance.edition.created_by_id,
                 archived: entity.metadata.archived,
-                draft: entity.metadata.draft,
                 entity_type_base_url: entity.metadata.entity_type_id.base_url.as_str().to_owned(),
                 entity_type_version: OntologyTypeVersion::new(
                     entity.metadata.entity_type_id.version,

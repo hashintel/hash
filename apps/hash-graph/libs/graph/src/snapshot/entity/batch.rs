@@ -268,7 +268,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                 entity
                     .validate(
                         schema,
-                        if entity.metadata.draft {
+                        if entity.metadata.record_id.entity_id.draft_id.is_some() {
                             ValidationProfile::Draft
                         } else {
                             ValidationProfile::Full
