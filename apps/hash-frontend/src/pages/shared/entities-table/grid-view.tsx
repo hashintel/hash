@@ -3,6 +3,7 @@ import { Grid } from "@mui/material";
 import { FunctionComponent } from "react";
 
 import { GridViewItem } from "./grid-view/grid-view-item";
+import { GridViewItemSkeleton } from "./grid-view/grid-view-item-skeleton";
 
 export const GridView: FunctionComponent<{ entities?: Entity[] }> = ({
   entities,
@@ -21,18 +22,18 @@ export const GridView: FunctionComponent<{ entities?: Entity[] }> = ({
         overflow: "hidden",
       }}
     >
-      {entities ? (
-        entities.map((entity, index, all) => (
-          <GridViewItem
-            key={entity.metadata.recordId.entityId}
-            entity={entity}
-            numberOfItems={all.length}
-            index={index}
-          />
-        ))
-      ) : (
-        <>skeleton</>
-      )}
+      {entities
+        ? entities.map((entity, index, all) => (
+            <GridViewItem
+              key={entity.metadata.recordId.entityId}
+              entity={entity}
+              numberOfItems={all.length}
+              index={index}
+            />
+          ))
+        : Array.from({ length: 3 }, (_, index) => (
+            <GridViewItemSkeleton key={index} numberOfItems={3} index={index} />
+          ))}
     </Grid>
   );
 };

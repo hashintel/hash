@@ -3,14 +3,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { FileV2Properties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { BaseUrl, Entity } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import {
-  Box,
-  Grid,
-  GridProps,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { FunctionComponent, ReactNode, useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
@@ -25,6 +18,7 @@ import { FileWordLightIcon } from "../../../../shared/icons/file-word-light-icon
 import { Link } from "../../../../shared/ui";
 import { getFileUrlFromFileProperties } from "../../get-image-url-from-properties";
 import { useEntityHref } from "../../use-entity-href";
+import { GridViewItemWrapper } from "./grid-view-item-wrapper";
 
 /**
  * @todo: gradually we will want to rely more on entity types to determine the icon
@@ -71,24 +65,7 @@ export const GridViewItem: FunctionComponent<{
   entity: Entity;
   numberOfItems: number;
   index: number;
-  sx?: GridProps["sx"];
-}> = ({ entity, numberOfItems, index, sx }) => {
-  const theme = useTheme();
-
-  const isLg = useMediaQuery(theme.breakpoints.up("lg"));
-  const isMd = useMediaQuery(theme.breakpoints.up("md"));
-
-  const numberOfItemsPerRow = isLg ? 4 : isMd ? 3 : 2;
-
-  const isInLastRow = useMemo(() => {
-    const numberOfRows = Math.ceil(numberOfItems / numberOfItemsPerRow);
-    const currentRowNumber = Math.floor(index / numberOfItemsPerRow) + 1;
-
-    return currentRowNumber === numberOfRows;
-  }, [numberOfItems, numberOfItemsPerRow, index]);
-
-  const isLastInRow = (index + 1) % numberOfItemsPerRow === 0;
-
+}> = ({ entity, numberOfItems, index }) => {
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
   const fileEntity = useMemo(() => {
@@ -157,24 +134,7 @@ export const GridViewItem: FunctionComponent<{
   }, [entity]);
 
   return (
-    <Grid
-      item
-      xs={6}
-      md={4}
-      lg={3}
-      sx={[
-        {
-          background: ({ palette }) => palette.common.white,
-          borderColor: ({ palette }) => palette.gray[30],
-          borderStyle: "solid",
-          borderTopWidth: 0,
-          borderRightWidth: isLastInRow ? 0 : 1,
-          borderLeftWidth: 0,
-          borderBottomWidth: isInLastRow ? 0 : 1,
-        },
-        ...(Array.isArray(sx) ? sx : [sx]),
-      ]}
-    >
+    <GridViewItemWrapper numberOfItems={numberOfItems} index={index}>
       <Link href={href} noLinkStyle>
         <Box
           title={fileName}
@@ -272,6 +232,6 @@ export const GridViewItem: FunctionComponent<{
           </Box>
         </Box>
       </Link>
-    </Grid>
+    </GridViewItemWrapper>
   );
 };
