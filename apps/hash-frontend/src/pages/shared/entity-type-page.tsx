@@ -9,8 +9,8 @@ import {
 import {
   EntityTypeEditorFormData,
   EntityTypeFormProvider,
-  getFormDataFromSchema,
-  getSchemaFromFormData,
+  getEntityTypeFromFormData,
+  getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
 import { generateLinkMapWithConsistentSelfReferences } from "@local/hash-isomorphic-utils/ontology-types";
@@ -67,21 +67,14 @@ export const EntityTypePage = ({
     entityTypeBaseUrl,
   });
 
-  const formMethods = useEntityTypeForm<
-    /**
-     * @todo add icon support in `@hashintel/type-editor`
-     *
-     * @see https://linear.app/hash/issue/H-1439/move-icon-and-labelproperty-to-the-metadata-types-in-bp-so-that-it-can
-     */
-    EntityTypeEditorFormData & { icon?: string | null }
-  >({
+  const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
     defaultValues: { allOf: [], properties: [], links: [] },
   });
   const { handleSubmit: wrapHandleSubmit, reset, watch } = formMethods;
 
   useEffect(() => {
     if (draftEntityType) {
-      reset(getFormDataFromSchema(draftEntityType.schema));
+      reset(getFormDataFromEntityType(draftEntityType));
     }
   }, [draftEntityType, reset]);
 
@@ -99,7 +92,7 @@ export const EntityTypePage = ({
     (fetchedEntityType) => {
       // Load the initial form data after the entity type has been fetched
       reset({
-        ...getFormDataFromSchema(fetchedEntityType.schema),
+        ...getFormDataFromEntityType(fetchedEntityType),
         icon: fetchedEntityType.metadata.icon,
       });
     },
@@ -143,7 +136,8 @@ export const EntityTypePage = ({
       return;
     }
 
-    const entityTypeSchema = getSchemaFromFormData(data);
+    const { labelProperty, schema: entityTypeSchema } =
+      getEntityTypeFromFormData(data);
 
     if (draftEntityType) {
       await publishDraft(
@@ -151,7 +145,7 @@ export const EntityTypePage = ({
           ...draftEntityType.schema,
           ...entityTypeSchema,
         },
-        { icon: data.icon },
+        { icon: data.icon, labelProperty },
       );
       reset(data);
     } else {
@@ -178,6 +172,7 @@ export const EntityTypePage = ({
 
       const res = await updateEntityType(schemaWithConsistentSelfReferences, {
         icon: data.icon,
+        labelProperty,
       });
 
       if (!res.errors?.length && res.data) {
@@ -234,7 +229,7 @@ export const EntityTypePage = ({
     : extractVersion(entityType.schema.$id);
 
   const convertToLinkType = wrapHandleSubmit(async (data) => {
-    const entityTypeSchema = getSchemaFromFormData(data);
+    const entityTypeSchema = getEntityTypeFromFormData(data);
 
     const res = await updateEntityType(
       {

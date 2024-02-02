@@ -1,6 +1,6 @@
 import { EntityTypeWithMetadata } from "@blockprotocol/graph";
 import { validateEntityType } from "@blockprotocol/type-system";
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/src/shared/type-system-patch";
+import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo } from "react";

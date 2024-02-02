@@ -45,14 +45,7 @@ export const EntityTypeHeader = ({
     `${latestVersion}`,
   );
 
-  const { control } = useEntityTypeFormContext<
-    /**
-     * @todo add icon support in `@hashintel/type-editor`
-     *
-     * @see https://linear.app/hash/issue/H-1439/move-icon-and-labelproperty-to-the-metadata-types-in-bp-so-that-it-can
-     */
-    EntityTypeEditorFormData & { icon?: string | null }
-  >();
+  const { control } = useEntityTypeFormContext<EntityTypeEditorFormData>();
 
   return (
     <>

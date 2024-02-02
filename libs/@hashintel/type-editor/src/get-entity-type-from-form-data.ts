@@ -8,14 +8,18 @@ import {
 
 import { EntityTypeEditorFormData } from "./shared/form-types";
 
-export const getSchemaFromFormData = (
+export const getEntityTypeFromFormData = (
   data: EntityTypeEditorFormData,
-): Required<
-  Pick<
-    EntityType,
-    "allOf" | "description" | "links" | "properties" | "required"
-  >
-> => {
+): {
+  icon: string | null;
+  labelProperty: string | null;
+  schema: Required<
+    Pick<
+      EntityType,
+      "allOf" | "description" | "links" | "properties" | "required"
+    >
+  >;
+} => {
   const allOf = data.allOf.map((versionedUrl) => ({ $ref: versionedUrl }));
 
   const properties = data.properties;
@@ -79,10 +83,14 @@ export const getSchemaFromFormData = (
   }
 
   return {
-    allOf,
-    description: data.description,
-    properties: schemaProperties,
-    links,
-    required,
+    icon: data.icon ?? null,
+    labelProperty: data.labelProperty ?? null,
+    schema: {
+      allOf,
+      description: data.description,
+      properties: schemaProperties,
+      links,
+      required,
+    },
   };
 };

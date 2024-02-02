@@ -11,7 +11,7 @@ import {
   EntityTypeEditor,
   EntityTypeEditorFormData,
   EntityTypeFormProvider,
-  getFormDataFromSchema,
+  getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
 import { EntityTypeWithMetadata } from "@local/hash-subgraph";
@@ -141,7 +141,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
     version,
     routeNamespace?.accountId ?? null,
     (fetchedEntityType) => {
-      reset(getFormDataFromSchema(fetchedEntityType.schema));
+      reset(getFormDataFromEntityType(fetchedEntityType));
     },
   );
 

@@ -90,17 +90,12 @@ type OntologyElementMetadata = Subtype<
   OwnedOntologyElementMetadata | ExternalOntologyElementMetadata
 >;
 
-export type EditableOntologyElementMetadata = {
-  labelProperty?: BaseUrl;
-  icon?: string | null;
-};
-
 export type DataTypeMetadata = OntologyElementMetadata;
 
 export type PropertyTypeMetadata = OntologyElementMetadata;
 
-export type EntityTypeMetadata = OntologyElementMetadata &
-  EditableOntologyElementMetadata;
+export type EntityTypeMetadata = EntityTypeWithMetadataBp["metadata"] &
+  OntologyElementMetadata;
 
 /**
  * Non-exhaustive list of possible values for 'format'

@@ -3,7 +3,7 @@ import { extractBaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { useCallback } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
-import { getFormDataFromSchema } from "../../get-form-data-from-schema";
+import { getFormDataFromEntityType } from "../../get-form-data-from-entity-type";
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
 import {
   EntityTypeEditorFormData,
@@ -39,7 +39,7 @@ export type InheritedValues = {
 
 type ValueMap = {
   inheritanceChains: EntityTypeWithMetadata[][];
-  /** The nearest labelProperty in the inheritance chain, starting with the entity type itself */
+  /** The nearest labelProperty in the inheritance chain, starting with the direct parent(s) */
   labelProperty?: string;
   // A map between a link's id -> its form data, and where it's inherited from
   links: Record<VersionedUrl, InheritedValues["links"][0]>;
@@ -78,7 +78,12 @@ const addInheritedValuesForEntityType = (
 
   const newInheritanceChain = [...inheritanceChainToHere, entityType];
 
-  const { properties, links } = getFormDataFromSchema(entityType.schema);
+  if (!inheritedValuesMap.labelProperty && entityType.metadata.labelProperty) {
+    // eslint-disable-next-line no-param-reassign
+    inheritedValuesMap.labelProperty = entityType.metadata.labelProperty;
+  }
+
+  const { properties, links } = getFormDataFromEntityType(entityType);
 
   for (const link of links) {
     const duplicateLinkKey = Object.keys(inheritedValuesMap.links).find(
@@ -150,16 +155,14 @@ const addInheritedValuesForEntityType = (
 };
 
 export const useGetInheritedValues = (): ((args: {
-  childLabelProperty?: string;
   directParentIds: VersionedUrl[];
 }) => InheritedValues) => {
   const { entityTypes, linkTypes } = useEntityTypesOptions();
 
   return useCallback(
-    ({ childLabelProperty, directParentIds }) => {
+    ({ directParentIds }) => {
       const inheritedValuesMap: ValueMap = {
         inheritanceChains: [],
-        labelProperty: childLabelProperty,
         links: {},
         properties: {},
       };
