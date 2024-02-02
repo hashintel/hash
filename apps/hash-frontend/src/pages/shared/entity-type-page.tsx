@@ -145,7 +145,11 @@ export const EntityTypePage = ({
           ...draftEntityType.schema,
           ...entityTypeSchema,
         },
-        { icon: data.icon, labelProperty },
+        {
+          icon: data.icon,
+          labelProperty:
+            (labelProperty as BaseUrl | null | undefined) ?? undefined,
+        },
       );
       reset(data);
     } else {
@@ -172,7 +176,8 @@ export const EntityTypePage = ({
 
       const res = await updateEntityType(schemaWithConsistentSelfReferences, {
         icon: data.icon,
-        labelProperty,
+        labelProperty:
+          (labelProperty as BaseUrl | null | undefined) ?? undefined,
       });
 
       if (!res.errors?.length && res.data) {
