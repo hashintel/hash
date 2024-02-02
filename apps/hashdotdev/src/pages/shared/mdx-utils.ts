@@ -235,13 +235,33 @@ export const getDocsPage = (params: {
     ? `../../rfcs/text/${fileName}`
     : `src/_pages/${pathToDirectory}/${fileName}`;
 
-  const headings = getHeadingsFromMarkdown(markdownFilePath);
+  let headings: Heading[];
+
+  try {
+    headings = getHeadingsFromMarkdown(markdownFilePath);
+  } catch (error: unknown) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `Error parsing headings from the MDX file at path: ${markdownFilePath}`,
+    );
+    throw error;
+  }
 
   const h1 = headings.find(({ depth }) => depth === 1);
 
   const title = h1 ? getVisibleText(h1) : "Unknown";
 
-  const name = parseNameFromFileName(fileName);
+  let name: string;
+
+  try {
+    name = parseNameFromFileName(fileName);
+  } catch (error: unknown) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `Error parsing the name of the MDX file at path: ${markdownFilePath}`,
+    );
+    throw error;
+  }
 
   return {
     title,
