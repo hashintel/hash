@@ -2,6 +2,7 @@ import {
   Entity as BpEntity,
   EntityRootType as BpEntityRootType,
   Subgraph as BpSubgraph,
+  VersionedUrl,
 } from "@blockprotocol/graph";
 import {
   CustomCell,
@@ -12,10 +13,12 @@ import {
 import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
 import { ListRegularIcon } from "@hashintel/design-system";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
+  BaseUrl,
   Entity,
   EntityId,
   extractEntityUuidFromEntityId,
@@ -76,6 +79,28 @@ import {
 import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-entities-table-additional-csv-data";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 
+/**
+ * @todo: avoid having to maintain this list, potentially by
+ * adding an `isFile` boolean to the generated ontology IDs file.
+ */
+const allFileEntityTypeOntologyIds = [
+  systemEntityTypes.file,
+  systemEntityTypes.image,
+  systemEntityTypes.documentFile,
+  systemEntityTypes.docxDocument,
+  systemEntityTypes.pdfDocument,
+  systemEntityTypes.presentationFile,
+  systemEntityTypes.pptxPresentation,
+];
+
+const allFileEntityTypeIds = allFileEntityTypeOntologyIds.map(
+  ({ entityTypeId }) => entityTypeId,
+) as VersionedUrl[];
+
+const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
+  ({ entityTypeBaseUrl }) => entityTypeBaseUrl,
+) as BaseUrl[];
+
 const entitiesTableViews = ["table", "graph", "grid"] as const;
 
 type EntityTableView = (typeof entitiesTableViews)[number];
@@ -99,8 +124,6 @@ export const EntitiesTable: FunctionComponent<{
   });
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
-  const [view, setView] = useState<EntityTableView>("table");
-
   const {
     entityTypeBaseUrl,
     entityTypeId,
@@ -111,6 +134,37 @@ export const EntitiesTable: FunctionComponent<{
     propertyTypes,
     subgraph: subgraphWithoutLinkedEntities,
   } = useEntityTypeEntitiesContext();
+
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+
+  const isDisplayingFilesOnly = useMemo(
+    () =>
+      /**
+       * To allow the `Grid` view to come into view on first render where
+       * possible, we check whether `entityTypeId` or `entityTypeBaseUrl`
+       * matches a `File` entity type from a statically defined list.
+       */
+      (entityTypeId && allFileEntityTypeIds.includes(entityTypeId)) ||
+      (entityTypeBaseUrl &&
+        allFileEntityTypeBaseUrl.includes(entityTypeBaseUrl)) ||
+      /**
+       * Otherwise we check the fetched `entityTypes` as a fallback.
+       */
+      entityTypes?.every(({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile),
+    [entityTypeBaseUrl, entityTypeId, entityTypes, isSpecialEntityTypeLookup],
+  );
+
+  const supportGridView = isDisplayingFilesOnly;
+
+  const [view, setView] = useState<EntityTableView>(
+    isDisplayingFilesOnly ? "grid" : "table",
+  );
+
+  useEffect(() => {
+    if (isDisplayingFilesOnly) {
+      setView("grid");
+    }
+  }, [isDisplayingFilesOnly]);
 
   const { subgraph: subgraphWithLinkedEntities } = useEntityTypeEntities({
     entityTypeBaseUrl,
@@ -493,16 +547,6 @@ export const EntitiesTable: FunctionComponent<{
        */
       addPropertiesColumns: hidePropertiesColumns,
     });
-
-  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
-
-  const isDisplayingFilesOnly = useMemo(
-    () =>
-      entityTypes?.every(({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile),
-    [entityTypes, isSpecialEntityTypeLookup],
-  );
-
-  const supportGridView = isDisplayingFilesOnly;
 
   return (
     <Box>
