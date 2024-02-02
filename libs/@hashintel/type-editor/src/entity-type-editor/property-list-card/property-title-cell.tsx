@@ -1,7 +1,8 @@
+import { EntityTypeWithMetadata } from "@blockprotocol/graph";
 import { extractBaseUrl, PropertyType } from "@blockprotocol/type-system/slim";
 import { faChevronRight, faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import { Box, Collapse, Fade, TableCell } from "@mui/material";
+import { Box, Collapse, Fade, Stack, TableCell, Tooltip } from "@mui/material";
 import { useWatch } from "react-hook-form";
 
 import { EntityTypeEditorFormData } from "../../shared/form-types";
@@ -20,7 +21,7 @@ interface PropertyTitleCellProps {
   property: PropertyType;
   array: boolean;
   depth: number;
-  inherited?: boolean;
+  inheritanceChain?: EntityTypeWithMetadata[];
   lines: boolean[];
   expanded?: boolean;
   currentVersion: number;
@@ -35,7 +36,7 @@ export const PropertyTitleCell = ({
   property,
   array,
   depth = 0,
-  inherited,
+  inheritanceChain,
   lines,
   expanded,
   setExpanded,
@@ -117,29 +118,42 @@ export const PropertyTitleCell = ({
           </IconButton>
         </Collapse>
 
-        {inherited && <ArrowTurnDownRightIcon sx={{ mr: 1 }} />}
+        <Tooltip
+          title={
+            inheritanceChain
+              ? `Inherited from ${inheritanceChain[inheritanceChain.length - 1]!.schema.title}`
+              : ""
+          }
+        >
+          <Stack direction="row" alignItems="center">
+            {inheritanceChain && <ArrowTurnDownRightIcon sx={{ mr: 1 }} />}
 
-        <Box>{property.title}</Box>
+            <Box>{property.title}</Box>
 
-        {isLabelProperty && (
-          <Box
-            sx={({ palette }) => ({
-              background: palette.gray[20],
-              border: `1px solid ${palette.gray[30]}`,
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: 18,
-              width: 18,
-              ml: 1,
-            })}
-          >
-            <TagIcon
-              sx={{ fontSize: 9, fill: ({ palette }) => palette.common.black }}
-            />
-          </Box>
-        )}
+            {isLabelProperty && (
+              <Box
+                sx={({ palette }) => ({
+                  background: palette.gray[20],
+                  border: `1px solid ${palette.gray[30]}`,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: 18,
+                  width: 18,
+                  ml: 1,
+                })}
+              >
+                <TagIcon
+                  sx={{
+                    fontSize: 9,
+                    fill: ({ palette }) => palette.common.black,
+                  }}
+                />
+              </Box>
+            )}
+          </Stack>
+        </Tooltip>
 
         <Fade in={array} appear={false}>
           <FontAwesomeIcon
@@ -154,7 +168,7 @@ export const PropertyTitleCell = ({
 
         {depth === 0 &&
         currentVersion !== latestVersion &&
-        !inherited &&
+        !inheritanceChain &&
         !isReadonly ? (
           <VersionUpgradeIndicator
             currentVersion={currentVersion}
