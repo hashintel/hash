@@ -10,7 +10,7 @@ import { DiscordIcon } from "../../components/icons/discord-icon";
 import { PageLayout } from "../../components/page-layout";
 import { NextPageWithLayout } from "../../util/next-types";
 import { DocsPageData, getSerializedDocsPage } from "../shared/mdx-utils";
-import { SiteMap } from "../shared/sitemap";
+import { SiteMap, SiteMapPage } from "../shared/sitemap";
 import { DocsContent } from "./docs-content";
 import { DocsHomePage } from "./docs-home-page";
 import { DocsSlugIcon } from "./docs-slug-icon";
@@ -36,12 +36,16 @@ const docsTabs: { title: string; href: string }[] = [
   ...topLevelDocsPages.map(({ title, href }) => ({ title, href })),
 ];
 
+const getPossibleHrefsInPage = (page: SiteMapPage): string[] => {
+  const subPages = page.subPages.flatMap(getPossibleHrefsInPage);
+
+  return [page.href, ...subPages];
+};
+
 export const getStaticPaths: GetStaticPaths<DocsPageParsedUrlQuery> = () => {
   const possibleHrefs = [
     "/docs",
-    ...topLevelDocsPages
-      .flatMap((page) => [page, ...page.subPages])
-      .map(({ href }) => href),
+    ...topLevelDocsPages.flatMap(getPossibleHrefsInPage),
   ];
 
   const paths = possibleHrefs.map((href) => ({
