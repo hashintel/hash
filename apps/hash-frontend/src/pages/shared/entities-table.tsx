@@ -593,6 +593,7 @@ export const EntitiesTable: FunctionComponent<{
           onSearchClose={() => setShowSearch(false)}
           columns={columns}
           columnFilters={columnFilters}
+          dataLoading={loading}
           rows={rows}
           enableCheckboxSelection
           selectedRows={selectedRows}

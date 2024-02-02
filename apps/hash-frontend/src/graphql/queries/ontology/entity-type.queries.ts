@@ -91,3 +91,9 @@ export const unarchiveEntityTypeMutation = gql`
     unarchiveEntityType(entityTypeId: $entityTypeId)
   }
 `;
+
+export const checkUserPermissionsOnEntityTypeQuery = gql`
+  query checkUserPermissionsOnEntityType($entityTypeId: VersionedUrl!) {
+    checkUserPermissionsOnEntityType(entityTypeId: $entityTypeId)
+  }
+`;

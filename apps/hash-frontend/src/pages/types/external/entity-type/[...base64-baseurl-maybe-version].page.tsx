@@ -24,7 +24,6 @@ const Page: NextPageWithLayout = () => {
     <EntityTypePage
       entityTypeBaseUrl={entityTypeBaseUrl}
       requestedVersion={requestedVersion}
-      readonly
     />
   );
 };
