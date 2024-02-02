@@ -101,14 +101,14 @@ const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
   ({ entityTypeBaseUrl }) => entityTypeBaseUrl,
 ) as BaseUrl[];
 
-const entitiesTableViews = ["table", "graph", "grid"] as const;
+const entitiesTableViews = ["Table", "Graph", "Grid"] as const;
 
 type EntityTableView = (typeof entitiesTableViews)[number];
 
 const entitiesTableViewIcons: Record<EntityTableView, ReactNode> = {
-  table: <ListRegularIcon sx={{ fontSize: 18 }} />,
-  graph: <ChartNetworkRegularIcon sx={{ fontSize: 18 }} />,
-  grid: <GridSolidIcon sx={{ fontSize: 14 }} />,
+  Table: <ListRegularIcon sx={{ fontSize: 18 }} />,
+  Graph: <ChartNetworkRegularIcon sx={{ fontSize: 18 }} />,
+  Grid: <GridSolidIcon sx={{ fontSize: 14 }} />,
 };
 
 export const EntitiesTable: FunctionComponent<{
@@ -157,12 +157,12 @@ export const EntitiesTable: FunctionComponent<{
   const supportGridView = isDisplayingFilesOnly;
 
   const [view, setView] = useState<EntityTableView>(
-    isDisplayingFilesOnly ? "grid" : "table",
+    isDisplayingFilesOnly ? "Grid" : "Table",
   );
 
   useEffect(() => {
     if (isDisplayingFilesOnly) {
-      setView("grid");
+      setView("Grid");
     }
   }, [isDisplayingFilesOnly]);
 
@@ -605,9 +605,9 @@ export const EntitiesTable: FunctionComponent<{
           >
             {(
               [
-                "table",
-                ...(supportGridView ? (["grid"] as const) : []),
-                "graph",
+                "Table",
+                ...(supportGridView ? (["Grid"] as const) : []),
+                "Graph",
               ] satisfies EntityTableView[]
             ).map((viewName) => (
               <ToggleButton
@@ -616,10 +616,7 @@ export const EntitiesTable: FunctionComponent<{
                 value={viewName}
                 aria-label={viewName}
               >
-                <Tooltip
-                  title={`${viewName[0]?.toUpperCase()}${viewName.slice(1)} view`}
-                  placement="top"
-                >
+                <Tooltip title={`${viewName} view`} placement="top">
                   <Box sx={{ lineHeight: 0 }}>
                     {entitiesTableViewIcons[viewName]}
                   </Box>
@@ -630,10 +627,10 @@ export const EntitiesTable: FunctionComponent<{
         }
         filterState={filterState}
         setFilterState={setFilterState}
-        toggleSearch={view === "table" ? () => setShowSearch(true) : undefined}
+        toggleSearch={view === "Table" ? () => setShowSearch(true) : undefined}
         onBulkActionCompleted={() => setSelectedRows([])}
       />
-      {view === "graph" ? (
+      {view === "Graph" ? (
         <EntitiesGraphChart
           isPrimaryEntity={(entity) =>
             entityTypeBaseUrl
@@ -663,7 +660,7 @@ export const EntitiesTable: FunctionComponent<{
           }}
           subgraph={subgraph as unknown as BpSubgraph<BpEntityRootType>}
         />
-      ) : view === "grid" ? (
+      ) : view === "Grid" ? (
         <GridView entities={entities} />
       ) : (
         <Grid
