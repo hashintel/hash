@@ -194,6 +194,12 @@ const getHeadingsFromMarkdown = (markdownFilePath: string): Heading[] => {
 
   const headings = getHeadingsFromParent(ast);
 
+  if (!data.title) {
+    throw new Error(
+      `Missing title in frontmatter for MDX file with path: ${markdownFilePath}`,
+    );
+  }
+
   return [
     {
       type: "heading" as const,
@@ -201,7 +207,7 @@ const getHeadingsFromMarkdown = (markdownFilePath: string): Heading[] => {
       children: [
         {
           type: "text",
-          value: data.title ?? "Unknown",
+          value: data.title,
         },
       ],
     },
@@ -250,6 +256,14 @@ export const getDocsPage = (params: {
   const h1 = headings.find(({ depth }) => depth === 1);
 
   const title = h1 ? getVisibleText(h1) : "Unknown";
+
+  // if (
+  //   pathToDirectory === "docs/08_simulations/01_create" &&
+  //   fileName === "00_index.mdx"
+  // ) {
+  //   const visibleText = getVisibleText(h1!);
+  //   console.log(JSON.stringify({ h1, title, visibleText }), null, 2);
+  // }
 
   let name: string;
 
