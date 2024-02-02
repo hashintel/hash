@@ -16,7 +16,7 @@ const config: PlaywrightTestConfig = {
     [ci ? "github" : "list"],
     ["html", { open: !ci ? "on-failure" : "never" }],
   ],
-  retries: ci ? 2 : 0, // 2 retries in CI compensates flakiness, 0 is more helpful locally
+  retries: 0,
   testDir: "tests",
   use: {
     baseURL: "http://localhost:3000",
