@@ -31,8 +31,8 @@ export const GridView: FunctionComponent<{ entities?: Entity[] }> = ({
               index={index}
             />
           ))
-        : Array.from({ length: 3 }, (_, index) => (
-            <GridViewItemSkeleton key={index} numberOfItems={3} index={index} />
+        : Array.from({ length: 4 }, (_, index) => (
+            <GridViewItemSkeleton key={index} numberOfItems={4} index={index} />
           ))}
     </Grid>
   );
