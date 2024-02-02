@@ -29,7 +29,8 @@ With the HASH process library, we provide ready made behaviors for implementing 
 - Sink: Accepts objects and removes them from the process model.
 
 <Hint style="info">
-The full list of process blocks and their parameters are listed in [Process Blocks](/docs/simulation/concepts/designing-with-process-models/process-blocks).
+  The full list of process blocks and their parameters are listed in [Process
+  Blocks](/docs/simulation/concepts/designing-with-process-models/process-blocks).
 </Hint>
 
 These blocks are published behaviors that you use in the `behaviors` array just like any others, and they execute in sequence. **Objects** are passed through the different blocks, representing a product on an assembly line, a bill being processed, etc. Each blocks in the `behaviors` array has a queue linked to it, where those objects are temporarily stored.

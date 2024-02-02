@@ -49,7 +49,10 @@ def behavior(state, context):
 </Tabs>
 
 <Hint style="info">
-An agent can read the state of its neighbors, but agents cannot directly modify another agent's state. However, agents may communicate by [sending messages](/docs/simulation/creating-simulations/agent-messages/sending-messages) to each other.
+  An agent can read the state of its neighbors, but agents cannot directly
+  modify another agent's state. However, agents may communicate by [sending
+  messages](/docs/simulation/creating-simulations/agent-messages/sending-messages)
+  to each other.
 </Hint>
 
 Neighbors are calculated at the beginning of every time step, for every agent that has a `search_radius` value. For best performance, only assign a `search_radius` to an agent that needs to call context.neighbors\(\).

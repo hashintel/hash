@@ -66,12 +66,17 @@ const num_new_agents = poisson.sample(10);
 </Tab>
 </Tabs>
 
-<Embed url="https://hash.ai/@hash/determinism" caption="An example simulation demonstrating Determinism" />
+<Embed
+  url="https://hash.ai/@hash/determinism"
+  caption="An example simulation demonstrating Determinism"
+/>
 
 HASH standard library functions for distributions and random number generation are currently only available in JavaScript; [Python supports setting a seed natively](https://docs.python.org/3/library/random.html) and, if creating a Python simulation, you should consider using `random.seed()` and/or [numpy](/docs/simulation/creating-simulations/libraries/python-packages).
 
 <Hint style="warning">
-hEngine execution order can, at times, cause different agents to execute in different orders, causing different random numbers to be pulled between runs. We'll be building in guarantees around this in an upcoming update.
+  hEngine execution order can, at times, cause different agents to execute in
+  different orders, causing different random numbers to be pulled between runs.
+  We'll be building in guarantees around this in an upcoming update.
 </Hint>
 
 ### 2. Reliance on External APIs
@@ -93,5 +98,8 @@ hEngine delivers messages once all agents have computed their next states. In cu
 Like with neighbors, randomization is not guaranteed. Shuffling messages before you access them ensures that your simulation is free of artifacts.
 
 <Hint style="info">
-If your simulation relies upon the order of the messages and neighbors array, consider adding a sorting function to the simulation that will return the agents in a predictable manner. For example, sort based on an `agent_name` field you specify in the initialization of the simulation.
+  If your simulation relies upon the order of the messages and neighbors array,
+  consider adding a sorting function to the simulation that will return the
+  agents in a predictable manner. For example, sort based on an `agent_name`
+  field you specify in the initialization of the simulation.
 </Hint>

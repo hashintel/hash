@@ -11,16 +11,19 @@ Entities have **entity types**, while the links that connect them have **link ty
 **Entity types** and **link types** define the expected attributes of an entity or link, respectively. They do this by listing the **property types** (values) and **link types** (relationships with other entites) that an entity or link of a particular type can accept. There are no limits to the number of types an entity or link might have, or attributes those types might define as expected.
 
 **Property types** can be thought of as accepted _values_, as opposed to links to other entities.
+
 - They might accept "any" value as an input.
 - More likely, however, you'll want to constrain their allowed values to one or more data types.
 - Property types can be specifeid as expected/allowed attributes to both entity types and link types, allowing useful metadata to be attached both to entities and links.
 
 **Link types** are possible relationships with other entities.
+
 - They can accept entities of "any" entity type as a linked value.
 - As with property types, you'll likely want to constrain their accepted inputs. In this case, instead of using data types, we specify what entity type(s) an entity must be, in order to be allowed as a linked value.
 - Link types can be specified as expected/allowed attributes on both entity types and other link types.
 
-**Data types** 
+**Data types**
+
 - HASH supports a limited number of primitive data types today. You will be able to create and use your own custom data types in the future.
 - Data types can be specified as allowed value formats on property types. _Constraints on the accepted values of link types are specified as entity types, instead._
 

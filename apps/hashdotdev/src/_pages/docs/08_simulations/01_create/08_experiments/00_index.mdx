@@ -47,7 +47,9 @@ To run an experiment, click the "Experiment Runner" button in the runner control
 ![Sweep values demonstration](https://cdn-us1.hash.ai/site/docs/image%20%2816%29.png)
 
 <Hint style="success">
-If you want to run an experiment from another user's published simulation - for instance an example simulation - first save a copy to your drive and then click the experiment runner.
+  If you want to run an experiment from another user's published simulation -
+  for instance an example simulation - first save a copy to your drive and then
+  click the experiment runner.
 </Hint>
 
 Running this experiment will generate 7 new simulations, each with a slightly different globals.json. If we run the simulation, we can see exactly which parameters get changed in the sidebar:
@@ -65,7 +67,8 @@ const behavior = (state, context) => {
 Now, any behaviors that rely on the "radius" parameter from `globals.json` will use the corresponding value.
 
 <Hint style="info">
-You can run experiments locally or in [hCloud](/docs/simulation/creating-simulations/h.cloud)
+  You can run experiments locally or in
+  [hCloud](/docs/simulation/creating-simulations/h.cloud)
 </Hint>
 
 For more information on specific syntax, read more about [Experiment Types](/docs/simulation/creating-simulations/experiments/experiment-types).

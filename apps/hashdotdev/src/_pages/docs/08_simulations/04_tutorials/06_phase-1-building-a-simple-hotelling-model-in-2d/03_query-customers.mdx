@@ -16,6 +16,7 @@ Query customers → Businesses will send their neighbors every possible position
 - Item_price changes: `item_price + 1, item_price, item_price - 1`
 
 Collect customer responses → Businesses will collect and store all the customer responses to determine the position and item_price combination with the largest profit
+
 </Hint>
 
 This action can be split into three separate functions within `business.js`: `send_message`, `price_messaging`, `movement_messaging`.
@@ -39,7 +40,8 @@ const send_message = (agent_id, position, price) => {
 </Tabs>
 
 <Hint style="info">
-`rgb` is sent so we can visually see which business a customer chooses to shop at
+  `rgb` is sent so we can visually see which business a customer chooses to shop
+  at
 </Hint>
 
 The next step is to create the **`price_messaging()`** function. This function will receive the neighbor's agent_id and position change, iterate through the possible item_price values, and call send_message to notify all possible neighbors.
@@ -105,6 +107,7 @@ Since Business agents are sending around 100 \(neighbors\) x 6 \(positions\) x 3
 1.  counter_reset_to: 0
 
 **In the `business.js`** behavior, wrap the `query_customers()` call in the following if statement:
+
 </Hint>
 
 ```javascript
@@ -113,8 +116,10 @@ if (state.counter === 0) {
 }
 ```
 
-<Hint style="danger" >
-The behavior **Counter** adds a counter variable to every business agent that will automatically increment at each time step. This ensures that query_customers\(\) is only called every 3 time steps.
+<Hint style="danger">
+  The behavior **Counter** adds a counter variable to every business agent that
+  will automatically increment at each time step. This ensures that
+  query_customers\(\) is only called every 3 time steps.
 </Hint>
 
 <Tabs>

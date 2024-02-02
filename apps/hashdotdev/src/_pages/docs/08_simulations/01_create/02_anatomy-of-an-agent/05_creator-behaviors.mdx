@@ -8,11 +8,15 @@ description: Initializing simulations by using creator behaviors
 ## Creator Agents
 
 <Hint style="warning">
-Creator behaviors were commonly used in HASH before the introduction of programmable initial state. We recommend using programmable inital state and the `init` package of the HASH Standard Library instead of creator behaviors for 99% of use cases.
+  Creator behaviors were commonly used in HASH before the introduction of
+  programmable initial state. We recommend using programmable inital state and
+  the `init` package of the HASH Standard Library instead of creator behaviors
+  for 99% of use cases.
 </Hint>
 
 <Hint style="info">
-If you want to jump right into code you can take a look at our [Initialization Demo ](/@hash/initialization-demo)which demos creator agents.
+  If you want to jump right into code you can take a look at our [Initialization
+  Demo ](/@hash/initialization-demo)which demos creator agents.
 </Hint>
 
 With "creator" agents you can create agents that create other agents. For example, by accessing published behaviors, we can very easily generate common agent placements. These behaviors can be found in the lower left corner; search for and then click on them to add them to your simulation:
@@ -42,7 +46,8 @@ Here we've randomly assigned the color of our "ground" agents, and given each of
 Our creator then runs two more published behaviors. `Create Agents (@hash/create-agents/create_agents.js)` sends messages to the engine to generate every agent in the "agents" object, and `Remove Self (@hash/remove-self/remove_self.js)` gets rid of the "creator" agent, since it's finished all it needs to do. Again, these behaviors can be found in the lower left sidebar.
 
 <Hint style="info">
-You can create new agents during your simulation by sending a message to the reserved hash keyword.
+  You can create new agents during your simulation by sending a message to the
+  reserved hash keyword.
 </Hint>
 
 <Tabs>

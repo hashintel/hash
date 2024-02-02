@@ -60,7 +60,11 @@ def behavior(state, context):
 Important: Only the agent can modify its own state. If an agent wants to prompt another agent to perform a state change, it can send a [message](/docs/simulation/creating-simulations/agent-messages/) to trigger an update.
 
 <Hint style="info">
-Agents can read one another's state - for example if agent "foo" is a [neighbor](/docs/simulation/creating-simulations/anatomy-of-an-agent/context) of agent "bar", agent "bar" can access the fields of agent "foo", it just can't make any changes to those fields. That's what makes the state _**private**_.
+  Agents can read one another's state - for example if agent "foo" is a
+  [neighbor](/docs/simulation/creating-simulations/anatomy-of-an-agent/context)
+  of agent "bar", agent "bar" can access the fields of agent "foo", it just
+  can't make any changes to those fields. That's what makes the state
+  _**private**_.
 </Hint>
 
 ### Reserved Fields
@@ -152,5 +156,8 @@ state.set("field_name", "value")
 state.get will deep copy a value from the field into the local scope of the behavior, and set will take a value and deep copy it into the field property. There are cases where this is helpful, but it's a more computationally expensive operation to perform.
 
 <Hint style="info">
-You might see state.get and state.set used frequently in older simulations or tutorials - these methods used to be the primary means of getting and setting state properties, but have largely been **deprecated** in favor of`state.field_name` and `state['field_name'].`
+  You might see state.get and state.set used frequently in older simulations or
+  tutorials - these methods used to be the primary means of getting and setting
+  state properties, but have largely been **deprecated** in favor
+  of`state.field_name` and `state['field_name'].`
 </Hint>

@@ -16,7 +16,10 @@ Currently, the most powerful built-in message handlers allow agents to add or re
 Any agent can remove any other agent with a special message sent directly to `hash`. Here, we remove an agent with `agent_name: "Bill"`. Before the next step starts executing, the message will be processed and Bill will be removed \(sorry Bill!\).
 
 <Hint style="warning">
-**Case sensitivity matters.** If a message is sent to `bill`, it will not be received by `Bill`. The only exception to this rule is that any message sent to hASh, Hash, HASH, haSh, or any similar variant will be forwarded to the engine.
+  **Case sensitivity matters.** If a message is sent to `bill`, it will not be
+  received by `Bill`. The only exception to this rule is that any message sent
+  to hASh, Hash, HASH, haSh, or any similar variant will be forwarded to the
+  engine.
 </Hint>
 
 <Tabs>

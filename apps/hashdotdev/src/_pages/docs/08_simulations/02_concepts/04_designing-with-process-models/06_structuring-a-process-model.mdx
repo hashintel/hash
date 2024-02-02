@@ -7,7 +7,9 @@ objectId: b4c1cda6-a614-4b68-9484-a5d264bf76a5
 # Structuring a Process Model
 
 <Hint style="info">
-A technical deep-dive into how process models are structured. This is optional context that is not required for using the [process model visual interface](/docs/simulation/concepts/designing-with-process-models/using-the-process-model-builder).
+  A technical deep-dive into how process models are structured. This is optional
+  context that is not required for using the [process model visual
+  interface](/docs/simulation/concepts/designing-with-process-models/using-the-process-model-builder).
 </Hint>
 
 ## Structure of the Agent
@@ -25,7 +27,8 @@ Each process block behavior operates in three parts:
 1.  The block puts modified objects back into its queue, or into the queue of the following block.
 
 <Hint style="warning">
-The only exception to this is the Sink block. Since it represents the end of a process, it does not send objects into a new queue.
+  The only exception to this is the Sink block. Since it represents the end of a
+  process, it does not send objects into a new queue.
 </Hint>
 
 ### Behaviors Array
@@ -33,7 +36,9 @@ The only exception to this is the Sink block. Since it represents the end of a p
 The `behaviors` array of an agent running a process model must start with the [`@hash/age/age.rs`](/@hash/age) behavior, and can then contain a mix of custom and published behaviors.
 
 <Hint style="warning">
-This behavior provides the agent with a field that allows the other process behaviors to run. Without it the other Process Library behaviors will throw errors.
+  This behavior provides the agent with a field that allows the other process
+  behaviors to run. Without it the other Process Library behaviors will throw
+  errors.
 </Hint>
 
 **init.json**
