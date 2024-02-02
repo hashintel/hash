@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use error_stack::{Report, Result, ResultExt};
+use futures::TryStreamExt;
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
@@ -166,17 +167,16 @@ where
         web: OwnedById,
         consistency: Consistency<'static>,
     ) -> Result<Vec<WebRelationAndSubject>, ReadError> {
-        Ok(self
-            .backend
+        self.backend
             .read_relations::<(OwnedById, WebRelationAndSubject)>(
                 RelationshipFilter::from_resource(web),
                 consistency,
             )
             .await
             .change_context(ReadError)?
-            .into_iter()
-            .map(|(_, relation)| relation)
-            .collect())
+            .map_ok(|(_, relation)| relation)
+            .try_collect()
+            .await
     }
 
     #[tracing::instrument(level = "info", skip(self, relationships))]
@@ -262,17 +262,16 @@ where
         entity: EntityId,
         consistency: Consistency<'static>,
     ) -> Result<Vec<EntityRelationAndSubject>, ReadError> {
-        Ok(self
-            .backend
+        self.backend
             .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
                 RelationshipFilter::from_resource(entity.entity_uuid),
                 consistency,
             )
             .await
             .change_context(ReadError)?
-            .into_iter()
-            .map(|(_, relation)| relation)
-            .collect())
+            .map_ok(|(_, relation)| relation)
+            .try_collect()
+            .await
     }
 
     #[tracing::instrument(level = "info", skip(self, relationships))]
@@ -360,17 +359,16 @@ where
         entity_type: EntityTypeId,
         consistency: Consistency<'static>,
     ) -> Result<Vec<EntityTypeRelationAndSubject>, ReadError> {
-        Ok(self
-            .backend
+        self.backend
             .read_relations::<(EntityTypeId, EntityTypeRelationAndSubject)>(
                 RelationshipFilter::from_resource(entity_type),
                 consistency,
             )
             .await
             .change_context(ReadError)?
-            .into_iter()
-            .map(|(_, relation)| relation)
-            .collect())
+            .map_ok(|(_, relation)| relation)
+            .try_collect()
+            .await
     }
 
     #[tracing::instrument(level = "info", skip(self, relationships))]
@@ -460,17 +458,16 @@ where
         property_type: PropertyTypeId,
         consistency: Consistency<'static>,
     ) -> Result<Vec<PropertyTypeRelationAndSubject>, ReadError> {
-        Ok(self
-            .backend
+        self.backend
             .read_relations::<(PropertyTypeId, PropertyTypeRelationAndSubject)>(
                 RelationshipFilter::from_resource(property_type),
                 consistency,
             )
             .await
             .change_context(ReadError)?
-            .into_iter()
-            .map(|(_, relation)| relation)
-            .collect())
+            .map_ok(|(_, relation)| relation)
+            .try_collect()
+            .await
     }
 
     #[tracing::instrument(level = "info", skip(self, relationships))]
@@ -558,16 +555,15 @@ where
         data_type: DataTypeId,
         consistency: Consistency<'static>,
     ) -> Result<Vec<DataTypeRelationAndSubject>, ReadError> {
-        Ok(self
-            .backend
+        self.backend
             .read_relations::<(DataTypeId, DataTypeRelationAndSubject)>(
                 RelationshipFilter::from_resource(data_type),
                 consistency,
             )
             .await
             .change_context(ReadError)?
-            .into_iter()
-            .map(|(_, relation)| relation)
-            .collect())
+            .map_ok(|(_, relation)| relation)
+            .try_collect()
+            .await
     }
 }
