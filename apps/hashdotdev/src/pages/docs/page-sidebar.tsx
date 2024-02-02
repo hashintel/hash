@@ -231,7 +231,11 @@ const SidebarPage: FunctionComponent<SidebarPageProps> = ({
         display="flex"
         alignItems="center"
         justifyContent="space-between"
-        bgcolor={isSelected ? (theme) => theme.palette.teal[10] : "transparent"}
+        sx={{
+          background: isSelected
+            ? (theme) => theme.palette.teal[10]
+            : "transparent",
+        }}
         pr={1.5}
       >
         <SidebarLink
