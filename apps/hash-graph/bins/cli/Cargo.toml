@@ -34,7 +34,7 @@ tarpc = { version = "0.33", features = ["serde1", "tokio1", "serde-transport", "
 time = "0.3.33"
 tokio = { workspace = true }
 tokio-postgres = { version = "0.7.10", default-features = false }
-tokio-serde = { version = "0.8", features = ["json"] }
+tokio-serde = { version = "0.9", features = ["json"] }
 tokio-util = { workspace = true, features = ["codec"] }
 tracing = { workspace = true }
 uuid = "1.7.0"
