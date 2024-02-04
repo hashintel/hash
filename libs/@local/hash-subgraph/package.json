@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
-    "@types/jest": "29.5.11",
+    "@types/jest": "29.5.12",
     "@types/uuid": "8.3.0",
     "jest": "29.7.0",
     "ts-jest": "29.1.2",
