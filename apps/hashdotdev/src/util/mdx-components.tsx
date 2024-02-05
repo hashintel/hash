@@ -227,9 +227,9 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
 
   InfoCardWrapper,
 
-  /** @todo: these components need to be defined properly */
-
   Hint,
+
+  /** @todo: these components need to be defined properly */
 
   Tab: ({ children }: PropsWithChildren) => <Box>{children}</Box>,
 

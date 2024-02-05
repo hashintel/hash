@@ -1,0 +1,51 @@
+.hint {
+  .hint-success,
+  .hint-info,
+  .hint-warning,
+  .hint-danger {
+    width: 100%;
+    margin: 0;
+    display: flex;
+    padding: 1px 24px;
+    padding-left: 0px;
+    position: relative;
+    margin-top: 32px;
+    border-left: 4px solid rgb(38, 203, 124);
+    border-radius: 3px;
+    margin-bottom: 32px;
+    background-color: #f5f7f9;
+
+    svg {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+      margin-left: 0.8em;
+      margin-right: 0.8em;
+      color: rgb(38, 203, 124);
+    }
+  }
+
+  .hint-info {
+    border-left: 4px solid rgb(56, 132, 255);
+
+    svg {
+      color: rgb(56, 132, 255);
+    }
+  }
+
+  .hint-warning {
+    border-left: 4px solid rgb(247, 125, 5);
+
+    svg {
+      color: rgb(247, 125, 5);
+    }
+  }
+
+  .hint-danger {
+    border-left: 4px solid rgb(255, 70, 66);
+
+    svg {
+      color: rgb(255, 70, 66);
+    }
+  }
+}

@@ -25,6 +25,7 @@
     "@emotion/server": "11.11.0",
     "@emotion/styled": "11.11.0",
     "@fortawesome/free-solid-svg-icons": "6.4.2",
+    "@mui/icons-material": "5.15.7",
     "@mui/material": "5.14.11",
     "@mui/system": "5.14.11",
     "axios": "1.6.0",
