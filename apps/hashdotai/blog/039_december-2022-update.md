@@ -1,6 +1,7 @@
 ---
 title: "December 2022 Update"
 date: "2022-12-31"
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/fd034ac8-7645-453e-731b-7a46e06d7f00/public
 categories: 
   - "Company"
 ---
