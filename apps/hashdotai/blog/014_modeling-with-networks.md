@@ -1,6 +1,7 @@
 ---
 title: "Modeling with Networks"
 date: "2021-04-27"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/5a5a2e18-ff85-460f-32bd-74c6f4a71b00/public
 categories: 
   - "Simulation"
 ---
