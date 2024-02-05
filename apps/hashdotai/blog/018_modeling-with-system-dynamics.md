@@ -1,6 +1,7 @@
 ---
 title: "Modeling with System Dynamics"
 date: "2021-05-18"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/09a23d79-72aa-4b29-4662-161d1a7fc100/public
 categories: 
   - "Simulation"
 ---
