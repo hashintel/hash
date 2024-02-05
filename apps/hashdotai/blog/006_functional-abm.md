@@ -1,6 +1,7 @@
 ---
 title: "Functional Agent-Based Modeling"
 date: "2020-12-09"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/a94e70b7-5dba-47e6-beb6-244c5ce9f900/public
 categories: 
   - "Simulation"
 ---
