@@ -12,13 +12,13 @@ import {
   FunctionComponent,
   HTMLAttributes,
   HTMLProps,
-  PropsWithChildren,
 } from "react";
 import slugify from "slugify";
 
 import { FontAwesomeIcon } from "../components/icons/font-awesome-icon";
 import { ImageWithText } from "../components/image-with-text";
 import { Link } from "../components/link";
+import { Check } from "../components/mdx/check";
 import { Embed } from "../components/mdx/embed";
 import { Hint } from "../components/mdx/hint";
 import { InfoCard } from "../components/mdx/info-card";
@@ -244,7 +244,5 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
 
   Embed,
 
-  /** @todo: these components need to be defined properly */
-
-  Check: ({ children }: PropsWithChildren) => <Box>{children}</Box>,
+  Check,
 };
