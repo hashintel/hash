@@ -230,6 +230,14 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
 
   InfoCardWrapper,
 
+  /**
+   * These components were ported from the legacy hash.ai website and
+   * are used in the `/docs/simulation` pages.
+   *
+   * Some of these components depend on the `legacy-mdx-components.scss`
+   * stylesheet imported in `_app.page.tsx`.
+   */
+
   Hint,
 
   Tab,
