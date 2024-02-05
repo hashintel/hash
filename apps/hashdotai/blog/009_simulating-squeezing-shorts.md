@@ -7,7 +7,7 @@ categories:
   - "Topic > Finance"
 ---
 
-We wanted to demonstrate the dynamics of the Battle of GameStop™ so we put together a simulation of the sharp escalation of price that can occur when an irresistible force (legally needing to cover your shorts) meets an immovable object (the combined will of thousands of Redditors).
+We wanted to demonstrate the dynamics of the Battle of GameStop™ so we [put together a simualtion](https://hash.ai/@hash/short-squeeze) of the sharp escalation of price that can occur when an irresistible force (legally needing to cover your shorts) meets an immovable object (the combined will of thousands of Redditors). 
 
 ## About this simulation
 
@@ -15,9 +15,7 @@ Our simulation is made up of a mix of different agents - shorts that need to cov
 
 In the first scenario the shorts are buying from a relatively liquid market. They can offer low starting prices and gradually increase/decrease their price to match the desired price of shareholders, who slightly adjust their prices based on market conditions. Most of those shareholders don't want to miss out on an opportunity to sell, so once a certain portion of the shorts are covered, they will try lowering their price to ensure a trade. Due to this lowering of prices, the shorts can easily collect the shares they need.
 
-Tap the "Run" icon in the simulation below (the runner at the bottom). The simulation will automatically stop after 100 steps. **You'll see a plot of the current selling and asking prices and the number of uncovered shorts.**
-
-<iframe style="position: absolute; top: 0; left: 0;" src="https://core.hash.ai/embed.html?project=%40hash%2Fshort-squeeze&amp;ref=2.1.3&amp;view=analysis" width="100%" height="100%" frameborder="0" scrolling="auto"></iframe>
+Open [the simualtion](https://hash.ai/@hash/short-squeeze) in hCore, and the "Run" icon in the simulation (the runner at the bottom). The simulation will automatically stop after 100 steps. **You'll see a plot of the current selling and asking prices and the number of uncovered shorts.**
 
 However, if there is a large enough percentage of agents who won’t sell, and the market, losing liquidity, forces the shorts to bid the price up, you can see the price skyrocketing to the desired reserve price of the traders, successfully squeezing the shorts.
 
@@ -26,8 +24,6 @@ However, if there is a large enough percentage of agents who won’t sell, and t
 In the next scenario, we've designated a certain portion of agents, determined by the `hold_out_ratio` parameter, that won't ever lower their sell limit. In this simulation, the price initially drops as low-priced shares are purchased, but then eventually goes parabolic when faced with a large number of traders that won't sell.
 
 Raising and lowering the `hold_out_ratio` parameter can manipulate the likelihood and intensity of a squeeze.
-
-<iframe style="position: absolute; top: 0; left: 0;" src="https://core.hash.ai/embed.html?project=%40hash%2Fshort-squeeze&amp;ref=2.1.4&amp;view=analysis" scrolling="auto" width="100%" height="100%" frameborder="0"></iframe>
 
 Experimenting with different compositions of agents can create dramatically different outcomes. You can [open the full model in HASH](https://hash.ai/@hash/short-squeeze) and run one of the pre-built experiments to see, or try tinkering yourself.
 
