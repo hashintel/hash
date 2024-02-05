@@ -18,6 +18,7 @@ export const createEmbeddings = async (params: { input: string[] }) => {
   const response = await openai.embeddings.create({
     input: params.input,
     model: "text-embedding-3-large",
+    encoding_format: "float",
   });
 
   return {
