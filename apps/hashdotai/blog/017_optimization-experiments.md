@@ -27,34 +27,27 @@ The optimizer is a Tree Structured Parzen Estimator (TPE). It sequentially runs 
 You’ve done your research, designed and constructed a model, tested and revised it, and now you’re ready to use it to answer some important questions. Applying optimization to your simulation is as simple as:
 
 1. Choose a metric that you’d like to minimize or maximise
-
-3. Choose the global parameters that you’d like to vary. These represent the exploration space of your optimization
-
-5. Run the optimization experiment. The optimization engine will generate runs (you can keep track of them in the Activity Sidebar on the right) until it finds a solution it is satisfied with.
-
-7. Hover over the optimal run (the one with a circled green check mark) to see the optimized global parameters. 
+1. Choose the global parameters that you’d like to vary. These represent the exploration space of your optimization
+1. Run the optimization experiment. The optimization engine will generate runs (you can keep track of them in the Activity Sidebar on the right) until it finds a solution it is satisfied with.
+1. Hover over the optimal run (the one with a circled green check mark) to see the optimized global parameters. 
 
 **Optimizing Restocking Levels**
 
 Let’s consider how we might optimize a [supply chain model](https://hash.ai/@hash/distributor-vs-direct-delivery-orig). In this simulation, the supply chain consists of a port warehouse which transfers stock to a local distributor in West Virginia, which sends deliveries to a number of clients. The most obvious optimization in such a model is to reduce costs. Expenses in this model are incurred for renting warehouse space and for sending delivery trucks. 
 
-Two of the parameters that we can set in the model are "port\_stock\_2\_alarm\_level" and "wv\_stock\_alarm\_level". These parameters control when the port or distributor will make a restocking request, based on the % of total capacity currently stocked. Let’s define an optimization experiment that will find the optimal value of these two parameters:
+Two of the parameters that we can set in the model are `port_stock_2_alarm_level` and `wv_stock_alarm_level`. These parameters control when the port or distributor will make a restocking request, based on the % of total capacity currently stocked.
 
-![](https://lh5.googleusercontent.com/9TVR788ZvHjPk8vAQ9uwXJCT3D6tNELJOGxocOmoGrHISH757CTCTXIPPHefQvcttrt2u6UgiKEa-ByLHQRKGCeD6AojPfbJeayuM6yohkjYqC-jP9CPY5iwbPb-RYP_q2_wp9eT)
-
+- We'll define an optimization experiment that will find the optimal value of these two parameters.
 - We’ll define how many steps each run should take: We’ve chosen a range at which most runs tend to stabilize.
-
 - We’ll choose the metric we are trying to minimize: total\_expenses 
-
 - We’ll choose the global parameters to sweep: the two alarm\_level parameters 
 
 The results of this optimization are:
 
-- **Optimal reorder level for West Virginia distributor**: 0.887
+- **Optimal reorder level for West Virginia distributor**: `0.887`
+- **Optimal reorder level for port**: `0.117`
 
-- **Optimal reorder level for port**: 0.117
-
-![](images/image8.png)
+![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/e972dafc-caa7-4cff-5f93-96a538608c00/public)
 
 How should we interpret this result? Why are the reorder levels so different? Remember that a large amount of the total expenses are storage costs. The more often the port restocks, the more storage costs it will incur. Since it makes infrequent shipments (compared to the distributor), it makes sense to not have a large amount of inventory sitting in storage. The distributor, on the other hand, is constantly dispatching deliveries. It wants to be able to fulfill orders immediately, and any amount of stock won’t sit in storage for very long. As a result, it is optimal for the distributor to restock often.
 
