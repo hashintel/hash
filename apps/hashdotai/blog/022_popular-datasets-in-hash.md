@@ -1,6 +1,7 @@
 ---
 title: "Top 10 Datasets: June 2021"
 date: "2021-06-11"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/23834e04-c7fd-4b07-5510-c630251f9a00/public
 categories: 
   - "Data"
 ---
