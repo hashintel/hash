@@ -1,6 +1,7 @@
 ---
 title: "February 2023 Update"
 date: "2023-02-28"
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/24a05e58-fdaf-4edf-b93b-758648af2300/public
 categories: 
   - "Company"
 ---
