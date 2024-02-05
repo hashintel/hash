@@ -1,6 +1,7 @@
 ---
 title: "Optimization Experiments"
 date: "2021-05-14"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/c479a9b6-fb6b-48a9-1e8f-240a748d0b00/public
 categories: 
   - "Simulation"
 ---
