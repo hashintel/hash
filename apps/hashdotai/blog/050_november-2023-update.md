@@ -1,6 +1,7 @@
 ---
 title: "November 2023 Update"
 date: "2023-11-30"
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/47a7adf6-b78f-45b5-491e-67545e825200/public
 categories: 
   - "Company"
 ---
