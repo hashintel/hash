@@ -1,6 +1,7 @@
 ---
 title: "Discrete Event Library"
 date: "2021-06-08"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/edcdc732-bccc-4b09-2ae7-5618d14ec900/public
 categories: 
   - "Simulation"
 ---
