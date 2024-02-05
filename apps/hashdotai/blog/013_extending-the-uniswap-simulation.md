@@ -17,17 +17,15 @@ However, we really want to understand what happens when there are multiple token
 
 This is a great use case for simulations - we can model different scenarios and see what the end profit is for the agent.
 
-<iframe style="position: absolute; top: 0; left: 0;" src="https://core.hash.ai/embed.html?project=%40b%2Funiswap&amp;ref=stable&amp;view=analysis" width="100%" height="100%" frameborder="0" scrolling="auto"></iframe>
-
 ## Modifications
 
-The most significant change was in **arbitrage.py**, where we've added in a graph datastructure to organize the pricing information. The Arbitrageur asks for price info from all the exchanges and token pairs it's tracking, and then builds a multi-directed graph where the tokens are the nodes and the weighted edges represent prices per exchange.
+The most significant change was in `arbitrage.py`, where we've added in a graph datastructure to organize the pricing information. The Arbitrageur asks for price info from all the exchanges and token pairs it's tracking, and then builds a multi-directed graph where the tokens are the nodes and the weighted edges represent prices per exchange.
 
 To go into more detail, when the arbitrageur agent receives buy and sell orders from each exchange (ex. Buying 1 B costs 2 A on exchange foo) and treats the price as a directed edge from node A to node B. We could set the weight of the edge as the price, so in the example above setting the weight as 2, however conversion rates are multiplicative (if I buy 3 B it costs me 6 A) and most graph search algorithms expect addition, so instead we can take the log of the price, and set that as the weight. Finally because we want to actually find the highest weighted path through the graph, which will give us the most profitable trade, we'll take the negative logarithm of the price and set that as the weight.
 
 Once we've built the graph, we then use an [implementation](https://github.com/nelsonuhan/bellmanford) of [Bellman-Ford graph search](https://en.wikipedia.org/wiki/Bellman%E2%80%93Ford_algorithm) to check for negative cycles in the graph. If there is a cycle, this means that that there's an arbitrage opportunity, and executing that path as a series of trades will lead to a profit for the arbitrageur.
 
-![](images/arbitrageur.png)
+![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/d22fcab2-102d-435c-52d8-f95c073ab500/public)
 
 Other changes include adding an optional "stochastic" exchange that doesn't follow the uniswap model and instead provides token prices which change every timestep. The prices are drawn from a triangluar distribution that can be set in globals.json.
 
