@@ -1,6 +1,7 @@
 ---
 title: "Genetic Algorithms in Simulations"
 date: "2021-08-04"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/c565b301-53b2-41f2-8773-f0d274147700/public
 categories: 
   - "Simulation"
   - "AI"
