@@ -1,4 +1,3 @@
-import { publicUserAccountId } from "@apps/hash-api/src/auth/public-user-account-id";
 import type {
   EntityEmbedding,
   EntityQueryCursor,
@@ -25,7 +24,6 @@ import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getEntities,
   getPropertyTypes,
-  getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
@@ -41,7 +39,7 @@ export const createGraphActivities = ({
 }) => ({
   async getUserAccountIds(): Promise<AccountId[]> {
     return graphApiClient
-      .getEntitiesByQuery(publicUserAccountId, {
+      .getEntitiesByQuery("00000000-0000-0000-0000-000000000000", {
         query: {
           filter: {
             all: [

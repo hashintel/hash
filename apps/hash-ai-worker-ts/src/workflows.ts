@@ -1,5 +1,4 @@
-import type { Filter } from "@local/hash-graph-client";
-import { EntityQueryCursor } from "@local/hash-graph-client";
+import type { EntityQueryCursor, Filter } from "@local/hash-graph-client";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
