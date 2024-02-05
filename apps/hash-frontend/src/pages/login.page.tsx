@@ -12,6 +12,7 @@ import {
 import { LoginFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
+import { Inter } from "next/font/google";
 import { useRouter } from "next/router";
 import {
   FormEventHandler,
@@ -47,6 +48,15 @@ const SignupButton = styled((props: ButtonProps) => (
   },
 }));
 
+/**
+ * @todo: figure out how to make this re-usable in the theme, if it is
+ * needed elsewhere.
+ */
+const interFont = Inter({
+  weight: ["900"],
+  subsets: ["latin-ext"],
+});
+
 const AuthHeading = styled((props: TypographyProps) => (
   <Typography variant="h1" {...props} />
 ))(({ theme }) => ({
@@ -54,9 +64,8 @@ const AuthHeading = styled((props: TypographyProps) => (
   color: theme.palette.common.black,
   fontSize: 26,
   textTransform: "uppercase",
-  fontFamily: "Inter",
-  /** @todo: import the Inter 900 font */
-  fontWeight: 900,
+  fontFamily: interFont.style.fontFamily,
+  fontWeight: interFont.style.fontWeight,
 }));
 
 const AuthPaper = styled(Paper)(({ theme }) => ({
