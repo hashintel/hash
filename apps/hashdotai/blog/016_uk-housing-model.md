@@ -1,6 +1,7 @@
 ---
 title: "UK Housing Model"
 date: "2021-05-12"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/597dd52f-e760-483a-0200-75ce54232400/public
 categories: 
   - "Simulation"
   - "Topic > Policy"
