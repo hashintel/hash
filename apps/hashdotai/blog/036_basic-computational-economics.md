@@ -1,6 +1,7 @@
 ---
 title: "Basic Computational Economics"
 date: "2022-06-05"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/c04c8e28-4139-4e22-b2d5-88f7dbf24600/public
 categories: 
   - "Simulation"
   - "Topic > Finance"
