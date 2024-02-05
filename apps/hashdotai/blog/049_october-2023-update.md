@@ -1,6 +1,7 @@
 ---
 title: "October 2023 Update"
 date: "2023-10-31"
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/0dd5e2c3-cf33-4a1c-ebbe-bd948b29f200/public
 categories: 
   - "Company"
 ---
