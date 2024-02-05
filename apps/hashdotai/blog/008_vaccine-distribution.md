@@ -1,6 +1,7 @@
 ---
 title: "Modeling Vaccine Distribution"
 date: "2020-12-18"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/9bafb530-164e-496c-62da-ae7b874c3400/public
 categories: 
   - "Simulation"
   - "Topic > Public Health"
