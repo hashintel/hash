@@ -1,6 +1,7 @@
 ---
 title: "January 2023 Update"
 date: "2023-01-27"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/03764ed2-9694-4f73-8d14-7f8725c9c000/public
 categories: 
   - "Company"
 ---
