@@ -53,7 +53,7 @@ This conversion will be used multiple times in the simulation.
 
 The `reward.js` behavior will determine the reward the agent should use to update its q-table, and set the `next_q_state` field on the agent based on the moves the agent and its opponent played. The reward is based on the actions of both the agent and its opponent, and the opponent's actions can only be seen at the beginning of the next time step. As a result, this behavior must run at the beginning of the behavior chain, when the agent can see it's opponent's most recent move (through `context.neighbors()`) but before it updates its q-table.
 
-The `state["reward"]` field is determined by looking at the most recent entry in `state["curr_histories`"\], and using the "scoring" object in `globals.json()`. The `state["next_q_state"]` field is calculated using the conversion described in the preceding section.
+The `state["reward"]` field is determined by looking at the most recent entry in `state["curr_histories"]`, and using the "scoring" object in `globals.json()`. The `state["next_q_state"]` field is calculated using the conversion described in the preceding section.
 
 ## Writing `strategy_q_learning.js`
 
