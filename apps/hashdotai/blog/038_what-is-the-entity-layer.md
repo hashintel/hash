@@ -1,6 +1,7 @@
 ---
 title: "What is the entity layer?"
 date: "2022-12-26"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/12be2a8e-6153-4159-dda1-cc77e6ab6000/public
 categories: 
   - "Company"
   - "Data"
