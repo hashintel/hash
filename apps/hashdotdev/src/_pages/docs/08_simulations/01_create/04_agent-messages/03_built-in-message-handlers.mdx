@@ -5,8 +5,6 @@ objectId: c38f31e7-519c-4e5a-ba60-267c33c859ba
 description: Add and remove agents by interacting with HASH Core
 ---
 
-# Built-in message handlers
-
 In addition to the custom messages you can send between individual agents in the simulation, HASH Core has a set of built-in messages that enable more advanced functionality.
 
 Currently, the most powerful built-in message handlers allow agents to add or remove other agents from the simulation. These messages must be sent to `hash` to be processed by the simulation engine. If not, they will be directed to an agent with a matching ID/name, and you will be very confused. If the agent with a matching name doesn't exist, the message goes unsent and nothing will happen. Again, you will be very confused.

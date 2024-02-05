@@ -5,8 +5,6 @@ objectId: 892fd7c4-b442-44da-8d22-cc5c0fdf58ac
 description: Building complex multi-timescale simulations
 ---
 
-# Managing Timescales
-
 When designing a simulation, you'll often start at a high level of abstraction and then, during the creation process, zoom in and add more fine grained details to the world. For instance if you're building a simulation of a city, you might start by designing people agents to travel to an office building on the eighth time-step, and then return home eight time-steps later, under the assumption that each time-step is something like an hour. Should you decide to add more detail to a simulation - for example, agents eating breakfast at quarter past the hour - you could run into difficulty in moving all of the agents to the new, shorter timescale.
 
 Expressing multiple timescales in a simulation is a difficult problem that exists across platforms and frameworks. Often you're forced to break your representation of time and just ignore the different timescales.

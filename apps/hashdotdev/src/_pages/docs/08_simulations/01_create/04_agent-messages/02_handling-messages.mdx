@@ -4,8 +4,6 @@ slug: simulation/creating-simulations/agent-messages/handling-messages
 objectId: 115d9a68-381f-4b08-8765-4a17be0a1afe
 ---
 
-# Handling Messages
-
 **What happens when an agent receives a message?**
 
 The Context passed to every agent provides a list of messages in the agent's inbox accessible via the `context.messages()` function. Here we can iterate through the list of messages sent to the agent and use that information to make decisions or change state. Note that the `to` field has been replaced by `from`.
