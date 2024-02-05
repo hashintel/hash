@@ -1,6 +1,7 @@
 ---
 title: "Simulate and Optimize RPA Deployments"
 date: "2021-05-04"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/2a372bf8-4d00-473e-1a1f-16d537234200/public
 categories: 
   - "Simulation"
 ---
