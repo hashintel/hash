@@ -1,6 +1,7 @@
 ---
 title: "Extending the Uniswap Simulation"
 date: "2021-04-21"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/8a80ac7b-3beb-49d2-2dfe-36555b0d2100/public
 categories: 
   - "Simulation"
   - "Topic > Finance"
