@@ -22,24 +22,17 @@ Our model closely resembles the model outlined by the Bank of England in their [
 Within each region (London, South-West England etc.) the simulation consists of five different types of agents:
 
 1. _Households_: families, couples and other household units which earn income, consume goods, make mortgage repayments or pay rent and adjust their housing preferences over time.
-
-3. A _Bank_ which provides mortgages to households subject to regulations set by the government.
-
-5. _Auctioneers_, one each for sales and rentals, that create a market and match the bids from households to inventory.
-
-7. A _Builder_ which adds new houses to the market to maintain a certain ratio of houses to households.
-
-9. And a _Statistics Office_ which gathers sales and rental data, and makes aggregate statistics available to households to inform their housing decisions.
+1. A _Bank_ which provides mortgages to households subject to regulations set by the government.
+1. _Auctioneers_, one each for sales and rentals, that create a market and match the bids from households to inventory.
+1. A _Builder_ which adds new houses to the market to maintain a certain ratio of houses to households.
+1. And a _Statistics Office_ which gathers sales and rental data, and makes aggregate statistics available to households to inform their housing decisions.
 
 Households are further broken into four categories:
 
 1. _Social households_ live in government-subsidised housing and do not pay rent.
-
-3. _Renters_ live in privately held housing and pay rent each month.
-
-5. _Owner-occupiers_ live in housing which they themselves own. If their home is mortgaged, these households make a monthly payment to the bank for the specified term.
-
-7. _Investors_ own houses which are leased to other households. They collect rent on these houses each month. Most investors additionally own their own home, and like owner-occupiers make any necessary mortgage payments on their properties. 
+1. _Renters_ live in privately held housing and pay rent each month.
+1. _Owner-occupiers_ live in housing which they themselves own. If their home is mortgaged, these households make a monthly payment to the bank for the specified term.
+1. _Investors_ own houses which are leased to other households. They collect rent on these houses each month. Most investors additionally own their own home, and like owner-occupiers make any necessary mortgage payments on their properties. 
 
 All households also collect non-housing income from employment or social security, consume non-household goods, and pay taxes. We used real-world data sourced from the Office of National Statistics to calibrate the model’s initial conditions — household income, household types, household ages, number of investors, property values and rental prices — in each region. You can find a detailed description of these sources in [the simulation’s README](https://hash.ai/@hash/uk-housing).
 
@@ -51,7 +44,7 @@ The price and supply of housing has a complex relationship with many variables. 
 
 A full list of exogenous variables which users may adjust can be found in [the project’s README](https://hash.ai/@hash/uk-housing), including variables representing mortgage interest rates, loan-to-value and loan-to-income regulations and variables which control the rate at which new housing is constructed. Simulation users are free to change these variables and observe how the behavior of the market changes.
 
-![](images/home-sale-price.png)
+![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/e7c135b0-b89d-4103-0805-e36218614500/public)
 
 While our model contains many sources of heterogeneity, and includes detailed agent behavior to model household decisions such as whether a renting household should attempt to purchase a house and how much the household is willing to pay. Agents in a HASH simulation make decisions using [_behaviors_](https://docs.hash.ai/core/creating-simulations/behaviors/composable-behaviors) — composable pieces of logic which control various attributes of an agent. 
 
@@ -61,4 +54,4 @@ Our housing model contains over 40 behaviors which control individual aspects of
 
 While our model incorporates many forces affecting the dynamics of a housing market, it could be extended to provide an even richer description. For example, one could extend the model to investigate how a sudden shock to household income would affect the supply of housing, or to understand how tax incentives may increase the number of first-time buyers, or how increasing the supply of housing would affect overall property prices.
 
-If these ideas sound interesting, or if you want to learn more about simulation modeling, please create an account on [HASH](https://hash.ai) or say hello on our [Discord](https://discord.gg/BPMrGAhjPh) channel.
+If these ideas sound interesting, or if you want to learn more about simulation modeling, please create an account on [HASH](https://hash.ai) or say hello on our [Discord](https://hash.ai/discord) channel.
