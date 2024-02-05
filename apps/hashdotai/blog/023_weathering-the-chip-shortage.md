@@ -51,8 +51,6 @@ if (state.agent_name === "toyota") {
 
 By running this simulation at a stable state we can mimic the market before severe disruptions.
 
-![](https://lh5.googleusercontent.com/-5HPAj8tOAjAcbXWXtGhihzyhUrhdBT8hrDf7Ge3u2w2BkpUleet93-w_nyKR62OD2DF7_F_90THrdD21sqHGLc1zuxY5zYfgwZiebeb0qQ-IMtsPoq720ahxlyMF6Zk1sm58xgu)
-
 When we start off, fulfillment times stabilize quickly, pointing to a system that has found equilibrium in production rates.
 
 We’ll now add an `exogenous_shocks.js` behavior to simulate the effects of the pandemic. The behavior will read from `globals.json` to determine when it should change demand. Our scenario will mimic the effects of the pandemic with the following steps:
@@ -85,11 +83,7 @@ In `globals.json`, that looks like this:
 }
 ```
 
-Here are the resulting effects on the fulfillment times of the various firms:
-
-![](https://lh5.googleusercontent.com/Y5_gpNzOwE73xKKN95_XnambbXQQny0U6a4mox_CYgWcye29kgQrMnlAUpCkMOjm3Zscr1ap1rQDZf2vPH_4C8tImW6lKYite32sVeSSzPKR1IIFNxQjJanPi9BLmdpAHI08leeE)
-
-Toyota is managing to weather the shocks because of its stockpiling practices. While the other firms experience a “bullwhip effect”, where they need to rapidly attempt to increase production to meet the change in demand, but then overshoot, Toyota can gradually and carefully adjust its production rates since it can use its stockpile to weather the beginning of the demand increase.
+In our simulation's results, we can see that Toyota is able to weather shocks thanks to its stockpiling practices. While the other firms experience a “bullwhip effect”, where they need to rapidly attempt to increase production to meet the change in demand, but then overshoot, Toyota can gradually and carefully adjust its production rates since it can use its stockpile to weather the beginning of the demand increase.
 
 Toyota’s current stockpiling strategy exists in contrast with the popularized “just-in-time” manufacturing strategy, which attempts to reduce costs by making supply chains as lean as possible, ordering just enough components, and producing just enough inventory to meet demand. Funnily enough, lean manufacturing’s initial principles were based on Toyota Motor Corporation’s operating model from the 1930’s.
 
