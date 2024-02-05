@@ -22,6 +22,7 @@ import { Link } from "../components/link";
 import { Hint } from "../components/mdx/hint";
 import { InfoCard } from "../components/mdx/info-card";
 import { InfoCardWrapper } from "../components/mdx/info-card-wrapper";
+import { Math } from "../components/mdx/math";
 import { usePageHeading } from "../components/mdx/shared/use-page-heading";
 import { stringifyChildren } from "../components/mdx/shared/util";
 import { Tab, Tabs, TextTab, TextTabs } from "../components/mdx/tabs";
@@ -238,9 +239,9 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
 
   TextTabs,
 
-  /** @todo: these components need to be defined properly */
+  Math,
 
-  Math: ({ children }: PropsWithChildren) => <Box>{children}</Box>,
+  /** @todo: these components need to be defined properly */
 
   Embed: ({ children }: PropsWithChildren) => <Box>{children}</Box>,
 
