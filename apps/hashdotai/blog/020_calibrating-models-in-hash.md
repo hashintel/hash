@@ -1,6 +1,7 @@
 ---
 title: "Calibrating Models of Cell Replication"
 date: "2021-06-04"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/7c5dcf77-5a3c-4a9c-13db-355d323aa100/public
 categories: 
   - "Simulation"
 ---
