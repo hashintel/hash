@@ -44,7 +44,7 @@ Ponder for a moment that **context** and **state** are a matter of perspective. 
 
 Here are some agents in HASH:
 
-![](https://lh5.googleusercontent.com/57j9AedU5ccesB4cnBdLSPqbOiMMEQ_Uk3io2wc4av_pfnuhqFzRQA3BFvWIWzX6AiOj8DABGmTBqlOPYlj0otlBIIWsW56Pwvx3jB9IXoLWgnTxPW4v-f-lU-Gv6YujueQHGpI2)
+![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/375cd1da-a33e-4690-4e9b-4b1822a31a00/public)
 
 In every HASH simulation, you can peek behind the scenes with the ‘Raw Output’ tab.
 
@@ -54,18 +54,17 @@ Agent’s don’t need to be complicated.
 
 Here’s a valid Agent in HASH:
 
-![](https://lh6.googleusercontent.com/jdGQVPzTL7Q1EoBjIScTtNWReYekw_4sGXMtNeLwaSMntMALCgx9a1GNimJN0DSEgNb1xDJqQFlic0WRc_t_VW1tALsmfO5nEeULBLmac9S8PO3T1DBalK2n94XeuwNk6nuEgcrQ)
+![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/543c2655-6a27-4362-37df-d2c7cdc12600/public)
 
 And here’s another:
 
-![](https://lh6.googleusercontent.com/Xv_VfP7PvK1fvspwx5lCDK9QSZQLxJiwhygG6ihbxX9DtNfrcHeGvPxiUvw_zmJ5ulI42dQpyrqUp4trH_ClvxIElzwvrMF46UUgN53idznWlUaB5UIQbmPONR1YIB8ATbQZo9OK)
+![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/dcfbe422-53eb-4558-3070-9f0e8254eb00/public)
 
 Unfortunately for Meredith, the feelings aren’t mutual. It’s not Phillipp’s fault though, as he quite literally has no awareness outside of his own name.
 
 These are very simple agents -- so simple, in fact, that:
 
 - they don’t exist in physical space (you could add the **position** field to make that true, and this in turn would allow the agents **context** to include information such as which other agents are nearby), and
-
 - they have no behaviors (when they take their **step**, nothing about them will change).
 
 Data inside of agents can be arbitrarily complex, and so can their behaviors.
@@ -74,19 +73,19 @@ Data inside of agents can be arbitrarily complex, and so can their behaviors.
 
 One aspect of an agent is a special property called ‘behaviors’. When an agent takes a **step**, all of its behaviors are executed. Let’s give Meredith some:
 
-![](https://lh5.googleusercontent.com/G9xe5JCs_KMeerZOgR9OnyEuLFYfY3E2nAx-S7inAuJmHpkxtG39rtMaSl-99dPSsCbjuXfTgSyQUxgMrH0lnJezd7zGlpaRel5se2I6pxQ6AGBMEgZvnF4XgU796BXkNZ7HwjVU)
+![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/f64f6538-e317-46b3-75e0-eaa4a1de6200/public)
 
 There are a few things going on here, so let’s break them down.
 
 First, if you’re familiar with any other simulation modeling platform, this is most likely a significant point of difference in HASH. The vast majority of these platforms represent agents in an “Object Oriented” way, perhaps with some code along the lines of:
 
-![](https://lh6.googleusercontent.com/y93wqxuDY5p1pJjoGXlAPcODUbls7ynTcwN_evV7HwnxfzCpqT5NJDmFcCpKxQZBEi3Hbl_PxOSqpm_iwGLTzY9DKRANACwOD-LalEo1kY9te4hIunj7lwV0WKlIxC_mpwBcRNlc)
+![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/8789b626-e69d-465b-89da-eaa68c0bcb00/public)
 
-HASH instead keeps all of the agents' properties consolidated _on the agent_. Each of its behaviors implements what might commonly be considered a step() function (aka. a function that updates the state of the agent).
+HASH instead keeps all of the agents' properties consolidated _on the agent_. Each of its behaviors implements what might commonly be considered a `step()` function (aka. a function that updates the state of the agent).
 
 A HASH behavior is simply that “step” function in isolation from its other context. Here is a simple HASH behavior, expressed in JavaScript:
 
-![](https://lh3.googleusercontent.com/T9FXf1VQfECRwI8g032ZN4yREBSRvMM8LOZOE4uqH27uJX5NwmJohRClCITAXIHCV25n12zD_Ibe-HqZQUP30BJlJWagmNAEaatN5LKeubxMZQ6frVPr1KiPClhuEJJtWVS2vEsO)
+![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/6cbda21d-18d1-4add-2108-03dad7d6a800/public)
 
 I could store this as a behavior, say `blue.js`, and add that behavior to any HASH agent by including it in the agent’s **behaviors** field, and the agent would, in the words of Tobias Fünke, blue itself. 
 
@@ -96,7 +95,7 @@ In HASH, rather than a single **step** function, agents have **zero or more beha
 
 Returning our attention to Meredith...
 
-![](https://lh5.googleusercontent.com/G9xe5JCs_KMeerZOgR9OnyEuLFYfY3E2nAx-S7inAuJmHpkxtG39rtMaSl-99dPSsCbjuXfTgSyQUxgMrH0lnJezd7zGlpaRel5se2I6pxQ6AGBMEgZvnF4XgU796BXkNZ7HwjVU)
+![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/9ad0684a-d037-4f76-7856-6d201edcad00/public)
 
 ...we can see that HASH permits us to include behaviors from a variety of different sources and languages (notice `dancer.**rs**` and `vegetarian.**py**`), and that we don’t necessarily need to know or understand what a behavior does in order to see it in effect on an Agent. Our [hIndex](https://hash.ai/index) includes a number of common behaviors which can be complementary to common operations that agents may seek to perform, such as reproducing, positioning themselves in space, or communicating with other agents.
 
@@ -107,9 +106,7 @@ As for the implementations of dancer and vegetarian, that’s left as an exercis
 To explore this further, I’d suggest checking out the following extremely basic toy HASH simulations with a single agent type:
 
 - The classic [Conway’s Game of Life](https://hash.ai/@hash/conways-game-of-life) 
-
 - [Rainfall](https://hash.ai/@hash/rainfall), which composes a variety of behaviors together in order to accomplish something a bit greater than the sum of their parts.
-
 - [Boids 3D](https://hash.ai/@hash/boids-3d), where a single behavior and awareness of context demonstrates elaborate emergent patterns.
 
 If you find yourself looking for something more advanced, check out our models on [warehouse logistics](https://hash.ai/@hash/warehouse-logistics), the spread of [disease in San Francisco](https://hash.ai/@hash/city-infection-model), and [much](https://hash.ai/@hash/air-defense-system), [much](https://hash.ai/@hash/traffic-intersection) [more](https://hash.ai/@hash/warehouse-conveyor1).
