@@ -1,6 +1,7 @@
 ---
 title: "Coronavirus data on HASH"
 date: "2021-12-01"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/d57a9534-4d53-4abd-c57b-6fe25c641900/public
 categories: 
   - "Data"
   - "Topic > Public Health"
