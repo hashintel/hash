@@ -1,0 +1,114 @@
+---
+title: "Functional Agent-Based Modeling"
+date: "2020-12-09"
+categories: 
+  - "uncategorised"
+---
+
+**Whilst most agent-based modeling software takes a strongly object-oriented approach to simulation, HASH eschews that for a more composable, functional approach. In this post we explain what that means.**
+
+In HASH simulations, _agents are everything_. Literally everything in a simulation model which isn’t static -- which is to say “fixed in place for the duration of the experiment” -- is an **agent**, and how we represent those agents matters quite a bit.
+
+If you’ve never programmed agents before, this post will serve as a crash-course in how to bring them to life within HASH. If you have programmed agents before, hopefully you'll come away with an understanding of how HASH is similar in many respects to what you already know and love, with just a few key differences.
+
+## **What is an agent?**
+
+Agents are entities inside a simulated world. They may sense and interact with things in its environment, or do nothing at all. They may learn and adapt in the face of their environment, or they may remain stubborn or inanimate in the face of existential threats.
+
+In HASH, what an agent does is up to it. All agents are in charge of managing their own state, and any change to an agent is the result of an action it has taken. This can sometimes seem counter-intuitive at first. For instance, in our [wildfires simulation](https://hash.ai/@hash/wildfires-regrowth), a fire can't set trees alight -- instead, all it can do is tell the trees they should be on fire, and the trees then have to set themselves ablaze. But whilst this may seem strange, the approach used, known as the "[actor model](https://hash.ai/glossary/actor-model)" in computing, allows us to distribute simulations across huge numbers of machines without resorting to [locks and mutexes](https://en.wikipedia.org/wiki/Lock_(computer_science)). This lets us -- not only in theory but practice -- scale simulations to vast sizes (millions of agents across many machines), as well as a high level of realism and complexity (many thousands of behaviors).
+
+## **Simulation steps**
+
+By existing in the simulation, every agent is entitled to take a **step.**
+
+In most ABM platforms, somewhere in agent logic you’ll come across a “step()” method.  Likewise, the simulation as a whole is said to have steps, where each step of the simulation allows every component of the system an opportunity to progress.
+
+In the world we live in, time is a continuous thing, and we have invented tools like clocks which allow us to mark thing like ‘seconds’ and ‘minutes’. However for a simulation, time is at a standstill until the tick of a clock occurs, at which point the whole simulation leaps forward one ‘tick’.
+
+Since we are the architects of the simulation, we get to choose what that tick represents. It might be a fraction of a second, a whole one, or a longer period of time like a month (or a millennia!)
+
+At a simulation creator's option, steps may not progress perfectly linearly at all. Even steps might represent ~8 hours at work daily, whilst odd steps may represent the ~16 hours an agent spends outside the office each day.
+
+Alternatively, steps might not represent discrete units of time at all, but some value added to a system linearly (like currency, or energy).
+
+Whatever we choose, we call these “simulation steps”, and at **every step**, **every agent** has an **opportunity to act**.
+
+## **An agent’s step**
+
+Unlike the simulation itself, which is akin to _the known universe_, an agent inside a simulation is limited in its knowledge and abilities. Specifically, agents are aware of themselves (aka. their **state**), and they can understand their immediate surroundings (known as their **context**). When an agent is given an opportunity to take a **step**, it can modify itself, and in doing so can influence other parts of the simulation.
+
+Ponder for a moment that **context** and **state** are a matter of perspective. Two agents who are near each other will each have their own internal representations, and they might take actions (making noise, waving their hands, changing their color) which allow the other agent to notice them.  Remember though that while an agent can change its own self, it cannot directly change another agent -- it can at best influence it so that it might change itself.
+
+## **How agents are represented**
+
+Here are some agents in HASH:
+
+![](https://lh5.googleusercontent.com/57j9AedU5ccesB4cnBdLSPqbOiMMEQ_Uk3io2wc4av_pfnuhqFzRQA3BFvWIWzX6AiOj8DABGmTBqlOPYlj0otlBIIWsW56Pwvx3jB9IXoLWgnTxPW4v-f-lU-Gv6YujueQHGpI2)
+
+In every HASH simulation, you can peek behind the scenes with the ‘Raw Output’ tab.
+
+The **self** part of the agent I referenced in the prior section is merely an agent’s data representation. Since HASH prioritizes the ability for that representation to be portable and processable in a variety of environments (via [hCore](https://hash.ai/platform/core) in-browser, in [hCloud](https://hash.ai/platform/cloud), in JavaScript, in Python, or in Rust), representing the agent in this common format achieves those goals.
+
+Agent’s don’t need to be complicated.
+
+Here’s a valid Agent in HASH:
+
+![](https://lh6.googleusercontent.com/jdGQVPzTL7Q1EoBjIScTtNWReYekw_4sGXMtNeLwaSMntMALCgx9a1GNimJN0DSEgNb1xDJqQFlic0WRc_t_VW1tALsmfO5nEeULBLmac9S8PO3T1DBalK2n94XeuwNk6nuEgcrQ)
+
+And here’s another:
+
+![](https://lh6.googleusercontent.com/Xv_VfP7PvK1fvspwx5lCDK9QSZQLxJiwhygG6ihbxX9DtNfrcHeGvPxiUvw_zmJ5ulI42dQpyrqUp4trH_ClvxIElzwvrMF46UUgN53idznWlUaB5UIQbmPONR1YIB8ATbQZo9OK)
+
+Unfortunately for Meredith, the feelings aren’t mutual. It’s not Phillipp’s fault though, as he quite literally has no awareness outside of his own name.
+
+These are very simple agents -- so simple, in fact, that:
+
+- they don’t exist in physical space (you could add the **position** field to make that true, and this in turn would allow the agents **context** to include information such as which other agents are nearby), and
+
+- they have no behaviors (when they take their **step**, nothing about them will change).
+
+Data inside of agents can be arbitrarily complex, and so can their behaviors.
+
+## **Agent’s behavior**
+
+One aspect of an agent is a special property called ‘behaviors’. When an agent takes a **step**, all of its behaviors are executed. Let’s give Meredith some:
+
+![](https://lh5.googleusercontent.com/G9xe5JCs_KMeerZOgR9OnyEuLFYfY3E2nAx-S7inAuJmHpkxtG39rtMaSl-99dPSsCbjuXfTgSyQUxgMrH0lnJezd7zGlpaRel5se2I6pxQ6AGBMEgZvnF4XgU796BXkNZ7HwjVU)
+
+There are a few things going on here, so let’s break them down.
+
+First, if you’re familiar with any other simulation modeling platform, this is most likely a significant point of difference in HASH. The vast majority of these platforms represent agents in an “Object Oriented” way, perhaps with some code along the lines of:
+
+![](https://lh6.googleusercontent.com/y93wqxuDY5p1pJjoGXlAPcODUbls7ynTcwN_evV7HwnxfzCpqT5NJDmFcCpKxQZBEi3Hbl_PxOSqpm_iwGLTzY9DKRANACwOD-LalEo1kY9te4hIunj7lwV0WKlIxC_mpwBcRNlc)
+
+HASH instead keeps all of the agents' properties consolidated _on the agent_. Each of its behaviors implements what might commonly be considered a step() function (aka. a function that updates the state of the agent).
+
+A HASH behavior is simply that “step” function in isolation from its other context. Here is a simple HASH behavior, expressed in JavaScript:
+
+![](https://lh3.googleusercontent.com/T9FXf1VQfECRwI8g032ZN4yREBSRvMM8LOZOE4uqH27uJX5NwmJohRClCITAXIHCV25n12zD_Ibe-HqZQUP30BJlJWagmNAEaatN5LKeubxMZQ6frVPr1KiPClhuEJJtWVS2vEsO)
+
+I could store this as a behavior, say `blue.js`, and add that behavior to any HASH agent by including it in the agent’s **behaviors** field, and the agent would, in the words of Tobias Fünke, blue itself. 
+
+If you’re a functional programmer, you might call this a _pure function_, and you might call our behavior list a form of _function composition_. You might also be imagining that hCloud is something like MapReduce, and in some sense you'd be right. But it’s not necessary to know any of that to understand that **agents have behaviors which determine how they behave during a step.**
+
+In HASH, rather than a single **step** function, agents have **zero or more behaviors** which, chained together, determine their **step**.
+
+Returning our attention to Meredith...
+
+![](https://lh5.googleusercontent.com/G9xe5JCs_KMeerZOgR9OnyEuLFYfY3E2nAx-S7inAuJmHpkxtG39rtMaSl-99dPSsCbjuXfTgSyQUxgMrH0lnJezd7zGlpaRel5se2I6pxQ6AGBMEgZvnF4XgU796BXkNZ7HwjVU)
+
+...we can see that HASH permits us to include behaviors from a variety of different sources and languages (notice `dancer.**rs**` and `vegetarian.**py**`), and that we don’t necessarily need to know or understand what a behavior does in order to see it in effect on an Agent. Our [hIndex](https://hash.ai/index) includes a number of common behaviors which can be complementary to common operations that agents may seek to perform, such as reproducing, positioning themselves in space, or communicating with other agents.
+
+As for the implementations of dancer and vegetarian, that’s left as an exercise for the reader.
+
+## **A few more steps**
+
+To explore this further, I’d suggest checking out the following extremely basic toy HASH simulations with a single agent type:
+
+- The classic [Conway’s Game of Life](https://hash.ai/@hash/conways-game-of-life) 
+
+- [Rainfall](https://hash.ai/@hash/rainfall), which composes a variety of behaviors together in order to accomplish something a bit greater than the sum of their parts.
+
+- [Boids 3D](https://hash.ai/@hash/boids-3d), where a single behavior and awareness of context demonstrates elaborate emergent patterns.
+
+If you find yourself looking for something more advanced, check out our models on [warehouse logistics](https://hash.ai/@hash/warehouse-logistics), the spread of [disease in San Francisco](https://hash.ai/@hash/city-infection-model), and [much](https://hash.ai/@hash/air-defense-system), [much](https://hash.ai/@hash/traffic-intersection) [more](https://hash.ai/@hash/warehouse-conveyor1).
