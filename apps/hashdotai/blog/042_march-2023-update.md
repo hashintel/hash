@@ -1,6 +1,7 @@
 ---
 title: "March 2023 Update"
 date: "2023-03-31"
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/89b31990-6c8c-44de-12fd-d9fa9d76fc00/public
 categories: 
   - "Company"
 ---
