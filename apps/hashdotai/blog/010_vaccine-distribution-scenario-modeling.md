@@ -1,6 +1,7 @@
 ---
 title: "Vaccine Distribution Scenario Modeling"
 date: "2021-02-16"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/7e2fe056-2d1c-47a3-a0cf-a65f9436b700/public
 categories: 
   - "Simulation"
   - "Topic > Public Health"
