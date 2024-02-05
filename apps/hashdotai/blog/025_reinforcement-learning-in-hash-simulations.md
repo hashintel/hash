@@ -1,6 +1,7 @@
 ---
 title: "Reinforcement Learning in HASH Simulations"
 date: "2021-07-14"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/73337fed-6b7d-4857-e76c-c2ba4da5d700/public
 categories: 
   - "Simulation"
   - "AI"
