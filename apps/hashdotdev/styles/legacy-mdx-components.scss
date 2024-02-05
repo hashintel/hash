@@ -49,3 +49,67 @@
     }
   }
 }
+
+$font-sm: clamp(0.85rem, calc(0.17vw + 0.76rem), 0.9rem);
+
+.docs-tabs,
+.docs-text-tabs {
+  pre {
+    margin-top: 0px !important;
+    border-top-left-radius: 0px;
+  }
+
+  .tabs-headers {
+    display: flex;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    font-size: $font-sm;
+
+    max-width: calc(100vw - 30px);
+    overflow: auto;
+  }
+
+  .tabs-header {
+    cursor: pointer;
+
+    color: rgb(157, 170, 182);
+    border-width: 1px;
+    border-style: solid;
+    border-color: rgb(230, 236, 241) rgb(230, 236, 241) rgb(230, 236, 241)
+      transparent;
+
+    background-color: rgb(245, 247, 249);
+    transition: color 250ms ease-out 0s;
+    padding: 8px;
+
+    &:hover {
+      color: black;
+    }
+  }
+
+  .tabs-header.active {
+    background-color: #2d2d2d;
+    color: white;
+    border: 0px;
+  }
+}
+
+.markdown-wrapper.text-tab {
+  border: 1px solid rgb(230, 236, 241);
+  border-radius: 0px 3px 3px;
+  padding: 0px 24px;
+}
+
+.docs-text-tabs {
+  .tabs-header.active {
+    background-color: white;
+    color: black;
+    border: 0px;
+
+    border-width: 1px;
+    border-style: solid;
+    border-color: rgb(230, 236, 241);
+
+    border-bottom: 0px;
+  }
+}

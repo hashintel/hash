@@ -24,6 +24,7 @@ import { InfoCard } from "../components/mdx/info-card";
 import { InfoCardWrapper } from "../components/mdx/info-card-wrapper";
 import { usePageHeading } from "../components/mdx/shared/use-page-heading";
 import { stringifyChildren } from "../components/mdx/shared/util";
+import { Tab, Tabs, TextTab, TextTabs } from "../components/mdx/tabs";
 import { MdxCallout } from "../components/mdx-callout";
 import { MdxImage } from "../components/mdx-image";
 import { MdxPre } from "../components/mdx-pre";
@@ -229,15 +230,15 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
 
   Hint,
 
+  Tab,
+
+  Tabs,
+
+  TextTab,
+
+  TextTabs,
+
   /** @todo: these components need to be defined properly */
-
-  Tab: ({ children }: PropsWithChildren) => <Box>{children}</Box>,
-
-  Tabs: ({ children }: PropsWithChildren) => <Box>{children}</Box>,
-
-  TextTab: ({ children }: PropsWithChildren) => <Box>{children}</Box>,
-
-  TextTabs: ({ children }: PropsWithChildren) => <Box>{children}</Box>,
 
   Math: ({ children }: PropsWithChildren) => <Box>{children}</Box>,
 
