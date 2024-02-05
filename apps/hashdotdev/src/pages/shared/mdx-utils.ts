@@ -344,24 +344,27 @@ export const recursivelyGetDocsPages = (params: {
           })
         : undefined;
 
+      const directoryNameWithoutIndex = directoryItem.split("_")[1] ?? "";
+
+      const titleDerivedFromDirectoryName = directoryNameWithoutIndex
+        .split("-")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+
       if (indexPage) {
         return {
           ...indexPage,
+          titleDerivedFromDirectoryName,
           subPages: recursivelyGetDocsPages({
             pathToDirectory: `${pathToDirectory}/${directoryItem}`,
           }),
         };
       }
 
-      const directoryNameWithoutIndex = directoryItem.split("_")[1] ?? "";
-
-      const title = directoryNameWithoutIndex
-        .split("-")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ");
-
       return {
-        title,
+        title: titleDerivedFromDirectoryName,
+        titleDerivedFromDirectoryName,
+        /** @todo: this should probably be removed */
         href: `/${pathToDirectory.replace(/\d+_/g, "")}/${directoryNameWithoutIndex}`,
         sections: [],
         subPages: recursivelyGetDocsPages({

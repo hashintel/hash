@@ -8,6 +8,7 @@ export type SiteMapPageSection = {
 
 export type SiteMapPage = {
   title: string;
+  titleDerivedFromDirectoryName?: string;
   href: string;
   markdownFilePath?: string;
   subPages: SiteMapPage[];

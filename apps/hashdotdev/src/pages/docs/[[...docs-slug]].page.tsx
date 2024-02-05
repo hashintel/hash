@@ -33,7 +33,17 @@ const docsTabs: { title: string; href: string }[] = [
     title: "Home",
     href: "/docs",
   },
-  ...topLevelDocsPages.map(({ title, href }) => ({ title, href })),
+  ...topLevelDocsPages.map(
+    ({ title, titleDerivedFromDirectoryName, href }) => ({
+      /**
+       * We prefer the title derived from the directory name, so that
+       * for example the the `Simulations` tab can have its first page
+       * be titled `Overview` in the sidebar.
+       */
+      title: titleDerivedFromDirectoryName ?? title,
+      href,
+    }),
+  ),
 ];
 
 const getPossibleHrefsInPage = (page: SiteMapPage): string[] => {
