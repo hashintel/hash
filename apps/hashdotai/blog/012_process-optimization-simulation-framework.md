@@ -1,6 +1,7 @@
 ---
 title: "Simulating Constraints: A Framework for Process Optimization"
 date: "2021-04-05"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/c3d778f8-36d6-4c93-1231-e4def54d5000/public
 categories: 
   - "Simulation"
 ---
