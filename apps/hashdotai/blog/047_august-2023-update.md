@@ -1,6 +1,7 @@
 ---
 title: "August 2023 Update"
 date: "2023-08-31"
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/8f6b9ec4-b2dd-446d-d503-075145645100/public
 categories: 
   - "Company"
 ---
