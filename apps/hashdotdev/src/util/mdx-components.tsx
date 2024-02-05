@@ -19,6 +19,7 @@ import slugify from "slugify";
 import { FontAwesomeIcon } from "../components/icons/font-awesome-icon";
 import { ImageWithText } from "../components/image-with-text";
 import { Link } from "../components/link";
+import { Embed } from "../components/mdx/embed";
 import { Hint } from "../components/mdx/hint";
 import { InfoCard } from "../components/mdx/info-card";
 import { InfoCardWrapper } from "../components/mdx/info-card-wrapper";
@@ -241,9 +242,9 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
 
   Math,
 
-  /** @todo: these components need to be defined properly */
+  Embed,
 
-  Embed: ({ children }: PropsWithChildren) => <Box>{children}</Box>,
+  /** @todo: these components need to be defined properly */
 
   Check: ({ children }: PropsWithChildren) => <Box>{children}</Box>,
 };
