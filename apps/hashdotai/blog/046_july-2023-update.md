@@ -1,6 +1,7 @@
 ---
 title: "July 2023 Update"
 date: "2023-07-31"
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/7feb9cea-9256-4dc3-a53e-c87e24975900/public
 categories: 
   - "Company"
 ---
