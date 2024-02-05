@@ -1,6 +1,7 @@
 ---
 title: "Physics in HASH"
 date: "2021-06-28"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/a1f0bd7b-fb28-451e-e2ef-e5a67f4e2900/public
 categories: 
   - "Simulation"
 ---
