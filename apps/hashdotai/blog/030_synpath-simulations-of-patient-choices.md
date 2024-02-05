@@ -1,6 +1,7 @@
 ---
 title: "SynPath: NHS Healthcare Simulations"
 date: "2021-10-12"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/6d240a22-c8bd-4a52-e049-7d2768888d00/public
 categories: 
   - "Simulation"
   - "Topic > Public Health"
