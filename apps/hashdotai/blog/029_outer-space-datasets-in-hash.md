@@ -1,6 +1,7 @@
 ---
 title: "Outer Space Datasets in HASH"
 date: "2021-08-16"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/2a9ad3cb-6200-4503-229b-d27e21102f00/public
 categories: 
   - "Data"
 ---
