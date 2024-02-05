@@ -1,6 +1,7 @@
 ---
 title: "September 2023 Update"
 date: "2023-09-30"
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/69dc076b-b88d-4673-c2e4-c6754be8a300/public
 categories: 
   - "Company"
 ---
