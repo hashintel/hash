@@ -1,6 +1,7 @@
 ---
 title: "May 2023 Update"
 date: "2023-05-29"
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/d5218101-1f8f-4b96-a1d4-8f6223725c00/public
 categories: 
   - "Company"
 ---
