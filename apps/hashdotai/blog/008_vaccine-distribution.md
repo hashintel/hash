@@ -2,7 +2,9 @@
 title: "Modeling Vaccine Distribution"
 date: "2020-12-18"
 categories: 
-  - "uncategorised"
+  - "Simulation"
+  - "Topic > Public Health"
+  - "Topic > Policy"
 ---
 
 In a true feat of modern medicine, at least three working COVID-19 vaccines have now been announced by pharmaceutical giants. Multiple countries have approved them for use, and now that one challenge has been overcome, governments around the world will have to contend with new problems which exist outside of the laboratory:

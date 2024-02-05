@@ -2,7 +2,7 @@
 title: "Berkeley Delivery Simulation"
 date: "2020-12-11"
 categories: 
-  - "uncategorised"
+  - "Simulation"
 ---
 
 _Simulation-based digital twin for complex real-world traffic modeling_

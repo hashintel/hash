@@ -2,7 +2,7 @@
 title: "Functional Agent-Based Modeling"
 date: "2020-12-09"
 categories: 
-  - "uncategorised"
+  - "Simulation"
 ---
 
 **Whilst most agent-based modeling software takes a strongly object-oriented approach to simulation, HASH eschews that for a more composable, functional approach. In this post we explain what that means.**

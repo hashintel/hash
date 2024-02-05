@@ -1,0 +1,60 @@
+---
+title: "Optimization Experiments"
+date: "2021-05-14"
+categories: 
+  - "Simulation"
+---
+
+Often, the goal of creating simulations is to find the optimal combination of policies or parameters for achieving some objective: e.g. to maximize revenues, minimize costs, improve the efficacy of an advertising campaign, or boost throughput in a factory. While HASH makes it easy for you to modify parameters and explore your simulation, once the parameter space becomes too large it's unwieldy to try and find an optimal configuration by hand.
+
+That’s why we’ve introduced [optimization experiments](https://docs.hash.ai/core/creating-simulations/experiments/optimization-experiments) into hCore.
+
+**What are different types of optimization?**
+
+We can loosely split the optimizer field in two: between linear, closed form optimizers (analytic solvers) and open, heuristic based optimizers. Analytic solvers are used in many fields, but because they are directly calculating the best solution, are too computationally expensive for many real world applications. Heuristic methods, where hundreds of thousands of simulations are run, are useful because they can approximate and approach real world answers for complex models.
+
+**How Does HASH’s optimization engine work?**
+
+If you’ve worked with HASH before, you’ll be familiar with HASH’s **global parameters** and **metrics of interest**. Global parameters allow you to set and change globally accessible values to modify the behavior of your simulation. Metrics of interest allow you to gather and plot data from your simulation, and are a powerful and effective way to understand your simulations. 
+
+HASH’s optimization engine capitalizes on both of these features by using **global parameters** as constraints, and **metrics of interest** as variables in objective functions to minimize or maximise.
+
+The optimizer is a Tree Structured Parzen Estimator (TPE). It sequentially runs simulations to approximate the performance of parameters based on the previous runs, and then subsequently choose new parameters to test based on the simulation.
+
+**Applying Optimization to Simulations**
+
+You’ve done your research, designed and constructed a model, tested and revised it, and now you’re ready to use it to answer some important questions. Applying optimization to your simulation is as simple as:
+
+1. Choose a metric that you’d like to minimize or maximise
+
+3. Choose the global parameters that you’d like to vary. These represent the exploration space of your optimization
+
+5. Run the optimization experiment. The optimization engine will generate runs (you can keep track of them in the Activity Sidebar on the right) until it finds a solution it is satisfied with.
+
+7. Hover over the optimal run (the one with a circled green check mark) to see the optimized global parameters. 
+
+**Optimizing Restocking Levels**
+
+Let’s consider how we might optimize a [supply chain model](https://hash.ai/@hash/distributor-vs-direct-delivery-orig). In this simulation, the supply chain consists of a port warehouse which transfers stock to a local distributor in West Virginia, which sends deliveries to a number of clients. The most obvious optimization in such a model is to reduce costs. Expenses in this model are incurred for renting warehouse space and for sending delivery trucks. 
+
+Two of the parameters that we can set in the model are "port\_stock\_2\_alarm\_level" and "wv\_stock\_alarm\_level". These parameters control when the port or distributor will make a restocking request, based on the % of total capacity currently stocked. Let’s define an optimization experiment that will find the optimal value of these two parameters:
+
+![](https://lh5.googleusercontent.com/9TVR788ZvHjPk8vAQ9uwXJCT3D6tNELJOGxocOmoGrHISH757CTCTXIPPHefQvcttrt2u6UgiKEa-ByLHQRKGCeD6AojPfbJeayuM6yohkjYqC-jP9CPY5iwbPb-RYP_q2_wp9eT)
+
+- We’ll define how many steps each run should take: We’ve chosen a range at which most runs tend to stabilize.
+
+- We’ll choose the metric we are trying to minimize: total\_expenses 
+
+- We’ll choose the global parameters to sweep: the two alarm\_level parameters 
+
+The results of this optimization are:
+
+- **Optimal reorder level for West Virginia distributor**: 0.887
+
+- **Optimal reorder level for port**: 0.117
+
+![](images/image8.png)
+
+How should we interpret this result? Why are the reorder levels so different? Remember that a large amount of the total expenses are storage costs. The more often the port restocks, the more storage costs it will incur. Since it makes infrequent shipments (compared to the distributor), it makes sense to not have a large amount of inventory sitting in storage. The distributor, on the other hand, is constantly dispatching deliveries. It wants to be able to fulfill orders immediately, and any amount of stock won’t sit in storage for very long. As a result, it is optimal for the distributor to restock often.
+
+In this way the optimization engine lets us quickly find the best solution which would have been difficult if not impossible to calculate by hand.

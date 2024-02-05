@@ -2,7 +2,8 @@
 title: "Simulating Short Squeezes"
 date: "2021-01-29"
 categories: 
-  - "uncategorised"
+  - "Simulation"
+  - "Topic > Finance"
 ---
 
 We wanted to demonstrate the dynamics of the Battle of GameStop™ so we put together a simulation of the sharp escalation of price that can occur when an irresistible force (legally needing to cover your shorts) meets an immovable object (the combined will of thousands of Redditors).

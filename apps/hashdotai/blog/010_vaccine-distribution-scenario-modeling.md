@@ -2,7 +2,9 @@
 title: "Vaccine Distribution Scenario Modeling"
 date: "2021-02-16"
 categories: 
-  - "uncategorised"
+  - "Simulation"
+  - "Topic > Public Health"
+  - "Topic > Policy"
 ---
 
 Optimizing vaccine allocation is a critical task - improving the distribution of vaccines could save tens of thousands of lives over the coming months. In partnership with researchers at the [Virginia Modeling, Analysis, and Simulation Center](https://www.odu.edu/vmasc), we created a simulation of the vaccine distribution process. 
