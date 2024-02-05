@@ -1,6 +1,7 @@
 ---
 title: "Crypto Dynamics: Auctions"
 date: "2022-02-22"
+cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/33412e62-521a-4788-2cc8-e58be1922700/public
 categories: 
   - "Simulation"
   - "Topic > Finance"
