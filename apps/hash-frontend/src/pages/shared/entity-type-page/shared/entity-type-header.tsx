@@ -8,6 +8,10 @@ import {
   EntityTypeEditorFormData,
   useEntityTypeFormContext,
 } from "@hashintel/type-editor";
+import {
+  extractBaseUrl,
+  versionedUrlFromComponents,
+} from "@local/hash-subgraph/type-system-patch";
 import { Box, Stack, Typography } from "@mui/material";
 import { ReactNode, useState } from "react";
 import { Controller } from "react-hook-form";
@@ -40,9 +44,10 @@ export const EntityTypeHeader = ({
 
   const isLatest =
     !latestVersion || extractVersion(entityTypeSchema.$id) === latestVersion;
-  const latestVersionUrl = entityTypeSchema.$id.replace(
-    /\d+$/,
-    `${latestVersion}`,
+
+  const latestVersionUrl = versionedUrlFromComponents(
+    extractBaseUrl(entityTypeSchema.$id),
+    latestVersion ?? 0,
   );
 
   const { control } = useEntityTypeFormContext<EntityTypeEditorFormData>();
