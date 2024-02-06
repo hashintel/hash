@@ -696,7 +696,7 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, query))]
 async fn get_entity_types_by_query<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,

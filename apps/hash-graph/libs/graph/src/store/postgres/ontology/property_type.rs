@@ -707,10 +707,19 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     "
                         DELETE FROM property_type_embeddings
                         WHERE (ontology_id) IN (
-                            SELECT *
-                            FROM UNNEST($1::UUID[])
-                        )
-                        AND updated_at_transaction_time <= $2;
+                            WITH base_urls AS (
+                                SELECT base_url, MAX(version) as max_version FROM ontology_ids \
+                     GROUP BY (base_url)
+                            )
+                            SELECT oi.ontology_id
+                            FROM UNNEST($1::UUID[]) AS id
+                            JOIN ontology_ids ON id = ontology_ids.ontology_id
+                            JOIN base_urls USING (base_url)
+                            JOIN property_type_embeddings USING (ontology_id)
+                            JOIN ontology_ids AS oi USING (base_url)
+                            WHERE oi.version < max_version
+                              OR (oi.version = max_version AND updated_at_transaction_time <= $2)
+                        );
                     ",
                     &[&ontology_ids, &updated_at_transaction_time],
                 )
@@ -757,14 +766,20 @@ impl QueryRecordDecode for PropertyTypeWithMetadata {
     type Output = Self;
 
     fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self {
+        let record_id = OntologyTypeRecordId {
+            base_url: BaseUrl::new(row.get(indices.base_url))
+                .expect("invalid base URL returned from Postgres"),
+            version: row.get(indices.version),
+        };
+
+        if let Ok(distance) = row.try_get::<_, f64>("distance") {
+            tracing::trace!(%record_id, %distance, "Property type embedding was calculated");
+        }
+
         Self {
             schema: row.get::<_, Json<_>>(indices.schema).0,
             metadata: PropertyTypeMetadata {
-                record_id: OntologyTypeRecordId {
-                    base_url: BaseUrl::new(row.get(indices.base_url))
-                        .expect("invalid base URL returned from Postgres"),
-                    version: row.get(indices.version),
-                },
+                record_id,
                 classification: row
                     .get::<_, Json<PostgresOntologyTypeClassificationMetadata>>(
                         indices.additional_metadata,
