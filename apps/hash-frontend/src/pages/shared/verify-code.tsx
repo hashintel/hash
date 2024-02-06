@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 
-import { HashIcon, KeyboardReturnIcon, LogoIcon } from "../../shared/icons";
+import { HashIcon, KeyboardReturnIcon } from "../../shared/icons";
 import { InvitationInfo, SYNTHETIC_LOADING_TIME_MS } from "./auth-utils";
 import { InviteHeader } from "./invite-header";
 
@@ -114,7 +114,6 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
 
   return (
     <div style={{ width: "66.666667%", maxWidth: "56rem" }}>
-      <LogoIcon style={{ marginBottom: "1.5rem" }} />
       <div
         style={{
           alignItems: "center",

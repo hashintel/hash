@@ -12,6 +12,7 @@ import { parseGraphQLError } from "./shared/auth-utils";
 import { AccountSetupForm } from "./signup.page/account-setup-form";
 import { SignupRegistrationForm } from "./signup.page/signup-registration-form";
 import { SignupRegistrationRightInfo } from "./signup.page/signup-registration-right-info";
+import { SignupSteps } from "./signup.page/signup-steps";
 
 const LoginButton = styled((props: ButtonProps) => (
   <Button variant="secondary" size="small" {...props} />
@@ -123,7 +124,11 @@ const SignupPage: NextPageWithLayout = () => {
           )}
         </Grid>
         <Grid item md={5} sx={{ display: "flex", alignItems: "center" }}>
-          {authenticatedUser ? null : <SignupRegistrationRightInfo />}
+          {authenticatedUser ? (
+            <SignupSteps currentStep="reserve-username" />
+          ) : (
+            <SignupRegistrationRightInfo />
+          )}
         </Grid>
       </Grid>
     </AuthLayout>
