@@ -40,12 +40,9 @@ On 28th February 2023 we'll be releasing the ****Þ** version 0.3**, alongside t
 ### What Þ 0.3 contains
 
 - An **ecosystem of blocks** on the [Þ Hub](https://blockprotocol.org/hub): frontend components which can be used in any protocol-supporting environment, without either block or app requiring any special knowledge of one another
-
 - The **Core Specification**: a technical document which outlines the standardized method of block <-> app communication at the heart of the ecosystem
-
 - The **Graph Service**: a common data model for describing information. This allows information created in one application to be used within another, through **user-authored types**, also hosted and discoverable on the Þ Hub
-
-- **All this in a completely open-source framework.** The Þ specification is free and open, and all of the core technology is available under the Apache 2.0 or MIT license
+- **All this in a completely open-source framework.** The Þ specification is free and open, and all of the core technology is available under the Apache 2.0 _or_ MIT license (at your option)
 
 ### How the Block Protocol aligns incentives
 
@@ -62,8 +59,7 @@ Even then, some of the most used schemas might store information in ways you reg
 **How does the Þ change this?** Rather than at this stage give up, with the Þ you can find an existing entity type that mostly matches what you're looking for and do two things. Current RFCs propose enabling users to:
 
 1. **_extend_ an existing type with additional properties.** We call this _type extension_. Properties can be created from scratch, or any previously used property can be re-used. For example, you may want to track the location of a _Person_ entity on a map. You might find that a property called "Geolocation" already exists, and rather than create it yourself, use this. Because properties can have _data types_ associated with them which describe the possibility space of valid, accepted inputs, leveraging well-built existing properties is generally preferable to creating your own, providing you with free validation and additional semantic context, helping connect your information to a whole world of linked open data.
-
-3. **_fork_ types, to introduce changes, but retain a conceptual link back.** Whereas type _extension_ enables adding individual properties to an existing type, _forking_ allows for a type that is semantically or conceptually "the same thing as" another to represent properties differently. In such cases, users will be able to specify machine-resolvable rules and mappings between entity type definitions that refer to the same thing (e.g. "Person") but have conflicting views on how their properties should be represented. Even in this case, starting with an existing entity type that you _don't like_ which happens to represent the same entity type has benefits, allowing applications that use the Block Protocol to more successfully render your arbitrary data in the appropriate types of blocks.
+1. **_fork_ types, to introduce changes, but retain a conceptual link back.** Whereas type _extension_ enables adding individual properties to an existing type, _forking_ allows for a type that is semantically or conceptually "the same thing as" another to represent properties differently. In such cases, users will be able to specify machine-resolvable rules and mappings between entity type definitions that refer to the same thing (e.g. "Person") but have conflicting views on how their properties should be represented. Even in this case, starting with an existing entity type that you _don't like_ which happens to represent the same entity type has benefits, allowing applications that use the Block Protocol to more successfully render your arbitrary data in the appropriate types of blocks.
 
 Our belief is that a free-market of _types_ will emerge, with some more centrally connected than others, and the vast majority of widely-used schemas cross-walked to form a single large machine navigable graph. In this ontology of sorts, different people's understanding of the same concepts can be distinctly captured, with common ground between these and existing expressions preserved.
 
