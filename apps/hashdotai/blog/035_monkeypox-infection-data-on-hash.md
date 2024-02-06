@@ -30,9 +30,6 @@ The WHO note that one possible reason for the monkeypox's resurgence is that the
 ## Other useful links
 
 - The [Monkeypox page on Nextstrain](https://nextstrain.org/monkeypox) for tracking the genomic epidemiology of the monkeypox virus
-
 - The [WHO 2022 monkeypox outbreak](https://www.who.int/emergencies/emergency-events/item/2022-e000121) news tracking hub
-
 - More [health data and simulations](https://hash.ai/search?query=health) on HASH
-
 - Our prior work documenting [coronavirus datasets](https://hash.ai/blog/coronavirus-data-on-hash)
