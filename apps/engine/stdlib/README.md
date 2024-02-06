@@ -1,6 +1,6 @@
 # HASH Standard Library
 
-[HASH](https://hash.ai) is a platform for building and running simulations, and the [standard library](https://docs.hash.ai/core/libraries) contains helper functions for simulations.
+[HASH](https://hash.ai) is a platform for building and running simulations, and the [standard library](https://hash.ai/docs/simulation/creating-simulations/behaviors) contains helper functions for simulations.
 
 The HASH Standard Library (or **stdlib**) is available by default within HASH's browser-based IDE, [hCore](https://hash.ai/platform/core).
 
