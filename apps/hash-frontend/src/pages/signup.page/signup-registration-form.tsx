@@ -229,12 +229,11 @@ export const SignupRegistrationForm: FunctionComponent = () => {
             }}
           >
             By creating an account you agree to the{" "}
-            {/* @todo: add missing link */}
-            <Link href="/" noLinkStyle>
+            <Link href="https://hash.ai/legal/terms" openInNew noLinkStyle>
               terms of use
             </Link>{" "}
-            and {/* @todo: add missing link */}
-            <Link href="/" noLinkStyle>
+            and{" "}
+            <Link href="https://hash.ai/legal/privacy" openInNew noLinkStyle>
               privacy policy
             </Link>
           </Typography>
