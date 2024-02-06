@@ -2,8 +2,11 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { PropertyType } from "@local/hash-graph-client";
 import type {
   BaseUrl,
+  DataTypeWithMetadata,
   EntityPropertiesObject,
   EntityPropertyValue,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import OpenAI from "openai";
@@ -100,6 +103,90 @@ export const createEntityEmbeddings = async (params: {
     usage,
     embeddings: embeddings.map((embedding, idx) => ({
       property: usedPropertyBaseUrls[idx],
+      embedding,
+    })),
+  };
+};
+
+export const createEntityTypeEmbeddings = async (params: {
+  entityType: EntityTypeWithMetadata;
+}): Promise<{
+  embeddings: {
+    embedding: number[];
+  }[];
+  usage: Usage;
+}> => {
+  // We want to create embeddings for:
+  //   1. The `Title: Description` pair
+  //
+  // We use the last item in the array to store the combined 'all properties' list.
+  const embeddingInputs: string[] = [
+    `${params.entityType.schema.title}: ${params.entityType.schema.description}`,
+  ];
+
+  const { embeddings, usage } = await createEmbeddings({
+    input: embeddingInputs,
+  });
+
+  return {
+    usage,
+    embeddings: embeddings.map((embedding) => ({
+      embedding,
+    })),
+  };
+};
+
+export const createPropertyTypeEmbeddings = async (params: {
+  propertyType: PropertyTypeWithMetadata;
+}): Promise<{
+  embeddings: {
+    embedding: number[];
+  }[];
+  usage: Usage;
+}> => {
+  // We want to create embeddings for:
+  //   1. The `Title: Description` pair
+  //
+  // We use the last item in the array to store the combined 'all properties' list.
+  const embeddingInputs: string[] = [
+    `${params.propertyType.schema.title}: ${params.propertyType.schema.description}`,
+  ];
+
+  const { embeddings, usage } = await createEmbeddings({
+    input: embeddingInputs,
+  });
+
+  return {
+    usage,
+    embeddings: embeddings.map((embedding) => ({
+      embedding,
+    })),
+  };
+};
+
+export const createDataTypeEmbeddings = async (params: {
+  dataType: DataTypeWithMetadata;
+}): Promise<{
+  embeddings: {
+    embedding: number[];
+  }[];
+  usage: Usage;
+}> => {
+  // We want to create embeddings for:
+  //   1. The `Title: Description` pair
+  //
+  // We use the last item in the array to store the combined 'all properties' list.
+  const embeddingInputs: string[] = [
+    `${params.dataType.schema.title}: ${params.dataType.schema.description}`,
+  ];
+
+  const { embeddings, usage } = await createEmbeddings({
+    input: embeddingInputs,
+  });
+
+  return {
+    usage,
+    embeddings: embeddings.map((embedding) => ({
       embedding,
     })),
   };

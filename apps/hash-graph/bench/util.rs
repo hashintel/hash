@@ -225,6 +225,7 @@ pub async fn seed<D, P, E, C>(
             .create_data_type(
                 account_id,
                 &mut NoAuthorization,
+                None,
                 data_type.clone(),
                 PartialDataTypeMetadata {
                     record_id: data_type.id().clone().into(),
@@ -246,6 +247,7 @@ pub async fn seed<D, P, E, C>(
                         .update_data_type(
                             account_id,
                             &mut NoAuthorization,
+                            None,
                             data_type,
                             [DataTypeRelationAndSubject::Viewer {
                                 subject: DataTypeViewerSubject::Public,
@@ -269,6 +271,7 @@ pub async fn seed<D, P, E, C>(
             .create_property_type(
                 account_id,
                 &mut NoAuthorization,
+                None,
                 property_type.clone(),
                 PartialPropertyTypeMetadata {
                     record_id: property_type.id().clone().into(),
@@ -290,6 +293,7 @@ pub async fn seed<D, P, E, C>(
                         .update_property_type(
                             account_id,
                             &mut NoAuthorization,
+                            None,
                             property_type,
                             [PropertyTypeRelationAndSubject::Viewer {
                                 subject: PropertyTypeViewerSubject::Public,
@@ -313,6 +317,7 @@ pub async fn seed<D, P, E, C>(
             .create_entity_type(
                 account_id,
                 &mut NoAuthorization,
+                None,
                 entity_type.clone(),
                 PartialEntityTypeMetadata {
                     record_id: entity_type.id().clone().into(),
@@ -342,6 +347,7 @@ pub async fn seed<D, P, E, C>(
                         .update_entity_type(
                             account_id,
                             &mut NoAuthorization,
+                            None,
                             entity_type,
                             None,
                             None,

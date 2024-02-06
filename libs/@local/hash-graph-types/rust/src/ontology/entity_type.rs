@@ -11,10 +11,13 @@ use utoipa::{
     ToSchema,
 };
 
-use crate::ontology::{
-    OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyType,
-    OntologyTypeClassificationMetadata, OntologyTypeRecordId, OntologyTypeReference,
-    OntologyTypeWithMetadata,
+use crate::{
+    ontology::{
+        OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyType,
+        OntologyTypeClassificationMetadata, OntologyTypeRecordId, OntologyTypeReference,
+        OntologyTypeWithMetadata,
+    },
+    Embedding,
 };
 
 /// An [`EntityTypeMetadata`] that has not yet been fully resolved.
@@ -38,6 +41,14 @@ pub struct EntityTypeMetadata {
     pub label_property: Option<BaseUrl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct EntityTypeEmbedding<'e> {
+    pub entity_type_id: VersionedUrl,
+    pub embedding: Embedding<'e>,
 }
 
 #[cfg(feature = "utoipa")]

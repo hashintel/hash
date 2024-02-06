@@ -406,6 +406,47 @@
         }
       }
     },
+    "/data-types/embeddings": {
+      "post": {
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
+        "operationId": "update_data_type_embeddings",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDataTypeEmbeddingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The embeddings were created"
+          },
+          "403": {
+            "description": "Insufficient permissions to update the data type"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/data-types/load": {
       "post": {
         "tags": [
@@ -1482,6 +1523,47 @@
         }
       }
     },
+    "/entity-types/embeddings": {
+      "post": {
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
+        "operationId": "update_entity_type_embeddings",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEntityTypeEmbeddingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The embeddings were created"
+          },
+          "403": {
+            "description": "Insufficient permissions to update the entity type"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/entity-types/load": {
       "post": {
         "tags": [
@@ -1973,6 +2055,47 @@
           },
           "422": {
             "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/property-types/embeddings": {
+      "post": {
+        "tags": [
+          "Graph",
+          "PropertyType"
+        ],
+        "operationId": "update_property_type_embeddings",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePropertyTypeEmbeddingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The embeddings were created"
+          },
+          "403": {
+            "description": "Insufficient permissions to update the property type"
           },
           "500": {
             "description": "Store error occurred"
@@ -2711,6 +2834,21 @@
         "type": "string",
         "format": "uuid"
       },
+      "DataTypeEmbedding": {
+        "type": "object",
+        "required": [
+          "dataTypeId",
+          "embedding"
+        ],
+        "properties": {
+          "dataTypeId": {
+            "$ref": "#/components/schemas/VersionedUrl"
+          },
+          "embedding": {
+            "$ref": "#/components/schemas/Embedding"
+          }
+        }
+      },
       "DataTypeMetadata": {
         "oneOf": [
           {
@@ -3124,12 +3262,7 @@
             "$ref": "#/components/schemas/EntityId"
           },
           "property": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BaseUrl"
-              }
-            ],
-            "nullable": true
+            "$ref": "./models/shared.json#/definitions/BaseUrl"
           }
         }
       },
@@ -3593,6 +3726,21 @@
         ],
         "discriminator": {
           "propertyName": "kind"
+        }
+      },
+      "EntityTypeEmbedding": {
+        "type": "object",
+        "required": [
+          "entityTypeId",
+          "embedding"
+        ],
+        "properties": {
+          "embedding": {
+            "$ref": "#/components/schemas/Embedding"
+          },
+          "entityTypeId": {
+            "$ref": "#/components/schemas/VersionedUrl"
+          }
         }
       },
       "EntityTypeInstantiatorSubject": {
@@ -5113,6 +5261,21 @@
           "propertyName": "kind"
         }
       },
+      "PropertyTypeEmbedding": {
+        "type": "object",
+        "required": [
+          "propertyTypeId",
+          "embedding"
+        ],
+        "properties": {
+          "embedding": {
+            "$ref": "#/components/schemas/Embedding"
+          },
+          "propertyTypeId": {
+            "$ref": "#/components/schemas/VersionedUrl"
+          }
+        }
+      },
       "PropertyTypeMetadata": {
         "oneOf": [
           {
@@ -5778,6 +5941,28 @@
           }
         }
       },
+      "UpdateDataTypeEmbeddingsRequest": {
+        "type": "object",
+        "required": [
+          "embeddings",
+          "updatedAtTransactionTime",
+          "reset"
+        ],
+        "properties": {
+          "embeddings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataTypeEmbedding"
+            }
+          },
+          "reset": {
+            "type": "boolean"
+          },
+          "updatedAtTransactionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
       "UpdateDataTypeRequest": {
         "type": "object",
         "required": [
@@ -5835,6 +6020,28 @@
           }
         ]
       },
+      "UpdateEntityTypeEmbeddingsRequest": {
+        "type": "object",
+        "required": [
+          "embeddings",
+          "updatedAtTransactionTime",
+          "reset"
+        ],
+        "properties": {
+          "embeddings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityTypeEmbedding"
+            }
+          },
+          "reset": {
+            "type": "boolean"
+          },
+          "updatedAtTransactionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
       "UpdateEntityTypeRequest": {
         "type": "object",
         "required": [
@@ -5864,6 +6071,28 @@
           }
         },
         "additionalProperties": false
+      },
+      "UpdatePropertyTypeEmbeddingsRequest": {
+        "type": "object",
+        "required": [
+          "embeddings",
+          "updatedAtTransactionTime",
+          "reset"
+        ],
+        "properties": {
+          "embeddings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropertyTypeEmbedding"
+            }
+          },
+          "reset": {
+            "type": "boolean"
+          },
+          "updatedAtTransactionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
       },
       "UpdatePropertyTypeRequest": {
         "type": "object",

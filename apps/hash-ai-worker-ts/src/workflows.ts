@@ -1,13 +1,17 @@
 import type { EntityQueryCursor, Filter } from "@local/hash-graph-client";
 import type {
-  CreateEmbeddingsParams,
-  CreateEmbeddingsReturn,
   InferEntitiesCallerParams,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { GetResultsFromCancelledInferenceRequestQuery } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
-import type { AccountId, Entity } from "@local/hash-subgraph";
+import type {
+  AccountId,
+  DataTypeWithMetadata,
+  Entity,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-subgraph";
 import { CancelledFailure } from "@temporalio/common";
 import {
   ActivityCancellationType,
@@ -70,6 +74,270 @@ export const inferEntities = async (params: InferEntitiesCallerParams) => {
   }
 };
 
+type UpdateDataTypeEmbeddingsParams = {
+  authentication: {
+    actorId: AccountId;
+  };
+} & (
+  | {
+      dataTypes: DataTypeWithMetadata[];
+    }
+  | {
+      filter: Filter;
+    }
+);
+
+export const updateDataTypeEmbeddings = async (
+  params: UpdateDataTypeEmbeddingsParams,
+): Promise<CreateEmbeddingResponse.Usage> => {
+  const temporalAxes = {
+    pinned: {
+      axis: "transactionTime",
+      timestamp: null,
+    },
+    variable: {
+      axis: "decisionTime",
+      interval: {
+        start: null,
+        end: null,
+      },
+    },
+  } as const;
+
+  let dataTypes: DataTypeWithMetadata[];
+
+  const usage: CreateEmbeddingResponse.Usage = {
+    prompt_tokens: 0,
+    total_tokens: 0,
+  };
+
+  if ("dataTypes" in params) {
+    dataTypes = params.dataTypes;
+  } else {
+    const subgraph = await graphActivities.getDataTypesByQuery({
+      authentication: params.authentication,
+      query: {
+        filter: params.filter,
+        graphResolveDepths: {
+          inheritsFrom: { outgoing: 0 },
+          constrainsValuesOn: { outgoing: 0 },
+          constrainsPropertiesOn: { outgoing: 0 },
+          constrainsLinksOn: { outgoing: 0 },
+          constrainsLinkDestinationsOn: { outgoing: 0 },
+          isOfType: { outgoing: 0 },
+          hasLeftEntity: { incoming: 0, outgoing: 0 },
+          hasRightEntity: { incoming: 0, outgoing: 0 },
+        },
+        temporalAxes,
+        includeDrafts: true,
+      },
+    });
+    dataTypes = await graphActivities.getSubgraphDataTypes({
+      subgraph,
+    });
+  }
+
+  for (const dataType of dataTypes) {
+    const generatedEmbeddings =
+      await aiActivities.createDataTypeEmbeddingsActivity({
+        dataType,
+      });
+
+    if (generatedEmbeddings.embeddings.length > 0) {
+      await graphActivities.updateDataTypeEmbeddings({
+        authentication: params.authentication,
+        embeddings: generatedEmbeddings.embeddings.map((embedding) => ({
+          ...embedding,
+          dataTypeId: dataType.schema.$id,
+        })),
+        updatedAtTransactionTime:
+          dataType.metadata.temporalVersioning.transactionTime.start.limit,
+      });
+    }
+
+    usage.prompt_tokens += generatedEmbeddings.usage.prompt_tokens;
+    usage.total_tokens += generatedEmbeddings.usage.total_tokens;
+  }
+
+  return usage;
+};
+
+type UpdatePropertyTypeEmbeddingsParams = {
+  authentication: {
+    actorId: AccountId;
+  };
+} & (
+  | {
+      propertyTypes: PropertyTypeWithMetadata[];
+    }
+  | {
+      filter: Filter;
+    }
+);
+
+export const updatePropertyTypeEmbeddings = async (
+  params: UpdatePropertyTypeEmbeddingsParams,
+): Promise<CreateEmbeddingResponse.Usage> => {
+  const temporalAxes = {
+    pinned: {
+      axis: "transactionTime",
+      timestamp: null,
+    },
+    variable: {
+      axis: "decisionTime",
+      interval: {
+        start: null,
+        end: null,
+      },
+    },
+  } as const;
+
+  let propertyTypes: PropertyTypeWithMetadata[];
+
+  const usage: CreateEmbeddingResponse.Usage = {
+    prompt_tokens: 0,
+    total_tokens: 0,
+  };
+
+  if ("propertyTypes" in params) {
+    propertyTypes = params.propertyTypes;
+  } else {
+    const subgraph = await graphActivities.getPropertyTypesByQuery({
+      authentication: params.authentication,
+      query: {
+        filter: params.filter,
+        graphResolveDepths: {
+          inheritsFrom: { outgoing: 0 },
+          constrainsValuesOn: { outgoing: 0 },
+          constrainsPropertiesOn: { outgoing: 0 },
+          constrainsLinksOn: { outgoing: 0 },
+          constrainsLinkDestinationsOn: { outgoing: 0 },
+          isOfType: { outgoing: 0 },
+          hasLeftEntity: { incoming: 0, outgoing: 0 },
+          hasRightEntity: { incoming: 0, outgoing: 0 },
+        },
+        temporalAxes,
+        includeDrafts: true,
+      },
+    });
+    propertyTypes = await graphActivities.getSubgraphPropertyTypes({
+      subgraph,
+    });
+  }
+
+  for (const propertyType of propertyTypes) {
+    const generatedEmbeddings =
+      await aiActivities.createPropertyTypeEmbeddingsActivity({
+        propertyType,
+      });
+
+    if (generatedEmbeddings.embeddings.length > 0) {
+      await graphActivities.updatePropertyTypeEmbeddings({
+        authentication: params.authentication,
+        embeddings: generatedEmbeddings.embeddings.map((embedding) => ({
+          ...embedding,
+          propertyTypeId: propertyType.schema.$id,
+        })),
+        updatedAtTransactionTime:
+          propertyType.metadata.temporalVersioning.transactionTime.start.limit,
+      });
+    }
+
+    usage.prompt_tokens += generatedEmbeddings.usage.prompt_tokens;
+    usage.total_tokens += generatedEmbeddings.usage.total_tokens;
+  }
+
+  return usage;
+};
+
+type UpdateEntityTypeEmbeddingsParams = {
+  authentication: {
+    actorId: AccountId;
+  };
+} & (
+  | {
+      entityTypes: EntityTypeWithMetadata[];
+    }
+  | {
+      filter: Filter;
+    }
+);
+
+export const updateEntityTypeEmbeddings = async (
+  params: UpdateEntityTypeEmbeddingsParams,
+): Promise<CreateEmbeddingResponse.Usage> => {
+  const temporalAxes = {
+    pinned: {
+      axis: "transactionTime",
+      timestamp: null,
+    },
+    variable: {
+      axis: "decisionTime",
+      interval: {
+        start: null,
+        end: null,
+      },
+    },
+  } as const;
+
+  let entityTypes: EntityTypeWithMetadata[];
+
+  const usage: CreateEmbeddingResponse.Usage = {
+    prompt_tokens: 0,
+    total_tokens: 0,
+  };
+
+  if ("entityTypes" in params) {
+    entityTypes = params.entityTypes;
+  } else {
+    const subgraph = await graphActivities.getEntityTypesByQuery({
+      authentication: params.authentication,
+      query: {
+        filter: params.filter,
+        graphResolveDepths: {
+          inheritsFrom: { outgoing: 0 },
+          constrainsValuesOn: { outgoing: 0 },
+          constrainsPropertiesOn: { outgoing: 0 },
+          constrainsLinksOn: { outgoing: 0 },
+          constrainsLinkDestinationsOn: { outgoing: 0 },
+          isOfType: { outgoing: 0 },
+          hasLeftEntity: { incoming: 0, outgoing: 0 },
+          hasRightEntity: { incoming: 0, outgoing: 0 },
+        },
+        temporalAxes,
+        includeDrafts: true,
+      },
+    });
+    entityTypes = await graphActivities.getSubgraphEntityTypes({
+      subgraph,
+    });
+  }
+
+  for (const entityType of entityTypes) {
+    const generatedEmbeddings =
+      await aiActivities.createEntityTypeEmbeddingsActivity({
+        entityType,
+      });
+
+    if (generatedEmbeddings.embeddings.length > 0) {
+      await graphActivities.updateEntityTypeEmbeddings({
+        authentication: params.authentication,
+        embeddings: generatedEmbeddings.embeddings.map((embedding) => ({
+          ...embedding,
+          entityTypeId: entityType.schema.$id,
+        })),
+        updatedAtTransactionTime:
+          entityType.metadata.temporalVersioning.transactionTime.start.limit,
+      });
+    }
+
+    usage.prompt_tokens += generatedEmbeddings.usage.prompt_tokens;
+    usage.total_tokens += generatedEmbeddings.usage.total_tokens;
+  }
+
+  return usage;
+};
+
 type UpdateEntityEmbeddingsParams = {
   authentication: {
     actorId: AccountId;
@@ -82,12 +350,6 @@ type UpdateEntityEmbeddingsParams = {
       filter: Filter;
     }
 );
-
-export const createEmbeddings = async (
-  params: CreateEmbeddingsParams,
-): Promise<CreateEmbeddingsReturn> => {
-  return await aiActivities.createEmbeddingsActivity(params);
-};
 
 export const updateEntityEmbeddings = async (
   params: UpdateEntityEmbeddingsParams,

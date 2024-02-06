@@ -18,10 +18,11 @@ use graph_types::{
         link::{EntityLinkOrder, LinkData},
     },
     ontology::{
-        DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
-        OntologyTemporalMetadata, OntologyType, OntologyTypeClassificationMetadata,
-        OntologyTypeMetadata, OntologyTypeReference, OntologyTypeVersion, PartialDataTypeMetadata,
-        PartialEntityTypeMetadata, PartialPropertyTypeMetadata, PropertyTypeMetadata,
+        DataTypeEmbedding, DataTypeMetadata, DataTypeWithMetadata, EntityTypeEmbedding,
+        EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata, OntologyType,
+        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
+        OntologyTypeVersion, PartialDataTypeMetadata, PartialEntityTypeMetadata,
+        PartialPropertyTypeMetadata, PropertyTypeEmbedding, PropertyTypeMetadata,
         PropertyTypeWithMetadata,
     },
     owned_by_id::OwnedById,
@@ -69,6 +70,7 @@ pub trait TypeFetcher {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
+        temporal_client: Option<&TemporalClient>,
         reference: OntologyTypeReference<'_>,
     ) -> Result<OntologyTypeMetadata, InsertionError>;
 }
@@ -458,6 +460,7 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
+        temporal_client: Option<&TemporalClient>,
         ontology_types: impl IntoIterator<Item = &'o T, IntoIter: Send> + Send,
         bypassed_types: &HashSet<&VersionedUrl>,
     ) -> Result<(), InsertionError>
@@ -506,6 +509,7 @@ where
                 .create_data_types(
                     actor_id,
                     authorization_api,
+                    temporal_client,
                     fetched_ontology_types.data_types,
                     ConflictBehavior::Skip,
                     DATA_TYPE_RELATIONSHIPS,
@@ -518,6 +522,7 @@ where
                 .create_property_types(
                     actor_id,
                     authorization_api,
+                    temporal_client,
                     fetched_ontology_types.property_types,
                     ConflictBehavior::Skip,
                     PROPERTY_TYPE_RELATIONSHIPS,
@@ -530,6 +535,7 @@ where
                 .create_entity_types(
                     actor_id,
                     authorization_api,
+                    temporal_client,
                     fetched_ontology_types.entity_types,
                     ConflictBehavior::Skip,
                     ENTITY_TYPE_RELATIONSHIPS,
@@ -541,10 +547,15 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self, authorization_api))]
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "https://linear.app/hash/issue/H-1466/revisit-parameters-to-store-functions"
+    )]
     async fn insert_external_types_by_reference<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
+        temporal_client: Option<&TemporalClient>,
         reference: OntologyTypeReference<'_>,
         on_conflict: ConflictBehavior,
         fetch_behavior: FetchBehavior,
@@ -574,6 +585,7 @@ where
                     .create_data_types(
                         actor_id,
                         authorization_api,
+                        temporal_client,
                         fetched_ontology_types.data_types,
                         ConflictBehavior::Skip,
                         DATA_TYPE_RELATIONSHIPS,
@@ -588,6 +600,7 @@ where
                     .create_property_types(
                         actor_id,
                         authorization_api,
+                        temporal_client,
                         fetched_ontology_types.property_types,
                         ConflictBehavior::Skip,
                         PROPERTY_TYPE_RELATIONSHIPS,
@@ -602,6 +615,7 @@ where
                     .create_entity_types(
                         actor_id,
                         authorization_api,
+                        temporal_client,
                         fetched_ontology_types.entity_types,
                         ConflictBehavior::Skip,
                         ENTITY_TYPE_RELATIONSHIPS,
@@ -640,11 +654,13 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
+        temporal_client: Option<&TemporalClient>,
         reference: OntologyTypeReference<'_>,
     ) -> Result<OntologyTypeMetadata, InsertionError> {
         self.insert_external_types_by_reference(
             actor_id,
             authorization_api,
+            temporal_client,
             reference,
             ConflictBehavior::Fail,
             FetchBehavior::IncludeProvidedReferences,
@@ -788,6 +804,7 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
+        temporal_client: Option<&TemporalClient>,
         data_types: impl IntoIterator<Item = (DataType, PartialDataTypeMetadata), IntoIter: Send> + Send,
         on_conflict: ConflictBehavior,
         relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
@@ -801,6 +818,7 @@ where
         self.insert_external_types(
             actor_id,
             authorization_api,
+            temporal_client,
             data_types.iter().map(|(data_type, _)| data_type),
             &requested_types,
         )
@@ -817,6 +835,7 @@ where
             .create_data_types(
                 actor_id,
                 authorization_api,
+                temporal_client,
                 data_types,
                 on_conflict,
                 relationships,
@@ -841,12 +860,14 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
+        temporal_client: Option<&TemporalClient>,
         data_type: DataType,
         relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
     ) -> Result<DataTypeMetadata, UpdateError> {
         self.insert_external_types(
             actor_id,
             authorization_api,
+            temporal_client,
             [&data_type],
             &HashSet::from([data_type.id()]),
         )
@@ -855,7 +876,13 @@ where
         .attach_printable_lazy(|| data_type.id().clone())?;
 
         self.store
-            .update_data_type(actor_id, authorization_api, data_type, relationships)
+            .update_data_type(
+                actor_id,
+                authorization_api,
+                temporal_client,
+                data_type,
+                relationships,
+            )
             .await
     }
 
@@ -880,6 +907,25 @@ where
             .unarchive_data_type(actor_id, authorization_api, id)
             .await
     }
+
+    async fn update_data_type_embeddings<Au: AuthorizationApi + Send + Sync>(
+        &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut Au,
+        embeddings: Vec<DataTypeEmbedding<'_>>,
+        updated_at_transaction_time: Timestamp<TransactionTime>,
+        reset: bool,
+    ) -> Result<(), UpdateError> {
+        self.store
+            .update_data_type_embeddings(
+                actor_id,
+                authorization_api,
+                embeddings,
+                updated_at_transaction_time,
+                reset,
+            )
+            .await
+    }
 }
 
 impl<S, A> PropertyTypeStore for FetchingStore<S, A>
@@ -891,6 +937,7 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
+        temporal_client: Option<&TemporalClient>,
         property_types: impl IntoIterator<
             Item = (PropertyType, PartialPropertyTypeMetadata),
             IntoIter: Send,
@@ -907,6 +954,7 @@ where
         self.insert_external_types(
             actor_id,
             authorization_api,
+            temporal_client,
             property_types
                 .iter()
                 .map(|(property_type, _)| property_type),
@@ -925,6 +973,7 @@ where
             .create_property_types(
                 actor_id,
                 authorization_api,
+                temporal_client,
                 property_types,
                 on_conflict,
                 relationships,
@@ -949,12 +998,14 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
+        temporal_client: Option<&TemporalClient>,
         property_type: PropertyType,
         relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
     ) -> Result<PropertyTypeMetadata, UpdateError> {
         self.insert_external_types(
             actor_id,
             authorization_api,
+            temporal_client,
             [&property_type],
             &HashSet::from([property_type.id()]),
         )
@@ -963,7 +1014,13 @@ where
         .attach_printable_lazy(|| property_type.id().clone())?;
 
         self.store
-            .update_property_type(actor_id, authorization_api, property_type, relationships)
+            .update_property_type(
+                actor_id,
+                authorization_api,
+                temporal_client,
+                property_type,
+                relationships,
+            )
             .await
     }
 
@@ -988,6 +1045,25 @@ where
             .unarchive_property_type(actor_id, authorization_api, id)
             .await
     }
+
+    async fn update_property_type_embeddings<Au: AuthorizationApi + Send + Sync>(
+        &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut Au,
+        embeddings: Vec<PropertyTypeEmbedding<'_>>,
+        updated_at_transaction_time: Timestamp<TransactionTime>,
+        reset: bool,
+    ) -> Result<(), UpdateError> {
+        self.store
+            .update_property_type_embeddings(
+                actor_id,
+                authorization_api,
+                embeddings,
+                updated_at_transaction_time,
+                reset,
+            )
+            .await
+    }
 }
 
 impl<S, A> EntityTypeStore for FetchingStore<S, A>
@@ -999,6 +1075,7 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
+        temporal_client: Option<&TemporalClient>,
         entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
@@ -1013,6 +1090,7 @@ where
         self.insert_external_types(
             actor_id,
             authorization_api,
+            temporal_client,
             entity_types.iter().map(|(entity_type, _)| entity_type),
             &requested_types,
         )
@@ -1029,6 +1107,7 @@ where
             .create_entity_types(
                 actor_id,
                 authorization_api,
+                temporal_client,
                 entity_types,
                 on_conflict,
                 relationships,
@@ -1053,6 +1132,7 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
+        temporal_client: Option<&TemporalClient>,
         entity_type: EntityType,
         label_property: Option<BaseUrl>,
         icon: Option<String>,
@@ -1061,6 +1141,7 @@ where
         self.insert_external_types(
             actor_id,
             authorization_api,
+            temporal_client,
             [&entity_type],
             &HashSet::from([entity_type.id()]),
         )
@@ -1072,6 +1153,7 @@ where
             .update_entity_type(
                 actor_id,
                 authorization_api,
+                temporal_client,
                 entity_type,
                 label_property,
                 icon,
@@ -1101,6 +1183,25 @@ where
             .unarchive_entity_type(actor_id, authorization_api, id)
             .await
     }
+
+    async fn update_entity_type_embeddings<Au: AuthorizationApi + Send + Sync>(
+        &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut Au,
+        embeddings: Vec<EntityTypeEmbedding<'_>>,
+        updated_at_transaction_time: Timestamp<TransactionTime>,
+        reset: bool,
+    ) -> Result<(), UpdateError> {
+        self.store
+            .update_entity_type_embeddings(
+                actor_id,
+                authorization_api,
+                embeddings,
+                updated_at_transaction_time,
+                reset,
+            )
+            .await
+    }
 }
 
 impl<S, A> EntityStore for FetchingStore<S, A>
@@ -1127,6 +1228,7 @@ where
         self.insert_external_types_by_reference(
             actor_id,
             authorization_api,
+            temporal_client,
             OntologyTypeReference::EntityTypeReference(&entity_type_reference),
             ConflictBehavior::Skip,
             FetchBehavior::ExcludeProvidedReferences,
@@ -1196,6 +1298,7 @@ where
         self.insert_external_types_by_reference(
             actor_id,
             authorization_api,
+            None,
             OntologyTypeReference::EntityTypeReference(&entity_type_reference),
             ConflictBehavior::Skip,
             FetchBehavior::ExcludeProvidedReferences,
@@ -1238,6 +1341,7 @@ where
         self.insert_external_types_by_reference(
             actor_id,
             authorization_api,
+            temporal_client,
             OntologyTypeReference::EntityTypeReference(&entity_type_reference),
             ConflictBehavior::Skip,
             FetchBehavior::ExcludeProvidedReferences,
