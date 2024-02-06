@@ -15,16 +15,14 @@ It is important that patient pathways reflect best practice, improve patient out
 SynPath is being designed as a set of foundational modules to serve a variety of use-cases. With shared modules, users will be able to easily collaborate and benchmark different approaches. These modules include:
 
 - **Data Model** – Python object with Standardized [FHIR](https://hash.ai/glossary/fast-healthcare-interoperability-resources) attributes.
-
 - **Environment layer** – the set of healthcare service points (e.g. GP, outpatient etc.)
-
 - **Intelligence layer** - the definition of rules and learning algorithms that dictate agents’ movement through the environment.
 
 In SynPath, patients and their characteristics are simulated, and they are allocated to an initial environment, as shown in the diagram below. They then go on a journey through different environment objects (health services) which represent patient care and can update their characteristics and patient record.
 
-![](images/synpath.png)
+![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/f10a61f5-2777-41e5-7bfb-50511fc78b00/public)
 
-Synpath agent flow (from project report)
+_Synpath agent flow (from project report)_
 
 [_Open the SynPath project report in a new tab_](https://cdn-us1.hash.ai/site/REDACTED_C245+ABM+Patient+Pathways_Final+Report_V3_28042021.cleaned.pdf)
 
@@ -34,4 +32,4 @@ The intelligence layer is the way SynPath will use optimisation of patient healt
 
 As part of implementation the team tested the different algorithms and simulation designs, leveraging the modular nature of HASH behaviors to quickly experiment with different techniques, informing the key elements that make up the intelligence layer implementation.
 
-We're excited to support more use of simulation on important, otherwise difficult to model phenomena. NHSX will be working with HASH on future simulation projects that demonstrate the potential of simulation models for scenario planning. If you’re a new or upcoming data scientist, you can also apply to the NHSX [internship program](https://www.nhsx.nhs.uk/key-tools-and-info/nhsx-analytics-unit/nhsx-internship-scheme-innovation-and-analytics-health/) for a chance to work on the [HASH NHS Agent-Based Modeling project](https://hasharchives.github.io/nhsx-internship-projects/agent-based-model-hash-ai/).
+We're excited to support more use of simulation on important, otherwise difficult to model phenomena. NHSX will be working with HASH on future simulation projects that demonstrate the potential of simulation models for scenario planning. If you’re a new or upcoming data scientist, you can also apply to the NHSX [internship program](https://www.nhsx.nhs.uk/key-tools-and-info/nhsx-analytics-unit/nhsx-internship-scheme-innovation-and-analytics-health/) for a chance to work on the [HASH NHS Agent-Based Modeling project](https://hashdeps.github.io/nhsx-internship-projects/agent-based-model-hash-ai/).
