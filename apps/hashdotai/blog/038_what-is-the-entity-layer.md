@@ -1,7 +1,7 @@
 ---
 title: "What is the entity layer?"
 date: "2022-12-26"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/12be2a8e-6153-4159-dda1-cc77e6ab6000/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/12be2a8e-6153-4159-dda1-cc77e6ab6000/public
 categories: 
   - "Company"
   - "Data"
@@ -35,13 +35,9 @@ Consider the humble todo list. **As a user, you might want to be able to sync to
 
 3. Or you can hope that each application:
     - (a) allows exporting and importing to a common format (e.g. CSV);
-    
     - (b) formats their exports in such a way that the other can import it without additional transformation;
-    
     - (c) is at feature parity to avoid data loss as you transfer between platforms; and
-    
     - (d) is capable of partial-syncing to avoid duplication of data upon imports.
-    
     - _You still have to do this process manually, so with any luck you don't need to do it very often, and hopefully it doesn't take too long._
 
 5. Another alternative is that you find a third-party service like _IFTTT_, or _Zapier_, which just happens to support both apps you use works reliably, and doesn't cause more issues than it solves... breaking on occasion, resulting in duplicate or missing data, or even corrupting information in a way that might only be realized 6 months down the line. _Good luck!_
@@ -50,7 +46,7 @@ Consider the humble todo list. **As a user, you might want to be able to sync to
 
 To cut a long story short, the process sucks, and is heavily reliant on app developers to pick and choose who they want to support. In effect, scaling out the final strategy given (number four) would today require every application developer in the world to build a set of translations for every other application in the world, supporting and maintaining all of these indefinitely themselves. What we really need is a _translation layer_.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/df06470d-7f50-46ce-1d98-836102959700/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/df06470d-7f50-46ce-1d98-836102959700/public)
 
 Walled gardens trap data deliberately, whereas data silos are generally unintended. Both result in useful information not always being accessible where and when it is needed.
 
@@ -59,20 +55,15 @@ App developers generally love integrations **that bring data in** because they i
 The process for application developers building integrations today involves various steps:
 
 1. obtain and maintain API access to the service they are integrating with
-
-3. set up an ability for users to authenticate themselves with that external service (safely collecting and storing API keys, or facilitating an OAuth integration flow)
-
-5. learn the shape of the information they'll be importing
-
-7. set up data pipelines to ingest information from external services, or middleware that can query them as required
-
-9. either (a) transform ingested data into a structure already expected by their application, or (b) rewire their application to work with data in this new form, potentially even creating new frontend components to render it
-
-11. set up monitoring to detect issues with the integration and keep the data flowing
+1. set up an ability for users to authenticate themselves with that external service (safely collecting and storing API keys, or facilitating an OAuth integration flow)
+1. learn the shape of the information they'll be importing
+1. set up data pipelines to ingest information from external services, or middleware that can query them as required
+1. either (a) transform ingested data into a structure already expected by their application, or (b) rewire their application to work with data in this new form, potentially even creating new frontend components to render it
+1. set up monitoring to detect issues with the integration and keep the data flowing
 
 All of this takes time and costs money. As established, there are also minimal incentives for most application developers to make it easy _for others_ to get their data out of the products they develop, meaning that the developer experience involved in actually trying to do just that is often _not great_, where services even make it possible at all.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/8cdbecd3-c598-4d39-63bb-13b868317700/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/8cdbecd3-c598-4d39-63bb-13b868317700/public)
 
 ## Seamless data translation
 
@@ -102,7 +93,7 @@ Properties themselves also have types (**property types**) which in turn define 
 
 Because entities can have multiple entity types, it becomes possible to flexibly represent real-world things by progressively adding types to entities. A single 'Company' entity may, for example, be used in multiple contexts, becoming a 'Supplier', 'Customer', and 'Competitor' in addition, over time.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/01432bef-6fa7-4f04-3539-c32d31899700/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/01432bef-6fa7-4f04-3539-c32d31899700/public)
 
 The Block Protocol allows disparate constellations of data to be connected via a system of addressable public types
 
@@ -115,11 +106,8 @@ It's not reasonable to expect a centralized standards setting body to be able to
 We need types that are:
 
 - _cross-walkable_, whose schemas can be mapped to those of any other type
-
 - _easy and fast_, so that they can be created and updated by domain experts without input from software engineers
-
 - _permissionless_, with everybody able to create types reflecting their own mental models, free from any requirement these be "approved" by others or subjected to deliberation
-
 - _updatable_, so that when understanding evolves, so can any related type definitions
 
 The Block Protocol allows anybody to create types and host them at permanent, publicly accessible addresses, with updates to types easily discoverable using only the original URI. But beyond this and cross-walking (the mapping of one type to another as conceptually representing the same thing), how do we ensure this proliferation of types doesn't become an unintelligible mess?
@@ -129,7 +117,6 @@ The Block Protocol allows anybody to create types and host them at permanent, pu
 Block Protocol RFCs propose support for creating new types that link back to the existing ecosystem in a number of ways:
 
 - **Type extension:** if you need to make a more specific sub-type of an entity type which adds certain new fields, you can do so by extending an entity type.
-
 - **Type forking:** where differences arise between your conception of a type and an existing one which require changing one or more of the existing properties (not merely adding new ones), you can fork a type. Creating a fork duplicates a type in a user's own workspace, or one in which they're a member. By default this duplicate contains a "same as" linkback between it and the original, outlining that the creator of the fork believes the two types to at least conceptually refer to the same _thing_). The new type initially inherits all of the properties of its ancestor, but unlike types that 'extend' others, any of these properties can subsequently be changed, allowing the fork and the original to diverge.
 
 Block Protocol compliant applications that allow users to create and manage their own types, such as [HASH](https://hash.ai/platform/hash), also encourage type convergence in other ways. For example, HASH encourages type reuse by surfacing existing types to users whenever they look to add new ones.
@@ -152,7 +139,7 @@ Blocks express the shape of data they _can_ render. For example, a _checklist_ b
 
 Instead of application developers needing to hardwire components up to data, blocks can intelligently load data in a variety of shapes, and in customizable apps like HASH users can "softwire" data to use powerful new blocks themselves, in just a few simple, unscary steps. Data mapping will be explored more fully in a future post.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/d588bdeb-e78c-4375-2b44-674c2c213500/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/d588bdeb-e78c-4375-2b44-674c2c213500/public)
 
 ### Unpresumptuous
 
