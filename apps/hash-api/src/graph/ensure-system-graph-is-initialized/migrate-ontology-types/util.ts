@@ -1206,7 +1206,10 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
           all: [
             {
               any: entityTypeBaseUrls.map((baseUrl) => ({
-                equal: [{ path: ["type", "baseUrl"] }, { parameter: baseUrl }],
+                equal: [
+                  { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
+                  { parameter: baseUrl },
+                ],
               })),
             },
             {
@@ -1228,36 +1231,16 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
     }).then((subgraph) => getRoots(subgraph));
 
     for (const entity of existingEntities) {
-      let newVersion: number;
       const baseUrl = extractBaseUrl(entity.metadata.entityTypeId);
-      switch (baseUrl) {
-        case systemEntityTypes.user.entityTypeBaseUrl:
-          newVersion = migrationState.entityTypeVersions[baseUrl]!;
-          break;
-        case systemEntityTypes.comment.entityTypeBaseUrl:
-          newVersion = migrationState.entityTypeVersions[baseUrl]!;
-          break;
-        case systemEntityTypes.commentNotification.entityTypeBaseUrl:
-          newVersion =
-            migrationState.entityTypeVersions[
-              systemEntityTypes.commentNotification.entityTypeBaseUrl as BaseUrl
-            ]!;
-          break;
-        case systemEntityTypes.linearIntegration.entityTypeBaseUrl:
-          newVersion =
-            migrationState.entityTypeVersions[
-              systemEntityTypes.linearIntegration.entityTypeBaseUrl as BaseUrl
-            ]!;
-          break;
-        case systemEntityTypes.mentionNotification.entityTypeBaseUrl:
-          newVersion =
-            migrationState.entityTypeVersions[
-              systemEntityTypes.mentionNotification.entityTypeBaseUrl as BaseUrl
-            ]!;
-          break;
-        default:
-          throw new Error(`Unexpected entity type baseUrl: ${baseUrl}`);
+
+      const newVersion = migrationState.entityTypeVersions[baseUrl];
+
+      if (typeof newVersion === "undefined") {
+        throw new Error(
+          `Could not find the version for base URL ${baseUrl} in the migration state`,
+        );
       }
+
       const newEntityTypeId = versionedUrlFromComponents(baseUrl, newVersion);
 
       if (entity.metadata.entityTypeId !== newEntityTypeId) {
