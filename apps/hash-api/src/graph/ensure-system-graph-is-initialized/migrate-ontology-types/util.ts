@@ -1206,7 +1206,10 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
           all: [
             {
               any: entityTypeBaseUrls.map((baseUrl) => ({
-                equal: [{ path: ["type", "baseUrl"] }, { parameter: baseUrl }],
+                equal: [
+                  { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
+                  { parameter: baseUrl },
+                ],
               })),
             },
             {
