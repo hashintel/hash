@@ -710,6 +710,9 @@ pub enum EntityEmbeddings {
     WebId,
     EntityUuid,
     Embedding,
+    Property,
+    UpdatedAtTransactionTime,
+    UpdatedAtDecisionTime,
     Distance,
 }
 
@@ -719,6 +722,9 @@ impl EntityEmbeddings {
             Self::WebId => "web_id",
             Self::EntityUuid => "entity_uuid",
             Self::Embedding => "embedding",
+            Self::Property => "property",
+            Self::UpdatedAtDecisionTime => "updated_at_decision_time",
+            Self::UpdatedAtTransactionTime => "updated_at_transaction_time",
             Self::Distance => "distance",
         };
         table.transpile(fmt)?;
@@ -729,6 +735,10 @@ impl EntityEmbeddings {
         match self {
             Self::WebId | Self::EntityUuid => ParameterType::Uuid,
             Self::Embedding => ParameterType::Vector,
+            Self::Property => ParameterType::BaseUrl,
+            Self::UpdatedAtTransactionTime | Self::UpdatedAtDecisionTime => {
+                ParameterType::Timestamp
+            }
             Self::Distance => ParameterType::F64,
         }
     }

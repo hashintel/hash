@@ -6,6 +6,7 @@ use graph_types::{
     },
     ontology::OntologyTypeVersion,
     owned_by_id::OwnedById,
+    Embedding,
 };
 use postgres_types::ToSql;
 use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
@@ -53,4 +54,15 @@ pub struct EntityLinkEdgeRow {
     pub left_entity_uuid: EntityUuid,
     pub right_web_id: OwnedById,
     pub right_entity_uuid: EntityUuid,
+}
+
+#[derive(Debug, ToSql)]
+#[postgres(name = "entity_embeddings_tmp")]
+pub struct EntityEmbeddingRow {
+    pub web_id: OwnedById,
+    pub entity_uuid: EntityUuid,
+    pub property: Option<String>,
+    pub embedding: Embedding<'static>,
+    pub updated_at_transaction_time: Timestamp<TransactionTime>,
+    pub updated_at_decision_time: Timestamp<DecisionTime>,
 }

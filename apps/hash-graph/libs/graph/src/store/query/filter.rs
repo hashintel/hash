@@ -17,7 +17,7 @@ use crate::{
     knowledge::EntityQueryPath,
     store::{
         query::{OntologyQueryPath, ParameterType, QueryPath},
-        Record,
+        QueryRecord, SubgraphRecord,
     },
     subgraph::identifier::VertexId,
 };
@@ -32,7 +32,7 @@ use crate::{
     rename_all = "camelCase",
     bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"
 )]
-pub enum Filter<'p, R: Record + ?Sized> {
+pub enum Filter<'p, R: QueryRecord + ?Sized> {
     All(Vec<Self>),
     Any(Vec<Self>),
     Not(Box<Self>),
@@ -58,7 +58,7 @@ pub enum Filter<'p, R: Record + ?Sized> {
 
 impl<'p, R> Filter<'p, R>
 where
-    R: Record<QueryPath<'p>: OntologyQueryPath>,
+    R: SubgraphRecord<QueryPath<'p>: OntologyQueryPath>,
     R::VertexId: VertexId<BaseId = BaseUrl, RevisionId = OntologyTypeVersion>,
 {
     /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
@@ -103,7 +103,7 @@ impl<'p> Filter<'p, Entity> {
     }
 }
 
-impl<'p, R: Record> Filter<'p, R>
+impl<'p, R: QueryRecord> Filter<'p, R>
 where
     R::QueryPath<'p>: fmt::Display,
 {
@@ -177,7 +177,7 @@ where
     rename_all = "camelCase",
     bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"
 )]
-pub enum FilterExpression<'p, R: Record + ?Sized> {
+pub enum FilterExpression<'p, R: QueryRecord + ?Sized> {
     Path(R::QueryPath<'p>),
     Parameter(Parameter<'p>),
 }
@@ -452,7 +452,7 @@ mod tests {
 
     fn test_filter_representation<'de, R>(actual: &Filter<'de, R>, expected: &'de serde_json::Value)
     where
-        R: Record<QueryPath<'de>: fmt::Debug + fmt::Display + PartialEq + Deserialize<'de>>,
+        R: QueryRecord<QueryPath<'de>: fmt::Debug + fmt::Display + PartialEq + Deserialize<'de>>,
     {
         let mut expected =
             Filter::<R>::deserialize(expected).expect("Could not deserialize filter");

@@ -38,7 +38,7 @@ use crate::{
             TraversalContext,
         },
         AsClient, ConflictBehavior, DataTypeStore, InsertionError, PostgresStore, QueryError,
-        Record, UpdateError,
+        SubgraphRecord, UpdateError,
     },
     subgraph::{
         edges::GraphResolveDepths, identifier::DataTypeVertexId, query::StructuralQuery,
