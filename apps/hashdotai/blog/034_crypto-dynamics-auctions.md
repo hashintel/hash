@@ -17,6 +17,7 @@ We'll be using the HASH platform to create an agent-based model containing both 
 
 The most simple type of auction is a [first-price sealed-bid auction](https://en.wikipedia.org/wiki/First-price_sealed-bid_auction). This is when all participants submit their bids secretly, and the winner is the bidder who is willing to pay the highest price. This type of auction may make sense on the surface, but leads to buyer-wariness due to its vulnerability to the _winner’s curse_. This term describes the tendency for winners to overpay, because first-price sealed-bid auctions reward the largest overestimation of an auctioned item's value. To counteract this, bidders may attempt to ascertain not the 'true worth' or intrinsic value of an item, but the valuation at which others are likely to bid, adjusting their own bids accordingly in an attempt to only marginally outbid others (without exceeding one's own willingness to pay), rather than stating their own true preferences and willingness. Such tactical bidding may reduce the eventual sales price and prevent true willingness to pay from being captured.
 
+```javascript
   const n = context.globals().n\_bidders;
 
   // Calculate the expected maximum of a (0, 1\] random distribution
@@ -24,9 +25,11 @@ The most simple type of auction is a [first-price sealed-bid auction](https://en
 
   // Determine agent's true preferences
   state.straight\_bid = Math.random();
+```
 
 Taking a look at our code, we see that the bid for each agent is set randomly, using a linear random function. Therefore, it is simple to calculate the expected maximum bid of the other bidders.[\[1\]](https://math.stackexchange.com/questions/150586/expected-value-of-max-of-iid-variables) We use this expected maximum bid in order to calculate tactical bids only if the internal valuation of a bidder is going to be higher.
 
+```javascript
   // Determine the agent's tactical bid based on the expected max
   
   if (state.straight\_bid > expected\_max) {
@@ -34,8 +37,9 @@ Taking a look at our code, we see that the bid for each agent is set randomly, u
   } else {
     state.tactical\_bid = state.straight\_bid;
   }
+```
 
-{The math for calculating the maximum of a random distribution is sound. However, since the logic of the sim makes agents change their bid if it comes out above that maximum, it turns into a "guess 2/3rds of the average" game}
+The math for calculating the maximum of a random distribution is sound. However, since the logic of the sim makes agents change their bid if it comes out above that maximum, it turns into a "guess 2/3rds of the average" game.
 
 ## Second-price sealed-bid auction 
 
@@ -43,6 +47,7 @@ A [second-price sealed-bid auction](https://en.wikipedia.org/wiki/Generalized_se
 
 This means bidders no longer have to worry about overpaying for an item or falling for the winner’s curse. 
 
+```javascript
   // Gather agents' straight bids
   const agents = context.neighbors();
   const straight\_bids = agents.map(a => a.straight\_bid);
@@ -56,6 +61,7 @@ This means bidders no longer have to worry about overpaying for an item or falli
 
   // Calculate the second-price winner
   state.second\_auction\_winner = Math.max(...straight\_bids);
+```
 
 Taking a look at our code, we see that for this auction, agents are able to make a straight bid in accordance with their direct preferences.
 
@@ -69,11 +75,11 @@ Due to its use on eBay and other popular online auction houses, many individuals
 
 The [revenue equivalence](https://en.wikipedia.org/wiki/Revenue_equivalence) theorem states that given certain mathematical conditions (which are beyond the scope of this tutorial), every auction design will end up generating the same revenue for the auctioneer.
 
-![](images/image37.png)
+![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/398aa421-bc14-4f80-ace1-b6b757a62f00/public)
 
 In our example, we can see that the difference in winning bid price for the two types of auction ends up close to zero. 
 
-![](images/image38.png)
+![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/103338c9-2105-44d0-85e3-061cd180f600/public)
 
 If we run the Revenue Equivalence experiment and take a look at the resulting graph, we see that the difference between the two types of auction fluctuates close to zero. As we increase the number of agents bidding, the difference approaches zero.
 
