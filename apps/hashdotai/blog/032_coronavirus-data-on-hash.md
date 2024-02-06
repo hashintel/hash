@@ -16,13 +16,11 @@ Since the COVID outbreak at the end of 2019, various institutions have collected
 ## Transmission Data
 
 - Estimates of the [effective reproduction rates of COVID](https://hash.ai/@rtcovidlive/r-number) provided policymakers with a clear sense of its likely problematic nature
-
 - A dataset of [known superspreading events](https://hash.ai/@hash/superspreading) associated with the virus (clearly and interestingly showing very early on the high likely impact of ventilation/being outdoors for reducing transmission)
 
 ## Infection Data
 
 - Public Health England dataset on [COVID-19 cases and risk](https://hash.ai/@phe/covid-19)
-
 - New York Times data on [COVID-19 infections in the United States](https://hash.ai/@nyt/covid-19-us)
 
 ## Patient Data
@@ -36,7 +34,6 @@ Since the COVID outbreak at the end of 2019, various institutions have collected
 ## Economic Data
 
 - [TSA traveler checkpoint numbers](https://hash.ai/@us-tsa/checkpoint-numbers) document the decline in air travel over the pandemic
-
 - Data on [coronavirus grant funding to small businesses](https://hash.ai/@uk-beis/coronavirus-grants) in the UK was published by the UK's Department for Business, Energy & Industrial Strategy.
 
 A number of simulations related to COVID, including the [City Infection Model](https://hash.ai/@hash/city-infection-model-with-vaccine), have already been published to HASH and are available for open-source download and use. For more information, check out the [HASH Simulation Docs](https://hash.ai/docs/simulation), or [join our Discord](https://hash.ai/discord) to ask questions and get help directly.
