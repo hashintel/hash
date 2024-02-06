@@ -16,13 +16,9 @@ For many problems, economic theory only describes what a system is like under 'p
 In this article we'll cover:
 
 - basic concepts of supply and demand, starting with very basic agents on a 2D grid that respond to changing prices
-
 - basic game theory, and modeling how agents cooperate with each other (or not)
-
 - basic trade and price modeling, exploring how agents can generate second-order effects from simple rules.
-
 - an example model of an interconnected call center, which demonstrates agents connected to each other in a networked fashion
-
 - an example geospatial model, showing how to use real-life data in a simulation.
 
 We’ll be using JavaScript to explore these introductory concepts in computational economics, specifically around agent-based modelling. By the end of the article you should have a sense of how to use [hCore](https://hash.ai/platform/core) for agent-based projects of your own.
@@ -35,7 +31,7 @@ In agent-based modeling you describe (through computer code) 'rules' that indivi
 
 Each agent can have multiple behaviors, each of which is outlined by a standardized function in a seperate js file. The behavior takes in standardized variables as in the example below.
 
-```
+```javascript
 const behavior = (state, context) => {
   state.age += 1;
 }
@@ -47,7 +43,7 @@ Each agent on the HASH platform has a private state that can contain any fields 
 
 Changing the state can change the 3D appearance of an agent, using [reserved fields](https://hash.ai/docs/simulation/creating-simulations/anatomy-of-an-agent/state).
 
-```
+```javascript
 const behavior = (state, context) => {
     state.messages.push({
         to: "schelling",
@@ -65,7 +61,7 @@ States also have the ability to send messages to other agents**,** as in the exa
 
 Agents in HASH have an in-built capacity for communicating with neighbors. Internally, the HASH simulation, [hEngine](https://hash.ai/platform/engine) -- which also powers [hCore](https://hash.ai/platform/core) -- maintains a list of neighbors for each agent and updates the list with each time step. Neighbors can be accessed via the context variable as in the example code below.
 
-```
+```javascript
 function behavior(state, context) {
     const neighbors = context.neighbors()
 
@@ -88,7 +84,6 @@ The **topology** defined in a simulations' `globals.json` file can tell us about
 In economics, the _Law of Supply and Demand_ describes the willingness of an agent -- buyer or seller -- to make a transaction. More concretely,
 
 - The law of supply states that, the higher the price, the more product producers are willing to sell.
-
 - The law of demand states that, the lower the price, the more product consumers are willing to buy.
 
 We can create simulations that [show how these laws](https://core.hash.ai/@hash/model-market/4.5.1) apply in practice, both when markets are at equilibrium and as they fluctuate.
@@ -98,9 +93,7 @@ We can create simulations that [show how these laws](https://core.hash.ai/@hash/
 The simulation contains agents (shops) that set their prices in competition with other shops. The simulation will also have buyers that buy only from shops that have the lowest price. Competition between agents leads to emergent behavior according to the laws of supply and demand.
 
 - The pink agents represent buyers, moving from square to square to interact with shops.
-
 - The blue agents represent open shops, that change their prices in response to buyers.
-
 - The white agents represent closed shops.
 
 Press the running man play button in the simulation below to see it in action.
@@ -119,7 +112,7 @@ In our toy model, the behavioral logic in `shops.js` governs the supply-side, al
 
 At the most basic level, if the cost of running the store exceeds the retail price of items, the shop closes down. White squares represent closed shops, so the state color is changed to white.
 
-```
+```javascript
 function shutDownClosed(state, context){
   // Cost exceeds price, so shut down
   if (state.cost > state.price) {
@@ -132,7 +125,7 @@ function shutDownClosed(state, context){
 
 Later on in `shops.js`, we provide closed shops with a (randomly determined) chance of re-opening.
 
-```
+```javascript
 function reOpenClosed(state, globals){
   // Random chance for new shop to open
   state.color = Math.random() < globals.startup_rate ? "skyblue" : "white";
@@ -147,7 +140,7 @@ function reOpenClosed(state, globals){
 
 Shops will reduce their prices if there isn't enough demand. Other parts of the `shop.js` script deal with lowering prices to attract buyer agents.
 
-```
+```javascript
 function lowerPrices(current_buyers, state){
   // If open and there was a sale last step (green)
   // but no sale this step
@@ -168,7 +161,7 @@ Lets take a look at the behaviors defined inside `buyer.js`.
 
 We can see that every buyer agent takes stock of its given location and looks around all the neighboring squares to see the lowest price.
 
-```
+```javascript
 function windowShop(current_shop, state){
   // Window Shopping: look for the lowest price
   if (current_shop.color !== "white" && !state.can_buy) {
@@ -187,7 +180,7 @@ function windowShop(current_shop, state){
 
 The model allows for more complex behavior, such as waiting for a period of time to get the best price.
 
-```
+```javascript
 function count_shopping(state, window_shopping_steps){
   // Once my window shopping time runs out I can try and buy
   if (state.window_shopping_counter === 0) {
@@ -202,7 +195,7 @@ function count_shopping(state, window_shopping_steps){
 
 This simulation works by creating agents in 3D space along a 2D grid. The buyer agents are given a height of 4 to make them easy to spot, and placed randomly in 2D space, as we can see in `create_buyers.js` below.
 
-```
+```javascript
 function behavior (state, context) {
   const {
     buyer_count,
@@ -232,7 +225,7 @@ function behavior (state, context) {
 
 The `create_shops.js` script is similar, in that it generates shops rather than buyers. The shops are placed in an array, each with an associated cost and a price of items.
 
-```
+```javascript
 function behavior (state, context) {
   const {
     topology,
@@ -271,7 +264,7 @@ function behavior (state, context) {
 
 HASH allows users to set up views and analytics to understand better how the simulation is going. In this example, HASH outputs graphs related to the shops sales and pricing. Let's take a look at `analysis.json`.
 
-```
+```javascript
   "plots": [
     {
       "title": "Shop Status",
@@ -306,13 +299,10 @@ The dilemma is as follows:
 
 > Two members of a criminal organization are arrested and imprisoned. Each prisoner is in solitary confinement with no means of communicating with the other. The prosecutors lack sufficient evidence to convict the pair on the principal charge, but they have enough to convict both on a lesser charge. Simultaneously, the prosecutors offer each prisoner a bargain. Each prisoner is given the opportunity either to betray the other by testifying that the other committed the crime, or to cooperate with the other by remaining silent. The possible outcomes are:
 > 
-> 1\. If A and B each betray the other, each of them serves two years in prison (both **defect**)
-> 
-> 2\. If A betrays B but B remains silent, A will be set free and B will serve three years in prison (A **defects**, B **cooperates**)
-> 
-> 3\. If A remains silent but B betrays A, A will serve three years in prison and B will be set free (A **cooperates**, B **defects**)
-> 
-> 4\. If A and B both remain silent, both of them will serve only one year in prison (both **cooperate**).
+> 1. If A and B each betray the other, each of them serves two years in prison (both **defect**)
+> 1. If A betrays B but B remains silent, A will be set free and B will serve three years in prison (A **defects**, B **cooperates**)
+> 1. If A remains silent but B betrays A, A will serve three years in prison and B will be set free (A **cooperates**, B **defects**)
+> 1. If A and B both remain silent, both of them will serve only one year in prison (both **cooperate**).
 > 
 > [Wikipedia](https://en.wikipedia.org/wiki/Prisoner%27s_dilemma)
 
@@ -342,7 +332,7 @@ We can model a strategy in HASH through writing a [behavior](https://hash.ai/doc
 
 The code below from `strategy_cooperate.js` outlines a basic strategy in which the agent **always co-operates**.
 
-```
+```javascript
 function behavior(state, context) {
   if (state.checking_strategies) {
     state.curr_moves = {};
@@ -360,7 +350,7 @@ In contrast, a mixed strategy is one where an agent makes a decision whether to 
 
 For example, if we take a look at `strategy_tft.js`, we can see a 'tit-for-tat' strategy, in which agents following it will choose to cooperate only if the previous agent has been cooperative.
 
-```
+```javascript
 function behavior(state, context) {
   if (state.checking_strategies) {
     state.curr_moves = {};
@@ -382,7 +372,7 @@ function behavior(state, context) {
 
 Another strategy is the random strategy, outlined in `strategy_random.js`, which either co-operates or defects based on a random parameter.
 
-```
+```javascript
 function behavior(state, context) {
   if (state.checking_strategies) {
     state.curr_moves = {};
@@ -402,7 +392,7 @@ function behavior(state, context) {
 
 References to our different Prisoner's Dilemma strategies (each a separate behavior file in our simulation) are stored as global constants in the simulation. Taking a look at `globals.json`, the filenames in the globals array `strategies` are initialized on the agents and determine the agent’s move.
 
-```
+```javascript
 {
   "match_length": 10,
   "strategies": [
@@ -431,7 +421,7 @@ Agents can cooperate every time or defect every time, or follow a random, tit-fo
 
 Now we have our agents set up with their strategies, and instructions to play every turn, its time to layer in our game-logic. The code below, pulled from our `update_agents.js` file, in this first instance initializes all of our agents with a strategy chosen at random.
 
-```
+```javascript
 function behavior(state, context) {
   const { strategies, strategy_colors } = context.globals();
 
@@ -449,7 +439,7 @@ In HASH, agents can view their immediate neighbours using built-in functionality
 
 Taking a look at `score.js`, we can see a method that takes representations of the agents placed on a grid and updates the new strategy based on the neighbouring grid squares so far.
 
-```
+```javascript
 function adoptStrategies(sum, strategy_colors, state, context){
   const ns = context.neighbors();
   const myScores = state.scores.slice(-1)[0];
@@ -502,7 +492,7 @@ The simulation deals with a nxn grid of agents who have differing capabilities t
 
 We can see in `init.js` how this simulation is set up. Buyers and sellers are placed on a grid where they can only trade to neighbours. Based on global parameters, the simulation randomly initializes properties such as the number of apples or amount of gold each agent has. The simulation also generates a value to represent `skill`, or how difficult it is for an agent to produce a particular good.
 
-```
+```javascript
 const init = (context) => {
   const { topology, reserve, initial_apples, initial_price,
       initial_gold, skill_apples, skill_gold } = context.globals();
@@ -536,7 +526,7 @@ The `context` primitive in HASH makes it easy to write functions that agents can
 
 For example, in the behavior below, we're telling the agent to sort through and prioritize its neighbors according to lowest price on offer. Agents can then bid to buy apples with saved up gold reserves. Let's take a look at this behavior in `buy.js`.
 
-```
+```javascript
 function behavior(state, context) {
   const neighbors = context.neighbors();
 
@@ -574,7 +564,7 @@ Agents can also communicate with each other via use of [messages](https://hash.a
 
 Here, the bid price is used to set a color for the agent when displayed in 3D. Let's take a look at `set_price.js`.
 
-```
+```javascript
 function behavior (state, context) { 
   // Decide if you're selling or buying
   state.selling = state.apples > state.reserve;
@@ -604,7 +594,7 @@ Apples are sold at a price that approximates the laws of supply and demand.
 
 In `produce.js`, we determine if an agent should produce more apples or more gold. The agent will consume one apple per time step, and will produce apples if it runs out. Otherwise, the agent will produce apples or gold based on a local price and the agents skill.
 
-```
+```javascript
 function behavior (state, context) {
   const messages = context.messages();
   const ns = context.neighbors();
@@ -646,7 +636,7 @@ We run an experiment in HASH that executes a simulation multiple times with diff
 
 Let's vary the minimum skill it takes to produce an apple from 0 to 1. We can see that the price varies step-by-step.
 
-![](images/selling-vs-not-selling.png)
+![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/6807d53b-1f74-407d-dd35-5073df11f000/public)
 
 The results show a wide distribution of outcomes -- even though we the simulation was generated using a simple set of instructions and parameters. We can see that the greatest changes in production are when the minimum `skill` is set to around `0.6`. HASH allows for building insights about these complex systems that go above and beyond the tools of normal econometrics.
 
@@ -668,7 +658,7 @@ We will model setting up a circle of agents that can generate, answer, and trans
 
 So far, we have initialized agents in HASH using one of the preset scripts, `create_grids.js`. However, it is also possible to use a script to set up a circular arrangement of agents. Let's have a look at `create_call_centres.js`.
 
-```
+```javascript
 //Set up a ring of n call centers and randomly generate variables
 const behavior = (state, context) => {
   const { n_call_centers, call_distribution, skill_level, operators } = context.globals();
@@ -690,16 +680,16 @@ const behavior = (state, context) => {
 
 In addition to placing agents in a circle, we can also add a representation of links between them. Let's take a look at `create_links.js`.
 
-```
+```javascript
 const generateLink = (agent_a,agent_b, links_capacity) => {
-  //Generate a link capacity at random
+  // Generate a link capacity at random
     const capacity = Math.round(Math.random() * (links_capacity.max - links_capacity.min)) + links_capacity.min;
     const available = capacity !== 0 ? true : false;
 
-    //Tag every link with a standard agent ID
+    // Tag every link with a standard agent ID
     const agent_id = hash_stdlib.generateAgentID();
 
-    //Create a link between the two call centers
+    // Create a link between the two call centers
     const pos_a = agent_a.position;
     const pos_b = agent_b.position;
 
@@ -713,7 +703,7 @@ const generateLink = (agent_a,agent_b, links_capacity) => {
     const mid_y = (pos_a[1] + pos_b[1]) / 2
 
 
-    //Create the link agent object, using parameters defined in HASH
+    // Create the link agent object, using parameters defined in HASH
     link = {
           agent_id,
           capacity,
@@ -738,14 +728,14 @@ The links have a length equal to the distance between caller agents, and a width
 
 Taking a look at `generate_calls.js`, we can see how the HASH standard library allows for statistical modelling of calls in the simulation.
 
-```
+```javascript
 const calls_generated = hash_stdlib.stats.triangular.sample(...state.call_generation)
 ```
 
 The stats module in the HASH standard library provides a wide range of functions used in statistical modelling. You can check out the [full library on GitHub](https://github.com/hashintel/hash/tree/master/packages/engine/stdlib).
 
-```
-//For each call center, generate a set of random calls by sampling a distribution
+```javascript
+// For each call center, generate a set of random calls by sampling a distribution
 const behavior = (state, context) => {
   const { mean_call_duration } = context.globals();
 
@@ -769,7 +759,7 @@ Calls are generated stochastically and added to a queue. This simulates the beha
 
 Taking a look at `link_transfer.js`, we can see how the simulation displays links and their capacity to forward calls. If a call to a link is made when there is not enough capacity, the call is balked.
 
-```
+```javascript
   if (index < external_calls.length) {
     for (let i = index; i < external_calls.length; i++) {
       state.addMessage(external_calls[index].from, "balked_call");
@@ -779,8 +769,8 @@ Taking a look at `link_transfer.js`, we can see how the simulation displays link
 
 The flow of traffic in the queuing simulation can be understood through color coding.
 
-```
-  // // Visuals 
+```javascript
+  // Visuals 
   const color_proportion = state.sent / state.capacity;
   if (!color_proportion) {
     state.rgb = [0, 0, 0]
@@ -791,12 +781,11 @@ The flow of traffic in the queuing simulation can be understood through color co
 
 Our main call center agents are also color coded, but this time based on the proportion of calls that make it through. Let's take a look at `answer_calls.js`.
 
-```
+```javascript
 const behavior = (state, context) => {
   //---------- 
   // Answering calls code 
   //---------- 
-
 
   // Visuals 
   const color_proportion = (state.current_calls.length + state.call_queue.length) / (20 + state.operators);
@@ -808,13 +797,13 @@ const behavior = (state, context) => {
 
 Each agent has a property `state.rgb` that allows for a behavior to modify the display color. In this case, we use the color to code the agents by success rate.
 
-![](images/call-center-viz-basic.png)
+![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/fdd67973-f1b5-4f1c-8c60-e307a7337000/public)
 
 ### Running the simulation
 
 Let's take a quick peek at the `analysis.json` file before running our simulation. We can see that one of the charts tracks the number of balked calls, which plots a simple timeseries using the variable.
 
-```
+```json
 {
       "title": "Calls Balked",
       "timeseries": ["balked_calls"],
@@ -831,7 +820,7 @@ Now let's use this output to optimize the link capacity, and minimize balked cal
 
 Taking a look at `experiments.json`, we can run an experiment to optimize the transfer capacity of the network. The aim is to minimize the number of balked calls, while not spending too much extra on link capacity.
 
-```
+```json
 "Optimize Transfer Capacity": {
     "type": "optimization",
     "maxRuns": 30,
@@ -850,7 +839,7 @@ Taking a look at `experiments.json`, we can run an experiment to optimize the tr
 
 The above experiments code can be written by hand, or created using the **Experiments** menu in [hCore](https://hash.ai/platform/core) (recommended). It is set to run for 1000 steps. We can then take a look at the collated analysis of the output curves to understand much more about the network than just the optimized result.
 
-![](images/basic-experiment.png)
+![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/12560f2f-d065-4db7-c4ee-7aa5db0f9700/public)
 
 ## Hotelling's Law
 
@@ -870,7 +859,7 @@ HASH allows you to search for and import public datasets to be used in a simulat
 
 In this case, we can take a look at `create_businesses.js` to see how the imported public data is used to initialize the simulation.
 
-```
+```javascript
 const keys = {};
 
 const behavior = (state, context) => {
@@ -912,7 +901,7 @@ const behavior = (state, context) => {
 
 This initialization script generates a set of customers using the dataset, mapping coordinates in 2D. If we take a look at `create_customers.js`, we use the values in the `lng_lat` variable to determine a shoppers longitude and latitude.
 
-```
+```javascript
 const keys = {};
 
 const behavior = (state, context) => {
@@ -946,8 +935,7 @@ These agents have a display in the 3D viewer as well as in the geospatial viewer
 
 The geospatial model can be used to find neighbours on a map. Similar to the 3D model, agents' behaviors run in parallel and their states are updated all at once for every time step.
 
-```
-
+```javascript
 const behavior = (state, context) => {
   const messages = context.messages();
   const neighbors = context.neighbors();
@@ -962,7 +950,7 @@ const behavior = (state, context) => {
 
 In this case, the `customer.js` script is able to search for neighboring businesses and find the lowest price.
 
-```
+```javascript
   // Function to determine cost --> business price + distance from business
   const calculate_cost = (position, price) => {
     const state_position = state.get("position");
@@ -975,7 +963,7 @@ In this case, the `customer.js` script is able to search for neighboring busines
 
 This script models behavior of businesses to open in the locations that are most likely to turn a profit. Taking a look at `business.js`, we see that there is code for running an auction for a location.
 
-```
+```javascript
   const bid = () => {
     const desired_position = state.get("desired_position");
     let open_auctions = state.get("open_auctions");
@@ -997,7 +985,7 @@ Just like in real life, our simulated businesses will try and open in places tha
 
 HASH allows users to program [auction simulations](https://hash.ai/blog/crypto-dynamics-auctions) with custom behavior. In this case, we model a simple Dutch auction, an auction where the price is determined after taking in all bids to arrive at the highest price at which the total offering can be sold.
 
-```
+```javascript
 const behavior = (state, context) => {
   const businesses_ids = state.get("businesses_ids");
   const position = state.get("position");
