@@ -1,18 +1,10 @@
 import { TextField } from "@hashintel/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { OwnedById } from "@local/hash-subgraph";
-import {
-  Box,
-  buttonClasses,
-  Paper,
-  styled,
-  Typography,
-  TypographyProps,
-} from "@mui/material";
+import { Box, buttonClasses, styled, Typography } from "@mui/material";
 import { LoginFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
-import { Inter } from "next/font/google";
 import { useRouter } from "next/router";
 import {
   FormEventHandler,
@@ -27,50 +19,29 @@ import { ArrowRightToBracketRegularIcon } from "../shared/icons/arrow-right-to-b
 import { ArrowTurnDownLeftRegularIcon } from "../shared/icons/arrow-turn-down-left-regular-icon";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { Button, ButtonProps } from "../shared/ui";
+import { AuthHeading } from "./shared/auth-heading";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
+import { AuthPaper } from "./shared/auth-paper";
 import { mustGetCsrfTokenFromFlow, oryKratosClient } from "./shared/ory-kratos";
 import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
 import { WorkspaceContext } from "./shared/workspace-context";
 
 const SignupButton = styled((props: ButtonProps) => (
-  <Button variant="secondary" size="small" sx={{}} {...props} />
+  <Button variant="secondary" size="small" {...props} />
 ))(({ theme }) => ({
   color: theme.palette.common.white,
   background: "#1F2933",
-  transition: theme.transitions.create("background"),
+  transition: theme.transitions.create(["background", "box-shadow"]),
   borderColor: "#283644",
+  boxShadow: theme.shadows[3],
   "&:hover": {
     background: "#283644",
+    boxShadow: theme.shadows[4],
     "&:before": {
       opacity: 0,
     },
   },
-}));
-
-/**
- * @todo: figure out how to make this re-usable in the theme, if it is
- * needed elsewhere.
- */
-const interFont = Inter({
-  weight: ["900"],
-  subsets: ["latin-ext"],
-});
-
-const AuthHeading = styled((props: TypographyProps) => (
-  <Typography variant="h1" {...props} />
-))(({ theme }) => ({
-  marginBottom: theme.spacing(4.25),
-  color: theme.palette.common.black,
-  fontSize: 26,
-  textTransform: "uppercase",
-  fontFamily: interFont.style.fontFamily,
-  fontWeight: interFont.style.fontWeight,
-}));
-
-const AuthPaper = styled(Paper)(({ theme }) => ({
-  borderRadius: "8px",
-  boxShadow: theme.shadows[3],
 }));
 
 const LoginPage: NextPageWithLayout = () => {
@@ -260,8 +231,6 @@ const LoginPage: NextPageWithLayout = () => {
       >
         <AuthPaper
           sx={{
-            paddingY: 11,
-            paddingX: 9,
             flexGrow: 1,
             maxWidth: 600,
           }}

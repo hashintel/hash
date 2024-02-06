@@ -1,224 +1,48 @@
-import { useLazyQuery } from "@apollo/client";
-import { TextField } from "@hashintel/design-system";
-import { Box, Container, Typography } from "@mui/material";
-import { RegistrationFlow } from "@ory/client";
-import { isUiNodeInputAttributes } from "@ory/integrations/ui";
-import { AxiosError } from "axios";
+import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
+import { Grid, styled } from "@mui/material";
 import { useRouter } from "next/router";
-import {
-  FormEventHandler,
-  FunctionComponent,
-  useEffect,
-  useState,
-} from "react";
+import { useEffect, useState } from "react";
 
-import { useHashInstance } from "../components/hooks/use-hash-instance";
 import { useUpdateAuthenticatedUser } from "../components/hooks/use-update-authenticated-user";
-import { HasAccessToHashQuery } from "../graphql/api-types.gen";
-import { hasAccessToHashQuery } from "../graphql/queries/user.queries";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
-import { Button } from "../shared/ui";
+import { Button, ButtonProps } from "../shared/ui";
 import { useAuthInfo } from "./shared/auth-info-context";
+import { AuthLayout } from "./shared/auth-layout";
 import { parseGraphQLError } from "./shared/auth-utils";
-import {
-  IdentityTraits,
-  mustGetCsrfTokenFromFlow,
-  oryKratosClient,
-} from "./shared/ory-kratos";
-import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
 import { AccountSetupForm } from "./signup.page/account-setup-form";
+import { SignupRegistrationForm } from "./signup.page/signup-registration-form";
+import { SignupRegistrationRightInfo } from "./signup.page/signup-registration-right-info";
 
-const KratosRegistrationFlowForm: FunctionComponent = () => {
-  const router = useRouter();
-  const { hashInstance } = useHashInstance();
-  const { refetch } = useAuthInfo();
+const LoginButton = styled((props: ButtonProps) => (
+  <Button variant="secondary" size="small" {...props} />
+))(({ theme }) => ({
+  color: theme.palette.gray[90],
+  background: theme.palette.blue[10],
+  transition: theme.transitions.create(["background", "box-shadow"]),
+  borderColor: theme.palette.common.white,
+  boxShadow: theme.shadows[3],
+  "&:hover": {
+    background: theme.palette.common.white,
+    boxShadow: theme.shadows[4],
+    "&:before": {
+      opacity: 0,
+    },
+  },
+}));
 
-  useEffect(() => {
-    // If user registration is disabled, redirect the user to the login page
-    if (
-      hashInstance &&
-      !hashInstance.properties.userSelfRegistrationIsEnabled
-    ) {
-      void router.push("/login");
-    }
-  }, [hashInstance, router]);
+const containerWidth = "1200px";
 
-  // The "flow" represents a registration process and contains
-  // information about the form we need to render (e.g. username + password)
-  const [flow, setFlow] = useState<RegistrationFlow>();
+const containerLeftMargin = `((100vw - ${containerWidth}) / 2)`;
 
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [errorMessage, setErrorMessage] = useState<string | undefined>();
+const containerPaddingX = "24px";
 
-  const { handleFlowError } = useKratosErrorHandler({
-    flowType: "registration",
-    setFlow,
-    setErrorMessage,
-  });
+const containerLeftContentWidth = `((${containerWidth} - ${containerPaddingX}) * (7 / 12))`;
 
-  const [checkUserAccess] =
-    useLazyQuery<HasAccessToHashQuery>(hasAccessToHashQuery);
-
-  // Get ?flow=... from the URL
-  const { flow: flowId, return_to: returnTo } = router.query;
-
-  // In this effect we either initiate a new registration flow, or we fetch an existing registration flow.
-  useEffect(() => {
-    // If the router is not ready yet, or we already have a flow, do nothing.
-    if (!router.isReady || flow) {
-      return;
-    }
-
-    // If ?flow=.. was in the URL, we fetch it
-    if (flowId) {
-      oryKratosClient
-        .getRegistrationFlow({ id: String(flowId) })
-        // We received the flow - let's use its data and render the form!
-        .then(({ data }) => setFlow(data))
-        .catch(handleFlowError);
-      return;
-    }
-
-    // Otherwise we initialize it
-    oryKratosClient
-      .createBrowserRegistrationFlow({
-        returnTo: returnTo ? String(returnTo) : undefined,
-      })
-      .then(({ data }) => setFlow(data))
-      .catch(handleFlowError);
-  }, [flowId, router, router.isReady, returnTo, flow, handleFlowError]);
-
-  const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
-    event.preventDefault();
-
-    if (!flow || !email || !password) {
-      return;
-    }
-
-    const csrf_token = mustGetCsrfTokenFromFlow(flow);
-
-    const traits: IdentityTraits = {
-      emails: [email],
-    };
-
-    void router
-      // On submission, add the flow ID to the URL but do not navigate. This prevents the user losing
-      // their data when they reload the page.
-      .push(`/signup?flow=${flow.id}`, undefined, { shallow: true })
-      .then(() =>
-        oryKratosClient
-          .updateRegistrationFlow({
-            flow: flow.id,
-            updateRegistrationFlowBody: {
-              csrf_token,
-              traits,
-              password,
-              method: "password",
-            },
-          })
-          .then(async () => {
-            const hasAccessToHash = await checkUserAccess().then(
-              ({ data }) => data?.hasAccessToHash,
-            );
-            if (!hasAccessToHash) {
-              void router.push("/");
-              return;
-            }
-
-            // If the user has successfully logged in and has access to complete signup,
-            // refetch the authenticated user which should transition the user to the next step of the signup flow.
-            void refetch();
-          })
-          .catch(handleFlowError)
-          .catch((err: AxiosError<RegistrationFlow>) => {
-            // If the previous handler did not catch the error it's most likely a form validation error
-            if (err.response?.status === 400) {
-              // Yup, it is!
-              setFlow(err.response.data);
-              return;
-            }
-
-            return Promise.reject(err);
-          }),
-      );
-  };
-
-  const emailInputUiNode = flow?.ui.nodes.find(
-    ({ attributes }) =>
-      isUiNodeInputAttributes(attributes) &&
-      attributes.name.startsWith("traits.emails"),
-  );
-
-  const passwordInputUiNode = flow?.ui.nodes.find(
-    ({ attributes }) =>
-      isUiNodeInputAttributes(attributes) && attributes.name === "password",
-  );
-
-  return (
-    <>
-      <Typography variant="h1" gutterBottom>
-        Create an account
-      </Typography>
-      <Box
-        component="form"
-        onSubmit={handleSubmit}
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          maxWidth: 500,
-          "> *": {
-            marginTop: 1,
-          },
-        }}
-      >
-        <TextField
-          label="Email"
-          type="email"
-          autoComplete="email"
-          placeholder="Enter your email address"
-          value={email}
-          onChange={({ target }) => setEmail(target.value)}
-          error={
-            !!emailInputUiNode?.messages.find(({ type }) => type === "error")
-          }
-          helperText={emailInputUiNode?.messages.map(({ id, text }) => (
-            <Typography key={id}>{text}</Typography>
-          ))}
-          required
-          inputProps={{ "data-1p-ignore": false }}
-        />
-        <TextField
-          label="Password"
-          type="password"
-          autoComplete="new-password"
-          value={password}
-          onChange={({ target }) => setPassword(target.value)}
-          error={
-            !!passwordInputUiNode?.messages.find(({ type }) => type === "error")
-          }
-          helperText={passwordInputUiNode?.messages.map(({ id, text }) => (
-            <Typography key={id}>{text}</Typography>
-          ))}
-          required
-          inputProps={{ "data-1p-ignore": false }}
-        />
-        <Button type="submit">Sign up with email</Button>
-        {flow?.ui.messages?.map(({ text, id }) => (
-          <Typography key={id}>{text}</Typography>
-        ))}
-        {errorMessage ? <Typography>{errorMessage}</Typography> : null}
-        <Button variant="secondary" href="/login">
-          Already have an account? Log in
-        </Button>
-      </Box>
-    </>
-  );
-};
-
-const KratosVerificationFlowForm: FunctionComponent = () => {
-  return null;
-};
+const distanceFromLeft = `calc(
+  ${containerLeftMargin}
+  + ${containerPaddingX}
+  + ${containerLeftContentWidth}
+)`;
 
 const SignupPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -262,24 +86,47 @@ const SignupPage: NextPageWithLayout = () => {
   const userHasVerifiedEmail = true;
 
   return (
-    <Container sx={{ pt: 10 }}>
-      {authenticatedUser ? (
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-        userHasVerifiedEmail ? (
-          <AccountSetupForm
-            onSubmit={handleAccountSetupSubmit}
-            loading={updateUserLoading}
-            errorMessage={errorMessage}
-            email={authenticatedUser.emails[0]!.address}
-            invitationInfo={invitationInfo}
-          />
-        ) : (
-          <KratosVerificationFlowForm />
+    <AuthLayout
+      sx={{
+        background: ({ palette }) =>
+          `linear-gradient(
+            to right,
+            ${palette.gray[10]} 0%, 
+            ${palette.gray[10]} ${distanceFromLeft},
+            ${palette.gray[20]} ${distanceFromLeft},
+            ${palette.gray[20]} 100%)`,
+      }}
+      headerEndAdornment={
+        authenticatedUser ? null : (
+          <LoginButton href="/login" endIcon={<ArrowUpRightRegularIcon />}>
+            Sign In
+          </LoginButton>
         )
-      ) : (
-        <KratosRegistrationFlowForm />
-      )}
-    </Container>
+      }
+    >
+      <Grid container spacing={16}>
+        <Grid item md={7}>
+          {authenticatedUser ? (
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+            userHasVerifiedEmail ? (
+              <AccountSetupForm
+                onSubmit={handleAccountSetupSubmit}
+                loading={updateUserLoading}
+                errorMessage={errorMessage}
+                email={authenticatedUser.emails[0]!.address}
+                invitationInfo={invitationInfo}
+              />
+            ) : /** @todo: add verification form */
+            null
+          ) : (
+            <SignupRegistrationForm />
+          )}
+        </Grid>
+        <Grid item md={5} sx={{ display: "flex", alignItems: "center" }}>
+          {authenticatedUser ? null : <SignupRegistrationRightInfo />}
+        </Grid>
+      </Grid>
+    </AuthLayout>
   );
 };
 

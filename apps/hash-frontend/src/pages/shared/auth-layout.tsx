@@ -1,4 +1,4 @@
-import { Box, Container } from "@mui/material";
+import { Box, BoxProps, Container } from "@mui/material";
 import { FunctionComponent, PropsWithChildren, ReactNode } from "react";
 
 import { HashIcon } from "../../shared/icons/hash-icon";
@@ -6,16 +6,20 @@ import { HashIcon } from "../../shared/icons/hash-icon";
 export const AuthLayout: FunctionComponent<
   PropsWithChildren & {
     headerEndAdornment?: ReactNode;
+    sx?: BoxProps["sx"];
   }
-> = ({ children, headerEndAdornment }) => {
+> = ({ children, headerEndAdornment, sx }) => {
   return (
     <Box
-      sx={{
-        background: ({ palette }) => palette.gray[10],
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-      }}
+      sx={[
+        {
+          background: ({ palette }) => palette.gray[10],
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+        },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
     >
       <Container
         sx={{
