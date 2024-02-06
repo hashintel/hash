@@ -96,9 +96,7 @@ The simulation contains agents (shops) that set their prices in competition with
 - The blue agents represent open shops, that change their prices in response to buyers.
 - The white agents represent closed shops.
 
-Press the running man play button in the simulation below to see it in action.
-
-<iframe src="https://core.hash.ai/embed.html?project=%40hash%2Fmodel-market&amp;ref=stable&amp;tabs=3d" width="1000" height="600" frameborder="0" scrolling="auto"></iframe>
+Open the [Model Market simulation](https://hash.ai/@hash/model-market) to see it in action.
 
 This is a relatively simplistic toy model, and all of the behaviors of a shop are outlined in `shop.js` and of buyers in `buyer.js`.
 
@@ -285,7 +283,7 @@ Here, the output is a timeseries plot of the variable `avg_lowest_price`, the av
 
 We can experiment with changing global parameters to understand the model a bit better. Let's take a look at changing the global variables in the simulation below. **Click on the analysis tab below to learn more.** If you press _run_ on the simulation, the graph will start generating output.
 
-<iframe src="https://core.hash.ai/embed.html?project=%40hash%2Fmodel-market&amp;ref=stable&amp;tabs=analysis" width="1000" height="600" frameborder="0" scrolling="auto"></iframe>
+[Open the "Model Market" simulation ->](https://hash.ai/@hash/model-market)
 
 We can see the output of the graphs changes in response to changing globals. For example, if we change the `max_price` to 25, the curves we get change significantly. Try it yourself -- see how the curves change in response to different global variables.
 
@@ -312,9 +310,9 @@ The Prisoner's Dilemma is an example of a decision-making problem where agents h
 
 ### Iterated Prisoner's Dilemma Simulation
 
-Our simulation initializes agents in a grid. At each time step, each agent will play against its immediate neighbours using a strategy. **Press the running man play button in the simulation below to see it in action.**
+Our simulation initializes agents in a grid. At each time step, each agent will play against its immediate neighbours using a strategy.
 
-<iframe src="https://core.hash.ai/embed.html?project=%40hash%2Fprisoners-dilemma&amp;ref=stable" width="1000" height="600" frameborder="0" scrolling="auto"></iframe>
+Open the [Prisoner's Dilemma simulation](https://hash.ai/@hash/prisoners-dilemma) to see this action.
 
 At each time step, agents decide whether to cooperate or defect with their neighbors.
 
@@ -470,7 +468,7 @@ The grid layout is the simplest of many layouts of agents that can be simulated 
 
 Looking at the analysis view tab, we can easily see how many agents are currently using each strategy in an iterated Prisoner's Dilemma.
 
-<iframe src="https://core.hash.ai/embed.html?project=%40hash%2Fprisoners-dilemma&amp;ref=stable&amp;view=analysis" width="1000" height="600" frameborder="0" scrolling="auto"></iframe>
+[Open the "Prisoner's Dilemma" simulation ->](https://hash.ai/@hash/prisoners-dilemma)
 
 We can see that the tit-for-tat (tft) strategy dominates the others, as we can see from the output graphs. This is coded blue, which is why the squares in the 3D view all turn blue over the course of our iterated game.
 
@@ -482,11 +480,11 @@ This is because it can produce a particular good or service at a lower _opportun
 
 Economic theory predicts how trade and prices may converge on equilibriums, but cannot alone be used to predict patterns of trade between partners. In our next simulation, we'll see how the simple rule of comparative advantage leads to more complex endogenous patterns over time.
 
-In this section, we will be following along with the [Simple Trading simulation](https://core.hash.ai/@hash/simple-trading/7.0.0). The colors in the simulation represent the price of apples, or how many apples can be traded for the equivalent amount of gold.
+In this section, we will be following along with the [Simple Trading simulation](https://hash.ai/@hash/simple-trading). The colors in the simulation represent the price of apples, or how many apples can be traded for the equivalent amount of gold.
 
-<iframe src="https://core.hash.ai/embed.html?project=%40hash%2Fsimple-trading&amp;ref=stable" width="1000" height="600" frameborder="0" scrolling="auto"></iframe>
+[Open the "Simple Trading" simulation ->](https://hash.ai/@hash/simple-trading)
 
-The simulation deals with a nxn grid of agents who have differing capabilities to produce apples and gold. Will they produce apples and gold, or specialize in one of the two? Unlike in idealized economic models, in the real world trade rarely exists in equilibrium.
+The simulation deals with a `n * n` grid of agents who have differing capabilities to produce apples and gold. Will they produce apples and gold, or specialize in one of the two? Unlike in idealized economic models, in the real world trade rarely exists in equilibrium.
 
 ### Setting up the simulation
 
@@ -650,7 +648,7 @@ There are a wide range of real-life applications of queuing theory and operation
 
 We've modeled a [circular call center](https://hash.ai/@hash/interconnected-call-center) that can receive and route calls using links between agents. Each link has a varied capacity in the simulation. It will model the wait time and proportion of balked calls in order to maximize the efficiency of the network.
 
-<iframe src="https://core.hash.ai/embed.html?project=%40hash%2Finterconnected-call-center&amp;ref=stable" width="1000" height="600" frameborder="0" scrolling="auto"></iframe>
+[Open the "Interconnected Call Center" simulation ->](https://hash.ai/@hash/interconnected-call-center)
 
 We will model setting up a circle of agents that can generate, answer, and transfer calls, and use the simulation to better understand the dynamics of the network, especially when it is not in equilibrium. We'll use these insights to determine the optimal transfer capacity between links.
 
@@ -812,9 +810,7 @@ Let's take a quick peek at the `analysis.json` file before running our simulatio
 },
 ```
 
-Taking a look at the analysis tab, we can easily see the timeseries data for the number of balked calls on a graph.
-
-<iframe src="https://core.hash.ai/embed.html?project=%40hash%2Finterconnected-call-center&amp;ref=stable&amp;view=analysis" width="1000" height="600" frameborder="0" scrolling="auto"></iframe>
+Taking a look at the analysis tab of our []"Interconnected Call Center" simulation](https://hash.ai/@hash/interconnected-call-center), we can easily see the timeseries data for the number of balked calls on a graph.
 
 Now let's use this output to optimize the link capacity, and minimize balked calls.
 
@@ -851,7 +847,7 @@ Hotelling's Law can be applied in a wide variety of situations, from the locatio
 
 We'll be examining Hotelling's Law by using a simulation to track the offerings of shops in a real life neighbourhood. The [Local Competition](https://core.hash.ai/@hash/local-competition/stable) simulation uses a dataset to model these shops.
 
-<iframe src="https://core.hash.ai/embed.html?project=%40hash%2Flocal-competition&amp;ref=stable&amp;view=geo" width="1000" height="600" frameborder="0" scrolling="auto"></iframe>
+[Open the "Local Competition" simulation ->](https://hash.ai/@hash/location-competition)
 
 ### Making use of data
 
@@ -1009,7 +1005,7 @@ Taking a look at `location_dutch_auction.js`, we see that businesses in the mode
 
 We can use the simulation to see Hotelling's law in action. We can run an experiment to show how the offerings of buinseses converge on a similar point. Let's take a look at at the analysis graph showing customer's decisions.
 
-<iframe src="https://core.hash.ai/embed.html?project=%40hash%2Flocal-competition&amp;ref=stable&amp;view=analysis" width="1000" height="600" frameborder="0" scrolling="auto"></iframe>
+[Open the "Local Competition" simulation ->](https://hash.ai/@hash/local-competition)
 
 After running the simulation for a sufficient number of steps, the offerings converge on two sets of similar products, just as Hotelling's Law predicts.
 
