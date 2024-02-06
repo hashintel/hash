@@ -25,14 +25,14 @@ We use agent-based modeling to model both the behavior of individual agents, and
 
 In our simulation, each agent holds a portfolio of securities, which are stored in an array. Each array entry stores a number of properties which make up the basic model.
 
-```
+```javascript
 const behavior = (state, context) => {
 
   const items = context.globals()["trade_items"];
            
   if (!state.portfolio){
 
-    //Initialize empty array
+    // Initialize empty array
     state.portfolio = []
     for (item of items){
       var agent_portfolio_item = {"name": item.name};
@@ -66,7 +66,7 @@ When exercising an option, our code does not need to directly deal with the orig
 
 We will start by initializing every agent with a randomized portfolio of assets. In our example, we choose a number of securities including commodities and ETF funds.
 
-```
+```javascript
 /**
  * @param {AgentState} state of the agent
  * @param {AgentContext} context of the agent
@@ -77,7 +77,7 @@ const behavior = (state, context) => {
            
   if (!state.portfolio){
 
-    //Initialize empty array
+    // Initialize empty array
     state.portfolio = []
     for (item of items){
       var agent_portfolio_item = {"name": item.name};
@@ -101,8 +101,8 @@ We could also simulate trading of tokens or cryptocurrency using the same model.
 
 Separately we store the basic properties of each security, such as volatility and time to maturity. As long as a security has reached maturity, we can increase its value at every time step according to the rate of return.
 
-```
-//If security has reached maturity, start earning interest
+```javascript
+// If security has reached maturity, start earning interest
     if (p.time == 0){
       p.stored_price = p.stored_price * risk_free_interest_rate;
       p.stored_price = hstd.stats.normal.sample(p.stored_price, p.volatility)
@@ -115,15 +115,15 @@ At each time step for an agent, we increase the price of each security according
 
 The value of a long-short portfolio can be easily calculated from the stored properties. We will use the Black-Scholes equation to calculate the total value of all securities at any particular moment.
 
-```
-  //Excerpt to value the portfolio  
+```javascript
+  // Excerpt to value the portfolio  
     state.value = 0;
     for (let i = 0; i < state.portfolio.length; i++){
       if (state.portfolio[i].time == 0){
         state.value += state.portfolio[i].stored_price;
       }
       else{
-        //Calculate value using Black-Sholes
+        // Calculate value using Black-Sholes
         let underlying_price = state.portfolio.filter(item => item.name == state.portfolio[i].name)[0].stored_price;
         state.value += BlackScholes(state.portfolio[i].quantity > 0, underlying_price, state.portfolio[i].stored_price, 
         state.portfolio[i].time, risk_free_interest_rate,state.portfolio[i].volatility);
@@ -137,7 +137,7 @@ The value of a long-short portfolio can be easily calculated from the stored pro
 
 In the simulation, every agent decides whether to trade at every time step. We can write a script to use a strategy to compute a trade, where trade and the price at which the trade is made are set by the script.
 
-```
+```javascript
 /**
  * @param {AgentState} state of the agent
  * @param {AgentContext} context of the agent
@@ -145,15 +145,15 @@ In the simulation, every agent decides whether to trade at every time step. We c
 const behavior = (state, context) => {
         state.trades = []
 
-  //Check each neighbour, and each item in the neighbours portfolio
+  // Check each neighbour, and each item in the neighbours portfolio
   context.neighbors().map(n => {
     if (n.portfolio){
       for (p of n.portfolio){
           
-        //Make trades completely at random
+        // Make trades completely at random
         if (Math.random() < 0.001){
 
-          //Decide the trade quantity and trade direction at random
+          // Decide the trade quantity and trade direction at random
           var trade = p;
           trade.quantity = hstd.stats.normal.sample(0,1);
             
@@ -170,9 +170,9 @@ const behavior = (state, context) => {
 
 Agents are always willing to go short, so the quantity and agent may have of any security can be negative.
 
-In the simplest case, we can trade according to a completely random strategy, as shown above. To make a trade, we simply set the parameters **trade**, **price** and **trade\_partner** as part of the state. The underlying simulation code will make the trade between our agent and its trade partner, and update both agents portfolios.
+In the simplest case, we can trade according to a completely random strategy, as shown above. To make a trade, we simply set the parameters `trade`, `price` and `trade_partner` as part of the state. The underlying simulation code will make the trade between our agent and its trade partner, and update both agents portfolios.
 
-```
+```javascript
 /**
  * @param {AgentState} state of the agent
  * @param {AgentContext} context of the agent
@@ -188,21 +188,20 @@ function behavior(state, context) {
 
   for (trade of state.trades){
 
-    //If we don't have trades initialize for this agent yet, create an empy array
+    // If we don't have trades initialize for this agent yet, create an empy array
     if (!state.curr_trades[trade.trade_partner]){
       state.curr_trades[trade.trade_partner] = [];
     }
 
-    //Update internal variables payment and total_price
+    // Update internal variables payment and total_price
     var payment = state.portfolio[0];
     payment.quantity = -state.stored_price/payment.stored_price;
 
-
-    //Push the trade and the payment
+    // Push the trade and the payment
     state.curr_trades[trade.trade_partner].push(trade.trade);
     state.curr_trades[trade.trade_partner].push(payment);
 
-    //Set trade to null
+    // Set trade to null
     trade = null;
   }
 };
@@ -212,23 +211,22 @@ function behavior(state, context) {
 
 We can make a slight modification to the random strategy by only making the trades that are rational from each agent's point of view.
 
-```
+```javascript
 /**
  * @param {AgentState} state of the agent
  * @param {AgentContext} context of the agent
  */
 const behavior = (state, context) => {
   state.trades = []
-  //Check each neighbour, and each item in the neighbours portfolio
+  // Check each neighbour, and each item in the neighbours portfolio
   context.neighbors().map(n => {
     if (n.portfolio){
       for (p of n.portfolio){
           
-      //Only trade if there is an arbitrage opportunity
-      //between our price and our neighbours
+      // Only trade if there is an arbitrage opportunity between our price and our neighbors
       let valuation = state.portfolio.filter(item => item.name == p.name)[0].stored_price;
       if (p.stored_price < valuation && Math.random() < 0.1){
-          //Decide the trade quantity at random
+          // Decide the trade quantity at random
           var trade = p;
           trade.quantity = hstd.stats.normal.sample(0,1);
             
@@ -249,39 +247,38 @@ The trades are still generated at random, but we only make the trade if the neig
 
 Alternatively, we can trade by making use of the Black-Scholes equation. We can make trades on options that have a maturity time that is set at some point in the future. In our example, for simplicity, we are still setting most of the parameters randomly.
 
-```
+```javascript
 const behavior = (state, context) => {
   const risk_free_interest_rate = context.globals()["risk_free_interest_rate"];
     
     state.trades = [];
-  //Check each neighbour, and each item in the neighbours portfolio
+  // Check each neighbour, and each item in the neighbours portfolio
   context.neighbors().map(n => {
     if (n.portfolio){
       for (p of n.portfolio){
 
-      //This is how much we will pay for the security at time n
-      //Lets just fix the current underlying price in place
+      // This is how much we will pay for the security at time n
+      // Let's just fix the current underlying price in place
       let underlying_price = state.portfolio.filter(item => item.name == p.name)[0].price;
       let strike_price = underlying_price; 
 
-      //Randomly choose put or call options  
-      //and time to maturity
+      // Randomly choose put or call options and time to maturity
       let timeToMaturtity = Math.round(Math.random()*10);
       let putCall = Math.random() < 0.5 ? true : false 
       
-      //This is our estimate of the secutity's value right now
+      // This is our estimate of the secutity's value right now
       let valuation = BlackScholes(putCall, underlying_price, strike_price, 
         timeToMaturtity, risk_free_interest_rate,p.volatility);
 
-      //Make the trade if its a good deal
+      // Make the trade if its a good deal
       if (p.stored_price < valuation  && Math.random() < 0.1){
-          //Decide the trade quantity at random
+          // Decide the trade quantity at random
           p.time = timeToMaturtity;
           p.strike_price = strike_price;
           p.quantity = Math.max(hstd.stats.normal.sample(0,1),0); 
           
           if (putCall == false){
-            //Short positions are represented by negative quantitiy
+            // Short positions are represented by negative quantitiy
             p.quantity *= -1;
           }
           var trade = p;
@@ -314,17 +311,13 @@ To use the strategy, include it in the `globals.json` file in the array strategi
 
 We can use HASH’s analysis tool to understand which strategies are most effective at increasing the value of a portfolio. We can define metrics to count how many agents are using each strategy, and then graph the output. Our metrics count the number of agents coded a certain color, which allows us to graph the result.
 
-<iframe src="https://core.hash.ai/embed.html?project=%40hash%2Ffinancial-toolbox-example&amp;ref=main&amp;view=analysis&amp;tabs=analysis" width="1000" height="600" frameborder="0" scrolling="auto"></iframe>
-
-Our first plot graphs the prevalence of each of the strategies we have coded. We can run the simulation and see if, for example, changing the real interest rate affects which strategies win and are adopted more often.
+The first plot in our [financial toolbox example simulation](https://hash.ai/@hash/financial-toolbox-example) graphs the prevalence of each of the strategies we have coded. We can run the simulation and see if, for example, changing the real interest rate affects which strategies win and are adopted more often.
 
 ### Total Assets
 
 Another way to use graphs to understand the simulation is to graph the total value of assets held by all the agents. We define a metric that sums the valuation of the portfolio for each agent, using the code we wrote earlier.
 
-<iframe src="https://core.hash.ai/embed.html?project=%40hash%2Ffinancial-toolbox-example&amp;ref=main&amp;view=analysis&amp;tabs=analysis" width="1000" height="600" frameborder="0" scrolling="auto"></iframe>
-
-We can graph the results over time to show how securities gradually increase in value exponentially. We can again adjust the parameter for the real interest rate to change the rate of exponential growth.
+We can graph the results over time to show how securities gradually increase in value exponentially. We can again adjust the parameter for the real interest rate to change the rate of exponential growth. This graph can again be found in the financial toolbox [example simulation](https://hash.ai/@hash/financial-toolbox-example).
 
 ### Value at Risk
 
@@ -332,6 +325,4 @@ Value at Risk (VaR) is a statistic that quantifies the maximum extent of possibl
 
 VaR is difficult to calculate when including nonlinear trades such as options. In such cases we would typically use another method, “Monte Carlo VaR”, to calculate VaR.
 
-<iframe src="https://core.hash.ai/embed.html?project=%40hash%2Ffinancial-toolbox-example&amp;ref=main&amp;view=analysis&amp;tabs=analysis" width="1000" height="600" frameborder="0" scrolling="auto"></iframe>
-
-In the above example we plot a histogram of the total portfolio value of all of the assets. This "Value Distribution" will allow us to understand the distribution of outcomes when trading with the tested strategies.
+In the [financial toolbox example](https://hash.ai/@hash/financial-toolbox-example) we plot a histogram of the total portfolio value of all of the assets. This "Value Distribution" will allow us to understand the distribution of outcomes when trading with the tested strategies.
