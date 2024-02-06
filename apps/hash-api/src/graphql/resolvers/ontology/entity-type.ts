@@ -49,6 +49,7 @@ export const createEntityTypeResolver: ResolverFn<
     ownedById: ownedById ?? (user.accountId as OwnedById),
     schema: entityType,
     icon: params.icon ?? undefined,
+    labelProperty: params.labelProperty ?? undefined,
     relationships: [
       {
         relation: "setting",

@@ -1,4 +1,4 @@
-import { EntityType } from "@blockprotocol/graph";
+import { EntityTypeWithMetadata } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { EntityTypeEditor } from "@hashintel/type-editor";
 import { OwnedById, PropertyTypeWithMetadata } from "@local/hash-subgraph";
@@ -8,12 +8,11 @@ import { useEntityTypesContextRequired } from "../../../shared/entity-types-cont
 import { usePropertyTypes } from "../../../shared/property-types-context";
 import { useDataTypesContext } from "../data-types-context";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
-import { getTypesWithoutMetadata } from "./shared/get-types-without-metadata";
 
 type DefinitionTabProps = {
   ownedById: OwnedById | null;
   entityTypeAndPropertyTypes: {
-    entityType: EntityType;
+    entityType: EntityTypeWithMetadata;
     propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata>;
   };
   onNavigateToType: (url: VersionedUrl) => void;
@@ -31,42 +30,32 @@ export const DefinitionTab = ({
   const { propertyTypes: possiblyIncompletePropertyTypeOptions } =
     usePropertyTypes();
 
-  const [propertyTypeOptionsWithMetadata, propertyTypeOptions] = useMemo(() => {
-    const propertyTypesWithMetadata = {
+  const propertyTypeOptions = useMemo(() => {
+    return {
       ...possiblyIncompletePropertyTypeOptions,
       ...entityTypeAndPropertyTypes.propertyTypes,
     };
-
-    return [
-      propertyTypesWithMetadata,
-      getTypesWithoutMetadata(propertyTypesWithMetadata),
-    ];
   }, [entityTypeAndPropertyTypes, possiblyIncompletePropertyTypeOptions]);
 
-  const [entityTypeOptionsWithMetadata, entityTypeOptions] = useMemo(() => {
+  const entityTypeOptions = useMemo(() => {
     if (!entityTypesContext.entityTypes) {
-      return [];
+      return null;
     }
 
-    const entityTypesWithMetadata = Object.fromEntries(
+    return Object.fromEntries(
       entityTypesContext.entityTypes.map((entityType) => [
         entityType.schema.$id,
         entityType,
       ]),
     );
-
-    return [
-      entityTypesWithMetadata,
-      getTypesWithoutMetadata(entityTypesWithMetadata),
-    ];
   }, [entityTypesContext.entityTypes]);
 
   const typesWithMetadata = useMemo(
     () => ({
-      ...entityTypeOptionsWithMetadata,
-      ...propertyTypeOptionsWithMetadata,
+      ...entityTypeOptions,
+      ...propertyTypeOptions,
     }),
-    [entityTypeOptionsWithMetadata, propertyTypeOptionsWithMetadata],
+    [entityTypeOptions, propertyTypeOptions],
   );
 
   const ontologyFunctions = useEditorOntologyFunctions(
@@ -94,7 +83,7 @@ export const DefinitionTab = ({
       dataTypeOptions={dataTypeOptions}
       entityType={entityTypeAndPropertyTypes.entityType}
       entityTypeOptions={entityTypeOptions}
-      key={entityTypeAndPropertyTypes.entityType.$id} // Reset state when switching entity types, helps avoid state mismatch issues
+      key={entityTypeAndPropertyTypes.entityType.schema.$id} // Reset state when switching entity types, helps avoid state mismatch issues
       ontologyFunctions={ontologyFunctions}
       propertyTypeOptions={propertyTypeOptions}
       readonly={readonly}

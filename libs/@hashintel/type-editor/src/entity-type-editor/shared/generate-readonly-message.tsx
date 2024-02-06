@@ -14,15 +14,15 @@ export const generateReadonlyMessage = (
 
   return "inheritanceChain" in args
     ? `This property is inherited. To edit this value or remove it, modify the parent type from which it is inherited (${
-        entityTypeInheritedFrom!.title
+        entityTypeInheritedFrom!.schema.title
       }${
         args.inheritanceChain.length > 1
           ? ` via ${args.inheritanceChain
               .slice(0, -1)
-              .map((type) => type.title)
+              .map((type) => type.schema.title)
               .join(", ")}`
           : ""
-      }), or remove ${entityTypeInheritedFrom!.title}${
+      }), or remove ${entityTypeInheritedFrom!.schema.title}${
         args.inheritanceChain.length > 1
           ? " from the inheritance chain"
           : " from the 'extends' section"

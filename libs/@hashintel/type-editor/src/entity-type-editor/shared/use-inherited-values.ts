@@ -1,12 +1,9 @@
-import {
-  EntityType,
-  extractBaseUrl,
-  VersionedUrl,
-} from "@blockprotocol/type-system/slim";
+import { EntityTypeWithMetadata } from "@blockprotocol/graph";
+import { extractBaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { useCallback } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
-import { getFormDataFromSchema } from "../../get-form-data-from-schema";
+import { getFormDataFromEntityType } from "../../get-form-data-from-entity-type";
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
 import {
   EntityTypeEditorFormData,
@@ -22,7 +19,7 @@ export type InheritanceData = {
    * e.g. for inherited properties for Dog, which inherits from Animal, which inherits from LivingThing,
    *   the inheritance chain for a property referenced by LivingThing would be [Dog, Animal, LivingThing]
    */
-  inheritanceChain: EntityType[];
+  inheritanceChain: EntityTypeWithMetadata[];
 };
 
 /**
@@ -34,13 +31,16 @@ export type InheritanceData = {
  *    represented as an array containing each parent along the path
  */
 export type InheritedValues = {
-  inheritanceChains: EntityType[][];
+  labelProperty?: string;
+  inheritanceChains: EntityTypeWithMetadata[][];
   links: (EntityTypeEditorLinkData & InheritanceData)[];
   properties: (EntityTypeEditorPropertyData & InheritanceData)[];
 };
 
 type ValueMap = {
-  inheritanceChains: EntityType[][];
+  inheritanceChains: EntityTypeWithMetadata[][];
+  /** The nearest labelProperty in the inheritance chain, starting with the direct parent(s) */
+  labelProperty?: string;
   // A map between a link's id -> its form data, and where it's inherited from
   links: Record<VersionedUrl, InheritedValues["links"][0]>;
   // A map between a property's id -> its form data, and where it's inherited from
@@ -64,9 +64,9 @@ const versionedUrlToTitle = (url: VersionedUrl) =>
  */
 const addInheritedValuesForEntityType = (
   entityTypeId: VersionedUrl,
-  entityTypeOptions: Record<VersionedUrl, EntityType>,
+  entityTypeOptions: Record<VersionedUrl, EntityTypeWithMetadata>,
   inheritedValuesMap: ValueMap,
-  inheritanceChainToHere: EntityType[] = [],
+  inheritanceChainToHere: EntityTypeWithMetadata[] = [],
 ) => {
   const entityType = entityTypeOptions[entityTypeId];
 
@@ -78,7 +78,12 @@ const addInheritedValuesForEntityType = (
 
   const newInheritanceChain = [...inheritanceChainToHere, entityType];
 
-  const { properties, links } = getFormDataFromSchema(entityType);
+  if (!inheritedValuesMap.labelProperty && entityType.metadata.labelProperty) {
+    // eslint-disable-next-line no-param-reassign
+    inheritedValuesMap.labelProperty = entityType.metadata.labelProperty;
+  }
+
+  const { properties, links } = getFormDataFromEntityType(entityType);
 
   for (const link of links) {
     const duplicateLinkKey = Object.keys(inheritedValuesMap.links).find(
@@ -93,8 +98,8 @@ const addInheritedValuesForEntityType = (
       throw new Error(
         `Link type '${versionedUrlToTitle(
           duplicateLinkKey,
-        )}' found on two parents: '${duplicateInheritedFrom.title}' and '${
-          entityType.title
+        )}' found on two parents: '${duplicateInheritedFrom.schema.title}' and '${
+          entityType.schema.title
         }'. Please remove it from one in order to have both as a parent.`,
       );
     }
@@ -121,8 +126,8 @@ const addInheritedValuesForEntityType = (
       throw new Error(
         `Property type '${versionedUrlToTitle(
           duplicatePropertyKey,
-        )}' found on two parents: '${duplicateInheritedFrom.title}' and '${
-          entityType.title
+        )}' found on two parents: '${duplicateInheritedFrom.schema.title}' and '${
+          entityType.schema.title
         }'. Please remove it from one in order to have both as a parent.`,
       );
     }
@@ -134,11 +139,11 @@ const addInheritedValuesForEntityType = (
     };
   }
 
-  if (!entityType.allOf?.length) {
+  if (!entityType.schema.allOf?.length) {
     // we have reached a root entity type, add the inheritance chain to the map
     inheritedValuesMap.inheritanceChains.push(newInheritanceChain);
   } else {
-    entityType.allOf.map(({ $ref }) =>
+    entityType.schema.allOf.map(({ $ref }) =>
       addInheritedValuesForEntityType(
         $ref,
         entityTypeOptions,
@@ -171,6 +176,7 @@ export const useGetInheritedValues = (): ((args: {
 
       return {
         inheritanceChains: Object.values(inheritedValuesMap.inheritanceChains),
+        labelProperty: inheritedValuesMap.labelProperty,
         links: Object.values(inheritedValuesMap.links),
         properties: Object.values(inheritedValuesMap.properties),
       };
