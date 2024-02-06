@@ -125,7 +125,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
 
   const fetchAuthenticatedUser =
     useCallback<RefetchAuthInfoFunction>(async () => {
-      const subgraph = await getMe()
+      const subgraph = await getMe({ fetchPolicy: "network-only" })
         .then(({ data }) =>
           data
             ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
