@@ -17,11 +17,11 @@ export const useTypeVersions = (
     const baseUrl = extractBaseUrl(typeId);
 
     const versions = typedValues(typeOptions ?? {}).filter(
-      (type) => baseUrl === extractBaseUrl(type.$id),
+      (type) => baseUrl === extractBaseUrl(type.schema.$id),
     );
 
     const latestVersion = Math.max(
-      ...versions.map((version) => extractVersion(version.$id)),
+      ...versions.map((version) => extractVersion(version.schema.$id)),
     );
 
     return [extractVersion(typeId), latestVersion, baseUrl] as const;

@@ -41,7 +41,7 @@ export const PropertyExpectedValues = ({
             .map((prop) => {
               const $ref = "items" in prop ? prop.items.$ref : prop.$ref;
 
-              return propertyTypes[$ref]?.title;
+              return propertyTypes[$ref]?.schema.title;
             })
             .filter((title) => title !== undefined);
 

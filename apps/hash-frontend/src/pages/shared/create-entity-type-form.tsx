@@ -4,7 +4,7 @@ import {
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import { Callout, TextField } from "@hashintel/design-system";
-import { linkEntityTypeUrl } from "@hashintel/type-editor/src/shared/urls";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {
   Box,
   formHelperTextClasses,

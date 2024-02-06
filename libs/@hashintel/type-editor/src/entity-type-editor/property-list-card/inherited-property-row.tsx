@@ -10,7 +10,7 @@ export const InheritedPropertyRow = ({
   const { $id, inheritanceChain, required, array } = inheritedPropertyData;
 
   const propertyTypeOptions = usePropertyTypesOptions();
-  const propertySchema = propertyTypeOptions[$id];
+  const propertySchema = propertyTypeOptions[$id]?.schema;
 
   if (!propertySchema) {
     throw new Error(`Inherited property type ${$id} not found`);

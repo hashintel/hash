@@ -64,12 +64,12 @@ export const InheritanceRow = ({
   const { entityTypesArray, directParents } = useMemo(() => {
     const isLinkType = directParentEntityTypeIds.find((id) => linkTypes[id]);
     const entityTypeOptions = Object.values(entityTypes).map((type) => ({
-      ...type,
+      ...type.schema,
       Icon: EntityTypeIcon,
     }));
 
     const linkTypeOptions = Object.values(linkTypes).map((type) => ({
-      ...type,
+      ...type.schema,
       Icon: LinkTypeIcon,
     }));
 
