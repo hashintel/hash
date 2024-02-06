@@ -19,6 +19,7 @@ import {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
+import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import {
   DataTypeRelationAndSubject,
   UpdatePropertyType,
@@ -1200,7 +1201,21 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
   );
 
   for (const web of [...users, ...orgs]) {
-    const existingEntities = await getEntities(context, authentication, {
+    const webOwnedById = extractOwnedByIdFromEntityId(
+      web.metadata.recordId.entityId,
+    );
+
+    const webBotAccountId = await getWebMachineActorId(
+      context,
+      authentication,
+      {
+        ownedById: webOwnedById,
+      },
+    );
+
+    const webBotAuthentication = { actorId: webBotAccountId };
+
+    const existingEntities = await getEntities(context, webBotAuthentication, {
       query: {
         filter: {
           all: [
@@ -1216,9 +1231,7 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
               equal: [
                 { path: ["ownedById"] },
                 {
-                  parameter: extractOwnedByIdFromEntityId(
-                    web.metadata.recordId.entityId,
-                  ),
+                  parameter: webOwnedById,
                 },
               ],
             },
@@ -1244,7 +1257,7 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
       const newEntityTypeId = versionedUrlFromComponents(baseUrl, newVersion);
 
       if (entity.metadata.entityTypeId !== newEntityTypeId) {
-        await updateEntity(context, authentication, {
+        await updateEntity(context, webBotAuthentication, {
           entity,
           entityTypeId: newEntityTypeId,
           properties: entity.properties,
