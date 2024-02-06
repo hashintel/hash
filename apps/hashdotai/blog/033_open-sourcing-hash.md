@@ -9,11 +9,8 @@ categories:
 If you’ve followed HASH (the company) for a while, you’re probably familiar with or have used:
 
 - **[hEngine](https://hash.ai/platform/engine)**: our agent-based modeling simulation engine written in Rust;
-
 - **[hCore](https://hash.ai/platform/core)**: our web-based IDE for quickly prototyping simulations and designing experiments;
-
 - **[hCloud](https://hash.ai/platform/cloud)**: our one-click cloud compute service for executing experiments at scale with zero DevOps or set up required;
-
 - **[hIndex](https://hash.ai/platform/index)**: our online community for simulation modelers - sometimes described as “GitHub meets a package manager” - albeit for simulations and their component parts, supporting datasets, behaviours, agent schemas, and complete simulation models.
 
 A few months ago [we revealed](https://hash.ai/blog/announcing-the-block-protocol) we were working on something new. The [Block Protocol](https://blockprotocol.org/) is now in public draft, and an early preview of our new product, _HASH_, is available for download on GitHub.
@@ -39,13 +36,9 @@ You can expect a hosted version of _HASH_ to replace our present-day _hIndex_ in
 Things you can look out for in the weeks and months ahead:
 
 - improving the UX/UI of the new HASH application (our design lead Maggie Appleton has produced some truly amazing designs and user flows we can’t wait to share)
-
 - allowing non-technical users to connect up SaaS applications and external databases/data warehouses to automate entity creation and updates
-
 - supporting computationally expensive activities in blocks (e.g. advanced SQL queries) through improvements to hCloud
-
 - developing a wider-array of Business Intelligence-type blocks
-
 - a focus on speed and stability as we start refining the product
 
 ## **Future simulation-specific plans**
@@ -53,9 +46,7 @@ Things you can look out for in the weeks and months ahead:
 Once the core product is built, we intend to focus on:
 
 - allowing users to attach programmatic behaviors to entity types, further facilitating the _HASH_ workspace product’s ability to speed simulation model development cycles
-
 - enabling hCloud simulation results to be pumped directly back into users' graphs
-
 - supporting the easy instantiation of agents in simulation models from users' graphs
 
 ## Get involved
@@ -63,13 +54,9 @@ Once the core product is built, we intend to focus on:
 **We’re actively looking to support open-source community members interested in any of the following:**
 
 - Tooling and utilities that improve the block-development process
-
 - Novel or unique blocks not yet widely found in existing block-based editors
-
 - Extending HASH to support programmatic notebooks/in-document REPLs (e.g. inline JavaScript execution, or hCloud-powered Python)
-
 - A Block Protocol plugin for WordPress that works seamlessly with the existing Gutenberg editor (update: or potentially [some deeper integration](https://twitter.com/photomatt/status/1486793646045216769))
-
 - Adding support for the Block Protocol within any other application
 
 [Contact us](https://blockprotocol.org/contact) directly, create a discussion on the [Block Protocol repo](https://github.com/blockprotocol/blockprotocol/discussions), or join us in the [HASH Discord](https://hash.ai/discord).
