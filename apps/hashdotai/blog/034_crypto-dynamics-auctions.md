@@ -1,7 +1,7 @@
 ---
 title: "Crypto Dynamics: Auctions"
 date: "2022-02-22"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/33412e62-521a-4788-2cc8-e58be1922700/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/33412e62-521a-4788-2cc8-e58be1922700/public
 categories: 
   - "Simulation"
   - "Topic > Finance"
@@ -75,11 +75,11 @@ Due to its use on eBay and other popular online auction houses, many individuals
 
 The [revenue equivalence](https://en.wikipedia.org/wiki/Revenue_equivalence) theorem states that given certain mathematical conditions (which are beyond the scope of this tutorial), every auction design will end up generating the same revenue for the auctioneer.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/398aa421-bc14-4f80-ace1-b6b757a62f00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/398aa421-bc14-4f80-ace1-b6b757a62f00/public)
 
 In our example, we can see that the difference in winning bid price for the two types of auction ends up close to zero. 
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/103338c9-2105-44d0-85e3-061cd180f600/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/103338c9-2105-44d0-85e3-061cd180f600/public)
 
 If we run the Revenue Equivalence experiment and take a look at the resulting graph, we see that the difference between the two types of auction fluctuates close to zero. As we increase the number of agents bidding, the difference approaches zero.
 

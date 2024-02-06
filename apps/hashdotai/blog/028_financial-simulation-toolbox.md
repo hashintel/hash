@@ -1,7 +1,7 @@
 ---
 title: "Financial Simulation Toolbox"
 date: "2021-08-05"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/57eb9197-0ec1-4ad2-b54e-b795f75e9a00/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/57eb9197-0ec1-4ad2-b54e-b795f75e9a00/public
 categories: 
   - "Simulation"
   - "Topic > Finance"

@@ -1,7 +1,7 @@
 ---
 title: "Functional Agent-Based Modeling"
 date: "2020-12-09"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/a94e70b7-5dba-47e6-beb6-244c5ce9f900/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/a94e70b7-5dba-47e6-beb6-244c5ce9f900/public
 categories: 
   - "Simulation"
 ---
@@ -44,7 +44,7 @@ Ponder for a moment that **context** and **state** are a matter of perspective. 
 
 Here are some agents in HASH:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/375cd1da-a33e-4690-4e9b-4b1822a31a00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/375cd1da-a33e-4690-4e9b-4b1822a31a00/public)
 
 In every HASH simulation, you can peek behind the scenes with the ‘Raw Output’ tab.
 
@@ -54,11 +54,11 @@ Agent’s don’t need to be complicated.
 
 Here’s a valid Agent in HASH:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/543c2655-6a27-4362-37df-d2c7cdc12600/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/543c2655-6a27-4362-37df-d2c7cdc12600/public)
 
 And here’s another:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/dcfbe422-53eb-4558-3070-9f0e8254eb00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/dcfbe422-53eb-4558-3070-9f0e8254eb00/public)
 
 Unfortunately for Meredith, the feelings aren’t mutual. It’s not Phillipp’s fault though, as he quite literally has no awareness outside of his own name.
 
@@ -73,19 +73,19 @@ Data inside of agents can be arbitrarily complex, and so can their behaviors.
 
 One aspect of an agent is a special property called ‘behaviors’. When an agent takes a **step**, all of its behaviors are executed. Let’s give Meredith some:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/f64f6538-e317-46b3-75e0-eaa4a1de6200/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/f64f6538-e317-46b3-75e0-eaa4a1de6200/public)
 
 There are a few things going on here, so let’s break them down.
 
 First, if you’re familiar with any other simulation modeling platform, this is most likely a significant point of difference in HASH. The vast majority of these platforms represent agents in an “Object Oriented” way, perhaps with some code along the lines of:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/8789b626-e69d-465b-89da-eaa68c0bcb00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/8789b626-e69d-465b-89da-eaa68c0bcb00/public)
 
 HASH instead keeps all of the agents' properties consolidated _on the agent_. Each of its behaviors implements what might commonly be considered a `step()` function (aka. a function that updates the state of the agent).
 
 A HASH behavior is simply that “step” function in isolation from its other context. Here is a simple HASH behavior, expressed in JavaScript:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/6cbda21d-18d1-4add-2108-03dad7d6a800/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/6cbda21d-18d1-4add-2108-03dad7d6a800/public)
 
 I could store this as a behavior, say `blue.js`, and add that behavior to any HASH agent by including it in the agent’s **behaviors** field, and the agent would, in the words of Tobias Fünke, blue itself. 
 
@@ -95,7 +95,7 @@ In HASH, rather than a single **step** function, agents have **zero or more beha
 
 Returning our attention to Meredith...
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/9ad0684a-d037-4f76-7856-6d201edcad00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/9ad0684a-d037-4f76-7856-6d201edcad00/public)
 
 ...we can see that HASH permits us to include behaviors from a variety of different sources and languages (notice `dancer.**rs**` and `vegetarian.**py**`), and that we don’t necessarily need to know or understand what a behavior does in order to see it in effect on an Agent. Our [hIndex](https://hash.ai/index) includes a number of common behaviors which can be complementary to common operations that agents may seek to perform, such as reproducing, positioning themselves in space, or communicating with other agents.
 

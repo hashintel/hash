@@ -1,7 +1,7 @@
 ---
 title: "Modeling with Networks"
 date: "2021-04-27"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/5a5a2e18-ff85-460f-32bd-74c6f4a71b00/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/5a5a2e18-ff85-460f-32bd-74c6f4a71b00/public
 categories: 
   - "Simulation"
 ---
@@ -30,11 +30,11 @@ You can [experiment with the simulation](https://core.hash.ai/@hash/network-opin
 
 In this type of network, a percentage _p_ of all possible edges are assigned randomly between nodes. A random network might look something like this:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/e20be879-bc4d-4917-845d-fd5cbd2fec00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/e20be879-bc4d-4917-845d-fd5cbd2fec00/public)
 
 We can observe the change of "opinion" through the network by running the simulation and plotting the prevalence of colors:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/52f7abef-d74f-4a9e-119b-638a36d18f00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/52f7abef-d74f-4a9e-119b-638a36d18f00/public)
 
 This type of network almost always converges with _p_ \> 0.1 because no individual "clusters" are created. This prevents the preservation of heterogeneity.
 
@@ -42,11 +42,11 @@ This type of network almost always converges with _p_ \> 0.1 because no individu
 
 Small-world networks are created by modifying a regular lattice network. Edges are rewired between agents with some probability _p_. When the proper values for _p_ are used (typically between 0.01 and 0.1), this type of network is characterized by having high clustering, and low average path length. They might look like this:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/a29a4781-ddfd-412a-4df9-896f29613600/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/a29a4781-ddfd-412a-4df9-896f29613600/public)
 
 We can see that those characteristics allow it to stop homogeneous convergences of opinion:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/074955e5-edfe-452c-8007-a3af759e0f00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/074955e5-edfe-452c-8007-a3af759e0f00/public)
 
 However, if too many edges are rewired (_p_ above 0.2), it begins to look and act like a random network and converges instead of maintaining separation.
 
@@ -54,11 +54,11 @@ However, if too many edges are rewired (_p_ above 0.2), it begins to look and ac
 
 In a scale-free network, nodes are added sequentially, and attached to other nodes with a probability based on the existing number of edges on that node. This method is known as "preferential attachment". Scale-free networks visually appear closer to random networks, yet maintain far more separate clusters.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/8531364c-5806-4ddd-7098-c91121ca5d00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/8531364c-5806-4ddd-7098-c91121ca5d00/public)
 
 Each new node is attached to "m" other nodes initially. If we run an experiment sweeping over the value of "m", we can see that low values of m prevent complete homogeneity of opinion.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/82eeb4ea-5d8a-4aef-859d-2fc6fa526d00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/82eeb4ea-5d8a-4aef-859d-2fc6fa526d00/public)
 
 You can run your own experiments and continue to [explore the model here](https://hash.ai/@hash/network-opinion-spread). What happens if you modify the way that that agents change their opinions in **`opinion_spread.js`**?
 

@@ -1,7 +1,7 @@
 ---
 title: "Improving the Prisoners Dilemma with Q-Learning"
 date: "2021-07-23"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/7f77fa85-736f-4a69-c56a-c6cef769e400/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/7f77fa85-736f-4a69-c56a-c6cef769e400/public
 categories: 
   - "Simulation"
   - "AI"

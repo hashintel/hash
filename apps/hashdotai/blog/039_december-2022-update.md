@@ -12,7 +12,7 @@ As we move towards public beta, we’ll be posting a monthly round-up on this bl
 
 Our developer updates will continue to be posted on the separate [HASH.dev blog](https://hash.dev/blog), where recent announcements include the launch of the [Block Protocol hook service](https://hash.dev/blog/hook-service) and [0.2 release of error-stack](https://hash.dev/blog/error-stack-update-0-2).
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/265bbb08-95bd-4795-ca80-d928b8067800/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/265bbb08-95bd-4795-ca80-d928b8067800/public)
 
 ## Sharing our vision
 
@@ -22,13 +22,13 @@ We've published the first couple of posts this month in a series we'll be releas
 
 - [What is the entity layer?](https://hash.ai/blog/what-is-the-entity-layer)
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/15457e2c-bfa9-4de7-25f3-e48d1f291200/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/15457e2c-bfa9-4de7-25f3-e48d1f291200/public)
 
 ## Type editors
 
 Ahead of the release of the [Block Protocol for WordPress](https://blockprotocol.org/wordpress) in February, we've shipped new entity, property, and data type editors in the [HASH app](https://hash.ai/platform/hash). These provide an accessible user interface for creating, updating and managing types.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/3dcd8d4e-caf9-4590-7bb5-60cf5cf1b300/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/3dcd8d4e-caf9-4590-7bb5-60cf5cf1b300/public)
 
 ## Entity editors
 

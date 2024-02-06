@@ -1,7 +1,7 @@
 ---
 title: "Generating a Simulation from Terraform"
 date: "2021-05-26"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/b75cf25b-2c82-4dc9-c3f1-dafcff550900/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/b75cf25b-2c82-4dc9-c3f1-dafcff550900/public
 categories: 
   - "Simulation"
 ---

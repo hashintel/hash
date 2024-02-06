@@ -1,7 +1,7 @@
 ---
 title: "Genetic Algorithms in Simulations"
 date: "2021-08-04"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/c565b301-53b2-41f2-8773-f0d274147700/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/c565b301-53b2-41f2-8773-f0d274147700/public
 categories: 
   - "Simulation"
   - "AI"
@@ -11,7 +11,7 @@ Genetic algorithms follow the logic of evolution - from a pool of solutions, evo
 
 The basic process is an evolutionary loop:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/369d0766-4b3e-4266-324a-aab3b50fb500/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/369d0766-4b3e-4266-324a-aab3b50fb500/public)
 
 A number of potential solutions are created. They pass through a selection filter that selects solutions based on their fitness, the ones that moves up the 'fitness landscape', closer to the peak of the best possible solutions. Then, these solutions become the seeds for the next generation of potential solutions, one of which might be a superior solution. And the process continues.
 
@@ -59,13 +59,13 @@ The manager agent runs `evaluate.js` and selects the best - the manager agent th
 
 In our simulation, the current best solution is visualized by a set of colored bars representing the employee shifts. Each employee is represented by a different color, and the bar extends from the beginning to the end of their shift. This allows you to easily see how many employees are working at any given time.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/5a2e6656-4628-4865-c7e8-b924bbdbf200/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/5a2e6656-4628-4865-c7e8-b924bbdbf200/public)
 
 The current best solution, represented by each employee's work schedule
 
 At the start of the simulation, the fitness of the different solutions is relatively low, but you can see in jumps and spurts how the solution set discovers better configurations. After a hundred time steps the solution has plateaued at the best possible fitness score.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/9ce020be-f8bb-4311-f85b-0fc6155b7b00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/9ce020be-f8bb-4311-f85b-0fc6155b7b00/public)
 
 Genetic algorithms are best employed when there's a clear fitness function to optimize for and where there are many potential parameters to tweak. You can use them in conjunction with [HASH optimization experiments](https://hash.ai/docs/simulation/creating-simulations/experiments/optimization-experiments) to automatically generate good solutions from your simulations.
 

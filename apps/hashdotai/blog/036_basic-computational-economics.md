@@ -1,7 +1,7 @@
 ---
 title: "Basic Computational Economics"
 date: "2022-06-05"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/c04c8e28-4139-4e22-b2d5-88f7dbf24600/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/c04c8e28-4139-4e22-b2d5-88f7dbf24600/public
 categories: 
   - "Simulation"
   - "Topic > Finance"
@@ -636,7 +636,7 @@ We run an experiment in HASH that executes a simulation multiple times with diff
 
 Let's vary the minimum skill it takes to produce an apple from 0 to 1. We can see that the price varies step-by-step.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/6807d53b-1f74-407d-dd35-5073df11f000/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/6807d53b-1f74-407d-dd35-5073df11f000/public)
 
 The results show a wide distribution of outcomes -- even though we the simulation was generated using a simple set of instructions and parameters. We can see that the greatest changes in production are when the minimum `skill` is set to around `0.6`. HASH allows for building insights about these complex systems that go above and beyond the tools of normal econometrics.
 
@@ -797,7 +797,7 @@ const behavior = (state, context) => {
 
 Each agent has a property `state.rgb` that allows for a behavior to modify the display color. In this case, we use the color to code the agents by success rate.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/fdd67973-f1b5-4f1c-8c60-e307a7337000/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/fdd67973-f1b5-4f1c-8c60-e307a7337000/public)
 
 ### Running the simulation
 
@@ -839,7 +839,7 @@ Taking a look at `experiments.json`, we can run an experiment to optimize the tr
 
 The above experiments code can be written by hand, or created using the **Experiments** menu in [hCore](https://hash.ai/platform/core) (recommended). It is set to run for 1000 steps. We can then take a look at the collated analysis of the output curves to understand much more about the network than just the optimized result.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/12560f2f-d065-4db7-c4ee-7aa5db0f9700/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/12560f2f-d065-4db7-c4ee-7aa5db0f9700/public)
 
 ## Hotelling's Law
 

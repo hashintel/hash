@@ -1,7 +1,7 @@
 ---
 title: "Surviving a Chip Shortage"
 date: "2021-06-16"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/4741a400-0cf1-4a95-bdae-163d9def4d00/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/4741a400-0cf1-4a95-bdae-163d9def4d00/public
 categories: 
   - "Simulation"
 ---

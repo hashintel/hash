@@ -1,7 +1,7 @@
 ---
 title: "January 2023 Update"
 date: "2023-01-27"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/03764ed2-9694-4f73-8d14-7f8725c9c000/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/03764ed2-9694-4f73-8d14-7f8725c9c000/public
 categories: 
   - "Company"
 ---
@@ -12,7 +12,7 @@ categories:
 
 This paves the way to making a high-quality offline mode available, supporting future plans for mobile applications and the deployment of HASH clients in environments with unreliable or intermittent internet connections. It also promises to improve the auditability of decisions made using HASH, and supports more robust two-way sync between HASH and external datastores.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/084566d5-e8e1-4c8d-36b4-20b26303f000/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/084566d5-e8e1-4c8d-36b4-20b26303f000/public)
 
 ## Commenting
 
@@ -40,7 +40,7 @@ This allows for inline discussion around the contents of pages in HASH, facilita
 
 - Various usability improvements and bug fixes
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/257959f4-99ce-4d2a-0660-6462c3c0e300/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/257959f4-99ce-4d2a-0660-6462c3c0e300/public)
 
 ## Block Protocol refresh
 

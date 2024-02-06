@@ -1,7 +1,7 @@
 ---
 title: "SynPath: NHS Healthcare Simulations"
 date: "2021-10-12"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/6d240a22-c8bd-4a52-e049-7d2768888d00/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/6d240a22-c8bd-4a52-e049-7d2768888d00/public
 categories: 
   - "Simulation"
   - "Topic > Public Health"
@@ -20,7 +20,7 @@ SynPath is being designed as a set of foundational modules to serve a variety of
 
 In SynPath, patients and their characteristics are simulated, and they are allocated to an initial environment, as shown in the diagram below. They then go on a journey through different environment objects (health services) which represent patient care and can update their characteristics and patient record.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/f10a61f5-2777-41e5-7bfb-50511fc78b00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/f10a61f5-2777-41e5-7bfb-50511fc78b00/public)
 
 _Synpath agent flow (from project report)_
 

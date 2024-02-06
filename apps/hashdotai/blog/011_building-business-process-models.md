@@ -1,7 +1,7 @@
 ---
 title: "Business Process Modeling in HASH"
 date: "2021-03-31"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/ebbcec2b-c1f7-4311-f9ec-01aad0373600/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/ebbcec2b-c1f7-4311-f9ec-01aad0373600/public
 categories: 
   - "Simulation"
 ---

@@ -1,7 +1,7 @@
 ---
 title: "Extending the Uniswap Simulation"
 date: "2021-04-21"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/8a80ac7b-3beb-49d2-2dfe-36555b0d2100/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/8a80ac7b-3beb-49d2-2dfe-36555b0d2100/public
 categories: 
   - "Simulation"
   - "Topic > Finance"
@@ -25,7 +25,7 @@ To go into more detail, when the arbitrageur agent receives buy and sell orders 
 
 Once we've built the graph, we then use an [implementation](https://github.com/nelsonuhan/bellmanford) of [Bellman-Ford graph search](https://en.wikipedia.org/wiki/Bellman%E2%80%93Ford_algorithm) to check for negative cycles in the graph. If there is a cycle, this means that that there's an arbitrage opportunity, and executing that path as a series of trades will lead to a profit for the arbitrageur.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/d22fcab2-102d-435c-52d8-f95c073ab500/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/d22fcab2-102d-435c-52d8-f95c073ab500/public)
 
 Other changes include adding an optional "stochastic" exchange that doesn't follow the uniswap model and instead provides token prices which change every timestep. The prices are drawn from a triangluar distribution that can be set in globals.json.
 

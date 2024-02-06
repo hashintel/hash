@@ -1,7 +1,7 @@
 ---
 title: "Optimization Experiments"
 date: "2021-05-14"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/c479a9b6-fb6b-48a9-1e8f-240a748d0b00/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/c479a9b6-fb6b-48a9-1e8f-240a748d0b00/public
 categories: 
   - "Simulation"
 ---
@@ -47,7 +47,7 @@ The results of this optimization are:
 - **Optimal reorder level for West Virginia distributor**: `0.887`
 - **Optimal reorder level for port**: `0.117`
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/e972dafc-caa7-4cff-5f93-96a538608c00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/e972dafc-caa7-4cff-5f93-96a538608c00/public)
 
 How should we interpret this result? Why are the reorder levels so different? Remember that a large amount of the total expenses are storage costs. The more often the port restocks, the more storage costs it will incur. Since it makes infrequent shipments (compared to the distributor), it makes sense to not have a large amount of inventory sitting in storage. The distributor, on the other hand, is constantly dispatching deliveries. It wants to be able to fulfill orders immediately, and any amount of stock won’t sit in storage for very long. As a result, it is optimal for the distributor to restock often.
 

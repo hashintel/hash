@@ -1,7 +1,7 @@
 ---
 title: "Monkeypox infection data on HASH"
 date: "2022-05-24"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/ca5f080c-9ea8-432e-bc80-60ff070b1400/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/ca5f080c-9ea8-432e-bc80-60ff070b1400/public
 categories: 
   - "Data"
   - "Topic > Public Policy"

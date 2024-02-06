@@ -1,7 +1,7 @@
 ---
 title: "Modeling Vaccine Distribution"
 date: "2020-12-18"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/9bafb530-164e-496c-62da-ae7b874c3400/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/9bafb530-164e-496c-62da-ae7b874c3400/public
 categories: 
   - "Simulation"
   - "Topic > Public Health"
@@ -14,7 +14,7 @@ In a true feat of modern medicine, at least three working COVID-19 vaccines have
 2. Once the vaccine is being produced in large enough quantities, how will decision-makers solve the challenge of distributing it throughout both densely populated urban areas and rural communities? Since these vaccines are challenging (to differing degrees) to store, and distribution cannot only happen at locations where vaccines are stored, a multi-step supply chain is needed.
 3. How will local communities maintain their supply chain when distribution and storage cannot occur most efficiently in the same locations?
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/be167380-f92a-417a-7157-1e87e7de6700/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/be167380-f92a-417a-7157-1e87e7de6700/public)
 
 We’ve constructed a HASH simulation to help understand these complexities. You can [find it on hIndex](https://hash.ai/@hash/vaccination-supply-coordination) and follow along. A simulation like this interactively allows community decision-makers explore multiple distribution plans and make quantitative decisions to preempt scenarios where not enough vaccines are delivered, or too many vaccines are perishing due to storage challenges.
 
@@ -28,7 +28,7 @@ This [Vaccine Supply Coordination model](https://hash.ai/@hash/vaccination-suppl
 
 There are three types of agents in the model. In our example  they are all initialized in random locations across the simulation grid. Real-world policymakers may choose to use actual location data in conjunction with HASH’s [geospatial](https://docs.hash.ai/core/views#geospatial) functionality. 
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/f18c69e1-1d21-4fad-31ee-225c6077bb00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/f18c69e1-1d21-4fad-31ee-225c6077bb00/public)
 
 - **Distribution centers** represent locations at which vaccines are being regularly administered to the public, but which lack the ability to store vaccines at their required conditions. These locations may be schools, workplaces, and mobile vaccination clinics. Distribution centers are much more numerous and accessible to people in the community than medical facilities are. Distribution centers are shown with a green bar, whose height represents the current stock of usable vaccines.
 - **Medical facilities** are locations which have the resources and capability to store large quantities of vaccines at the proper conditions. These facilities may include public pharmacies, hospitals, and other large healthcare organizations and clinics. These facilities are far less common and accessible to people in the community. Medical facilities are displayed with a blue bar, whose height represents the current stock of stored vaccines.

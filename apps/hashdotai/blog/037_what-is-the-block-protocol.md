@@ -1,7 +1,7 @@
 ---
 title: "What is the Block Protocol?"
 date: "2022-12-01"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/03de1be3-45b1-4964-c45d-62ff690f4300/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/03de1be3-45b1-4964-c45d-62ff690f4300/public
 categories: 
   - "Company"
   - "Data"

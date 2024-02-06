@@ -1,7 +1,7 @@
 ---
 title: "Discrete Event Library"
 date: "2021-06-08"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/edcdc732-bccc-4b09-2ae7-5618d14ec900/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/edcdc732-bccc-4b09-2ae7-5618d14ec900/public
 categories: 
   - "Simulation"
 ---
@@ -24,6 +24,6 @@ You can see the triggers in action in the discrete event mpdeling [example simul
 
 To add the [library](https://hash.ai/@hash/des/overview) to your simulation, search for it in the bottom left panel.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/d6f7029d-931c-4718-6513-14ada6bdab00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/d6f7029d-931c-4718-6513-14ada6bdab00/public)
 
 You can [learn more about the library here](https://hash.ai/@hash/des/overview), and [come chat with us in Discord](https://hash.ai/discord) about your excellent ideas for discrete event simulations.

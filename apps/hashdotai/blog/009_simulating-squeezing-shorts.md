@@ -1,7 +1,7 @@
 ---
 title: "Simulating Short Squeezes"
 date: "2021-01-29"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/745d008d-68cf-4f68-86ee-ca02e79ced00/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/745d008d-68cf-4f68-86ee-ca02e79ced00/public
 categories: 
   - "Simulation"
   - "Topic > Finance"

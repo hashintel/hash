@@ -1,7 +1,7 @@
 ---
 title: "Vaccine Distribution Scenario Modeling"
 date: "2021-02-16"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/7e2fe056-2d1c-47a3-a0cf-a65f9436b700/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/7e2fe056-2d1c-47a3-a0cf-a65f9436b700/public
 categories: 
   - "Simulation"
   - "Topic > Public Health"
@@ -31,7 +31,7 @@ These decisions, or **scenarios**, can be set through global parameters (in `glo
 
 The simulation has many configurable parameters (visit the HASH Index page or the README for an explanation of each one); however, two ‘scenario’ options determine the two decisions related to second dose storage and patient prioritization.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/922bded2-5267-4018-6825-5c76b934c900/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/922bded2-5267-4018-6825-5c76b934c900/public)
 
 _Global parameters for the vaccine distribution simulation_
 
@@ -53,7 +53,7 @@ The population agent stores second dose appointments. After a patient gets the f
 
 ## Metrics and Plots
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/8db62d2a-9559-4b04-507a-05c34b004800/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/8db62d2a-9559-4b04-507a-05c34b004800/public)
 
 Plots, in the Analysis tab, provide insight into what’s happening during the simulation. 
 

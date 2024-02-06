@@ -1,7 +1,7 @@
 ---
 title: "Open-sourcing HASH"
 date: "2022-01-27"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/c3b91ea7-6229-4f88-4ab8-45e1c4f92c00/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/c3b91ea7-6229-4f88-4ab8-45e1c4f92c00/public
 categories: 
   - "Company"
 ---

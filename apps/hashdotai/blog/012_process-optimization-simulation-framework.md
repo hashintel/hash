@@ -1,7 +1,7 @@
 ---
 title: "Simulating Constraints: A Framework for Process Optimization"
 date: "2021-04-05"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/c3d778f8-36d6-4c93-1231-e4def54d5000/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/c3d778f8-36d6-4c93-1231-e4def54d5000/public
 categories: 
   - "Simulation"
 ---
@@ -32,13 +32,13 @@ It's ironic that when trying to improve a process, people have a tendency to foc
 
 For example, consider a [Billing Department](https://hash.ai/@hash/billing-department-process), which needs to process, send out, and occasionally audit two types of bills.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/a719b819-4cca-4a49-42f7-181459f80500/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/a719b819-4cca-4a49-42f7-181459f80500/public)
 
 [_Learn how to build a process model simulation using a visual interface._](https://hash.ai/docs/simulation/concepts/designing-with-process-models/using-the-process-model-builder)
 
 Once we've represented the department as a process model and generated a simulation, we can use the Analysis view to inspect the process models to identify bottlenecks based on resource utilization or through times. There are four different resources in use in model: `senior_billers`, `account_billers`, `billing_clerks`, and `printers`. Visualizing the average utilization of these resources will allow us to determine which, if any, are responsible for any bottlenecks:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/cd9d1d08-b492-49bb-2fbb-8313de228d00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/cd9d1d08-b492-49bb-2fbb-8313de228d00/public)
 
 _Percent of a resource being utilized_
 
@@ -46,7 +46,7 @@ We can see that Senior Billers are almost constantly occupied, compared to other
 
 Paradoxically, having a resource fully occupied implies that a system is not running effectively. We can confirm that by looking at the average time it is taking to process a bill:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/364c2f41-56f4-417a-c2e4-b2e095462100/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/364c2f41-56f4-417a-c2e4-b2e095462100/public)
 
 The average time continues to increase as the model runs, instead of reaching a stable value. This means that eventually the system will take infinitely long to process a bill!
 
@@ -70,7 +70,7 @@ To improve the performance at the bottleneck, you can add resources or a buffer.
 
 By adding more senior billers to the key service blocks, and keeping a larger backup buffer of senior billers in reserve, we dramatically reduce the total utilization of that resource at any one time, likely improving performing.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/7f26a015-642a-4062-c45c-d5254d4f8c00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/7f26a015-642a-4062-c45c-d5254d4f8c00/public)
 
 _Senior billers utilization with 11 billers_
 
@@ -84,11 +84,11 @@ In the presence of large variability in call frequency, this can create over and
 
 If we run an experiment to compare the two queue orientations see that the 4 centers can answer nearly the same number of calls, with much greater efficiency, meaning reduced wait times.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/27835008-6fe9-4b82-10db-41fed6a97c00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/27835008-6fe9-4b82-10db-41fed6a97c00/public)
 
 _Average wait time for calls in both orientations_
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/9662619f-6ef1-4688-b246-32f7cfe26300/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/9662619f-6ef1-4688-b246-32f7cfe26300/public)
 
 _Calls answered in both orientations_
 
@@ -102,13 +102,13 @@ We encourage you to use the built-in metrics, plot, and experiments with HASH to
 
 To explore the effects of different parameters, try creating an experiment to see what the optimum number of senior billers is:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/876fd58b-6630-44b1-a01a-9aeea0c14000/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/876fd58b-6630-44b1-a01a-9aeea0c14000/public)
 
 Vary the number of senior billers
 
 Then, when you run the experiment, you can click through the plots and view the effect that different numbers of billers have on the simulation:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/c86b51f5-7661-474c-0a40-61b4c3412600/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/c86b51f5-7661-474c-0a40-61b4c3412600/public)
 
 _Through time with 11 senior billers_
 

@@ -1,7 +1,7 @@
 ---
 title: "Simulate and Optimize RPA Deployments"
 date: "2021-05-04"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/2a372bf8-4d00-473e-1a1f-16d537234200/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/2a372bf8-4d00-473e-1a1f-16d537234200/public
 categories: 
   - "Simulation"
 ---
@@ -16,6 +16,6 @@ The process of recreating an existing RPA diagram in HASH using the visual "proc
 
 We set the different bot and human tasks as service or delay blocks that process the insurance claims at different speeds. As more of the human tasks - like manual review - become automatable, we can adjust the time parameters of the blocks and replace human tasks with bots, and evaluate the downstream effects on business performance. For example, in the following chart, sample parameters demonstrate how much more efficient our hypothetical business could be by investing in more automation of the special review or standard review process.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/172290d5-9ba1-42a2-ea11-7b4c3aba2000/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/172290d5-9ba1-42a2-ea11-7b4c3aba2000/public)
 
 By building a digital twin of your RPA processes, you can create a predictive engine to understand ahead of time how automation might benefit your business, saving time and money through _in silico_ testing and experimentation.

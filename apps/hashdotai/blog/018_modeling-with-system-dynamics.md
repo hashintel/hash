@@ -1,7 +1,7 @@
 ---
 title: "Modeling with System Dynamics"
 date: "2021-05-18"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/09a23d79-72aa-4b29-4662-161d1a7fc100/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/09a23d79-72aa-4b29-4662-161d1a7fc100/public
 categories: 
   - "Simulation"
 ---
@@ -39,13 +39,13 @@ All the constants in use in these equations are located on the top level of the 
 
 Creating plots for System Dynamics models is just as straightforward as any other model in HASH. We'll define a metric for each of our stocks, and a time-series plot for each of those. The first two graphs oscillates, as the factory over and undershoots its ideal amount of employees.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/69d7fa60-d0cf-4967-8c77-8e3384e23000/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/69d7fa60-d0cf-4967-8c77-8e3384e23000/public)
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/643dfa01-ff2b-4a1a-4e5e-3ceffd2d5700/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/643dfa01-ff2b-4a1a-4e5e-3ceffd2d5700/public)
 
 The third graph shows how expected demand approaches the actual demand for widgets. The factory is always able to meet the demand, so the curve for demand and `widgets_sold` is identical.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/b95ee63e-0e1f-4270-87be-d886b520c500/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/b95ee63e-0e1f-4270-87be-d886b520c500/public)
 
 ### Finishing the Model
 
@@ -62,7 +62,7 @@ To make our simulation more interesting, the last thing we’ll do is add a beha
 
 Now we’ll be able to test our model, and see how well it responds to changes in demand.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/1849413d-ba85-4c56-34df-0d64a5f41a00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/1849413d-ba85-4c56-34df-0d64a5f41a00/public)
 
 You’ll notice that we still have strong oscillations as the factory over and under-stocks itself, then subsequently hires or fires employees. Occasionally it'll oscillate too low, and it won't be able to meet demand for a number of time steps. These oscillations are a common symptom of delays (or lack thereof) in real-world systems. In our case, the "delay" is that the factory cannot instantaneously hire or fire the exact amount of employees it needs.
 
@@ -70,7 +70,7 @@ You’ll notice that we still have strong oscillations as the factory over and u
 
 Since the delays in our model are controlled by the `hiring_rate` and `firing_rate`, it makes sense to experiment with varying those two global parameters. There are two experiments in the model that will perform sweeps of both of those values. Observe the differences in the amplitude of the oscillations, and how often the factory ever fails to deliver. You'll notice that both extremes of parameter values don't perform as well as the moderate values, either by oscillating too much, or by hitting 0 widgets.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/4937df18-691c-4638-7606-ab4010866c00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/4937df18-691c-4638-7606-ab4010866c00/public)
 
 * * *
 

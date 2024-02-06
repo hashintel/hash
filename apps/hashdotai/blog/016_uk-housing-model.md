@@ -1,7 +1,7 @@
 ---
 title: "UK Housing Model"
 date: "2021-05-12"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/597dd52f-e760-483a-0200-75ce54232400/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/597dd52f-e760-483a-0200-75ce54232400/public
 categories: 
   - "Simulation"
   - "Topic > Policy"
@@ -44,7 +44,7 @@ The price and supply of housing has a complex relationship with many variables. 
 
 A full list of exogenous variables which users may adjust can be found in [the project’s README](https://hash.ai/@hash/uk-housing), including variables representing mortgage interest rates, loan-to-value and loan-to-income regulations and variables which control the rate at which new housing is constructed. Simulation users are free to change these variables and observe how the behavior of the market changes.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/e7c135b0-b89d-4103-0805-e36218614500/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/e7c135b0-b89d-4103-0805-e36218614500/public)
 
 While our model contains many sources of heterogeneity, and includes detailed agent behavior to model household decisions such as whether a renting household should attempt to purchase a house and how much the household is willing to pay. Agents in a HASH simulation make decisions using [_behaviors_](https://docs.hash.ai/core/creating-simulations/behaviors/composable-behaviors) — composable pieces of logic which control various attributes of an agent. 
 

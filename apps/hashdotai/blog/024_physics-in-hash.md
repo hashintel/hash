@@ -1,7 +1,7 @@
 ---
 title: "Physics in HASH"
 date: "2021-06-28"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/a1f0bd7b-fb28-451e-e2ef-e5a67f4e2900/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/a1f0bd7b-fb28-451e-e2ef-e5a67f4e2900/public
 categories: 
   - "Simulation"
 ---
@@ -10,7 +10,7 @@ We recently released the HASH Physics Library, which provides behaviors that can
 
 You can add the physics library to your simulation from the "Add to Simulation" panel in the lefthand sidebar of [hCore](https://hash.ai/platform/core).
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/f7930a5a-fe76-45fe-c90d-3786a15dce00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/f7930a5a-fe76-45fe-c90d-3786a15dce00/public)
 
 Let's look at a few simulations to better understand how to make use of the library:
 

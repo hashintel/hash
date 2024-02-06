@@ -1,7 +1,7 @@
 ---
 title: "Calibrating Models of Cell Replication"
 date: "2021-06-04"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/7c5dcf77-5a3c-4a9c-13db-355d323aa100/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/7c5dcf77-5a3c-4a9c-13db-355d323aa100/public
 categories: 
   - "Simulation"
 ---
@@ -14,11 +14,11 @@ We’ll make one important assumption, and see if it lets us recreate the experi
 
 Here's is how the initial model looked compared to the experimental data (_the model is blue and the comparison experimental data is orange_):
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/d5c494fd-cd56-4641-0fbc-d7ec70484e00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/d5c494fd-cd56-4641-0fbc-d7ec70484e00/public)
 
 Total cell growth
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/ac883fd3-7d7e-45e4-e225-070dfd619d00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/ac883fd3-7d7e-45e4-e225-070dfd619d00/public)
 
 Ration of cells in different stages: `Q(t) = R(t) / (Y(t) + G(t))`
 
@@ -26,33 +26,33 @@ The general shape looks correct, with exponential growth in the total number of 
 
 Let’s see if we can use the optimization engine to bring the model much closer to the data. We’ll try to discover the optimal values for the length of each phase in the cell cycle. By inspecting the data, we can see that the period of our cell cycle should be approximately 70 steps long. Let’s choose a range of values for G1, eS, and S/G2/M whose sum is around there.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/34246557-99ee-4b9c-f4ba-1b63c35bca00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/34246557-99ee-4b9c-f4ba-1b63c35bca00/public)
 
 Defining the optimization experiment to help calibrate our model
 
 We’ll create a custom agent to compute the error between our model and the experimental data. You can read more about this in the [complex metrics section of the HASH docs](https://docs.hash.ai/core/creating-simulations/experiments/optimization-experiments/complex-metrics). At first, let’s try and fit the curves in the second plot, which count the agents based on color.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/431df3f2-3c15-46eb-703a-65e2106e9100/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/431df3f2-3c15-46eb-703a-65e2106e9100/public)
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/9b77be51-f71e-4556-7e97-202910e0ff00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/9b77be51-f71e-4556-7e97-202910e0ff00/public)
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/5cd1f18b-ed50-4305-91a3-f128ca8c5800/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/5cd1f18b-ed50-4305-91a3-f128ca8c5800/public)
 
 We can get it looking pretty good, but the 3rd plot, of Q, doesn’t look well fitted. Let’s change the error metric to correspond to the error in Q instead. Here’s the result of that optimization:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/db4b8ecb-b25f-46d7-0606-0cffa6174500/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/db4b8ecb-b25f-46d7-0606-0cffa6174500/public)
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/21073afe-d6ad-4234-a232-92c289298700/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/21073afe-d6ad-4234-a232-92c289298700/public)
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/728941e5-64a9-4f67-4864-6b8e31dd7b00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/728941e5-64a9-4f67-4864-6b8e31dd7b00/public)
 
 It seems like we’ll need to incorporate both of these errors (agent count by colors, and the Q ratio) in order to find the best fit for our model. Since we've run some optimizations, we can look at the range of parameters that are producing good results and narrow down our experiment definition, to improve its effectiveness. Instead of a range of ~20 values, we'll narrow down to a range of between 5-10 for each stage.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/e8e702ef-8be0-4ad3-aefc-c51728420a00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/e8e702ef-8be0-4ad3-aefc-c51728420a00/public)
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/c11c05b1-7e4a-46be-8025-59395fea1f00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/c11c05b1-7e4a-46be-8025-59395fea1f00/public)
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/c8901136-6c73-41c6-46e9-9e952b16b900/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/c8901136-6c73-41c6-46e9-9e952b16b900/public)
 
 Now it looks like we've found a set of values that provides the best balance of fit for the 2nd and 3rd plots. The final values for the length of each phase are:
 

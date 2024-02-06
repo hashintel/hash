@@ -1,7 +1,7 @@
 ---
 title: "Reinforcement Learning in HASH Simulations"
 date: "2021-07-14"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/73337fed-6b7d-4857-e76c-c2ba4da5d700/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/73337fed-6b7d-4857-e76c-c2ba4da5d700/public
 categories: 
   - "Simulation"
   - "AI"
@@ -17,7 +17,7 @@ We've created a demonstration in HASH using a simple reinforcement learning algo
 
 The basic structure of a reinforcement learning simulation is an **agent** decides what **actions** to take in a given time step in its **environment**; it executes the action, updating the **state** of the agent and its surrounding, and receives a **reward** which can then **update** the **policy** the agent uses to select actions.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/9db16173-d90f-4795-5d48-6022e9f8cf00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/9db16173-d90f-4795-5d48-6022e9f8cf00/public)
 
 _From "Reinforcement Learning: An Introduction", Sutton and Barto, MIT Press, Cambridge, MA, 2018._
 
@@ -31,7 +31,7 @@ Gridworld: The 2D environment we'll create for the agent to operate in is called
 
 The parameters for the environment are defined in **globals.json** in the gridworld object. In the initialization file, **init.py,** the environment is created from these parameters.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/49edd96d-836c-4b25-9176-fdf876523700/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/49edd96d-836c-4b25-9176-fdf876523700/public)
 
 Our agent (the green 3D block), sitting in patient contemplation at simulation initialization, surveying the red obstacles and blue goal state.
 
@@ -86,7 +86,7 @@ _**Note**: The `q_table` is an array of arrays; the first level represents locat
 
 To make this more concrete, consider the scenario where the agent is in (6,8), next to the goal on its right.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/b3cc4827-b1a3-4f9a-47f5-3d94dd3f5800/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/b3cc4827-b1a3-4f9a-47f5-3d94dd3f5800/public)
 
 The agent is one step away from a high reward
 
@@ -159,15 +159,15 @@ When we run the simulation, we can see in the 3D viewer the agent moving about a
 
 In the beginning, it is lost:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/564ecbdb-7e0a-4a21-97ae-217d8f290800/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/564ecbdb-7e0a-4a21-97ae-217d8f290800/public)
 
 Over many time steps, it finds a way.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/7bf33f16-297c-4f04-e5db-9d73f1b1c000/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/7bf33f16-297c-4f04-e5db-9d73f1b1c000/public)
 
 To get a more quantitative measure of how the agent is performing, switch to the analysis view and watch the rewards per episode increasingly converge to a steady state positive value. You can see the agent converge on the path with the maximum available reward below:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/06f8f8cd-d0dd-430a-6c4a-08a7233e4000/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/06f8f8cd-d0dd-430a-6c4a-08a7233e4000/public)
 
 The speed at which the agent converges to a steady, positive reward state will be determined in large part by the hyperparameters of the simulation. The reward size, penalty size, epsilon, etc. will all affect the behavior of the agent. You can try manually setting different values in global and see what happens, or you can use [the HASH optimization engine](https://hash.ai/docs/simulation/creating-simulations/experiments/optimization-experiments) to select hyperparameters that maximize the reward.
 

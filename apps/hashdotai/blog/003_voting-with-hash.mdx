@@ -1,7 +1,7 @@
 ---
 title: "Voting with HASH"
 date: "2020-10-29"
-cover: https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/1a080be9-c7ef-41e1-f017-f01d8bf13a00/public
+cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/1a080be9-c7ef-41e1-f017-f01d8bf13a00/public
 categories: 
   - "Simulation"
 ---
@@ -14,7 +14,7 @@ While many factors affect voter turnout, researchers have identified several key
 
 To explore how voting place access affects the end number of votes cast, we've produced a model that simulates voter turnout based upon distance to polling stations and population density. This simulation combines 2018 census data from Durham County, North Carolina to determine population density, and builds on live polling site locations. [View this model on the hIndex](https://hash.ai/@hash/polling-places).
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/3c059d09-ef09-44ea-efa7-6f02d8cd7000/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/3c059d09-ef09-44ea-efa7-6f02d8cd7000/public)
 
 A geospatial view of the simulation
 
@@ -32,7 +32,7 @@ The simulation is run for 217 steps. One step corresponds to one hour of real-ti
 
 Polling places are represented as blue agents. Their height displays the current number of voters that are waiting in line to vote.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/e94f8a9f-eb56-44ee-d6f4-1d3994a76b00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/e94f8a9f-eb56-44ee-d6f4-1d3994a76b00/public)
 
 A view of the simulation in HASH's 3D viewer
 
@@ -42,7 +42,7 @@ Population tracts are represented as yellow agents. Their height displays the cu
 
 We've captured both early voting and election day voting in our model. The early voting period is 16 days long. Base turnout and processing rate at polling stations was determined by the official voting counts for votes cast during the first five days of early voting.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/be872b8c-c20d-4222-41ff-9233d93e4e00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/be872b8c-c20d-4222-41ff-9233d93e4e00/public)
 
 A run of the model with no poll closures. Final count is 146,000 votes cast
 
@@ -62,13 +62,13 @@ The `send_voters.js` behavior decides how many voters go to the polls on a given
 
 When there are fewer open polling sites in the county, on average voters will always have to travel farther to vote. This will incur a cost on turnout. Our Plots tab contains a graph that shows the average distance voters are travelling to get to the polls:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/958fb977-0805-4eed-7986-f1331ee48a00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/958fb977-0805-4eed-7986-f1331ee48a00/public)
 
 Note that once election day arrives, voters need to travel less, until they decide to try finding a polling place with a shorter line
 
 When more polling places are closed, we see the periodic effects of the model become exaggerated as voters find farther polling locations to avoid long lines.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/6a6be58c-f091-4cbe-ebe4-beb55c9efd00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/6a6be58c-f091-4cbe-ebe4-beb55c9efd00/public)
 
 Average voter travel with 50% early poll closures
 
@@ -78,7 +78,7 @@ Voters who have to wait longer than an hour at a polling location are captured a
 
 The **poll.js** behavior handles information about voters in line, and calculates how many voters are dropping out at a given moment. When there are fewer open polling sites in the county, on average lines at polling stations will become longer. This in turn depresses voter turnout.
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/9bda6696-e7d5-40cb-0dcd-b14789871f00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/9bda6696-e7d5-40cb-0dcd-b14789871f00/public)
 
 The voter success graph in the Plots view allows you to see how many people successfully vote on a given time step, and how many decide to drop out of a long line
 
@@ -116,7 +116,7 @@ Results from an early voting poll closures experiment run
 
 By inspecting our plots we can also see that Election Day voting becomes much more significant as access to early voting locations decreases (as we would expect). We also run into logistical limits as the throughput of the polling locations cannot handle the amount of voters left. This is what leads to the decline in the voting rate in the final steps of the graph below:
 
-![](https://imagedelivery.net/EipKtqu98OotgfhvKf6Eew/5dd102a0-142c-48cc-9d09-77cb21fb2d00/public)
+![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/5dd102a0-142c-48cc-9d09-77cb21fb2d00/public)
 
 Ballots cast with 70% early poll closures
 
