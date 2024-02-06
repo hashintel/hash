@@ -36,7 +36,7 @@ One behavior will provide a ‘reward’ to the agent, and one will translate th
 
 ## Representing the State Space
 
-To use the Q-Learning library, we’ll need to decide how to encode the possible states of an agent into a Q-Table. Since our agent is trying to learn from the previous rounds, and there are four possible outcomes for each round, there are 4^_h_ possible states for an agent, where _h_ is the number of previous rounds an agent takes into consideration. Here is the conversion from current history to location in the Q-table ("q\_state"):
+To use the Q-Learning library, we’ll need to decide how to encode the possible states of an agent into a Q-Table. Since our agent is trying to learn from the previous rounds, and there are four possible outcomes for each round, there are 4^_h_ possible states for an agent, where _h_ is the number of previous rounds an agent takes into consideration. Here is the conversion from current history to location in the Q-table ("q_state"):
 
 ```javascript
 // from globals.json

@@ -28,7 +28,7 @@ You can [experiment with the simulation](https://core.hash.ai/@hash/network-opin
 
 ### In a Random (Erdos-Renyi) Network
 
-In this type of network, a percentage _p_ of all possible edges are assigned randomly between nodes. A random network might look something like this:
+In this type of network, a percentage `p` of all possible edges are assigned randomly between nodes. A random network might look something like this:
 
 ![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/e20be879-bc4d-4917-845d-fd5cbd2fec00/public)
 
@@ -36,11 +36,11 @@ We can observe the change of "opinion" through the network by running the simula
 
 ![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/52f7abef-d74f-4a9e-119b-638a36d18f00/public)
 
-This type of network almost always converges with _p_ \> 0.1 because no individual "clusters" are created. This prevents the preservation of heterogeneity.
+This type of network almost always converges with `p > 0.1` because no individual "clusters" are created. This prevents the preservation of heterogeneity.
 
 ### In a Small-World (Watts-Strogatz) Network
 
-Small-world networks are created by modifying a regular lattice network. Edges are rewired between agents with some probability _p_. When the proper values for _p_ are used (typically between 0.01 and 0.1), this type of network is characterized by having high clustering, and low average path length. They might look like this:
+Small-world networks are created by modifying a regular lattice network. Edges are rewired between agents with some probability `p`. When the proper values for `p` are used (typically between 0.01 and 0.1), this type of network is characterized by having high clustering, and low average path length. They might look like this:
 
 ![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/a29a4781-ddfd-412a-4df9-896f29613600/public)
 
@@ -48,7 +48,7 @@ We can see that those characteristics allow it to stop homogeneous convergences 
 
 ![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/074955e5-edfe-452c-8007-a3af759e0f00/public)
 
-However, if too many edges are rewired (_p_ above 0.2), it begins to look and act like a random network and converges instead of maintaining separation.
+However, if too many edges are rewired (`p` above 0.2), it begins to look and act like a random network and converges instead of maintaining separation.
 
 ### In a Scale-Free (Barabasi-Albert) Network
 
@@ -75,24 +75,24 @@ Agents could use the following definitions:
 ```
 // Weather manager
 {
-    "agent\_id": "weather\_agent",
-    "behaviors": \["weather.js"\],
+    "agent_id": "weather_agent",
+    "behaviors": ["weather.js"],
     "weather": "cloudy"
 }
 
 // Other agents
 {
-    "behaviors": \["@hash/networks/get\_neighbors.js", "check\_weather.js"\],
-    "network\_neighbor\_ids": \["weather\_agent"\]
+    "behaviors": ["@hash/networks/get_neighbors.js", "check_weather.js"],
+    "network_neighbor_ids": ["weather_agent"]
 }
 
 And then be able to access the “weather” like so:
 
-// check\_weather.js
+// check_weather.js
 const behavior = (state, context) => {
-    const weather\_agent = state.network\_neighbors\[0\];
+    const weather_agent = state.network_neighbors[0];
     
-    const weather = weather\_agent.weather;
+    const weather = weather_agent.weather;
 }
 ```
 

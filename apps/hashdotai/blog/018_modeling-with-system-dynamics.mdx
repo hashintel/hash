@@ -29,7 +29,7 @@ We’ll follow the format given in the System Dynamics Library to specify the st
 - Produce = `employees * productivity`
 - Sell = `demand`
 - Hire = `widgets < lower_limit * expected_demand ? hiring_rate : 0`
-- Fire = `widgets > upper_limit * expected _demand ? firing\_rate : 0`
+- Fire = `widgets > upper_limit * expected _demand ? firing_rate : 0`
 - Expect More = `demand > expected_demand ? 0.1 * (demand - expected_demand) : 0`
 - Expect Less = `demand < expected_demand ? 0.1 * (expected_demand - demand) : 0`
 
@@ -52,12 +52,12 @@ The third graph shows how expected demand approaches the actual demand for widge
 To make our simulation more interesting, the last thing we’ll do is add a behavior to change the demand on a monthly basis. We’ll use a behavior called `change_demand.js` to do that, and add it into the behavior array.
 
 ```
-\[
+[
   "@hash/age/age.rs",
-  "change\_demand.js",
-  "@hash/sd/calc\_rates.js",
+  "change_demand.js",
+  "@hash/sd/calc_rates.js",
   "@hash/sd/step.js"
-\]
+]
 ```
 
 Now we’ll be able to test our model, and see how well it responds to changes in demand.
