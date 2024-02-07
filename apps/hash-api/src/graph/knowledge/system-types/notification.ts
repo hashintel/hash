@@ -48,7 +48,9 @@ type Notification = {
 
 export const archiveNotification: ImpureGraphFunction<
   { notification: Notification },
-  Promise<void>
+  Promise<void>,
+  false,
+  true
 > = async (context, authentication, params) => {
   await updateEntityProperties(context, authentication, {
     entity: params.notification.entity,
@@ -440,7 +442,9 @@ export const getCommentNotification: ImpureGraphFunction<
     repliedToComment?: Comment;
     includeDrafts?: boolean;
   },
-  Promise<CommentNotification | null>
+  Promise<CommentNotification | null>,
+  false,
+  true
 > = async (context, authentication, params) => {
   const {
     recipient,

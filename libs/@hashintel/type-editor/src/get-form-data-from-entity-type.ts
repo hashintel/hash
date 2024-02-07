@@ -1,4 +1,4 @@
-import { EntityType } from "@blockprotocol/graph";
+import { EntityTypeWithMetadata } from "@blockprotocol/graph";
 
 import { EntityTypeEditorFormData } from "./shared/form-types";
 
@@ -6,11 +6,13 @@ type Entries<T> = {
   [K in keyof T]: [K, T[K]];
 }[keyof T][];
 
-export const getFormDataFromSchema = (
-  schema: EntityType,
-): EntityTypeEditorFormData => ({
+export const getFormDataFromEntityType = ({
+  schema,
+  metadata,
+}: EntityTypeWithMetadata): EntityTypeEditorFormData => ({
   allOf: schema.allOf?.map((ref) => ref.$ref) ?? [],
   description: schema.description ?? "",
+  labelProperty: metadata.labelProperty,
   properties: Object.entries(schema.properties).map(([propertyId, ref]) => {
     const isArray = "type" in ref;
 

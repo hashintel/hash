@@ -51,6 +51,7 @@ export const PropertyTable = ({
         columns={propertyGridColumns}
         createGetCellContent={createGetCellContent}
         createOnCellEdited={createOnCellEdited}
+        dataLoading={false}
         rows={rows}
         showSearch={showSearch}
         onSearchClose={onSearchClose}

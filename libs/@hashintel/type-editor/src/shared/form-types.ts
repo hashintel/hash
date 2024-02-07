@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { BaseUrl, VersionedUrl } from "@blockprotocol/type-system/slim";
 
 type EntityTypeEditorTypeData = {
   $id: VersionedUrl;
@@ -19,6 +19,8 @@ export type EntityTypeEditorLinkData = EntityTypeEditorTypeData & {
 export type EntityTypeEditorFormData = {
   allOf: VersionedUrl[];
   description: string;
+  icon?: string | null;
+  labelProperty?: BaseUrl | null;
   properties: EntityTypeEditorPropertyData[];
   links: EntityTypeEditorLinkData[];
 };

@@ -33,8 +33,16 @@ export const isSpecialEntityType = (
 ): { isFile: boolean; isImage: boolean; isLink: boolean } => {
   const parentIds = getParentIds(entityType, allEntityTypes);
 
-  let isFile = entityType.$id === systemEntityTypes.file.entityTypeId;
-  let isImage = entityType.$id === systemEntityTypes.image.entityTypeId;
+  let isFile = entityType.$id
+    ? extractBaseUrl(entityType.$id) ===
+      systemEntityTypes.file.entityTypeBaseUrl
+    : false;
+
+  let isImage = entityType.$id
+    ? extractBaseUrl(entityType.$id) ===
+      systemEntityTypes.image.entityTypeBaseUrl
+    : false;
+
   let isLink = false;
 
   for (const id of parentIds) {

@@ -1,9 +1,5 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import {
-  Entity,
-  EntityTypeWithMetadata,
-  extractEntityUuidFromEntityId,
-} from "@local/hash-subgraph";
+import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import {
   getEntityTypeAndParentsById,
   getEntityTypeById,
@@ -17,6 +13,7 @@ import { useCallback, useMemo } from "react";
 import { useGetOwnerForEntity } from "../../../../../../../components/hooks/use-get-owner-for-entity";
 import { useEntityTypesContextRequired } from "../../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useFileUploads } from "../../../../../../../shared/file-upload-context";
+import { generateEntityHref } from "../../../../../../shared/use-entity-href";
 import { useMarkLinkEntityToArchive } from "../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../entity-editor-context";
 import { LinkRow } from "./types";
@@ -37,9 +34,10 @@ export const useRows = () => {
       const { shortname } = getOwnerForEntity(entity);
 
       void router.push(
-        `/@${shortname}/entities/${extractEntityUuidFromEntityId(
-          entity.metadata.recordId.entityId,
-        )}`,
+        generateEntityHref({
+          shortname,
+          entityId: entity.metadata.recordId.entityId,
+        }),
       );
     },
     [getOwnerForEntity, router],

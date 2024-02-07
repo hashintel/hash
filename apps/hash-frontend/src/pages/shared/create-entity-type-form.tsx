@@ -4,6 +4,7 @@ import {
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import { Callout, TextField } from "@hashintel/design-system";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {
   Box,
   formHelperTextClasses,
@@ -197,7 +198,7 @@ export const CreateEntityTypeForm = ({
         })}
         spacing={3}
       >
-        {parentType && (
+        {parentType && parentType.schema.$id !== linkEntityTypeUrl && (
           <Callout
             type={potentiallyUndesiredCrossWebAction ? "warning" : "info"}
             sx={{ width: { md: inModal ? "100%" : formItemWidth } }}

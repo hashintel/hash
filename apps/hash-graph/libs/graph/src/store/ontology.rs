@@ -10,11 +10,14 @@ use error_stack::Result;
 use graph_types::{
     account::AccountId,
     ontology::{
-        DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
-        OntologyTemporalMetadata, PartialDataTypeMetadata, PartialEntityTypeMetadata,
-        PartialPropertyTypeMetadata, PropertyTypeMetadata, PropertyTypeWithMetadata,
+        DataTypeEmbedding, DataTypeMetadata, DataTypeWithMetadata, EntityTypeEmbedding,
+        EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
+        PartialDataTypeMetadata, PartialEntityTypeMetadata, PartialPropertyTypeMetadata,
+        PropertyTypeEmbedding, PropertyTypeMetadata, PropertyTypeWithMetadata,
     },
 };
+use temporal_client::TemporalClient;
+use temporal_versioning::{Timestamp, TransactionTime};
 use type_system::{
     url::{BaseUrl, VersionedUrl},
     DataType, EntityType, PropertyType,
@@ -43,6 +46,7 @@ pub trait DataTypeStore {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
+        temporal_client: Option<&TemporalClient>,
         schema: DataType,
         metadata: PartialDataTypeMetadata,
         relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
@@ -55,6 +59,7 @@ pub trait DataTypeStore {
                 .create_data_types(
                     actor_id,
                     authorization_api,
+                    temporal_client,
                     iter::once((schema, metadata)),
                     ConflictBehavior::Fail,
                     relationships,
@@ -77,6 +82,7 @@ pub trait DataTypeStore {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
+        temporal_client: Option<&TemporalClient>,
         data_types: impl IntoIterator<Item = (DataType, PartialDataTypeMetadata), IntoIter: Send> + Send,
         on_conflict: ConflictBehavior,
         relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
@@ -105,6 +111,7 @@ pub trait DataTypeStore {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
+        temporal_client: Option<&TemporalClient>,
         data_type: DataType,
         relationships: impl IntoIterator<Item = DataTypeRelationAndSubject> + Send,
     ) -> impl Future<Output = Result<DataTypeMetadata, UpdateError>> + Send;
@@ -132,6 +139,15 @@ pub trait DataTypeStore {
         authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
+
+    fn update_data_type_embeddings<A: AuthorizationApi + Send + Sync>(
+        &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut A,
+        embeddings: Vec<DataTypeEmbedding<'_>>,
+        updated_at_transaction_time: Timestamp<TransactionTime>,
+        reset: bool,
+    ) -> impl Future<Output = Result<(), UpdateError>> + Send;
 }
 
 /// Describes the API of a store implementation for [`PropertyType`]s.
@@ -148,6 +164,7 @@ pub trait PropertyTypeStore {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
+        temporal_client: Option<&TemporalClient>,
         schema: PropertyType,
         metadata: PartialPropertyTypeMetadata,
         relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
@@ -160,6 +177,7 @@ pub trait PropertyTypeStore {
                 .create_property_types(
                     actor_id,
                     authorization_api,
+                    temporal_client,
                     iter::once((schema, metadata)),
                     ConflictBehavior::Fail,
                     relationships,
@@ -182,6 +200,7 @@ pub trait PropertyTypeStore {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
+        temporal_client: Option<&TemporalClient>,
         property_types: impl IntoIterator<
             Item = (PropertyType, PartialPropertyTypeMetadata),
             IntoIter: Send,
@@ -213,6 +232,7 @@ pub trait PropertyTypeStore {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
+        temporal_client: Option<&TemporalClient>,
         property_type: PropertyType,
         relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
     ) -> impl Future<Output = Result<PropertyTypeMetadata, UpdateError>> + Send;
@@ -240,6 +260,15 @@ pub trait PropertyTypeStore {
         authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
+
+    fn update_property_type_embeddings<A: AuthorizationApi + Send + Sync>(
+        &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut A,
+        embeddings: Vec<PropertyTypeEmbedding<'_>>,
+        updated_at_transaction_time: Timestamp<TransactionTime>,
+        reset: bool,
+    ) -> impl Future<Output = Result<(), UpdateError>> + Send;
 }
 
 /// Describes the API of a store implementation for [`EntityType`]s.
@@ -256,6 +285,7 @@ pub trait EntityTypeStore {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
+        temporal_client: Option<&TemporalClient>,
         schema: EntityType,
         metadata: PartialEntityTypeMetadata,
         relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
@@ -268,6 +298,7 @@ pub trait EntityTypeStore {
                 .create_entity_types(
                     actor_id,
                     authorization_api,
+                    temporal_client,
                     iter::once((schema, metadata)),
                     ConflictBehavior::Fail,
                     relationships,
@@ -290,6 +321,7 @@ pub trait EntityTypeStore {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
+        temporal_client: Option<&TemporalClient>,
         entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
@@ -315,10 +347,15 @@ pub trait EntityTypeStore {
     /// # Errors
     ///
     /// - if the [`EntityType`] doesn't exist.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "https://linear.app/hash/issue/H-1466/revisit-parameters-to-store-functions"
+    )]
     fn update_entity_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
+        temporal_client: Option<&TemporalClient>,
         entity_type: EntityType,
         label_property: Option<BaseUrl>,
         icon: Option<String>,
@@ -348,4 +385,13 @@ pub trait EntityTypeStore {
         authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
+
+    fn update_entity_type_embeddings<A: AuthorizationApi + Send + Sync>(
+        &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut A,
+        embeddings: Vec<EntityTypeEmbedding<'_>>,
+        updated_at_transaction_time: Timestamp<TransactionTime>,
+        reset: bool,
+    ) -> impl Future<Output = Result<(), UpdateError>> + Send;
 }

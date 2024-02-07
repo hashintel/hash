@@ -23,7 +23,7 @@ type-system = { workspace = true }
 
 axum = "0.7.4"
 clap = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
-clap_complete = "4.4.9"
+clap_complete = "4.4.10"
 mimalloc = { version = "0.1.39", default-features = false }
 futures = { version = "0.3.30" }
 regex = "1.10.3"
@@ -31,7 +31,7 @@ reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"
 semver = { version = "1.0.21", default-features = false }
 serde_json = "1.0.113"
 tarpc = { version = "0.33", features = ["serde1", "tokio1", "serde-transport", "tcp"] }
-time = "0.3.31"
+time = "0.3.34"
 tokio = { workspace = true }
 tokio-postgres = { version = "0.7.10", default-features = false }
 tokio-serde = { version = "0.8", features = ["json"] }

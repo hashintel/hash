@@ -13,7 +13,7 @@ import {
   ResolverFn,
 } from "../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import { dataSourcesToImpureGraphContext } from "../util";
+import { graphQLContextToImpureGraphContext } from "../util";
 
 export const queryDataTypes: ResolverFn<
   Promise<Subgraph>,
@@ -54,11 +54,11 @@ export const getDataType: ResolverFn<
 > = async (
   _,
   { dataTypeId, constrainsValuesOn, includeArchived },
-  { dataSources, authentication },
+  graphQLContext,
 ) =>
   getDataTypeSubgraphById(
-    dataSourcesToImpureGraphContext(dataSources),
-    authentication,
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
     {
       dataTypeId,
       /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */

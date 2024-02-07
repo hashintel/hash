@@ -17,7 +17,10 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
+import {
+  ConstructEntityTypeParams,
+  UserPermissionsOnEntityType,
+} from "@local/hash-isomorphic-utils/types";
 import {
   EntityTypeAuthorizationRelationship,
   EntityTypeMetadata,
@@ -35,6 +38,7 @@ import {
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
+import { publicUserAccountId } from "../../../auth/public-user-account-id";
 import { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname, isExternalTypeId } from "./util";
 
@@ -78,6 +82,38 @@ export const checkEntityTypePermission: ImpureGraphFunction<
   graphApi
     .checkEntityTypePermission(actorId, params.entityTypeId, params.permission)
     .then(({ data }) => data.has_permission);
+
+export const checkPermissionsOnEntityType: ImpureGraphFunction<
+  { entityTypeId: VersionedUrl },
+  Promise<UserPermissionsOnEntityType>
+> = async (graphContext, { actorId }, params) => {
+  const { entityTypeId } = params;
+
+  const isPublicUser = actorId === publicUserAccountId;
+
+  const [canUpdate, canInstantiateEntities] = await Promise.all([
+    isPublicUser
+      ? false
+      : await checkEntityTypePermission(
+          graphContext,
+          { actorId },
+          { entityTypeId, permission: "update" },
+        ),
+    isPublicUser
+      ? false
+      : await checkEntityTypePermission(
+          graphContext,
+          { actorId },
+          { entityTypeId, permission: "instantiate" },
+        ),
+  ]);
+
+  return {
+    edit: canUpdate,
+    instantiate: canInstantiateEntities,
+    view: true,
+  };
+};
 
 /**
  * Create an entity type.

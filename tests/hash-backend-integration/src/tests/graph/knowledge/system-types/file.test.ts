@@ -1,5 +1,4 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
   createFileFromExternalUrl,
@@ -25,7 +24,7 @@ describe("File", () => {
   let testUser: User;
 
   beforeAll(async () => {
-    const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+    const graphContext = createTestImpureGraphContext();
     await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
@@ -92,7 +91,7 @@ describe("File", () => {
   const externalUrl = "https://placekitten.com/200/300";
 
   it("createFileFromExternalUrl can create a file entity from an external link", async () => {
-    const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+    const graphContext = createTestImpureGraphContext();
     const authentication = { actorId: testUser.accountId };
 
     const file = await createFileFromExternalUrl(graphContext, authentication, {

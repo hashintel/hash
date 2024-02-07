@@ -1,9 +1,25 @@
-import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { FileV2Properties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Entity, EntityId } from "@local/hash-subgraph";
 import { DataSource } from "apollo-datasource";
 
 export const storageTypes = ["AWS_S3", "LOCAL_FILE_SYSTEM"] as const;
 export type StorageType = (typeof storageTypes)[number];
+
+export const isStorageType = (
+  storageType: string,
+): storageType is StorageType =>
+  storageTypes.includes(storageType as StorageType);
+
+/** Helper type to create a typed "dictionary" of storage types to their storage provider instance */
+export type StorageProviderLookup = Partial<
+  Record<StorageType, StorageProvider | UploadableStorageProvider>
+>;
+
+/**
+ * All storage providers usable by the API should be added here.
+ * Even if not currently used for upload, they need to be available for downloads.
+ */
+export const storageProviderLookup: StorageProviderLookup = {};
 
 /** Interface describing a generic storage provider
  * used for allowing the download and upload files via presigned request.
@@ -75,7 +91,7 @@ export interface PresignedStorageRequest {
 /** Parameters needed to allow the download of a stored file */
 export interface PresignedDownloadRequest {
   /** The file entity to provide a download URL for */
-  entity: Entity<FileProperties>;
+  entity: Entity<FileV2Properties>;
   /** File storage key * */
   key: string;
   /** Expiry delay for the download authorisation */

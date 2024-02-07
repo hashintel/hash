@@ -13,7 +13,7 @@ use crate::{
     ontology::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
     store::{
         query::{parse_query_token, JsonPath, ParameterType, PathToken, QueryPath},
-        Record,
+        QueryRecord, SubgraphRecord,
     },
     subgraph::{
         edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
@@ -156,8 +156,8 @@ pub enum EntityQueryPath<'p> {
     /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
     /// [`EntityProvenanceMetadata`]: graph_types::knowledge::entity::EntityProvenanceMetadata
     EditionCreatedById,
-    /// The [`RecordCreatedById`] of the [`ProvenanceMetadata`] belonging to the [`Entity`] when
-    /// it was _first inserted_ into the database.
+    /// The [`CreatedById`] of the [`EntityProvenanceMetadata`] belonging to the [`Entity`]
+    /// when it was _first inserted_ into the database.
     ///
     /// This does not take into account if the [`Entity`] was updated with an earlier decision
     /// time.
@@ -171,8 +171,8 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`RecordCreatedById`]: graph_types::provenance::RecordCreatedById
-    /// [`ProvenanceMetadata`]: graph_types::provenance::ProvenanceMetadata
+    /// [`CreatedById`]: graph_types::account::CreatedById
+    /// [`EntityProvenanceMetadata`]: graph_types::knowledge::entity::EntityProvenanceMetadata
     CreatedById,
     /// An edge from this [`Entity`] to it's [`EntityType`] using a [`SharedEdgeKind`].
     ///
@@ -387,7 +387,7 @@ pub enum EntityQueryPath<'p> {
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!(["embedding"]))?;
-    /// assert_eq!(path, EntityQueryPath::Embedding,);
+    /// assert_eq!(path, EntityQueryPath::Embedding);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Embedding,
@@ -738,8 +738,11 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
     }
 }
 
-impl Record for Entity {
+impl QueryRecord for Entity {
     type QueryPath<'p> = EntityQueryPath<'p>;
+}
+
+impl SubgraphRecord for Entity {
     type VertexId = EntityVertexId;
 
     #[must_use]

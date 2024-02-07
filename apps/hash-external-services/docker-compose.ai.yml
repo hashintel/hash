@@ -17,6 +17,6 @@ services:
       HASH_GRAPH_API_PORT: "${HASH_GRAPH_API_PORT}"
     tmpfs:
       - /tmp
-    read_only: true
+    read_only: false
     security_opt:
       - no-new-privileges:true

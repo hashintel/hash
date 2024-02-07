@@ -24,11 +24,14 @@ use async_trait::async_trait;
 use authorization::{
     backend::ZanzibarBackend,
     schema::{
-        AccountGroupRelationAndSubject, DataTypeId, DataTypeRelationAndSubject,
+        AccountGroupRelationAndSubject, DataTypeId, DataTypeRelationAndSubject, EntityNamespace,
         EntityRelationAndSubject, EntityTypeId, EntityTypeRelationAndSubject, PropertyTypeId,
         PropertyTypeRelationAndSubject, WebRelationAndSubject,
     },
-    zanzibar::{types::RelationshipFilter, Consistency},
+    zanzibar::{
+        types::{RelationshipFilter, ResourceFilter},
+        Consistency,
+    },
 };
 use error_stack::{ensure, Context, Report, Result, ResultExt};
 use futures::{
@@ -36,7 +39,7 @@ use futures::{
 };
 use graph_types::{
     account::{AccountGroupId, AccountId},
-    knowledge::entity::{Entity, EntityUuid},
+    knowledge::entity::{Entity, EntityId, EntityUuid},
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     owned_by_id::OwnedById,
 };
@@ -48,13 +51,16 @@ use tokio_postgres::{
     tls::{MakeTlsConnect, TlsConnect},
     Socket,
 };
-use type_system::url::VersionedUrl;
+use type_system::url::{BaseUrl, VersionedUrl};
 
 use crate::{
-    snapshot::{entity::EntitySnapshotRecord, restore::SnapshotRecordBatch},
+    snapshot::{
+        entity::{EntityEmbeddingRecord, EntitySnapshotRecord},
+        restore::SnapshotRecordBatch,
+    },
     store::{
         crud::Read, query::Filter, AsClient, InsertionError, PostgresStore, PostgresStorePool,
-        Record, StorePool,
+        QueryRecord, StorePool,
     },
 };
 
@@ -77,6 +83,16 @@ pub struct Web {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "namespace")]
+pub enum AuthorizationRelation {
+    Entity {
+        object: EntityUuid,
+        #[serde(flatten)]
+        relationship: EntityRelationAndSubject,
+    },
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", deny_unknown_fields)]
 pub enum SnapshotEntry {
     Snapshot(SnapshotMetadata),
@@ -87,6 +103,8 @@ pub enum SnapshotEntry {
     PropertyType(PropertyTypeSnapshotRecord),
     EntityType(EntityTypeSnapshotRecord),
     Entity(EntitySnapshotRecord),
+    EntityEmbedding(EntityEmbeddingRecord),
+    Relation(AuthorizationRelation),
 }
 
 impl SnapshotEntry {
@@ -146,6 +164,29 @@ impl SnapshotEntry {
                             "{}:\n{json}",
                             entity.metadata.record_id.entity_id
                         ));
+                    }
+                }
+            }
+            Self::Relation(AuthorizationRelation::Entity {
+                object: id,
+                relationship: relation,
+            }) => {
+                context.push_body(format!("relation: {id}"));
+                if context.alternate() {
+                    if let Ok(json) = serde_json::to_string_pretty(relation) {
+                        context.push_appendix(format!("{id}:\n{json}"));
+                    }
+                }
+            }
+            Self::EntityEmbedding(embedding) => {
+                context.push_body(format!(
+                    "entity embedding: {}",
+                    embedding.entity_id.entity_uuid
+                ));
+                if context.alternate() {
+                    if let Ok(json) = serde_json::to_string_pretty(embedding) {
+                        context
+                            .push_appendix(format!("{}:\n{json}", embedding.entity_id.entity_uuid));
                     }
                 }
             }
@@ -236,9 +277,10 @@ where
                         )
                         .await
                         .change_context(SnapshotDumpError::Query)?
-                        .into_iter()
-                        .map(|(_group, relation)| relation)
-                        .collect(),
+                        .map_ok(|(_group, relation)| relation)
+                        .try_collect()
+                        .await
+                        .change_context(SnapshotDumpError::Query)?,
                 })
             }))
     }
@@ -268,9 +310,10 @@ where
                         )
                         .await
                         .change_context(SnapshotDumpError::Query)?
-                        .into_iter()
-                        .map(|(_web_id, relation)| relation)
-                        .collect(),
+                        .map_ok(|(_web_id, relation)| relation)
+                        .try_collect()
+                        .await
+                        .change_context(SnapshotDumpError::Query)?,
                 })
             }))
     }
@@ -281,7 +324,7 @@ where
     ) -> Result<impl Stream<Item = Result<T, SnapshotDumpError>> + Send + 'pool, SnapshotDumpError>
     where
         <Self as StorePool>::Store<'pool>: Read<T>,
-        T: Record + 'pool,
+        T: QueryRecord + 'pool,
     {
         Ok(Read::<T>::read(
             &self
@@ -295,6 +338,48 @@ where
         .await
         .map_err(|future_error| future_error.change_context(SnapshotDumpError::Query))?
         .map_err(|stream_error| stream_error.change_context(SnapshotDumpError::Read)))
+    }
+
+    /// Convenience function to create a stream of snapshot entries.
+    async fn create_entity_embedding_stream(
+        &self,
+    ) -> Result<
+        impl Stream<Item = Result<SnapshotEntry, SnapshotDumpError>> + Send,
+        SnapshotDumpError,
+    > {
+        Ok(self
+            .acquire()
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .as_client()
+            .query_raw(
+                "SELECT
+                    web_id,
+                    entity_uuid,
+                    property,
+                    embedding,
+                    updated_at_decision_time,
+                    updated_at_transaction_time
+                 FROM entity_embeddings",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .map(|result| result.change_context(SnapshotDumpError::Query))
+            .map_ok(|row| {
+                SnapshotEntry::EntityEmbedding(EntityEmbeddingRecord {
+                    entity_id: EntityId {
+                        owned_by_id: OwnedById::new(row.get(0)),
+                        entity_uuid: row.get(1),
+                    },
+                    property: row.get::<_, Option<String>>(2).map(|property| {
+                        BaseUrl::new(property).expect("Invalid property URL returned from Postgres")
+                    }),
+                    embedding: row.get(3),
+                    updated_at_decision_time: row.get(4),
+                    updated_at_transaction_time: row.get(5),
+                })
+            }))
     }
 
     /// Reads the snapshot from the store into the given sink.
@@ -368,9 +453,10 @@ where
                                 )
                                 .await
                                 .change_context(SnapshotDumpError::Query)?
-                                .into_iter()
-                                .map(|(_, relation)| relation)
-                                .collect(),
+                                .map_ok(|(_, relation)| relation)
+                                .try_collect()
+                                .await
+                                .change_context(SnapshotDumpError::Query)?,
                             metadata: record.metadata,
                         }))
                     })
@@ -392,9 +478,10 @@ where
                                 )
                                 .await
                                 .change_context(SnapshotDumpError::Query)?
-                                .into_iter()
-                                .map(|(_, relation)| relation)
-                                .collect(),
+                                .map_ok(|(_, relation)| relation)
+                                .try_collect()
+                                .await
+                                .change_context(SnapshotDumpError::Query)?,
                             metadata: record.metadata,
                         }))
                     })
@@ -416,9 +503,10 @@ where
                                 )
                                 .await
                                 .change_context(SnapshotDumpError::Query)?
-                                .into_iter()
-                                .map(|(_, relation)| relation)
-                                .collect(),
+                                .map_ok(|(_, relation)| relation)
+                                .try_collect()
+                                .await
+                                .change_context(SnapshotDumpError::Query)?,
                             metadata: record.metadata,
                         }))
                     })
@@ -432,20 +520,33 @@ where
                         Ok(SnapshotEntry::Entity(EntitySnapshotRecord {
                             properties: entity.properties,
                             link_data: entity.link_data,
-                            relations: authorization_api
-                                .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
-                                    RelationshipFilter::from_resource(
-                                        entity.metadata.record_id.entity_id.entity_uuid,
-                                    ),
-                                    Consistency::FullyConsistent,
-                                )
-                                .await
-                                .change_context(SnapshotDumpError::Query)?
-                                .into_iter()
-                                .map(|(_, relation)| relation)
-                                .collect(),
                             metadata: entity.metadata,
                         }))
+                    })
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.create_entity_embedding_stream()
+                    .try_flatten_stream()
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                authorization_api
+                    .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
+                        RelationshipFilter::from_resource(ResourceFilter::from_kind(
+                            EntityNamespace::Entity,
+                        )),
+                        Consistency::FullyConsistent,
+                    )
+                    .try_flatten_stream()
+                    .map(|result| result.change_context(SnapshotDumpError::Query))
+                    .map_ok(|(id, relation)| {
+                        SnapshotEntry::Relation(AuthorizationRelation::Entity {
+                            object: id,
+                            relationship: relation,
+                        })
                     })
                     .forward(snapshot_record_tx),
             );

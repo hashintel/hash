@@ -35,7 +35,7 @@ pub use self::{
     ontology::{DataTypeStore, EntityTypeStore, PropertyTypeStore},
     pool::StorePool,
     postgres::{AsClient, PostgresStore, PostgresStorePool},
-    record::Record,
+    record::{QueryRecord, SubgraphRecord},
     validation::{StoreCache, StoreProvider},
 };
 

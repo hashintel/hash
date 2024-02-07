@@ -24,7 +24,7 @@ pub use self::{
     property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor, PropertyTypeQueryToken},
 };
 use crate::{
-    store::Record,
+    store::{QueryRecord, SubgraphRecord},
     subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
 };
 
@@ -85,8 +85,11 @@ where
     serde_json::from_value(value).change_context(PatchAndParseError)
 }
 
-impl Record for DataTypeWithMetadata {
+impl QueryRecord for DataTypeWithMetadata {
     type QueryPath<'p> = DataTypeQueryPath<'p>;
+}
+
+impl SubgraphRecord for DataTypeWithMetadata {
     type VertexId = DataTypeVertexId;
 
     #[must_use]
@@ -99,8 +102,11 @@ impl Record for DataTypeWithMetadata {
     }
 }
 
-impl Record for PropertyTypeWithMetadata {
+impl QueryRecord for PropertyTypeWithMetadata {
     type QueryPath<'p> = PropertyTypeQueryPath<'p>;
+}
+
+impl SubgraphRecord for PropertyTypeWithMetadata {
     type VertexId = PropertyTypeVertexId;
 
     #[must_use]
@@ -113,8 +119,11 @@ impl Record for PropertyTypeWithMetadata {
     }
 }
 
-impl Record for EntityTypeWithMetadata {
+impl QueryRecord for EntityTypeWithMetadata {
     type QueryPath<'p> = EntityTypeQueryPath<'p>;
+}
+
+impl SubgraphRecord for EntityTypeWithMetadata {
     type VertexId = EntityTypeVertexId;
 
     #[must_use]

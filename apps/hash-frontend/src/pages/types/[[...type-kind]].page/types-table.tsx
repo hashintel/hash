@@ -297,6 +297,7 @@ export const TypesTable: FunctionComponent<{
         showSearch={showSearch}
         onSearchClose={() => setShowSearch(false)}
         columns={typesTableColumns}
+        dataLoading={!types}
         rows={filteredRows}
         enableCheckboxSelection
         selectedRows={selectedRows}

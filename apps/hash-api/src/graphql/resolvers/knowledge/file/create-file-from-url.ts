@@ -1,4 +1,4 @@
-import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/file";
+import { FileV2 as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-types/file";
 import {
@@ -6,7 +6,7 @@ import {
   ResolverFn,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const createFileFromUrl: ResolverFn<
   Promise<FileEntityType>,
@@ -22,9 +22,10 @@ export const createFileFromUrl: ResolverFn<
     displayName,
     url,
   },
-  { dataSources, authentication },
+  graphQLContext,
 ) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   const entity = await createFileFromExternalUrl(context, authentication, {
     description,

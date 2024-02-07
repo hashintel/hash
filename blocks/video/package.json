@@ -26,7 +26,7 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.1-canary-20240108132503",
+    "@blockprotocol/graph": "0.3.3",
     "twind": "0.16.17"
   },
   "devDependencies": {

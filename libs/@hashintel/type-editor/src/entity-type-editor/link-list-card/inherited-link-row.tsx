@@ -34,7 +34,7 @@ export const InheritedLinkRow = ({
   } = inheritedLinkData;
 
   const { entityTypes, linkTypes } = useEntityTypesOptions();
-  const linkSchema = linkTypes[$id];
+  const linkSchema = linkTypes[$id]?.schema;
 
   if (!linkSchema) {
     throw new Error(`Inherited property type ${$id} not found`);
@@ -74,7 +74,7 @@ export const InheritedLinkRow = ({
                 return (
                   <DestinationEntityType
                     key={entityTypeId}
-                    entityType={entityType}
+                    entityTypeSchema={entityType.schema}
                   />
                 );
               })

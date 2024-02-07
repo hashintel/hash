@@ -4,6 +4,7 @@ use core::{fmt, iter::repeat};
 use std::{error::Error, future::Future};
 
 use error_stack::Report;
+use futures::{stream, Stream};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 pub use self::spicedb::{RpcError, SpiceDbOpenApi};
@@ -211,7 +212,9 @@ pub trait ZanzibarBackend {
             impl Serialize + Send + Sync,
         >,
         consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<Vec<R>, Report<ReadError>>> + Send
+    ) -> impl Future<
+        Output = Result<impl Stream<Item = Result<R, Report<ReadError>>> + Send, Report<ReadError>>,
+    > + Send
     where
         for<'de> R: Relationship<
                 Resource: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
@@ -312,8 +315,8 @@ impl ZanzibarBackend for NoAuthorization {
             impl Serialize + Send + Sync,
         >,
         _: Consistency<'_>,
-    ) -> Result<Vec<R>, Report<ReadError>> {
-        Ok(Vec::new())
+    ) -> Result<impl Stream<Item = Result<R, Report<ReadError>>>, Report<ReadError>> {
+        Ok(stream::empty())
     }
 
     async fn delete_relations(

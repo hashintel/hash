@@ -6,7 +6,7 @@ import {
 } from "../../../../graph/knowledge/system-types/page";
 import { MutationSetParentPageArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { graphQLContextToImpureGraphContext } from "../../util";
 import { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 
 export const setParentPageResolver: ResolverFn<
@@ -22,9 +22,10 @@ export const setParentPageResolver: ResolverFn<
     prevFractionalIndex = null,
     nextIndex = null,
   },
-  { dataSources, authentication },
+  graphQLContext,
 ) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   if (pageEntityId === parentPageEntityId) {
     throw new ApolloError("A page cannot be the parent of itself");

@@ -4,7 +4,7 @@ import { Entity } from "@local/hash-subgraph";
 import { getPageBlocks } from "../../../../graph/knowledge/system-types/page";
 import { ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { graphQLContextToImpureGraphContext } from "../../util";
 import {
   mapBlockToGQL,
   mapEntityToGQL,
@@ -17,8 +17,9 @@ export const pageContents: ResolverFn<
   UnresolvedPageGQL,
   LoggedInGraphQLContext,
   Record<string, never>
-> = async (page, _, { dataSources, authentication }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+> = async (page, _, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   const contentItems = await getPageBlocks(context, authentication, {
     pageEntityId: page.metadata.recordId.entityId,

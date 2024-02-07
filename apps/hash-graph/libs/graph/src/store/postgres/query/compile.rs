@@ -17,7 +17,7 @@ use crate::{
             WhereExpression, WindowStatement, WithExpression,
         },
         query::{Filter, FilterExpression, Parameter, ParameterList, ParameterType},
-        NullOrdering, Ordering, Record,
+        NullOrdering, Ordering, QueryRecord,
     },
     subgraph::temporal_axes::QueryTemporalAxes,
 };
@@ -48,7 +48,7 @@ struct PathSelection {
     ordering: Option<(Ordering, Option<NullOrdering>)>,
 }
 
-pub struct SelectCompiler<'p, 'q: 'p, T: Record> {
+pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
     statement: SelectStatement,
     artifacts: CompilerArtifacts<'p>,
     temporal_axes: Option<&'p QueryTemporalAxes>,

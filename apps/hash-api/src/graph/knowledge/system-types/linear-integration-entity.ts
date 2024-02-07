@@ -175,7 +175,9 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
  */
 export const getLinearIntegrationById: ImpureGraphFunction<
   { entityId: EntityId },
-  Promise<LinearIntegration>
+  Promise<LinearIntegration>,
+  false,
+  true
 > = async (ctx, authentication, { entityId }) => {
   const entity = await getLatestEntityById(ctx, authentication, { entityId });
 
@@ -248,7 +250,9 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
     linearTeamIds: string[];
     includeDrafts?: boolean;
   },
-  Promise<void>
+  Promise<void>,
+  false,
+  true
 > = async (context, authentication, params) => {
   const {
     linearIntegrationEntityId,
