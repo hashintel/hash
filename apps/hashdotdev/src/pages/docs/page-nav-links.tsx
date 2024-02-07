@@ -82,12 +82,7 @@ export const PageNavLinks: FunctionComponent<PageNavLinksProps> = ({
       </Box>
       <Box>
         {nextPage && (
-          <Box
-            display="flex"
-            flexDirection="column"
-            alignItems="flex-end"
-            sx={{ position: "relative", left: hideIcons ? 0 : "31px" }}
-          >
+          <Box display="flex" flexDirection="column" alignItems="flex-end">
             <Typography sx={{ color: theme.palette.gray[50] }} component="p">
               Next
             </Typography>

@@ -207,7 +207,7 @@ export const DocsContent: FunctionComponent<DocsPageProps> = ({
             prevPage={prevPage}
             nextPage={nextPage}
             sx={{
-              maxWidth: {
+              width: {
                 sx: "100%",
                 sm: mdxParagraphMaxWidth,
               },
