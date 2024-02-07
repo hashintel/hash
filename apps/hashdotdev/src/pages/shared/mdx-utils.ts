@@ -332,7 +332,20 @@ export const recursivelyGetDocsPages = (params: {
       .lstatSync(`src/_pages/${pathToDirectory}/${directoryItem}`)
       .isDirectory();
 
+    // Skip WIP directories and files
+    if (directoryItem.toLowerCase().startsWith("wip")) {
+      return [];
+    }
+
+    const [index, fileNameWithoutIndex] = directoryItem.split("_");
+
     if (isDirectory) {
+      if (!index || Number.isNaN(parseInt(index, 10))) {
+        throw new Error(
+          `The directory at path ${directoryItem} does not have a valid index`,
+        );
+      }
+
       const hasIndexPage = fs.existsSync(
         `src/_pages/${pathToDirectory}/${directoryItem}/00_index.mdx`,
       );
@@ -344,9 +357,13 @@ export const recursivelyGetDocsPages = (params: {
           })
         : undefined;
 
-      const directoryNameWithoutIndex = directoryItem.split("_")[1] ?? "";
+      if (!fileNameWithoutIndex) {
+        throw new Error(
+          `The name of the directory at path ${directoryItem} could not be parsed`,
+        );
+      }
 
-      const titleDerivedFromDirectoryName = directoryNameWithoutIndex
+      const titleDerivedFromDirectoryName = fileNameWithoutIndex
         .split("-")
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(" ");
@@ -365,13 +382,18 @@ export const recursivelyGetDocsPages = (params: {
         title: titleDerivedFromDirectoryName,
         titleDerivedFromDirectoryName,
         /** @todo: this should probably be removed */
-        href: `/${pathToDirectory.replace(/\d+_/g, "")}/${directoryNameWithoutIndex}`,
+        href: `/${pathToDirectory.replace(/\d+_/g, "")}/${fileNameWithoutIndex}`,
         sections: [],
         subPages: recursivelyGetDocsPages({
           pathToDirectory: `${pathToDirectory}/${directoryItem}`,
         }),
       };
     } else if (directoryItem.endsWith(".mdx")) {
+      if (!index || Number.isNaN(parseInt(index, 10))) {
+        throw new Error(
+          `The MDX file at path ${directoryItem} does not have a valid index`,
+        );
+      }
       return {
         ...getDocsPage({
           pathToDirectory,
