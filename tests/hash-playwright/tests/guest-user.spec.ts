@@ -12,10 +12,10 @@ test("guest user navigation to login and signup pages", async ({ page }) => {
   await page.goto("/");
   await page.waitForURL("**/login");
 
-  await expect(page.locator("text=Log in to your account")).toBeVisible();
-  await expect(page.locator("text=Create account")).toBeVisible();
+  await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();
+  await expect(page.locator("text=Create a free account")).toBeVisible();
 
-  await page.click("text=Create account");
+  await page.click("text=Create a free account");
 
   await page.waitForURL("**/signup");
 
@@ -23,17 +23,17 @@ test("guest user navigation to login and signup pages", async ({ page }) => {
     page.locator('[placeholder="Enter your email address"]'),
   ).toBeVisible();
 
-  await expect(
-    page.locator('button:has-text("Sign up with email")'),
-  ).toBeVisible();
+  await expect(page.locator('button:has-text("Sign up")')).toBeVisible();
 
   await expect(
-    page.locator("text=Already have an account? Log in"),
+    page.locator("text=Already have an account? Sign in"),
   ).toBeVisible();
 
-  await Promise.all([page.click("text=Log in"), page.waitForURL("**/login")]);
+  await page.click("text=Sign In");
 
-  await expect(page.locator('h1:has-text("Log In")')).toBeVisible();
+  await page.waitForURL("**/login");
+
+  await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();
 });
 
 testTolerateConsoleErrors(
@@ -42,7 +42,7 @@ testTolerateConsoleErrors(
     await page.goto("/");
     await page.waitForURL("**/login");
 
-    await expect(page.locator("text=Log in to your account")).toBeVisible();
+    await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();
 
     await page.fill(
       '[placeholder="Enter your email address"]',
@@ -51,7 +51,7 @@ testTolerateConsoleErrors(
 
     await page.fill('[type="password"]', "password");
 
-    await page.click('button:has-text("Log in to your account")');
+    await page.click('button:has-text("Submit")');
 
     await expect(
       page.locator("text=The provided credentials are invalid"),
@@ -64,5 +64,5 @@ test("guest user redirected to login page", async ({ page }) => {
 
   await page.waitForURL("**/login");
 
-  await expect(page.locator("text=Log in to your account")).toBeVisible();
+  await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();
 });
