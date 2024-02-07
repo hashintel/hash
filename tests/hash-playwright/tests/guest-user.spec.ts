@@ -15,6 +15,8 @@ test("guest user navigation to login and signup pages", async ({ page }) => {
   await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();
   await expect(page.locator("text=Create a free account")).toBeVisible();
 
+  // Can click the sign up button in the content
+
   await page.click("text=Create a free account");
 
   await page.waitForURL("**/signup");
@@ -29,11 +31,25 @@ test("guest user navigation to login and signup pages", async ({ page }) => {
     page.locator("text=Already have an account? Sign in"),
   ).toBeVisible();
 
-  await page.click("text=Sign In");
+  // Can click the sign in button in the header
+
+  await page.locator("text=Sign In").nth(0).click();
 
   await page.waitForURL("**/login");
 
   await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();
+
+  // Can click the sign up button in the header
+
+  await page.click("text=Sign Up");
+
+  await page.waitForURL("**/signup");
+
+  // Can click the sign in button in the content
+
+  await page.locator("text=Sign In").nth(1).click();
+
+  await page.waitForURL("**/login");
 });
 
 testTolerateConsoleErrors(
