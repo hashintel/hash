@@ -118,8 +118,6 @@ export const createEntityTypeEmbeddings = async (params: {
 }> => {
   // We want to create embeddings for:
   //   1. The `Title: Description` pair
-  //
-  // We use the last item in the array to store the combined 'all properties' list.
   const embeddingInputs: string[] = [
     `${params.entityType.schema.title}: ${params.entityType.schema.description}`,
   ];
