@@ -129,6 +129,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
        * in the `useLazyQuery` hook that causes outdated data to be
        * returned if an error is encountered by the query.
        *
+       * @see https://linear.app/hash/issue/H-2182/upgrade-apolloclient-to-latest-version-to-fix-uselazyquery-behaviour
        * @see https://github.com/apollographql/apollo-client/issues/6086
        */
       const subgraph = await apolloClient
