@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/router";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
-import { FunctionComponent, ReactNode } from "react";
+import { FunctionComponent, ReactNode, useMemo } from "react";
 
 import { ChevronRightRegularIcon } from "../../components/icons/chevron-right-regular-icon";
 import { Link } from "../../components/link";
@@ -69,13 +69,22 @@ export const DocsContent: FunctionComponent<DocsPageProps> = ({
 
   const currentPageIndex = currentPage ? flatSubPages.indexOf(currentPage) : -1;
 
-  const prevPage =
-    currentPageIndex > 0 ? flatSubPages[currentPageIndex - 1] : undefined;
+  const prevPage = useMemo(
+    () =>
+      flatSubPages
+        .slice(0, currentPageIndex)
+        .reverse()
+        .find(({ markdownFilePath }) => !!markdownFilePath),
+    [flatSubPages, currentPageIndex],
+  );
 
-  const nextPage =
-    currentPageIndex < flatSubPages.length - 1
-      ? flatSubPages[currentPageIndex + 1]
-      : undefined;
+  const nextPage = useMemo(
+    () =>
+      flatSubPages
+        .slice(currentPageIndex + 1)
+        .find(({ markdownFilePath }) => !!markdownFilePath),
+    [flatSubPages, currentPageIndex],
+  );
 
   const hasMultiplePages = flatSubPages.length > 0;
 
