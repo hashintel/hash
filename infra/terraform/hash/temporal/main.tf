@@ -1,7 +1,7 @@
 locals {
-  prefix         = var.prefix
-  log_group_name = "${local.prefix}-log"
-  param_prefix   = var.param_prefix
+  prefix           = var.prefix
+  log_group_name   = "${local.prefix}-log"
+  param_prefix     = var.param_prefix
 }
 
 module "migrate_ecr" {
@@ -24,13 +24,13 @@ module "cluster" {
 }
 
 resource "aws_iam_role" "execution_role" {
-  name               = "${local.prefix}-exerole"
+  name = "${local.prefix}-exerole"
   assume_role_policy = jsonencode({
-    Version   = "2012-10-17"
+    Version = "2012-10-17"
     Statement = [
       {
-        Action    = "sts:AssumeRole"
-        Effect    = "Allow"
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
         Principal = {
           Service = "ecs-tasks.amazonaws.com"
         }
@@ -38,10 +38,10 @@ resource "aws_iam_role" "execution_role" {
     ]
   })
   inline_policy {
-    name   = "policy"
+    name = "policy"
     # Allow publishing logs and getting secrets
     policy = jsonencode({
-      Version   = "2012-10-17"
+      Version = "2012-10-17"
       Statement = flatten([
         [
           {
@@ -77,13 +77,13 @@ resource "aws_iam_role_policy_attachment" "execution_role" {
 
 # IAM role for the running task
 resource "aws_iam_role" "task_role" {
-  name               = "${local.prefix}-taskrole"
+  name = "${local.prefix}-taskrole"
   assume_role_policy = jsonencode({
-    Version   = "2012-10-17"
+    Version = "2012-10-17"
     Statement = [
       {
-        Action    = "sts:AssumeRole"
-        Effect    = "Allow"
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
         Principal = {
           Service = "ecs-tasks.amazonaws.com"
         }
@@ -91,9 +91,9 @@ resource "aws_iam_role" "task_role" {
     ]
   })
   inline_policy {
-    name   = "policy"
+    name = "policy"
     policy = jsonencode({
-      Version   = "2012-10-17"
+      Version = "2012-10-17"
       Statement = [
         # Enable SSM
         {
@@ -136,7 +136,7 @@ resource "aws_ecs_service" "svc" {
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true
-    security_groups  = [
+    security_groups = [
       aws_security_group.app_sg.id,
     ]
   }
@@ -194,9 +194,9 @@ resource "aws_security_group" "app_sg" {
     to_port     = local.temporal_port
     protocol    = "tcp"
     description = "Allow connections from Temporal server within the VPC"
-    #    cidr_blocks = [var.vpc.cidr_block]
+    cidr_blocks = [var.vpc.cidr_block]
     # To make UI available from the web:
-    cidr_blocks = ["0.0.0.0/0"]
+    # cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
@@ -206,8 +206,8 @@ resource "aws_security_group" "app_sg" {
     description = "Allow connections to Temporal UI within the VPC"
     # TODO: Consider changing this to `"0.0.0.0/0"` and setup authentication
     # description = "Allow connections to Temporal from anywhere (rely on authentication to restrict access)"
-    #    cidr_blocks = [var.vpc.cidr_block]
+    cidr_blocks = [var.vpc.cidr_block]
     # To make UI available from the web:
-    cidr_blocks = ["0.0.0.0/0"]
+    # cidr_blocks = ["0.0.0.0/0"]
   }
 }
