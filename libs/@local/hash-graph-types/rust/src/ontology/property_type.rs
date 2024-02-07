@@ -6,10 +6,13 @@ use utoipa::{
     ToSchema,
 };
 
-use crate::ontology::{
-    OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyType,
-    OntologyTypeClassificationMetadata, OntologyTypeRecordId, OntologyTypeReference,
-    OntologyTypeWithMetadata,
+use crate::{
+    ontology::{
+        OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyType,
+        OntologyTypeClassificationMetadata, OntologyTypeRecordId, OntologyTypeReference,
+        OntologyTypeWithMetadata,
+    },
+    Embedding,
 };
 
 /// An [`PropertyTypeMetadata`] that has not yet been fully resolved.
@@ -27,6 +30,14 @@ pub struct PropertyTypeMetadata {
     pub classification: OntologyTypeClassificationMetadata,
     pub temporal_versioning: OntologyTemporalMetadata,
     pub provenance: OntologyProvenanceMetadata,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct PropertyTypeEmbedding<'e> {
+    pub property_type_id: VersionedUrl,
+    pub embedding: Embedding<'e>,
 }
 
 #[cfg(feature = "utoipa")]

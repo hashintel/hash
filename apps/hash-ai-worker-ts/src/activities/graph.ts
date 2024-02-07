@@ -1,9 +1,14 @@
 import type {
+  DataTypeEmbedding,
+  DataTypeStructuralQuery,
   EntityEmbedding,
   EntityQueryCursor,
   EntityStructuralQuery,
+  EntityTypeEmbedding,
   EntityTypeStructuralQuery,
   GraphApi,
+  PropertyTypeEmbedding,
+  PropertyTypeStructuralQuery,
 } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -12,9 +17,13 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   AccountId,
+  DataTypeRootType,
+  DataTypeWithMetadata,
   Entity,
   EntityRootType,
   EntityTypeRootType,
+  EntityTypeWithMetadata,
+  PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
   Timestamp,
@@ -22,7 +31,9 @@ import type {
 } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
+  getDataTypes,
   getEntities,
+  getEntityTypes,
   getPropertyTypes,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
@@ -66,6 +77,39 @@ export const createGraphActivities = ({
       });
   },
 
+  async getDataTypesByQuery(params: {
+    authentication: {
+      actorId: AccountId;
+    };
+    query: DataTypeStructuralQuery;
+  }): Promise<Subgraph<DataTypeRootType>> {
+    return graphApiClient
+      .getDataTypesByQuery(params.authentication.actorId, params.query)
+      .then((response) => mapGraphApiSubgraphToSubgraph(response.data));
+  },
+
+  async getPropertyTypesByQuery(params: {
+    authentication: {
+      actorId: AccountId;
+    };
+    query: PropertyTypeStructuralQuery;
+  }): Promise<Subgraph<PropertyTypeRootType>> {
+    return graphApiClient
+      .getPropertyTypesByQuery(params.authentication.actorId, params.query)
+      .then((response) => mapGraphApiSubgraphToSubgraph(response.data));
+  },
+
+  async getEntityTypesByQuery(params: {
+    authentication: {
+      actorId: AccountId;
+    };
+    query: EntityTypeStructuralQuery;
+  }): Promise<Subgraph<EntityTypeRootType>> {
+    return graphApiClient
+      .getEntityTypesByQuery(params.authentication.actorId, params.query)
+      .then((response) => mapGraphApiSubgraphToSubgraph(response.data));
+  },
+
   async getEntitiesByQuery(params: {
     authentication: {
       actorId: AccountId;
@@ -86,15 +130,52 @@ export const createGraphActivities = ({
       }));
   },
 
-  async getEntityTypesByQuery(params: {
+  async updateDataTypeEmbeddings(params: {
     authentication: {
       actorId: AccountId;
     };
-    query: EntityTypeStructuralQuery;
-  }): Promise<Subgraph<EntityTypeRootType>> {
-    return graphApiClient
-      .getEntityTypesByQuery(params.authentication.actorId, params.query)
-      .then((response) => mapGraphApiSubgraphToSubgraph(response.data));
+    embeddings: DataTypeEmbedding[];
+    updatedAtTransactionTime: Timestamp;
+  }): Promise<void> {
+    await graphApiClient
+      .updateDataTypeEmbeddings(params.authentication.actorId, {
+        embeddings: params.embeddings,
+        reset: true,
+        updatedAtTransactionTime: params.updatedAtTransactionTime,
+      })
+      .then((response) => response.data);
+  },
+
+  async updatePropertyTypeEmbeddings(params: {
+    authentication: {
+      actorId: AccountId;
+    };
+    embeddings: PropertyTypeEmbedding[];
+    updatedAtTransactionTime: Timestamp;
+  }): Promise<void> {
+    await graphApiClient
+      .updatePropertyTypeEmbeddings(params.authentication.actorId, {
+        embeddings: params.embeddings,
+        reset: true,
+        updatedAtTransactionTime: params.updatedAtTransactionTime,
+      })
+      .then((response) => response.data);
+  },
+
+  async updateEntityTypeEmbeddings(params: {
+    authentication: {
+      actorId: AccountId;
+    };
+    embeddings: EntityTypeEmbedding[];
+    updatedAtTransactionTime: Timestamp;
+  }): Promise<void> {
+    await graphApiClient
+      .updateEntityTypeEmbeddings(params.authentication.actorId, {
+        embeddings: params.embeddings,
+        reset: true,
+        updatedAtTransactionTime: params.updatedAtTransactionTime,
+      })
+      .then((response) => response.data);
   },
 
   async updateEntityEmbeddings(params: {
@@ -116,8 +197,10 @@ export const createGraphActivities = ({
   },
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async getSubgraphEntities(params: { subgraph: Subgraph }): Promise<Entity[]> {
-    return getEntities(params.subgraph);
+  async getSubgraphDataTypes(params: {
+    subgraph: Subgraph;
+  }): Promise<DataTypeWithMetadata[]> {
+    return getDataTypes(params.subgraph);
   },
 
   // eslint-disable-next-line @typescript-eslint/require-await
@@ -125,5 +208,17 @@ export const createGraphActivities = ({
     subgraph: Subgraph;
   }): Promise<PropertyTypeWithMetadata[]> {
     return getPropertyTypes(params.subgraph);
+  },
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async getSubgraphEntityTypes(params: {
+    subgraph: Subgraph;
+  }): Promise<EntityTypeWithMetadata[]> {
+    return getEntityTypes(params.subgraph);
+  },
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async getSubgraphEntities(params: { subgraph: Subgraph }): Promise<Entity[]> {
+    return getEntities(params.subgraph);
   },
 });

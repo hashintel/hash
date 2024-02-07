@@ -37,7 +37,7 @@ use graph::{
 };
 use graph_types::{
     ontology::{
-        DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
+        DataTypeEmbedding, DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeRecordId,
         OntologyTypeReference, PartialDataTypeMetadata,
     },
@@ -45,6 +45,8 @@ use graph_types::{
 };
 use hash_status::Status;
 use serde::{Deserialize, Serialize};
+use temporal_client::TemporalClient;
+use temporal_versioning::{Timestamp, TransactionTime};
 use time::OffsetDateTime;
 use type_system::{url::VersionedUrl, DataType};
 use utoipa::{OpenApi, ToSchema};
@@ -68,6 +70,7 @@ use crate::rest::{
         load_external_data_type,
         get_data_types_by_query,
         update_data_type,
+        update_data_type_embeddings,
         archive_data_type,
         unarchive_data_type,
     ),
@@ -80,10 +83,12 @@ use crate::rest::{
             DataTypePermission,
             DataTypeRelationAndSubject,
             ModifyDataTypeAuthorizationRelationship,
+            DataTypeEmbedding,
 
             CreateDataTypeRequest,
             LoadExternalDataTypeRequest,
             UpdateDataTypeRequest,
+            UpdateDataTypeEmbeddingsRequest,
             DataTypeQueryToken,
             DataTypeStructuralQuery,
             ArchiveDataTypeRequest,
@@ -131,7 +136,8 @@ impl RoutedResource for DataTypeResource {
                 .route("/query", post(get_data_types_by_query::<S, A>))
                 .route("/load", post(load_external_data_type::<S, A>))
                 .route("/archive", put(archive_data_type::<S, A>))
-                .route("/unarchive", put(unarchive_data_type::<S, A>)),
+                .route("/unarchive", put(unarchive_data_type::<S, A>))
+                .route("/embeddings", post(update_data_type_embeddings::<S, A>)),
         )
     }
 }
@@ -169,6 +175,7 @@ async fn create_data_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreateDataTypeRequest>,
 ) -> Result<Json<ListOrValue<DataTypeMetadata>>, StatusCode>
@@ -217,6 +224,7 @@ where
         .create_data_types(
             actor_id,
             &mut authorization_api,
+            temporal_client.as_deref(),
             data_types.into_iter().zip(partial_metadata),
             ConflictBehavior::Fail,
             relationships,
@@ -285,6 +293,7 @@ async fn load_external_data_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
     Json(request): Json<LoadExternalDataTypeRequest>,
 ) -> Result<Json<DataTypeMetadata>, Response>
@@ -305,6 +314,7 @@ where
                 .load_external_type(
                     actor_id,
                     &mut authorization_api,
+                    temporal_client.as_deref(),
                     &domain_validator,
                     OntologyTypeReference::DataTypeReference((&data_type_id).into()),
                 )
@@ -336,6 +346,7 @@ where
                     .create_data_type(
                         actor_id,
                         &mut authorization_api,
+                        temporal_client.as_deref(),
                         schema,
                         PartialDataTypeMetadata {
                             record_id,
@@ -452,6 +463,7 @@ async fn update_data_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<UpdateDataTypeRequest>,
 ) -> Result<Json<DataTypeMetadata>, StatusCode>
 where
@@ -484,7 +496,13 @@ where
     })?;
 
     store
-        .update_data_type(actor_id, &mut authorization_api, data_type, relationships)
+        .update_data_type(
+            actor_id,
+            &mut authorization_api,
+            temporal_client.as_deref(),
+            data_type,
+            relationships,
+        )
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update data type");
@@ -500,6 +518,64 @@ where
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .map(Json)
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct UpdateDataTypeEmbeddingsRequest {
+    embeddings: Vec<DataTypeEmbedding<'static>>,
+    updated_at_transaction_time: Timestamp<TransactionTime>,
+    reset: bool,
+}
+
+#[utoipa::path(
+    post,
+    path = "/data-types/embeddings",
+    tag = "DataType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 204, content_type = "application/json", description = "The embeddings were created"),
+
+        (status = 403, description = "Insufficient permissions to update the data type"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = UpdateDataTypeEmbeddingsRequest,
+)]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+async fn update_data_type_embeddings<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    body: Json<UpdateDataTypeEmbeddingsRequest>,
+) -> Result<(), Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let Json(UpdateDataTypeEmbeddingsRequest {
+        embeddings,
+        updated_at_transaction_time,
+        reset,
+    }) = body;
+
+    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
+    let mut authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .update_data_type_embeddings(
+            actor_id,
+            &mut authorization_api,
+            embeddings,
+            updated_at_transaction_time,
+            reset,
+        )
+        .await
+        .map_err(report_to_response)
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

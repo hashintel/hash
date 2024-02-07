@@ -205,6 +205,7 @@ impl DatabaseTestWrapper {
             .create_data_types(
                 account_id,
                 &mut NoAuthorization,
+                None,
                 data_types_iter,
                 ConflictBehavior::Skip,
                 data_type_relationships(),
@@ -228,6 +229,7 @@ impl DatabaseTestWrapper {
             .create_property_types(
                 account_id,
                 &mut NoAuthorization,
+                None,
                 property_types_iter,
                 ConflictBehavior::Skip,
                 property_type_relationships(),
@@ -253,6 +255,7 @@ impl DatabaseTestWrapper {
             .create_entity_types(
                 account_id,
                 &mut NoAuthorization,
+                None,
                 entity_types_iter,
                 ConflictBehavior::Skip,
                 entity_type_relationships(),
@@ -293,6 +296,7 @@ impl DatabaseApi<'_> {
             .create_data_type(
                 self.account_id,
                 &mut NoAuthorization,
+                None,
                 data_type,
                 metadata,
                 data_type_relationships(),
@@ -315,6 +319,7 @@ impl DatabaseApi<'_> {
             .create_data_type(
                 self.account_id,
                 &mut NoAuthorization,
+                None,
                 data_type,
                 metadata,
                 data_type_relationships(),
@@ -361,6 +366,7 @@ impl DatabaseApi<'_> {
             .update_data_type(
                 self.account_id,
                 &mut NoAuthorization,
+                None,
                 data_type,
                 data_type_relationships(),
             )
@@ -382,6 +388,7 @@ impl DatabaseApi<'_> {
             .create_property_type(
                 self.account_id,
                 &mut NoAuthorization,
+                None,
                 property_type,
                 metadata,
                 property_type_relationships(),
@@ -428,6 +435,7 @@ impl DatabaseApi<'_> {
             .update_property_type(
                 self.account_id,
                 &mut NoAuthorization,
+                None,
                 property_type,
                 property_type_relationships(),
             )
@@ -451,6 +459,7 @@ impl DatabaseApi<'_> {
             .create_entity_type(
                 self.account_id,
                 &mut NoAuthorization,
+                None,
                 entity_type,
                 metadata,
                 entity_type_relationships(),
@@ -497,6 +506,7 @@ impl DatabaseApi<'_> {
             .update_entity_type(
                 self.account_id,
                 &mut NoAuthorization,
+                None,
                 entity_type,
                 None,
                 None,

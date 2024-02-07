@@ -254,6 +254,8 @@ pub struct EntityEmbedding<'e> {
     pub entity_id: EntityId,
     // TODO: Stop allocating everywhere in type-system package
     //   see https://linear.app/hash/issue/BP-57
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_BaseUrl))]
     pub property: Option<BaseUrl>,
     pub embedding: Embedding<'e>,
 }
