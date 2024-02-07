@@ -6,8 +6,8 @@ use std::{
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        EntityTypeId, EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject,
-        WebPermission,
+        DataTypeId, EntityTypeId, EntityTypeOwnerSubject, EntityTypePermission,
+        EntityTypeRelationAndSubject, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -890,64 +890,57 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             embedding: Embedding<'a>,
             updated_at_transaction_time: Timestamp<TransactionTime>,
         }
-        let (ontology_ids, entity_type_embeddings): (Vec<_>, Vec<_>) = embeddings
+        let entity_type_embeddings = embeddings
             .into_iter()
-            .map(|embedding: EntityTypeEmbedding<'_>| {
-                let ontology_id =
-                    OntologyId::from(EntityTypeId::from_url(&embedding.entity_type_id));
-                (
-                    ontology_id,
-                    EntityTypeEmbeddingsRow {
-                        ontology_id,
-                        embedding: embedding.embedding,
-                        updated_at_transaction_time,
-                    },
-                )
+            .map(|embedding| EntityTypeEmbeddingsRow {
+                ontology_id: OntologyId::from(DataTypeId::from_url(&embedding.entity_type_id)),
+                embedding: embedding.embedding,
+                updated_at_transaction_time,
             })
-            .unzip();
+            .collect::<Vec<_>>();
 
         // TODO: Add permission to allow updating embeddings
         //   see https://linear.app/hash/issue/H-1870
 
-        if reset {
-            self.as_client()
-                .query(
-                    "
-                        DELETE FROM entity_type_embeddings
-                        WHERE (ontology_id) IN (
-                            WITH base_urls AS (
-                                SELECT base_url, MAX(version) as max_version FROM ontology_ids \
-                     GROUP BY (base_url)
-                            )
-                            SELECT oi.ontology_id
-                            FROM UNNEST($1::UUID[]) AS id
-                            JOIN ontology_ids ON id = ontology_ids.ontology_id
-                            JOIN base_urls USING (base_url)
-                            JOIN entity_type_embeddings USING (ontology_id)
-                            JOIN ontology_ids AS oi USING (base_url)
-                            WHERE oi.version < max_version
-                              OR (oi.version = max_version AND updated_at_transaction_time <= $2)
-                        );
-                    ",
-                    &[&ontology_ids, &updated_at_transaction_time],
-                )
-                .await
-                .change_context(UpdateError)?;
-        }
-
         self.as_client()
             .query(
                 "
-                    INSERT INTO entity_type_embeddings
-                    SELECT * FROM UNNEST($1::entity_type_embeddings[])
-                    ON CONFLICT (ontology_id) DO UPDATE
-                    SET
-                        embedding = EXCLUDED.embedding,
-                        updated_at_transaction_time = EXCLUDED.updated_at_transaction_time
-                    WHERE entity_type_embeddings.updated_at_transaction_time <= \
-                 EXCLUDED.updated_at_transaction_time;
+                WITH base_urls AS (
+                        SELECT base_url, MAX(version) as max_version
+                        FROM ontology_ids
+                        GROUP BY base_url
+                    ),
+                    provided_embeddings AS (
+                        SELECT embeddings.*, base_url, max_version
+                        FROM UNNEST($1::entity_type_embeddings[]) AS embeddings
+                        JOIN ontology_ids USING (ontology_id)
+                        JOIN base_urls USING (base_url)
+                        WHERE version = max_version
+                    ),
+                    embeddings_to_delete AS (
+                        SELECT entity_type_embeddings.ontology_id
+                        FROM provided_embeddings
+                        JOIN ontology_ids using (base_url)
+                        JOIN entity_type_embeddings
+                          ON ontology_ids.ontology_id = entity_type_embeddings.ontology_id
+                        WHERE version < max_version
+                           OR ($2 AND version = max_version
+                                  AND entity_type_embeddings.updated_at_transaction_time
+                                   <= provided_embeddings.updated_at_transaction_time)
+                    ),
+                    deleted AS (
+                        DELETE FROM entity_type_embeddings
+                        WHERE (ontology_id) IN (SELECT ontology_id FROM embeddings_to_delete)
+                    )
+                INSERT INTO entity_type_embeddings
+                SELECT ontology_id, embedding, updated_at_transaction_time FROM provided_embeddings
+                ON CONFLICT (ontology_id) DO UPDATE SET
+                    embedding = EXCLUDED.embedding,
+                    updated_at_transaction_time = EXCLUDED.updated_at_transaction_time
+                WHERE entity_type_embeddings.updated_at_transaction_time
+                      <= EXCLUDED.updated_at_transaction_time;
                 ",
-                &[&entity_type_embeddings],
+                &[&entity_type_embeddings, &reset],
             )
             .await
             .change_context(UpdateError)?;

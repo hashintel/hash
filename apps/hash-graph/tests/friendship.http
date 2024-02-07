@@ -181,7 +181,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     }
   ],
   "updatedAtTransactionTime": "{{meter_data_type_transaction_time}}",
-  "reset": true
+  "reset": false
 }
 
 > {%
@@ -236,7 +236,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     }
   ],
   "updatedAtTransactionTime": "{{text_data_type_transaction_time}}",
-  "reset": true
+  "reset": false
 }
 
 > {%
@@ -362,7 +362,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     }
   ],
   "updatedAtTransactionTime": "{{meter_data_type_transaction_time_2}}",
-  "reset": true
+  "reset": false
 }
 
 > {%
@@ -422,7 +422,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     }
   ],
   "updatedAtTransactionTime": "{{name_property_type_transaction_time}}",
-  "reset": true
+  "reset": false
 }
 
 > {%
@@ -482,7 +482,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     }
   ],
   "updatedAtTransactionTime": "{{height_property_type_transaction_time}}",
-  "reset": true
+  "reset": false
 }
 
 > {%
@@ -606,7 +606,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     }
   ],
   "updatedAtTransactionTime": "{{name_property_type_transaction_time_2}}",
-  "reset": true
+  "reset": false
 }
 
 > {%
@@ -731,7 +731,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     }
   ],
   "updatedAtTransactionTime": "{{link_entity_type_transaction_time}}",
-  "reset": true
+  "reset": false
 }
 
 > {%
@@ -793,7 +793,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     }
   ],
   "updatedAtTransactionTime": "{{friendship_entity_type_transaction_time}}",
-  "reset": true
+  "reset": false
 }
 
 > {%
@@ -945,7 +945,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     }
   ],
   "updatedAtTransactionTime": "{{person_entity_type_transaction_time}}",
-  "reset": true
+  "reset": false
 }
 
 > {%
@@ -1107,7 +1107,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     }
   ],
   "updatedAtTransactionTime": "{{person_entity_type_2_transaction_time}}",
-  "reset": true
+  "reset": false
 }
 
 > {%
@@ -1852,7 +1852,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   ],
   "updatedAtTransactionTime": "{{person_a_transaction_time}}",
   "updatedAtDecisionTime": "{{person_a_decision_time}}",
-  "reset": true
+  "reset": false
 }
 
 > {%
@@ -1918,7 +1918,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   ],
   "updatedAtTransactionTime": "{{person_b_transaction_time}}",
   "updatedAtDecisionTime": "{{person_b_decision_time}}",
-  "reset": true
+  "reset": false
 }
 
 > {%
