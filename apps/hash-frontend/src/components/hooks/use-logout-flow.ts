@@ -40,11 +40,11 @@ export const useLogoutFlow = () => {
           });
         }
 
-        await refetchUser();
-
         resetLocalStorage();
 
         await client.clearStore();
+
+        await refetchUser();
       } catch (err) {
         if (err instanceof AxiosError && err.response?.status === 401) {
           // do nothing, the user is not logged in
