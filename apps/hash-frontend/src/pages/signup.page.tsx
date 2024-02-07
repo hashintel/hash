@@ -108,7 +108,7 @@ const SignupPage: NextPageWithLayout = () => {
         )
       }
     >
-      <Grid container spacing={16}>
+      <Grid container columnSpacing={16}>
         <Grid item md={7}>
           {authenticatedUser ? (
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
