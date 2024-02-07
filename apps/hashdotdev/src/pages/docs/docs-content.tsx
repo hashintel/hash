@@ -163,7 +163,7 @@ export const DocsContent: FunctionComponent<DocsPageProps> = ({
                   }}
                 />
               }
-              sx={{ marginBottom: 2, marginLeft: 0.25 }}
+              sx={{ marginY: 2, marginLeft: 0.25 }}
             >
               {parents.map(({ href, title: parentTitle }, i, all) => (
                 <Link
