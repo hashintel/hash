@@ -2,6 +2,11 @@ import { faLink } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   styled,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
   Tooltip,
   Typography,
   TypographyProps,
@@ -229,6 +234,20 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
   InfoCard,
 
   InfoCardWrapper,
+
+  table: Table,
+
+  thead: TableHead,
+
+  tbody: TableBody,
+
+  tr: TableRow,
+
+  th: ({ children }: HTMLProps<HTMLTableHeaderCellElement>) => (
+    <TableCell variant="head">{children}</TableCell>
+  ),
+
+  td: TableCell,
 
   /**
    * These components were ported from the legacy hash.ai website and
