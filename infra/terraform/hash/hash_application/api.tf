@@ -19,13 +19,19 @@ resource "aws_ssm_parameter" "api_env_vars" {
 
 locals {
   api_service_container_def = {
-    name         = "${local.api_prefix}container"
-    image        = "${var.api_image.url}:latest"
-    cpu          = 0 # let ECS divvy up the available CPU
-    mountPoints  = []
-    volumesFrom  = []
-    dependsOn    = [{ condition = "HEALTHY", containerName = local.graph_service_container_def.name }]
-    dependsOn    = [{ condition = "HEALTHY", containerName = local.kratos_service_container_def.name }]
+    name        = "${local.api_prefix}container"
+    image       = "${var.api_image.url}:latest"
+    cpu         = 0 # let ECS divvy up the available CPU
+    mountPoints = []
+    volumesFrom = []
+    dependsOn   = [{ condition = "HEALTHY", containerName = local.graph_service_container_def.name }]
+    dependsOn   = [{ condition = "HEALTHY", containerName = local.kratos_service_container_def.name }]
+    healthCheck = {
+      command  = ["CMD", "/bin/sh", "-c", "curl -f http://localhost:${local.api_container_port}/health-check || exit 1"]
+      retries  = 5
+      interval = 20
+      timeout  = 5
+    }
     portMappings = [
       {
         appProtocol   = "http"
