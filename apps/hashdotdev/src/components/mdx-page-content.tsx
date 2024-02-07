@@ -98,7 +98,7 @@ export const MdxPageContent: FunctionComponent<MdxPageContentProps> = ({
         sx={[
           {
             "& > :not(.info-card-wrapper), > a:not(.info-card-wrapper) > *": {
-              maxWidth: {
+              width: {
                 xs: "100%",
                 sm: paragraphMaxWidth,
               },
