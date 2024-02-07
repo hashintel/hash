@@ -10,9 +10,12 @@ use tokio_postgres::GenericClient;
 
 use crate::{
     snapshot::{
-        ontology::table::{
-            PropertyTypeConstrainsPropertiesOnRow, PropertyTypeConstrainsValuesOnRow,
-            PropertyTypeRow,
+        ontology::{
+            table::{
+                PropertyTypeConstrainsPropertiesOnRow, PropertyTypeConstrainsValuesOnRow,
+                PropertyTypeRow,
+            },
+            PropertyTypeEmbeddingRow,
         },
         WriteBatch,
     },
@@ -24,6 +27,7 @@ pub enum PropertyTypeRowBatch {
     ConstrainsValues(Vec<PropertyTypeConstrainsValuesOnRow>),
     ConstrainsProperties(Vec<PropertyTypeConstrainsPropertiesOnRow>),
     Relations(HashMap<PropertyTypeId, Vec<PropertyTypeRelationAndSubject>>),
+    Embeddings(Vec<PropertyTypeEmbeddingRow>),
 }
 
 #[async_trait]
@@ -49,6 +53,10 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
                         target_property_type_base_url TEXT NOT NULL,
                         target_property_type_version INT8 NOT NULL
                     ) ON COMMIT DROP;
+
+                    CREATE TEMPORARY TABLE property_type_embeddings_tmp
+                        (LIKE property_type_embeddings INCLUDING ALL)
+                        ON COMMIT DROP;
                 ",
             )
             .await
@@ -131,6 +139,22 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
                     .await
                     .change_context(InsertionError)?;
             }
+            Self::Embeddings(embeddings) => {
+                let rows = client
+                    .query(
+                        "
+                            INSERT INTO property_type_embeddings_tmp
+                            SELECT * FROM UNNEST($1::property_type_embeddings_tmp[])
+                            RETURNING 1;
+                        ",
+                        &[&embeddings],
+                    )
+                    .await
+                    .change_context(InsertionError)?;
+                if !rows.is_empty() {
+                    tracing::info!("Read {} property type embeddings", rows.len());
+                }
+            }
         }
         Ok(())
     }
@@ -167,6 +191,9 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
                  property_type_constrains_properties_on_tmp.target_property_type_base_url
                             AND ontology_ids_tmp.version = \
                  property_type_constrains_properties_on_tmp.target_property_type_version;
+
+                    INSERT INTO property_type_embeddings
+                        SELECT * FROM property_type_embeddings_tmp;
                 ",
             )
             .await

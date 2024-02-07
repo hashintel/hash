@@ -13,8 +13,12 @@ pub use self::{
     },
     property_type::{property_type_channel, PropertyTypeRowBatch, PropertyTypeSender},
     record::{
-        DataTypeSnapshotRecord, EntityTypeSnapshotRecord, OntologyTypeSnapshotRecord,
+        DataTypeEmbeddingRecord, DataTypeSnapshotRecord, EntityTypeEmbeddingRecord,
+        EntityTypeSnapshotRecord, OntologyTypeSnapshotRecord, PropertyTypeEmbeddingRecord,
         PropertyTypeSnapshotRecord,
     },
-    table::{OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow},
+    table::{
+        DataTypeEmbeddingRow, EntityTypeEmbeddingRow, OntologyExternalMetadataRow, OntologyIdRow,
+        OntologyOwnedMetadataRow, PropertyTypeEmbeddingRow,
+    },
 };
