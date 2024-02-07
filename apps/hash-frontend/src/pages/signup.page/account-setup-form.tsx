@@ -63,16 +63,16 @@ const InputLabel: FunctionComponent<
 };
 
 type AccountSetupFormProps = {
-  onSubmit: (details: { shortname: string; preferredName: string }) => void;
+  onSubmit: (details: { shortname: string; displayName: string }) => void;
   loading: boolean;
   errorMessage?: string;
   email: string;
   invitationInfo: InvitationInfo | null;
 };
 
-type FormData = {
+export type AccountSetupFormData = {
   shortname: string;
-  preferredName: string;
+  displayName: string;
   responsibility?: string;
 };
 
@@ -89,27 +89,27 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
     watch,
     control,
     formState: { errors, isValid, touchedFields },
-  } = useForm<FormData>({
+  } = useForm<AccountSetupFormData>({
     mode: "all",
     defaultValues: {
       shortname: "",
-      preferredName: "",
+      displayName: "",
       responsibility: undefined,
     },
   });
 
   const shortnameWatcher = watch("shortname", "");
-  const preferredNameWatcher = watch("preferredName", "");
+  const displayNameWatcher = watch("displayName", "");
   const responsibilityWatcher = watch("responsibility", "");
 
   const { validateShortname, parseShortnameInput, getShortnameError } =
     useShortnameInput();
 
   const onSubmit = handleSubmit(
-    ({ shortname, preferredName, responsibility }) => {
+    ({ shortname, displayName, responsibility }) => {
       setupAccount({
         shortname,
-        preferredName,
+        displayName,
         ...(!!invitationInfo && { responsibility }),
       });
     },
@@ -118,8 +118,8 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
   const [title, subtitle] = useMemo(() => {
     if (invitationInfo) {
       return [
-        "inviterPreferredName" in invitationInfo
-          ? `${invitationInfo.inviterPreferredName} has invited you to join ${invitationInfo.orgName} on HASH`
+        "inviterdisplayName" in invitationInfo
+          ? `${invitationInfo.inviterdisplayName} has invited you to join ${invitationInfo.orgName} on HASH`
           : `You have been invited to join ${invitationInfo.orgName} on HASH`,
         `${email} has been confirmed. Now it’s time to set your name...`,
       ];
@@ -168,26 +168,19 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
         <Box>
           <InputLabel
             htmlFor="name"
-            label={
-              <>
-                Preferred name{" "}
-                <Box component="span" sx={{ fontWeight: "400" }}>
-                  or first name
-                </Box>
-              </>
-            }
+            label="Display Name"
             description={
               <>
-                What shall we call you when referring to you? e.g. “Hi,{" "}
+                How should others see you on HASH? e.g. “
                 <Box
                   component="strong"
                   sx={{
-                    color: "#000000",
+                    color: ({ palette }) => palette.common.black,
                     opacity: 1,
                     textTransform: "capitalize",
                   }}
                 >
-                  {preferredNameWatcher || "Bobby"}
+                  {displayNameWatcher || "Jonathan Smith"}
                 </Box>
                 ”
               </>
@@ -195,9 +188,10 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
           />
           <TextField
             id="name"
-            placeholder="Bobby"
+            placeholder="Jonathan Smith"
+            autoFocus
             sx={{ width: inputWidth }}
-            {...register("preferredName", { required: true })}
+            {...register("displayName", { required: true })}
           />
         </Box>
         <Box>
@@ -250,7 +244,6 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
                     );
                     field.onChange(newEvt);
                   }}
-                  autoFocus
                   placeholder="example"
                   autoComplete="off"
                   sx={{ width: inputWidth }}

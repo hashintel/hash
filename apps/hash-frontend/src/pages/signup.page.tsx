@@ -1,7 +1,7 @@
 import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
 import { Grid, styled } from "@mui/material";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useUpdateAuthenticatedUser } from "../components/hooks/use-update-authenticated-user";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
@@ -9,7 +9,10 @@ import { Button, ButtonProps } from "../shared/ui";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
 import { parseGraphQLError } from "./shared/auth-utils";
-import { AccountSetupForm } from "./signup.page/account-setup-form";
+import {
+  AccountSetupForm,
+  AccountSetupFormData,
+} from "./signup.page/account-setup-form";
 import { SignupRegistrationForm } from "./signup.page/signup-registration-form";
 import { SignupRegistrationRightInfo } from "./signup.page/signup-registration-right-info";
 import { SignupSteps } from "./signup.page/signup-steps";
@@ -62,24 +65,24 @@ const SignupPage: NextPageWithLayout = () => {
   const [invitationInfo] = useState<null>(null);
   const [errorMessage, setErrorMessage] = useState<string>();
 
-  const handleAccountSetupSubmit = async (params: {
-    shortname: string;
-    preferredName: string;
-  }) => {
-    const { shortname, preferredName } = params;
+  const handleAccountSetupSubmit = useCallback(
+    async (params: AccountSetupFormData) => {
+      const { shortname, displayName } = params;
 
-    const { errors } = await updateAuthenticatedUser({
-      shortname,
-      preferredName,
-    });
+      const { errors } = await updateAuthenticatedUser({
+        shortname,
+        preferredName: displayName,
+      });
 
-    if (errors && errors.length > 0) {
-      const { message } = parseGraphQLError([...errors]);
-      setErrorMessage(message);
-    }
+      if (errors && errors.length > 0) {
+        const { message } = parseGraphQLError([...errors]);
+        setErrorMessage(message);
+      }
 
-    // Redirecting to the homepage is covered by the useEffect to redirect all authenticated users away from /signup
-  };
+      // Redirecting to the homepage is covered by the useEffect to redirect all authenticated users away from /signup
+    },
+    [updateAuthenticatedUser],
+  );
 
   /** @todo: un-comment this to actually check whether the email is verified */
   // const userHasVerifiedEmail =
