@@ -40,7 +40,9 @@ use futures::{
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{Entity, EntityId, EntityUuid},
-    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+    ontology::{
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeVersion, PropertyTypeWithMetadata,
+    },
     owned_by_id::OwnedById,
 };
 use hash_status::StatusCode;
@@ -56,6 +58,9 @@ use type_system::url::{BaseUrl, VersionedUrl};
 use crate::{
     snapshot::{
         entity::{EntityEmbeddingRecord, EntitySnapshotRecord},
+        ontology::{
+            DataTypeEmbeddingRecord, EntityTypeEmbeddingRecord, PropertyTypeEmbeddingRecord,
+        },
         restore::SnapshotRecordBatch,
     },
     store::{
@@ -100,14 +105,18 @@ pub enum SnapshotEntry {
     AccountGroup(AccountGroup),
     Web(Web),
     DataType(DataTypeSnapshotRecord),
+    DataTypeEmbedding(DataTypeEmbeddingRecord),
     PropertyType(PropertyTypeSnapshotRecord),
+    PropertyTypeEmbedding(PropertyTypeEmbeddingRecord),
     EntityType(EntityTypeSnapshotRecord),
+    EntityTypeEmbedding(EntityTypeEmbeddingRecord),
     Entity(EntitySnapshotRecord),
     EntityEmbedding(EntityEmbeddingRecord),
     Relation(AuthorizationRelation),
 }
 
 impl SnapshotEntry {
+    #[expect(clippy::too_many_lines)]
     pub fn install_error_stack_hook() {
         error_stack::Report::install_debug_hook::<Self>(|entry, context| match entry {
             Self::Snapshot(global_metadata) => {
@@ -175,6 +184,36 @@ impl SnapshotEntry {
                 if context.alternate() {
                     if let Ok(json) = serde_json::to_string_pretty(relation) {
                         context.push_appendix(format!("{id}:\n{json}"));
+                    }
+                }
+            }
+            Self::DataTypeEmbedding(embedding) => {
+                context.push_body(format!("data type embedding: {}", embedding.data_type_id));
+                if context.alternate() {
+                    if let Ok(json) = serde_json::to_string_pretty(embedding) {
+                        context.push_appendix(format!("{}:\n{json}", embedding.data_type_id));
+                    }
+                }
+            }
+            Self::PropertyTypeEmbedding(embedding) => {
+                context.push_body(format!(
+                    "property type embedding: {}",
+                    embedding.property_type_id
+                ));
+                if context.alternate() {
+                    if let Ok(json) = serde_json::to_string_pretty(embedding) {
+                        context.push_appendix(format!("{}:\n{json}", embedding.property_type_id));
+                    }
+                }
+            }
+            Self::EntityTypeEmbedding(embedding) => {
+                context.push_body(format!(
+                    "entity type embedding: {}",
+                    embedding.entity_type_id
+                ));
+                if context.alternate() {
+                    if let Ok(json) = serde_json::to_string_pretty(embedding) {
+                        context.push_appendix(format!("{}:\n{json}", embedding.entity_type_id));
                     }
                 }
             }
@@ -340,7 +379,105 @@ where
         .map_err(|stream_error| stream_error.change_context(SnapshotDumpError::Read)))
     }
 
-    /// Convenience function to create a stream of snapshot entries.
+    async fn create_data_type_embedding_stream(
+        &self,
+    ) -> Result<
+        impl Stream<Item = Result<SnapshotEntry, SnapshotDumpError>> + Send,
+        SnapshotDumpError,
+    > {
+        Ok(self
+            .acquire()
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .as_client()
+            .query_raw(
+                "SELECT base_url, version, embedding, updated_at_transaction_time
+                 FROM data_type_embeddings
+                 JOIN ontology_ids USING (ontology_id)",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .map(|result| result.change_context(SnapshotDumpError::Query))
+            .map_ok(|row| {
+                SnapshotEntry::DataTypeEmbedding(DataTypeEmbeddingRecord {
+                    data_type_id: VersionedUrl {
+                        base_url: BaseUrl::new(row.get(0))
+                            .expect("Invalid base URL returned from Postgres"),
+                        version: row.get::<_, OntologyTypeVersion>(1).inner(),
+                    },
+                    embedding: row.get(2),
+                    updated_at_transaction_time: row.get(3),
+                })
+            }))
+    }
+
+    async fn create_property_type_embedding_stream(
+        &self,
+    ) -> Result<
+        impl Stream<Item = Result<SnapshotEntry, SnapshotDumpError>> + Send,
+        SnapshotDumpError,
+    > {
+        Ok(self
+            .acquire()
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .as_client()
+            .query_raw(
+                "SELECT base_url, version, embedding, updated_at_transaction_time
+                 FROM property_type_embeddings
+                 JOIN ontology_ids USING (ontology_id)",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .map(|result| result.change_context(SnapshotDumpError::Query))
+            .map_ok(|row| {
+                SnapshotEntry::PropertyTypeEmbedding(PropertyTypeEmbeddingRecord {
+                    property_type_id: VersionedUrl {
+                        base_url: BaseUrl::new(row.get(0))
+                            .expect("Invalid base URL returned from Postgres"),
+                        version: row.get::<_, OntologyTypeVersion>(1).inner(),
+                    },
+                    embedding: row.get(2),
+                    updated_at_transaction_time: row.get(3),
+                })
+            }))
+    }
+
+    async fn create_entity_type_embedding_stream(
+        &self,
+    ) -> Result<
+        impl Stream<Item = Result<SnapshotEntry, SnapshotDumpError>> + Send,
+        SnapshotDumpError,
+    > {
+        Ok(self
+            .acquire()
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .as_client()
+            .query_raw(
+                "SELECT base_url, version, embedding, updated_at_transaction_time
+                 FROM entity_type_embeddings
+                 JOIN ontology_ids USING (ontology_id)",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .map(|result| result.change_context(SnapshotDumpError::Query))
+            .map_ok(|row| {
+                SnapshotEntry::EntityTypeEmbedding(EntityTypeEmbeddingRecord {
+                    entity_type_id: VersionedUrl {
+                        base_url: BaseUrl::new(row.get(0))
+                            .expect("Invalid base URL returned from Postgres"),
+                        version: row.get::<_, OntologyTypeVersion>(1).inner(),
+                    },
+                    embedding: row.get(2),
+                    updated_at_transaction_time: row.get(3),
+                })
+            }))
+    }
+
     async fn create_entity_embedding_stream(
         &self,
     ) -> Result<
@@ -523,6 +660,24 @@ where
                             metadata: entity.metadata,
                         }))
                     })
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.create_data_type_embedding_stream()
+                    .try_flatten_stream()
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.create_property_type_embedding_stream()
+                    .try_flatten_stream()
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.create_entity_type_embedding_stream()
+                    .try_flatten_stream()
                     .forward(snapshot_record_tx.clone()),
             );
 
