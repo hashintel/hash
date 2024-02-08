@@ -46,7 +46,19 @@ export const SignupRegistrationForm: FunctionComponent = () => {
   // information about the form we need to render (e.g. username + password)
   const [flow, setFlow] = useState<RegistrationFlow>();
 
-  const [email, setEmail] = useState<string>("");
+  const { email: emailFromQuery, ...restOfQuery } = router.query;
+
+  const initialEmail = typeof emailFromQuery === "string" ? emailFromQuery : "";
+
+  useEffect(() => {
+    if (emailFromQuery) {
+      void router.push({ query: restOfQuery }, undefined, {
+        shallow: true,
+      });
+    }
+  }, [emailFromQuery, restOfQuery, router]);
+
+  const [email, setEmail] = useState<string>(initialEmail);
   const [password, setPassword] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
@@ -172,6 +184,7 @@ export const SignupRegistrationForm: FunctionComponent = () => {
             label="Your personal email"
             type="email"
             autoComplete="email"
+            autoFocus={!initialEmail}
             placeholder="Enter your email address"
             value={email}
             onChange={({ target }) => setEmail(target.value)}
@@ -188,6 +201,7 @@ export const SignupRegistrationForm: FunctionComponent = () => {
             label="Password"
             type="password"
             autoComplete="new-password"
+            autoFocus={!!initialEmail}
             value={password}
             placeholder="Enter a password"
             onChange={({ target }) => setPassword(target.value)}
