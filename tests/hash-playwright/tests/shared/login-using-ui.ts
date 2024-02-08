@@ -9,7 +9,7 @@ export const loginUsingUi = async ({
   page: Page;
   accountShortName: string;
 }): Promise<void> => {
-  await page.goto("/login");
+  await page.goto("/signin");
 
   // Enter account short name
   const accountShortNameInputSelector =

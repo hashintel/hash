@@ -20,9 +20,9 @@ kratos_env_vars = [
   { name = "SELFSERVICE_FLOWS_ERROR_UI_URL", secret = false, value = "https://app.hash.ai/error" },
   {
     name  = "SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL", secret = false,
-    value = "https://app.hash.ai/login"
+    value = "https://app.hash.ai/signin"
   },
-  { name = "SELFSERVICE_FLOWS_LOGIN_UI_URL", secret = false, value = "https://app.hash.ai/login" },
+  { name = "SELFSERVICE_FLOWS_LOGIN_UI_URL", secret = false, value = "https://app.hash.ai/signin" },
   { name = "SELFSERVICE_FLOWS_REGISTRATION_UI_URL", secret = false, value = "https://app.hash.ai/signup" },
   { name = "SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL", secret = false, value = "https://app.hash.ai/api/ory" },
   { name = "SELFSERVICE_FLOWS_VERIFICATION_UI_URL", secret = false, value = "https://app.hash.ai/verification" },

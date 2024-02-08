@@ -22,7 +22,7 @@ runs:
           \n
         EOF
 
-        for PATHNAME in "/" "/login" "/signup" "/@hash" "/@hash/00000000-0000-0000-0000-000000000000" "/@hash/types/entity-type/page/v/1" "/new/types/entity-type" "/new/entity" "/api/ory/self-service/logout/browser"; do
+        for PATHNAME in "/" "/signin" "/signup" "/@hash" "/@hash/00000000-0000-0000-0000-000000000000" "/@hash/types/entity-type/page/v/1" "/new/types/entity-type" "/new/entity" "/api/ory/self-service/logout/browser"; do
           npx retry-cli@0.6.0 -- curl --output /dev/null --silent --write-out "@curl-format.txt" "${BASE_URL}${PATHNAME}"
         done
       env:

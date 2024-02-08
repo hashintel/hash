@@ -123,7 +123,7 @@ const SettingsLayout = ({ children }: PropsWithChildren) => {
   }, [menuItems, router.asPath]);
 
   if (!user.authenticatedUser.accountSignupComplete) {
-    void router.push("/login");
+    void router.push("/signin");
     return null;
   }
 

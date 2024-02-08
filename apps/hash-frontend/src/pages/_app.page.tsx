@@ -215,7 +215,7 @@ const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
 // The list of page pathnames that should be accessible whether or not the user is authenticated
 const publiclyAccessiblePagePathnames = [
   "/[shortname]/[page-slug]",
-  "/login",
+  "/signin",
   "/signup",
   "/recovery",
 ];
@@ -253,7 +253,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     // If the user is logged out and not on a page that should be publicly accessible...
     if (!publiclyAccessiblePagePathnames.includes(pathname)) {
       // ...redirect them to the login page
-      redirectInGetInitialProps({ appContext, location: "/login" });
+      redirectInGetInitialProps({ appContext, location: "/signin" });
     }
 
     return {};
