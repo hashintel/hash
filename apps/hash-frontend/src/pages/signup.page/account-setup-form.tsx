@@ -208,7 +208,9 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
                   }}
                 >
                   Once set this Cannot be changed{" "}
-                  <TriangleExclamationRegularIcon sx={{ fontSize: 13 }} />
+                  <TriangleExclamationRegularIcon
+                    sx={{ fontSize: 13, position: "relative", top: 1 }}
+                  />
                 </Box>
               </>
             }
