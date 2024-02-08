@@ -67,7 +67,7 @@ resource "aws_db_instance" "postgres" {
   parameter_group_name            = aws_db_parameter_group.postgres.name
   enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
   engine                          = "postgres"
-  engine_version                  = "15.5"
+  engine_version                  = "15"
   allow_major_version_upgrade     = true
   instance_class                  = var.instance_class
   db_name                         = "postgres" # Initial database name
