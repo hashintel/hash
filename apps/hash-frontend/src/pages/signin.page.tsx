@@ -254,6 +254,7 @@ const SigninPage: NextPageWithLayout = () => {
               label="Email address"
               type="email"
               autoComplete="email"
+              autoFocus
               placeholder="Enter your email address"
               value={email}
               onChange={({ target }) => setEmail(target.value)}
