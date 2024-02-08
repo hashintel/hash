@@ -533,54 +533,57 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             embedding: Embedding<'a>,
             updated_at_transaction_time: Timestamp<TransactionTime>,
         }
-        let (ontology_ids, data_type_embeddings): (Vec<_>, Vec<_>) = embeddings
+        let data_type_embeddings = embeddings
             .into_iter()
-            .map(|embedding: DataTypeEmbedding<'_>| {
-                let ontology_id = OntologyId::from(DataTypeId::from_url(&embedding.data_type_id));
-                (
-                    ontology_id,
-                    DataTypeEmbeddingsRow {
-                        ontology_id,
-                        embedding: embedding.embedding,
-                        updated_at_transaction_time,
-                    },
-                )
+            .map(|embedding| DataTypeEmbeddingsRow {
+                ontology_id: OntologyId::from(DataTypeId::from_url(&embedding.data_type_id)),
+                embedding: embedding.embedding,
+                updated_at_transaction_time,
             })
-            .unzip();
+            .collect::<Vec<_>>();
 
         // TODO: Add permission to allow updating embeddings
         //   see https://linear.app/hash/issue/H-1870
 
-        if reset {
-            self.as_client()
-                .query(
-                    "
-                        DELETE FROM data_type_embeddings
-                        WHERE (ontology_id) IN (
-                            SELECT *
-                            FROM UNNEST($1::UUID[])
-                        )
-                        AND updated_at_transaction_time <= $2;
-                    ",
-                    &[&ontology_ids, &updated_at_transaction_time],
-                )
-                .await
-                .change_context(UpdateError)?;
-        }
-
         self.as_client()
             .query(
                 "
-                    INSERT INTO data_type_embeddings
-                    SELECT * FROM UNNEST($1::data_type_embeddings[])
-                    ON CONFLICT (ontology_id) DO UPDATE
-                    SET
-                        embedding = EXCLUDED.embedding,
-                        updated_at_transaction_time = EXCLUDED.updated_at_transaction_time
-                    WHERE data_type_embeddings.updated_at_transaction_time <= \
-                 EXCLUDED.updated_at_transaction_time;
+                WITH base_urls AS (
+                        SELECT base_url, MAX(version) as max_version
+                        FROM ontology_ids
+                        GROUP BY base_url
+                    ),
+                    provided_embeddings AS (
+                        SELECT embeddings.*, base_url, max_version
+                        FROM UNNEST($1::data_type_embeddings[]) AS embeddings
+                        JOIN ontology_ids USING (ontology_id)
+                        JOIN base_urls USING (base_url)
+                        WHERE version = max_version
+                    ),
+                    embeddings_to_delete AS (
+                        SELECT data_type_embeddings.ontology_id
+                        FROM provided_embeddings
+                        JOIN ontology_ids using (base_url)
+                        JOIN data_type_embeddings
+                          ON ontology_ids.ontology_id = data_type_embeddings.ontology_id
+                        WHERE version < max_version
+                           OR ($2 AND version = max_version
+                                  AND data_type_embeddings.updated_at_transaction_time
+                                   <= provided_embeddings.updated_at_transaction_time)
+                    ),
+                    deleted AS (
+                        DELETE FROM data_type_embeddings
+                        WHERE (ontology_id) IN (SELECT ontology_id FROM embeddings_to_delete)
+                    )
+                INSERT INTO data_type_embeddings
+                SELECT ontology_id, embedding, updated_at_transaction_time FROM provided_embeddings
+                ON CONFLICT (ontology_id) DO UPDATE SET
+                    embedding = EXCLUDED.embedding,
+                    updated_at_transaction_time = EXCLUDED.updated_at_transaction_time
+                WHERE data_type_embeddings.updated_at_transaction_time
+                      <= EXCLUDED.updated_at_transaction_time;
                 ",
-                &[&data_type_embeddings],
+                &[&data_type_embeddings, &reset],
             )
             .await
             .change_context(UpdateError)?;
@@ -607,14 +610,20 @@ impl QueryRecordDecode for DataTypeWithMetadata {
     type Output = Self;
 
     fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self {
+        let record_id = OntologyTypeRecordId {
+            base_url: BaseUrl::new(row.get(indices.base_url))
+                .expect("invalid base URL returned from Postgres"),
+            version: row.get(indices.version),
+        };
+
+        if let Ok(distance) = row.try_get::<_, f64>("distance") {
+            tracing::trace!(%record_id, %distance, "Data type embedding was calculated");
+        }
+
         Self {
             schema: row.get::<_, Json<_>>(indices.schema).0,
             metadata: DataTypeMetadata {
-                record_id: OntologyTypeRecordId {
-                    base_url: BaseUrl::new(row.get(indices.base_url))
-                        .expect("invalid base URL returned from Postgres"),
-                    version: row.get(indices.version),
-                },
+                record_id,
                 classification: row
                     .get::<_, Json<PostgresOntologyTypeClassificationMetadata>>(
                         indices.additional_metadata,
