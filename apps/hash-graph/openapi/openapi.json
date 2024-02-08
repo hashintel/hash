@@ -2945,7 +2945,8 @@
           "editionArchivedById",
           "title",
           "description",
-          "type"
+          "type",
+          "embedding"
         ]
       },
       "DataTypeRelationAndSubject": {
@@ -3916,7 +3917,8 @@
           "icon",
           "links",
           "inheritsFrom",
-          "children"
+          "children",
+          "embedding"
         ]
       },
       "EntityTypeRelationAndSubject": {
@@ -5373,7 +5375,8 @@
           "title",
           "description",
           "dataTypes",
-          "propertyTypes"
+          "propertyTypes",
+          "embedding"
         ]
       },
       "PropertyTypeRelationAndSubject": {

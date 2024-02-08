@@ -72,7 +72,7 @@ pub trait PostgresQueryPath {
     fn relations(&self) -> Vec<Relation>;
 
     /// The [`Column`] where this path ends.
-    fn terminating_column(&self) -> Column;
+    fn terminating_column(&self) -> Column<'_>;
 }
 
 /// Renders the object into a Postgres compatible format.

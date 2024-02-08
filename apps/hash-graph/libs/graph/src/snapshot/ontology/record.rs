@@ -1,9 +1,10 @@
 use authorization::schema::{
     DataTypeRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
 };
-use graph_types::ontology::OntologyType;
+use graph_types::{ontology::OntologyType, Embedding};
 use serde::{Deserialize, Serialize};
-use type_system::{DataType, EntityType, PropertyType};
+use temporal_versioning::{Timestamp, TransactionTime};
+use type_system::{url::VersionedUrl, DataType, EntityType, PropertyType};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(
@@ -25,3 +26,27 @@ pub type PropertyTypeSnapshotRecord =
     OntologyTypeSnapshotRecord<PropertyType, PropertyTypeRelationAndSubject>;
 pub type EntityTypeSnapshotRecord =
     OntologyTypeSnapshotRecord<EntityType, EntityTypeRelationAndSubject>;
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DataTypeEmbeddingRecord {
+    pub data_type_id: VersionedUrl,
+    pub embedding: Embedding<'static>,
+    pub updated_at_transaction_time: Timestamp<TransactionTime>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PropertyTypeEmbeddingRecord {
+    pub property_type_id: VersionedUrl,
+    pub embedding: Embedding<'static>,
+    pub updated_at_transaction_time: Timestamp<TransactionTime>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EntityTypeEmbeddingRecord {
+    pub entity_type_id: VersionedUrl,
+    pub embedding: Embedding<'static>,
+    pub updated_at_transaction_time: Timestamp<TransactionTime>,
+}

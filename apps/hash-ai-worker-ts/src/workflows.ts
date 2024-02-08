@@ -475,6 +475,66 @@ export const updateEntityEmbeddings = async (
   return usage;
 };
 
+export const updateAllDataTypeEmbeddings =
+  async (): Promise<CreateEmbeddingResponse.Usage> =>
+    await updateDataTypeEmbeddings({
+      authentication: {
+        actorId: "00000000-0000-0000-0000-000000000000" as AccountId,
+      },
+      filter: {
+        all: [
+          {
+            // @ts-expect-error -- Support null in Path parameter in structural queries in Node
+            //                     see https://linear.app/hash/issue/H-1207
+            equal: [{ path: ["embedding"] }, null],
+          },
+          {
+            equal: [{ path: ["version"] }, { parameter: "latest" }],
+          },
+        ],
+      },
+    });
+
+export const updateAllPropertyTypeEmbeddings =
+  async (): Promise<CreateEmbeddingResponse.Usage> =>
+    await updatePropertyTypeEmbeddings({
+      authentication: {
+        actorId: "00000000-0000-0000-0000-000000000000" as AccountId,
+      },
+      filter: {
+        all: [
+          {
+            // @ts-expect-error -- Support null in Path parameter in structural queries in Node
+            //                     see https://linear.app/hash/issue/H-1207
+            equal: [{ path: ["embedding"] }, null],
+          },
+          {
+            equal: [{ path: ["version"] }, { parameter: "latest" }],
+          },
+        ],
+      },
+    });
+
+export const updateAllEntityTypeEmbeddings =
+  async (): Promise<CreateEmbeddingResponse.Usage> =>
+    await updateEntityTypeEmbeddings({
+      authentication: {
+        actorId: "00000000-0000-0000-0000-000000000000" as AccountId,
+      },
+      filter: {
+        all: [
+          {
+            // @ts-expect-error -- Support null in Path parameter in structural queries in Node
+            //                     see https://linear.app/hash/issue/H-1207
+            equal: [{ path: ["embedding"] }, null],
+          },
+          {
+            equal: [{ path: ["version"] }, { parameter: "latest" }],
+          },
+        ],
+      },
+    });
+
 export const updateAllEntityEmbeddings =
   async (): Promise<CreateEmbeddingResponse.Usage> => {
     const accountIds = await graphActivities.getUserAccountIds();
