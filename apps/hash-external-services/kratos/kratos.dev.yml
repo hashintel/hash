@@ -39,10 +39,10 @@ selfservice:
 
     logout:
       after:
-        default_browser_return_url: http://localhost:3000/login
+        default_browser_return_url: http://localhost:3000/signin
 
     login:
-      ui_url: http://localhost:3000/login
+      ui_url: http://localhost:3000/signin
       lifespan: 10m
 
     registration:

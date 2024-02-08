@@ -152,7 +152,7 @@ const SigninPage: NextPageWithLayout = () => {
     void router
       // On submission, add the flow ID to the URL but do not navigate. This prevents the user losing
       // their data when they reload the page.
-      .push(`/login?flow=${flow.id}`, undefined, { shallow: true })
+      .push(`/signin?flow=${flow.id}`, undefined, { shallow: true })
       .then(() =>
         oryKratosClient
           .updateLoginFlow({
