@@ -44,7 +44,7 @@ const SignupButton = styled((props: ButtonProps) => (
   },
 }));
 
-const LoginPage: NextPageWithLayout = () => {
+const SigninPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
   const router = useRouter();
   const { refetch } = useAuthInfo();
@@ -330,6 +330,6 @@ const LoginPage: NextPageWithLayout = () => {
   );
 };
 
-LoginPage.getLayout = getPlainLayout;
+SigninPage.getLayout = getPlainLayout;
 
-export default LoginPage;
+export default SigninPage;

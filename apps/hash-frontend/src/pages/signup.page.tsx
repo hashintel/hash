@@ -102,7 +102,7 @@ const SignupPage: NextPageWithLayout = () => {
       }}
       headerEndAdornment={
         authenticatedUser ? null : (
-          <LoginButton href="/login" endIcon={<ArrowUpRightRegularIcon />}>
+          <LoginButton href="/signin" endIcon={<ArrowUpRightRegularIcon />}>
             Sign In
           </LoginButton>
         )

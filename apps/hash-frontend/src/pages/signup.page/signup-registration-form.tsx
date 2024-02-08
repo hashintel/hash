@@ -38,7 +38,7 @@ export const SignupRegistrationForm: FunctionComponent = () => {
       hashInstance &&
       !hashInstance.properties.userSelfRegistrationIsEnabled
     ) {
-      void router.push("/login");
+      void router.push("/signin");
     }
   }, [hashInstance, router]);
 
@@ -262,7 +262,7 @@ export const SignupRegistrationForm: FunctionComponent = () => {
           }}
         >
           Already have an account?{" "}
-          <Link href="/login" noLinkStyle>
+          <Link href="/signin" noLinkStyle>
             Sign in
           </Link>
         </Typography>

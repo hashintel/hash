@@ -101,9 +101,9 @@ export const PageHeader: FunctionComponent = () => {
               variant="tertiary_quiet"
               sx={{ mr: 1 }}
               size="xs"
-              // navigating to the login route instead of showing the login modal for now
+              // navigating to the sign in route instead of showing the sign in modal for now
               // since there's some z-index issues between the sidebar and the modal
-              href="/login"
+              href="/signin"
             >
               Sign In
             </Button>

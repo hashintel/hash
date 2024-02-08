@@ -35,7 +35,7 @@ export const useLogoutFlow = () => {
            * hook on the current page.
            */
           await router.push({
-            pathname: "/login",
+            pathname: "/signin",
             query: { return_to: router.asPath },
           });
         }
