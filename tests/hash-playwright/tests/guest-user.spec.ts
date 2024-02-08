@@ -10,7 +10,7 @@ test.beforeEach(async () => {
 
 test("guest user navigation to login and signup pages", async ({ page }) => {
   await page.goto("/");
-  await page.waitForURL("**/login");
+  await page.waitForURL("**/signin");
 
   await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();
   await expect(page.locator("text=Create a free account")).toBeVisible();
@@ -35,7 +35,7 @@ test("guest user navigation to login and signup pages", async ({ page }) => {
 
   await page.locator("text=Sign In").nth(0).click();
 
-  await page.waitForURL("**/login");
+  await page.waitForURL("**/signin");
 
   await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();
 
@@ -49,14 +49,14 @@ test("guest user navigation to login and signup pages", async ({ page }) => {
 
   await page.locator("text=Sign In").nth(1).click();
 
-  await page.waitForURL("**/login");
+  await page.waitForURL("**/signin");
 });
 
 testTolerateConsoleErrors(
   "incorrect credentials are handled",
   async ({ page }) => {
     await page.goto("/");
-    await page.waitForURL("**/login");
+    await page.waitForURL("**/signin");
 
     await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();
 
@@ -78,7 +78,7 @@ testTolerateConsoleErrors(
 test("guest user redirected to login page", async ({ page }) => {
   await page.goto("/non/existing/page");
 
-  await page.waitForURL("**/login");
+  await page.waitForURL("**/signin");
 
   await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();
 });
