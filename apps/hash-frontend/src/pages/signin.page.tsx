@@ -227,6 +227,10 @@ const SigninPage: NextPageWithLayout = () => {
           gap: 5.75,
           justifyContent: "center",
           alignItems: "center",
+          flexDirection: {
+            xs: "column",
+            md: "row",
+          },
         }}
       >
         <AuthPaper
