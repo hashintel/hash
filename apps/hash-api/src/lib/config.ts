@@ -22,5 +22,10 @@ export const LOCAL_FILE_UPLOAD_PATH =
 
 export const CORS_CONFIG: corsMiddleware.CorsOptions = {
   credentials: true,
-  origin: [/-hashintel\.vercel\.app$/, /\.stage\.hash\.ai$/, frontendUrl],
+  origin: [
+    /-hashintel\.vercel\.app$/,
+    /\.stage\.hash\.ai$/,
+    "https://hash.ai",
+    frontendUrl,
+  ],
 };
