@@ -92,13 +92,15 @@ const SignupPage: NextPageWithLayout = () => {
   return (
     <AuthLayout
       sx={{
-        background: ({ palette }) =>
-          `linear-gradient(
+        background: ({ palette }) => ({
+          xs: undefined,
+          md: `linear-gradient(
             to right,
             ${palette.gray[10]} 0%, 
             ${palette.gray[10]} ${distanceFromLeft},
             ${palette.gray[20]} ${distanceFromLeft},
             ${palette.gray[20]} 100%)`,
+        }),
       }}
       headerEndAdornment={
         authenticatedUser ? null : (
@@ -109,7 +111,7 @@ const SignupPage: NextPageWithLayout = () => {
       }
     >
       <Grid container columnSpacing={16}>
-        <Grid item md={7}>
+        <Grid item xs={12} md={7}>
           {authenticatedUser ? (
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
             userHasVerifiedEmail ? (
@@ -126,7 +128,19 @@ const SignupPage: NextPageWithLayout = () => {
             <SignupRegistrationForm />
           )}
         </Grid>
-        <Grid item md={5} sx={{ display: "flex", alignItems: "center" }}>
+        <Grid
+          item
+          xs={12}
+          md={5}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            paddingY: {
+              xs: 6,
+              md: 0,
+            },
+          }}
+        >
           {authenticatedUser ? (
             <SignupSteps currentStep="reserve-username" />
           ) : (

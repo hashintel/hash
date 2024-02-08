@@ -241,7 +241,10 @@ export const SignupRegistrationForm: FunctionComponent = () => {
       </AuthPaper>
       <Box
         sx={{
-          position: "absolute",
+          position: {
+            xs: "relative",
+            md: "absolute",
+          },
           display: "flex",
           justifyContent: "center",
           width: "100%",
