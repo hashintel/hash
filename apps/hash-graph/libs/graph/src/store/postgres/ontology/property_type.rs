@@ -6,7 +6,7 @@ use std::{
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        PropertyTypeId, PropertyTypeOwnerSubject, PropertyTypePermission,
+        DataTypeId, PropertyTypeId, PropertyTypeOwnerSubject, PropertyTypePermission,
         PropertyTypeRelationAndSubject, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
@@ -18,12 +18,14 @@ use graph_types::{
     ontology::{
         OntologyEditionProvenanceMetadata, OntologyProvenanceMetadata, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeRecordId, PartialPropertyTypeMetadata,
-        PropertyTypeMetadata, PropertyTypeWithMetadata,
+        PropertyTypeEmbedding, PropertyTypeMetadata, PropertyTypeWithMetadata,
     },
+    Embedding,
 };
-use postgres_types::Json;
-use temporal_versioning::RightBoundedTemporalInterval;
-use tokio_postgres::Row;
+use postgres_types::{Json, ToSql};
+use temporal_client::TemporalClient;
+use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
+use tokio_postgres::{GenericClient, Row};
 use type_system::{
     url::{BaseUrl, VersionedUrl},
     PropertyType,
@@ -228,6 +230,7 @@ impl<C: AsClient> PostgresStore<C> {
             .as_client()
             .simple_query(
                 "
+                    DELETE FROM property_type_embeddings;
                     DELETE FROM property_type_constrains_properties_on;
                     DELETE FROM property_type_constrains_values_on;
                 ",
@@ -267,6 +270,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
+        temporal_client: Option<&TemporalClient>,
         property_types: impl IntoIterator<
             Item = (PropertyType, PartialPropertyTypeMetadata),
             IntoIter: Send,
@@ -288,9 +292,9 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
         let mut relationships = HashSet::new();
 
+        let mut inserted_ontology_ids = Vec::new();
         let mut inserted_property_types = Vec::new();
-        let mut inserted_property_type_metadata =
-            Vec::with_capacity(inserted_property_types.capacity());
+        let mut inserted_property_type_metadata = Vec::new();
 
         for (schema, metadata) in property_types {
             let property_type_id = PropertyTypeId::from_url(schema.id());
@@ -329,13 +333,19 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             {
                 transaction.insert_with_id(ontology_id, &schema).await?;
 
-                inserted_property_types.push((ontology_id, schema));
-                inserted_property_type_metadata.push(PropertyTypeMetadata {
+                let metadata = PropertyTypeMetadata {
                     record_id: metadata.record_id,
                     classification: metadata.classification,
                     temporal_versioning,
                     provenance,
+                };
+
+                inserted_ontology_ids.push(ontology_id);
+                inserted_property_types.push(PropertyTypeWithMetadata {
+                    schema,
+                    metadata: metadata.clone(),
                 });
+                inserted_property_type_metadata.push(metadata);
             }
 
             relationships.extend(
@@ -345,18 +355,21 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             );
         }
 
-        for (ontology_id, schema) in inserted_property_types {
+        for (ontology_id, property_type) in inserted_ontology_ids
+            .into_iter()
+            .zip(&inserted_property_types)
+        {
             transaction
-                .insert_property_type_references(&schema, ontology_id)
+                .insert_property_type_references(&property_type.schema, ontology_id)
                 .await
                 .change_context(InsertionError)
                 .attach_printable_lazy(|| {
                     format!(
                         "could not insert references for property type: {}",
-                        schema.id()
+                        property_type.schema.id()
                     )
                 })
-                .attach_lazy(|| schema.clone())?;
+                .attach_lazy(|| property_type.schema.clone())?;
         }
 
         authorization_api
@@ -393,6 +406,16 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
             Err(error)
         } else {
+            if let Some(temporal_client) = temporal_client {
+                temporal_client
+                    .start_update_property_type_embeddings_workflow(
+                        actor_id,
+                        &inserted_property_types,
+                    )
+                    .await
+                    .change_context(InsertionError)?;
+            }
+
             Ok(inserted_property_type_metadata)
         }
     }
@@ -505,20 +528,18 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
-    #[tracing::instrument(
-        level = "info",
-        skip(self, property_type, authorization_api, relationships)
-    )]
+    #[tracing::instrument(level = "info", skip(self, schema, authorization_api, relationships))]
     async fn update_property_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
-        property_type: PropertyType,
+        temporal_client: Option<&TemporalClient>,
+        schema: PropertyType,
         relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
     ) -> Result<PropertyTypeMetadata, UpdateError> {
         let old_ontology_id = PropertyTypeId::from_url(&VersionedUrl {
-            base_url: property_type.id().base_url.clone(),
-            version: property_type.id().version - 1,
+            base_url: schema.id().base_url.clone(),
+            version: schema.id().version - 1,
         });
         authorization_api
             .check_property_type_permission(
@@ -536,20 +557,20 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
-            .update::<PropertyType>(&property_type, EditionCreatedById::new(actor_id))
+            .update::<PropertyType>(&schema, EditionCreatedById::new(actor_id))
             .await?;
 
         transaction
-            .insert_property_type_references(&property_type, ontology_id)
+            .insert_property_type_references(&schema, ontology_id)
             .await
             .change_context(UpdateError)
             .attach_printable_lazy(|| {
                 format!(
                     "could not insert references for property type: {}",
-                    property_type.id()
+                    schema.id()
                 )
             })
-            .attach_lazy(|| property_type.clone())?;
+            .attach_lazy(|| schema.clone())?;
 
         let property_type_id = PropertyTypeId::from(ontology_id);
         let relationships = relationships
@@ -594,8 +615,8 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
             Err(error)
         } else {
-            Ok(PropertyTypeMetadata {
-                record_id: OntologyTypeRecordId::from(property_type.id().clone()),
+            let metadata = PropertyTypeMetadata {
+                record_id: OntologyTypeRecordId::from(schema.id().clone()),
                 classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
                 temporal_versioning,
                 provenance: OntologyProvenanceMetadata {
@@ -604,7 +625,22 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                         archived_by_id: None,
                     },
                 },
-            })
+            };
+
+            if let Some(temporal_client) = temporal_client {
+                temporal_client
+                    .start_update_property_type_embeddings_workflow(
+                        actor_id,
+                        &[PropertyTypeWithMetadata {
+                            schema,
+                            metadata: metadata.clone(),
+                        }],
+                    )
+                    .await
+                    .change_context(UpdateError)?;
+            }
+
+            Ok(metadata)
         }
     }
 
@@ -629,6 +665,80 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         self.unarchive_ontology_type(id, EditionCreatedById::new(actor_id))
             .await
     }
+
+    #[tracing::instrument(level = "info", skip(self, embeddings))]
+    async fn update_property_type_embeddings<A: AuthorizationApi + Send + Sync>(
+        &mut self,
+        _: AccountId,
+        _: &mut A,
+        embeddings: Vec<PropertyTypeEmbedding<'_>>,
+        updated_at_transaction_time: Timestamp<TransactionTime>,
+        reset: bool,
+    ) -> Result<(), UpdateError> {
+        #[derive(Debug, ToSql)]
+        #[postgres(name = "property_type_embeddings")]
+        pub struct PropertyTypeEmbeddingsRow<'a> {
+            ontology_id: OntologyId,
+            embedding: Embedding<'a>,
+            updated_at_transaction_time: Timestamp<TransactionTime>,
+        }
+        let property_type_embeddings = embeddings
+            .into_iter()
+            .map(|embedding| PropertyTypeEmbeddingsRow {
+                ontology_id: OntologyId::from(DataTypeId::from_url(&embedding.property_type_id)),
+                embedding: embedding.embedding,
+                updated_at_transaction_time,
+            })
+            .collect::<Vec<_>>();
+
+        // TODO: Add permission to allow updating embeddings
+        //   see https://linear.app/hash/issue/H-1870
+
+        self.as_client()
+            .query(
+                "
+                WITH base_urls AS (
+                        SELECT base_url, MAX(version) as max_version
+                        FROM ontology_ids
+                        GROUP BY base_url
+                    ),
+                    provided_embeddings AS (
+                        SELECT embeddings.*, base_url, max_version
+                        FROM UNNEST($1::property_type_embeddings[]) AS embeddings
+                        JOIN ontology_ids USING (ontology_id)
+                        JOIN base_urls USING (base_url)
+                        WHERE version = max_version
+                    ),
+                    embeddings_to_delete AS (
+                        SELECT property_type_embeddings.ontology_id
+                        FROM provided_embeddings
+                        JOIN ontology_ids using (base_url)
+                        JOIN property_type_embeddings
+                          ON ontology_ids.ontology_id = property_type_embeddings.ontology_id
+                        WHERE version < max_version
+                           OR ($2 AND version = max_version
+                                  AND property_type_embeddings.updated_at_transaction_time
+                                   <= provided_embeddings.updated_at_transaction_time)
+                    ),
+                    deleted AS (
+                        DELETE FROM property_type_embeddings
+                        WHERE (ontology_id) IN (SELECT ontology_id FROM embeddings_to_delete)
+                    )
+                INSERT INTO property_type_embeddings
+                SELECT ontology_id, embedding, updated_at_transaction_time FROM provided_embeddings
+                ON CONFLICT (ontology_id) DO UPDATE SET
+                    embedding = EXCLUDED.embedding,
+                    updated_at_transaction_time = EXCLUDED.updated_at_transaction_time
+                WHERE property_type_embeddings.updated_at_transaction_time
+                      <= EXCLUDED.updated_at_transaction_time;
+                ",
+                &[&property_type_embeddings, &reset],
+            )
+            .await
+            .change_context(UpdateError)?;
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -649,14 +759,20 @@ impl QueryRecordDecode for PropertyTypeWithMetadata {
     type Output = Self;
 
     fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self {
+        let record_id = OntologyTypeRecordId {
+            base_url: BaseUrl::new(row.get(indices.base_url))
+                .expect("invalid base URL returned from Postgres"),
+            version: row.get(indices.version),
+        };
+
+        if let Ok(distance) = row.try_get::<_, f64>("distance") {
+            tracing::trace!(%record_id, %distance, "Property type embedding was calculated");
+        }
+
         Self {
             schema: row.get::<_, Json<_>>(indices.schema).0,
             metadata: PropertyTypeMetadata {
-                record_id: OntologyTypeRecordId {
-                    base_url: BaseUrl::new(row.get(indices.base_url))
-                        .expect("invalid base URL returned from Postgres"),
-                    version: row.get(indices.version),
-                },
+                record_id,
                 classification: row
                     .get::<_, Json<PostgresOntologyTypeClassificationMetadata>>(
                         indices.additional_metadata,

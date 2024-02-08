@@ -10,7 +10,7 @@ export const useEntityType = () => {
   const entityTypeContext = useContext(EntityTypeContext);
 
   if (!entityTypeContext) {
-    throw new Error("no EntityTypeEntitiesContext value has been provided");
+    throw new Error("no EntityTypeContext value has been provided");
   }
 
   return entityTypeContext;

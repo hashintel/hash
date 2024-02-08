@@ -6,7 +6,7 @@ use std::{
 use authorization::schema::{DataTypeId, DataTypeRelationAndSubject};
 use error_stack::{Report, ResultExt};
 use futures::{
-    channel::mpsc::{self, Sender},
+    channel::mpsc::{self, Receiver, Sender},
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
@@ -15,8 +15,8 @@ use uuid::Uuid;
 
 use crate::snapshot::{
     ontology::{
-        data_type::batch::DataTypeRowBatch, table::DataTypeRow, DataTypeSnapshotRecord,
-        OntologyTypeMetadataSender,
+        data_type::batch::DataTypeRowBatch, table::DataTypeRow, DataTypeEmbeddingRow,
+        DataTypeSnapshotRecord, OntologyTypeMetadataSender,
     },
     SnapshotRestoreError,
 };
@@ -133,6 +133,7 @@ impl Stream for DataTypeReceiver {
 pub fn data_type_channel(
     chunk_size: usize,
     metadata_sender: OntologyTypeMetadataSender,
+    embedding_rx: Receiver<DataTypeEmbeddingRow>,
 ) -> (DataTypeSender, DataTypeReceiver) {
     let (schema_tx, schema_rx) = mpsc::channel(chunk_size);
     let (relations_tx, relations_rx) = mpsc::channel(chunk_size);
@@ -152,6 +153,10 @@ pub fn data_type_channel(
                 relations_rx
                     .ready_chunks(chunk_size)
                     .map(|relations| DataTypeRowBatch::Relations(relations.into_iter().collect()))
+                    .boxed(),
+                embedding_rx
+                    .ready_chunks(chunk_size)
+                    .map(DataTypeRowBatch::Embeddings)
                     .boxed(),
             ]),
         },

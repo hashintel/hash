@@ -1,5 +1,6 @@
+import { EntityTypeWithMetadata } from "@blockprotocol/graph";
 import { validateEntityType } from "@blockprotocol/type-system";
-import { EntityType } from "@blockprotocol/type-system/slim";
+import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
@@ -28,16 +29,27 @@ const Page: NextPageWithLayout = () => {
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
-      const entityType = JSON.parse(
+      const entityTypeSchema = JSON.parse(
         Buffer.from(
           decodeURIComponent(router.query.draft.toString()),
           "base64",
         ).toString("utf8"),
       );
 
-      const validationResult = validateEntityType(entityType);
+      const validationResult = validateEntityType(entityTypeSchema);
       if (validationResult.type === "Ok") {
-        return entityType as EntityType;
+        const { baseUrl, version } = componentsFromVersionedUrl(
+          entityTypeSchema.$id,
+        );
+        return {
+          metadata: {
+            recordId: {
+              baseUrl,
+              version,
+            },
+          },
+          schema: entityTypeSchema,
+        } satisfies EntityTypeWithMetadata;
       } else {
         throw Error(
           `Invalid draft entity type: ${JSON.stringify(validationResult)}`,

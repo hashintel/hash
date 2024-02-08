@@ -1,8 +1,11 @@
-import { PropertyType } from "@blockprotocol/graph";
+import { PropertyTypeWithMetadata } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { createContext, PropsWithChildren, useContext } from "react";
 
-export type PropertyTypesByVersionedUrl = Record<VersionedUrl, PropertyType>;
+export type PropertyTypesByVersionedUrl = Record<
+  VersionedUrl,
+  PropertyTypeWithMetadata
+>;
 export type PropertyTypesContextValue = PropertyTypesByVersionedUrl;
 
 export const PropertyTypesOptionsContext =

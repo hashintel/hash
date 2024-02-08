@@ -38,7 +38,7 @@ use graph::{
 };
 use graph_types::{
     ontology::{
-        EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
+        EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeRecordId,
         OntologyTypeReference, PartialEntityTypeMetadata,
     },
@@ -46,6 +46,8 @@ use graph_types::{
 };
 use hash_map::HashMap;
 use serde::{Deserialize, Serialize};
+use temporal_client::TemporalClient;
+use temporal_versioning::{Timestamp, TransactionTime};
 use time::OffsetDateTime;
 use type_system::{
     url::{BaseUrl, VersionedUrl},
@@ -75,6 +77,7 @@ use crate::{
         load_external_entity_type,
         get_entity_types_by_query,
         update_entity_type,
+        update_entity_type_embeddings,
         archive_entity_type,
         unarchive_entity_type,
     ),
@@ -91,10 +94,12 @@ use crate::{
             EntityTypePermission,
             EntityTypeRelationAndSubject,
             ModifyEntityTypeAuthorizationRelationship,
+            EntityTypeEmbedding,
 
             CreateEntityTypeRequest,
             LoadExternalEntityTypeRequest,
             UpdateEntityTypeRequest,
+            UpdateEntityTypeEmbeddingsRequest,
             EntityTypeQueryToken,
             EntityTypeStructuralQuery,
             ArchiveEntityTypeRequest,
@@ -142,7 +147,8 @@ impl RoutedResource for EntityTypeResource {
                 .route("/query", post(get_entity_types_by_query::<S, A>))
                 .route("/load", post(load_external_entity_type::<S, A>))
                 .route("/archive", put(archive_entity_type::<S, A>))
-                .route("/unarchive", put(unarchive_entity_type::<S, A>)),
+                .route("/unarchive", put(unarchive_entity_type::<S, A>))
+                .route("/embeddings", post(update_entity_type_embeddings::<S, A>)),
         )
     }
 }
@@ -347,6 +353,7 @@ async fn create_entity_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreateEntityTypeRequest>,
     // TODO: We want to be able to return `Status` here we should try and create a general way to
@@ -443,6 +450,7 @@ where
         .create_entity_types(
             actor_id,
             &mut authorization_api,
+            temporal_client.as_deref(),
             entity_types.into_iter().zip(partial_metadata),
             ConflictBehavior::Fail,
             relationships,
@@ -560,6 +568,7 @@ async fn load_external_entity_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
     Json(request): Json<LoadExternalEntityTypeRequest>,
     // TODO: We want to be able to return `Status` here we should try and create a general way to
@@ -612,6 +621,7 @@ where
                 .load_external_type(
                     actor_id,
                     &mut authorization_api,
+                    temporal_client.as_deref(),
                     &domain_validator,
                     OntologyTypeReference::EntityTypeReference((&entity_type_id).into()),
                 )
@@ -645,6 +655,7 @@ where
                     .create_entity_type(
                         actor_id,
                         &mut authorization_api,
+                        temporal_client.as_deref(),
                         schema,
                         PartialEntityTypeMetadata {
                             record_id,
@@ -685,7 +696,7 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, query))]
 async fn get_entity_types_by_query<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -768,6 +779,7 @@ async fn update_entity_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<UpdateEntityTypeRequest>,
 ) -> Result<Json<EntityTypeMetadata>, StatusCode>
 where
@@ -806,6 +818,7 @@ where
         .update_entity_type(
             actor_id,
             &mut authorization_api,
+            temporal_client.as_deref(),
             entity_type,
             label_property,
             icon,
@@ -826,6 +839,64 @@ where
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .map(Json)
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct UpdateEntityTypeEmbeddingsRequest {
+    embeddings: Vec<EntityTypeEmbedding<'static>>,
+    updated_at_transaction_time: Timestamp<TransactionTime>,
+    reset: bool,
+}
+
+#[utoipa::path(
+    post,
+    path = "/entity-types/embeddings",
+    tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 204, content_type = "application/json", description = "The embeddings were created"),
+
+        (status = 403, description = "Insufficient permissions to update the entity type"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = UpdateEntityTypeEmbeddingsRequest,
+)]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+async fn update_entity_type_embeddings<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    body: Json<UpdateEntityTypeEmbeddingsRequest>,
+) -> Result<(), Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let Json(UpdateEntityTypeEmbeddingsRequest {
+        embeddings,
+        updated_at_transaction_time,
+        reset,
+    }) = body;
+
+    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
+    let mut authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .update_entity_type_embeddings(
+            actor_id,
+            &mut authorization_api,
+            embeddings,
+            updated_at_transaction_time,
+            reset,
+        )
+        .await
+        .map_err(report_to_response)
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

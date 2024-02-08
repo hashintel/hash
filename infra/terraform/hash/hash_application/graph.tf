@@ -177,7 +177,6 @@ locals {
       retries  = 5
       interval = 20
       timeout  = 5
-
     }
     portMappings = [
       {

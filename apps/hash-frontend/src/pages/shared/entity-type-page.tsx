@@ -1,5 +1,6 @@
+import { EntityTypeWithMetadata } from "@blockprotocol/graph";
 import { extractVersion } from "@blockprotocol/type-system";
-import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   EntityTypeIcon,
   LinkTypeIcon,
@@ -8,8 +9,8 @@ import {
 import {
   EntityTypeEditorFormData,
   EntityTypeFormProvider,
-  getFormDataFromSchema,
-  getSchemaFromFormData,
+  getEntityTypeFromFormData,
+  getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
 import { generateLinkMapWithConsistentSelfReferences } from "@local/hash-isomorphic-utils/ontology-types";
@@ -49,7 +50,7 @@ import { TopContextBar } from "./top-context-bar";
 
 type EntityTypeProps = {
   accountId?: AccountId | null;
-  draftEntityType?: EntityType | null;
+  draftEntityType?: EntityTypeWithMetadata | null;
   entityTypeBaseUrl?: BaseUrl;
   requestedVersion: number | null;
 };
@@ -66,21 +67,14 @@ export const EntityTypePage = ({
     entityTypeBaseUrl,
   });
 
-  const formMethods = useEntityTypeForm<
-    /**
-     * @todo add icon support in `@hashintel/type-editor`
-     *
-     * @see https://linear.app/hash/issue/H-1439/move-icon-and-labelproperty-to-the-metadata-types-in-bp-so-that-it-can
-     */
-    EntityTypeEditorFormData & { icon?: string | null }
-  >({
+  const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
     defaultValues: { allOf: [], properties: [], links: [] },
   });
   const { handleSubmit: wrapHandleSubmit, reset, watch } = formMethods;
 
   useEffect(() => {
     if (draftEntityType) {
-      reset(getFormDataFromSchema(draftEntityType));
+      reset(getFormDataFromEntityType(draftEntityType));
     }
   }, [draftEntityType, reset]);
 
@@ -98,18 +92,18 @@ export const EntityTypePage = ({
     (fetchedEntityType) => {
       // Load the initial form data after the entity type has been fetched
       reset({
-        ...getFormDataFromSchema(fetchedEntityType.schema),
+        ...getFormDataFromEntityType(fetchedEntityType),
         icon: fetchedEntityType.metadata.icon,
       });
     },
   );
 
-  const entityType = remoteEntityType?.schema ?? draftEntityType;
+  const entityType = remoteEntityType ?? draftEntityType;
 
   const parentRefs = formMethods.watch("allOf");
   const { isLink, isFile, isImage } = useIsSpecialEntityType({
     allOf: parentRefs.map((id) => ({ $ref: id })),
-    $id: entityType?.$id,
+    $id: entityType?.schema.$id,
   });
 
   const entityTypeAndPropertyTypes = useMemo(
@@ -126,7 +120,9 @@ export const EntityTypePage = ({
   const isDirty = formMethods.formState.isDirty;
   const isDraft = !!draftEntityType;
 
-  const { userPermissions } = useUserPermissionsOnEntityType(entityType?.$id);
+  const { userPermissions } = useUserPermissionsOnEntityType(
+    entityType?.schema.$id,
+  );
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     if (!isDirty && !isDraft) {
@@ -140,19 +136,24 @@ export const EntityTypePage = ({
       return;
     }
 
-    const entityTypeSchema = getSchemaFromFormData(data);
+    const { labelProperty, schema: entityTypeSchema } =
+      getEntityTypeFromFormData(data);
 
     if (draftEntityType) {
       await publishDraft(
         {
-          ...draftEntityType,
+          ...draftEntityType.schema,
           ...entityTypeSchema,
         },
-        { icon: data.icon },
+        {
+          icon: data.icon,
+          labelProperty:
+            (labelProperty as BaseUrl | null | undefined) ?? undefined,
+        },
       );
       reset(data);
     } else {
-      const currentEntityTypeId = entityType?.$id;
+      const currentEntityTypeId = entityType?.schema.$id;
       if (!currentEntityTypeId) {
         throw new Error(
           "Cannot update entity type without existing entityType schema",
@@ -175,6 +176,8 @@ export const EntityTypePage = ({
 
       const res = await updateEntityType(schemaWithConsistentSelfReferences, {
         icon: data.icon,
+        labelProperty:
+          (labelProperty as BaseUrl | null | undefined) ?? undefined,
       });
 
       if (!res.errors?.length && res.data) {
@@ -195,7 +198,7 @@ export const EntityTypePage = ({
   const titleWrapperRef = useRef<HTMLDivElement>(null);
 
   const onNavigateToType = (url: VersionedUrl) => {
-    if (entityType && url === entityType.$id) {
+    if (entityType && url === entityType.schema.$id) {
       titleWrapperRef.current?.scrollIntoView({ behavior: "smooth" });
     } else {
       setPreviewEntityTypeUrl(url);
@@ -226,10 +229,12 @@ export const EntityTypePage = ({
     return null;
   }
 
-  const currentVersion = draftEntityType ? 0 : extractVersion(entityType.$id);
+  const currentVersion = draftEntityType
+    ? 0
+    : extractVersion(entityType.schema.$id);
 
   const convertToLinkType = wrapHandleSubmit(async (data) => {
-    const entityTypeSchema = getSchemaFromFormData(data);
+    const entityTypeSchema = getEntityTypeFromFormData(data);
 
     const res = await updateEntityType(
       {
@@ -256,9 +261,9 @@ export const EntityTypePage = ({
 
   return (
     <>
-      <NextSeo title={`${entityType.title} | Entity Type`} />
+      <NextSeo title={`${entityType.schema.title} | Entity Type`} />
       <EntityTypeFormProvider {...formMethods}>
-        <EntityTypeContext.Provider value={entityType}>
+        <EntityTypeContext.Provider value={entityType.schema}>
           <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
             <Box display="contents" component="form" onSubmit={handleSubmit}>
               <TopContextBar
@@ -266,7 +271,7 @@ export const EntityTypePage = ({
                   ...(remoteEntityType && !isTypeArchived(remoteEntityType)
                     ? [
                         <ArchiveMenuItem
-                          key={entityType.$id}
+                          key={entityType.schema.$id}
                           item={remoteEntityType}
                         />,
                       ]
@@ -274,10 +279,10 @@ export const EntityTypePage = ({
                   ...(!isReadonly && !isDraft && !isLink
                     ? [
                         <ConvertTypeMenuItem
-                          key={entityType.$id}
+                          key={entityType.schema.$id}
                           convertToLinkType={convertToLinkType}
                           disabled={isDirty}
-                          typeTitle={entityType.title}
+                          typeTitle={entityType.schema.title}
                         />,
                       ]
                     : []),
@@ -296,9 +301,9 @@ export const EntityTypePage = ({
                     id: "entity-types",
                   },
                   {
-                    title: entityType.title,
+                    title: entityType.schema.title,
                     href: "#",
-                    id: entityType.$id,
+                    id: entityType.schema.$id,
                     icon:
                       icon ??
                       (isLink ? (
@@ -335,7 +340,7 @@ export const EntityTypePage = ({
                           },
                         }
                   }
-                  key={entityType.$id} // reset edit bar state when the entity type changes
+                  key={entityType.schema.$id} // reset edit bar state when the entity type changes
                 />
               )}
 
@@ -353,14 +358,14 @@ export const EntityTypePage = ({
                     isDraft={isDraft}
                     ontologyChip={
                       <OntologyChip
-                        domain={new URL(entityType.$id).hostname}
-                        path={new URL(entityType.$id).pathname.replace(
+                        domain={new URL(entityType.schema.$id).hostname}
+                        path={new URL(entityType.schema.$id).pathname.replace(
                           /\d+$/,
                           currentVersion.toString(),
                         )}
                       />
                     }
-                    entityType={entityType}
+                    entityTypeSchema={entityType.schema}
                     isLink={isLink}
                     isReadonly={isReadonly}
                     latestVersion={latestVersion}

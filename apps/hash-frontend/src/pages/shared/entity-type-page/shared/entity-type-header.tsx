@@ -8,6 +8,10 @@ import {
   EntityTypeEditorFormData,
   useEntityTypeFormContext,
 } from "@hashintel/type-editor";
+import {
+  extractBaseUrl,
+  versionedUrlFromComponents,
+} from "@local/hash-subgraph/type-system-patch";
 import { Box, Stack, Typography } from "@mui/material";
 import { ReactNode, useState } from "react";
 import { Controller } from "react-hook-form";
@@ -20,7 +24,7 @@ import { EntityTypeDescription } from "../entity-type-description";
 interface EntityTypeHeaderProps {
   isPreviewSlide?: boolean;
   ontologyChip: ReactNode;
-  entityType: EntityType;
+  entityTypeSchema: EntityType;
   isDraft: boolean;
   isLink: boolean;
   isReadonly: boolean;
@@ -30,7 +34,7 @@ interface EntityTypeHeaderProps {
 export const EntityTypeHeader = ({
   isPreviewSlide,
   ontologyChip,
-  entityType,
+  entityTypeSchema,
   isDraft,
   isLink,
   isReadonly,
@@ -39,17 +43,14 @@ export const EntityTypeHeader = ({
   const [showExtendTypeModal, setShowExtendTypeModal] = useState(false);
 
   const isLatest =
-    !latestVersion || extractVersion(entityType.$id) === latestVersion;
-  const latestVersionUrl = entityType.$id.replace(/\d+$/, `${latestVersion}`);
+    !latestVersion || extractVersion(entityTypeSchema.$id) === latestVersion;
 
-  const { control } = useEntityTypeFormContext<
-    /**
-     * @todo add icon support in `@hashintel/type-editor`
-     *
-     * @see https://linear.app/hash/issue/H-1439/move-icon-and-labelproperty-to-the-metadata-types-in-bp-so-that-it-can
-     */
-    EntityTypeEditorFormData & { icon?: string | null }
-  >();
+  const latestVersionUrl = versionedUrlFromComponents(
+    extractBaseUrl(entityTypeSchema.$id),
+    latestVersion ?? 0,
+  );
+
+  const { control } = useEntityTypeFormContext<EntityTypeEditorFormData>();
 
   return (
     <>
@@ -106,7 +107,7 @@ export const EntityTypeHeader = ({
               )}
             />
             <Typography variant="h1" fontWeight="bold" marginLeft={3}>
-              {entityType.title}
+              {entityTypeSchema.title}
             </Typography>
           </Box>
           {!isDraft && !isPreviewSlide ? (
@@ -144,7 +145,7 @@ export const EntityTypeHeader = ({
             <CreateEntityTypeForm
               afterSubmit={() => setShowExtendTypeModal(false)}
               inModal
-              initialData={{ extendsEntityTypeId: entityType.$id }}
+              initialData={{ extendsEntityTypeId: entityTypeSchema.$id }}
               onCancel={() => setShowExtendTypeModal(false)}
             />
           </Box>

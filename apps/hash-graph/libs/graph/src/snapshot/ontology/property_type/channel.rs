@@ -6,7 +6,7 @@ use std::{
 use authorization::schema::{PropertyTypeId, PropertyTypeRelationAndSubject};
 use error_stack::{Report, ResultExt};
 use futures::{
-    channel::mpsc::{self, Sender},
+    channel::mpsc::{self, Receiver, Sender},
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
@@ -21,7 +21,7 @@ use crate::snapshot::{
             PropertyTypeConstrainsPropertiesOnRow, PropertyTypeConstrainsValuesOnRow,
             PropertyTypeRow,
         },
-        OntologyTypeMetadataSender, PropertyTypeSnapshotRecord,
+        OntologyTypeMetadataSender, PropertyTypeEmbeddingRow, PropertyTypeSnapshotRecord,
     },
     SnapshotRestoreError,
 };
@@ -200,6 +200,7 @@ impl Stream for PropertyTypeReceiver {
 pub fn property_type_channel(
     chunk_size: usize,
     metadata_sender: OntologyTypeMetadataSender,
+    embedding_rx: Receiver<PropertyTypeEmbeddingRow>,
 ) -> (PropertyTypeSender, PropertyTypeReceiver) {
     let (schema_tx, schema_rx) = mpsc::channel(chunk_size);
     let (constrains_values_tx, constrains_values_rx) = mpsc::channel(chunk_size);
@@ -241,6 +242,10 @@ pub fn property_type_channel(
                     .map(|relations| {
                         PropertyTypeRowBatch::Relations(relations.into_iter().collect())
                     })
+                    .boxed(),
+                embedding_rx
+                    .ready_chunks(chunk_size)
+                    .map(PropertyTypeRowBatch::Embeddings)
                     .boxed(),
             ]),
         },
