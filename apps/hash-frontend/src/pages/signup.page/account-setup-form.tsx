@@ -16,7 +16,7 @@ import { useShortnameInput } from "../../components/hooks/use-shortname-input";
 import { ChevronRightRegularIcon } from "../../shared/icons/chevron-right-regular-icon";
 import { CircleRegularInfoIcon } from "../../shared/icons/circle-info-regular-icon";
 import { TriangleExclamationRegularIcon } from "../../shared/icons/triangle-exclamation-regular-icon";
-import { Button } from "../../shared/ui";
+import { Button, Link } from "../../shared/ui";
 import { InvitationInfo, ORG_ROLES } from "../shared/auth-utils";
 
 const inputWidth = 250;
@@ -312,7 +312,11 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
                 {shortnameError ?? (
                   <>
                     If you’re using HASH for work or a team, you’ll be able to
-                    choose a separate org username later.
+                    create a separate org{" "}
+                    <Link openInNew href="https://hash.ai/guide/webs">
+                      web
+                    </Link>{" "}
+                    later
                   </>
                 )}
               </Typography>
