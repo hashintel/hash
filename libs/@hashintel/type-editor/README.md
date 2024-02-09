@@ -11,8 +11,8 @@ A component for editing **entity types** as defined in the [Block Protocol Type 
 
 The type editor is currently in use within [HASH] and can either be tested by:
 
-1.  running the application yourself, and clicking the "Create new type" button once logged in; or
-1.  trying out the [hosted] version of HASH (faster, easier).
+1. running the application yourself, and clicking the "Create new type" button once logged in; or
+1. trying out the [hosted] version of HASH (faster, easier).
 
 ## Usage
 

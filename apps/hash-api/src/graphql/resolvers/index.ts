@@ -1,11 +1,23 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
+import {
+  addAccountGroupMember,
+  removeAccountGroupMember,
+} from "../../graph/account-permission-management";
+import {
+  EntityAuthorizationSubject,
+  MutationResolvers,
+  QueryResolvers,
+  Resolvers,
+} from "../api-types.gen";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
 import { syncLinearIntegrationWithWorkspacesMutation } from "./integrations/linear/sync-workspaces-with-teams";
 import { blocksResolver } from "./knowledge/block/block";
 import { blockChildEntityResolver } from "./knowledge/block/data-entity";
+import { blockCollectionContents } from "./knowledge/block-collection/block-collection-contents";
+import { updateBlockCollectionContents } from "./knowledge/block-collection/update-block-collection-contents";
 import { commentAuthorResolver } from "./knowledge/comment/author";
 import { createCommentResolver } from "./knowledge/comment/comment";
 import { deleteCommentResolver } from "./knowledge/comment/delete";
@@ -16,38 +28,44 @@ import { resolveCommentResolver } from "./knowledge/comment/resolve";
 import { commentTextUpdatedAtResolver } from "./knowledge/comment/text-updated-at";
 import { updateCommentTextResolver } from "./knowledge/comment/update-text";
 import {
+  addEntityEditorResolver,
+  addEntityOwnerResolver,
+  addEntityViewerResolver,
+  archiveEntitiesResolver,
   archiveEntityResolver,
   createEntityResolver,
+  getEntityAuthorizationRelationshipsResolver,
   getEntityResolver,
-  inferEntitiesResolver,
+  isEntityPublicResolver,
   queryEntitiesResolver,
+  removeEntityEditorResolver,
+  removeEntityOwnerResolver,
+  removeEntityViewerResolver,
+  structuralQueryEntitiesResolver,
+  updateEntitiesResolver,
   updateEntityResolver,
 } from "./knowledge/entity/entity";
 import { createFileFromUrl } from "./knowledge/file/create-file-from-url";
 import { requestFileUpload } from "./knowledge/file/request-file-upload";
 import { hashInstanceEntityResolver } from "./knowledge/hash-instance/hash-instance";
 import { createOrgResolver } from "./knowledge/org/create-org";
-import { pageContents, updatePageContents } from "./knowledge/page";
+import { pageContents } from "./knowledge/page";
 import {
   createPageResolver,
   pageCommentsResolver,
-  pageResolver,
-  pagesResolver,
-  parentPageResolver,
 } from "./knowledge/page/page";
 import { setParentPageResolver } from "./knowledge/page/set-parent-page";
 import { updatePageResolver } from "./knowledge/page/update-page";
-import { createUserResolver } from "./knowledge/user/create-user";
+import {
+  canUserEdit,
+  checkUserPermissionsOnEntity,
+} from "./knowledge/shared/check-permissions";
+import { getUsageRecordsResolver } from "./knowledge/user/get-usage-records";
+import { hasAccessToHashResolver } from "./knowledge/user/has-access-to-hash";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
 import { meResolver } from "./knowledge/user/me";
-import { createLinkedAggregation } from "./linked-aggregation/create-linked-aggregation";
-import { deleteLinkedAggregation } from "./linked-aggregation/delete-linked-aggregation";
-import { getLinkedAggregation } from "./linked-aggregation/get-linked-aggregation";
-import { linkedAggregationResults } from "./linked-aggregation/linked-aggregation-results";
-import { updateLinkedAggregationOperation } from "./linked-aggregation/update-linked-aggregation-operation";
 import { loggedInMiddleware } from "./middlewares/logged-in";
 import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up";
-import { loggedInAndSignedUpHashInstanceAdminMiddleware } from "./middlewares/logged-in-and-signed-up-hash-instance-admin";
 import { getDataType, queryDataTypes } from "./ontology/data-type";
 import {
   archiveEntityTypeResolver,
@@ -66,52 +84,52 @@ import {
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
 
-/** @todo - Refactor the names of these https://app.asana.com/0/1200211978612931/1203234667392169/f */
-export const resolvers = {
+export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
+  Query: Required<QueryResolvers>;
+  Mutation: Required<MutationResolvers>;
+} = {
   Query: {
     // Logged in and signed up users only,
     getBlockProtocolBlocks: getBlockProtocolBlocksResolver,
-    getLinkedAggregation: loggedInAndSignedUpMiddleware(getLinkedAggregation),
     // Logged in users only
     me: loggedInMiddleware(meResolver),
+    // Admins
+    getUsageRecords: loggedInMiddleware(getUsageRecordsResolver),
     // Any user
     isShortnameTaken: isShortnameTakenResolver,
     embedCode,
     // Ontology
-    queryDataTypes: loggedInAndSignedUpMiddleware(queryDataTypes),
+    queryDataTypes,
     getDataType,
-    queryPropertyTypes: loggedInAndSignedUpMiddleware(
-      queryPropertyTypesResolver,
-    ),
+    queryPropertyTypes: queryPropertyTypesResolver,
     getPropertyType: getPropertyTypeResolver,
-    queryEntityTypes: loggedInAndSignedUpMiddleware(queryEntityTypesResolver),
+    queryEntityTypes: queryEntityTypesResolver,
     getEntityType: getEntityTypeResolver,
     // Knowledge
-    page: pageResolver,
-    pages: loggedInAndSignedUpMiddleware(pagesResolver),
     pageComments: loggedInAndSignedUpMiddleware(pageCommentsResolver),
     blocks: loggedInAndSignedUpMiddleware(blocksResolver),
     getEntity: getEntityResolver,
     queryEntities: queryEntitiesResolver,
+    isEntityPublic: loggedInAndSignedUpMiddleware(isEntityPublicResolver),
+    getEntityAuthorizationRelationships: loggedInAndSignedUpMiddleware(
+      getEntityAuthorizationRelationshipsResolver,
+    ),
+    structuralQueryEntities: structuralQueryEntitiesResolver,
     hashInstanceEntity: hashInstanceEntityResolver,
     // Integration
     getLinearOrganization: loggedInAndSignedUpMiddleware(
       getLinearOrganizationResolver,
     ),
+    checkUserPermissionsOnEntity: (_, { metadata }, context, info) =>
+      checkUserPermissionsOnEntity({ metadata }, _, context, info),
+    hasAccessToHash: loggedInMiddleware(hasAccessToHashResolver),
   },
 
   Mutation: {
     // Logged in and signed up users only
-    createLinkedAggregation: loggedInAndSignedUpMiddleware(
-      createLinkedAggregation,
+    updateBlockCollectionContents: loggedInAndSignedUpMiddleware(
+      updateBlockCollectionContents,
     ),
-    updateLinkedAggregationOperation: loggedInAndSignedUpMiddleware(
-      updateLinkedAggregationOperation,
-    ),
-    deleteLinkedAggregation: loggedInAndSignedUpMiddleware(
-      deleteLinkedAggregation,
-    ),
-    updatePageContents: loggedInAndSignedUpMiddleware(updatePageContents),
     requestFileUpload: loggedInAndSignedUpMiddleware(requestFileUpload),
     createFileFromUrl: loggedInAndSignedUpMiddleware(createFileFromUrl),
     // Ontology
@@ -135,9 +153,10 @@ export const resolvers = {
     ),
     // Knowledge
     createEntity: loggedInAndSignedUpMiddleware(createEntityResolver),
-    inferEntities: loggedInAndSignedUpMiddleware(inferEntitiesResolver),
     updateEntity: loggedInMiddleware(updateEntityResolver),
+    updateEntities: loggedInMiddleware(updateEntitiesResolver),
     archiveEntity: loggedInMiddleware(archiveEntityResolver),
+    archiveEntities: loggedInMiddleware(archiveEntitiesResolver),
     createPage: loggedInAndSignedUpMiddleware(createPageResolver),
     setParentPage: loggedInAndSignedUpMiddleware(setParentPageResolver),
     updatePage: loggedInAndSignedUpMiddleware(updatePageResolver),
@@ -148,9 +167,28 @@ export const resolvers = {
 
     createOrg: loggedInAndSignedUpMiddleware(createOrgResolver),
 
-    // HASH instance admin mutations
-    createUser:
-      loggedInAndSignedUpHashInstanceAdminMiddleware(createUserResolver),
+    addEntityOwner: loggedInAndSignedUpMiddleware(addEntityOwnerResolver),
+    removeEntityOwner: loggedInAndSignedUpMiddleware(removeEntityOwnerResolver),
+    addEntityEditor: loggedInAndSignedUpMiddleware(addEntityEditorResolver),
+    removeEntityEditor: loggedInAndSignedUpMiddleware(
+      removeEntityEditorResolver,
+    ),
+    addEntityViewer: loggedInAndSignedUpMiddleware(addEntityViewerResolver),
+    removeEntityViewer: loggedInAndSignedUpMiddleware(
+      removeEntityViewerResolver,
+    ),
+
+    addAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
+      addAccountGroupMember(context.dataSources, context.authentication, {
+        accountId,
+        accountGroupId,
+      }),
+    removeAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
+      removeAccountGroupMember(context.dataSources, context.authentication, {
+        accountId,
+        accountGroupId,
+      }),
+
     // Integration
     syncLinearIntegrationWithWorkspaces: loggedInAndSignedUpMiddleware(
       syncLinearIntegrationWithWorkspacesMutation,
@@ -159,25 +197,40 @@ export const resolvers = {
 
   JSONObject: JSONObjectResolver,
 
-  LinkedAggregation: {
-    results: linkedAggregationResults,
+  Page: {
+    userPermissions: checkUserPermissionsOnEntity,
+    // @ts-expect-error –– the type requires 'blockChildEntity' inside the return, but we deal with it in a field resolver
+    contents: pageContents,
   },
 
-  // New knowledge field resolvers
-  Page: {
-    contents: pageContents,
-    parentPage: parentPageResolver,
+  BlockCollection: {
+    // @ts-expect-error –– the type requires 'blockChildEntity' inside the return, but we deal with it in a field resolver
+    contents: blockCollectionContents,
   },
 
   Comment: {
+    canUserEdit,
     hasText: commentHasTextResolver,
     textUpdatedAt: commentTextUpdatedAtResolver,
     parent: commentParentResolver,
     author: commentAuthorResolver,
+    // @ts-expect-error –– the type requires all comment fields returned, but many are dealt with in field resolvers above
     replies: commentRepliesResolver,
   },
 
   Block: {
     blockChildEntity: blockChildEntityResolver,
+  },
+
+  EntityAuthorizationSubject: {
+    __resolveType(object: EntityAuthorizationSubject) {
+      if ("accountGroupId" in object) {
+        return "AccountGroupAuthorizationSubject";
+      } else if ("accountId" in object) {
+        return "AccountAuthorizationSubject";
+      } else {
+        return "PublicAuthorizationSubject";
+      }
+    },
   },
 };

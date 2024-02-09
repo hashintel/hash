@@ -1,6 +1,7 @@
 import { EntityType } from "@blockprotocol/graph";
-import { MenuItem } from "@hashintel/design-system";
-import { FormControl } from "@mui/material";
+import { MenuItem, OntologyChip } from "@hashintel/design-system";
+import { FormControl, listClasses } from "@mui/material";
+import { useMemo } from "react";
 import { useFormContext } from "react-hook-form";
 
 import { useReadonlyContext } from "../../readonly-context";
@@ -19,6 +20,11 @@ export const EntityTypeSelector = ({
 
   const hasError = !!formState.errors.filters?.[index]?.value;
 
+  const sortedEntityTypes = useMemo(
+    () => entityTypes.sort((a, b) => a.title.localeCompare(b.title)),
+    [entityTypes],
+  );
+
   return (
     <FormControl>
       <RHFSelect
@@ -31,14 +37,26 @@ export const EntityTypeSelector = ({
           displayEmpty: true,
           error: hasError,
           disabled: readonly,
+          MenuProps: {
+            sx: {
+              [`& .${listClasses.root}`]: {
+                maxWidth: 600,
+              },
+            },
+          },
         }}
       >
         <MenuItem value="" disabled noSelectBackground>
           Choose
         </MenuItem>
-        {entityTypes.map(({ title, $id }) => (
-          <MenuItem key={$id} value={$id}>
+        {sortedEntityTypes.map(({ title, $id }) => (
+          <MenuItem key={$id} value={$id} sx={{}}>
             {title}
+            <OntologyChip
+              domain={new URL($id).hostname}
+              path={new URL($id).pathname}
+              sx={{ marginLeft: 2 }}
+            />
           </MenuItem>
         ))}
       </RHFSelect>

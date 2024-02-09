@@ -1,6 +1,7 @@
 /** @sync ../components/Snippet.tsx */
 import "../../styles/globals.css";
 import "../../styles/prism.css";
+import "../../styles/legacy-mdx-components.scss";
 
 import { EmotionCache } from "@emotion/react";
 import type { AppProps } from "next/app";

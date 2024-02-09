@@ -1,18 +1,11 @@
-import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import {
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
   getOrgByShortname,
   Org,
   updateOrgName,
   updateOrgShortname,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import {
-  systemUser,
-  systemUserAccountId,
-} from "@apps/hash-api/src/graph/system-user";
+import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 
@@ -31,7 +24,7 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+const graphContext = createTestImpureGraphContext();
 
 describe("Org", () => {
   beforeAll(async () => {
@@ -40,17 +33,18 @@ describe("Org", () => {
   });
 
   afterAll(async () => {
-    await deleteKratosIdentity({
-      kratosIdentityId: systemUser.kratosIdentityId,
-    });
-
     await resetGraph();
   });
 
   let createdOrg: Org;
   let shortname: string;
   it("can create an org", async () => {
-    createdOrg = await createTestOrg(graphContext, "orgTest", logger);
+    createdOrg = await createTestOrg(
+      graphContext,
+      { actorId: systemAccountId },
+      "orgTest",
+      logger,
+    );
 
     shortname = createdOrg.shortname;
   });
@@ -60,25 +54,28 @@ describe("Org", () => {
   });
 
   it("can update the shortname of an org", async () => {
+    const authentication = { actorId: systemAccountId };
     shortname = generateRandomShortname("orgTest");
 
-    createdOrg = await updateOrgShortname(graphContext, {
+    createdOrg = await updateOrgShortname(graphContext, authentication, {
       org: createdOrg,
       updatedShortname: shortname,
-      actorId: systemUserAccountId,
     });
   });
 
   it("can update the preferred name of an org", async () => {
-    createdOrg = await updateOrgName(graphContext, {
+    const authentication = { actorId: systemAccountId };
+
+    createdOrg = await updateOrgName(graphContext, authentication, {
       org: createdOrg,
       updatedOrgName: "The testing org",
-      actorId: systemUserAccountId,
     });
   });
 
   it("can get an org by its shortname", async () => {
-    const fetchedOrg = await getOrgByShortname(graphContext, {
+    const authentication = { actorId: systemAccountId };
+
+    const fetchedOrg = await getOrgByShortname(graphContext, authentication, {
       shortname,
     });
 

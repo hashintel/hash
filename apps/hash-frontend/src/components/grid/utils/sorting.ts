@@ -1,53 +1,44 @@
-import { GridColumn } from "@glideapps/glide-data-grid";
+import { Row } from "./rows";
 
-import { Rows } from "./rows";
-
-export type ColumnSortType = "asc" | "desc";
+export type ColumnSortDirection = "asc" | "desc";
 
 export interface ColumnSort<T extends string> {
-  key: T;
-  dir: ColumnSortType;
+  columnKey: T;
+  direction: ColumnSortDirection;
 }
 
 export type SetColumnSort<T extends string> = (sort: ColumnSort<T>) => void;
 
-export const createHandleHeaderClicked = <T extends string>(
-  columns: GridColumn[],
-  sort: ColumnSort<T>,
-  setColumnSort: SetColumnSort<T>,
-) => {
-  return (colIndex: number) => {
-    const key = columns[colIndex]?.id as T;
-
-    if (!key) {
-      return;
-    }
-
-    const isSorted = key === sort.key;
-
-    setColumnSort({
-      key,
-      dir: isSorted && sort.dir === "asc" ? "desc" : "asc",
-    });
-  };
-};
-
-export const defaultSortRows = <T extends Rows>(
-  rows: T,
+export const defaultSortRows = <T extends Row>(
+  rows: T[],
   sort: ColumnSort<string>,
+  previousSort?: ColumnSort<string>,
 ) => {
   /**
    * cloning the array, we want to return a new array,
    * so React can run effects & update state properly
    */
-  const clone = [...rows] as T;
+  const clone = [...rows] as T[];
   return clone.sort((row1, row2) => {
     // we sort only by alphabetical order for now
-    const key1 = String(row1[sort.key]);
-    const key2 = String(row2[sort.key]);
+    const key1 = String(row1[sort.columnKey]);
+    const key2 = String(row2[sort.columnKey]);
+
+    const previousKey1 = previousSort?.columnKey
+      ? String(row1[previousSort.columnKey])
+      : undefined;
+    const previousKey2 = previousSort?.columnKey
+      ? String(row2[previousSort.columnKey])
+      : undefined;
+
     let comparison = key1.localeCompare(key2);
 
-    if (sort.dir === "desc") {
+    if (comparison === 0 && previousKey1 && previousKey2) {
+      // if the two keys are equal, we sort by the previous sort
+      comparison = previousKey1.localeCompare(previousKey2);
+    }
+
+    if (sort.direction === "desc") {
       // reverse if descending
       comparison = -comparison;
     }

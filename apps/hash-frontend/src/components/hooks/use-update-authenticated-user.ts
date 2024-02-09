@@ -1,6 +1,7 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { GraphQLError } from "graphql";
@@ -13,18 +14,23 @@ import {
 } from "../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { meQuery } from "../../graphql/queries/user.queries";
-import { AuthenticatedUser } from "../../lib/user-and-org";
+import { User } from "../../lib/user-and-org";
 import { useAuthInfo } from "../../pages/shared/auth-info-context";
 
 type UpdateAuthenticatedUserParams = {
   shortname?: string;
   preferredName?: string;
+  location?: string;
+  websiteUrl?: string;
+  preferredPronouns?: string;
 };
 
 export const useUpdateAuthenticatedUser = () => {
   const { authenticatedUser, refetch } = useAuthInfo();
 
-  const [getMe] = useLazyQuery<MeQuery>(meQuery, { fetchPolicy: "no-cache" });
+  const [getMe] = useLazyQuery<MeQuery>(meQuery, {
+    fetchPolicy: "cache-and-network",
+  });
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
@@ -37,7 +43,7 @@ export const useUpdateAuthenticatedUser = () => {
     async (
       params: UpdateAuthenticatedUserParams,
     ): Promise<{
-      updatedAuthenticatedUser?: AuthenticatedUser;
+      updatedAuthenticatedUser?: User;
       errors?: readonly GraphQLError[] | undefined;
     }> => {
       if (!authenticatedUser) {
@@ -46,13 +52,21 @@ export const useUpdateAuthenticatedUser = () => {
 
       try {
         setLoading(true);
-        if (!params.shortname && !params.preferredName) {
+        if (Object.keys(params).length === 0) {
           return { updatedAuthenticatedUser: authenticatedUser };
         }
 
-        const latestUserEntitySubgraph = (await getMe()
-          .then(({ data }) => data?.me)
-          .catch(() => undefined)) as Subgraph<EntityRootType> | undefined;
+        const latestUserEntitySubgraph = await getMe()
+          .then(({ data }) => {
+            const subgraph = data
+              ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+                  data.me.subgraph,
+                )
+              : undefined;
+
+            return subgraph;
+          })
+          .catch(() => undefined);
 
         if (!latestUserEntitySubgraph) {
           throw new Error(
@@ -70,23 +84,46 @@ export const useUpdateAuthenticatedUser = () => {
 
         const { errors } = await updateEntity({
           variables: {
-            entityId: latestUserEntity.metadata.recordId.entityId,
-            updatedProperties: {
-              ...currentProperties,
-              ...(params.shortname
-                ? {
-                    [extractBaseUrl(
-                      types.propertyType.shortname.propertyTypeId,
-                    )]: params.shortname,
-                  }
-                : {}),
-              ...(params.preferredName
-                ? {
-                    [extractBaseUrl(
-                      types.propertyType.preferredName.propertyTypeId,
-                    )]: params.preferredName,
-                  }
-                : {}),
+            entityUpdate: {
+              entityId: latestUserEntity.metadata.recordId.entityId,
+              updatedProperties: {
+                ...currentProperties,
+                ...(params.shortname
+                  ? {
+                      [extractBaseUrl(
+                        systemPropertyTypes.shortname.propertyTypeId,
+                      )]: params.shortname,
+                    }
+                  : {}),
+                ...(params.preferredName
+                  ? {
+                      [extractBaseUrl(
+                        systemPropertyTypes.preferredName.propertyTypeId,
+                      )]: params.preferredName,
+                    }
+                  : {}),
+                ...(typeof params.location !== "undefined"
+                  ? {
+                      [extractBaseUrl(
+                        systemPropertyTypes.location.propertyTypeId,
+                      )]: params.location,
+                    }
+                  : {}),
+                ...(typeof params.websiteUrl !== "undefined"
+                  ? {
+                      [extractBaseUrl(
+                        systemPropertyTypes.websiteUrl.propertyTypeId,
+                      )]: params.websiteUrl,
+                    }
+                  : {}),
+                ...(typeof params.preferredPronouns !== "undefined"
+                  ? {
+                      [extractBaseUrl(
+                        systemPropertyTypes.preferredPronouns.propertyTypeId,
+                      )]: params.preferredPronouns,
+                    }
+                  : {}),
+              },
             },
           },
         });

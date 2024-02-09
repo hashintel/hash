@@ -173,9 +173,10 @@ impl Reflection for NewtypeEnum {
             Variant(Reference),
         }
 
-        Schema::new("object").with("oneOf", [Properties(NewtypeEnumVariants::Variant(
-            doc.add::<u8>(),
-        ))])
+        Schema::new("object").with(
+            "oneOf",
+            [Properties(NewtypeEnumVariants::Variant(doc.add::<u8>()))],
+        )
     }
 }
 
@@ -192,12 +193,15 @@ impl<'de> Deserialize<'de> for NewtypeEnum {
 
 #[test]
 fn newtype_variant() {
-    assert_tokens(&NewtypeEnum::Variant(12), &[
-        Token::Object { length: Some(1) },
-        Token::String("Variant"),
-        Token::Number(12u8.into()),
-        Token::ObjectEnd,
-    ]);
+    assert_tokens(
+        &NewtypeEnum::Variant(12),
+        &[
+            Token::Object { length: Some(1) },
+            Token::String("Variant"),
+            Token::Number(12_u8.into()),
+            Token::ObjectEnd,
+        ],
+    );
 
     assert_tokens_error::<NewtypeEnum>(
         &error!([
@@ -228,9 +232,12 @@ impl Reflection for StructEnumVariant {
             id: Reference,
         }
 
-        Schema::new("object").with("properties", StructEnumVariantProperties {
-            id: doc.add::<u8>(),
-        })
+        Schema::new("object").with(
+            "properties",
+            StructEnumVariantProperties {
+                id: doc.add::<u8>(),
+            },
+        )
     }
 }
 
@@ -255,9 +262,12 @@ impl Reflection for StructEnum {
         }
 
         Schema::new("object")
-            .with("oneOf", [Properties(Variants::Variant(
-                doc.add::<StructEnumVariant>(),
-            ))])
+            .with(
+                "oneOf",
+                [Properties(Variants::Variant(
+                    doc.add::<StructEnumVariant>(),
+                ))],
+            )
             .with("additionalProperties", false)
     }
 }
@@ -362,13 +372,13 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                             .change_context(VisitorError);
 
                         match &mut errors {
-                            Ok(_) => errors = Err(error),
+                            Ok(()) => errors = Err(error),
                             Err(errors) => errors.extend_one(error),
                         }
                     }
                     Some(Ok(VariantField::Id(value))) => id = Some(value),
                     Some(Err(error)) => match &mut errors {
-                        Ok(_) => errors = Err(error.change_context(VisitorError)),
+                        Ok(()) => errors = Err(error.change_context(VisitorError)),
                         Err(errors) => errors.extend_one(error.change_context(VisitorError)),
                     },
                 }
@@ -379,7 +389,7 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                         .attach(ExpectedType::new(u8::reflection()));
 
                     match &mut errors {
-                        Ok(_) => errors = Err(error.change_context(VisitorError)),
+                        Ok(()) => errors = Err(error.change_context(VisitorError)),
                         Err(errors) => errors.extend_one(error.change_context(VisitorError)),
                     }
                 }
@@ -436,15 +446,18 @@ impl<'de> Deserialize<'de> for StructEnum {
 
 #[test]
 fn struct_variant() {
-    assert_tokens(&StructEnum::Variant { id: 12 }, &[
-        Token::Object { length: Some(1) },
-        Token::String("Variant"),
-        Token::Object { length: Some(1) },
-        Token::String("id"),
-        Token::Number(12u8.into()),
-        Token::ObjectEnd,
-        Token::ObjectEnd,
-    ]);
+    assert_tokens(
+        &StructEnum::Variant { id: 12 },
+        &[
+            Token::Object { length: Some(1) },
+            Token::String("Variant"),
+            Token::Object { length: Some(1) },
+            Token::String("id"),
+            Token::Number(12_u8.into()),
+            Token::ObjectEnd,
+            Token::ObjectEnd,
+        ],
+    );
 
     assert_tokens_error::<StructEnum>(
         &error!([

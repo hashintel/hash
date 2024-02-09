@@ -1,10 +1,8 @@
 import { configureScope, setUser } from "@sentry/nextjs";
 
-import { AuthenticatedUser } from "../../lib/user-and-org";
+import { User } from "../../lib/user-and-org";
 
-export const setSentryUser = (params: {
-  authenticatedUser?: AuthenticatedUser;
-}) => {
+export const setSentryUser = (params: { authenticatedUser?: User }) => {
   const { authenticatedUser } = params;
   configureScope((scope) => {
     const sentryUser = scope.getUser();
@@ -12,13 +10,13 @@ export const setSentryUser = (params: {
       scope.setUser(null);
     } else if (
       authenticatedUser &&
-      sentryUser?.id !== authenticatedUser.entityRecordId.entityId
+      sentryUser?.id !== authenticatedUser.entity.metadata.recordId.entityId
     ) {
       const primaryEmail = authenticatedUser.emails.find(
         (email) => email.primary,
       );
       setUser({
-        id: authenticatedUser.entityRecordId.entityId,
+        id: authenticatedUser.entity.metadata.recordId.entityId,
         email: primaryEmail?.address,
       });
     }

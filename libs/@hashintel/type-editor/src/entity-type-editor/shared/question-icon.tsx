@@ -1,5 +1,6 @@
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
-import { fluidFontClassName, FontAwesomeIcon } from "@hashintel/design-system";
+import { FontAwesomeIcon } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 import { Box, BoxProps, styled, Tooltip } from "@mui/material";
 import { ComponentProps, ReactNode } from "react";
 

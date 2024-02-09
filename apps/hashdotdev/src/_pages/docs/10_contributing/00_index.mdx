@@ -1,0 +1,30 @@
+---
+title: "Contributing"
+subtitle: "Contributing code to advance HASH"
+---
+
+## Introduction
+
+HASH is a complicated application.
+
+It is also in beta, and so whilst its external interfaces will be versioned and supported, its internals may change regularly, significantly, and without prior warning.
+
+## Codebase Overview
+
+The HASH codebase can be [found on GitHub](https://github.com/hashintel/hash) and is divided up into several key sections:
+
+- `/apps` contains the primary code powering our runnable applications
+- `/blocks` contains our public Block Protocol blocks
+- `/infra` houses deployment scripts, utilities and other infrastructure useful in running our apps
+- `/libs` contains standalone libraries including npm packages and Rust crates
+- `/tests` contains end-to-end and integration tests that span across one or more apps, blocks or libs
+
+A lot of our code, and all newly written or updated files, are [structured fractally](https://hash.dev/blog/file-structuring). You'll need to follow this pattern when contributing.
+
+## Dictionary of Terms
+
+We've produced a dicitionary of terms for codebase contributors, to help you find your way around the application's internals, and to ensure we're all using the same language to refer to the same things.
+
+## Get involved
+
+If you would like to help out developing HASH, [contact us](https://hash.ai/contact).

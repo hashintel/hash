@@ -2,59 +2,69 @@ import {
   PROPERTY_TYPE_META_SCHEMA,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
+  ModifyRelationshipOperation,
   OntologyTemporalMetadata,
+  PropertyTypePermission,
   PropertyTypeStructuralQuery,
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
-import { ConstructPropertyTypeParams } from "@local/hash-graphql-shared/graphql/types";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+import { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
-  AccountId,
-  OntologyElementMetadata,
   OntologyTypeRecordId,
   ontologyTypeRecordIdToVersionedUrl,
   OwnedById,
+  PropertyTypeAuthorizationRelationship,
+  PropertyTypeMetadata,
+  PropertyTypeRelationAndSubject,
   PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 
-import { NotFoundError } from "../../../lib/error";
-import { ImpureGraphFunction } from "../..";
-import { getNamespaceOfAccountOwner } from "./util";
+import { ImpureGraphFunction } from "../../context-types";
+import { getWebShortname, isExternalTypeId } from "./util";
 
 /**
  * Create a property type.
  *
  * @param params.ownedById - the id of the account who owns the property type
  * @param params.schema - the `PropertyType`
+ * @param [params.webShortname] – the shortname of the web that owns the property type, if the web entity does not yet exist.
+ *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the ownedById.
  * @param params.actorId - the id of the account that is creating the property type
  */
 export const createPropertyType: ImpureGraphFunction<
   {
     ownedById: OwnedById;
     schema: ConstructPropertyTypeParams;
-    actorId: AccountId;
+    webShortname?: string;
+    relationships: PropertyTypeRelationAndSubject[];
   },
   Promise<PropertyTypeWithMetadata>
-> = async (ctx, params) => {
-  const { ownedById, actorId } = params;
+> = async (ctx, authentication, params) => {
+  const { ownedById, webShortname } = params;
 
-  const namespace = await getNamespaceOfAccountOwner(ctx, {
-    ownerId: ownedById,
-  });
+  const shortname =
+    webShortname ??
+    (await getWebShortname(ctx, authentication, {
+      accountOrAccountGroupId: ownedById,
+    }));
 
   const propertyTypeId = generateTypeId({
-    namespace,
     kind: "property-type",
     title: params.schema.title,
+    webShortname: shortname,
   });
 
   const schema = {
@@ -66,13 +76,16 @@ export const createPropertyType: ImpureGraphFunction<
 
   const { graphApi } = ctx;
 
-  const { data: metadata } = await graphApi.createPropertyType({
-    ownedById,
-    schema,
-    actorId,
-  });
+  const { data: metadata } = await graphApi.createPropertyType(
+    authentication.actorId,
+    {
+      ownedById,
+      schema,
+      relationships: params.relationships,
+    },
+  );
 
-  return { schema, metadata: metadata as OntologyElementMetadata };
+  return { schema, metadata: metadata as PropertyTypeMetadata };
 };
 
 /**
@@ -82,13 +95,16 @@ export const createPropertyType: ImpureGraphFunction<
  */
 export const getPropertyTypes: ImpureGraphFunction<
   {
-    query: PropertyTypeStructuralQuery;
+    query: Omit<PropertyTypeStructuralQuery, "includeDrafts">;
   },
   Promise<Subgraph<PropertyTypeRootType>>
-> = async ({ graphApi }, { query }) => {
+> = async ({ graphApi }, { actorId }, { query }) => {
   return await graphApi
-    .getPropertyTypesByQuery(query)
-    .then(({ data: subgraph }) => subgraph as Subgraph<PropertyTypeRootType>);
+    .getPropertyTypesByQuery(actorId, { includeDrafts: false, ...query })
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph(data);
+      return subgraph as Subgraph<PropertyTypeRootType>;
+    });
 };
 
 /**
@@ -101,10 +117,10 @@ export const getPropertyTypeById: ImpureGraphFunction<
     propertyTypeId: VersionedUrl;
   },
   Promise<PropertyTypeWithMetadata>
-> = async (context, params) => {
+> = async (context, authentication, params) => {
   const { propertyTypeId } = params;
 
-  const [propertyType] = await getPropertyTypes(context, {
+  const [propertyType] = await getPropertyTypes(context, authentication, {
     query: {
       filter: {
         equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
@@ -129,15 +145,14 @@ export const getPropertyTypeById: ImpureGraphFunction<
  * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
  */
 export const getPropertyTypeSubgraphById: ImpureGraphFunction<
-  Omit<PropertyTypeStructuralQuery, "filter"> & {
+  Omit<PropertyTypeStructuralQuery, "filter" | "includeDrafts"> & {
     propertyTypeId: VersionedUrl;
-    actorId?: AccountId;
   },
   Promise<Subgraph<PropertyTypeRootType>>
-> = async (context, params) => {
-  const { graphResolveDepths, temporalAxes, propertyTypeId, actorId } = params;
+> = async (context, authentication, params) => {
+  const { graphResolveDepths, temporalAxes, propertyTypeId } = params;
 
-  const query: PropertyTypeStructuralQuery = {
+  const query: Omit<PropertyTypeStructuralQuery, "includeDrafts"> = {
     filter: {
       equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
     },
@@ -145,21 +160,16 @@ export const getPropertyTypeSubgraphById: ImpureGraphFunction<
     temporalAxes,
   };
 
-  let subgraph = await getPropertyTypes(context, {
+  let subgraph = await getPropertyTypes(context, authentication, {
     query,
   });
 
-  if (
-    actorId &&
-    subgraph.roots.length === 0 &&
-    !propertyTypeId.startsWith(frontendUrl)
-  ) {
-    await context.graphApi.loadExternalPropertyType({
-      actorId,
+  if (subgraph.roots.length === 0 && isExternalTypeId(propertyTypeId)) {
+    await context.graphApi.loadExternalPropertyType(authentication.actorId, {
       propertyTypeId,
     });
 
-    subgraph = await getPropertyTypes(context, {
+    subgraph = await getPropertyTypes(context, authentication, {
       query,
     });
   }
@@ -178,11 +188,11 @@ export const updatePropertyType: ImpureGraphFunction<
   {
     propertyTypeId: VersionedUrl;
     schema: ConstructPropertyTypeParams;
-    actorId: AccountId;
+    relationships: PropertyTypeRelationAndSubject[];
   },
   Promise<PropertyTypeWithMetadata>
-> = async ({ graphApi }, params) => {
-  const { schema, actorId, propertyTypeId } = params;
+> = async ({ graphApi }, { actorId }, params) => {
+  const { schema, propertyTypeId } = params;
   const updateArguments: UpdatePropertyTypeRequest = {
     typeToUpdate: propertyTypeId,
     schema: {
@@ -190,10 +200,13 @@ export const updatePropertyType: ImpureGraphFunction<
       kind: "propertyType" as const,
       ...schema,
     },
-    actorId,
+    relationships: params.relationships,
   };
 
-  const { data: metadata } = await graphApi.updatePropertyType(updateArguments);
+  const { data: metadata } = await graphApi.updatePropertyType(
+    actorId,
+    updateArguments,
+  );
 
   const { recordId } = metadata;
 
@@ -204,7 +217,7 @@ export const updatePropertyType: ImpureGraphFunction<
       ...schema,
       $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
     },
-    metadata: metadata as OntologyElementMetadata,
+    metadata: metadata as PropertyTypeMetadata,
   };
 };
 
@@ -217,16 +230,17 @@ export const updatePropertyType: ImpureGraphFunction<
 export const archivePropertyType: ImpureGraphFunction<
   {
     propertyTypeId: VersionedUrl;
-    actorId: AccountId;
   },
   Promise<OntologyTemporalMetadata>
-> = async ({ graphApi }, params) => {
-  const { propertyTypeId, actorId } = params;
+> = async ({ graphApi }, { actorId }, params) => {
+  const { propertyTypeId } = params;
 
-  const { data: temporalMetadata } = await graphApi.archivePropertyType({
-    typeToArchive: propertyTypeId,
+  const { data: temporalMetadata } = await graphApi.archivePropertyType(
     actorId,
-  });
+    {
+      typeToArchive: propertyTypeId,
+    },
+  );
 
   return temporalMetadata;
 };
@@ -240,16 +254,65 @@ export const archivePropertyType: ImpureGraphFunction<
 export const unarchivePropertyType: ImpureGraphFunction<
   {
     propertyTypeId: VersionedUrl;
-    actorId: AccountId;
   },
   Promise<OntologyTemporalMetadata>
-> = async ({ graphApi }, params) => {
-  const { propertyTypeId, actorId } = params;
+> = async ({ graphApi }, { actorId }, params) => {
+  const { propertyTypeId } = params;
 
-  const { data: temporalMetadata } = await graphApi.unarchivePropertyType({
-    typeToUnarchive: propertyTypeId,
+  const { data: temporalMetadata } = await graphApi.unarchivePropertyType(
     actorId,
-  });
+    {
+      typeToUnarchive: propertyTypeId,
+    },
+  );
 
   return temporalMetadata;
 };
+
+export const getPropertyTypeAuthorizationRelationships: ImpureGraphFunction<
+  { propertyTypeId: VersionedUrl },
+  Promise<PropertyTypeAuthorizationRelationship[]>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .getPropertyTypeAuthorizationRelationships(actorId, params.propertyTypeId)
+    .then(({ data }) =>
+      data.map(
+        (relationship) =>
+          ({
+            resource: {
+              kind: "propertyType",
+              resourceId: params.propertyTypeId,
+            },
+            ...relationship,
+          }) as PropertyTypeAuthorizationRelationship,
+      ),
+    );
+
+export const modifyPropertyTypeAuthorizationRelationships: ImpureGraphFunction<
+  {
+    operation: ModifyRelationshipOperation;
+    relationship: PropertyTypeAuthorizationRelationship;
+  }[],
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.modifyPropertyTypeAuthorizationRelationships(
+    actorId,
+    params.map(({ operation, relationship }) => ({
+      operation,
+      resource: relationship.resource.resourceId,
+      relationAndSubject: relationship,
+    })),
+  );
+};
+
+export const checkPropertyTypePermission: ImpureGraphFunction<
+  { propertyTypeId: VersionedUrl; permission: PropertyTypePermission },
+  Promise<boolean>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .checkPropertyTypePermission(
+      actorId,
+      params.propertyTypeId,
+      params.permission,
+    )
+    .then(({ data }) => data.has_permission);

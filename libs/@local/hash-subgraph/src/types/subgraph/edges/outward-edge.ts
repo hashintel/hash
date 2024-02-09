@@ -1,9 +1,9 @@
 import {
   type EntityIdWithInterval as EntityIdWithIntervalBp,
   type EntityIdWithTimestamp as EntityIdWithTimestampBp,
-  type OutwardEdge as OutwardEdgeBp,
   isKnowledgeGraphOutwardEdge as isKnowledgeGraphOutwardEdgeBp,
   isOntologyOutwardEdge as isOntologyOutwardEdgeBp,
+  type OutwardEdge as OutwardEdgeBp,
 } from "@blockprotocol/graph/temporal";
 import { Subtype } from "@local/advanced-types/subtype";
 

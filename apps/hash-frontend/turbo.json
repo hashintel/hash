@@ -9,6 +9,9 @@
     "build": {
       "outputs": ["./.next/**"],
       "dependsOn": ["^build", "codegen"]
+    },
+    "start": {
+      "dependsOn": ["build"]
     }
   }
 }

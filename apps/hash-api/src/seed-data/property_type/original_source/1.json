@@ -1,0 +1,12 @@
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+  "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/v/1",
+  "kind": "propertyType",
+  "title": "Original Source",
+  "description": "The original source of something",
+  "oneOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+    }
+  ]
+}

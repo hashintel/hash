@@ -104,7 +104,7 @@ const MobileNavNestedPage = <T extends SiteMapPage | SiteMapPageSection>({
             pl: (icon ? 2 : 4) + depth * 2,
           })}
         >
-          {icon || !itemIsPage(item) ? (
+          {!!icon || !itemIsPage(item) ? (
             <ListItemIcon
               sx={(theme) => ({
                 minWidth: isRoot ? undefined : theme.spacing(3),

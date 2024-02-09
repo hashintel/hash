@@ -6,20 +6,23 @@ use serde_json::json;
 
 #[test]
 fn array_u8_ok() {
-    let array = [0u8, 1, 2, 3, 4, 5, 6, 7];
+    let array = [0_u8, 1, 2, 3, 4, 5, 6, 7];
 
-    assert_tokens(&array, &[
-        Token::Array { length: Some(8) },
-        Token::Number(Number::from(0)),
-        Token::Number(Number::from(1)),
-        Token::Number(Number::from(2)),
-        Token::Number(Number::from(3)),
-        Token::Number(Number::from(4)),
-        Token::Number(Number::from(5)),
-        Token::Number(Number::from(6)),
-        Token::Number(Number::from(7)),
-        Token::ArrayEnd,
-    ]);
+    assert_tokens(
+        &array,
+        &[
+            Token::Array { length: Some(8) },
+            Token::Number(Number::from(0)),
+            Token::Number(Number::from(1)),
+            Token::Number(Number::from(2)),
+            Token::Number(Number::from(3)),
+            Token::Number(Number::from(4)),
+            Token::Number(Number::from(5)),
+            Token::Number(Number::from(6)),
+            Token::Number(Number::from(7)),
+            Token::ArrayEnd,
+        ],
+    );
 }
 
 #[test]

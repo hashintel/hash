@@ -8,6 +8,7 @@ interface MemoizableFetchFunction<T> {
 export function memoizeFetchFunction<T>(
   fetchFunction: MemoizableFetchFunction<T>,
 ): MemoizableFetchFunction<T> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cache: Record<string, Promise<any>> = {};
 
   return async (url, signal) => {

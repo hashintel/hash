@@ -10,25 +10,10 @@ import { DiscordIcon } from "../../components/icons/discord-icon";
 import { PageLayout } from "../../components/page-layout";
 import { NextPageWithLayout } from "../../util/next-types";
 import { DocsPageData, getSerializedDocsPage } from "../shared/mdx-utils";
-import { SiteMap } from "../shared/sitemap";
+import { SiteMap, SiteMapPage } from "../shared/sitemap";
 import { DocsContent } from "./docs-content";
 import { DocsHomePage } from "./docs-home-page";
 import { DocsSlugIcon } from "./docs-slug-icon";
-
-const docsTabs: { title: string; href: string }[] = [
-  {
-    title: "Home",
-    href: "/docs",
-  },
-  {
-    title: "Getting Started",
-    href: "/docs/get-started",
-  },
-  {
-    title: "Apps",
-    href: "/docs/apps",
-  },
-];
 
 type DocsPageParsedUrlQuery = {
   "docs-slug"?: string[];
@@ -39,16 +24,38 @@ type DocsPageProps = {
   serializedPage?: MDXRemoteSerializeResult<DocsPageData>;
 };
 
-const docsPages = (siteMap as SiteMap).pages.find(
+const topLevelDocsPages = (siteMap as SiteMap).pages.find(
   ({ title }) => title === "Docs",
 )!.subPages;
+
+const docsTabs: { title: string; href: string }[] = [
+  {
+    title: "Home",
+    href: "/docs",
+  },
+  ...topLevelDocsPages.map(
+    ({ title, titleDerivedFromDirectoryName, href }) => ({
+      /**
+       * We prefer the title derived from the directory name, so that
+       * for example the the `Simulations` tab can have its first page
+       * be titled `Overview` in the sidebar.
+       */
+      title: titleDerivedFromDirectoryName ?? title,
+      href,
+    }),
+  ),
+];
+
+const getPossibleHrefsInPage = (page: SiteMapPage): string[] => {
+  const subPages = page.subPages.flatMap(getPossibleHrefsInPage);
+
+  return [page.href, ...subPages];
+};
 
 export const getStaticPaths: GetStaticPaths<DocsPageParsedUrlQuery> = () => {
   const possibleHrefs = [
     "/docs",
-    ...docsPages
-      .flatMap((page) => [page, ...page.subPages])
-      .map(({ href }) => href),
+    ...topLevelDocsPages.flatMap(getPossibleHrefsInPage),
   ];
 
   const paths = possibleHrefs.map((href) => ({
@@ -112,6 +119,21 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
     return tab;
   }, [router, docsSlug]);
 
+  const sectionPages = useMemo(() => {
+    const topLevelDocsPage = currentDocsTab
+      ? topLevelDocsPages.find(({ href }) => href === currentDocsTab.href)
+      : undefined;
+
+    if (!topLevelDocsPage) {
+      return [];
+    }
+
+    return [
+      { ...topLevelDocsPage, subPages: [] },
+      ...topLevelDocsPage.subPages,
+    ];
+  }, [currentDocsTab]);
+
   const isHomePage = currentDocsTab && currentDocsTab.href === "/docs";
 
   return currentDocsTab ? (
@@ -167,9 +189,7 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
           title={serializedPage.scope?.title}
           subtitle={serializedPage.scope?.subtitle}
           content={serializedPage}
-          sectionPages={
-            docsPages.find(({ href }) => href === currentDocsTab.href)!.subPages
-          }
+          sectionPages={sectionPages}
         />
       ) : null}
     </>
@@ -200,7 +220,7 @@ DocsPage.getLayout = (page, asPath) => {
         },
       }}
       navbarLogoEndAdornment={
-        <DocsSlugIcon sx={{ height: 20, width: 66, marginLeft: -2.25 }} />
+        <DocsSlugIcon sx={{ height: 19, width: 70, marginLeft: -2.5 }} />
       }
     >
       {page}

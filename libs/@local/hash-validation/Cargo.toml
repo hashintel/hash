@@ -1,0 +1,26 @@
+[package]
+name = "validation"
+authors.workspace = true
+edition.workspace = true
+version = "0.0.0"
+publish = false
+
+[dependencies]
+graph-types.workspace = true
+
+error-stack = { workspace = true, features = ["hooks"] }
+type-system.workspace = true
+
+chrono = { version = "0.4.33", default-features = false, features = ["std"] }
+email_address.workspace = true
+regex = "1.10.3"
+serde_json.workspace = true
+thiserror = "1.0.56"
+iso8601-duration = "0.2.0"
+url.workspace = true
+uuid = { workspace = true, features = ["std"] }
+
+[dev-dependencies]
+graph-test-data.workspace = true
+
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

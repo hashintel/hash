@@ -45,7 +45,7 @@ test.beforeEach(async () => {
 });
 
 /** This is a temporary test to commit the progress made on testing `Grid` component. */
-test.skip("user can update values on property table", async ({ page }) => {
+test("user can update values on property table", async ({ page }) => {
   await loginUsingTempForm({
     page,
     userEmail: "alice@example.com",
@@ -60,28 +60,25 @@ test.skip("user can update values on property table", async ({ page }) => {
 
   await page.getByRole("button", { name: "Add a type" }).click();
 
-  // search entity type `Comment`
-  await page.getByPlaceholder("Search for an entity type").fill("Comment");
+  // search entity type `GitHub Account`
+  await page
+    .getByPlaceholder("Search for an entity type")
+    .fill("GitHub Account");
 
-  // create a new `Comment`
-  await page.getByTestId("property-selector-option").first().click();
+  // create a new `GitHub Account`
+  await page.getByTestId("selector-autocomplete-option").first().click();
 
   // select property table
   const canvas = page.locator(".dvn-underlay > canvas:first-of-type").first();
 
   await clickOnValueCell(page, canvas, 0);
 
-  await page.keyboard.type("John");
-  await page.keyboard.press("Enter");
+  const profileUrl = "https://github.com/Example";
 
-  await clickOnValueCell(page, canvas, 1);
-
-  await page.keyboard.type("Doe");
+  await page.keyboard.type(profileUrl);
   await page.keyboard.press("Enter");
 
   const cell1Text = await getCellText(canvas, 1, 0);
-  const cell2Text = await getCellText(canvas, 1, 1);
 
-  expect(cell1Text).toBe("John");
-  expect(cell2Text).toBe("Doe");
+  expect(cell1Text).toBe(profileUrl);
 });

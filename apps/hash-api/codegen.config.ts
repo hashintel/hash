@@ -1,9 +1,10 @@
 import { CodegenConfig } from "@graphql-codegen/cli";
-import { scalars } from "@local/hash-graphql-shared/graphql/scalar-mapping";
+import { scalars } from "@local/hash-isomorphic-utils/graphql/scalar-mapping";
 
 const config: CodegenConfig = {
   overwrite: true,
-  schema: "../../libs/@local/hash-graphql-shared/src/graphql/type-defs/**/*.ts",
+  schema:
+    "../../libs/@local/hash-isomorphic-utils/src/graphql/type-defs/**/*.ts",
   require: ["ts-node/register"],
   generates: {
     "./src/graphql/graphql-schema.gen.json": {
@@ -14,7 +15,9 @@ const config: CodegenConfig = {
     },
     "./src/graphql/api-types.gen.ts": {
       plugins: ["typescript", "typescript-resolvers", "typescript-operations"],
-      documents: ["../../libs/@local/hash-graphql-shared/src/queries/**/*.ts"],
+      documents: [
+        "../../libs/@local/hash-isomorphic-utils/src/graphql/queries/**/*.ts",
+      ],
       hooks: {
         afterOneFileWrite: ["prettier --write"],
       },

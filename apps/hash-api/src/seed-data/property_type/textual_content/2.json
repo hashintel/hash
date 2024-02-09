@@ -1,0 +1,22 @@
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+  "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/v/2",
+  "kind": "propertyType",
+  "title": "Textual Content",
+  "description": "The text material, information, or body, that makes up the content of this thing.",
+  "oneOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+    },
+    {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1"
+          }
+        ]
+      }
+    }
+  ]
+}

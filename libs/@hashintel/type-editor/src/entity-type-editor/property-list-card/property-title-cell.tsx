@@ -77,6 +77,7 @@ export const PropertyTitleCell = ({
             expanded !== undefined && depth === 0
               ? "translateX(-20px)"
               : "none",
+          whiteSpace: "nowrap",
         }}
       >
         <Collapse
@@ -117,7 +118,10 @@ export const PropertyTitleCell = ({
           />
         </Fade>
 
-        {depth === 0 && currentVersion !== latestVersion && !isReadonly ? (
+        {depth === 0 &&
+        currentVersion !== latestVersion &&
+        !inherited &&
+        !isReadonly ? (
           <VersionUpgradeIndicator
             currentVersion={currentVersion}
             latestVersion={latestVersion}

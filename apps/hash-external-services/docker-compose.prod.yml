@@ -1,172 +1,22 @@
-volumes:
-  hash-postgres-data:
-  logs:
-
 services:
   postgres:
-    build:
-      context: ./postgres
-    deploy:
-      restart_policy:
-        condition: on-failure
     environment:
-      PGDATA: /data/pgdata
-      POSTGRES_USER: "${POSTGRES_USER}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
-      HASH_KRATOS_PG_USER: "${HASH_KRATOS_PG_USER}"
-      HASH_KRATOS_PG_PASSWORD: "${HASH_KRATOS_PG_PASSWORD}"
-      HASH_KRATOS_PG_DATABASE: "${HASH_KRATOS_PG_DEV_DATABASE}"
-      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
-      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
-      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
-      HASH_GRAPH_REALTIME_PG_USER: "${HASH_GRAPH_REALTIME_PG_USER}"
-      HASH_GRAPH_REALTIME_PG_PASSWORD: "${HASH_GRAPH_REALTIME_PG_PASSWORD}"
-    # Note this isn't a complete security measure, we'd have to restrict
-    # `listen_addresses` and other postgres config to lock down access.
-    # The database port isn't forwarded outside the docker network.
-    # Uncomment the next lines to debug/introspect the instance.
-    # ports:
-    #   - "5432:5432"
-    volumes:
-      - hash-postgres-data:/data/pgdata
-      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh:ro
-    healthcheck:
-      test: ["CMD", "pg_isready", "-q", "-h", "postgres"]
-      interval: 2s
-      timeout: 2s
-      retries: 5
-    command: -c 'config_file=/etc/postgresql/postgresql.conf'
-
-  hash-graph-migrate:
-    init: true
-    depends_on:
-      postgres:
-        condition: service_healthy
-    image: hash-graph:prod
-    build:
-      dockerfile: apps/hash-graph/docker/Dockerfile
-      context: ../../
-    volumes:
-      - logs:/logs
-    command: migrate
-    environment:
-      # Intentionaly use the POSTGRES user as it's the "superadmin" which has access to schema
-      HASH_GRAPH_PG_USER: "${POSTGRES_USER}"
-      HASH_GRAPH_PG_PASSWORD: "${POSTGRES_PASSWORD}"
-      HASH_GRAPH_PG_HOST: "postgres"
-      HASH_GRAPH_PG_PORT: "5432"
-      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
-      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
-      HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN: "${FRONTEND_URL}/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\\w\\-_%]+/"
-      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-debug}"
-      RUST_BACKTRACE: 0
-
-  type-fetcher:
-    init: true
-    image: hash-graph:prod
-    build:
-      dockerfile: apps/hash-graph/docker/Dockerfile
-      context: ../../
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    volumes:
-      - logs:/logs
-    command: type-fetcher
-    environment:
-      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
-      HASH_GRAPH_LOG_FOLDER: "/logs/graph-type-fetcher"
-      HASH_GRAPH_TYPE_FETCHER_HOST: "0.0.0.0"
-      HASH_GRAPH_TYPE_FETCHER_PORT: 4444
-      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info,type_fetcher=trace,hash_graph=trace,reqwest=debug}"
-      RUST_BACKTRACE: 0
+      HASH_SPICEDB_PG_USER: "${HASH_SPICEDB_PG_USER}"
+      HASH_SPICEDB_PG_PASSWORD: "${HASH_SPICEDB_PG_PASSWORD}"
+      HASH_SPICEDB_PG_DATABASE: "${HASH_SPICEDB_PG_DATABASE}"
     ports:
-      - "${HASH_GRAPH_TYPE_FETCHER_PORT}:4444"
-    healthcheck:
-      test: ["CMD", "/hash-graph", "type-fetcher", "--healthcheck"]
-      interval: 2s
-      timeout: 2s
-      retries: 10
-
-  hash-graph:
-    init: true
-    image: hash-graph:prod
-    read_only: true
-    build:
-      dockerfile: apps/hash-graph/docker/Dockerfile
-      context: ../../
-    depends_on:
-      type-fetcher:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-      hash-graph-migrate:
-        condition: service_completed_successfully
-    command: server
-    volumes:
-      - logs:/logs
-    security_opt:
-      - no-new-privileges:true
-    environment:
-      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
-      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
-      HASH_GRAPH_PG_HOST: "postgres"
-      HASH_GRAPH_PG_PORT: "5432"
-      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
-      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
-      HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN: "${FRONTEND_URL}/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\\w\\-_%]+/"
-      HASH_GRAPH_TYPE_FETCHER_HOST: "type-fetcher"
-      HASH_GRAPH_TYPE_FETCHER_PORT: "${HASH_GRAPH_TYPE_FETCHER_PORT}"
-      HASH_GRAPH_API_HOST: "0.0.0.0"
-      HASH_GRAPH_API_PORT: "4000"
-      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info}"
-      RUST_BACKTRACE: 0
-    healthcheck:
-      test:
-        ["CMD", "/hash-graph", "server", "--healthcheck", "--api-port", "4000"]
-      interval: 2s
-      timeout: 2s
-      retries: 10
-    ports:
-      - "4000:4000"
+      - "${POSTGRES_PORT}:5432"
 
   kratos-migrate:
     build:
-      context: ./kratos
       args:
         ENV: prod
-        SECRET: "${KRATOS_API_KEY}"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    read_only: true
-    environment:
-      - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${HASH_KRATOS_PG_DEV_DATABASE}
-    command: migrate sql -e --yes
-    security_opt:
-      - no-new-privileges:true
 
   kratos:
     build:
-      context: ./kratos
       args:
         ENV: prod
-        API_SECRET: "${KRATOS_API_KEY}"
-        API_CALLBACK_URL: "http://hash-api:5001/kratos-after-registration"
-    depends_on:
-      - kratos-migrate
-    read_only: true
-    # These ports can be useful for introspection/debugging kratos.
-    # ports:
-    #   - "4433:4433" # public, doesn't need to be exposed
-    #   - "4434:4434" # admin, we don't want to expose this
-    restart: unless-stopped
     environment:
-      SECRETS_COOKIE: "${KRATOS_SECRETS_COOKIE}"
-      SECRETS_CIPHER: "${KRATOS_SECRETS_CIPHER}"
-      COURIER_SMTP_CONNECTION_URI: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
-      DSN: "postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:5432/${HASH_KRATOS_PG_DEV_DATABASE}"
       LOG_LEVEL: "warning"
       COOKIES_PATH: "/"
       COOKIES_DOMAIN: "${KRATOS_COOKIE_DOMAIN}"
@@ -187,44 +37,57 @@ services:
       LOG_LEAK_SENSITIVE_VALUES: "false"
       COURIER_SMTP_FROM_ADDRESS: "noreply@hash.ai"
       COURIER_SMTP_FROM_NAME: "HASH"
-
     command: serve --watch-courier
-    security_opt:
-      - no-new-privileges:true
-    extra_hosts:
-      - host.docker.internal:host-gateway
 
-  mailslurper:
-    image: oryd/mailslurper:latest-smtps
-    security_opt:
-      - no-new-privileges:true
-    # These ports can be useful for introspection/debugging the mock mail server.
-    ports:
-      - "4436:4436"
-      - "4437:4437"
-
-  hash-redis:
-    image: redis:6.2
+  spicedb-migrate:
+    image: authzed/spicedb:v${HASH_SPICEDB_VERSION}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPICEDB_DATASTORE_ENGINE: postgres
+      SPICEDB_DATASTORE_CONN_URI: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_SPICEDB_PG_DATABASE}"
+      SPICEDB_LOG_FORMAT: "console"
     read_only: true
-    deploy:
-      restart_policy:
-        condition: on-failure
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
-      interval: 2s
-      timeout: 2s
-      retries: 5
     security_opt:
       - no-new-privileges:true
+    command: migrate head
+
+  spicedb:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      spicedb-migrate:
+        condition: service_completed_successfully
+    environment:
+      SPICEDB_DATASTORE_ENGINE: postgres
+      SPICEDB_DATASTORE_CONN_URI: "postgres://${HASH_SPICEDB_PG_USER}:${HASH_SPICEDB_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_SPICEDB_PG_DATABASE}?plan_cache_mode=force_custom_plan"
+      SPICEDB_GRPC_PRESHARED_KEY: "${HASH_SPICEDB_GRPC_PRESHARED_KEY}"
+
+  # TODO: Services below this line are developed by HASH and should not be part of this file
+
+  type-fetcher:
+    image: hash-graph:prod
+
+  graph-migrate:
+    image: hash-graph:prod
+
+  graph:
+    image: hash-graph:prod
+    environment:
+      HASH_SPICEDB_HOST: http://spicedb
+      HASH_SPICEDB_HTTP_PORT: "${HASH_SPICEDB_HTTP_PORT}"
+      HASH_SPICEDB_GRPC_PRESHARED_KEY: "${HASH_SPICEDB_GRPC_PRESHARED_KEY}"
+      RUST_BACKTRACE: 0
 
   hash-api:
     build:
       context: ../../
       dockerfile: infra/docker/api/prod/Dockerfile
     depends_on:
-      hash-graph:
+      graph:
         condition: service_healthy
-      hash-redis:
+      redis:
         condition: service_healthy
     deploy:
       restart_policy:
@@ -233,21 +96,17 @@ services:
       FRONTEND_URL: "${FRONTEND_URL}"
 
       API_ORIGIN: "${API_ORIGIN}"
-      SYSTEM_ACCOUNT_NAME: "${SYSTEM_ACCOUNT_NAME}"
-      SYSTEM_USER_SHORTNAME: "${SYSTEM_USER_SHORTNAME}"
-      SYSTEM_USER_PREFERRED_NAME: "${SYSTEM_USER_PREFERRED_NAME}"
-      SYSTEM_USER_PASSWORD: "${SYSTEM_USER_PASSWORD}"
-      SYSTEM_USER_EMAIL_ADDRESS: "${SYSTEM_USER_EMAIL_ADDRESS}"
       HASH_SEED_USERS: "${HASH_SEED_USERS}"
 
-      HASH_GRAPH_API_HOST: "hash-graph"
-      HASH_GRAPH_API_PORT: "4000"
+      HASH_GRAPH_API_HOST: "graph"
+      HASH_GRAPH_API_PORT: "${HASH_GRAPH_API_PORT}"
       LOG_LEVEL: "${LOG_LEVEL}"
 
-      HASH_REDIS_HOST: "hash-redis"
+      HASH_REDIS_HOST: "redis"
       HASH_REDIS_PORT: "6379"
 
       HASH_OPENSEARCH_ENABLED: "false"
+      HASH_INTEGRATION_QUEUE_NAME: "${HASH_INTEGRATION_QUEUE_NAME}"
 
       ORY_KRATOS_PUBLIC_URL: "http://kratos:4433"
       ORY_KRATOS_ADMIN_URL: "http://kratos:4434"
@@ -264,8 +123,6 @@ services:
         # At build-time (client-side) we use the public API origin that is
         # outside the docker network.
         API_ORIGIN: "${API_ORIGIN}"
-        SYSTEM_USER_PREFERRED_NAME: "${SYSTEM_USER_PREFERRED_NAME}"
-        SYSTEM_USER_SHORTNAME: "${SYSTEM_USER_SHORTNAME}"
     depends_on:
       hash-api:
         condition: service_healthy
@@ -280,8 +137,6 @@ services:
       # this container.
       API_ORIGIN: "http://hash-api:5001"
       ORY_KRATOS_PUBLIC_URL: "http://kratos:4433"
-      SYSTEM_USER_PREFERRED_NAME: "${SYSTEM_USER_PREFERRED_NAME}"
-      SYSTEM_USER_SHORTNAME: "${SYSTEM_USER_SHORTNAME}"
 
     ports:
       - "3000:3000"

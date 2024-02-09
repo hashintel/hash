@@ -87,16 +87,28 @@ export const SearchInput: FunctionComponent<{
   const inputRef = useRef<HTMLInputElement>(null);
 
   /**
-   * @todo reinstate this
-   * when doing so, check if https://github.com/imbhargav5/rooks/issues/1730 has been fixed
-   * if it has, upgrade rooks. if not, either implement our own version of useKeys (command-bar has one) or patch rooks
+   * @todo reinstate this when search functionality is restored
    */
-  // useKeys(["ControlLeft", "KeyP"], (event) => {
-  //   event.preventDefault();
-  //   if (!isMac) {
-  //     inputRef.current?.focus();
-  //   }
-  // });
+  // const setKeyboardShortcuts = useSetKeyboardShortcuts();
+  // const unsetKeyboardShortcuts = useUnsetKeyboardShortcuts();
+  //
+  // useEffect(() => {
+  //   const shortcut = {
+  //     keys: ["Control", "p"],
+  //     callback: (evt: KeyboardEvent) => {
+  //      event.preventDefault();
+  //      if (!isMac) {
+  //        inputRef.current?.focus();
+  //      }
+  //     },
+  //   };
+  //
+  //   setKeyboardShortcuts([shortcut]);
+  //
+  //   return () => {
+  //     unsetKeyboardShortcuts([shortcut]);
+  //   };
+  // }, [setKeyboardShortcuts, unsetKeyboardShortcuts]);
 
   useEffect(() => {
     function checkSearchKey(event: KeyboardEvent) {

@@ -1,129 +1,70 @@
-import {
-  createGraphClient,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
-import { getDataTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
-import { getEntityTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
-import { getPropertyTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { StorageType } from "@apps/hash-api/src/storage";
-import { VersionedUrl } from "@blockprotocol/type-system";
-import { getRequiredEnv } from "@local/hash-backend-utils/environment";
-import { Logger } from "@local/hash-backend-utils/logger";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  AccountId,
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
+import type { GraphApi } from "@local/hash-graph-client";
+import type {
+  CreateEmbeddingsParams,
+  CreateEmbeddingsReturn,
+  InferEntitiesCallerParams,
+  InferEntitiesReturn,
+} from "@local/hash-isomorphic-utils/ai-inference-types";
+import { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
+import type {
+  BaseUrl,
+  EntityPropertiesObject,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import { StatusCode } from "@local/status";
+import { ApplicationFailure } from "@temporalio/activity";
+import { CreateEmbeddingResponse } from "openai/resources";
 
-export const createImpureGraphContext = (): ImpureGraphContext => {
-  const logger = new Logger({
-    mode: "dev",
-    level: "debug",
-    serviceName: "temporal-worker",
-  });
+import { inferEntitiesActivity } from "./activities/infer-entities";
+import { parseTextFromFile } from "./activities/parse-text-from-file";
+import {
+  createEmbeddings,
+  createEntityEmbeddings,
+} from "./activities/shared/embeddings";
 
-  const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
-  const graphApiPort = parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10);
+export { createGraphActivities } from "./activities/graph";
 
-  const graphApi = createGraphClient(logger, {
-    host: graphApiHost,
-    port: graphApiPort,
-  });
-
-  logger.info("Created graph context");
-  logger.info(JSON.stringify({ graphApi }, null, 2));
-
-  return {
-    graphApi,
-    uploadProvider: {
-      getFileEntityStorageKey: (_params: any) => {
-        throw new Error(
-          "File fetching not implemented yet for temporal worker",
-        );
-      },
-      presignDownload: (_params: any) => {
-        throw new Error(
-          "File presign download not implemented yet for temporal worker.",
-        );
-      },
-      presignUpload: (_params: any) => {
-        throw new Error(
-          "File presign upload not implemented yet for temporal worker.",
-        );
-      },
-      storageType: StorageType.LocalFileSystem,
-    },
-  };
-};
-
-export const createGraphActivities = (createInfo: {
-  graphContext: ImpureGraphContext;
+export const createAiActivities = ({
+  graphApiClient,
+}: {
+  graphApiClient: GraphApi;
 }) => ({
-  async getDataTypeActivity(params: {
-    dataTypeId: VersionedUrl;
-    actorId: AccountId;
-  }): Promise<DataTypeWithMetadata> {
-    const [dataType] = await getDataTypeSubgraphById(createInfo.graphContext, {
-      dataTypeId: params.dataTypeId,
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      actorId: params.actorId,
-    }).then(getRoots);
-
-    if (!dataType) {
-      throw new Error(`Data type with ID ${params.dataTypeId} not found.`);
+  async inferEntitiesActivity(
+    params: InferEntitiesCallerParams,
+  ): Promise<InferEntitiesReturn> {
+    const status = await inferEntitiesActivity({ ...params, graphApiClient });
+    if (status.code !== StatusCode.Ok) {
+      throw new ApplicationFailure(status.message, status.code, true, [status]);
     }
 
-    return dataType;
+    return status;
   },
 
-  async getPropertyTypeActivity(params: {
-    propertyTypeId: VersionedUrl;
-    actorId: AccountId;
-  }): Promise<PropertyTypeWithMetadata> {
-    const [propertyType] = await getPropertyTypeSubgraphById(
-      createInfo.graphContext,
-      {
-        propertyTypeId: params.propertyTypeId,
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        actorId: params.actorId,
-      },
-    ).then(getRoots);
-
-    if (!propertyType) {
-      throw new Error(
-        `Property type with ID ${params.propertyTypeId} not found.`,
-      );
-    }
-
-    return propertyType;
+  async parseTextFromFileActivity(
+    params: ParseTextFromFileParams,
+  ): Promise<void> {
+    return parseTextFromFile({ graphApiClient }, params);
   },
 
-  async getEntityTypeActivity(params: {
-    entityTypeId: VersionedUrl;
-    actorId: AccountId;
-  }): Promise<EntityTypeWithMetadata> {
-    const [entityType] = await getEntityTypeSubgraphById(
-      createInfo.graphContext,
-      {
-        entityTypeId: params.entityTypeId,
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        actorId: params.actorId,
-      },
-    ).then(getRoots);
+  async createEmbeddingsActivity(
+    params: CreateEmbeddingsParams,
+  ): Promise<CreateEmbeddingsReturn> {
+    return createEmbeddings(params);
+  },
 
-    if (!entityType) {
-      throw new Error(`Entity type with ID ${params.entityTypeId} not found.`);
-    }
-
-    return entityType;
+  async createEntityEmbeddingsActivity(params: {
+    entityProperties: EntityPropertiesObject;
+    propertyTypes: PropertyTypeWithMetadata[];
+  }): Promise<{
+    embeddings: { property?: BaseUrl; embedding: number[] }[];
+    usage: CreateEmbeddingResponse.Usage;
+  }> {
+    return createEntityEmbeddings({
+      entityProperties: params.entityProperties,
+      propertyTypes: params.propertyTypes.map((propertyType) => ({
+        title: propertyType.schema.title,
+        $id: propertyType.schema.$id,
+      })),
+    });
   },
 });

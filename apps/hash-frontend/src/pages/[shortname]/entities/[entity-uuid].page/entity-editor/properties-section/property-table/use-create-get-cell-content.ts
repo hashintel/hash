@@ -6,14 +6,14 @@ import {
   blankCell,
 } from "../../../../../../../components/grid/utils";
 import { UseGridTooltipResponse } from "../../../../../../../components/grid/utils/use-grid-tooltip/types";
+import { ChipCell } from "../../../../../../shared/chip-cell";
 import { useEntityEditor } from "../../entity-editor-context";
+import { SummaryChipCell } from "../../shared/summary-chip-cell";
 import { getPropertyCountSummary } from "../get-property-count-summary";
 import { isValueEmpty } from "../is-value-empty";
 import { ChangeTypeCell } from "./cells/change-type-cell";
-import { ChipCell } from "./cells/chip-cell";
 import { PropertyNameCell } from "./cells/property-name-cell";
-import { SummaryChipCell } from "./cells/summary-chip-cell";
-import { editorSpecs } from "./cells/value-cell/editor-specs";
+import { getEditorSpecs } from "./cells/value-cell/editor-specs";
 import { ValueCell } from "./cells/value-cell/types";
 import {
   guessEditorTypeFromExpectedType,
@@ -125,6 +125,15 @@ export const useCreateGetCellContent = (
             }
 
             if (shouldShowChangeTypeCell) {
+              const currentType = row.expectedTypes.find(
+                (opt) => opt.type === guessedType,
+              );
+              if (!currentType) {
+                throw new Error(
+                  `dataType for guessed type ${guessedType} not found`,
+                );
+              }
+
               return {
                 kind: GridCellKind.Custom,
                 allowOverlay: false,
@@ -133,7 +142,7 @@ export const useCreateGetCellContent = (
                 cursor: "pointer",
                 data: {
                   kind: "change-type-cell",
-                  currentType: editorSpecs[guessedType].title,
+                  currentType,
                   propertyRow: row,
                   valueCellOfThisRow: valueCell,
                 },
@@ -148,11 +157,13 @@ export const useCreateGetCellContent = (
               data: {
                 kind: "chip-cell",
                 chips: row.expectedTypes.map((type) => {
-                  const editorSpec =
-                    editorSpecs[guessEditorTypeFromExpectedType(type)];
+                  const editorSpec = getEditorSpecs(
+                    guessEditorTypeFromExpectedType(type),
+                    type,
+                  );
 
                   return {
-                    text: type,
+                    text: type.title,
                     icon: editorSpec.gridIcon,
                     faIconDefinition: { icon: editorSpec.icon },
                   };

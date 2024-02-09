@@ -1,4 +1,5 @@
 #![cfg_attr(nightly, feature(sync_unsafe_cell))]
+#![allow(clippy::ignored_unit_patterns)] // Reason: `proptest` does not match against `Ok(())` but `Ok(_)`
 use core::cell::{Cell, RefCell, UnsafeCell};
 #[cfg(nightly)]
 use core::cell::{OnceCell, SyncUnsafeCell};
@@ -56,6 +57,7 @@ proptest! {
     }
 }
 
+#[allow(clippy::std_instead_of_alloc)] // Reason: `assert_serde_eq!` uses `std`
 fn assert_json(lhs: impl Serialize, rhs: impl Serialize) {
     let lhs = serde_json::to_value(lhs).expect("should be able to serialize lhs");
     let rhs = serde_json::to_value(rhs).expect("should be able to serialize rhs");

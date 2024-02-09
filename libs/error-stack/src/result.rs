@@ -14,10 +14,10 @@ use crate::{Context, Report};
 /// `Result` can also be used in `fn main()`:
 ///
 /// ```rust
-/// # fn has_permission(_: usize, _: usize) -> bool { true }
-/// # fn get_user() -> Result<usize, AccessError> { Ok(0) }
-/// # fn get_resource() -> Result<usize, AccessError> { Ok(0) }
-/// # #[derive(Debug)] enum AccessError { PermissionDenied(usize, usize) }
+/// # fn has_permission(_: (), _: ()) -> bool { true }
+/// # fn get_user() -> Result<(), AccessError> { Ok(()) }
+/// # fn get_resource() -> Result<(), AccessError> { Ok(()) }
+/// # #[derive(Debug)] enum AccessError { PermissionDenied((), ()) }
 /// # impl core::fmt::Display for AccessError {
 /// #    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { Ok(()) }
 /// # }
@@ -269,7 +269,7 @@ where
 /// Extends [`Result`] to convert the [`Err`] variant to a [`Report`]
 #[deprecated(
     since = "0.4.0",
-    note = "Use `ReportExt` or `From` via `Result::map_err(Report::from)` instead"
+    note = "Use `ResultExt` or `From` via `Result::map_err(Report::from)` instead"
 )]
 pub trait IntoReport: Sized {
     /// Type of the [`Ok`] value in the [`Result`]

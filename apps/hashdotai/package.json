@@ -17,7 +17,8 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "eslint": "8.33.0"
+    "@types/node": "18.15.13",
+    "eslint": "8.56.0"
   },
   "engines": {
     "node": ">=v18.15.0"

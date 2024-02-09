@@ -242,7 +242,7 @@ impl Font {
     }
 
     #[must_use]
-    pub const fn is_strikethrough(&self) -> bool {
+    pub const fn is_strikethrough(self) -> bool {
         self.is_style(FontStyle::Strikethrough)
     }
 
@@ -257,7 +257,7 @@ impl Font {
     }
 
     #[must_use]
-    pub const fn is_inverse(&self) -> bool {
+    pub const fn is_inverse(self) -> bool {
         self.is_style(FontStyle::Inverse)
     }
 
@@ -272,7 +272,7 @@ impl Font {
     }
 
     #[must_use]
-    pub const fn is_hidden(&self) -> bool {
+    pub const fn is_hidden(self) -> bool {
         self.is_style(FontStyle::Hidden)
     }
 
@@ -287,7 +287,7 @@ impl Font {
     }
 
     #[must_use]
-    pub const fn is_italic(&self) -> bool {
+    pub const fn is_italic(self) -> bool {
         self.is_style(FontStyle::Italic)
     }
 
@@ -305,7 +305,7 @@ impl Font {
 
     #[cfg(feature = "overstrike")]
     #[must_use]
-    pub const fn is_overstrike(&self) -> bool {
+    pub const fn is_overstrike(self) -> bool {
         self.is_style(FontStyle::Overstrike)
     }
 
@@ -320,7 +320,7 @@ impl Font {
     }
 
     #[must_use]
-    pub const fn is_overline(&self) -> bool {
+    pub const fn is_overline(self) -> bool {
         self.is_style(FontStyle::Overline)
     }
 }

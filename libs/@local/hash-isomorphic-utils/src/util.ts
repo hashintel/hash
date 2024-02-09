@@ -4,15 +4,7 @@ import { uniq } from "lodash";
 /**
  * This behaves differently from the type `{}`, and will error if you set more properties on it.
  */
-export type EmptyObject = Record<any, never>;
-
-export type DistributiveOmit<T, K extends keyof any> = T extends any
-  ? Omit<T, K>
-  : never;
-
-export type DistributivePick<T, K extends keyof T> = T extends unknown
-  ? Pick<T, K>
-  : never;
+export type EmptyObject = Record<string, never>;
 
 /**
  * @see https://github.com/microsoft/TypeScript/issues/25720#issuecomment-533438205
@@ -25,7 +17,7 @@ export const isUnknownObject = (
 /**
  * This allows you to collect calls to a function to run at the end of a tick
  */
-export const collect = <P extends Array<any>>(
+export const collect = <P extends Array<unknown>>(
   handler: (calls: P[]) => void,
 ): ((...args: P) => void) => {
   let id: ReturnType<typeof setImmediate> | null = null;
@@ -101,7 +93,7 @@ export const topologicalSort = <T>(edges: [T, T][]) => {
     sort.push(node);
     const nodeOutgoing = outgoingEdges.get(node);
     for (const child of Array.from(nodeOutgoing.values())) {
-      const childIncoming = incomingEdges.get(child)!;
+      const childIncoming = incomingEdges.get(child);
       // Remove the (node, child) edge from the graph
       nodeOutgoing.delete(child);
       childIncoming.delete(node);
@@ -180,7 +172,6 @@ export const treeFromParentReferences = <
      *  }
      * */
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (existingParent[recursive]) {
       existingParent[recursive].push(current);
     } else {

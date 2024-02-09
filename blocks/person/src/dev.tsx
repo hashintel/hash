@@ -3,7 +3,7 @@
  * This file is not bundled with the library during the build process.
  */
 import { MockBlockDock } from "mock-block-dock";
-import { render } from "react-dom";
+import { createRoot } from "react-dom/client";
 
 import Component from "./index";
 
@@ -35,4 +35,4 @@ const App = () => (
   </div>
 );
 
-render(<App />, node);
+createRoot(node!).render(<App />);

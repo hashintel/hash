@@ -476,9 +476,10 @@ mod tests {
         // [A, G, Y Error, Z Error]
         // [A, G, Y Error, Z Error, Z Error]
         assert_stack(&stacks[0], &["A", "B", "Y Error", "Z Error"]);
-        assert_stack(&stacks[1], &[
-            "A", "B", "Y Error", "Z Error", "D", "Z Error",
-        ]);
+        assert_stack(
+            &stacks[1],
+            &["A", "B", "Y Error", "Z Error", "D", "Z Error"],
+        );
         assert_stack(&stacks[2], &["A", "B", "Y Error", "E", "Z Error"]);
         assert_stack(&stacks[3], &["A", "C", "Y Error", "F", "Z Error"]);
         assert_stack(&stacks[4], &["A", "G", "Y Error", "Z Error"]);
@@ -507,12 +508,14 @@ mod tests {
         let mut frames = divide_frames(split).into_iter();
 
         assert_stack(&frames.next().expect("first chain"), &["D", "C", "Z Error"]);
-        assert_stack(&frames.next().expect("second chain"), &[
-            "D", "C", "Z Error", "B", "A", "Z Error",
-        ]);
+        assert_stack(
+            &frames.next().expect("second chain"),
+            &["D", "C", "Z Error", "B", "A", "Z Error"],
+        );
     }
 
     #[test]
+    #[allow(clippy::std_instead_of_alloc)] // Reason: `assert_serde_eq!` uses `std`
     fn serialize_single() {
         // simulates that we expected to receive `id` (of type int) at `.0.a.b`, but did not
         let report = Report::new(Error::new(MissingError))
@@ -550,6 +553,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::std_instead_of_alloc)] // Reason: `assert_serde_eq!` uses `std`
     fn serialize_multiple() {
         // simulates that we have two errors:
         // * ValueError: u8 @ `.0.a`, received 256
@@ -561,7 +565,7 @@ mod tests {
             .change_context(VisitorError);
 
         let value = Report::new(Error::new(ValueError))
-            .attach(ReceivedValue::new(256u16))
+            .attach(ReceivedValue::new(256_u16))
             .attach(ExpectedType::new(u8::reflection()))
             .attach(Location::Field("a"))
             .change_context(VisitorError);

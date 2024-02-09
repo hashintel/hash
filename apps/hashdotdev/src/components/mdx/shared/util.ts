@@ -1,6 +1,6 @@
 import { ReactElement, ReactNode } from "react";
 
-const isReactElement = (variable: any): variable is ReactElement => {
+const isReactElement = (variable: unknown): variable is ReactElement => {
   return variable instanceof Object && "$$typeof" in variable;
 };
 

@@ -2,5 +2,11 @@
   "name": "deer",
   "version": "0.0.0-private",
   "private": true,
-  "description": "This is a Rust crate – look at Cargo.toml for details"
+  "description": "This is a Rust crate – look at Cargo.toml for details",
+  "scripts": {
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy",
+    "test:miri": "just miri",
+    "test:unit": "just test-or-coverage"
+  }
 }

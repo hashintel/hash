@@ -23,6 +23,7 @@ export type ItemProps = {
   onDelete?: () => void;
   paperStyle?: SxProps;
   attributes?: DraggableAttributes;
+  // eslint-disable-next-line @typescript-eslint/ban-types -- this matches the library type we get listeners from
   listeners?: Record<string, Function>;
   style?: CSSProperties;
   dragOverlay?: RefObject<HTMLDivElement>;
@@ -87,7 +88,7 @@ export const Item = forwardRef<HTMLLIElement, ItemProps>(
               <SIconButton
                 onClick={() => onDelete?.()}
                 sx={({ palette }) => ({
-                  opacity: dragOverlay || isHovered ? 1 : 0,
+                  opacity: dragOverlay ?? isHovered ? 1 : 0,
                   transition: ({ transitions }) =>
                     transitions.create("opacity"),
                   "&:focus-visible, :hover": {

@@ -22,7 +22,7 @@ export const EditableColumnTitle = ({
     setInputVal(title);
   }
 
-  if (readonly || !editing) {
+  if (!!readonly || !editing) {
     return (
       <div
         role="button"

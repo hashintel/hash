@@ -16,33 +16,40 @@ import { useRouter } from "next/router";
 import {
   FunctionComponent,
   useCallback,
-  useContext,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
-import { Grid } from "../../../components/grid/grid";
+import {
+  Grid,
+  gridHeaderHeightWithBorder,
+  gridHorizontalScrollbarHeight,
+  gridRowHeight,
+} from "../../../components/grid/grid";
 import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
+import { extractOwnedById } from "../../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { isTypeArchived } from "../../../shared/entity-types-context/util";
+import { generateLinkParameters } from "../../../shared/generate-link-parameters";
+import { isTypeArchived } from "../../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import {
   FilterState,
   TableHeader,
   tableHeaderHeight,
 } from "../../../shared/table-header";
+import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import {
-  renderTextIconCell,
+  createRenderTextIconCell,
   TextIconCell,
 } from "../../shared/entities-table/text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
-import { WorkspaceContext } from "../../shared/workspace-context";
 
 const typesTableColumnIds = [
   "title",
   "kind",
-  "namespaceShortname",
+  "webShortname",
   "archived",
 ] as const;
 
@@ -52,41 +59,68 @@ type TypesTableColumn = {
   id: LinkColumnId;
 } & SizedGridColumn;
 
-type TypesTableRow = {
+export type TypesTableRow = {
   rowId: string;
   kind: "entity-type" | "property-type" | "link-type" | "data-type";
   typeId: VersionedUrl;
   title: string;
   external: boolean;
-  namespaceShortname?: string;
+  webShortname?: string;
   archived: boolean;
 };
 
+const typeNamespaceFromTypeId = (typeId: VersionedUrl): string => {
+  const url = new URL(typeId);
+  const domain = url.hostname;
+  const firstPathSegment = url.pathname.split("/")[1];
+  return `${domain}/${firstPathSegment}`;
+};
+
+const typeTableKinds = [
+  "all",
+  "entity-type",
+  "link-type",
+  "property-type",
+  "data-type",
+] as const;
+
+type TypeTableKind = (typeof typeTableKinds)[number];
+
+const typesTablesToTitle: Record<TypeTableKind, string> = {
+  all: "Types",
+  "entity-type": "Entity Types",
+  "property-type": "Property Types",
+  "link-type": "Link Types",
+  "data-type": "Data Types",
+};
+
 export const TypesTable: FunctionComponent<{
-  types: (
+  types?: (
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata
   )[];
-  kind: "all" | "entity-type" | "property-type" | "link-type" | "data-type";
+  kind: TypeTableKind;
 }> = ({ types, kind }) => {
   const router = useRouter();
 
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const [showSearch, setShowSearch] = useState<boolean>(false);
+
+  const [selectedRows, setSelectedRows] = useState<TypesTableRow[]>([]);
 
   const [filterState, setFilterState] = useState<FilterState>({
-    includeArchived: true,
-    includeGlobal: true,
+    includeArchived: false,
+    includeGlobal: false,
   });
 
-  const { isLinkTypeLookup } = useEntityTypesContextRequired();
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
   const typesTableColumns = useMemo<TypesTableColumn[]>(
     () => [
       {
         id: "title",
         title: "Title",
-        width: 250,
+        width: 252,
         grow: 2,
       },
       ...(kind === "all"
@@ -99,9 +133,9 @@ export const TypesTable: FunctionComponent<{
           ]
         : []),
       {
-        id: "namespaceShortname",
-        title: "Namespace",
-        width: 200,
+        id: "webShortname",
+        title: "Web",
+        width: 280,
       },
       {
         id: "archived",
@@ -120,23 +154,32 @@ export const TypesTable: FunctionComponent<{
     [users, orgs],
   );
 
-  const filteredRows = useMemo<TypesTableRow[]>(
+  const { authenticatedUser } = useAuthenticatedUser();
+
+  const internalWebIds = useMemo(() => {
+    return [
+      authenticatedUser.accountId,
+      ...authenticatedUser.memberOf.map(({ org }) => org.accountGroupId),
+    ];
+  }, [authenticatedUser]);
+
+  const filteredRows = useMemo<TypesTableRow[] | undefined>(
     () =>
       types
-        .map((type) => {
+        ?.map((type) => {
           const isExternal = isExternalOntologyElementMetadata(type.metadata)
             ? true
-            : type.metadata.custom.ownedById !== activeWorkspaceAccountId;
+            : !internalWebIds.includes(type.metadata.ownedById);
 
-          const namespaceAccountId = isExternalOntologyElementMetadata(
+          const namespaceOwnedById = isExternalOntologyElementMetadata(
             type.metadata,
           )
             ? undefined
-            : type.metadata.custom.ownedById;
+            : type.metadata.ownedById;
 
-          const namespace = namespaces?.find(
-            ({ accountId }) => accountId === namespaceAccountId,
-          );
+          const webShortname = namespaces?.find(
+            (workspace) => extractOwnedById(workspace) === namespaceOwnedById,
+          )?.shortname;
 
           return {
             rowId: type.schema.$id,
@@ -144,14 +187,14 @@ export const TypesTable: FunctionComponent<{
             title: type.schema.title,
             kind:
               type.schema.kind === "entityType"
-                ? isLinkTypeLookup?.[type.schema.$id]
+                ? isSpecialEntityTypeLookup?.[type.schema.$id]?.isFile
                   ? "link-type"
                   : "entity-type"
                 : type.schema.kind === "propertyType"
-                ? "property-type"
-                : "data-type",
+                  ? "property-type"
+                  : "data-type",
             external: isExternal,
-            namespaceShortname: namespace?.shortname,
+            webShortname,
             archived: isTypeArchived(type),
           } as const;
         })
@@ -160,13 +203,7 @@ export const TypesTable: FunctionComponent<{
             (filterState.includeGlobal ? true : !external) &&
             (filterState.includeArchived ? true : !archived),
         ),
-    [
-      isLinkTypeLookup,
-      types,
-      namespaces,
-      filterState,
-      activeWorkspaceAccountId,
-    ],
+    [internalWebIds, isSpecialEntityTypeLookup, types, namespaces, filterState],
   );
 
   const createGetCellContent = useCallback(
@@ -196,7 +233,8 @@ export const TypesTable: FunctionComponent<{
                 kind: "text-icon-cell",
                 icon: "bpAsterisk",
                 value: row.title,
-                onClick: () => router.push(row.typeId),
+                onClick: () =>
+                  router.push(generateLinkParameters(row.typeId).href),
               },
             };
           case "kind":
@@ -207,10 +245,10 @@ export const TypesTable: FunctionComponent<{
               displayData: String(row.kind),
               data: row.kind,
             };
-          case "namespaceShortname": {
-            const value = row.namespaceShortname
-              ? `@${row.namespaceShortname}`
-              : "";
+          case "webShortname": {
+            const value = row.webShortname
+              ? `@${row.webShortname}`
+              : typeNamespaceFromTypeId(row.typeId);
 
             return {
               kind: GridCellKind.Text,
@@ -237,27 +275,54 @@ export const TypesTable: FunctionComponent<{
 
   const theme = useTheme();
 
+  const currentlyDisplayedRowsRef = useRef<TypesTableRow[] | null>(null);
+
   return (
     <Box>
       <TableHeader
+        internalWebIds={internalWebIds}
+        itemLabelPlural="types"
         items={types}
+        title={typesTablesToTitle[kind]}
+        columns={typesTableColumns}
+        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
         filterState={filterState}
         setFilterState={setFilterState}
+        selectedItems={types?.filter((type) =>
+          selectedRows.some(({ typeId }) => type.schema.$id === typeId),
+        )}
+        onBulkActionCompleted={() => setSelectedRows([])}
       />
       <Grid
+        showSearch={showSearch}
+        onSearchClose={() => setShowSearch(false)}
         columns={typesTableColumns}
         rows={filteredRows}
+        enableCheckboxSelection
+        selectedRows={selectedRows}
+        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+        onSelectedRowsChange={(updatedSelectedRows) =>
+          setSelectedRows(updatedSelectedRows)
+        }
         sortable
+        firstColumnLeftPadding={16}
         createGetCellContent={createGetCellContent}
         // define max height if there are lots of rows
-        height={
-          filteredRows.length > 10
-            ? `calc(100vh - (${
-                HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
-              }px + ${theme.spacing(5)}) - ${theme.spacing(5)})`
-            : undefined
-        }
-        customRenderers={[renderTextIconCell]}
+        height={`
+          min(
+            calc(100vh - (${
+              HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
+            }px + ${theme.spacing(5)}) - ${theme.spacing(5)}),
+            calc(
+              ${gridHeaderHeightWithBorder}px +
+              (${filteredRows ? filteredRows.length : 1} * ${gridRowHeight}px) +
+              ${gridHorizontalScrollbarHeight}px
+            )
+          )`}
+        customRenderers={[
+          createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
+        ]}
+        freezeColumns={1}
       />
     </Box>
   );

@@ -1,6 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 
+import { useOrgs } from "../../../../../components/hooks/use-orgs";
 import {
   CreateOrgMutation,
   CreateOrgMutationVariables,
@@ -13,6 +14,7 @@ export const CreateOrgForm = () => {
   const router = useRouter();
 
   const { refetch: refetchUser } = useAuthenticatedUser();
+  const { refetch: refetchOrgs } = useOrgs();
 
   const [createOrg] = useMutation<
     CreateOrgMutation,
@@ -27,10 +29,18 @@ export const CreateOrgForm = () => {
       throw new Error(errors[0].message);
     }
 
-    await refetchUser();
+    void refetchUser();
+    void refetchOrgs();
 
     void router.push(`/@${orgData.shortname}`);
   };
 
-  return <OrgForm onSubmit={onSubmit} submitLabel="Create organization" />;
+  return (
+    <OrgForm
+      onSubmit={onSubmit}
+      submitLabel="Create organization"
+      autoFocusDisplayName
+      readonly={false}
+    />
+  );
 };

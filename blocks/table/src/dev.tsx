@@ -14,38 +14,36 @@ const testEntity: BlockEntity = {
     entityTypeId: packageJson.blockprotocol.blockEntityType as VersionedUrl,
   },
   properties: {
-    "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/":
+    "https://blockprotocol.org/@blockprotocol/types/property-type/title/":
       "My Table",
-    "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/table-local-column/":
-      [
-        {
-          "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/":
-            "Full Name",
-          "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/":
-            "fullName",
-        },
-        {
-          "https://blockprotocol-gkgdavns7.stage.hash.ai/@luisbett/types/property-type/title/":
-            "Role",
-          "https://blockprotocol-gqpc30oin.stage.hash.ai/@nate/types/property-type/id/":
-            "role",
-        },
-      ],
-    "https://blockprotocol-hk4sbmd9k.stage.hash.ai/@yusuf123/types/property-type/table-local-row/":
-      [
-        {
-          fullName: "John Johnson",
-          role: "Role 1",
-        },
-        {
-          fullName: "Bob Bobson",
-          role: "Role 2",
-        },
-        {
-          fullName: "Alice Aliceson",
-          role: "Role 3",
-        },
-      ],
+    "https://blockprotocol.org/@hash/types/property-type/table-local-column/": [
+      {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/title/":
+          "Full Name",
+        "https://blockprotocol.org/@hash/types/property-type/table-local-column-id/":
+          "fullName",
+      },
+      {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/title/":
+          "Role",
+        "https://blockprotocol.org/@hash/types/property-type/table-local-column-id/":
+          "role",
+      },
+    ],
+    "https://blockprotocol.org/@hash/types/property-type/table-local-row/": [
+      {
+        fullName: "John Johnson",
+        role: "Role 1",
+      },
+      {
+        fullName: "Bob Bobson",
+        role: "Role 2",
+      },
+      {
+        fullName: "Alice Aliceson",
+        role: "Role 3",
+      },
+    ],
   },
 };
 

@@ -10,7 +10,7 @@ import NextLink, { LinkProps as NextLinkProps } from "next/link";
 import { useRouter } from "next/router";
 import { forwardRef, isValidElement } from "react";
 
-import { isHrefExternal } from "../is-href-external";
+import { generateLinkParameters } from "../generate-link-parameters";
 import { Button } from "./button";
 
 /**
@@ -54,6 +54,7 @@ export const NextLinkComposed = forwardRef<
 export type LinkProps = {
   activeClassName?: string;
   noLinkStyle?: boolean;
+  openInNew?: boolean;
 } & Omit<NextLinkProps, "passHref"> &
   Omit<MuiLinkProps, "href" | "color">;
 
@@ -68,13 +69,18 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
       activeClassName = "active",
       as: linkAs,
       className: classNameProps,
-      href,
+      href: unvalidatedHref,
       noLinkStyle,
+      openInNew,
       ...other
     } = props;
 
     const router = useRouter();
-    const pathname = typeof href === "string" ? href : href.pathname;
+    const pathname =
+      typeof unvalidatedHref === "string"
+        ? unvalidatedHref
+        : unvalidatedHref.pathname;
+
     const className = clsx(classNameProps, {
       [activeClassName]: router.pathname === pathname && activeClassName,
     });
@@ -88,7 +94,9 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
       }
     }
 
-    if (typeof href === "string" && isHrefExternal(href)) {
+    const { href, isExternal } = generateLinkParameters(unvalidatedHref);
+
+    if (isExternal || openInNew) {
       other.rel = "noopener";
       other.target = "_blank";
 

@@ -1,7 +1,8 @@
 import { LinearClient, Organization, Team } from "@linear/sdk";
 import { SyncWorkspaceWorkflow } from "@local/hash-backend-utils/temporal-workflow-types";
-import { AccountId } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 
+import { AuthenticationContext } from "../graphql/authentication-context";
 import { TemporalClient } from "../temporal";
 import { genId } from "../util";
 
@@ -43,8 +44,8 @@ export class Linear {
   }
 
   public async triggerWorkspaceSync(params: {
-    workspaceAccountId: AccountId;
-    actorId: AccountId;
+    authentication: AuthenticationContext;
+    workspaceOwnedById: OwnedById;
     teamIds: string[];
   }): Promise<void> {
     // TODO: Implement error handling

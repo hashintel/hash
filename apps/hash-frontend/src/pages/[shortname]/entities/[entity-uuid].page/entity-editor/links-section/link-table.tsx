@@ -1,7 +1,7 @@
 import { Grid } from "../../../../../../components/grid/grid";
 import { useDrawCell } from "../../../../../../components/grid/utils/use-draw-cell";
-import { renderChipCell } from "../properties-section/property-table/cells/chip-cell";
-import { renderSummaryChipCell } from "../properties-section/property-table/cells/summary-chip-cell";
+import { renderChipCell } from "../../../../../shared/chip-cell";
+import { renderSummaryChipCell } from "../shared/summary-chip-cell";
 import { renderLinkCell } from "./link-table/cells/link-cell";
 import { renderLinkedWithCell } from "./link-table/cells/linked-with-cell";
 import { linkGridColumns } from "./link-table/constants";

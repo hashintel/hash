@@ -75,10 +75,13 @@ const bpMultiFilterFieldPathToPathExpression = (
 
           const [recordIdRoot, ...recordIdRest] = metadataRest;
 
-          // case `Uuid` and `OwnedById` - cannot be queried at present as it is _part_ of the `metadata.recordId.entityId` field
+          if (recordIdRoot === "ownedById" || recordIdRoot === "uuid") {
+            return [recordIdRoot];
+          }
+
           if (recordIdRoot === "entityId") {
-            throw new Error(
-              "TODO: queries on entityId's are currently unsupported by the backend",
+            throw new InvalidEntityQueryError(
+              "Cannot query by entityId – you can filter by ownedById or uuid – entityIds are in the format 'ownedById~uuid'",
             );
           }
 
@@ -103,14 +106,14 @@ const bpMultiFilterFieldPathToPathExpression = (
 
           const [provenanceRoot, ...provenanceRest] = metadataRest;
 
-          // case `RecordCreatedById`
-          if (provenanceRoot === "recordCreatedById") {
+          // case `EditionCreatedById`
+          if (provenanceRoot === "createdById") {
             if (provenanceRest.length > 0) {
               throw new InvalidEntityQueryError(
-                `Invalid filter field path, unable to index inside \`metadata.provenance.recordCreatedById\``,
+                `Invalid filter field path, unable to index inside \`metadata.provenance.edition.createdById\``,
               );
             }
-            return ["recordCreatedById"];
+            return ["createdById"];
           }
 
           throw new InvalidEntityQueryError(

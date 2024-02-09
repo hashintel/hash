@@ -1,28 +1,39 @@
+import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
 import {
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  AccountId,
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import {
+  AccountGroupEntityId,
+  AccountGroupId,
   Entity,
   EntityId,
-  EntityPropertiesObject,
   EntityRootType,
   EntityUuid,
-  extractEntityUuidFromEntityId,
+  extractAccountGroupId,
   OwnedById,
-  Subgraph,
-  Uuid,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { EntityTypeMismatchError } from "../../../lib/error";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
-import { SYSTEM_TYPES } from "../../system-types";
-import { systemUserAccountId } from "../../system-user";
+import {
+  createAccountGroup,
+  createWeb,
+} from "../../account-permission-management";
+import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import {
   createEntity,
-  CreateEntityParams,
   getLatestEntityById,
   updateEntityProperty,
 } from "../primitive/entity";
@@ -32,24 +43,8 @@ import {
   shortnameIsTaken,
 } from "./account.fields";
 
-/**
- * @todo revisit organization size provided info. These constant strings could
- *   be replaced by ranges for example.
- *   https://app.asana.com/0/0/1202900021005257/f
- */
-export enum OrgSize {
-  ElevenToFifty = "ELEVEN_TO_FIFTY",
-  FiftyOneToTwoHundredAndFifty = "FIFTY_ONE_TO_TWO_HUNDRED_AND_FIFTY",
-  OneToTen = "ONE_TO_TEN",
-  TwoHundredAndFiftyPlus = "TWO_HUNDRED_AND_FIFTY_PLUS",
-}
-
-export type OrgProvidedInfo = {
-  orgSize: OrgSize;
-};
-
 export type Org = {
-  accountId: AccountId;
+  accountGroupId: AccountGroupId;
   orgName: string;
   shortname: string;
   entity: Entity;
@@ -58,26 +53,24 @@ export type Org = {
 export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
   entity,
 }) => {
-  if (entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.org.schema.$id) {
+  if (
+    entity.metadata.entityTypeId !== systemEntityTypes.organization.entityTypeId
+  ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.user.schema.$id,
+      systemEntityTypes.organization.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
 
-  const orgName = entity.properties[
-    SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUrl
-  ] as string;
-
-  const shortname = entity.properties[
-    SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl
-  ] as string;
+  const { organizationName: orgName, shortname } = simplifyProperties(
+    entity.properties as OrganizationProperties,
+  );
 
   return {
-    accountId: extractEntityUuidFromEntityId(
-      entity.metadata.recordId.entityId,
-    ) as Uuid as AccountId,
+    accountGroupId: extractAccountGroupId(
+      entity.metadata.recordId.entityId as AccountGroupEntityId,
+    ),
     shortname,
     orgName,
     entity,
@@ -90,22 +83,20 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
  * @param params.shortname - the shortname of the organization
  * @param params.name - the name of the organization
  * @param params.providedInfo - optional metadata about the organization
- * @param params.orgAccountId - the account Id of the org
- * @param params.website - the website of the organization
+ * @param params.websiteUrl - the website of the organization
  *
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const createOrg: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId" | "ownedById"> & {
+  {
     shortname: string;
     name: string;
-    providedInfo?: OrgProvidedInfo;
-    orgAccountId?: AccountId;
-    website?: string | null;
+    orgAccountGroupId?: AccountGroupId;
+    websiteUrl?: string | null;
   },
   Promise<Org>
-> = async (ctx, params) => {
-  const { shortname, name, providedInfo, website, actorId } = params;
+> = async (ctx, authentication, params) => {
+  const { shortname, name, websiteUrl } = params;
 
   if (shortnameIsInvalid({ shortname })) {
     throw new Error(`The shortname "${shortname}" is invalid`);
@@ -113,42 +104,58 @@ export const createOrg: ImpureGraphFunction<
 
   if (
     shortnameIsRestricted({ shortname }) ||
-    (await shortnameIsTaken(ctx, { shortname }))
+    (await shortnameIsTaken(ctx, authentication, { shortname }))
   ) {
-    throw new Error(`An account with shortname "${shortname}" already exists.`);
+    throw new Error(
+      `An account or an account group with shortname "${shortname}" already exists.`,
+    );
   }
 
-  const { graphApi } = ctx;
+  let orgAccountGroupId: AccountGroupId;
+  if (params.orgAccountGroupId) {
+    orgAccountGroupId = params.orgAccountGroupId;
+  } else {
+    orgAccountGroupId = await createAccountGroup(ctx, authentication, {});
+    await createWeb(ctx, authentication, {
+      ownedById: orgAccountGroupId as OwnedById,
+      owner: { kind: "accountGroup", subjectId: orgAccountGroupId },
+    });
 
-  const orgAccountId =
-    params.orgAccountId ?? (await graphApi.createAccountId()).data;
+    await createWebMachineActor(ctx, authentication, {
+      ownedById: orgAccountGroupId as OwnedById,
+    });
+  }
 
-  const properties: EntityPropertiesObject = {
-    [SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl]: shortname,
-    [SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUrl]: name,
-    ...(providedInfo
+  const properties: OrganizationProperties = {
+    "https://hash.ai/@hash/types/property-type/shortname/": shortname,
+    "https://hash.ai/@hash/types/property-type/organization-name/": name,
+    ...(websiteUrl
       ? {
-          [SYSTEM_TYPES.propertyType.orgProvidedInfo.metadata.recordId.baseUrl]:
-            {
-              [SYSTEM_TYPES.propertyType.orgSize.metadata.recordId.baseUrl]:
-                providedInfo.orgSize,
-            },
-        }
-      : {}),
-    ...(website
-      ? {
-          [SYSTEM_TYPES.propertyType.website.metadata.recordId.baseUrl]:
-            website,
+          "https://hash.ai/@hash/types/property-type/website-url/": websiteUrl,
         }
       : {}),
   };
 
-  const entity = await createEntity(ctx, {
-    ownedById: systemUserAccountId as OwnedById,
+  const entity = await createEntity(ctx, authentication, {
+    ownedById: orgAccountGroupId as OwnedById,
     properties,
-    entityTypeId: SYSTEM_TYPES.entityType.org.schema.$id,
-    entityUuid: orgAccountId as EntityUuid,
-    actorId,
+    entityTypeId: systemEntityTypes.organization.entityTypeId,
+    entityUuid: orgAccountGroupId as string as EntityUuid,
+    relationships: [
+      {
+        relation: "viewer",
+        subject: {
+          kind: "public",
+        },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "administratorFromWeb",
+        },
+      },
+    ],
   });
 
   return getOrgFromEntity({ entity });
@@ -162,8 +169,8 @@ export const createOrg: ImpureGraphFunction<
 export const getOrgById: ImpureGraphFunction<
   { entityId: EntityId },
   Promise<Org>
-> = async (ctx, { entityId }) => {
-  const entity = await getLatestEntityById(ctx, {
+> = async (ctx, authentication, { entityId }) => {
+  const entity = await getLatestEntityById(ctx, authentication, {
     entityId,
   });
 
@@ -176,38 +183,48 @@ export const getOrgById: ImpureGraphFunction<
  * @param params.shortname - the shortname of the organization
  */
 export const getOrgByShortname: ImpureGraphFunction<
-  { shortname: string },
+  { shortname: string; includeDrafts?: boolean },
   Promise<Org | null>
-> = async ({ graphApi }, params) => {
+> = async ({ graphApi }, { actorId }, params) => {
   const [orgEntity, ...unexpectedEntities] = await graphApi
-    .getEntitiesByQuery({
-      filter: {
-        all: [
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
-              { parameter: SYSTEM_TYPES.entityType.org.schema.$id },
-            ],
-          },
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
-                ],
-              },
-              { parameter: params.shortname },
-            ],
-          },
-        ],
+    .getEntitiesByQuery(actorId, {
+      query: {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.organization.entityTypeId,
+              { ignoreParents: true },
+            ),
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    extractBaseUrl(
+                      systemPropertyTypes.shortname.propertyTypeId,
+                    ),
+                  ],
+                },
+                { parameter: params.shortname },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        // TODO: Should this be an all-time query? What happens if the org is
+        //       archived/deleted, do we want to allow orgs to replace their
+        //       shortname?
+        //   see https://linear.app/hash/issue/H-757
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: params.includeDrafts ?? false,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data: userEntitiesSubgraph }) =>
-      getRoots(userEntitiesSubgraph as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const userEntitiesSubgraph =
+        mapGraphApiSubgraphToSubgraph<EntityRootType>(data.subgraph);
+
+      return getRoots(userEntitiesSubgraph);
+    });
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -226,10 +243,12 @@ export const getOrgByShortname: ImpureGraphFunction<
  * @param params.actorId - the id of the account that is updating the shortname
  */
 export const updateOrgShortname: ImpureGraphFunction<
-  { org: Org; updatedShortname: string; actorId: AccountId },
-  Promise<Org>
-> = async (ctx, params) => {
-  const { org, updatedShortname, actorId } = params;
+  { org: Org; updatedShortname: string },
+  Promise<Org>,
+  false,
+  true
+> = async (ctx, authentication, params) => {
+  const { org, updatedShortname } = params;
 
   if (shortnameIsInvalid({ shortname: updatedShortname })) {
     throw new Error(`The shortname "${updatedShortname}" is invalid`);
@@ -237,22 +256,22 @@ export const updateOrgShortname: ImpureGraphFunction<
 
   if (
     shortnameIsRestricted({ shortname: updatedShortname }) ||
-    (await shortnameIsTaken(ctx, { shortname: updatedShortname }))
+    (await shortnameIsTaken(ctx, authentication, {
+      shortname: updatedShortname,
+    }))
   ) {
     throw new Error(
       `An account with shortname "${updatedShortname}" already exists.`,
     );
   }
 
-  const updatedOrg = await updateEntityProperty(ctx, {
+  return updateEntityProperty(ctx, authentication, {
     entity: org.entity,
-    propertyTypeBaseUrl:
-      SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
+    propertyTypeBaseUrl: extractBaseUrl(
+      systemPropertyTypes.shortname.propertyTypeId,
+    ),
     value: updatedShortname,
-    actorId,
   }).then((updatedEntity) => getOrgFromEntity({ entity: updatedEntity }));
-
-  return updatedOrg;
 };
 
 /**
@@ -275,21 +294,23 @@ export const orgNameIsInvalid: PureGraphFunction<
  * @param params.actorId - the id of the account updating the name
  */
 export const updateOrgName: ImpureGraphFunction<
-  { org: Org; updatedOrgName: string; actorId: AccountId },
-  Promise<Org>
-> = async (ctx, params) => {
-  const { org, updatedOrgName, actorId } = params;
+  { org: Org; updatedOrgName: string },
+  Promise<Org>,
+  false,
+  true
+> = async (ctx, authentication, params) => {
+  const { org, updatedOrgName } = params;
 
   if (orgNameIsInvalid({ orgName: updatedOrgName })) {
     throw new Error(`Organization name "${updatedOrgName}" is invalid.`);
   }
 
-  const updatedEntity = await updateEntityProperty(ctx, {
+  const updatedEntity = await updateEntityProperty(ctx, authentication, {
     entity: org.entity,
-    propertyTypeBaseUrl:
-      SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUrl,
+    propertyTypeBaseUrl: extractBaseUrl(
+      systemPropertyTypes.organizationName.propertyTypeId,
+    ),
     value: updatedOrgName,
-    actorId,
   });
 
   return getOrgFromEntity({ entity: updatedEntity });

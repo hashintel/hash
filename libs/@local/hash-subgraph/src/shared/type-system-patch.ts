@@ -4,9 +4,9 @@ import {
   ParseVersionedUrlError,
   validateVersionedUrl,
   VersionedUrl,
-} from "@blockprotocol/type-system";
+} from "@blockprotocol/type-system/slim";
 
-import { BaseUrl, Entity } from "../types";
+import { BaseUrl, Entity, EntityPropertiesObject } from "../types";
 
 export const extractBaseUrl = (versionedUrl: VersionedUrl): BaseUrl =>
   extractBaseUrlBp(versionedUrl) as BaseUrl;
@@ -72,6 +72,8 @@ export const versionedUrlFromComponents = (
   }
 };
 
-export type LinkEntity = Entity & {
+export type LinkEntity<
+  T extends EntityPropertiesObject = EntityPropertiesObject,
+> = Entity<T> & {
   linkData: NonNullable<Entity["linkData"]>;
 };

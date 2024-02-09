@@ -1,12 +1,13 @@
-import { LoadingSpinner, theme } from "@hashintel/design-system";
+import { LoadingSpinner } from "@hashintel/design-system";
+import { theme } from "@hashintel/design-system/theme";
 import { Box, SxProps, Tab, Theme, Typography } from "@mui/material";
 import millify from "millify";
-import { FunctionComponent, ReactElement } from "react";
+import { FunctionComponent, ReactElement, ReactNode } from "react";
 
 import { Link } from "./link";
 
 export type TabLinkProps = {
-  label: string;
+  label: ReactNode;
   href: string;
   value: string;
   count?: number;
@@ -51,7 +52,7 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
             paddingX: loading ? 0.5 : 1,
             paddingY: loading ? 0.5 : 0.25,
             borderRadius: 30,
-            background: active ? palette.blue[20] : palette.gray[30],
+            background: active ? palette.blue[20] : palette.gray[20],
           })}
         >
           {loading ? (

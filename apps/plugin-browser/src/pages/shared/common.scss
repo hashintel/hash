@@ -1,0 +1,14 @@
+body {
+  background: white;
+  font-family: "Inter", "Helvetica", "Arial", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  color: #0e1114;
+  margin: 0;
+
+  @media (prefers-color-scheme: dark) {
+    background: rgba(14, 17, 20, 1);
+    color: white;
+  }
+}

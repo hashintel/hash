@@ -31,7 +31,7 @@ export const ItemLimitInfo = ({ min, max }: { min?: number; max?: number }) => {
   ) : null;
 
   const nodesToRender =
-    minNode || maxNode ? (
+    minNode ?? maxNode ? (
       <>
         {minNode}
         {maxNode}

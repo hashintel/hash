@@ -1,11 +1,11 @@
 import "@tldraw/tldraw/editor.css";
 import "@tldraw/tldraw/ui.css";
 
-import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
 import {
   ComponentIdHashBlockMap,
   fetchBlock,
 } from "@local/hash-isomorphic-utils/blocks";
+import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
 import { Box } from "@mui/material";
 import { TldrawEditorConfig } from "@tldraw/editor";
 import {
@@ -14,19 +14,19 @@ import {
   MenuGroup,
   menuItem,
   Tldraw,
+  TLTranslationKey,
   toolbarItem,
 } from "@tldraw/tldraw";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 import { useUserBlocks } from "../../../blocks/user-blocks";
-import { PageContentItem } from "../../../graphql/api-types.gen";
+import { BlockCollectionContentItem } from "../../../graphql/api-types.gen";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
 import { BlockCreationDialog } from "./canvas-page/block-creation-dialog";
 import { BlockShapeDef, BlockTool } from "./canvas-page/block-shape";
 import { LockedCanvas } from "./canvas-page/locked-canvas";
-import { defaultBlockHeight, defaultBlockWidth } from "./canvas-page/shared";
 
 const config = new TldrawEditorConfig({
   shapes: [BlockShapeDef],
@@ -37,7 +37,7 @@ const config = new TldrawEditorConfig({
 export const CanvasPageBlock = ({
   contents,
 }: {
-  contents: PageContentItem[];
+  contents: BlockCollectionContentItem[];
 }) => {
   const { query } = useRouter();
 
@@ -55,7 +55,9 @@ export const CanvasPageBlock = ({
       contents.map(async ({ rightEntity }) => {
         const { componentId } = rightEntity;
         if (!blocksMap[componentId]) {
-          blocksMap[componentId] = await fetchBlock(componentId);
+          blocksMap[componentId] = await fetchBlock(componentId, {
+            useCachedData: true,
+          });
         }
       }),
     ).then(() => {
@@ -85,24 +87,22 @@ export const CanvasPageBlock = ({
     }
 
     app.createShapes(
-      contents.map(({ linkEntity, rightEntity: blockEntity }, index) => {
+      contents.map(({ linkEntity, rightEntity: blockEntity }) => {
         const {
-          "https://blockprotocol.org/@hash/types/property-type/x-position/": x,
-          "https://blockprotocol.org/@hash/types/property-type/y-position/": y,
-          "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/":
-            width,
-          "https://blockprotocol.org/@hash/types/property-type/height-in-pixels/":
-            height,
-          "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/":
+          "https://hash.ai/@hash/types/property-type/x-position/": x,
+          "https://hash.ai/@hash/types/property-type/y-position/": y,
+          "https://hash.ai/@hash/types/property-type/width-in-pixels/": width,
+          "https://hash.ai/@hash/types/property-type/height-in-pixels/": height,
+          "https://hash.ai/@hash/types/property-type/rotation-in-rads/":
             rotation,
-        } = linkEntity.properties as Partial<CanvasPosition>;
+        } = linkEntity.properties as HasSpatiallyPositionedContentProperties;
 
         return {
           id: createShapeId(),
           type: "bpBlock",
-          x: x ?? 50,
-          y: y ?? index * defaultBlockHeight + 50,
-          rotation: rotation ?? 0,
+          x,
+          y,
+          rotation,
           props: {
             blockLoaderProps: {
               blockEntityId:
@@ -113,10 +113,10 @@ export const CanvasPageBlock = ({
               blockMetadata: blocks[blockEntity.componentId]!.meta,
               readonly: false,
             },
-            indexPosition: linkEntity.linkData?.leftToRightOrder ?? index,
+            linkEntityId: linkEntity.metadata.recordId.entityId,
             pageEntityId: linkEntity.linkData?.leftEntityId,
-            h: height ?? defaultBlockHeight,
-            w: width ?? defaultBlockWidth,
+            h: height,
+            w: width,
           },
         };
       }),
@@ -141,7 +141,7 @@ export const CanvasPageBlock = ({
               // at the moment custom icons appear to only be possible via overwriting an existing one (in public/icons)
               // @see https://docs.tldraw.dev/docs/ucg/usage#assets
               icon: "twitter",
-              label: "Block" as any,
+              label: "Block" as TLTranslationKey,
               kbd: "b",
               readonlyOk: false,
               onSelect: () => {

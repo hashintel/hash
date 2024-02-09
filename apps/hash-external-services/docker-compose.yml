@@ -4,35 +4,6 @@ volumes:
   logs:
 
 services:
-  hash-dev-opensearch:
-    deploy:
-      restart_policy:
-        condition: on-failure
-    environment:
-      HASH_OPENSEARCH_ENABLED: "${HASH_OPENSEARCH_ENABLED}"
-      ## Tell OpenSearch that it's operating in single-node mode
-      discovery.type: single-node
-      ## Disable the security module for development so we can connect over plain HTTP
-      plugins.security.disabled: true
-      ## Docker volumes are ~10GB by default which is typically much smaller than the
-      ## host's drive size. This can cause OpenSearch to shutdown if it thinks disk
-      ## space is running low. Set the disk high watermark to 100% to ignore this.
-      cluster.routing.allocation.disk.watermark.high: 100%
-      cluster.routing.allocation.disk.watermark.flood_stage: 100%
-    build:
-      context: ./opensearch
-    ports:
-      - "9200:9200"
-    ulimits:
-      nofile:
-        soft: 65536
-        hard: 65536
-    ## Mounting open search data to a local directory may lead to java.nio.file.AccessDeniedException.
-    ## Details: https://github.com/opensearch-project/OpenSearch/issues/1579.
-    ## We can revisit the setup after upgrading base image or by fixing permissions in a custom image.
-    # volumes:
-    #   - ../../var/hash-external-service/opensearch/data:/usr/share/opensearch/data
-
   postgres:
     build:
       context: ./postgres
@@ -40,195 +11,52 @@ services:
       restart_policy:
         condition: on-failure
     environment:
-      PGDATA: /data/pgdata
       POSTGRES_USER: "${POSTGRES_USER}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
       HASH_KRATOS_PG_USER: "${HASH_KRATOS_PG_USER}"
       HASH_KRATOS_PG_PASSWORD: "${HASH_KRATOS_PG_PASSWORD}"
-      HASH_KRATOS_PG_DATABASE: "${HASH_KRATOS_PG_DEV_DATABASE}"
-      HASH_SPICEDB_PG_USER: "${HASH_SPICEDB_PG_USER}"
-      HASH_SPICEDB_PG_PASSWORD: "${HASH_SPICEDB_PG_PASSWORD}"
-      HASH_SPICEDB_PG_DATABASE: "${HASH_SPICEDB_PG_DEV_DATABASE}"
+      HASH_KRATOS_PG_DATABASE: "${HASH_KRATOS_PG_DATABASE}"
       HASH_TEMPORAL_PG_USER: "${HASH_TEMPORAL_PG_USER}"
       HASH_TEMPORAL_PG_PASSWORD: "${HASH_TEMPORAL_PG_PASSWORD}"
-      HASH_TEMPORAL_PG_DATABASE: "${HASH_TEMPORAL_PG_DEV_DATABASE}"
-      HASH_TEMPORAL_VISIBILITY_PG_DATABASE: "${HASH_TEMPORAL_VISIBILITY_PG_DEV_DATABASE}"
+      HASH_TEMPORAL_PG_DATABASE: "${HASH_TEMPORAL_PG_DATABASE}"
+      HASH_TEMPORAL_VISIBILITY_PG_DATABASE: "${HASH_TEMPORAL_VISIBILITY_PG_DATABASE}"
       HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
       HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
-      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
       HASH_GRAPH_REALTIME_PG_USER: "${HASH_GRAPH_REALTIME_PG_USER}"
       HASH_GRAPH_REALTIME_PG_PASSWORD: "${HASH_GRAPH_REALTIME_PG_PASSWORD}"
-    ports:
-      - "${POSTGRES_PORT}:5432"
     volumes:
       - hash-postgres-data:/var/lib/postgresql/data
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh:ro
     healthcheck:
-      test: ["CMD", "pg_isready", "-q", "-h", "postgres"]
+      test:
+        ["CMD", "pg_isready", "-q", "-h", "postgres", "-U", "${POSTGRES_USER}"]
       interval: 2s
       timeout: 2s
       retries: 5
     command: -c 'config_file=/etc/postgresql/postgresql.conf' --track_commit_timestamp=on
 
-  telemetry-collector:
-    image: jaegertracing/all-in-one:1.48
-    deploy:
-      restart_policy:
-        condition: on-failure
-    healthcheck:
-      # Port 14269 is the Jaeger admin endpoint
-      test:
-        [
-          "CMD-SHELL",
-          "wget --no-verbose --tries=1 --spider http://localhost:14269 || exit 1",
-        ]
-      interval: 2s
-      timeout: 2s
-      retries: 10
-    ports:
-      - "16686:16686"
-      # To expose OTLP collector over gRPC on the host
-      - "4317:4317"
-      # To expose OTLP collector over HTTP on the host
-      # - "4318:4318"
-      # serve configs (sampling, etc.)
-      - "5778:5778"
-      # accept jaeger.thrift over Thrift-compact protocol (used by most SDKs)
-      - "6831:6831"
-    environment:
-      COLLECTOR_OTLP_ENABLED: "true"
-
-  spicedb-migrate:
-    image: authzed/spicedb:v${HASH_SPICEDB_VERSION}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      SPICEDB_DATASTORE_ENGINE: postgres
-      SPICEDB_DATASTORE_CONN_URI: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_SPICEDB_PG_DEV_DATABASE}"
-      SPICEDB_LOG_FORMAT: "console"
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    command: migrate head
-
   spicedb:
     image: authzed/spicedb:v${HASH_SPICEDB_VERSION}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      spicedb-migrate:
-        condition: service_completed_successfully
-      telemetry-collector:
-        condition: service_healthy
-    ports:
-      - "${HASH_SPICEDB_HTTP_PORT}:8443"
-      - "${HASH_SPICEDB_GRPC_PORT}:50051"
     restart: on-failure
     environment:
-      SPICEDB_DATASTORE_ENGINE: postgres
-      SPICEDB_DATASTORE_CONN_URI: "postgres://${HASH_SPICEDB_PG_USER}:${HASH_SPICEDB_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_SPICEDB_PG_DEV_DATABASE}?plan_cache_mode=force_custom_plan"
-      SPICEDB_GRPC_PRESHARED_KEY: "${HASH_SPICEDB_GRPC_PRESHARED_KEY}"
-      SPICEDB_SCHEMA_PREFIXES_REQUIRED: "True"
       SPICEDB_HTTP_ENABLED: "True"
+      SPICEDB_HTTP_ADDR: ":${HASH_SPICEDB_HTTP_PORT}"
+      HASH_SPICEDB_GRPC_PORT: ":${HASH_SPICEDB_GRPC_PORT}"
+      SPICEDB_READONLY_GRPC_ENABLED: "False"
+      SPICEDB_SCHEMA_PREFIXES_REQUIRED: "True"
       SPICEDB_TELEMETRY_ENDPOINT: ""
-      SPICEDB_OTEL_PROVIDER: "otlpgrpc"
-      SPICEDB_OTEL_ENDPOINT: "telemetry-collector:4317"
-      SPICEDB_OTEL_INSECURE: "True"
       SPICEDB_LOG_FORMAT: "console"
+    command: serve
     read_only: true
     security_opt:
       - no-new-privileges:true
-    command: serve
     healthcheck:
       test: ["CMD", "grpc_health_probe", "-addr=localhost:50051"]
       interval: 5s
       timeout: 2s
       retries: 10
-
-  graph-migrate:
-    init: true
-    depends_on:
-      postgres:
-        condition: service_healthy
-      telemetry-collector:
-        condition: service_healthy
-    image: hash-graph
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    volumes:
-      - logs:/logs
-    command: migrate
-    environment:
-      # Intentionally use the POSTGRES user as it's the "superadmin" which has access to schema
-      HASH_GRAPH_PG_USER: "${POSTGRES_USER}"
-      HASH_GRAPH_PG_PASSWORD: "${POSTGRES_PASSWORD}"
-      HASH_GRAPH_PG_HOST: "postgres"
-      HASH_GRAPH_PG_PORT: "5432"
-      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
-      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
-      HASH_GRAPH_LOG_FOLDER: "/logs/graph-migrations"
-      # For unknown reasons, our error return values are consumed when we
-      # configure the OTLP endpoint for the Graph. For now, we've disabled traces.
-      # https://app.asana.com/0/1201095311341924/1203636955054323/f
-      # HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
-      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash-graph=trace,tokio_postgres=debug}"
-      RUST_BACKTRACE: 1
-
-  graph:
-    init: true
-    depends_on:
-      postgres:
-        condition: service_healthy
-      graph-migrate:
-        condition: service_completed_successfully
-      telemetry-collector:
-        condition: service_healthy
-      spicedb:
-        condition: service_healthy
-    image: hash-graph
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    volumes:
-      - logs:/logs
-    command: server --offline
-    environment:
-      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
-      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
-      HASH_GRAPH_PG_HOST: "postgres"
-      HASH_GRAPH_PG_PORT: "5432"
-      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
-      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
-      HASH_GRAPH_LOG_FOLDER: "/logs/graph-service"
-      HASH_GRAPH_TYPE_FETCHER_HOST: "type-fetcher"
-      HASH_GRAPH_TYPE_FETCHER_PORT: "${HASH_GRAPH_TYPE_FETCHER_PORT}"
-      HASH_GRAPH_API_HOST: "0.0.0.0"
-      HASH_GRAPH_API_PORT: "4000"
-      # For unknown reasons, our error return values are consumed when we
-      # configure the OTLP endpoint for the Graph. For now, we've disabled traces.
-      # https://app.asana.com/0/1201095311341924/1203636955054323/f
-      # HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
-      RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info,graph=trace,hash_graph=trace,tokio_postgres=debug}"
-      RUST_BACKTRACE: 1
-    ports:
-      - "${HASH_GRAPH_API_PORT}:4000"
-    healthcheck:
-      test:
-        ["CMD", "/hash-graph", "server", "--healthcheck", "--api-port", "4000"]
-      interval: 2s
-      timeout: 2s
-      retries: 10
-
-  hash-dev-redis:
-    image: redis:6.2
-    deploy:
-      restart_policy:
-        condition: on-failure
-    ports:
-      - "6379:6379"
 
   kratos-migrate:
     build:
@@ -240,8 +68,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
     environment:
-      - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DEV_DATABASE}
+      - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DATABASE}
     command: migrate sql -e --yes
 
   kratos:
@@ -256,30 +87,37 @@ services:
         condition: service_healthy
       kratos-migrate:
         condition: service_completed_successfully
-      telemetry-collector:
-        condition: service_healthy
-    ports:
-      - "4433:4433" # public
-      - "4434:4434" # admin
     restart: unless-stopped
     environment:
       SECRETS_COOKIE: "${KRATOS_SECRETS_COOKIE}"
       SECRETS_CIPHER: "${KRATOS_SECRETS_CIPHER}"
       COURIER_SMTP_CONNECTION_URI: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
-      DSN: "postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DEV_DATABASE}"
-      TRACING_PROVIDER: "jaeger"
-      TRACING_PROVIDERS_JAEGER_SAMPLING_SERVER_URL: "telemetry-collector:5778/sampling"
-      TRACING_PROVIDERS_JAEGER_LOCAL_AGENT_ADDRESS: "telemetry-collector:6831"
-      LOG_LEVEL: trace
+      DSN: "postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DATABASE}"
     command: serve --dev --watch-courier
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
     extra_hosts:
       - host.docker.internal:host-gateway
 
   mailslurper:
     image: oryd/mailslurper:latest-smtps
-    ports:
-      - "4436:4436"
-      - "4437:4437"
+    security_opt:
+      - no-new-privileges:true
+
+  redis:
+    image: redis:6.2
+    read_only: true
+    deploy:
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
 
   temporal-migrate:
     build:
@@ -296,8 +134,8 @@ services:
       # https://github.com/temporalio/temporal/blob/master/docker/config_template.yaml
       # posgres12 for v12+ of postgres.
       DB: "postgres12"
-      DBNAME: "${HASH_TEMPORAL_PG_DEV_DATABASE}"
-      VISIBILITY_DBNAME: "${HASH_TEMPORAL_VISIBILITY_PG_DEV_DATABASE}"
+      DBNAME: "${HASH_TEMPORAL_PG_DATABASE}"
+      VISIBILITY_DBNAME: "${HASH_TEMPORAL_VISIBILITY_PG_DATABASE}"
       DB_PORT: "5432"
       # Intentionally use the POSTGRES user as it's the "superadmin" which has access to schema
       POSTGRES_USER: "${POSTGRES_USER}"
@@ -317,8 +155,6 @@ services:
         condition: service_healthy
       temporal-migrate:
         condition: service_completed_successfully
-      hash-dev-opensearch:
-        condition: service_started
     healthcheck:
       test:
         [
@@ -339,8 +175,8 @@ services:
       # https://github.com/temporalio/temporal/blob/master/docker/config_template.yaml
       # posgres12 for v12+ of postgres.
       DB: "postgres12"
-      DBNAME: "${HASH_TEMPORAL_PG_DEV_DATABASE}"
-      VISIBILITY_DBNAME: "${HASH_TEMPORAL_VISIBILITY_PG_DEV_DATABASE}"
+      DBNAME: "${HASH_TEMPORAL_PG_DATABASE}"
+      VISIBILITY_DBNAME: "${HASH_TEMPORAL_VISIBILITY_PG_DATABASE}"
       DB_PORT: "5432"
       POSTGRES_USER: "${HASH_TEMPORAL_PG_USER}"
       POSTGRES_PWD: "${HASH_TEMPORAL_PG_PASSWORD}"
@@ -366,8 +202,8 @@ services:
       # https://github.com/temporalio/temporal/blob/master/docker/config_template.yaml
       # posgres12 for v12+ of postgres.
       DB: "postgres12"
-      DBNAME: "${HASH_TEMPORAL_PG_DEV_DATABASE}"
-      VISIBILITY_DBNAME: "${HASH_TEMPORAL_VISIBILITY_PG_DEV_DATABASE}"
+      DBNAME: "${HASH_TEMPORAL_PG_DATABASE}"
+      VISIBILITY_DBNAME: "${HASH_TEMPORAL_VISIBILITY_PG_DATABASE}"
       DB_PORT: "5432"
       # Intentionally use the POSTGRES user as it's the "superadmin" which has access to schema
       POSTGRES_USER: "${POSTGRES_USER}"
@@ -380,13 +216,14 @@ services:
 
   temporal-ui:
     image: temporalio/ui:${HASH_TEMPORAL_UI_VERSION}
-    container_name: temporal-ui
     deploy:
       restart_policy:
         condition: on-failure
     depends_on:
       temporal:
         condition: service_healthy
+      temporal-setup:
+        condition: service_completed_successfully
     environment:
       TEMPORAL_ADDRESS: temporal:7233
       TEMPORAL_CORS_ORIGINS: http://localhost:3000
@@ -394,78 +231,108 @@ services:
       - no-new-privileges:true
     ports:
       - "${HASH_TEMPORAL_UI_PORT}:8080"
+    healthcheck:
+      test: ["CMD", "/bin/sh", "-c", "nc -z $(hostname) 8080"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
 
-  hash-temporal-worker-ts:
-    image: hash-ai-worker-ts
-    restart: unless-stopped
+  # TODO: Services below this line are developed by HASH and should not be part of this file
+
+  graph-migrate:
+    init: true
     depends_on:
+      postgres:
+        condition: service_healthy
+    image: hash-graph
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - logs:/logs
+    command: migrate
+    environment:
+      # Intentionally use the POSTGRES user as it's the "superadmin" which has access to schema
+      HASH_GRAPH_PG_USER: "${POSTGRES_USER}"
+      HASH_GRAPH_PG_PASSWORD: "${POSTGRES_PASSWORD}"
+      HASH_GRAPH_PG_HOST: "postgres"
+      HASH_GRAPH_PG_PORT: "5432"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
+      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-full}"
+      HASH_GRAPH_LOG_FOLDER: "/logs/graph-migrations"
+      HASH_GRAPH_SENTRY_DSN: "${HASH_GRAPH_SENTRY_DSN-}"
+      HASH_GRAPH_LOG_LEVEL: "${HASH_GRAPH_LOG_LEVEL}"
+      RUST_BACKTRACE: 1
+
+  graph:
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      spicedb:
+        condition: service_healthy
       temporal:
         condition: service_healthy
-    # Environment variables are to be set manually here.
-    # We could load in the entirety of the `.env.local` file using `env_file`
-    # but to prevent bloating the environment and spilling everything
-    # into the process, it is constrained here.
+      temporal-setup:
+        condition: service_completed_successfully
+      graph-migrate:
+        condition: service_completed_successfully
+    image: hash-graph
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - logs:/logs
+    command: server --offline
     environment:
-      HASH_TEMPORAL_HOST: "temporal"
-      OPENAI_API_KEY: "${OPENAI_API_KEY}"
-      HASH_GRAPH_API_HOST: graph
+      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
+      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
+      HASH_GRAPH_PG_HOST: "postgres"
+      HASH_GRAPH_PG_PORT: "5432"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
+      HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN: "${HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN}"
+      HASH_GRAPH_API_HOST: "0.0.0.0"
       HASH_GRAPH_API_PORT: "${HASH_GRAPH_API_PORT}"
-      # TODO: Remove once they're not needed anymore
-      #   see https://linear.app/hash/issue/H-55/avoid-ory-kratos-environment-to-be-required-for-hash-api
-      ORY_KRATOS_PUBLIC_URL: "${ORY_KRATOS_PUBLIC_URL}"
-      ORY_KRATOS_ADMIN_URL: "${ORY_KRATOS_ADMIN_URL}"
-    tmpfs:
-      - /tmp
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
+      HASH_GRAPH_LOG_LEVEL: "${HASH_GRAPH_LOG_LEVEL}"
+      HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-full}"
+      HASH_GRAPH_LOG_FOLDER: "/logs/graph-service"
+      HASH_GRAPH_SENTRY_DSN: "${HASH_GRAPH_SENTRY_DSN-}"
+      HASH_SPICEDB_HOST: http://spicedb
+      HASH_SPICEDB_HTTP_PORT: "${HASH_SPICEDB_HTTP_PORT}"
+      HASH_TEMPORAL_SERVER_HOST: "http://temporal"
+      HASH_TEMPORAL_SERVER_PORT: "${HASH_TEMPORAL_SERVER_PORT}"
+      RUST_BACKTRACE: 1
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/hash-graph",
+          "server",
+          "--healthcheck",
+          "--api-port",
+          "${HASH_GRAPH_API_PORT}",
+        ]
+      interval: 2s
+      timeout: 2s
+      retries: 10
 
-  hash-temporal-worker-py:
-    image: hash-ai-worker-py
-    restart: unless-stopped
-    depends_on:
-      temporal:
-        condition: service_healthy
-    # Environment variables are to be set manually here.
-    # We could load in the entirety of the `.env.local` file using `env_file`
-    # but to prevent bloating the environment and spilling everything
-    # into the process, it is constrained here.
-    environment:
-      HASH_TEMPORAL_HOST: "temporal"
-      OPENAI_API_KEY: "${OPENAI_API_KEY}"
-    tmpfs:
-      - /tmp
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-
-  hash-temporal-worker-integration:
+  hash-temporal-integration-worker:
     image: hash-integration-worker
     restart: unless-stopped
     depends_on:
       temporal:
         condition: service_healthy
+      temporal-setup:
+        condition: service_completed_successfully
+      graph:
+        condition: service_healthy
     environment:
-      HASH_TEMPORAL_HOST: "temporal"
+      HASH_TEMPORAL_SERVER_HOST: "http://temporal"
+      HASH_TEMPORAL_SERVER_PORT: "${HASH_TEMPORAL_SERVER_PORT}"
       HASH_GRAPH_API_HOST: graph
       HASH_GRAPH_API_PORT: "${HASH_GRAPH_API_PORT}"
     tmpfs:
       - /tmp
     read_only: true
-    security_opt:
-      - no-new-privileges:true
-
-  vault:
-    image: hashicorp/vault
-    ports:
-      - "${HASH_VAULT_PORT}:8200"
-    volumes:
-      - hash-postgres-data:/vault/file:rw
-      # - ./vault/config:/vault/config:rw - for when we need a config file
-    cap_add:
-      - IPC_LOCK
-    environment:
-      VAULT_DEV_ROOT_TOKEN_ID: "${HASH_VAULT_ROOT_TOKEN}"
-      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
     security_opt:
       - no-new-privileges:true

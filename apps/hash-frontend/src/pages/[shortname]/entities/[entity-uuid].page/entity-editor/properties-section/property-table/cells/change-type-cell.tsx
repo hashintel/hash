@@ -5,7 +5,8 @@ import {
   GridCellKind,
   Item,
 } from "@glideapps/glide-data-grid";
-import { customColors } from "@hashintel/design-system";
+import { customColors } from "@hashintel/design-system/theme";
+import { DataTypeWithMetadata } from "@local/hash-subgraph";
 import produce from "immer";
 import { RefObject } from "react";
 
@@ -15,14 +16,13 @@ import { drawChip } from "../../../../../../../../components/grid/utils/draw-chi
 import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/draw-chip-with-icon";
 import { propertyGridIndexes } from "../constants";
 import { PropertyRow } from "../types";
-import { getChipColors } from "./chip-cell";
-import { editorSpecs } from "./value-cell/editor-specs";
+import { getEditorSpecs } from "./value-cell/editor-specs";
 import { ValueCell } from "./value-cell/types";
 import { guessEditorTypeFromExpectedType } from "./value-cell/utils";
 
 export interface ChangeTypeCellProps {
   readonly kind: "change-type-cell";
-  currentType: string;
+  currentType: DataTypeWithMetadata["schema"];
   propertyRow: PropertyRow;
   valueCellOfThisRow: ValueCell;
 }
@@ -42,6 +42,7 @@ export const createRenderChangeTypeCell = (
   return {
     kind: GridCellKind.Custom,
     isMatch: (cell: CustomCell): cell is ChangeTypeCell =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (cell.data as any).kind === "change-type-cell",
     draw: (args, cell) => {
       const { theme, rect, ctx, spriteManager } = args;
@@ -50,21 +51,20 @@ export const createRenderChangeTypeCell = (
 
       const chipLeft = rect.x + theme.cellHorizontalPadding;
 
-      const { bgColor, textColor } = getChipColors("blue");
-
       ctx.font = changeTextFont;
       const changeTextWidth = ctx.measureText(changeText).width;
 
-      const editorSpec =
-        editorSpecs[guessEditorTypeFromExpectedType(currentType)];
+      const editorSpec = getEditorSpecs(
+        guessEditorTypeFromExpectedType(currentType),
+        currentType,
+      );
 
       const drawTheLeftChip = () =>
         drawChipWithIcon({
           args,
-          text: currentType,
+          text: currentType.title,
           left: chipLeft,
-          textColor,
-          bgColor,
+          color: "blue",
           icon: editorSpec.gridIcon,
         });
 

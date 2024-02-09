@@ -3,79 +3,163 @@ import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/da
 import {
   fa100,
   faAsterisk,
+  faAtRegular,
   faBracketsCurly,
   faBracketsSquare,
+  faCalendarClockRegular,
+  faCalendarRegular,
+  faClockRegular,
   faEmptySet,
+  faInputPipeRegular,
+  faRulerRegular,
   faSquareCheck,
   faText,
 } from "@hashintel/design-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { CustomDataType } from "@local/hash-subgraph";
 
 import { EditorType } from "./types";
 
 interface EditorSpec {
   icon: IconDefinition["icon"];
-  title: string;
   gridIcon: CustomIcon;
   defaultValue?: unknown;
   arrayEditException?: "no-edit-mode" | "no-save-and-discard-buttons";
-  valueToString: (value: any) => string;
   shouldBeDrawnAsAChip?: boolean;
 }
 
-export const editorSpecs: Record<EditorType, EditorSpec> = {
+// @todo consolidate this with data-types-options-context.tsx in the entity type editor
+const editorSpecs: Record<EditorType, EditorSpec> = {
   boolean: {
     icon: faSquareCheck,
-    title: types.dataType.boolean.title,
     gridIcon: "bpTypeBoolean",
     defaultValue: true,
     arrayEditException: "no-edit-mode",
-    valueToString: (value: boolean) => (value ? "True" : "False"),
   },
   number: {
     icon: fa100,
-    title: types.dataType.number.title,
     gridIcon: "bpTypeNumber",
-    valueToString: (value: number) => String(value),
   },
-  text: {
+  string: {
     icon: faText,
-    title: types.dataType.text.title,
     gridIcon: "bpTypeText",
-    valueToString: (value: string) => value,
   },
   object: {
     icon: faBracketsCurly,
-    title: types.dataType.object.title,
     gridIcon: "bpBracketsCurly",
     arrayEditException: "no-save-and-discard-buttons",
-    valueToString: () => "Object",
     shouldBeDrawnAsAChip: true,
   },
   emptyList: {
     icon: faBracketsSquare,
-    title: types.dataType.emptyList.title,
     gridIcon: "bpBracketsSquare",
     defaultValue: [],
     arrayEditException: "no-edit-mode",
-    valueToString: () => "Empty List",
     shouldBeDrawnAsAChip: true,
   },
   null: {
     icon: faEmptySet,
-    title: types.dataType.null.title,
     gridIcon: "bpEmptySet",
     defaultValue: null,
     arrayEditException: "no-edit-mode",
-    valueToString: () => "Null",
     shouldBeDrawnAsAChip: true,
   },
   unknown: {
     icon: faAsterisk,
-    title: "Unknown Type",
     gridIcon: "bpAsterisk",
     defaultValue: "",
     arrayEditException: "no-edit-mode",
-    valueToString: () => "Unknown",
   },
+};
+
+const measurementTypeTitles = [
+  "Inches",
+  "Feet",
+  "Yards",
+  "Miles",
+  "Nanometers",
+  "Millimeters",
+  "Centimeters",
+  "Meters",
+  "Kilometers",
+];
+
+const identifierTypeTitles = ["URL", "URI"];
+
+export const getEditorSpecs = (
+  editorType: EditorType,
+  dataType?: CustomDataType,
+): EditorSpec => {
+  switch (editorType) {
+    case "boolean":
+      return editorSpecs.boolean;
+    case "number":
+      if (dataType?.title && measurementTypeTitles.includes(dataType.title)) {
+        return {
+          ...editorSpecs.number,
+          icon: faRulerRegular,
+          gridIcon: "rulerRegular",
+        };
+      }
+      return editorSpecs.number;
+    case "string":
+      if (dataType && "format" in dataType) {
+        switch (dataType.format) {
+          case "uri":
+            return {
+              ...editorSpecs.string,
+              icon: faInputPipeRegular,
+              gridIcon: "inputPipeRegular",
+            };
+          case "email":
+            return {
+              ...editorSpecs.string,
+              icon: faAtRegular,
+              gridIcon: "atRegular",
+            };
+          case "date":
+            return {
+              ...editorSpecs.string,
+              icon: faCalendarRegular,
+              gridIcon: "calendarRegular",
+            };
+          case "time":
+            return {
+              ...editorSpecs.string,
+              icon: faClockRegular,
+              gridIcon: "clockRegular",
+            };
+          case "date-time":
+            return {
+              ...editorSpecs.string,
+              icon: faCalendarClockRegular,
+              gridIcon: "calendarClockRegular",
+            };
+        }
+      }
+      if (dataType?.title === "Email") {
+        return {
+          ...editorSpecs.string,
+          icon: faAtRegular,
+          gridIcon: "atRegular",
+        };
+      }
+      if (dataType?.title && identifierTypeTitles.includes(dataType.title)) {
+        return {
+          ...editorSpecs.string,
+          icon: faInputPipeRegular,
+          gridIcon: "inputPipeRegular",
+        };
+      }
+      return editorSpecs.string;
+    case "object":
+      return editorSpecs.object;
+    case "emptyList":
+      return editorSpecs.emptyList;
+    case "null":
+      return editorSpecs.null;
+    case "unknown":
+      return editorSpecs.unknown;
+    default:
+      throw new Error(`Unknown editor type: ${editorType}`);
+  }
 };

@@ -1,4 +1,5 @@
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
+import { DataTypeWithMetadata } from "@local/hash-subgraph";
 
 import { VerticalIndentationLineDir } from "../../../../../../../components/grid/utils/draw-vertical-indentation-line";
 
@@ -6,7 +7,7 @@ export type PropertyRow = {
   title: string;
   rowId: string;
   value: unknown;
-  expectedTypes: string[];
+  expectedTypes: DataTypeWithMetadata["schema"][];
   isArray: boolean;
   required: boolean;
   children: PropertyRow[];

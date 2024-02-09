@@ -142,12 +142,12 @@ export const getSerializedPage = async (params: {
   return [serializedMdx, data, images];
 };
 
-export type Page<DataType extends {}> = {
+export type Page<DataType extends Record<string, unknown>> = {
   fileName: string;
   data: DataType;
 };
 
-export const getPage = <DataType extends {}>(params: {
+export const getPage = <DataType extends Record<string, unknown>>(params: {
   pathToDirectory: string;
   fileName: string;
 }): Page<DataType> => {
@@ -163,7 +163,7 @@ export const getPage = <DataType extends {}>(params: {
   };
 };
 
-export const getAllPages = <DataType extends {}>(
+export const getAllPages = <DataType extends Record<string, unknown>>(
   pathToDirectory: string,
 ): Page<DataType>[] => {
   const fileNames = readdirSync(

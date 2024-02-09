@@ -48,9 +48,9 @@ export const FilterRow = ({
     <Stack
       direction="row"
       gap={1.5}
-      sx={{ alignItems: "center", fontSize: 14 }}
+      sx={{ alignItems: "center", fontSize: 14, maxWidth: "100%" }}
     >
-      <Box sx={{ width: 80 }}>
+      <Box>
         {isFirstOne ? (
           "Where"
         ) : isSecondOne ? (

@@ -76,7 +76,7 @@ where
 
         (value, end)
             .fold_reports()
-            .map(|(value, _)| value)
+            .map(|(value, ())| value)
             .change_context(VisitorError)
     }
 }

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+  "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
+  "kind": "propertyType",
+  "title": "Description",
+  "description": "A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.",
+  "oneOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+    }
+  ]
+}

@@ -57,7 +57,7 @@ export const BlockRenderer: FunctionComponent<BlockRendererProps> = ({
         `'react' entryPoint expects parsed source to be a function, but got: ${typeof blockSource}`,
       );
     }
-    const BlockComponent = blockSource as (...props: any[]) => ReactElement;
+    const BlockComponent = blockSource as (...props: unknown[]) => ReactElement;
     return <BlockComponent {...properties} />;
   }
 

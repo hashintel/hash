@@ -3,11 +3,11 @@ import { useMemo, useRef } from "react";
 
 import { Grid } from "../../../../../../components/grid/grid";
 import { useGridTooltip } from "../../../../../../components/grid/utils/use-grid-tooltip";
+import { renderChipCell } from "../../../../../shared/chip-cell";
 import { useEntityEditor } from "../entity-editor-context";
+import { renderSummaryChipCell } from "../shared/summary-chip-cell";
 import { createRenderChangeTypeCell } from "./property-table/cells/change-type-cell";
-import { renderChipCell } from "./property-table/cells/chip-cell";
 import { createRenderPropertyNameCell } from "./property-table/cells/property-name-cell";
-import { renderSummaryChipCell } from "./property-table/cells/summary-chip-cell";
 import { renderValueCell } from "./property-table/cells/value-cell";
 import { propertyGridColumns } from "./property-table/constants";
 import { useCreateGetCellContent } from "./property-table/use-create-get-cell-content";

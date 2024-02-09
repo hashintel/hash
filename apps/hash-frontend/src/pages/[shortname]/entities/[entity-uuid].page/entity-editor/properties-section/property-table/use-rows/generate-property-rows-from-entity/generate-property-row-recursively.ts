@@ -8,12 +8,12 @@ import {
   EntityRootType,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getPropertyTypesByBaseUrl } from "@local/hash-subgraph/stdlib";
+import { getPropertyTypeById } from "@local/hash-subgraph/stdlib";
 import { get } from "lodash";
 
 import {
   isPropertyValueArray,
-  isPropertyValueNested,
+  isPropertyValuePropertyObject,
 } from "../../../../../../../../../lib/typeguards";
 import { PropertyRow } from "../../types";
 import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property-type";
@@ -46,6 +46,9 @@ import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property
  * @param depth
  * Depth of the property. For properties at root, depth starts from `0`
  *
+ * @param propertyRefSchema
+ * The schema referring to this property, which might be found on the entity type or a property type object
+ *
  * @returns property row (and nested rows as `children` if it's a nested property)
  */
 export const generatePropertyRowRecursively = ({
@@ -55,7 +58,7 @@ export const generatePropertyRowRecursively = ({
   entitySubgraph,
   requiredPropertyTypes,
   depth = 0,
-  propertyOnEntityTypeSchema,
+  propertyRefSchema,
 }: {
   propertyTypeBaseUrl: BaseUrl;
   propertyKeyChain: BaseUrl[];
@@ -63,55 +66,57 @@ export const generatePropertyRowRecursively = ({
   entitySubgraph: Subgraph<EntityRootType>;
   requiredPropertyTypes: BaseUrl[];
   depth?: number;
-
-  propertyOnEntityTypeSchema?: ValueOrArray<PropertyTypeReference>;
+  propertyRefSchema: ValueOrArray<PropertyTypeReference>;
 }): PropertyRow => {
-  const propertyTypeVersions = getPropertyTypesByBaseUrl(
+  const propertyTypeId =
+    "$ref" in propertyRefSchema
+      ? propertyRefSchema.$ref
+      : propertyRefSchema.items.$ref;
+
+  const propertyType = getPropertyTypeById(
     entitySubgraph,
-    propertyTypeBaseUrl,
-  );
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
-  if (!propertyTypeVersions) {
-    throw new Error(
-      `propertyType not found for base URL: ${propertyTypeBaseUrl}`,
-    );
+    propertyTypeId,
+  )?.schema;
+  if (!propertyType) {
+    throw new Error(`Property type ${propertyTypeId} not found in subgraph`);
   }
-
-  const propertyType = propertyTypeVersions[0]!.schema;
 
   const { isArray: isPropertyTypeArray, expectedTypes } =
     getExpectedTypesOfPropertyType(propertyType, entitySubgraph);
 
-  const isAllowMultiple =
-    !!propertyOnEntityTypeSchema && "type" in propertyOnEntityTypeSchema;
+  const isAllowMultiple = "type" in propertyRefSchema;
 
   const isArray = isPropertyTypeArray || isAllowMultiple;
 
-  const required = !!requiredPropertyTypes.includes(propertyTypeBaseUrl);
+  const required = requiredPropertyTypes.includes(propertyTypeBaseUrl);
 
   const value = get(entity.properties, propertyKeyChain);
 
   const children: PropertyRow[] = [];
 
   const firstOneOf = propertyType.oneOf[0];
-  const isFirstOneOfNested = isPropertyValueNested(firstOneOf);
+  const isFirstOneOfNested = isPropertyValuePropertyObject(firstOneOf);
   const isFirstOneOfArray = isPropertyValueArray(firstOneOf);
 
   // if first `oneOf` of property type is nested property, it means it should have children
   if (isFirstOneOfNested) {
-    for (const subPropertyTypeBaseUrl of Object.keys(firstOneOf.properties)) {
+    for (const [subPropertyTypeBaseUrl, subPropertyRefSchema] of Object.entries(
+      firstOneOf.properties,
+    )) {
       children.push(
         generatePropertyRowRecursively({
           propertyTypeBaseUrl: subPropertyTypeBaseUrl as BaseUrl,
           propertyKeyChain: [
             ...propertyKeyChain,
+            // @todo H-1785 handle arrays of property objects in the entity editor – this will just take the first for now
+            ...(isArray ? [0] : []),
             subPropertyTypeBaseUrl,
           ] as BaseUrl[],
           entity,
           entitySubgraph,
           requiredPropertyTypes,
           depth: depth + 1,
+          propertyRefSchema: subPropertyRefSchema,
         }),
       );
     }
@@ -132,8 +137,8 @@ export const generatePropertyRowRecursively = ({
      * "property type is an array"
      */
     if (isAllowMultiple) {
-      minMaxConfig.maxItems = propertyOnEntityTypeSchema.maxItems;
-      minMaxConfig.minItems = propertyOnEntityTypeSchema.minItems;
+      minMaxConfig.maxItems = propertyRefSchema.maxItems;
+      minMaxConfig.minItems = propertyRefSchema.minItems;
     } else if (isFirstOneOfArray) {
       minMaxConfig.maxItems = firstOneOf.maxItems;
       minMaxConfig.minItems = firstOneOf.minItems;

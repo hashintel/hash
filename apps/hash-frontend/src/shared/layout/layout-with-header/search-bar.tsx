@@ -31,6 +31,7 @@ const splitByMatches = (result: string, query: string) => {
   return result.split(new RegExp(`(${separator})`, "gi"));
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const toBlockUrl = (searchPage: any): string => {
   const segments = [
     "/",
@@ -156,6 +157,7 @@ const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
 
   const { authenticatedUser: _ } = useAuthenticatedUser();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data: any = [];
   const loading = false;
   /**
@@ -238,12 +240,12 @@ const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
             <ResultItem sx={{ display: "block" }}>
               Loading results for&nbsp;<b>{submittedQuery}</b>.
             </ResultItem>
-          ) : !data?.searchPages.length ? (
+          ) : !data.searchPages.length ? (
             <ResultItem sx={{ display: "block" }}>
               No results found for&nbsp;<b>{submittedQuery}</b>.
             </ResultItem>
           ) : (
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
             data.searchPages.map((searchPage: any) => (
               <ResultItem
                 key={searchPage.block?.entityId ?? searchPage.page.entityId}

@@ -5,6 +5,7 @@ import * as http from "node:http";
 
 import {
   getRequiredEnv,
+  realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -20,6 +21,14 @@ import {
 import { sql } from "slonik";
 
 import { generateQueues, MONITOR_TABLES } from "./config";
+
+if (!realtimeSyncEnabled) {
+  // eslint-disable-next-line no-console
+  console.log(
+    "*********** Realtime sync is not enabled – exiting. ***********",
+  );
+  process.exit();
+}
 
 // The number of milliseconds between queries to the replication slot
 const POLL_INTERVAL_MILLIS = 250;
@@ -125,7 +134,7 @@ const updateSlotOwnership = async (pool: PgPool, slotName: string) => {
       } * interval '1 second'
     where slot_name = ${slotName} and slot_owner = ${INSTANCE_ID}
   `);
-  logger.debug(`Updated ownership of slot "${slotName}"`);
+  logger.silly(`Updated ownership of slot "${slotName}"`);
 };
 
 /** Release ownership of the slot. Does nothing if this instance is not the current
@@ -221,7 +230,7 @@ const main = async () => {
      * @todo: update how the database is set once realtime if realtime is run in the testing environment.
      *   See https://app.asana.com/0/0/1203046447168483/f
      */
-    database: getRequiredEnv("HASH_GRAPH_PG_DEV_DATABASE"),
+    database: getRequiredEnv("HASH_GRAPH_PG_DATABASE"),
     password: getRequiredEnv("HASH_GRAPH_REALTIME_PG_PASSWORD"),
     maxPoolSize: 1,
   });
@@ -285,7 +294,7 @@ const main = async () => {
       ]);
     } catch (error) {
       logger.error(
-        "An error occoured while polling/updating replication owner.",
+        "An error occurred while polling/updating replication owner.",
         error,
       );
     }

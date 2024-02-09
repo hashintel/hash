@@ -6,21 +6,20 @@
   "license": "AGPL-3.0",
   "main": "index.ts",
   "scripts": {
-    "build": "echo 'no build needed, this is here to orchestrate turborepo'",
     "codegen": "redocly bundle --format=json -o openapi.bundle.json ../../../../apps/hash-graph/openapi/openapi.json && openapi-generator-cli generate && rm openapi.bundle.json"
   },
   "dependencies": {
     "@openapitools/openapi-generator-cli": "2.5.2",
-    "axios": "0.27.2"
+    "axios": "1.6.0"
   },
   "devDependencies": {
     "@apps/hash-graph": "0.0.0-private",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@redocly/cli": "1.0.2",
+    "@redocly/cli": "1.8.0",
     "@types/node": "18.15.13",
-    "@typescript-eslint/parser": "5.49.0",
-    "eslint": "8.33.0",
+    "@typescript-eslint/parser": "6.20.0",
+    "eslint": "8.56.0",
     "typescript": "5.1.6"
   }
 }

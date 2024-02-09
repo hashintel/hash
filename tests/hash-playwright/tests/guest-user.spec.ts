@@ -1,3 +1,6 @@
+// eslint-disable-next-line no-restricted-imports
+import { test as testTolerateConsoleErrors } from "@playwright/test";
+
 import { resetDb } from "./shared/reset-db";
 import { expect, test } from "./shared/runtime";
 
@@ -5,74 +8,61 @@ test.beforeEach(async () => {
   await resetDb();
 });
 
-/**
- * @todo: Re-enable this playwright test when resetting db functionality is fixed
- * @see https://app.asana.com/0/1202805690238892/1203106234191599/f
- */
-test.skip("guest user navigation to login and signup pages", async ({
-  page,
-}) => {
+test("guest user navigation to login and signup pages", async ({ page }) => {
   await page.goto("/");
   await page.waitForURL("**/login");
 
-  await expect(page.locator("text=Sign in to your account")).toBeVisible();
-  await expect(page.locator("text=No account? No problem")).toBeVisible();
+  await expect(page.locator("text=Log in to your account")).toBeVisible();
+  await expect(page.locator("text=Create account")).toBeVisible();
 
-  await page.click("text=No account? No problem");
+  await page.click("text=Create account");
 
-  await Promise.all([
-    page.click("text=Create a free account"),
-    page.waitForURL("**/signup"),
-  ]);
+  await page.waitForURL("**/signup");
 
   await expect(
-    page.locator('[placeholder="Enter your email address.."]'),
+    page.locator('[placeholder="Enter your email address"]'),
   ).toBeVisible();
 
   await expect(
-    page.locator('button:has-text("Continue with email")'),
+    page.locator('button:has-text("Sign up with email")'),
   ).toBeVisible();
 
   await expect(
-    page.locator(
-      "text=Alternatively if you already have a HASH account, Click here to log in",
-    ),
+    page.locator("text=Already have an account? Log in"),
   ).toBeVisible();
 
-  await Promise.all([
-    page.click("text=Click here to log in"),
-    page.waitForURL("**/login"),
-  ]);
+  await Promise.all([page.click("text=Log in"), page.waitForURL("**/login")]);
 
-  await expect(
-    page.locator('h1:has-text("Sign in to your account")'),
-  ).toBeVisible();
-
-  await page.click('[placeholder="Enter your email or shortname"]');
-
-  await page.fill(
-    '[placeholder="Enter your email or shortname"]',
-    "hello world",
-  );
-
-  await page.click('button:has-text("Submit")');
-
-  await page.click(
-    "text=A user with the shortname 'hello world' could not be found.",
-  );
+  await expect(page.locator('h1:has-text("Log In")')).toBeVisible();
 });
 
-/**
- * @todo: Re-enable this playwright test when resetting db functionality is fixed
- * @see https://app.asana.com/0/1202805690238892/1203106234191599/f
- */
-test.skip("guest user navigation to inaccessible pages", async ({ page }) => {
+testTolerateConsoleErrors(
+  "incorrect credentials are handled",
+  async ({ page }) => {
+    await page.goto("/");
+    await page.waitForURL("**/login");
+
+    await expect(page.locator("text=Log in to your account")).toBeVisible();
+
+    await page.fill(
+      '[placeholder="Enter your email address"]',
+      "helloworld@example.com",
+    );
+
+    await page.fill('[type="password"]', "password");
+
+    await page.click('button:has-text("Log in to your account")');
+
+    await expect(
+      page.locator("text=The provided credentials are invalid"),
+    ).toBeVisible();
+  },
+);
+
+test("guest user redirected to login page", async ({ page }) => {
   await page.goto("/non/existing/page");
-  await expect(page).toHaveTitle("404: This page could not be found");
 
-  await expect(
-    page.locator("text=This page could not be found."),
-  ).toBeVisible();
+  await page.waitForURL("**/login");
 
-  await expect(page.locator("text=Sign InSign Up")).toBeVisible();
+  await expect(page.locator("text=Log in to your account")).toBeVisible();
 });

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+  "kind": "entityType",
+  "$id": "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
+  "type": "object",
+  "title": "Person",
+  "properties": {
+    "https://blockprotocol.org/@alice/types/property-type/name/": {
+      "$ref": "https://blockprotocol.org/@alice/types/property-type/name/v/1"
+    },
+    "https://blockprotocol.org/@alice/types/property-type/age/": {
+      "$ref": "https://blockprotocol.org/@alice/types/property-type/age/v/1"
+    }
+  },
+  "links": {
+    "https://blockprotocol.org/@alice/types/entity-type/friend-of/v/1": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "https://blockprotocol.org/@alice/types/entity-type/person/v/1"
+          }
+        ]
+      },
+      "ordered": false
+    },
+    "https://blockprotocol.org/@alice/types/entity-type/acquaintance-of/v/1": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "https://blockprotocol.org/@alice/types/entity-type/person/v/1"
+          }
+        ]
+      },
+      "ordered": false
+    }
+  }
+}

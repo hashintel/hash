@@ -1,6 +1,5 @@
 import { gql } from "@apollo/client";
-
-import { subgraphFieldsFragment } from "../subgraph";
+import { subgraphFieldsFragment } from "@local/hash-isomorphic-utils/graphql/queries/subgraph";
 
 export const getEntityTypeQuery = gql`
   query getEntityType(
@@ -10,6 +9,7 @@ export const getEntityTypeQuery = gql`
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
     $inheritsFrom: OutgoingEdgeResolveDepthInput!
+    $includeArchived: Boolean = false
   ) {
     getEntityType(
       entityTypeId: $entityTypeId
@@ -18,6 +18,7 @@ export const getEntityTypeQuery = gql`
       constrainsLinksOn: $constrainsLinksOn
       constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
       inheritsFrom: $inheritsFrom
+      includeArchived: $includeArchived
     ) {
       ...SubgraphFields
     }
@@ -54,9 +55,14 @@ export const createEntityTypeMutation = gql`
   mutation createEntityType(
     $ownedById: OwnedById!
     $entityType: ConstructEntityTypeParams!
+    $icon: String
   ) {
     # This is a scalar, which has no selection.
-    createEntityType(ownedById: $ownedById, entityType: $entityType)
+    createEntityType(
+      ownedById: $ownedById
+      entityType: $entityType
+      icon: $icon
+    )
   }
 `;
 
@@ -64,10 +70,12 @@ export const updateEntityTypeMutation = gql`
   mutation updateEntityType(
     $entityTypeId: VersionedUrl!
     $updatedEntityType: ConstructEntityTypeParams!
+    $icon: String
   ) {
     updateEntityType(
       entityTypeId: $entityTypeId
       updatedEntityType: $updatedEntityType
+      icon: $icon
     )
   }
 `;

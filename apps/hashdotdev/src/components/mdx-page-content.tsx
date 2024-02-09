@@ -97,8 +97,11 @@ export const MdxPageContent: FunctionComponent<MdxPageContentProps> = ({
       <Box
         sx={[
           {
-            [`& .MuiTypography-hashBodyCopy`]: {
-              maxWidth: paragraphMaxWidth,
+            "& > :not(.info-card-wrapper), > a:not(.info-card-wrapper) > *": {
+              width: {
+                xs: "100%",
+                sm: paragraphMaxWidth,
+              },
             },
           },
           ...(Array.isArray(wrapperSx) ? wrapperSx : [wrapperSx]),

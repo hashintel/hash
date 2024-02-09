@@ -1,0 +1,22 @@
+import { OwnedById } from "@local/hash-subgraph";
+import { Node } from "prosemirror-model";
+import { EditorView } from "prosemirror-view";
+
+import { RenderPortal } from "../block-portals";
+import { MentionView } from "./mention-view";
+
+export const mentionNodeView =
+  (renderPortal: RenderPortal, ownedById: OwnedById) =>
+  (currentNode: Node, currentView: EditorView, getPos: () => number) => {
+    if (typeof getPos === "boolean") {
+      throw new Error("Invalid config for nodeview");
+    }
+
+    return new MentionView(
+      currentNode,
+      currentView,
+      getPos,
+      renderPortal,
+      ownedById,
+    );
+  };

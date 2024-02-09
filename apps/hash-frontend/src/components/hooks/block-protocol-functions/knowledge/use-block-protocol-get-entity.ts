@@ -1,12 +1,13 @@
 import { useLazyQuery } from "@apollo/client";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+import { EntityRootType } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import {
   GetEntityQuery,
   GetEntityQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { getEntityQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { GetEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolGetEntity = (): {
@@ -15,8 +16,7 @@ export const useBlockProtocolGetEntity = (): {
   const [getEntityFn] = useLazyQuery<GetEntityQuery, GetEntityQueryVariables>(
     getEntityQuery,
     {
-      /** @todo reconsider caching. This is done for testing/demo purposes. */
-      fetchPolicy: "no-cache",
+      fetchPolicy: "cache-and-network",
     },
   );
 
@@ -42,6 +42,7 @@ export const useBlockProtocolGetEntity = (): {
           constrainsPropertiesOn: { outgoing: 255 },
           constrainsLinksOn: { outgoing: 1 },
           constrainsLinkDestinationsOn: { outgoing: 1 },
+          includePermissions: false,
           inheritsFrom: { outgoing: 255 },
           isOfType: { outgoing: 1 },
           hasLeftEntity: { outgoing: 1, incoming: 1 },
@@ -50,9 +51,9 @@ export const useBlockProtocolGetEntity = (): {
         },
       });
 
-      const { getEntity: entitySubgraph } = response ?? {};
+      const { getEntity: subgraphAndPermissions } = response ?? {};
 
-      if (!entitySubgraph) {
+      if (!subgraphAndPermissions) {
         return {
           errors: [
             {
@@ -63,10 +64,12 @@ export const useBlockProtocolGetEntity = (): {
         };
       }
 
-      return {
-        /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-        data: entitySubgraph as Subgraph<EntityRootType>,
-      };
+      /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        subgraphAndPermissions.subgraph,
+      );
+
+      return { data: subgraph };
     },
     [getEntityFn],
   );

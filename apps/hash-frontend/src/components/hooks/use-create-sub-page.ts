@@ -1,10 +1,8 @@
 import { useMutation } from "@apollo/client";
 import {
   EntityId,
-  EntityUuid,
   extractEntityUuidFromEntityId,
   OwnedById,
-  Uuid,
 } from "@local/hash-subgraph";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
@@ -12,19 +10,23 @@ import { useCallback } from "react";
 import {
   CreatePageMutation,
   CreatePageMutationVariables,
+  PageType,
   SetParentPageMutation,
   SetParentPageMutationVariables,
 } from "../../graphql/api-types.gen";
-import { getAccountPagesTree } from "../../graphql/queries/account.queries";
+import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { createPage, setParentPage } from "../../graphql/queries/page.queries";
 import { constructPageRelativeUrl } from "../../lib/routes";
-import { useWorkspaceShortnameByEntityUuid } from "./use-workspace-shortname-by-entity-uuid";
+import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 
-export const useCreateSubPage = (ownedById: OwnedById) => {
+export const useCreateSubPage = ({
+  shortname,
+  ownedById,
+}: {
+  shortname?: string;
+  ownedById?: OwnedById;
+}) => {
   const router = useRouter();
-  const { workspaceShortname } = useWorkspaceShortnameByEntityUuid({
-    entityUuid: ownedById as Uuid as EntityUuid,
-  });
 
   const [createPageFn, { loading: createPageLoading }] = useMutation<
     CreatePageMutation,
@@ -35,16 +37,33 @@ export const useCreateSubPage = (ownedById: OwnedById) => {
     SetParentPageMutation,
     SetParentPageMutationVariables
   >(setParentPage, {
-    awaitRefetchQueries: true,
-    refetchQueries: () => [
-      { query: getAccountPagesTree, variables: { ownedById } },
+    awaitRefetchQueries: false,
+    refetchQueries: [
+      {
+        query: structuralQueryEntitiesQuery,
+        variables: getAccountPagesVariables({ ownedById }),
+      },
     ],
   });
 
   const createSubPage = useCallback(
-    async (parentPageEntityId: EntityId, prevIndex: string | null) => {
+    async (
+      parentPageEntityId: EntityId,
+      prevFractionalIndex: string | null,
+      type: "canvas" | "document",
+    ) => {
+      if (!ownedById) {
+        throw new Error("No ownedById provided to useCreateSubPage");
+      }
+
       const response = await createPageFn({
-        variables: { ownedById, properties: { title: "Untitled" } },
+        variables: {
+          ownedById,
+          properties: {
+            title: "Untitled",
+            type: type === "canvas" ? PageType.Canvas : PageType.Document,
+          },
+        },
       });
 
       if (response.data?.createPage) {
@@ -55,23 +74,26 @@ export const useCreateSubPage = (ownedById: OwnedById) => {
           variables: {
             pageEntityId,
             parentPageEntityId,
-            prevIndex,
+            prevFractionalIndex,
           },
         });
 
         if (
-          workspaceShortname &&
+          shortname &&
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
           pageEntityId
         ) {
           const pageEntityUuid = extractEntityUuidFromEntityId(pageEntityId);
           return router.push(
-            constructPageRelativeUrl({ workspaceShortname, pageEntityUuid }),
+            constructPageRelativeUrl({
+              workspaceShortname: shortname,
+              pageEntityUuid,
+            }),
           );
         }
       }
     },
-    [createPageFn, ownedById, setParentPageFn, router, workspaceShortname],
+    [createPageFn, ownedById, setParentPageFn, router, shortname],
   );
 
   return [

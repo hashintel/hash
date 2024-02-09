@@ -1,8 +1,4 @@
 import {
-  validateVersionedUrl,
-  VersionedUrl,
-} from "@blockprotocol/type-system/slim";
-import {
   Box,
   Stack,
   SxProps,
@@ -10,50 +6,37 @@ import {
   Typography,
   typographyClasses,
 } from "@mui/material";
-import { forwardRef, ForwardRefRenderFunction, ReactNode } from "react";
+import { forwardRef, ForwardRefRenderFunction, useMemo } from "react";
 
 import { IconRainbowHash } from "./icon-rainbow-hash";
-
-export const parseUrlForOntologyChip = (url: VersionedUrl) => {
-  const validationResult = validateVersionedUrl(url);
-  if (validationResult.type === "Err") {
-    throw new Error(
-      `Could not validate url as VersionedUrl: ${validationResult.inner.reason}`,
-    );
-  }
-  const parsed = validationResult.inner;
-  const parsedUrl = new URL(parsed);
-  const domain =
-    parsedUrl.host === "localhost:3000" ? "localhost" : parsedUrl.host;
-  const path = parsedUrl.pathname.slice(1);
-
-  return { domain, path };
-};
 
 // @todo make this take the id
 const OntologyChip: ForwardRefRenderFunction<
   HTMLDivElement,
   {
     domain: string;
-    path: ReactNode;
+    path: string;
     sx?: SxProps<Theme>;
   }
-> = (
-  {
-    domain,
-    path,
-    sx = [],
-    ...props
-  }: {
-    domain: string;
-    path: ReactNode;
-    sx?: SxProps<Theme>;
-  },
-  ref,
-) => {
+> = ({ domain, path, sx = [], ...props }, ref) => {
   const isHash = domain === "hash.ai";
 
   const icon = isHash ? <IconRainbowHash /> : null;
+
+  const pathComponents = useMemo(() => {
+    const match = path.match(
+      /(@[\w-]+)(\/[^/]+\/[^/]*)?(?:\/([\w-]+))?(\/.*)?/,
+    );
+
+    return match
+      ? {
+          shortname: match[1],
+          between: match[2] ? `${match[2]}${match[3] ? "/" : ""}` : undefined,
+          slug: match[3],
+          after: match[4],
+        }
+      : undefined;
+  }, [path]);
 
   return (
     <Stack
@@ -108,6 +91,7 @@ const OntologyChip: ForwardRefRenderFunction<
       <Typography
         component={Stack}
         direction="row"
+        data-testid="ontology-chip-path"
         sx={(theme) => ({
           alignItems: "center",
           pr: 1.25,
@@ -116,26 +100,63 @@ const OntologyChip: ForwardRefRenderFunction<
           display: "flex",
           flexShrink: 1,
           minWidth: 0,
-
-          [`.${typographyClasses.root}`]: {
+          [`& > span`]: {
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
-
-            "&:last-of-type:not(:nth-of-type(1))": {
-              // Place the overflow ellipsis at the beginning, not the end
-              "&:before": {
-                // Ensure special characters aren't placed at the end
-                // @see https://stackoverflow.com/questions/9793473/text-overflow-ellipsis-on-left-side#comment82783230_9793669
-                content: '"\\00200e"',
-              },
-              direction: "rtl",
-              textAlign: "left",
+            // Place the overflow ellipsis at the beginning, not the end
+            "&:before": {
+              // Ensure special characters aren't placed at the end
+              // @see https://stackoverflow.com/questions/9793473/text-overflow-ellipsis-on-left-side#comment82783230_9793669
+              content: '"\\00200e"',
             },
+            direction: "rtl",
+            textAlign: "left",
           },
         })}
       >
-        {path}
+        {pathComponents ? (
+          <Box component="span">
+            <Typography
+              component="span"
+              fontWeight="bold"
+              color={(theme) => theme.palette.blue[70]}
+            >
+              {pathComponents.shortname}
+            </Typography>
+            <Typography
+              component="span"
+              color={(theme) => theme.palette.blue[70]}
+            >
+              {pathComponents.between}
+            </Typography>
+            {pathComponents.slug ? (
+              <Typography
+                component="span"
+                fontWeight="bold"
+                color={(theme) => theme.palette.blue[70]}
+              >
+                {pathComponents.slug}
+              </Typography>
+            ) : null}
+            {pathComponents.after ? (
+              <Typography
+                component="span"
+                color={(theme) => theme.palette.blue[70]}
+              >
+                {pathComponents.after}
+              </Typography>
+            ) : null}
+          </Box>
+        ) : (
+          <Typography
+            component="span"
+            fontWeight="bold"
+            color={(theme) => theme.palette.blue[70]}
+          >
+            {path}
+          </Typography>
+        )}
       </Typography>
     </Stack>
   );

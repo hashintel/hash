@@ -1,10 +1,10 @@
 import axios, { AxiosError, AxiosInstance } from "axios";
 
-type VaultSecret<D = any> = {
+type VaultSecret<D = unknown> = {
   data: D;
   metadata: {
     created_time: string;
-    custom_metadata: any;
+    custom_metadata: unknown;
     deletion_time: string;
     destroyed: boolean;
     version: number;
@@ -57,7 +57,7 @@ export class VaultClient {
     };
   }
 
-  async read<D = any>(params: {
+  async read<D = unknown>(params: {
     secretMountPath: string;
     path: string;
   }): Promise<VaultSecret<D>> {

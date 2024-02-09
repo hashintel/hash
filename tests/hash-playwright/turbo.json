@@ -1,0 +1,9 @@
+{
+  "extends": ["//"],
+  "pipeline": {
+    "test:system": {
+      "dependsOn": ["@apps/plugin-browser#build:test"],
+      "cache": false
+    }
+  }
+}

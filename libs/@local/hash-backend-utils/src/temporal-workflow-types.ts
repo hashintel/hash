@@ -1,27 +1,34 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { Issue, Team, User } from "@linear/sdk";
-import {
-  AccountId,
-  Entity,
-  EntityPropertiesObject,
-  OwnedById,
-} from "@local/hash-subgraph";
+import { Team } from "@linear/sdk";
+import { AccountId, Entity, OwnedById } from "@local/hash-subgraph";
 
 export type PartialEntity = {
   properties: Partial<Entity["properties"]>;
   entityTypeId: VersionedUrl;
 };
 
-export type CreateHashIssueWorkflow = (params: {
-  payload: Issue;
+export const supportedLinearTypes = ["Issue", "User"] as const;
+
+export type SupportedLinearType = (typeof supportedLinearTypes)[number];
+
+export type CreateHashEntityFromLinearData = <
+  T extends SupportedLinearType = SupportedLinearType,
+>(params: {
+  authentication: { actorId: AccountId };
+  linearId: string;
+  linearType: T;
+  linearApiKey: string;
   ownedById: OwnedById;
-  actorId: AccountId;
 }) => Promise<void>;
 
-export type CreateHashUserWorkflow = (params: {
-  payload: User;
+export type UpdateHashEntityFromLinearData = <
+  T extends SupportedLinearType = SupportedLinearType,
+>(params: {
+  authentication: { actorId: AccountId };
+  linearId: string;
+  linearType: T;
+  linearApiKey: string;
   ownedById: OwnedById;
-  actorId: AccountId;
 }) => Promise<void>;
 
 export type ReadLinearTeamsWorkflow = (params: {
@@ -29,34 +36,27 @@ export type ReadLinearTeamsWorkflow = (params: {
 }) => Promise<Team[]>;
 
 export type SyncWorkspaceWorkflow = (params: {
+  authentication: { actorId: AccountId };
   apiKey: string;
-  workspaceAccountId: AccountId;
-  actorId: AccountId;
+  workspaceOwnedById: OwnedById;
   teamIds: string[];
 }) => Promise<void>;
 
-export type UpdateHashIssueWorkflow = (params: {
-  payload: Issue;
-  actorId: AccountId;
-}) => Promise<void>;
-
-export type UpdateLinearIssueWorkflow = (params: {
+export type UpdateLinearDataWorkflow = (params: {
   apiKey: string;
-  issueId: Issue["id"];
-  payload: EntityPropertiesObject;
-}) => Promise<void>;
-
-export type UpdateHashUserWorkflow = (params: {
-  payload: User;
-  actorId: AccountId;
+  authentication: { actorId: AccountId };
+  linearId: string;
+  entityTypeId: VersionedUrl;
+  entity: Entity;
 }) => Promise<void>;
 
 export type WorkflowTypeMap = {
-  createHashIssue: CreateHashIssueWorkflow;
-  createHashUser: CreateHashUserWorkflow;
-  readLinearTeams: ReadLinearTeamsWorkflow;
   syncWorkspace: SyncWorkspaceWorkflow;
-  updateHashIssue: UpdateHashIssueWorkflow;
-  updateHashUser: UpdateHashUserWorkflow;
-  updateLinearIssue: UpdateLinearIssueWorkflow;
+  readLinearTeams: ReadLinearTeamsWorkflow;
+
+  createHashEntityFromLinearData: CreateHashEntityFromLinearData;
+  updateHashEntityFromLinearData: UpdateHashEntityFromLinearData;
+
+  updateLinearData: UpdateLinearDataWorkflow;
+  /** @todo: add `createLinearData` */
 };

@@ -160,8 +160,8 @@ const LinkTypeRow = ({
     return !canEdit?.allowed
       ? canEdit?.message
       : currentVersion !== latestVersion
-      ? "Update the link type to the latest version to edit"
-      : undefined;
+        ? "Update the link type to the latest version to edit"
+        : undefined;
   }, [ontologyFunctions, link, currentVersion, latestVersion]);
 
   return (
@@ -169,7 +169,14 @@ const LinkTypeRow = ({
       <EntityTypeTableRow flash={flash}>
         <TableCell>
           <EntityTypeTableTitleCellText>
-            <Link href={link.$id} style={{ color: "inherit", fontWeight: 600 }}>
+            <Link
+              href={link.$id}
+              style={{
+                color: "inherit",
+                fontWeight: 500,
+                whiteSpace: "nowrap",
+              }}
+            >
               {link.title}
             </Link>
             {currentVersion !== latestVersion && !isReadonly ? (
@@ -323,6 +330,7 @@ export const LinkListCard = () => {
       },
     });
 
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     if (res.errors?.length || !res.data) {
       // @todo handle this
       throw new Error("Could not create");

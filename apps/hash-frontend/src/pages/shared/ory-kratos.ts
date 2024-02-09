@@ -1,4 +1,7 @@
-import { oryKratosPublicUrl } from "@local/hash-isomorphic-utils/environment";
+import {
+  apiOrigin,
+  oryKratosPublicUrl,
+} from "@local/hash-isomorphic-utils/environment";
 import {
   Configuration,
   FrontendApi,
@@ -21,31 +24,12 @@ import { isBrowser } from "../../lib/config";
 
 export const oryKratosClient = new FrontendApi(
   new Configuration({
-    /**
-     * Directly connecting to kratos (using "http://127.0.0.1:4433") would prevent the
-     * CRSF token from being set as an HTTP-Cookie, because the browser cannot send or
-     * receive cookies via the browser `fetch` method unless:
-     *  1. `credentials: "include"` is set in the HTTP request header
-     *  2. the correct CORS origin is configured in the kratos server
-     *
-     * Therefore requests to the ory kratos public endpoint are made on the server in a
-     * Next.js API handler.
-     */
-    basePath: isBrowser ? "/api/ory" : oryKratosPublicUrl,
+    basePath: isBrowser ? `${apiOrigin}/auth` : oryKratosPublicUrl,
     baseOptions: {
       withCredentials: true,
     },
   }),
 );
-
-export const fetchKratosSession = async (cookie?: string) => {
-  const kratosSession = await oryKratosClient
-    .toSession({ cookie })
-    .then(({ data }) => data)
-    .catch(() => undefined);
-
-  return kratosSession;
-};
 
 /**
  * A helper type representing the traits defined by the kratos identity schema at `apps/hash-external-services/kratos/identity.schema.json`

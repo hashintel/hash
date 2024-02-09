@@ -212,7 +212,17 @@ const SidebarPage: FunctionComponent<SidebarPageProps> = ({
   const { asPath } = router;
   const pathWithoutParams = generatePathWithoutParams(asPath);
 
-  const { href, title, sections = [], subPages = [] } = page;
+  const { title, sections = [], subPages = [] } = page;
+
+  const href = page.markdownFilePath
+    ? page.href
+    : page.subPages.find((subPage) => !!subPage.markdownFilePath)?.href;
+
+  if (!href) {
+    throw new Error(
+      "Could not determine `href` for sidebar page with title `title`. Ensure it or one of it sub-pages have a corresponding MDX page.",
+    );
+  }
 
   const isSelected =
     pathWithoutParams === href ||
@@ -226,12 +236,16 @@ const SidebarPage: FunctionComponent<SidebarPageProps> = ({
   const hasChildren = sections.length + subPages.length > 0;
 
   return (
-    <Fragment key={href}>
+    <>
       <Box
         display="flex"
         alignItems="center"
         justifyContent="space-between"
-        bgcolor={isSelected ? (theme) => theme.palette.teal[10] : "transparent"}
+        sx={{
+          background: isSelected
+            ? (theme) => theme.palette.teal[10]
+            : "transparent",
+        }}
         pr={1.5}
       >
         <SidebarLink
@@ -264,8 +278,8 @@ const SidebarPage: FunctionComponent<SidebarPageProps> = ({
                 prev.includes(href)
                   ? prev.filter((prevHref) => prevHref !== href)
                   : depth === 0
-                  ? [href]
-                  : [...prev, href],
+                    ? [href]
+                    : [...prev, href],
               );
             }}
             sx={(theme) => ({
@@ -309,7 +323,7 @@ const SidebarPage: FunctionComponent<SidebarPageProps> = ({
           ))}
         </Collapse>
       ) : null}
-    </Fragment>
+    </>
   );
 };
 

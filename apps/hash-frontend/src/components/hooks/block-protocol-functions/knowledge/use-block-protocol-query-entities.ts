@@ -1,5 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { EntityRootType } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import {
@@ -16,8 +17,7 @@ export const useBlockProtocolQueryEntities = (): {
     QueryEntitiesQuery,
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
-    /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: "no-cache",
+    fetchPolicy: "cache-and-network",
   });
 
   const queryEntities = useCallback<QueryEntitiesMessageCallback>(
@@ -43,6 +43,7 @@ export const useBlockProtocolQueryEntities = (): {
        */
       const { data: response } = await queryFn({
         variables: {
+          includePermissions: false,
           operation,
           constrainsValuesOn: { outgoing: 255 },
           constrainsPropertiesOn: { outgoing: 255 },
@@ -67,10 +68,11 @@ export const useBlockProtocolQueryEntities = (): {
         };
       }
 
-      return {
-        /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-        data: response.queryEntities as Subgraph<EntityRootType>,
-      };
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        response.queryEntities.subgraph,
+      );
+
+      return { data: { results: subgraph, operation } };
     },
     [queryFn],
   );

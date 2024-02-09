@@ -1,4 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+/* eslint-disable */
 // @ts-nocheck
 /**
  * @todo remove above ts-nocheck as we start re-enabling OpenSearch indexing
@@ -15,8 +15,8 @@ import {
   EntitiesDocument,
 } from "@local/hash-backend-utils/search/doc-types";
 import { Wal2JsonMsg } from "@local/hash-backend-utils/wal2json";
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
+import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { StatsD } from "hot-shots";
 
 import { logger } from "./config";
@@ -93,10 +93,9 @@ export class SearchLoader {
   private _pageEntitySystemType: DbEntityType | null = null;
   async pageEntitySystemType() {
     if (!this._pageEntitySystemType) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       this._pageEntitySystemType = await Page.getEntityType(this.db);
     }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+
     return this._pageEntitySystemType;
   }
 
@@ -107,7 +106,7 @@ export class SearchLoader {
     logger.debug("Search loader started");
     this.stopRequested = false;
     this.isStopped = false;
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false-positive (because of await)
+
     while (!this.stopRequested) {
       await this.processNextQueueMsg(1000);
     }
@@ -136,17 +135,14 @@ export class SearchLoader {
   private async loadMsgIntoSearchIndex(wal2jsonMsg: Wal2JsonMsg) {
     const table = wal2jsonMsg.table;
     if (table === "entity_versions") {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- this code is broken, EntityVersion is not exported from @local/hash-backend-utils/pg-tables
       const entity = EntityVersion.parseWal2JsonMsg(wal2jsonMsg);
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- this code is broken, EntityType is not exported from @local/hash-backend-utils/pg-tables
       const entityType = await EntityType.getEntityType(this.db, {
         entityTypeVersionId: entity.entityTypeVersionId,
       });
 
       if (!entityType) {
         logger.error(
-          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           `Could not find entity type with entityTypeVersionId "${entity.entityTypeVersionId}"`,
         );
         return;
@@ -159,7 +155,7 @@ export class SearchLoader {
         entityTypeId: entityType.entityId,
         entityTypeVersionId: entity.entityTypeVersionId,
         entityTypeName: entityType.metadata.name,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- @todo investigate
+
         updatedAt: entity.updatedAt.toISOString(),
         updatedByAccountId: entity.updatedByAccountId,
       };
@@ -173,7 +169,7 @@ export class SearchLoader {
           entity.properties as { tokens: TextToken[] },
         );
         // @todo this should be done through a model class instead of explicitly through the DB adapter.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+
         const grandparents = await this.db.getAncestorReferences({
           accountId: entity.accountId,
           entityId: entity.entityId,
@@ -181,7 +177,6 @@ export class SearchLoader {
         });
         // @todo: Do we handle text blocks that have multiple grandparent pages?
         if (grandparents.length === 1) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- this code is broken, Entity is not exported from @local/hash-backend-utils/pg-tables
           const grandparentLatestEntity = await Entity.getEntityLatestVersion(
             this.db,
             {

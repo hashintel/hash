@@ -1,31 +1,32 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
+import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import {
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
-import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+  joinOrg,
+  User,
+} from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createDataType,
   getDataTypeById,
-  getDataTypeSubgraphById,
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
-import { systemUser } from "@apps/hash-api/src/graph/system-user";
+import { modifyWebAuthorizationRelationships } from "@apps/hash-api/src/graph/ontology/primitive/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import {
+  ConstructDataTypeParams,
   DataTypeWithMetadata,
   isOwnedOntologyElementMetadata,
   OwnedById,
 } from "@local/hash-subgraph";
 
 import { resetGraph } from "../../../test-server";
-import { createTestImpureGraphContext, createTestUser } from "../../../util";
+import {
+  createTestImpureGraphContext,
+  createTestOrg,
+  createTestUser,
+  textDataTypeId,
+} from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -35,8 +36,9 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+const graphContext = createTestImpureGraphContext();
 
+let testOrg: Org;
 let testUser: User;
 let testUser2: User;
 
@@ -51,12 +53,40 @@ beforeAll(async () => {
 
   testUser = await createTestUser(graphContext, "data-type-test-1", logger);
   testUser2 = await createTestUser(graphContext, "data-type-test-2", logger);
+
+  const authentication = { actorId: testUser.accountId };
+
+  testOrg = await createTestOrg(
+    graphContext,
+    authentication,
+    "propertytestorg",
+    logger,
+  );
+  await joinOrg(graphContext, authentication, {
+    userEntityId: testUser2.entity.metadata.recordId.entityId,
+    orgEntityId: testOrg.entity.metadata.recordId.entityId,
+  });
+
+  // Currently, full access permissions are required to update a data type
+  await modifyWebAuthorizationRelationships(graphContext, authentication, [
+    {
+      relationship: {
+        resource: {
+          kind: "web",
+          resourceId: testOrg.accountGroupId as OwnedById,
+        },
+        relation: "owner",
+        subject: {
+          kind: "account",
+          subjectId: testUser2.accountId,
+        },
+      },
+      operation: "create",
+    },
+  ]);
 });
 
 afterAll(async () => {
-  await deleteKratosIdentity({
-    kratosIdentityId: systemUser.kratosIdentityId,
-  });
   await deleteKratosIdentity({
     kratosIdentityId: testUser.kratosIdentityId,
   });
@@ -71,55 +101,47 @@ describe("Data type CRU", () => {
   let createdDataType: DataTypeWithMetadata;
 
   it("can create a data type", async () => {
-    createdDataType = await createDataType(graphContext, {
-      ownedById: testUser.accountId as OwnedById,
+    const authentication = { actorId: testUser.accountId };
+
+    createdDataType = await createDataType(graphContext, authentication, {
+      ownedById: testOrg.accountGroupId as OwnedById,
       schema: dataTypeSchema,
-      actorId: testUser.accountId,
+      relationships: [{ relation: "viewer", subject: { kind: "public" } }],
     });
   });
 
   it("can read a data type", async () => {
-    const fetchedDataType = await getDataTypeById(graphContext, {
-      dataTypeId: createdDataType.schema.$id,
-    });
+    const authentication = { actorId: testUser.accountId };
 
-    expect(fetchedDataType.schema).toEqual(createdDataType.schema);
+    const fetchedDataType = await getDataTypeById(
+      graphContext,
+      authentication,
+      {
+        dataTypeId: textDataTypeId,
+      },
+    );
+
+    expect(fetchedDataType.schema.$id).toEqual(textDataTypeId);
   });
 
   const updatedTitle = "New text!";
   it("can update a data type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdDataType.metadata) &&
-        createdDataType.metadata.custom.provenance.recordCreatedById,
+        createdDataType.metadata.provenance.edition.createdById,
     ).toBe(testUser.accountId);
 
-    const updatedDataType = await updateDataType(graphContext, {
+    const authentication = { actorId: testUser2.accountId };
+
+    const updatedDataType = await updateDataType(graphContext, authentication, {
       dataTypeId: createdDataType.schema.$id,
       schema: { ...dataTypeSchema, title: updatedTitle },
-      actorId: testUser2.accountId,
+      relationships: [{ relation: "viewer", subject: { kind: "public" } }],
     }).catch((err) => Promise.reject(err.data));
 
     expect(
       isOwnedOntologyElementMetadata(updatedDataType.metadata) &&
-        updatedDataType.metadata.custom.provenance.recordCreatedById,
+        updatedDataType.metadata.provenance.edition.createdById,
     ).toBe(testUser2.accountId);
-  });
-
-  it("can load an external type on demand", async () => {
-    const dataTypeId =
-      "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1";
-
-    await expect(getDataTypeById(graphContext, { dataTypeId })).rejects.toThrow(
-      "Could not find data type with ID",
-    );
-
-    await expect(
-      getDataTypeSubgraphById(graphContext, {
-        dataTypeId,
-        actorId: testUser.accountId,
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-      }),
-    ).resolves.not.toThrow();
   });
 });

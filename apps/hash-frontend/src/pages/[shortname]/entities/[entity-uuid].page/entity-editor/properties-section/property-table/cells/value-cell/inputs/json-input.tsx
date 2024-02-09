@@ -1,9 +1,6 @@
 import { faCheck, faClose } from "@fortawesome/free-solid-svg-icons";
-import {
-  FontAwesomeIcon,
-  GRID_CLICK_IGNORE_CLASS,
-  IconButton,
-} from "@hashintel/design-system";
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 import { Box, Popper, Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
 
@@ -23,7 +20,7 @@ const isJsonObjectString = (str?: string) => {
   return true;
 };
 
-export const JsonInput = ({ onChange, value }: CellInputProps<any>) => {
+export const JsonInput = ({ onChange, value }: CellInputProps<unknown>) => {
   const [innerValue, setInnerValue] = useState(
     JSON.stringify(value, undefined, 2),
   );
@@ -98,16 +95,18 @@ export const JsonInput = ({ onChange, value }: CellInputProps<any>) => {
                 </IconButton>
               </Tooltip>
               <Tooltip title="Save Changes" placement="top" disableInteractive>
-                <IconButton
-                  disabled={!isValid}
-                  rounded
-                  sx={{ color: "white" }}
-                  onClick={() => {
-                    onChange(JSON.parse(innerValue));
-                  }}
-                >
-                  <FontAwesomeIcon icon={faCheck} />
-                </IconButton>
+                <Box>
+                  <IconButton
+                    disabled={!isValid}
+                    rounded
+                    sx={{ color: ({ palette }) => palette.common.white }}
+                    onClick={() => {
+                      onChange(JSON.parse(innerValue));
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faCheck} />
+                  </IconButton>
+                </Box>
               </Tooltip>
             </Box>
           </Box>

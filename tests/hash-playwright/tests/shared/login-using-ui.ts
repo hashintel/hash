@@ -1,5 +1,4 @@
-import { expect } from "@playwright/test";
-import { Page } from "playwright";
+import { expect, Page } from "@playwright/test";
 
 import { getDerivedPayloadFromMostRecentEmail } from "./get-derived-payload-from-most-recent-email";
 

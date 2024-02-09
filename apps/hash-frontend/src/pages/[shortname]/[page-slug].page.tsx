@@ -1,70 +1,59 @@
 import { useQuery } from "@apollo/client";
-import {
-  GetPageQuery,
-  GetPageQueryVariables,
-} from "@local/hash-graphql-shared/graphql/api-types.gen";
-import { getPageQuery } from "@local/hash-graphql-shared/queries/page.queries";
 import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  OrgProperties,
-  UserProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import {
-  Entity,
   EntityId,
-  entityIdFromOwnedByIdAndEntityUuid,
   EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-  OwnedById,
-  Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { Box } from "@mui/material";
-import { keyBy } from "lodash";
-import { GetServerSideProps } from "next";
+import { Box, SxProps } from "@mui/material";
 import { Router, useRouter } from "next/router";
 import { NextSeo } from "next-seo";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { PropsWithChildren, useEffect, useMemo, useRef, useState } from "react";
 
 import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
-import { PageBlock } from "../../blocks/page/page-block";
-import { PageContextProvider } from "../../blocks/page/page-context";
-import {
-  PageSectionContainer,
-  PageSectionContainerProps,
-} from "../../blocks/page/page-section-container";
-import { PageTitle } from "../../blocks/page/page-title/page-title";
 import { UserBlocksProvider } from "../../blocks/user-blocks";
 import {
   AccountPagesInfo,
   useAccountPages,
 } from "../../components/hooks/use-account-pages";
-import { usePageComments } from "../../components/hooks/use-page-comments";
-import { PageIcon, pageIconVariantSizes } from "../../components/page-icon";
-import { PageIconButton } from "../../components/page-icon-button";
+import {
+  PageThread,
+  usePageComments,
+} from "../../components/hooks/use-page-comments";
+import { PageIcon } from "../../components/page-icon";
 import { PageLoadingState } from "../../components/page-loading-state";
 import { CollabPositionProvider } from "../../contexts/collab-position-context";
-import { QueryEntitiesQuery } from "../../graphql/api-types.gen";
-import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { apolloClient } from "../../lib/apollo-client";
-import { constructPageRelativeUrl } from "../../lib/routes";
 import {
-  constructMinimalOrg,
-  constructMinimalUser,
-  MinimalOrg,
-  MinimalUser,
-} from "../../lib/user-and-org";
-import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
+} from "../../graphql/api-types.gen";
+import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { constructPageRelativeUrl } from "../../lib/routes";
+import { MinimalOrg, MinimalUser } from "../../lib/user-and-org";
+import { iconVariantSizes } from "../../shared/edit-emoji-icon-button";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
-import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
+import { PageIconButton } from "../../shared/page-icon-button";
 import {
   isPageParsedUrlQuery,
   parsePageUrlQueryParams,
 } from "../../shared/routing/route-page-info";
+import { BlockCollection } from "../shared/block-collection/block-collection";
+import { CommentThread } from "../shared/block-collection/comments/comment-thread";
+import { PageContextProvider } from "../shared/block-collection/page-context";
+import { PageTitle } from "../shared/block-collection/page-title/page-title";
+import {
+  getBlockCollectionContents,
+  getBlockCollectionContentsStructuralQueryVariables,
+} from "../shared/block-collection-contents";
+import { BlockCollectionContextProvider } from "../shared/block-collection-context";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
@@ -72,110 +61,66 @@ import {
 import { CanvasPageBlock } from "./[page-slug].page/canvas-page";
 import { ArchiveMenuItem } from "./shared/archive-menu-item";
 
+export const pageContentWidth = 696;
+export const commentsWidth = 320;
+export const pageMinPadding = 48;
+
+export const getPageSectionContainerStyles = (params: {
+  pageComments?: PageThread[];
+  readonly?: boolean;
+}) => {
+  const { pageComments, readonly } = params;
+
+  const commentsContainerWidth =
+    !readonly && pageComments?.length ? commentsWidth + pageMinPadding : 0;
+
+  const paddingLeft = `max(calc((100% - ${
+    pageContentWidth + commentsContainerWidth
+  }px) / 2), ${pageMinPadding}px)`;
+  const paddingRight = `calc(100% - ${pageContentWidth}px - ${paddingLeft})`;
+
+  return {
+    paddingLeft,
+    paddingRight,
+    minWidth: `calc(${pageContentWidth}px + (${pageMinPadding}px * 2))`,
+  };
+};
+
+export interface PageSectionContainerProps {
+  pageComments?: PageThread[];
+  sx?: SxProps;
+  readonly: boolean;
+}
+
+export const PageSectionContainer = ({
+  children,
+  pageComments,
+  sx = [],
+  readonly,
+}: PropsWithChildren<PageSectionContainerProps>) => {
+  return (
+    <Box
+      sx={[
+        ...(pageComments
+          ? [
+              getPageSectionContainerStyles({
+                pageComments,
+                readonly,
+              }),
+            ]
+          : []),
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
+    >
+      {children}
+    </Box>
+  );
+};
+
 type PageProps = {
   pageWorkspace: MinimalUser | MinimalOrg;
   pageEntityId: EntityId;
   blocks: HashBlock[];
-};
-
-/**
- * This is used to fetch the metadata associated with blocks that're preloaded
- * ahead of time so that the client doesn't need to
- *
- * @todo Include blocks present in the document in this, and remove fetching of these in canvas-page
- */
-export const getServerSideProps: GetServerSideProps<PageProps> = async ({
-  req,
-  params,
-}) => {
-  // Fetching block metadata can significantly slow down the server render, so disabling for now
-  // const fetchedBlocks = await Promise.all(
-  //   defaultBlockComponentIds.map((componentId) => fetchBlock(componentId)),
-  // );
-
-  if (!params || !isPageParsedUrlQuery(params)) {
-    throw new Error(
-      "Invalid page URL query params passed to `getServerSideProps`.",
-    );
-  }
-
-  const { workspaceShortname, pageEntityUuid } =
-    parsePageUrlQueryParams(params);
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-  const { cookie } = req.headers ?? {};
-
-  const workspacesSubgraph = (await apolloClient
-    .query<QueryEntitiesQuery>({
-      query: queryEntitiesQuery,
-      variables: {
-        operation: {
-          multiFilter: {
-            filters: [
-              entityHasEntityTypeByVersionedUrlFilter(
-                types.entityType.user.entityTypeId,
-              ),
-              entityHasEntityTypeByVersionedUrlFilter(
-                types.entityType.org.entityTypeId,
-              ),
-            ],
-            operator: "OR",
-          },
-        },
-        constrainsValuesOn: { outgoing: 0 },
-        constrainsPropertiesOn: { outgoing: 0 },
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        inheritsFrom: { outgoing: 0 },
-        isOfType: { outgoing: 0 },
-        hasLeftEntity: { incoming: 0, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 0 },
-      },
-      context: { headers: { cookie } },
-    })
-    .then(({ data }) => data.queryEntities)) as Subgraph<EntityRootType>;
-
-  const workspaces = getRoots(workspacesSubgraph).map((entity) =>
-    entity.metadata.entityTypeId === types.entityType.user.entityTypeId
-      ? constructMinimalUser({
-          userEntity: entity as Entity<UserProperties>,
-        })
-      : constructMinimalOrg({
-          orgEntity: entity as Entity<OrgProperties>,
-        }),
-  );
-
-  /**
-   * @todo: filtering all workspaces by their shortname should not be happening
-   * client side. This could be addressed by exposing structural querying
-   * to the frontend.
-   *
-   * @see https://app.asana.com/0/1201095311341924/1202863271046362/f
-   */
-  const pageWorkspace = workspaces.find(
-    (workspace) => workspace.shortname === workspaceShortname,
-  );
-
-  if (!pageWorkspace) {
-    throw new Error(
-      `Could not find page workspace with shortname "${workspaceShortname}".`,
-    );
-  }
-
-  const pageOwnedById = pageWorkspace.accountId as OwnedById;
-
-  const pageEntityId = entityIdFromOwnedByIdAndEntityUuid(
-    pageOwnedById,
-    pageEntityUuid,
-  );
-
-  return {
-    props: {
-      pageWorkspace,
-      blocks: [],
-      pageEntityId,
-    },
-  };
 };
 
 const generateCrumbsFromPages = ({
@@ -205,7 +150,16 @@ const generateCrumbsFromPages = ({
         pageEntityUuid,
       }),
       id: currentPageEntityId,
-      icon: <PageIcon icon={currentPage.icon} size="small" />,
+      icon: (
+        <PageIcon
+          icon={currentPage.icon}
+          size="small"
+          isCanvas={
+            currentPage.metadata.entityTypeId ===
+            systemEntityTypes.canvas.entityTypeId
+          }
+        />
+      ),
     });
 
     if (currentPage.parentPage) {
@@ -222,35 +176,33 @@ const generateCrumbsFromPages = ({
   return arr;
 };
 
-const Page: NextPageWithLayout<PageProps> = ({
-  blocks,
-  pageEntityId,
-  pageWorkspace,
-}) => {
-  const pageOwnedById = extractOwnedByIdFromEntityId(pageEntityId);
-
+const Page: NextPageWithLayout<PageProps> = () => {
   const { asPath, query } = useRouter();
-  const canvasPage = query.canvas;
 
   const routeHash = asPath.split("#")[1] ?? "";
-
-  const { data: accountPages } = useAccountPages(pageOwnedById, true);
-
-  const blocksMap = useMemo(() => {
-    return keyBy(blocks, (block) => block.meta.componentId);
-  }, [blocks]);
 
   const [pageState, setPageState] = useState<"normal" | "transferring">(
     "normal",
   );
 
+  if (!isPageParsedUrlQuery(query)) {
+    throw new Error(
+      `Invalid page URL query parameters: ${JSON.stringify(query)}.`,
+    );
+  }
+
+  const { workspaceShortname, pageEntityUuid } = parsePageUrlQueryParams(query);
+
   const { data, error, loading } = useQuery<
-    GetPageQuery,
-    GetPageQueryVariables
-  >(getPageQuery, { variables: { entityId: pageEntityId } });
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
+    variables:
+      getBlockCollectionContentsStructuralQueryVariables(pageEntityUuid),
+    fetchPolicy: "cache-and-network",
+  });
 
   const pageHeaderRef = useRef<HTMLElement>();
-  const isReadonlyMode = useIsReadonlyModeForResource(pageOwnedById);
 
   // Collab position tracking is disabled.
   // const collabPositions = useCollabPositions(accountId, pageEntityId);
@@ -278,12 +230,39 @@ const Page: NextPageWithLayout<PageProps> = ({
     pageHeaderRef.current.scrollIntoView({ behavior: "smooth" });
   };
 
+  const { subgraph, userPermissionsOnEntities } =
+    data?.structuralQueryEntities ?? {};
+
+  const pageSubgraph = subgraph
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(subgraph)
+    : undefined;
+
+  const page = pageSubgraph ? getRoots(pageSubgraph)[0] : undefined;
+
+  const pageEntityId = page?.metadata.recordId.entityId;
+  const pageOwnedById = pageEntityId
+    ? extractOwnedByIdFromEntityId(pageEntityId)
+    : undefined;
+
   const { data: pageComments } = usePageComments(pageEntityId);
+
+  const { data: accountPages } = useAccountPages(pageOwnedById, true);
 
   const pageSectionContainerProps: PageSectionContainerProps = {
     pageComments,
-    readonly: isReadonlyMode,
+    readonly: true,
   };
+
+  const contents = useMemo(
+    () =>
+      pageSubgraph && pageEntityId
+        ? getBlockCollectionContents({
+            blockCollectionEntityId: pageEntityId,
+            blockCollectionSubgraph: pageSubgraph,
+          })
+        : undefined,
+    [pageEntityId, pageSubgraph],
+  );
 
   if (pageState === "transferring") {
     return (
@@ -309,18 +288,32 @@ const Page: NextPageWithLayout<PageProps> = ({
     );
   }
 
-  if (!data) {
+  if (
+    !page ||
+    !pageSubgraph ||
+    !pageEntityId ||
+    !pageOwnedById ||
+    !userPermissionsOnEntities ||
+    !contents
+  ) {
     return (
       <PageSectionContainer {...pageSectionContainerProps}>
-        <h1>No data loaded.</h1>
+        <h1>No page data loaded.</h1>
       </PageSectionContainer>
     );
   }
 
-  const { title, icon, contents } = data.page;
+  const { archived, icon, title } = simplifyProperties(
+    page.properties as PageProperties,
+  );
+
+  const canUserEdit = userPermissionsOnEntities[pageEntityId]?.edit ?? false;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
+
+  const isCanvasPage =
+    page.metadata.entityTypeId === systemEntityTypes.canvas.entityTypeId;
 
   return (
     <>
@@ -351,32 +344,36 @@ const Page: NextPageWithLayout<PageProps> = ({
         >
           <TopContextBar
             actionMenuItems={
-              data.page.archived
+              archived
                 ? undefined
                 : [
                     <ArchiveMenuItem
-                      key={data.page.metadata.recordId.entityId}
-                      item={data.page}
+                      key={page.metadata.recordId.entityId}
+                      item={page}
                     />,
                   ]
             }
-            item={data.page}
+            item={page}
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
-              pageEntityId: data.page.metadata.recordId.entityId,
-              ownerShortname: pageWorkspace.shortname!,
+              pageEntityId: page.metadata.recordId.entityId,
+              ownerShortname: workspaceShortname,
             })}
             scrollToTop={scrollToTop}
           />
         </Box>
 
-        {!canvasPage && (
-          <PageSectionContainer {...pageSectionContainerProps}>
+        {!isCanvasPage && (
+          <PageSectionContainer
+            {...pageSectionContainerProps}
+            readonly={!canUserEdit}
+          >
             <Box position="relative">
               <PageIconButton
                 entityId={pageEntityId}
+                pageEntityTypeId={page.metadata.entityTypeId}
                 icon={icon}
-                readonly={isReadonlyMode}
+                readonly={!canUserEdit}
                 sx={({ breakpoints }) => ({
                   mb: 2,
                   [breakpoints.up(pageComments.length ? "xl" : "lg")]: {
@@ -393,13 +390,13 @@ const Page: NextPageWithLayout<PageProps> = ({
                   scrollMarginTop:
                     HEADER_HEIGHT +
                     TOP_CONTEXT_BAR_HEIGHT +
-                    pageIconVariantSizes.medium.container,
+                    iconVariantSizes.medium.container,
                 }}
               >
                 <PageTitle
                   value={title}
                   pageEntityId={pageEntityId}
-                  readonly={isReadonlyMode}
+                  readonly={!canUserEdit}
                 />
                 {/*
             Commented out Version Dropdown and Transfer Page buttons.
@@ -436,18 +433,71 @@ const Page: NextPageWithLayout<PageProps> = ({
         )}
 
         <CollabPositionProvider value={[]}>
-          <UserBlocksProvider value={blocksMap}>
+          <UserBlocksProvider value={{}}>
             <BlockLoadedProvider routeHash={routeHash}>
-              {canvasPage ? (
-                <CanvasPageBlock contents={contents} />
-              ) : (
-                <PageBlock
-                  accountId={pageWorkspace.accountId}
-                  contents={contents}
-                  pageComments={pageComments}
-                  entityId={pageEntityId}
-                />
-              )}
+              <BlockCollectionContextProvider
+                blockCollectionSubgraph={pageSubgraph}
+                userPermissionsOnEntities={userPermissionsOnEntities}
+              >
+                {isCanvasPage ? (
+                  <CanvasPageBlock contents={contents} />
+                ) : (
+                  <Box marginTop={5} position="relative">
+                    {!!canUserEdit && pageComments.length > 0 ? (
+                      <PageSectionContainer
+                        pageComments={pageComments}
+                        readonly={!canUserEdit}
+                        sx={{
+                          position: "absolute",
+                          top: 0,
+                          right: 0,
+                          left: 0,
+                          width: "100%",
+                        }}
+                      >
+                        <Box width="100%" position="relative">
+                          <Box
+                            sx={{
+                              position: "absolute",
+                              left: "calc(100% + 48px)",
+                              zIndex: 1,
+                            }}
+                          >
+                            {pageComments.map((comment) => (
+                              <CommentThread
+                                key={comment.metadata.recordId.entityId}
+                                pageId={pageEntityId}
+                                comment={comment}
+                              />
+                            ))}
+                          </Box>
+                        </Box>
+                      </PageSectionContainer>
+                    ) : null}
+
+                    <BlockCollection
+                      ownedById={pageOwnedById}
+                      contents={contents}
+                      enableCommenting
+                      entityId={pageEntityId}
+                      readonly={!canUserEdit}
+                      autoFocus={title !== ""}
+                      sx={{
+                        /**
+                         * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
+                         * so it automatically handles focusing on closest node on margin-clicking
+                         */
+                        ".ProseMirror": {
+                          ...getPageSectionContainerStyles({
+                            pageComments,
+                            readonly: !canUserEdit,
+                          }),
+                        },
+                      }}
+                    />
+                  </Box>
+                )}
+              </BlockCollectionContextProvider>
             </BlockLoadedProvider>
           </UserBlocksProvider>
         </CollabPositionProvider>

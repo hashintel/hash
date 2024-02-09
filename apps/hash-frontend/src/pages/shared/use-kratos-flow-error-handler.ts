@@ -21,6 +21,7 @@ export const useKratosErrorHandler = <S>(props: {
   const router = useRouter();
 
   const handleFlowError = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async (err: AxiosError<any>) => {
       const kratosError = err.response?.data;
 

@@ -6,6 +6,12 @@ All notable changes to `error-stack` will be documented in this file.
 
 - Support for [`defmt`](https://defmt.ferrous-systems.com)
 
+## [0.4.1](https://github.com/hashintel/hash/tree/error-stack%400.4.1/libs/error-stack) - 2023-09-04
+
+### Fixes
+
+- Fix deprecation warning typo for `IntoReport` ([#3088](https://github.com/hashintel/hash/pull/3088))
+
 ## [0.4.0](https://github.com/hashintel/hash/tree/error-stack%400.4.0/libs/error-stack) - 2023-08-23
 
 ### Breaking Changes

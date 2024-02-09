@@ -1,19 +1,20 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
-import { IconButton } from "@hashintel/design-system";
+import {
+  EntityTypeIcon,
+  IconButton,
+  LinkTypeIcon,
+} from "@hashintel/design-system";
+import { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, BoxProps, styled, Tooltip, Typography } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
 import { FunctionComponent, useRef } from "react";
 
+import { useEntityTypesContextRequired } from "../../../entity-types-context/hooks/use-entity-types-context-required";
 import { EllipsisRegularIcon } from "../../../icons/ellipsis-regular-icon";
 import { Link } from "../../../ui";
+import { EntityMenu } from "./entity-menu";
 import { EntityTypeMenu } from "./entity-type-menu";
-
-type EntityTypeItemProps = {
-  entityTypeId: VersionedUrl;
-  title: string;
-};
 
 const Container = styled((props: BoxProps & { selected: boolean }) => (
   <Box component="li" {...props} />
@@ -49,10 +50,15 @@ const Container = styled((props: BoxProps & { selected: boolean }) => (
   },
 }));
 
-export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
-  entityTypeId,
-  title,
-}) => {
+export const EntityTypeItem: FunctionComponent<{
+  entityType: EntityTypeWithMetadata;
+  href?: string;
+  variant: "entity" | "entity-type";
+}> = ({ entityType, href, variant }) => {
+  const {
+    metadata: { icon },
+    schema: { title, $id: entityTypeId },
+  } = entityType;
   const entityMenuTriggerRef = useRef(null);
   const popupState = usePopupState({
     variant: "popover",
@@ -69,9 +75,19 @@ export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
     router.route === "/[shortname]/types/entity-type/[entity-type-id]" &&
     urlBase === baseUrl;
 
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+
+  const { isLink } = isSpecialEntityTypeLookup?.[entityTypeId] ?? {};
+
   return (
-    <Container component="li" tabIndex={0} selected={selected}>
-      <Link tabIndex={-1} sx={{ flex: 1 }} noLinkStyle href={baseUrl} flex={1}>
+    <Container component="li" tabIndex={0} selected={selected} minHeight={32}>
+      <Link
+        tabIndex={-1}
+        sx={{ flex: 1 }}
+        noLinkStyle
+        href={href ?? baseUrl}
+        flex={1}
+      >
         <Typography
           variant="smallTextLabels"
           sx={{
@@ -80,9 +96,40 @@ export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
             fontWeight: 500,
           }}
         >
+          <Box
+            component="span"
+            sx={{
+              marginRight: 1,
+              maxWidth: 18,
+              display: "inline-flex",
+              justifyContent: "center",
+            }}
+          >
+            {icon ??
+              (isLink ? (
+                <LinkTypeIcon
+                  sx={({ palette }) => ({
+                    position: "relative",
+                    top: 2,
+                    fontSize: 16,
+                    stroke: palette.gray[50],
+                  })}
+                />
+              ) : (
+                <EntityTypeIcon
+                  sx={({ palette }) => ({
+                    position: "relative",
+                    top: 2,
+                    fontSize: 16,
+                    fill: palette.gray[50],
+                  })}
+                />
+              ))}
+          </Box>
           {title}
         </Typography>
       </Link>
+
       <Tooltip title="Options" sx={{ left: 5 }}>
         <IconButton
           ref={entityMenuTriggerRef}
@@ -101,12 +148,22 @@ export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
           <EllipsisRegularIcon />
         </IconButton>
       </Tooltip>
-      <EntityTypeMenu
-        entityTypeId={entityTypeId}
-        popupState={popupState}
-        title={title}
-        url={baseUrl}
-      />
+      {variant === "entity" ? (
+        <EntityMenu
+          entityTypeId={entityTypeId}
+          popupState={popupState}
+          title={title}
+          entityTypeIcon={icon}
+          isLinkType={isLink}
+        />
+      ) : (
+        <EntityTypeMenu
+          entityTypeId={entityTypeId}
+          popupState={popupState}
+          title={title}
+          url={baseUrl}
+        />
+      )}
     </Container>
   );
 };

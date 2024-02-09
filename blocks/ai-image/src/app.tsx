@@ -3,7 +3,7 @@ import {
   type BlockComponent,
   useEntitySubgraph,
 } from "@blockprotocol/graph/react";
-import { theme } from "@hashintel/design-system";
+import { theme } from "@hashintel/design-system/theme";
 import { Box, ThemeProvider } from "@mui/material";
 import { SizeMe } from "react-sizeme";
 

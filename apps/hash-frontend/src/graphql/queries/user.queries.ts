@@ -1,6 +1,5 @@
 import { gql } from "@apollo/client";
-
-import { subgraphFieldsFragment } from "./subgraph";
+import { subgraphFieldsFragment } from "@local/hash-isomorphic-utils/graphql/queries/subgraph";
 
 export const isShortnameTaken = gql`
   query isShortnameTaken($shortname: String!) {
@@ -8,16 +7,23 @@ export const isShortnameTaken = gql`
   }
 `;
 
-// We follow links rightwards twice in order to get the orgs that the user is a member of, and the orgs' avatars
-// This may lead to significant overfetching when the user has a lot of e.g. pages
-// @todo consider fetching the org data separately (e.g. in useOrgs)
+export const hasAccessToHashQuery = gql`
+  query hasAccessToHash {
+    hasAccessToHash
+  }
+`;
+
 export const meQuery = gql`
   query me {
     me(
-      hasLeftEntity: { incoming: 2, outgoing: 1 }
-      hasRightEntity: { incoming: 1, outgoing: 2 }
+      # fetch the user's org memberships and the orgs they link to
+      # we fetch more information on the orgs as a follow-up, in the auth context
+      hasLeftEntity: { incoming: 1, outgoing: 0 }
+      hasRightEntity: { incoming: 0, outgoing: 1 }
     ) {
-      ...SubgraphFields
+      subgraph {
+        ...SubgraphFields
+      }
     }
   }
   ${subgraphFieldsFragment}

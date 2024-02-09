@@ -1,7 +1,0 @@
-{
-  "@hash/age/age.rs": "1.0.0",
-  "@hash/diffusion/diffusion.rs": "1.0.0",
-  "@hash/move-in-direction/move_in_direction.rs": "1.0.0",
-  "@hash/orient-toward-value/orient_toward_value.rs": "1.0.0",
-  "@hash/remove-self/remove_self.js": "2.1.0"
-}

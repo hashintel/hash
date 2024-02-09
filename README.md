@@ -3,7 +3,7 @@
 [hash.dev]: https://hash.dev?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [development roadmap]: https://hash.dev/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
-[running your own instance]: https://hash.dev/docs/getting-started?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[running your own instance]: https://hash.dev/docs/get-started?utm_medium=organic&utm_source=github_readme_hash-repo_root
 
 <!-- markdownlint-disable link-fragments -->
 
@@ -73,8 +73,6 @@ Please see [SECURITY](.github/SECURITY.md) for instructions around reporting iss
 
 ## [![a](/.github/assets/gh_icon_contact_20px-base.svg)][gh-contact] &nbsp; Contact
 
-Find us on X at [@hashintel](https://x.com/hashintel), or email [support@hash.ai](mailto:support@hash.ai)
-
-You can also join our [Discord] community for quick help and support.
+Find us on 𝕏 at [@hashintel](https://x.com/hashintel), email [hey@hash.ai](mailto:hey@hash.ai), or join our [Discord] forum for quick help and community support.
 
 Project permalink: `https://github.com/hashintel/hash`

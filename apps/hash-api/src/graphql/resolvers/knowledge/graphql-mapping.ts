@@ -11,7 +11,10 @@ import {
 
 export const mapEntityToGQL = (entity: Entity): Entity => entity;
 
-export type ExternalPageResolversGQL = "contents";
+export type ExternalPageResolversGQL =
+  | "contents"
+  | "canUserEdit"
+  | "userPermissions";
 export type UnresolvedPageGQL = Omit<GQLPage, ExternalPageResolversGQL>;
 
 export const mapPageToGQL = (page: Page): UnresolvedPageGQL => ({
@@ -19,11 +22,12 @@ export const mapPageToGQL = (page: Page): UnresolvedPageGQL => ({
   title: page.title,
   archived: page.archived,
   summary: page.summary,
-  index: page.index,
+  fractionalIndex: page.fractionalIndex,
   icon: page.icon,
 });
 
 export type ExternalCommentResolversGQL =
+  | "canUserEdit"
   | "hasText"
   | "textUpdatedAt"
   | "parent"

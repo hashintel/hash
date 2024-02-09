@@ -44,7 +44,7 @@ type FAQ = {
   name: "FAQ";
   attributes: {
     type: "mdxJsxAttribute";
-    name: "question" | string;
+    name: string;
     value: string;
   }[];
 } & Parent;
@@ -194,6 +194,12 @@ const getHeadingsFromMarkdown = (markdownFilePath: string): Heading[] => {
 
   const headings = getHeadingsFromParent(ast);
 
+  if (!data.title) {
+    throw new Error(
+      `Missing title in frontmatter for MDX file with path: ${markdownFilePath}`,
+    );
+  }
+
   return [
     {
       type: "heading" as const,
@@ -201,7 +207,7 @@ const getHeadingsFromMarkdown = (markdownFilePath: string): Heading[] => {
       children: [
         {
           type: "text",
-          value: data.title ?? "Unknown",
+          value: data.title,
         },
       ],
     },
@@ -228,20 +234,48 @@ export const getDocsPage = (params: {
   pathToDirectory: string;
   fileName: string;
   isRfc?: boolean;
-}): SiteMapPage => {
+}): Omit<SiteMapPage, "subPages"> => {
   const { pathToDirectory, fileName, isRfc = false } = params;
 
   const markdownFilePath = isRfc
     ? `../../rfcs/text/${fileName}`
     : `src/_pages/${pathToDirectory}/${fileName}`;
 
-  const headings = getHeadingsFromMarkdown(markdownFilePath);
+  let headings: Heading[];
+
+  try {
+    headings = getHeadingsFromMarkdown(markdownFilePath);
+  } catch (error: unknown) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `Error parsing headings from the MDX file at path: ${markdownFilePath}`,
+    );
+    throw error;
+  }
 
   const h1 = headings.find(({ depth }) => depth === 1);
 
   const title = h1 ? getVisibleText(h1) : "Unknown";
 
-  const name = parseNameFromFileName(fileName);
+  // if (
+  //   pathToDirectory === "docs/08_simulations/01_create" &&
+  //   fileName === "00_index.mdx"
+  // ) {
+  //   const visibleText = getVisibleText(h1!);
+  //   console.log(JSON.stringify({ h1, title, visibleText }), null, 2);
+  // }
+
+  let name: string;
+
+  try {
+    name = parseNameFromFileName(fileName);
+  } catch (error: unknown) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `Error parsing the name of the MDX file at path: ${markdownFilePath}`,
+    );
+    throw error;
+  }
 
   return {
     title,
@@ -281,44 +315,94 @@ export const getDocsPage = (params: {
         return prev;
       }, [])
       .filter((heading) => heading.anchor !== "proposed-changes"),
-    subPages: [],
   };
 };
 
-// Get the structure of a all MDX files in a given directory
-export const getAllDocsPages = (params: {
+export const recursivelyGetDocsPages = (params: {
   pathToDirectory: string;
-  filterIndexPage?: boolean;
 }): SiteMapPage[] => {
-  const { pathToDirectory, filterIndexPage = false } = params;
-
-  const thisPath = `src/_pages/${pathToDirectory}`;
+  const { pathToDirectory } = params;
 
   const directoryItems = fs
-    .readdirSync(path.join(process.cwd(), thisPath))
-    .filter((item) => !filterIndexPage || item !== "00_index.mdx");
+    .readdirSync(path.join(process.cwd(), `src/_pages/${pathToDirectory}`))
+    .filter((item) => item !== "00_index.mdx");
 
   return directoryItems.flatMap((directoryItem) => {
-    if (fs.lstatSync(`${thisPath}/${directoryItem}`).isDirectory()) {
-      const indexPage = getDocsPage({
-        pathToDirectory: `${pathToDirectory}/${directoryItem}`,
-        fileName: "00_index.mdx",
-      });
+    const isDirectory = fs
+      .lstatSync(`src/_pages/${pathToDirectory}/${directoryItem}`)
+      .isDirectory();
 
-      const subPages = getAllDocsPages({
-        pathToDirectory: `${pathToDirectory}/${directoryItem}`,
-        filterIndexPage: true,
-      });
+    // Skip WIP directories and files
+    if (directoryItem.toLowerCase().startsWith("wip")) {
+      return [];
+    }
+
+    const [index, fileNameWithoutIndex] = directoryItem.split("_");
+
+    if (isDirectory) {
+      if (!index || Number.isNaN(parseInt(index, 10))) {
+        throw new Error(
+          `The directory at path ${directoryItem} does not have a valid index`,
+        );
+      }
+
+      const hasIndexPage = fs.existsSync(
+        `src/_pages/${pathToDirectory}/${directoryItem}/00_index.mdx`,
+      );
+
+      const indexPage = hasIndexPage
+        ? getDocsPage({
+            pathToDirectory: `${pathToDirectory}/${directoryItem}`,
+            fileName: "00_index.mdx",
+          })
+        : undefined;
+
+      if (!fileNameWithoutIndex) {
+        throw new Error(
+          `The name of the directory at path ${directoryItem} could not be parsed`,
+        );
+      }
+
+      const titleDerivedFromDirectoryName = fileNameWithoutIndex
+        .split("-")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+
+      if (indexPage) {
+        return {
+          ...indexPage,
+          titleDerivedFromDirectoryName,
+          subPages: recursivelyGetDocsPages({
+            pathToDirectory: `${pathToDirectory}/${directoryItem}`,
+          }),
+        };
+      }
 
       return {
-        ...indexPage,
-        subPages,
+        title: titleDerivedFromDirectoryName,
+        titleDerivedFromDirectoryName,
+        /** @todo: this should probably be removed */
+        href: `/${pathToDirectory.replace(/\d+_/g, "")}/${fileNameWithoutIndex}`,
+        sections: [],
+        subPages: recursivelyGetDocsPages({
+          pathToDirectory: `${pathToDirectory}/${directoryItem}`,
+        }),
+      };
+    } else if (directoryItem.endsWith(".mdx")) {
+      if (!index || Number.isNaN(parseInt(index, 10))) {
+        throw new Error(
+          `The MDX file at path ${directoryItem} does not have a valid index`,
+        );
+      }
+      return {
+        ...getDocsPage({
+          pathToDirectory,
+          fileName: directoryItem,
+        }),
+        subPages: [],
       };
     }
 
-    return getDocsPage({
-      pathToDirectory,
-      fileName: directoryItem,
-    });
+    return [];
   });
 };

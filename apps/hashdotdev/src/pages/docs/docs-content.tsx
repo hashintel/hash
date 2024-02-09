@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/router";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
-import { FunctionComponent, ReactNode } from "react";
+import { FunctionComponent, ReactNode, useMemo } from "react";
 
 import { ChevronRightRegularIcon } from "../../components/icons/chevron-right-regular-icon";
 import { Link } from "../../components/link";
@@ -28,7 +28,7 @@ type DocsPageProps = {
   sectionPages: SiteMapPage[];
 };
 
-const mdxContentMaxWidth = 1000;
+const mdxContentMaxWidth = 1125;
 
 const mdxParagraphMaxWidth = 750;
 
@@ -69,13 +69,22 @@ export const DocsContent: FunctionComponent<DocsPageProps> = ({
 
   const currentPageIndex = currentPage ? flatSubPages.indexOf(currentPage) : -1;
 
-  const prevPage =
-    currentPageIndex > 0 ? flatSubPages[currentPageIndex - 1] : undefined;
+  const prevPage = useMemo(
+    () =>
+      flatSubPages
+        .slice(0, currentPageIndex)
+        .reverse()
+        .find(({ markdownFilePath }) => !!markdownFilePath),
+    [flatSubPages, currentPageIndex],
+  );
 
-  const nextPage =
-    currentPageIndex < flatSubPages.length - 1
-      ? flatSubPages[currentPageIndex + 1]
-      : undefined;
+  const nextPage = useMemo(
+    () =>
+      flatSubPages
+        .slice(currentPageIndex + 1)
+        .find(({ markdownFilePath }) => !!markdownFilePath),
+    [flatSubPages, currentPageIndex],
+  );
 
   const hasMultiplePages = flatSubPages.length > 0;
 
@@ -123,7 +132,12 @@ export const DocsContent: FunctionComponent<DocsPageProps> = ({
         sx={{
           margin: 0,
           width: "inherit",
-          maxWidth: mdxContentMaxWidth,
+          [theme.breakpoints.up("sm")]: {
+            maxWidth: mdxContentMaxWidth,
+          },
+          [theme.breakpoints.up("xl")]: {
+            maxWidth: mdxContentMaxWidth,
+          },
           minWidth: 0,
           paddingTop: {
             xs: 3,
@@ -158,7 +172,7 @@ export const DocsContent: FunctionComponent<DocsPageProps> = ({
                   }}
                 />
               }
-              sx={{ marginBottom: 2, marginLeft: 0.25 }}
+              sx={{ marginY: 2, marginLeft: 0.25 }}
             >
               {parents.map(({ href, title: parentTitle }, i, all) => (
                 <Link
@@ -202,7 +216,7 @@ export const DocsContent: FunctionComponent<DocsPageProps> = ({
             prevPage={prevPage}
             nextPage={nextPage}
             sx={{
-              maxWidth: {
+              width: {
                 sx: "100%",
                 sm: mdxParagraphMaxWidth,
               },

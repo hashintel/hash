@@ -21,7 +21,13 @@ import {
   TableCell,
   Typography,
 } from "@mui/material";
-import { FunctionComponent, PropsWithChildren, useId, useState } from "react";
+import {
+  FunctionComponent,
+  PropsWithChildren,
+  ReactNode,
+  useId,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import {
   Controller,
@@ -33,7 +39,10 @@ import {
 import { EntityTypeEditorFormData } from "../../shared/form-types";
 import { useIsReadonly } from "../../shared/read-only-context";
 
-const useFrozenValue = <T extends any>(value: T, isFrozen: boolean): T => {
+const useFrozenValue = <T extends ReactNode>(
+  value: T,
+  isFrozen: boolean,
+): T => {
   const [frozen, setFrozen] = useState(value);
 
   if (!isFrozen && frozen !== value) {
@@ -399,7 +408,9 @@ export const MultipleValuesCell = ({
                       Maximum
                       <Box
                         display="flex"
-                        color={({ palette }) => palette.gray[70]}
+                        sx={({ palette }) => ({
+                          color: palette.gray[70],
+                        })}
                       >
                         ∞
                         <div ref={setInfinityCheckboxNode} />

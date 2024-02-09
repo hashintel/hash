@@ -23,11 +23,14 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: hashicorp/setup-terraform@633666f66e0061ca3b725c73b2ec20cd13a8fdd1 # v2.0.3
+    - uses: hashicorp/setup-terraform@a1502cd9e758c50496cc9ac5308c4843bcd56d36 # v3.0.0
+      with:
+        # pin until https://github.com/cyrilgdn/terraform-provider-postgresql/issues/357 is fixed
+        terraform_version: 1.5.7
 
     - name: Authenticate Vault
       id: secrets
-      uses: hashicorp/vault-action@cb841f2c86fb6d07cff94fda240828c1abc5ba43 # v2.7.3
+      uses: hashicorp/vault-action@e3d5714d59e151ca80233142880b9da9d983a48c # v2.7.5
       with:
         exportToken: true
         url: ${{ inputs.vault-address }}
@@ -41,7 +44,7 @@ runs:
           aws/creds/${{ inputs.env }}-deploy security_token | AWS_SESSION_TOKEN
 
     - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@04b98b3f9e85f563fb061be8751a0352327246b0 # v3.0.1
+      uses: aws-actions/configure-aws-credentials@010d0da01d0b5a38af31e9c3470dbfdabdecca3a # v4.0.1
       with:
         aws-access-key-id: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
@@ -74,7 +77,7 @@ runs:
       shell: bash
       run: terraform ${{ inputs.command == 'plan' && 'plan' || 'apply -auto-approve' }} -no-color -var-file=${{ inputs.env }}-usea1.tfvars | tee cmd.out
 
-    - uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6.4.1
+    - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
       with:
         script: |
           const fs = require('fs').promises;

@@ -12,7 +12,6 @@ import {
   SxProps,
   Theme,
 } from "@mui/material";
-// eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { ReactNode, useContext } from "react";
@@ -150,7 +149,7 @@ export const CreateEntityTypeForm = ({
   const potentiallyUndesiredCrossWebAction =
     crossWebAction &&
     authenticatedUser.memberOf.find(
-      (org) =>
+      ({ org }) =>
         org.shortname === parentWebName ||
         org.shortname === activeWorkspace.shortname,
     );

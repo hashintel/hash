@@ -6,15 +6,19 @@ import {
   ResolverFn,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
+import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const getLinearOrganizationResolver: ResolverFn<
   Promise<LinearOrganization>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   QueryGetLinearOrganizationArgs
-> = async (_, params, { dataSources, user, vault }) => {
+> = async (_, params, graphQLContext) => {
+  const { authentication, user, vault } = graphQLContext;
+
   const linearSecretEntity = await getLinearUserSecretByLinearOrgId(
-    dataSources,
+    graphQLContextToImpureGraphContext(graphQLContext),
+    authentication,
     {
       userAccountId: user.accountId,
       linearOrgId: params.linearOrgId,

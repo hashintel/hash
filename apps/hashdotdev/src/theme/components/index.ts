@@ -23,6 +23,7 @@ import { MuiListThemeOptions } from "./navigation/mui-list-theme-overrides";
 import { MuiMenuItemThemeOptions } from "./navigation/mui-menu-item-theme-overrides";
 import { MuiTabItemThemeOptions } from "./navigation/mui-tab-theme-options";
 import { MuiTabsItemThemeOptions } from "./navigation/mui-tabs-theme-options";
+import { MuiPaperThemeOptions } from "./surfaces/mui-paper-theme-options";
 import { MuiCssBaselineThemeOptions } from "./utils/mui-css-baseline-theme-options";
 
 export const components: ThemeOptions["components"] = {
@@ -48,4 +49,5 @@ export const components: ThemeOptions["components"] = {
   MuiTabs: MuiTabsItemThemeOptions,
   MuiTab: MuiTabItemThemeOptions,
   MuiSvgIcon: MuiSvgIconThemeOptions,
+  MuiPaper: MuiPaperThemeOptions,
 };

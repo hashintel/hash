@@ -1,11 +1,9 @@
 import {
-  CreateHashIssueWorkflow,
-  CreateHashUserWorkflow,
+  CreateHashEntityFromLinearData,
   ReadLinearTeamsWorkflow,
   SyncWorkspaceWorkflow,
-  UpdateHashIssueWorkflow,
-  UpdateHashUserWorkflow,
-  UpdateLinearIssueWorkflow,
+  UpdateHashEntityFromLinearData,
+  UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-workflow-types";
 import { proxyActivities } from "@temporalio/workflow";
 
@@ -21,22 +19,22 @@ const linear = proxyActivities<
 });
 
 export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
-  const { apiKey, workspaceAccountId, actorId, teamIds } = params;
+  const { apiKey, workspaceOwnedById, authentication, teamIds } = params;
 
   const organization = linear
     .readLinearOrganization({ apiKey })
     .then((organizationEntity) =>
       linear.createPartialEntities({
-        workspaceAccountId,
-        actorId,
+        authentication,
+        workspaceOwnedById,
         entities: [organizationEntity],
       }),
     );
 
   const users = linear.readLinearUsers({ apiKey }).then((userEntities) =>
     linear.createPartialEntities({
-      workspaceAccountId,
-      actorId,
+      authentication,
+      workspaceOwnedById,
       entities: userEntities,
     }),
   );
@@ -46,8 +44,8 @@ export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
       .readLinearIssues({ apiKey, filter: { teamId } })
       .then((issueEntities) =>
         linear.createPartialEntities({
-          workspaceAccountId,
-          actorId,
+          authentication,
+          workspaceOwnedById,
           entities: issueEntities,
         }),
       ),
@@ -56,37 +54,18 @@ export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
   await Promise.all([organization, users, ...issues]);
 };
 
-export const createHashUser: CreateHashUserWorkflow = async (params) => {
-  await linear.createHashUser({
-    user: params.payload,
-    workspaceAccountId: params.ownedById,
-    actorId: params.actorId,
-  });
-};
+export const createHashEntityFromLinearData: CreateHashEntityFromLinearData =
+  async (params) => {
+    await linear.createHashEntityFromLinearData(params);
+  };
 
-export const updateHashUser: UpdateHashUserWorkflow = async (params) =>
-  linear.updateHashUser({
-    user: params.payload,
-    actorId: params.actorId,
-  });
-
-export const createHashIssue: CreateHashIssueWorkflow = async (params) => {
-  await linear.createHashIssue({
-    issue: params.payload,
-    workspaceAccountId: params.ownedById,
-    actorId: params.actorId,
-  });
-};
-
-export const updateHashIssue: UpdateHashIssueWorkflow = async (params) =>
-  linear.updateHashIssue({
-    issue: params.payload,
-    actorId: params.actorId,
-  });
+export const updateHashEntityFromLinearData: UpdateHashEntityFromLinearData =
+  async (params) => {
+    await linear.updateHashEntityFromLinearData(params);
+  };
 
 export const readLinearTeams: ReadLinearTeamsWorkflow = async ({ apiKey }) =>
   linear.readLinearTeams({ apiKey });
 
-export const updateLinearIssue: UpdateLinearIssueWorkflow = async (params) => {
-  await linear.updateLinearIssue(params);
-};
+export const updateLinearData: UpdateLinearDataWorkflow = async (params) =>
+  linear.updateLinearData(params);

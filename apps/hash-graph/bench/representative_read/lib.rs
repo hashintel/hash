@@ -5,6 +5,11 @@
     clippy::use_debug,
     reason = "This is a benchmark"
 )]
+#![expect(
+    unreachable_pub,
+    reason = "This is a benchmark but as we want to document this crate as well this should be a \
+              warning instead"
+)]
 
 //! Benchmarks to check the performance of operations across a "representative" graph.
 //!
@@ -33,9 +38,13 @@ mod ontology;
 
 mod seed;
 
+use std::str::FromStr;
+
 use criterion::{BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
 use graph::subgraph::edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth};
+use graph_types::account::AccountId;
+use uuid::Uuid;
 
 use self::seed::setup_and_extract_samples;
 use crate::util::setup;
@@ -44,8 +53,14 @@ const DB_NAME: &str = "representative_read";
 
 #[criterion]
 fn bench_representative_read_entity(c: &mut Criterion) {
+    // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
+    // parameter argument to criterion and get comparison analysis
+    let account_id = AccountId::new(
+        Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
+    );
+
     let mut group = c.benchmark_group("representative_read_entity");
-    let (runtime, mut store_wrapper) = setup(DB_NAME, false, false);
+    let (runtime, mut store_wrapper) = setup(DB_NAME, false, false, account_id);
 
     let samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper));
     let store = &store_wrapper.store;
@@ -59,7 +74,13 @@ fn bench_representative_read_entity(c: &mut Criterion) {
                 ),
                 &(account_id, entity_type_id, entity_uuids),
                 |b, (_account_id, _entity_type_id, entity_uuids)| {
-                    knowledge::entity::bench_get_entity_by_id(b, &runtime, store, entity_uuids);
+                    knowledge::entity::bench_get_entity_by_id(
+                        b,
+                        &runtime,
+                        store,
+                        account_id,
+                        entity_uuids,
+                    );
                 },
             );
         }
@@ -69,8 +90,14 @@ fn bench_representative_read_entity(c: &mut Criterion) {
 #[criterion]
 #[expect(clippy::too_many_lines)]
 fn bench_representative_read_multiple_entities(c: &mut Criterion) {
+    // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
+    // parameter argument to criterion and get comparison analysis
+    let account_id = AccountId::new(
+        Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
+    );
+
     let mut group = c.benchmark_group("representative_read_multiple_entities");
-    let (runtime, store_wrapper) = setup(DB_NAME, false, false);
+    let (runtime, store_wrapper) = setup(DB_NAME, false, false, account_id);
     group.sample_size(10);
     group.sampling_mode(SamplingMode::Flat);
 
@@ -294,6 +321,7 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                     b,
                     &runtime,
                     &store_wrapper.store,
+                    store_wrapper.account_id,
                     *graph_resolve_depth,
                 );
             },
@@ -346,6 +374,7 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                     b,
                     &runtime,
                     &store_wrapper.store,
+                    store_wrapper.account_id,
                     *graph_resolve_depth,
                 );
             },
@@ -355,8 +384,14 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
 
 #[criterion]
 fn bench_representative_read_entity_type(c: &mut Criterion) {
+    // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
+    // parameter argument to criterion and get comparison analysis
+    let account_id = AccountId::new(
+        Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
+    );
+
     let mut group = c.benchmark_group("representative_read_entity_type");
-    let (runtime, mut store_wrapper) = setup(DB_NAME, false, false);
+    let (runtime, mut store_wrapper) = setup(DB_NAME, false, false, account_id);
 
     let samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper));
     let store = &store_wrapper.store;
@@ -373,6 +408,7 @@ fn bench_representative_read_entity_type(c: &mut Criterion) {
                     b,
                     &runtime,
                     store,
+                    account_id,
                     entity_type_ids,
                 );
             },

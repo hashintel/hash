@@ -1,4 +1,5 @@
-import { Entity, OwnedById } from "@local/hash-subgraph";
+import { Entity } from "@local/hash-subgraph";
+import { UserInputError } from "apollo-server-errors";
 
 import { createFileFromUploadRequest } from "../../../../graph/knowledge/system-types/file";
 import {
@@ -7,31 +8,60 @@ import {
   ResolverFn,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { graphQLContextToImpureGraphContext } from "../../util";
+
+/**
+ * We want to limit the size of files that can be uploaded to account
+ * for potential issues when they are loaded into memory in the temporal
+ * worker.
+ *
+ * @todo: figure out how to handle large files in temporal
+ */
+const maximumFileSizeInMegaBytes = 100;
+
+const maximumFileSizeInBytes = maximumFileSizeInMegaBytes * 1024 * 1024;
 
 export const requestFileUpload: ResolverFn<
   Promise<RequestFileUploadResponse>,
-  {},
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationRequestFileUploadArgs
 > = async (
   _,
-  { description, entityTypeId, name, ownedById, size },
-  { dataSources, user },
-) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
-
-  const { presignedPost, entity } = await createFileFromUploadRequest(context, {
-    actorId: user.accountId,
+  {
     description,
-    entityTypeId,
+    displayName,
+    fileEntityCreationInput,
+    fileEntityUpdateInput,
     name,
-    ownedById: ownedById ?? (user.accountId as OwnedById),
     size,
-  });
+  },
+  graphQLContext,
+) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
+
+  if (size > maximumFileSizeInBytes) {
+    throw new UserInputError(
+      `The file size must be less than ${maximumFileSizeInMegaBytes} MB`,
+    );
+  }
+
+  const { presignedPut, entity } = await createFileFromUploadRequest(
+    context,
+    authentication,
+    {
+      description,
+      displayName,
+      fileEntityCreationInput,
+      fileEntityUpdateInput,
+      name,
+      size,
+    },
+  );
 
   return {
-    presignedPost,
+    presignedPut,
     entity: entity as unknown as Entity,
   };
 };

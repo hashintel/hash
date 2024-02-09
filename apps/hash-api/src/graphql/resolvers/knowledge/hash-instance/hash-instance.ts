@@ -1,19 +1,20 @@
+import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import { Entity } from "@local/hash-subgraph";
 
-import { getHashInstance } from "../../../../graph/knowledge/system-types/hash-instance";
 import { ResolverFn } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { GraphQLContext } from "../../../context";
+import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const hashInstanceEntityResolver: ResolverFn<
   Promise<Entity>,
-  {},
-  LoggedInGraphQLContext,
-  {}
-> = async (_, __, { dataSources }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+  Record<string, never>,
+  GraphQLContext,
+  Record<string, never>
+> = async (_, __, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const hashInstance = await getHashInstance(context, {});
+  const hashInstance = await getHashInstance(context, authentication);
 
   return hashInstance.entity;
 };

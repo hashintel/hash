@@ -1,10 +1,16 @@
 import {
+  BaseUrl,
   Entity,
+  EntityRootType,
+  extractBaseUrl,
+  extractVersion,
   GraphBlockHandler,
   JsonValue,
   MultiFilter,
+  PropertyType,
+  Subgraph,
 } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
+import { getPropertyTypes, getRoots } from "@blockprotocol/graph/stdlib";
 import {
   DataEditorProps,
   DataEditorRef,
@@ -18,11 +24,11 @@ import { BlockEntity } from "../../types/generated/block-entity";
 import { Grid, ROW_HEIGHT } from "../grid/grid";
 
 const isStripedKey: RootKey =
-  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-rows-are-striped/";
+  "https://blockprotocol.org/@hash/types/property-type/table-rows-are-striped/";
 const hideHeaderRowKey: RootKey =
-  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-header-row-is-hidden/";
+  "https://blockprotocol.org/@hash/types/property-type/table-header-row-is-hidden/";
 const hideRowNumbersKey: RootKey =
-  "https://blockprotocol-fwu7vped4.stage.hash.ai/@yk_hash/types/property-type/table-row-numbers-are-hidden/";
+  "https://blockprotocol.org/@hash/types/property-type/table-row-numbers-are-hidden/";
 
 interface TableProps {
   blockEntity: BlockEntity;
@@ -48,6 +54,8 @@ export const TableWithQuery = ({
   } = blockEntity;
 
   const [loading, setLoading] = useState(true);
+
+  const [subgraph, setSubgraph] = useState<Subgraph<EntityRootType>>();
   const [entities, setEntities] = useState<Entity[]>([]);
 
   useEffect(() => {
@@ -56,12 +64,12 @@ export const TableWithQuery = ({
         data: {
           operation: { multiFilter: query },
           graphResolveDepths: {
-            inheritsFrom: { outgoing: 0 },
+            inheritsFrom: { outgoing: 255 },
             constrainsValuesOn: { outgoing: 0 },
-            constrainsPropertiesOn: { outgoing: 0 },
+            constrainsPropertiesOn: { outgoing: 255 },
             constrainsLinksOn: { outgoing: 0 },
             constrainsLinkDestinationsOn: { outgoing: 0 },
-            isOfType: { outgoing: 0 },
+            isOfType: { outgoing: 1 },
             hasLeftEntity: { incoming: 0, outgoing: 0 },
             hasRightEntity: { incoming: 0, outgoing: 0 },
           },
@@ -72,26 +80,78 @@ export const TableWithQuery = ({
         throw new Error(res.errors?.[0]?.message ?? "Unknown error");
       }
 
-      const roots = getRoots(res.data.results);
-      setLoading(false);
+      const fetchedSubgraph = res.data.results;
 
-      setEntities(roots);
+      setSubgraph(fetchedSubgraph);
+      setEntities(getRoots(fetchedSubgraph));
+
+      setLoading(false);
     };
 
     void init();
   }, [graphModule, query]);
 
-  const columns = useMemo<GridColumn[]>(() => {
-    const uniqueEntityTypeIds = new Set<string>(
-      entities.flatMap(({ properties }) => Object.keys(properties)),
+  const uniquePropertyTypeBaseUrls = useMemo<BaseUrl[]>(
+    () =>
+      Array.from(
+        new Set<string>(
+          entities.flatMap(({ properties }) => Object.keys(properties)),
+        ),
+      ),
+    [entities],
+  );
+
+  const propertyTypes = useMemo<PropertyType[]>(() => {
+    if (!subgraph) {
+      return [];
+    }
+
+    const allPropertyTypes = getPropertyTypes(subgraph).map(
+      ({ schema }) => schema,
     );
 
-    return Array.from(uniqueEntityTypeIds).map((entityTypeId) => ({
-      id: entityTypeId,
-      title: entityTypeId.split("/").slice(-2)[0] ?? entityTypeId,
-      width: 200,
-    }));
-  }, [entities]);
+    return allPropertyTypes.reduce<PropertyType[]>((prev, propertyType) => {
+      const previouslyAddedPropertyType = prev.find(
+        (schema) =>
+          extractBaseUrl(schema.$id) === extractBaseUrl(propertyType.$id),
+      );
+
+      if (!previouslyAddedPropertyType) {
+        return [...prev, propertyType];
+      } else if (
+        extractVersion(previouslyAddedPropertyType.$id) <
+        extractVersion(propertyType.$id)
+      ) {
+        return [
+          ...prev.filter(
+            (schema) => schema.$id !== previouslyAddedPropertyType.$id,
+          ),
+          propertyType,
+        ];
+      } else {
+        return prev;
+      }
+    }, []);
+  }, [subgraph]);
+
+  const columns = useMemo<GridColumn[]>(
+    () =>
+      uniquePropertyTypeBaseUrls
+        .map((propertyTypeBaseUrl) => ({
+          id: propertyTypeBaseUrl,
+          /** @todo: fetch property type in query */
+          title:
+            propertyTypes.find(
+              (propertyType) =>
+                extractBaseUrl(propertyType.$id) === propertyTypeBaseUrl,
+            )?.title ??
+            propertyTypeBaseUrl.split("/").slice(-2)[0] ??
+            propertyTypeBaseUrl,
+          width: 200,
+        }))
+        .sort((a, b) => a.title.localeCompare(b.title)),
+    [uniquePropertyTypeBaseUrls, propertyTypes],
+  );
 
   const handleCellEdited: DataEditorProps["onCellEdited"] = (
     [colIndex, rowIndex],
@@ -102,15 +162,17 @@ export const TableWithQuery = ({
         if (index !== rowIndex) return entity;
 
         const column = columns[colIndex];
-        const propertyTypeId = column?.id;
+        const propertyTypeBaseUrl = column?.id;
 
-        if (!column || !propertyTypeId) throw new Error("Column not found");
+        if (!column || !propertyTypeBaseUrl) {
+          throw new Error("Column not found");
+        }
 
         const newPropertyValue = newValue.data as string;
 
         const newProperties = {
           ...entity.properties,
-          [propertyTypeId]: newPropertyValue,
+          [propertyTypeBaseUrl]: newPropertyValue,
         };
 
         void graphModule.updateEntity({

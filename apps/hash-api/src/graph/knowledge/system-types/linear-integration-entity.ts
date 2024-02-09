@@ -1,7 +1,20 @@
+import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import {
+  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import {
+  LinearIntegrationProperties,
+  SyncLinearDataWithProperties,
+} from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import {
   AccountId,
   Entity,
@@ -9,16 +22,16 @@ import {
   EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-  Subgraph,
 } from "@local/hash-subgraph";
 import {
   getRightEntityForLinkEntity,
   getRoots,
+  mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { EntityTypeMismatchError } from "../../../lib/error";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
-import { SYSTEM_TYPES } from "../../system-types";
+import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import { systemAccountId } from "../../system-account";
 import { getLatestEntityById, updateEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 
@@ -33,65 +46,116 @@ export const getLinearIntegrationFromEntity: PureGraphFunction<
 > = ({ entity }) => {
   if (
     entity.metadata.entityTypeId !==
-    SYSTEM_TYPES.entityType.linearIntegration.schema.$id
+    systemEntityTypes.linearIntegration.entityTypeId
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.user.schema.$id,
+      systemEntityTypes.linearIntegration.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
 
-  const linearOrgId = entity.properties[
-    SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl
-  ] as string;
+  const { linearOrgId } = simplifyProperties(
+    entity.properties as LinearIntegrationProperties,
+  );
 
-  return {
-    linearOrgId,
-    entity,
-  };
+  return { linearOrgId, entity };
 };
 
 /**
- * Get a linear user secret by the linear org ID
+ * Get all linear integrations by the linear org ID
+ */
+export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
+  { linearOrgId: string; includeDrafts?: boolean },
+  Promise<LinearIntegration[]>
+> = async ({ graphApi }, { actorId }, params) => {
+  const { linearOrgId, includeDrafts = false } = params;
+
+  const entities = await graphApi
+    .getEntitiesByQuery(actorId, {
+      query: {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.linearIntegration.entityTypeId,
+              { ignoreParents: true },
+            ),
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    extractBaseUrl(
+                      systemPropertyTypes.linearOrgId.propertyTypeId,
+                    ),
+                  ],
+                },
+                { parameter: linearOrgId },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
+      },
+    })
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+      );
+      return getRoots(subgraph);
+    });
+
+  return entities.map((entity) => getLinearIntegrationFromEntity({ entity }));
+};
+
+/**
+ * Get a linear integration by the linear org ID
  */
 export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
-  { userAccountId: AccountId; linearOrgId: string },
+  { userAccountId: AccountId; linearOrgId: string; includeDrafts?: boolean },
   Promise<LinearIntegration | null>
-> = async ({ graphApi }, { userAccountId, linearOrgId }) => {
+> = async ({ graphApi }, { actorId }, params) => {
+  const { userAccountId, linearOrgId, includeDrafts = false } = params;
   const entities = await graphApi
-    .getEntitiesByQuery({
-      filter: {
-        all: [
-          {
-            equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
-          },
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
-              {
-                parameter: SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
-              },
-            ],
-          },
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId
-                    .baseUrl,
-                ],
-              },
-              { parameter: linearOrgId },
-            ],
-          },
-        ],
+    .getEntitiesByQuery(actorId, {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
+            },
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.linearIntegration.entityTypeId,
+              { ignoreParents: true },
+            ),
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    extractBaseUrl(
+                      systemPropertyTypes.linearOrgId.propertyTypeId,
+                    ),
+                  ],
+                },
+                { parameter: linearOrgId },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data }) => getRoots(data as Subgraph<EntityRootType>));
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+      );
+      return getRoots(subgraph);
+    });
 
   if (entities.length > 1) {
     throw new Error(
@@ -111,53 +175,59 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
  */
 export const getLinearIntegrationById: ImpureGraphFunction<
   { entityId: EntityId },
-  Promise<LinearIntegration>
-> = async (ctx, { entityId }) => {
-  const entity = await getLatestEntityById(ctx, { entityId });
+  Promise<LinearIntegration>,
+  false,
+  true
+> = async (ctx, authentication, { entityId }) => {
+  const entity = await getLatestEntityById(ctx, authentication, { entityId });
 
   return getLinearIntegrationFromEntity({ entity });
 };
 
 export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
-  { linearIntegrationEntityId: EntityId },
+  { linearIntegrationEntityId: EntityId; includeDrafts?: boolean },
   Promise<{ syncLinearDataWithLinkEntity: Entity; workspaceEntity: Entity }[]>
-> = async ({ graphApi }, { linearIntegrationEntityId }) =>
+> = async (
+  { graphApi },
+  { actorId },
+  { linearIntegrationEntityId, includeDrafts = false },
+) =>
   graphApi
-    .getEntitiesByQuery({
-      filter: {
-        all: [
-          {
-            equal: [{ path: ["archived"] }, { parameter: false }],
-          },
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
-              {
-                parameter:
-                  SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["leftEntity", "uuid"] },
-              {
-                parameter: extractEntityUuidFromEntityId(
-                  linearIntegrationEntityId,
-                ),
-              },
-            ],
-          },
-        ],
+    .getEntitiesByQuery(actorId, {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["archived"] }, { parameter: false }],
+            },
+            generateVersionedUrlMatchingFilter(
+              systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
+              { ignoreParents: true },
+            ),
+            {
+              equal: [
+                { path: ["leftEntity", "uuid"] },
+                {
+                  parameter: extractEntityUuidFromEntityId(
+                    linearIntegrationEntityId,
+                  ),
+                },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          hasRightEntity: { incoming: 0, outgoing: 1 },
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
       },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        hasRightEntity: { incoming: 0, outgoing: 1 },
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => {
-      const subgraph = data as Subgraph<EntityRootType>;
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+      );
 
       const syncLinearDataWithLinkEntities = getRoots(subgraph);
 
@@ -178,53 +248,63 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
     linearIntegrationEntityId: EntityId;
     workspaceEntityId: EntityId;
     linearTeamIds: string[];
-    actorId: AccountId;
+    includeDrafts?: boolean;
   },
-  Promise<void>
-> = async (
-  context,
-  { linearIntegrationEntityId, workspaceEntityId, linearTeamIds, actorId },
-) => {
+  Promise<void>,
+  false,
+  true
+> = async (context, authentication, params) => {
+  const {
+    linearIntegrationEntityId,
+    workspaceEntityId,
+    linearTeamIds,
+    includeDrafts = false,
+  } = params;
+
   const existingLinkEntities = await context.graphApi
-    .getEntitiesByQuery({
-      filter: {
-        all: [
-          {
-            equal: [{ path: ["archived"] }, { parameter: false }],
-          },
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
-              {
-                parameter:
-                  SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["leftEntity", "uuid"] },
-              {
-                parameter: extractEntityUuidFromEntityId(
-                  linearIntegrationEntityId,
-                ),
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["rightEntity", "uuid"] },
-              {
-                parameter: extractEntityUuidFromEntityId(workspaceEntityId),
-              },
-            ],
-          },
-        ],
+    .getEntitiesByQuery(authentication.actorId, {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["archived"] }, { parameter: false }],
+            },
+            generateVersionedUrlMatchingFilter(
+              systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
+              { ignoreParents: true },
+            ),
+            {
+              equal: [
+                { path: ["leftEntity", "uuid"] },
+                {
+                  parameter: extractEntityUuidFromEntityId(
+                    linearIntegrationEntityId,
+                  ),
+                },
+              ],
+            },
+            {
+              equal: [
+                { path: ["rightEntity", "uuid"] },
+                {
+                  parameter: extractEntityUuidFromEntityId(workspaceEntityId),
+                },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data }) => getRoots(data as Subgraph<EntityRootType>));
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+      );
+
+      return getRoots(subgraph);
+    });
 
   if (existingLinkEntities.length > 1) {
     throw new Error(
@@ -233,25 +313,32 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
   } else if (existingLinkEntities[0]) {
     const [existingLinkEntity] = existingLinkEntities;
 
-    await updateEntity(context, {
+    await updateEntity(context, authentication, {
       entity: existingLinkEntity,
-      actorId,
       properties: {
-        [SYSTEM_TYPES.propertyType.linearTeamId.metadata.recordId.baseUrl]:
+        "https://hash.ai/@hash/types/property-type/linear-team-id/":
           linearTeamIds,
-      },
+      } as SyncLinearDataWithProperties,
     });
   } else {
-    await createLinkEntity(context, {
+    await createLinkEntity(context, authentication, {
       ownedById: extractOwnedByIdFromEntityId(linearIntegrationEntityId),
-      linkEntityType: SYSTEM_TYPES.linkEntityType.syncLinearDataWith,
+      linkEntityTypeId:
+        systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
       leftEntityId: linearIntegrationEntityId,
       rightEntityId: workspaceEntityId,
-      actorId,
       properties: {
-        [SYSTEM_TYPES.propertyType.linearTeamId.metadata.recordId.baseUrl]:
+        "https://hash.ai/@hash/types/property-type/linear-team-id/":
           linearTeamIds,
-      },
+      } as SyncLinearDataWithProperties,
+      relationships: [
+        ...createDefaultAuthorizationRelationships(authentication),
+        {
+          // Allow the system account ID to view the link
+          relation: "viewer",
+          subject: { kind: "account", subjectId: systemAccountId },
+        },
+      ],
     });
   }
 };

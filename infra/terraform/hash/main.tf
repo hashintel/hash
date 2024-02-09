@@ -1,6 +1,6 @@
 /*
-  This module contains the configuration for standing up a HASH instance in 
-  AWS using ECS Fargate. 
+  This module contains the configuration for standing up a HASH instance in
+  AWS using ECS Fargate.
 */
 
 module "variables_hash" {
@@ -38,7 +38,7 @@ provider "vault" {
 data "vault_kv_secret_v2" "secrets" {
   mount = "automation"
   # Remove leading and trailing slashes from the path so we ensure it's a path and not a file
-  name = "${trim(var.vault_kvv2_secret_path, "/ ")}/${local.env}"
+  name  = "${trim(var.vault_kvv2_secret_path, "/ ")}/${local.env}"
 }
 
 module "vault_aws_auth" {
@@ -95,28 +95,28 @@ module "postgres" {
 }
 
 module "temporal" {
-  depends_on            = [module.networking, module.postgres]
-  source                = "./temporal"
-  prefix                = module.variables_temporal.prefix
-  param_prefix          = module.variables_temporal.param_prefix
-  subnets               = module.networking.snpub
-  vpc                   = module.networking.vpc
-  env                   = local.env
-  region                = local.region
-  cpu                   = 256
-  memory                = 512
+  depends_on          = [module.networking, module.postgres]
+  source              = "./temporal"
+  prefix              = module.variables_temporal.prefix
+  param_prefix        = module.variables_temporal.param_prefix
+  subnets             = module.networking.snpub
+  vpc                 = module.networking.vpc
+  env                 = local.env
+  region              = local.region
+  cpu                 = 256
+  memory              = 512
   # TODO: provide by the HASH variables.tf
-  temporal_version      = "1.21.0.0"
-  temporal_ui_version   = "2.16.2"
+  temporal_version    = "1.21.0.0"
+  temporal_ui_version = "2.16.2"
 
-  postgres_host = module.postgres.pg_host
-  postgres_port = module.postgres.pg_port
-  postgres_db = "temporal"
+  postgres_host          = module.postgres.pg_host
+  postgres_port          = module.postgres.pg_port
+  postgres_db            = "temporal"
   postgres_visibility_db = "temporal_visibility"
-  postgres_user = "temporal"
-  postgres_password  = sensitive(data.vault_kv_secret_v2.secrets.data["pg_temporal_user_password_raw"])
+  postgres_user          = "temporal"
+  postgres_password      = sensitive(data.vault_kv_secret_v2.secrets.data["pg_temporal_user_password_raw"])
 
-  postgres_superuser = "superuser"
+  postgres_superuser          = "superuser"
   postgres_superuser_password = sensitive(data.vault_kv_secret_v2.secrets.data["pg_superuser_password"])
 }
 
@@ -149,9 +149,10 @@ module "postgres_roles" {
   pg_superuser_username = "superuser"
   pg_superuser_password = data.vault_kv_secret_v2.secrets.data["pg_superuser_password"]
 
-  pg_kratos_user_password_hash = data.vault_kv_secret_v2.secrets.data["pg_kratos_user_password_hash"]
-  pg_graph_user_password_hash  = data.vault_kv_secret_v2.secrets.data["pg_graph_user_password_hash"]
+  pg_kratos_user_password_hash   = data.vault_kv_secret_v2.secrets.data["pg_kratos_user_password_hash"]
+  pg_graph_user_password_hash    = data.vault_kv_secret_v2.secrets.data["pg_graph_user_password_hash"]
   pg_temporal_user_password_hash = data.vault_kv_secret_v2.secrets.data["pg_temporal_user_password_hash"]
+  pg_spicedb_user_password_hash  = data.vault_kv_secret_v2.secrets.data["pg_spicedb_user_password_hash"]
 }
 
 module "redis" {
@@ -197,12 +198,6 @@ module "temporal_worker_ai_ts_ecr" {
   ecr_name = "temporalworkeraits"
 }
 
-module "temporal_worker_ai_py_ecr" {
-  source   = "../modules/container_registry"
-  prefix   = local.prefix
-  ecr_name = "temporalworkeraipy"
-}
-
 module "temporal_worker_integration_ecr" {
   source   = "../modules/container_registry"
   prefix   = local.prefix
@@ -218,66 +213,165 @@ module "application" {
   vpc                          = module.networking.vpc
   prefix                       = local.prefix
   param_prefix                 = local.param_prefix
-  cpu                          = 1024
-  memory                       = 2048
+  cpu                          = 2048
+  memory                       = 4096
+  worker_cpu                   = 256
+  worker_memory                = 512
   ses_verified_domain_identity = var.ses_verified_domain_identity
   graph_image                  = module.graph_ecr
-  graph_env_vars = concat(var.hash_graph_env_vars, [
-    { name = "HASH_GRAPH_TYPE_FETCHER_HOST", secret = false, value = "127.0.0.1" },
-    { name = "HASH_GRAPH_TYPE_FETCHER_PORT", secret = false, value = "4444" },
-    { name = "HASH_GRAPH_PG_USER", secret = false, value = "graph" },
-    { name = "HASH_GRAPH_PG_PASSWORD", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["pg_graph_user_password_raw"]) },
+  graph_migration_env_vars     = concat(var.hash_graph_env_vars, [
+    { name = "HASH_GRAPH_PG_USER", secret = false, value = "superuser" },
+    {
+      name  = "HASH_GRAPH_PG_PASSWORD", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["pg_superuser_password"])
+    },
     { name = "HASH_GRAPH_PG_HOST", secret = false, value = module.postgres.pg_host },
     { name = "HASH_GRAPH_PG_PORT", secret = false, value = module.postgres.pg_port },
     { name = "HASH_GRAPH_PG_DATABASE", secret = false, value = "graph" },
+    {
+      name  = "HASH_GRAPH_SENTRY_DSN", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["graph_sentry_dsn"])
+    },
+    { name = "HASH_GRAPH_SENTRY_ENVIRONMENT", secret = false, value = "production" },
+    { name = "HASH_GRAPH_SENTRY_EVENT_FILTER", secret = false, value = "debug" },
+    { name = "HASH_GRAPH_SENTRY_SPAN_FILTER", secret = false, value = "trace" },
+  ])
+  graph_env_vars = concat(var.hash_graph_env_vars, [
+    { name = "HASH_GRAPH_PG_USER", secret = false, value = "graph" },
+    {
+      name  = "HASH_GRAPH_PG_PASSWORD", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["pg_graph_user_password_raw"])
+    },
+    { name = "HASH_GRAPH_PG_HOST", secret = false, value = module.postgres.pg_host },
+    { name = "HASH_GRAPH_PG_PORT", secret = false, value = module.postgres.pg_port },
+    { name = "HASH_GRAPH_PG_DATABASE", secret = false, value = "graph" },
+    {
+      name  = "HASH_SPICEDB_GRPC_PRESHARED_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["spicedb_grpc_preshared_key"])
+    },
+    {
+      name  = "HASH_GRAPH_SENTRY_DSN", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["graph_sentry_dsn"])
+    },
+    { name = "HASH_GRAPH_SENTRY_ENVIRONMENT", secret = false, value = "production" },
+    { name = "HASH_GRAPH_SENTRY_EVENT_FILTER", secret = false, value = "debug" },
+    { name = "HASH_GRAPH_SENTRY_SPAN_FILTER", secret = false, value = "trace" },
   ])
   # The type fetcher uses the same image as the graph right now
   type_fetcher_image = module.graph_ecr
-  # we reuse the same non-secret env vars as the graph. Stuff like logging
-  type_fetcher_env_vars = concat(var.hash_graph_env_vars, [
-    { name = "HASH_GRAPH_TYPE_FETCHER_HOST", secret = false, value = "127.0.0.1" },
-    { name = "HASH_GRAPH_TYPE_FETCHER_PORT", secret = false, value = "4444" },
+  kratos_image       = module.kratos_ecr
+  kratos_env_vars    = concat(var.kratos_env_vars, [
+    {
+      name  = "SECRETS_COOKIE", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["kratos_secrets_cookie"])
+    },
+    {
+      name  = "SECRETS_CIPHER", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["kratos_secrets_cipher"])
+    },
+    {
+      name  = "DSN", secret = true,
+      value = "postgres://kratos:${sensitive(data.vault_kv_secret_v2.secrets.data["pg_kratos_user_password_raw"])}@${module.postgres.pg_host}:${module.postgres.pg_port}/kratos"
+    },
   ])
-  kratos_image = module.kratos_ecr
-  kratos_env_vars = concat(var.kratos_env_vars, [
-    { name = "SECRETS_COOKIE", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["kratos_secrets_cookie"]) },
-    { name = "SECRETS_CIPHER", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["kratos_secrets_cipher"]) },
-    { name = "DSN", secret = true, value = "postgres://kratos:${sensitive(data.vault_kv_secret_v2.secrets.data["pg_kratos_user_password_raw"])}@${module.postgres.pg_host}:${module.postgres.pg_port}/kratos" },
-  ])
-  api_image = module.api_ecr
+  api_image    = module.api_ecr
   api_env_vars = concat(var.hash_api_env_vars, [
+    {
+      name  = "MAILCHIMP_API_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["mailchimp_api_key"])
+    },
+    {
+      name  = "MAILCHIMP_LIST_ID", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["mailchimp_list_id"])
+    },
+    {
+      name  = "USER_EMAIL_ALLOW_LIST", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["user_email_allow_list"])
+    },
     { name = "AWS_REGION", secret = false, value = local.region },
-    { name = "SYSTEM_USER_PASSWORD", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_system_user_password"]) },
-    { name = "BLOCK_PROTOCOL_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_block_protocol_api_key"]) },
-    { name = "KRATOS_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["kratos_api_key"]) },
-    { name = "HASH_API_RUDDERSTACK_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_api_rudderstack_key"]) },
-    { name = "HASH_SEED_USERS", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_seed_users"]) },
+    {
+      name  = "AWS_S3_UPLOADS_ACCESS_KEY_ID", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_access_key_id"])
+    },
+    {
+      name  = "AWS_S3_UPLOADS_BUCKET", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_bucket"])
+    },
+    {
+      name  = "AWS_S3_UPLOADS_ENDPOINT", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_endpoint"])
+    },
+    {
+      name  = "AWS_S3_UPLOADS_SECRET_ACCESS_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_secret_access_key"])
+    },
+    {
+      name  = "BLOCK_PROTOCOL_API_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_block_protocol_api_key"])
+    },
+    {
+      name  = "KRATOS_API_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["kratos_api_key"])
+    },
+    {
+      name  = "HASH_API_RUDDERSTACK_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_api_rudderstack_key"])
+    },
+    {
+      name  = "HASH_SEED_USERS", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_seed_users"])
+    },
     { name = "HASH_REDIS_HOST", secret = false, value = module.redis.node.address },
     { name = "HASH_REDIS_PORT", secret = false, value = module.redis.node.port },
-    { name = "HASH_TEMPORAL_SERVER_HOST", secret = false, value = module.temporal.host },
-    { name = "HASH_TEMPORAL_SERVER_PORT", secret = false, value = module.temporal.temporal_port },
+    { name = "HASH_REDIS_ENCRYPTED_TRANSIT", secret = false, value = "true" },
     { name = "HASH_INTEGRATION_QUEUE_NAME", secret = false, value = "integration" },
-    { name = "LINEAR_CLIENT_ID", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_id"]) },
-    { name = "LINEAR_CLIENT_SECRET", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_secret"]) },
-    { name = "LINEAR_WEBHOOK_SECRET", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_webhook_secret"]) },
+    #    { name = "LINEAR_CLIENT_ID", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_id"]) },
+    #    { name = "LINEAR_CLIENT_SECRET", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_secret"]) },
+    {
+      name  = "LINEAR_WEBHOOK_SECRET", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_webhook_secret"])
+    },
+    {
+      name  = "NODE_API_SENTRY_DSN", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["node_api_sentry_dsn"])
+    }
   ])
-  temporal_worker_ai_ts_image = module.temporal_worker_ai_ts_ecr
+  temporal_worker_ai_ts_image    = module.temporal_worker_ai_ts_ecr
   temporal_worker_ai_ts_env_vars = [
-    { name = "OPENAI_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"]) },
-    { name = "ORY_KRATOS_PUBLIC_URL", secret = false, value = "" },
-    { name = "ORY_KRATOS_ADMIN_URL", secret = false, value = "" },
-    { name = "HASH_GRAPH_API_HOST", secret = false, value = "localhost" },
-    { name = "HASH_GRAPH_API_PORT", secret = false, value = "4000" },
-  ]
-  temporal_worker_ai_py_image = module.temporal_worker_ai_py_ecr
-  temporal_worker_ai_py_env_vars = [
-    { name = "OPENAI_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"]) },
+    {
+      name  = "OPENAI_API_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"])
+    },
   ]
   temporal_worker_integration_image = module.temporal_worker_integration_ecr
-  temporal_worker_integration_env_vars = [
-    { name = "HASH_GRAPH_API_HOST", secret = false, value = "localhost" },
-    { name = "HASH_GRAPH_API_PORT", secret = false, value = "4000" },
+  temporal_host                     = module.temporal.host
+  temporal_port                     = module.temporal.port
+  spicedb_image                     = {
+    name    = "authzed/spicedb"
+    version = "1.28.0"
+  }
+  spicedb_migration_env_vars = [
+    { name = "SPICEDB_LOG_FORMAT", secret = false, value = "console" },
+    { name = "SPICEDB_DATASTORE_ENGINE", secret = false, value = "postgres" },
+    {
+      name  = "SPICEDB_DATASTORE_CONN_URI", secret = true,
+      value = sensitive("postgres://superuser:${data.vault_kv_secret_v2.secrets.data["pg_superuser_password"]}@${module.postgres.pg_host}:${module.postgres.pg_port}/spicedb")
+    },
   ]
-  temporal_host = module.temporal.host
-  temporal_port = module.temporal.temporal_port
+  spicedb_env_vars = [
+    { name = "SPICEDB_LOG_FORMAT", secret = false, value = "console" },
+    { name = "SPICEDB_DATASTORE_ENGINE", secret = false, value = "postgres" },
+    {
+      name  = "SPICEDB_DATASTORE_CONN_URI", secret = true,
+      value = sensitive("postgres://spicedb:${data.vault_kv_secret_v2.secrets.data["pg_spicedb_user_password_raw"]}@${module.postgres.pg_host}:${module.postgres.pg_port}/spicedb?plan_cache_mode=force_custom_plan")
+    },
+    { name = "SPICEDB_HTTP_ENABLED", secret = false, value = "True" },
+    { name = "SPICEDB_SCHEMA_PREFIXES_REQUIRED", secret = false, value = "True" },
+    { name = "SPICEDB_TELEMETRY_ENDPOINT", secret = false, value = "" },
+    { name = "SPICEDB_DATASTORE_GC_WINDOW", secret = false, value = "2m0s" },
+    {
+      name  = "SPICEDB_GRPC_PRESHARED_KEY", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["spicedb_grpc_preshared_key"])
+    },
+  ]
 }

@@ -20,18 +20,18 @@
     "serve": "block-scripts serve"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.1-canary-20230803163819",
+    "@blockprotocol/graph": "0.3.1-canary-20240108132503",
     "lit": "^2.4.1",
     "mine-sweeper-tag": "1.0.6"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/react-dom": "18.0.9",
-    "block-scripts": "0.3.0",
-    "mock-block-dock": "0.1.5",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "@types/react-dom": "18.0.10",
+    "block-scripts": "0.3.1",
+    "mock-block-dock": "0.1.6",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
   },
   "block-scripts": {
     "port": 63212

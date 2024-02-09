@@ -1,5 +1,6 @@
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import { Avatar, FontAwesomeIcon } from "@hashintel/design-system";
+import { OwnedById } from "@local/hash-subgraph";
 import {
   Box,
   Divider,
@@ -14,64 +15,87 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useContext, useMemo } from "react";
+import { useMemo } from "react";
 
 import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
-import { WorkspaceContext } from "../../../pages/shared/workspace-context";
+import { getImageUrlFromEntityProperties } from "../../../pages/shared/get-image-url-from-properties";
+import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { Button, MenuItem } from "../../ui";
 
-type WorkspaceSwitcherProps = {};
-
-export const WorkspaceSwitcher: FunctionComponent<
-  WorkspaceSwitcherProps
-> = () => {
+export const WorkspaceSwitcher = () => {
   const popupState = usePopupState({
     variant: "popover",
     popupId: "workspace-switcher-menu",
   });
   const { authenticatedUser } = useAuthenticatedUser();
   const { logout } = useLogoutFlow();
-  const { activeWorkspaceAccountId, updateActiveWorkspaceAccountId } =
-    useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById, updateActiveWorkspaceOwnedById } =
+    useActiveWorkspace();
 
-  const activeWorkspaceName = useMemo(() => {
-    if (activeWorkspaceAccountId === authenticatedUser.accountId) {
-      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty preferredName
-      return authenticatedUser.preferredName || authenticatedUser.shortname!;
+  const activeWorkspace = useMemo<{ name: string; avatarSrc?: string }>(() => {
+    if (activeWorkspaceOwnedById === authenticatedUser.accountId) {
+      return {
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty preferredName
+        name: authenticatedUser.preferredName || authenticatedUser.shortname!,
+        avatarSrc: authenticatedUser.hasAvatar
+          ? getImageUrlFromEntityProperties(
+              authenticatedUser.hasAvatar.imageEntity.properties,
+            )
+          : undefined,
+      };
     } else {
-      const activeOrg = authenticatedUser.memberOf.find(
-        ({ accountId }) => accountId === activeWorkspaceAccountId,
-      );
+      const { org: activeOrg } =
+        authenticatedUser.memberOf.find(
+          ({ org: { accountGroupId } }) =>
+            accountGroupId === activeWorkspaceOwnedById,
+        ) ?? {};
 
       if (activeOrg) {
-        return activeOrg.name;
+        return {
+          name: activeOrg.name,
+          avatarSrc: activeOrg.hasAvatar
+            ? getImageUrlFromEntityProperties(
+                activeOrg.hasAvatar.imageEntity.properties,
+              )
+            : undefined,
+        };
       }
     }
 
-    return "User";
-  }, [activeWorkspaceAccountId, authenticatedUser]);
+    return { name: "User" };
+  }, [activeWorkspaceOwnedById, authenticatedUser]);
 
   const workspaceList = useMemo(() => {
     return [
       {
-        accountId: authenticatedUser.accountId,
+        ownedById: authenticatedUser.accountId as OwnedById,
         title: "My personal workspace",
         subText: `@${authenticatedUser.shortname ?? "user"}`,
         avatarTitle: authenticatedUser.preferredName ?? "U",
+        avatarSrc: authenticatedUser.hasAvatar
+          ? getImageUrlFromEntityProperties(
+              authenticatedUser.hasAvatar.imageEntity.properties,
+            )
+          : undefined,
       },
-      ...authenticatedUser.memberOf.map(({ accountId, name, memberships }) => ({
-        accountId,
-        title: name,
-        subText: `${memberships.length} members`,
-        avatarTitle: name,
-      })),
+      ...authenticatedUser.memberOf.map(
+        ({ org: { accountGroupId, name, memberships, hasAvatar } }) => ({
+          ownedById: accountGroupId as OwnedById,
+          title: name,
+          subText: memberships.length ? `${memberships.length} members` : "", // memberships are loaded in the background
+          avatarTitle: name,
+          avatarSrc: hasAvatar
+            ? getImageUrlFromEntityProperties(hasAvatar.imageEntity.properties)
+            : undefined,
+        }),
+      ),
     ];
   }, [authenticatedUser]);
 
   return (
     <Box>
-      <Tooltip placement="bottom" title={activeWorkspaceName}>
+      <Tooltip placement="bottom" title={activeWorkspace.name}>
         <Button
           variant="tertiary_quiet"
           fullWidth
@@ -84,7 +108,11 @@ export const WorkspaceSwitcher: FunctionComponent<
           })}
           {...bindTrigger(popupState)}
         >
-          <Avatar size={22} title={activeWorkspaceName} />
+          <Avatar
+            size={22}
+            src={activeWorkspace.avatarSrc}
+            title={activeWorkspace.name}
+          />
           <Typography
             sx={{
               pr: 1,
@@ -98,7 +126,7 @@ export const WorkspaceSwitcher: FunctionComponent<
             }}
             variant="smallTextLabels"
           >
-            {activeWorkspaceName}
+            {activeWorkspace.name}
           </Typography>
           <FontAwesomeIcon
             icon={faChevronDown}
@@ -116,20 +144,21 @@ export const WorkspaceSwitcher: FunctionComponent<
         }}
         autoFocus={false}
       >
-        {workspaceList.map(({ title, subText, accountId }) => (
+        {workspaceList.map(({ title, subText, ownedById, avatarSrc }) => (
           <MenuItem
-            key={accountId}
-            selected={accountId === activeWorkspaceAccountId}
+            key={ownedById}
+            selected={ownedById === activeWorkspaceOwnedById}
             onClick={() => {
-              updateActiveWorkspaceAccountId(accountId);
+              updateActiveWorkspaceOwnedById(ownedById);
               popupState.close();
             }}
           >
             <ListItemAvatar>
               <Avatar
+                src={avatarSrc}
                 size={34}
                 title={
-                  accountId === authenticatedUser.accountId
+                  ownedById === authenticatedUser.accountId
                     ? authenticatedUser.preferredName
                     : title
                 }
@@ -146,10 +175,6 @@ export const WorkspaceSwitcher: FunctionComponent<
         <Divider />
 
         {[
-          {
-            title: "Settings",
-            href: "/settings",
-          },
           {
             title: "Create an organization",
             href: "/settings/organizations/new",

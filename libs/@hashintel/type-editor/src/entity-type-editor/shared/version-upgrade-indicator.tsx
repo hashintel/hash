@@ -1,11 +1,9 @@
 import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons";
-import {
-  fluidFontClassName,
-  FontAwesomeIcon,
-  IconArrowRight,
-  IconButton,
-} from "@hashintel/design-system";
+import { FontAwesomeIcon, IconArrowRight } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 import { Stack, svgIconClasses, Tooltip, Typography } from "@mui/material";
+
+import { ChipIconButton } from "./chip-icon-button";
 
 type VersionUpgradeIndicatorProps = {
   currentVersion: number;
@@ -21,24 +19,21 @@ export const VersionUpgradeIndicator = ({
   mode = "inline",
 }: VersionUpgradeIndicatorProps) => {
   const updateButton = (
-    <IconButton
+    <ChipIconButton
       onClick={(event) => {
         event.stopPropagation();
         onUpdateVersion();
       }}
       sx={{
-        p: 0.5,
         minWidth: 0,
         minHeight: 0,
         fontSize: 11,
         fontWeight: 700,
-        color: ({ palette }) => palette.blue[70],
         textTransform: "uppercase",
         gap: 0.625,
         lineHeight: "18px",
         ":hover": {
-          color: ({ palette }) => palette.blue[70],
-
+          background: mode === "tooltip" ? undefined : "transparent",
           [`.${svgIconClasses.root}`]: {
             transform: "rotate(360deg)",
             transition: ({ transitions }) => transitions.create("transform"),
@@ -54,7 +49,7 @@ export const VersionUpgradeIndicator = ({
         }}
       />
       {mode === "tooltip" ? null : " Update"}
-    </IconButton>
+    </ChipIconButton>
   );
 
   return (

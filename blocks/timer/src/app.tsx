@@ -208,10 +208,10 @@ export const App: BlockComponent<BlockEntity> = ({
   const timerStatus: TimerStatus = timerState.pauseDurationInMs
     ? "paused"
     : !timerState.targetTimestamp
-    ? "idle"
-    : remainingDurationInMs > 0
-    ? "running"
-    : "finished";
+      ? "idle"
+      : remainingDurationInMs > 0
+        ? "running"
+        : "finished";
 
   useAutoRefresh(timerStatus === "running");
 

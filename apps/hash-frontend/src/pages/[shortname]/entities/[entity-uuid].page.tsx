@@ -1,31 +1,35 @@
+import { useLazyQuery } from "@apollo/client";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityPropertiesObject,
   EntityRootType,
   EntityUuid,
-  extractOwnedByIdFromEntityId,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import produce from "immer";
+import NextErrorComponent from "next/error";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import { useBlockProtocolGetEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { useBlockProtocolUpdateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 import { PageErrorState } from "../../../components/page-error-state";
-import { generateEntityLabel } from "../../../lib/entities";
+import {
+  GetEntityQuery,
+  GetEntityQueryVariables,
+} from "../../../graphql/api-types.gen";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../shared/layout";
-import { useIsReadonlyModeForResource } from "../../../shared/readonly-mode";
+import { EditBar } from "../shared/edit-bar";
 import { useRouteNamespace } from "../shared/use-route-namespace";
-import { EditBar } from "../types/entity-type/[...slug-maybe-version].page/shared/edit-bar";
-import { QUERY_ENTITY_TYPE_ID } from "./[entity-uuid].page/create-entity-page";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/update-entity-subgraph-state-by-entity";
@@ -36,7 +40,10 @@ const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const entityUuid = router.query["entity-uuid"] as EntityUuid;
   const { routeNamespace } = useRouteNamespace();
-  const { getEntity } = useBlockProtocolGetEntity();
+  const [lazyGetEntity] = useLazyQuery<GetEntityQuery, GetEntityQueryVariables>(
+    getEntityQuery,
+    { fetchPolicy: "cache-and-network" },
+  );
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { updateEntity } = useBlockProtocolUpdateEntity();
 
@@ -46,18 +53,33 @@ const Page: NextPageWithLayout = () => {
     useState<Subgraph<EntityRootType>>();
   const [draftEntitySubgraph, setDraftEntitySubgraph] =
     useState<Subgraph<EntityRootType>>();
+  const [isReadOnly, setIsReadOnly] = useState(true);
 
   const entityFromDb =
     entitySubgraphFromDb && getRoots(entitySubgraphFromDb)[0];
 
-  const entityOwnedById =
-    entityFromDb &&
-    extractOwnedByIdFromEntityId(entityFromDb.metadata.recordId.entityId);
-
-  const readonly = useIsReadonlyModeForResource(entityOwnedById);
-
   const [isDirty, setIsDirty] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const getEntity = useCallback(
+    (entityId: EntityId) =>
+      lazyGetEntity({
+        variables: {
+          entityId,
+          constrainsValuesOn: { outgoing: 255 },
+          constrainsPropertiesOn: { outgoing: 255 },
+          constrainsLinksOn: { outgoing: 1 },
+          constrainsLinkDestinationsOn: { outgoing: 1 },
+          includePermissions: true,
+          inheritsFrom: { outgoing: 255 },
+          isOfType: { outgoing: 1 },
+          hasLeftEntity: { outgoing: 1, incoming: 1 },
+          hasRightEntity: { outgoing: 1, incoming: 1 },
+          includeDrafts: true,
+        },
+      }),
+    [lazyGetEntity],
+  );
 
   const [
     draftLinksToCreate,
@@ -70,22 +92,30 @@ const Page: NextPageWithLayout = () => {
     if (routeNamespace) {
       const init = async () => {
         try {
-          const { data: subgraph } = await getEntity({
-            data: {
-              entityId: entityIdFromOwnedByIdAndEntityUuid(
-                routeNamespace.accountId as OwnedById,
-                entityUuid,
-              ),
-            },
-          });
+          const entityId = entityIdFromOwnedByIdAndEntityUuid(
+            routeNamespace.accountId as OwnedById,
+            entityUuid,
+          );
 
-          if (subgraph) {
+          const { data } = await getEntity(entityId);
+
+          const subgraph = data
+            ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+                data.getEntity.subgraph,
+              )
+            : undefined;
+
+          if (data?.getEntity) {
             try {
               setEntitySubgraphFromDb(subgraph);
               setDraftEntitySubgraph(subgraph);
+              setIsReadOnly(
+                !data.getEntity.userPermissionsOnEntities?.[entityId]?.edit,
+              );
             } catch {
               setEntitySubgraphFromDb(undefined);
               setDraftEntitySubgraph(undefined);
+              setIsReadOnly(true);
             }
           }
         } finally {
@@ -102,33 +132,21 @@ const Page: NextPageWithLayout = () => {
       return;
     }
 
-    const { data: subgraph } = await getEntity({
-      data: {
-        entityId: entityIdFromOwnedByIdAndEntityUuid(
-          routeNamespace.accountId as OwnedById,
-          entityUuid,
-        ),
-      },
-    });
+    const entityId = entityIdFromOwnedByIdAndEntityUuid(
+      routeNamespace.accountId as OwnedById,
+      entityUuid,
+    );
 
-    if (!subgraph) {
-      return;
-    }
+    const { data } = await getEntity(entityId);
 
-    const newDraftEntitySubgraph = produce(subgraph, (val) => {
-      /** @see https://github.com/immerjs/immer/issues/839 for ts-ignore reason */
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      const entityToUpdate = getRoots(val)[0];
-      const draftEntity = getRoots(draftEntitySubgraph)[0];
-
-      if (entityToUpdate && draftEntity && "properties" in entityToUpdate) {
-        entityToUpdate.properties = draftEntity.properties;
-      }
-    });
+    const subgraph = data
+      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+          data.getEntity.subgraph,
+        )
+      : undefined;
 
     setEntitySubgraphFromDb(subgraph);
-    setDraftEntitySubgraph(newDraftEntitySubgraph);
+    setDraftEntitySubgraph(subgraph);
   };
 
   const resetDraftState = () => {
@@ -159,9 +177,10 @@ const Page: NextPageWithLayout = () => {
     try {
       setSavingChanges(true);
 
+      const entity = getRoots(entitySubgraphFromDb)[0]!;
+
       await applyDraftLinkEntityChanges(
-        getRoots(entitySubgraphFromDb)[0]?.metadata.recordId
-          .entityId as EntityId,
+        entity,
         draftLinksToCreate,
         draftLinksToArchive,
       );
@@ -191,19 +210,25 @@ const Page: NextPageWithLayout = () => {
     return <PageErrorState />;
   }
 
+  const draftEntity = getRoots(draftEntitySubgraph)[0];
+  if (!draftEntity) {
+    return <NextErrorComponent statusCode={404} />;
+  }
+
   const entityLabel = generateEntityLabel(draftEntitySubgraph);
-  const showEditBar =
+  const isModifyingEntity =
     isDirty || !!draftLinksToCreate.length || !!draftLinksToArchive.length;
 
-  const draftEntity = getRoots(draftEntitySubgraph)[0];
   const isQueryEntity =
-    draftEntity?.metadata.entityTypeId === QUERY_ENTITY_TYPE_ID;
+    draftEntity.metadata.entityTypeId ===
+    blockProtocolEntityTypes.query.entityTypeId;
 
   return (
     <EntityEditorPage
+      entity={entityFromDb}
       editBar={
         <EditBar
-          visible={showEditBar}
+          visible={isModifyingEntity}
           discardButtonProps={{
             onClick: discardChanges,
           }}
@@ -214,18 +239,20 @@ const Page: NextPageWithLayout = () => {
           }}
         />
       }
+      isModifyingEntity={isModifyingEntity}
       handleSaveChanges={handleSaveChanges}
       entityLabel={entityLabel}
       entityUuid={entityUuid}
       owner={String(router.query.shortname)}
       isQueryEntity={isQueryEntity}
+      isDirty={isDirty}
       draftLinksToCreate={draftLinksToCreate}
       setDraftLinksToCreate={setDraftLinksToCreate}
       draftLinksToArchive={draftLinksToArchive}
       setDraftLinksToArchive={setDraftLinksToArchive}
       entitySubgraph={draftEntitySubgraph}
-      readonly={readonly}
-      refetch={refetch}
+      readonly={isReadOnly}
+      replaceWithLatestDbVersion={refetch}
       setEntity={(changedEntity) => {
         setIsDirty(true);
         updateEntitySubgraphStateByEntity(

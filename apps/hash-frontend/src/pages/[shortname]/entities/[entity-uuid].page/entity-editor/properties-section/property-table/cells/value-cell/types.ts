@@ -13,7 +13,7 @@ export type ValueCell = CustomCell<ValueCellProps>;
 export type EditorType =
   | "boolean"
   | "number"
-  | "text"
+  | "string"
   | "object"
   | "emptyList"
   | "null"

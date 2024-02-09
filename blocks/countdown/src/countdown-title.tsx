@@ -51,7 +51,7 @@ export const CountdownTitle: FunctionComponent<CountdownTitleProps> = ({
         })}
       />
       {!readonly && (
-        <button onClick={onBlur} type="button">
+        <button aria-label="Stop editing" onClick={onBlur} type="button">
           <svg
             width="20"
             height="20"

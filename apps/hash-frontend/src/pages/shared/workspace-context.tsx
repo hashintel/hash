@@ -1,107 +1,119 @@
-import { AccountId } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 import {
   createContext,
   FunctionComponent,
   ReactElement,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useState,
 } from "react";
 
 import { localStorageKeys } from "../../lib/config";
-import { MinimalOrg, User } from "../../lib/user-and-org";
+import { MinimalUser, Org } from "../../lib/user-and-org";
 import { useAuthInfo } from "./auth-info-context";
 
 export type WorkspaceContextValue = {
-  activeWorkspace?: User | MinimalOrg;
-  activeWorkspaceAccountId?: AccountId;
-  updateActiveWorkspaceAccountId: (
-    updatedActiveWorkspaceAccountId: AccountId,
+  activeWorkspace?: MinimalUser | Org;
+  activeWorkspaceOwnedById?: OwnedById;
+  updateActiveWorkspaceOwnedById: (
+    updatedActiveWorkspaceAccountId: OwnedById,
   ) => void;
+  refetchActiveWorkspace: () => Promise<void>;
 };
 
 const defaultWorkspaceContextValue: WorkspaceContextValue = {
-  updateActiveWorkspaceAccountId: (_updatedActiveWorkspaceAccountId: string) =>
+  updateActiveWorkspaceOwnedById: (_updateActiveWorkspaceOwnedById: string) =>
     undefined,
+  refetchActiveWorkspace: () => Promise.resolve(),
 };
 
 export const WorkspaceContext = createContext<WorkspaceContextValue>(
   defaultWorkspaceContextValue,
 );
 
+export const useActiveWorkspace = () => {
+  return useContext(WorkspaceContext);
+};
+
 export const WorkspaceContextProvider: FunctionComponent<{
   children: ReactElement;
 }> = ({ children }) => {
-  const { authenticatedUser } = useAuthInfo();
+  const { authenticatedUser, refetch } = useAuthInfo();
 
-  const [activeWorkspaceAccountId, setActiveWorkspaceAccountId] =
-    useState<AccountId>();
+  const [activeWorkspaceOwnedById, setActiveWorkspaceOwnedById] =
+    useState<OwnedById>();
 
-  const updateActiveWorkspaceAccountId = useCallback(
-    (updatedActiveWorkspaceAccountId: AccountId) => {
+  const updateActiveWorkspaceOwnedById = useCallback(
+    (updatedActiveWorkspaceOwnedById: OwnedById) => {
       localStorage.setItem(
-        localStorageKeys.workspaceAccountId,
-        updatedActiveWorkspaceAccountId,
+        localStorageKeys.workspaceOwnedById,
+        updatedActiveWorkspaceOwnedById,
       );
-      setActiveWorkspaceAccountId(updatedActiveWorkspaceAccountId);
+      setActiveWorkspaceOwnedById(updatedActiveWorkspaceOwnedById);
     },
     [],
   );
 
   useEffect(() => {
-    if (!activeWorkspaceAccountId) {
+    if (!activeWorkspaceOwnedById) {
       /**
-       * Initialize the `activeWorkspaceAccountId` with what has been persisted
+       * Initialize the `activeWorkspaceOwnedById` with what has been persisted
        * in `localStorage` (if anything)
        */
       const localStorageInitialValue = localStorage.getItem(
-        localStorageKeys.workspaceAccountId,
+        localStorageKeys.workspaceOwnedById,
       );
 
       if (localStorageInitialValue) {
-        setActiveWorkspaceAccountId(localStorageInitialValue as AccountId);
+        setActiveWorkspaceOwnedById(localStorageInitialValue as OwnedById);
       } else if (authenticatedUser) {
         /**
-         * Initialize the `activeWorkspaceAccountId` to the account ID of the
+         * Initialize the `activeWorkspaceOwnedById` to the account ID of the
          * currently authenticated user
          */
-        updateActiveWorkspaceAccountId(authenticatedUser.accountId);
+        updateActiveWorkspaceOwnedById(
+          authenticatedUser.accountId as OwnedById,
+        );
       }
     }
   }, [
-    activeWorkspaceAccountId,
-    updateActiveWorkspaceAccountId,
+    activeWorkspaceOwnedById,
+    updateActiveWorkspaceOwnedById,
     authenticatedUser,
   ]);
 
   const workspaceContextValue = useMemo<WorkspaceContextValue>(() => {
     const activeWorkspace =
       authenticatedUser &&
-      authenticatedUser.accountId === activeWorkspaceAccountId
+      authenticatedUser.accountId === activeWorkspaceOwnedById
         ? authenticatedUser
         : authenticatedUser?.memberOf.find(
-            ({ accountId }) => accountId === activeWorkspaceAccountId,
-          );
+            ({ org: { accountGroupId } }) =>
+              accountGroupId === activeWorkspaceOwnedById,
+          )?.org;
 
     /**
-     * If there is an `activeWorkspaceAccountId` and an `authenticatedUser`, but
-     * `activeWorkspace` is not defined, reset `activeWorkspaceAccountId` to the
+     * If there is an `activeWorkspaceOwnedById` and an `authenticatedUser`, but
+     * `activeWorkspace` is not defined, reset `activeWorkspaceOwnedById` to the
      * authenticated user's account ID
      */
-    if (activeWorkspaceAccountId && authenticatedUser && !activeWorkspace) {
-      updateActiveWorkspaceAccountId(authenticatedUser.accountId);
+    if (activeWorkspaceOwnedById && authenticatedUser && !activeWorkspace) {
+      updateActiveWorkspaceOwnedById(authenticatedUser.accountId as OwnedById);
     }
 
     return {
       activeWorkspace,
-      activeWorkspaceAccountId,
-      updateActiveWorkspaceAccountId,
+      activeWorkspaceOwnedById,
+      updateActiveWorkspaceOwnedById,
+      refetchActiveWorkspace: () => refetch().then(() => undefined),
     };
   }, [
     authenticatedUser,
-    activeWorkspaceAccountId,
-    updateActiveWorkspaceAccountId,
+    activeWorkspaceOwnedById,
+    updateActiveWorkspaceOwnedById,
+    refetch,
   ]);
 
   return (

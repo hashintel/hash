@@ -1,5 +1,4 @@
-import { RemoteFile } from "@local/hash-isomorphic-utils/system-types/blockprotocol/remote-file";
-import { OwnedById } from "@local/hash-subgraph";
+import { FileV2 as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-types/file";
 import {
@@ -7,26 +6,32 @@ import {
   ResolverFn,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const createFileFromUrl: ResolverFn<
-  Promise<RemoteFile>,
-  {},
+  Promise<FileEntityType>,
+  Record<string, never>,
   LoggedInGraphQLContext,
   MutationCreateFileFromUrlArgs
 > = async (
   _,
-  { description, entityTypeId, ownedById, name, url },
-  { dataSources, user },
-) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
-
-  const entity = await createFileFromExternalUrl(context, {
-    actorId: user.accountId,
+  {
     description,
-    entityTypeId,
-    name,
-    ownedById: ownedById ?? (user.accountId as OwnedById),
+    fileEntityCreationInput,
+    fileEntityUpdateInput,
+    displayName,
+    url,
+  },
+  graphQLContext,
+) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
+
+  const entity = await createFileFromExternalUrl(context, authentication, {
+    description,
+    displayName,
+    fileEntityCreationInput,
+    fileEntityUpdateInput,
     url,
   });
 

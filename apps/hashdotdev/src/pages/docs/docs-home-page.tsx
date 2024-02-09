@@ -381,7 +381,7 @@ export const DocsHomePage: FunctionComponent = () => {
                   component="p"
                   marginBottom={3}
                 >
-                  Data Warehouses
+                  Datastores
                 </Typography>
                 <Box
                   sx={{
@@ -391,7 +391,7 @@ export const DocsHomePage: FunctionComponent = () => {
                     gap: 3,
                   }}
                 >
-                  {["BigQuery", "Snowflake"].map((name) => (
+                  {["BigQuery", "Snowflake", "Postgres"].map((name) => (
                     <LabelWithIcon
                       key={name}
                       label={name}

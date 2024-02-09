@@ -15,7 +15,6 @@
   "dependencies": {
     "@apps/hash-api": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
-    "@local/hash-graphql-shared": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "hot-shots": "8.5.0",
     "ts-node": "10.9.1",
@@ -25,6 +24,6 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/node": "18.15.13",
-    "eslint": "8.33.0"
+    "eslint": "8.56.0"
   }
 }
