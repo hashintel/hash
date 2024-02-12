@@ -2,7 +2,7 @@
 title: "Modeling Vaccine Distribution"
 date: "2020-12-18"
 cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/9bafb530-164e-496c-62da-ae7b874c3400/public
-categories: 
+categories:
   - "Simulation"
   - "Topic > Public Health"
   - "Topic > Policy"
@@ -22,11 +22,11 @@ We’ve constructed a HASH simulation to help understand these complexities. You
 
 This [Vaccine Supply Coordination model](https://hash.ai/@hash/vaccination-supply-coordination) is an extension of our [Flexible Supply Chain model](https://hash.ai/@hash/flexible-supply-chain). It simulates the distribution of a vaccine on an hourly scale to a community through three different types of agents: distribution centers, medical facilities, and a vaccine source.
 
-![](images/sim.png)
+{/* ![](images/sim.png) */}
 
 ### The Agents
 
-There are three types of agents in the model. In our example  they are all initialized in random locations across the simulation grid. Real-world policymakers may choose to use actual location data in conjunction with HASH’s [geospatial](https://hash.ai/docs/simulation/creating-simulations/views/geospatial-viewer) functionality. 
+There are three types of agents in the model. In our example  they are all initialized in random locations across the simulation grid. Real-world policymakers may choose to use actual location data in conjunction with HASH’s [geospatial](https://hash.ai/docs/simulation/creating-simulations/views/geospatial-viewer) functionality.
 
 ![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/f18c69e1-1d21-4fad-31ee-225c6077bb00/public)
 
@@ -58,7 +58,7 @@ For this simulation, we’re going to use experiments to understand the effects 
 
 ### Distributor Ordering Decisions
 
-The first question we’d like to answer is how conservative the distribution centers should be when placing their daily orders for vaccines. This is determined by the value of the `avg_order_ratio` global variable. A value of 1.0 would mean that the location orders enough vaccines to exactly match the average demand it sees. Lower values would represent a more conservative choice, since it attempts to ensure that no vaccines go to waste at the end of the day. 
+The first question we’d like to answer is how conservative the distribution centers should be when placing their daily orders for vaccines. This is determined by the value of the `avg_order_ratio` global variable. A value of 1.0 would mean that the location orders enough vaccines to exactly match the average demand it sees. Lower values would represent a more conservative choice, since it attempts to ensure that no vaccines go to waste at the end of the day.
 
 We’ll define an experiment that runs our simulation for 1000 steps (or roughly 100 days) that sweeps that value from 0.8 to 1.2, and attempt to find an optimal value. We’ll attempt to minimize two negative metrics: the number of vaccines that perish and the number of people who attempt to receive a vaccine but are turned away. By plotting the two metrics against each other we can create a tradeoff curve.
 
