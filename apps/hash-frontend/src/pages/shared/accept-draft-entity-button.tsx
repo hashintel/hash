@@ -6,7 +6,7 @@ import {
   EntityRootType,
   extractDraftIdFromEntityId,
   Subgraph,
-} from "@local/hash-subgraph/.";
+} from "@local/hash-subgraph";
 import { getEntityRevision } from "@local/hash-subgraph/stdlib";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { BoxProps, Typography } from "@mui/material";
