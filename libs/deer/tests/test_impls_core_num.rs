@@ -1,3 +1,4 @@
+#![cfg_attr(nightly, feature(lint_reasons), expect(clippy::incompatible_msrv))]
 #![allow(clippy::ignored_unit_patterns)] // Reason: `proptest` does not match against `Ok(())` but `Ok(_)`
 #[cfg(nightly)]
 use core::num::Saturating;

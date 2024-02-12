@@ -470,7 +470,11 @@
 //! [`Debug`]: core::fmt::Debug
 //! [`SpanTrace`]: tracing_error::SpanTrace
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(nightly, feature(error_in_core, error_generic_member_access))]
+#![cfg_attr(
+    nightly,
+    feature(error_in_core, error_generic_member_access),
+    allow(clippy::incompatible_msrv)
+)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace_frames))]
 #![cfg_attr(
