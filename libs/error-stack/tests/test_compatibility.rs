@@ -1,9 +1,6 @@
 #![cfg(any(feature = "eyre", feature = "anyhow"))]
-#![cfg_attr(
-    nightly,
-    feature(error_in_core, error_generic_member_access, lint_reasons)
-)]
-#![cfg_attr(nightly, expect(clippy::incompatible_msrv))]
+#![cfg_attr(nightly, feature(error_in_core, error_generic_member_access))]
+#![cfg_attr(nightly, allow(clippy::incompatible_msrv))]
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace_frames))]
 
 mod common;
