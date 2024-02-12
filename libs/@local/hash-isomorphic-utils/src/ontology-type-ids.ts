@@ -1,6 +1,6 @@
 export const systemEntityTypes = {
   actor: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/actor/v/1",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/actor/v/2",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/actor/",
   },
   block: {
@@ -167,7 +167,7 @@ export const systemEntityTypes = {
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/usage-record/",
   },
   user: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/3",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/4",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/user/",
   },
   userSecret: {
