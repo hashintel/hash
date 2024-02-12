@@ -41,12 +41,15 @@ import {
   SchemaKind,
   SystemTypeWebShortname,
 } from "@local/hash-isomorphic-utils/ontology-types";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
 import {
   BaseUrl,
   ConstructDataTypeParams,
   CustomDataType,
   DataTypeWithMetadata,
   Entity,
+  EntityPropertiesObject,
   EntityRootType,
   EntityTypeInstantiatorSubject,
   EntityTypeRelationAndSubject,
@@ -85,6 +88,7 @@ import {
   createPropertyType,
   getPropertyTypeById,
 } from "../../ontology/primitive/property-type";
+import { systemAccountId } from "../../system-account";
 import {
   getOrCreateOwningAccountGroupId,
   isSelfHostedInstance,
@@ -1184,11 +1188,19 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
   {
     entityTypeBaseUrls: BaseUrl[];
     migrationState: MigrationState;
+    migrateProperties?: Record<
+      BaseUrl,
+      (previousProperties: EntityPropertiesObject) => EntityPropertiesObject
+    >;
   },
   Promise<void>,
   false,
   true
-> = async (context, authentication, { entityTypeBaseUrls, migrationState }) => {
+> = async (
+  context,
+  authentication,
+  { entityTypeBaseUrls, migrationState, migrateProperties },
+) => {
   /**
    *  We have to do this web-by-web because we don't have a single actor that can see all entities in all webs
    *
@@ -1246,6 +1258,8 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
     for (const entity of existingEntities) {
       const baseUrl = extractBaseUrl(entity.metadata.entityTypeId);
 
+      const currentVersion = extractVersion(entity.metadata.entityTypeId);
+
       const newVersion = migrationState.entityTypeVersions[baseUrl];
 
       if (typeof newVersion === "undefined") {
@@ -1254,13 +1268,42 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
         );
       }
 
-      const newEntityTypeId = versionedUrlFromComponents(baseUrl, newVersion);
+      if (currentVersion < newVersion) {
+        const newEntityTypeId = versionedUrlFromComponents(baseUrl, newVersion);
 
-      if (entity.metadata.entityTypeId !== newEntityTypeId) {
+        const migratePropertiesFunction = migrateProperties?.[baseUrl];
+
+        if (baseUrl === systemEntityTypes.machine.entityTypeBaseUrl) {
+          const { machineIdentifier } = simplifyProperties(
+            entity.properties as MachineProperties,
+          );
+
+          if (machineIdentifier === "hash") {
+            await context.graphApi.modifyEntityAuthorizationRelationships(
+              systemAccountId,
+              [
+                {
+                  operation: "touch",
+                  resource: entity.metadata.recordId.entityId,
+                  relationSubject: {
+                    subject: {
+                      kind: "account",
+                      subjectId: webBotAuthentication.actorId,
+                    },
+                    relation: "editor",
+                  },
+                },
+              ],
+            );
+          }
+        }
+
         await updateEntity(context, webBotAuthentication, {
           entity,
           entityTypeId: newEntityTypeId,
-          properties: entity.properties,
+          properties: migratePropertiesFunction
+            ? migratePropertiesFunction(entity.properties)
+            : entity.properties,
         });
       }
     }
