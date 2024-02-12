@@ -20,7 +20,23 @@ GROUP BY web_id, entity_uuid;
 -- `entity_editions` is again used to update the `entity_temporal_metadata` with the newly generated draft-id in
 -- `entity_drafts`.
 ALTER TABLE entity_temporal_metadata
-    ADD COLUMN draft_id UUID REFERENCES entity_drafts (draft_id);
+    ADD COLUMN draft_id UUID REFERENCES entity_drafts (draft_id),
+    DROP CONSTRAINT entity_temporal_metadata_overlapping,
+    ADD CONSTRAINT entity_temporal_metadata_overlapping
+        EXCLUDE USING gist (
+            web_id with =,
+            entity_uuid with =,
+            decision_time with &&,
+            transaction_time with &&
+        ) WHERE (draft_id IS NULL),
+    ADD CONSTRAINT entity_temporal_metadata_overlapping_draft
+        EXCLUDE USING gist (
+            web_id with =,
+            entity_uuid with =,
+            draft_id with =,
+            decision_time with &&,
+            transaction_time with &&
+        ) WHERE (draft_id IS NOT NULL);
 
 UPDATE entity_temporal_metadata
 SET draft_id = subquery.draft_id
