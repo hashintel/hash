@@ -191,7 +191,8 @@ mod tests {
             r#"
             SELECT *
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
               AND "entity_temporal_metadata_0_0_0"."entity_uuid" = $3
             "#,
@@ -216,7 +217,8 @@ mod tests {
             r#"
             SELECT *
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-            WHERE "entity_temporal_metadata_0_0_0"."entity_uuid" = $1
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."entity_uuid" = $1
             "#,
             &[&Uuid::nil()],
         );
@@ -607,7 +609,8 @@ mod tests {
             r#"
             SELECT *
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
               AND "entity_temporal_metadata_0_0_0"."entity_uuid" = $3
             "#,
@@ -693,9 +696,9 @@ mod tests {
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
             INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
               ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
-            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $3
-              AND "entity_editions_0_1_0"."draft" = FALSE
               AND jsonb_path_query_first("entity_editions_0_1_0"."properties", $1::text::jsonpath) = $4
             "#,
             &[
@@ -731,9 +734,9 @@ mod tests {
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
             INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
               ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
-            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $3
-              AND "entity_editions_0_1_0"."draft" = FALSE
               AND jsonb_path_query_first("entity_editions_0_1_0"."properties", $1::text::jsonpath) IS NULL
             "#,
             &[
@@ -781,10 +784,13 @@ mod tests {
             RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_4_0"
               ON "entity_temporal_metadata_0_4_0"."web_id" = "entity_has_right_entity_0_3_0"."right_web_id"
              AND "entity_temporal_metadata_0_4_0"."entity_uuid" = "entity_has_right_entity_0_3_0"."right_entity_uuid"
-            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_2_0"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_4_0"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_4_0"."decision_time" && $2
               AND "entity_temporal_metadata_0_4_0"."entity_edition_id" = $3
@@ -830,10 +836,13 @@ mod tests {
             RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_4_0"
               ON "entity_temporal_metadata_0_4_0"."web_id" = "entity_has_left_entity_0_3_0"."left_web_id"
              AND "entity_temporal_metadata_0_4_0"."entity_uuid" = "entity_has_left_entity_0_3_0"."left_entity_uuid"
-            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_2_0"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_4_0"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_4_0"."decision_time" && $2
               AND "entity_temporal_metadata_0_4_0"."entity_edition_id" = $3
@@ -895,7 +904,8 @@ mod tests {
             LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
               ON "entity_has_right_entity_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
              AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
-            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
               AND ("entity_has_left_entity_0_1_0"."left_entity_uuid" = $3)
               AND ("entity_has_left_entity_0_1_0"."left_web_id" = $4)
@@ -980,11 +990,14 @@ mod tests {
               ON "ontology_temporal_metadata_0_4_1"."ontology_id" = "entity_is_of_type_0_3_1"."entity_type_ontology_id"
             INNER JOIN "ontology_ids" AS "ontology_ids_0_5_1"
               ON "ontology_ids_0_5_1"."ontology_id" = "ontology_temporal_metadata_0_4_1"."ontology_id"
-            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_2_0"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
               AND "ontology_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_2_1"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_2_1"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_2_1"."decision_time" && $2
               AND "ontology_temporal_metadata_0_4_1"."transaction_time" @> $1::TIMESTAMPTZ
@@ -1028,7 +1041,8 @@ mod tests {
                  AS "entity_embeddings_0_1_0"
                  ON "entity_embeddings_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
                 AND "entity_embeddings_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
-              WHERE "entity_embeddings_0_1_0"."distance" <= $2
+              WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+                AND "entity_embeddings_0_1_0"."distance" <= $2
               ORDER BY "entity_embeddings_0_1_0"."distance" ASC
             "#,
             &[&Embedding::from(vec![0.0; 1536]), &0.5],
@@ -1101,7 +1115,8 @@ mod tests {
                 r#"
                 SELECT *
                 FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-                WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+                  AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
                   AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
                   AND ("entity_temporal_metadata_0_0_0"."web_id" = $3)
                   AND ("entity_temporal_metadata_0_0_0"."entity_uuid" = $4)

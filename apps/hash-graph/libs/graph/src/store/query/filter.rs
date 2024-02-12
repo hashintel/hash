@@ -545,7 +545,7 @@ mod tests {
               { "parameter": entity_id.entity_uuid }
             ]},
             { "equal": [
-              { "path": ["draft"] },
+              { "path": ["draftId"] },
               { "parameter": entity_id.draft_id }
             ]}
           ]

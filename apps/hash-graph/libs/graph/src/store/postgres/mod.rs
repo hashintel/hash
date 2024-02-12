@@ -1009,6 +1009,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
 
         futures::pin_mut!(writer);
         for (entity_id, actor_id, decision_time) in entity_ids {
+            #[expect(clippy::todo)]
             if entity_id.draft_id.is_some() {
                 todo!("https://linear.app/hash/issue/H-2142/support-draft-entities-in-batch-entity-creation")
             }

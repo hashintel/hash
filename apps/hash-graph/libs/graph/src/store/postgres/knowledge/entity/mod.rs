@@ -1103,6 +1103,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     .update_temporal_metadata(locked_row, edition_id, false)
                     .await?
             }
+            #[expect(clippy::todo)]
             (true, false) => {
                 // Create a new draft from a regular entity
                 todo!("https://linear.app/hash/issue/H-2085/allow-creating-a-draft-entity-from-a-given-entity-or-draft-entity");
@@ -1113,11 +1114,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 transaction
                     .update_temporal_metadata(locked_row, edition_id, true)
                     .await?
-                // transaction.archive_entity(locked_row).await?
-                // transaction
-                //     .insert_temporal_metadata(entity_id, edition_id, Some(decision_time))
-                //     .await
-                //     .change_context(UpdateError)?
             }
         };
 
@@ -1397,8 +1393,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         "
                             SELECT
                                 entity_temporal_metadata.entity_edition_id,
-                                entity_temporal_metadata.decision_time,
                                 entity_temporal_metadata.transaction_time,
+                                entity_temporal_metadata.decision_time,
                                 $3::timestamptz
                             FROM entity_temporal_metadata
                             WHERE entity_temporal_metadata.web_id = $1
@@ -1422,8 +1418,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         "
                             SELECT
                                 entity_temporal_metadata.entity_edition_id,
-                                entity_temporal_metadata.decision_time,
                                 entity_temporal_metadata.transaction_time,
+                                entity_temporal_metadata.decision_time,
                                 now()
                             FROM entity_temporal_metadata
                             WHERE entity_temporal_metadata.web_id = $1
@@ -1446,8 +1442,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         "
                         SELECT
                             entity_temporal_metadata.entity_edition_id,
-                            entity_temporal_metadata.decision_time,
                             entity_temporal_metadata.transaction_time,
+                            entity_temporal_metadata.decision_time,
                             now()
                         FROM entity_temporal_metadata
                         WHERE entity_temporal_metadata.web_id = $1
@@ -1466,8 +1462,8 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         "
                         SELECT
                             entity_temporal_metadata.entity_edition_id,
-                            entity_temporal_metadata.decision_time,
                             entity_temporal_metadata.transaction_time,
+                            entity_temporal_metadata.decision_time,
                             now()
                         FROM entity_temporal_metadata
                         WHERE entity_temporal_metadata.web_id = $1

@@ -90,6 +90,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
         Ok(())
     }
 
+    #[expect(clippy::too_many_lines)]
     async fn write(
         self,
         postgres_client: &PostgresStore<C>,
