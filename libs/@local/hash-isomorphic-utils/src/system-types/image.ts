@@ -2,8 +2,11 @@
  * This file was automatically generated – do not edit it.
  */
 
+import { Entity } from "@blockprotocol/graph";
+
 import {
   BooleanDataType,
+  DateTimeDataType,
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
   FileHashPropertyValue,
@@ -16,24 +19,22 @@ import {
   FileStorageProviderPropertyValue,
   FileStorageRegionPropertyValue,
   FileURLPropertyValue,
-  FileV1,
-  FileV1OutgoingLinkAndTarget,
-  FileV1OutgoingLinksByLinkEntityTypeId,
-  FileV1Properties,
-  Image,
-  ImageOutgoingLinkAndTarget,
-  ImageOutgoingLinksByLinkEntityTypeId,
-  ImageProperties,
+  FileV2,
+  FileV2OutgoingLinkAndTarget,
+  FileV2OutgoingLinksByLinkEntityTypeId,
+  FileV2Properties,
   MIMETypePropertyValue,
   NumberDataType,
   OriginalFileNamePropertyValue,
   OriginalSourcePropertyValue,
   OriginalURLPropertyValue,
   TextDataType,
+  UploadCompletedAtPropertyValue,
 } from "./shared";
 
 export type {
   BooleanDataType,
+  DateTimeDataType,
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
   FileHashPropertyValue,
@@ -46,18 +47,29 @@ export type {
   FileStorageProviderPropertyValue,
   FileStorageRegionPropertyValue,
   FileURLPropertyValue,
-  FileV1,
-  FileV1OutgoingLinkAndTarget,
-  FileV1OutgoingLinksByLinkEntityTypeId,
-  FileV1Properties,
-  Image,
-  ImageOutgoingLinkAndTarget,
-  ImageOutgoingLinksByLinkEntityTypeId,
-  ImageProperties,
+  FileV2,
+  FileV2OutgoingLinkAndTarget,
+  FileV2OutgoingLinksByLinkEntityTypeId,
+  FileV2Properties,
   MIMETypePropertyValue,
   NumberDataType,
   OriginalFileNamePropertyValue,
   OriginalSourcePropertyValue,
   OriginalURLPropertyValue,
   TextDataType,
+  UploadCompletedAtPropertyValue,
 };
+
+export type ImageV2 = Entity<ImageV2Properties>;
+
+export type ImageV2OutgoingLinkAndTarget = never;
+
+export type ImageV2OutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * An image file hosted at a URL
+ */
+export type ImageV2Properties = ImageV2Properties1 & ImageV2Properties2;
+export type ImageV2Properties1 = FileV2Properties;
+
+export type ImageV2Properties2 = {};

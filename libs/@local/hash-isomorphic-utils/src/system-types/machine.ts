@@ -5,19 +5,19 @@
 import { Entity } from "@blockprotocol/graph";
 
 import {
-  Actor,
-  ActorOutgoingLinkAndTarget,
-  ActorOutgoingLinksByLinkEntityTypeId,
-  ActorProperties,
+  ActorV1,
+  ActorV1OutgoingLinkAndTarget,
+  ActorV1OutgoingLinksByLinkEntityTypeId,
+  ActorV1Properties,
   DisplayNamePropertyValue,
   TextDataType,
 } from "./shared";
 
 export type {
-  Actor,
-  ActorOutgoingLinkAndTarget,
-  ActorOutgoingLinksByLinkEntityTypeId,
-  ActorProperties,
+  ActorV1,
+  ActorV1OutgoingLinkAndTarget,
+  ActorV1OutgoingLinksByLinkEntityTypeId,
+  ActorV1Properties,
   DisplayNamePropertyValue,
   TextDataType,
 };
@@ -37,7 +37,7 @@ export type MachineOutgoingLinksByLinkEntityTypeId = {};
  * A machine that can perform actions in the system
  */
 export type MachineProperties = MachineProperties1 & MachineProperties2;
-export type MachineProperties1 = ActorProperties;
+export type MachineProperties1 = ActorV1Properties;
 
 export type MachineProperties2 = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValue;
