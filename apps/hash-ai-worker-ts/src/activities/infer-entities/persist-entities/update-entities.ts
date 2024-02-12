@@ -11,6 +11,7 @@ import type {
   OwnedById,
 } from "@local/hash-subgraph";
 import {
+  extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
@@ -111,8 +112,12 @@ export const updateEntities = async ({
               ...properties,
             };
 
+            const draft = !!extractDraftIdFromEntityId(
+              existingEntity.metadata.recordId.entityId,
+            );
+
             await graphApiClient.validateEntity(actorId, {
-              draft: existingEntity.metadata.draft,
+              draft,
               entityTypeId,
               linkData: existingEntity.linkData,
               operations: ["all"],
@@ -122,7 +127,7 @@ export const updateEntities = async ({
             const { data: updateEntityMetadata } =
               await graphApiClient.updateEntity(actorId, {
                 archived: existingEntity.metadata.archived,
-                draft: existingEntity.metadata.draft,
+                draft,
                 entityTypeId,
                 entityId: updateEntityId,
                 properties: newProperties,

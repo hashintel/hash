@@ -329,7 +329,6 @@ const mapEntityMetadata = (
     ),
     provenance: mapEntityProvenanceMetadata(metadata.provenance),
     archived: metadata.archived,
-    draft: metadata.draft,
   };
 };
 

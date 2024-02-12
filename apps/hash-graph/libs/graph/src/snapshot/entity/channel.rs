@@ -14,8 +14,9 @@ use graph_types::{knowledge::entity::EntityUuid, ontology::OntologyTypeVersion};
 
 use crate::snapshot::{
     entity::{
-        table::EntityEmbeddingRow, EntityEditionRow, EntityIdRow, EntityLinkEdgeRow,
-        EntityRowBatch, EntityTemporalMetadataRow,
+        table::{EntityDraftRow, EntityEmbeddingRow},
+        EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityRowBatch,
+        EntityTemporalMetadataRow,
     },
     EntitySnapshotRecord, SnapshotRestoreError,
 };
@@ -27,6 +28,7 @@ use crate::snapshot::{
 #[derive(Debug, Clone)]
 pub struct EntitySender {
     id: Sender<EntityIdRow>,
+    draft: Sender<EntityDraftRow>,
     edition: Sender<EntityEditionRow>,
     temporal_metadata: Sender<EntityTemporalMetadataRow>,
     links: Sender<EntityLinkEdgeRow>,
@@ -42,6 +44,9 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         ready!(self.id.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll id sender")?;
+        ready!(self.draft.poll_ready_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not poll draft sender")?;
         ready!(self.edition.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll edition sender")?;
@@ -66,10 +71,20 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                 created_at_decision_time: entity.metadata.provenance.created_at_decision_time,
                 web_id: entity.metadata.record_id.entity_id.owned_by_id,
                 entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
-                draft_id: entity.metadata.record_id.entity_id.draft_id,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send entity id")?;
+
+        if let Some(draft_id) = entity.metadata.record_id.entity_id.draft_id {
+            self.draft
+                .start_send_unpin(EntityDraftRow {
+                    web_id: entity.metadata.record_id.entity_id.owned_by_id,
+                    entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
+                    draft_id,
+                })
+                .change_context(SnapshotRestoreError::Read)
+                .attach_printable("could not send entity draft id")?;
+        }
 
         self.edition
             .start_send_unpin(EntityEditionRow {
@@ -95,6 +110,7 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
             .start_send_unpin(EntityTemporalMetadataRow {
                 web_id: entity.metadata.record_id.entity_id.owned_by_id,
                 entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
+                draft_id: entity.metadata.record_id.entity_id.draft_id,
                 entity_edition_id: entity.metadata.record_id.edition_id,
                 decision_time: entity.metadata.temporal_versioning.decision_time,
                 transaction_time: entity.metadata.temporal_versioning.transaction_time,
@@ -123,6 +139,9 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         ready!(self.id.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush id sender")?;
+        ready!(self.draft.poll_flush_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not flush draft sender")?;
         ready!(self.edition.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush edition sender")?;
@@ -140,6 +159,9 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         ready!(self.id.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close id sender")?;
+        ready!(self.draft.poll_close_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not close draft sender")?;
         ready!(self.edition.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close edition sender")?;
@@ -182,6 +204,7 @@ pub fn channel(
     embedding_rx: Receiver<EntityEmbeddingRow>,
 ) -> (EntitySender, EntityReceiver) {
     let (id_tx, id_rx) = mpsc::channel(chunk_size);
+    let (draft_tx, draft_rx) = mpsc::channel(chunk_size);
     let (edition_tx, edition_rx) = mpsc::channel(chunk_size);
     let (temporal_metadata_tx, temporal_metadata_rx) = mpsc::channel(chunk_size);
     let (left_entity_tx, left_entity_rx) = mpsc::channel(chunk_size);
@@ -189,6 +212,7 @@ pub fn channel(
     (
         EntitySender {
             id: id_tx,
+            draft: draft_tx,
             edition: edition_tx,
             temporal_metadata: temporal_metadata_tx,
             links: left_entity_tx,
@@ -198,6 +222,10 @@ pub fn channel(
                 id_rx
                     .ready_chunks(chunk_size)
                     .map(EntityRowBatch::Ids)
+                    .boxed(),
+                draft_rx
+                    .ready_chunks(chunk_size)
+                    .map(EntityRowBatch::Drafts)
                     .boxed(),
                 edition_rx
                     .ready_chunks(chunk_size)

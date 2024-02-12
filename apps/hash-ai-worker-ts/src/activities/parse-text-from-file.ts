@@ -3,6 +3,10 @@ import type { GraphApi } from "@local/hash-graph-client";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import { DOCXDocumentProperties } from "@local/hash-isomorphic-utils/system-types/docxdocument";
+import {
+  extractDraftIdFromEntityId,
+  extractEntityUuidFromEntityId,
+} from "@local/hash-subgraph";
 import isDocker from "is-docker";
 import officeParser from "officeparser";
 
@@ -86,7 +90,9 @@ export const parseTextFromFile = async (
       entityTypeId: fileEntity.metadata.entityTypeId,
       properties: updatedProperties,
       archived: fileEntity.metadata.archived,
-      draft: fileEntity.metadata.draft,
+      draft:
+        extractDraftIdFromEntityId(fileEntity.metadata.recordId.entityId) !==
+        undefined,
     });
   }
 };

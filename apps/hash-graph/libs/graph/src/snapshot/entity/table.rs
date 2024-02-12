@@ -19,7 +19,14 @@ pub struct EntityIdRow {
     pub created_at_decision_time: Timestamp<DecisionTime>,
     pub web_id: OwnedById,
     pub entity_uuid: EntityUuid,
-    pub draft_id: Option<DraftId>,
+}
+
+#[derive(Debug, ToSql)]
+#[postgres(name = "entity_drafts")]
+pub struct EntityDraftRow {
+    pub web_id: OwnedById,
+    pub entity_uuid: EntityUuid,
+    pub draft_id: DraftId,
 }
 
 #[derive(Debug, ToSql)]
@@ -40,6 +47,7 @@ pub struct EntityEditionRow {
 pub struct EntityTemporalMetadataRow {
     pub web_id: OwnedById,
     pub entity_uuid: EntityUuid,
+    pub draft_id: Option<DraftId>,
     pub entity_edition_id: EntityEditionId,
     pub decision_time: LeftClosedTemporalInterval<DecisionTime>,
     pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,

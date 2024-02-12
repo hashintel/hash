@@ -15,8 +15,8 @@ use validation::{Validate, ValidationProfile};
 use crate::{
     snapshot::{
         entity::{
-            table::EntityEmbeddingRow, EntityEditionRow, EntityIdRow, EntityLinkEdgeRow,
-            EntityTemporalMetadataRow,
+            table::{EntityDraftRow, EntityEmbeddingRow},
+            EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityTemporalMetadataRow,
         },
         WriteBatch,
     },
@@ -28,6 +28,7 @@ use crate::{
 
 pub enum EntityRowBatch {
     Ids(Vec<EntityIdRow>),
+    Drafts(Vec<EntityDraftRow>),
     Editions(Vec<EntityEditionRow>),
     TemporalMetadata(Vec<EntityTemporalMetadataRow>),
     Links(Vec<EntityLinkEdgeRow>),
@@ -47,6 +48,10 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         (LIKE entity_ids INCLUDING ALL)
                         ON COMMIT DROP;
 
+                    CREATE TEMPORARY TABLE entity_drafts_tmp
+                        (LIKE entity_drafts INCLUDING ALL)
+                        ON COMMIT DROP;
+
                     CREATE TEMPORARY TABLE entity_editions_tmp (
                         entity_edition_id UUID PRIMARY KEY,
                         properties JSONB NOT NULL,
@@ -54,7 +59,6 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         right_to_left_order INTEGER,
                         edition_created_by_id UUID NOT NULL,
                         archived BOOLEAN NOT NULL,
-                        draft BOOLEAN NOT NULL,
                         entity_type_base_url TEXT NOT NULL,
                         entity_type_version INT8 NOT NULL
                     ) ON COMMIT DROP;
@@ -108,6 +112,23 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} entity ids", rows.len());
+                }
+            }
+            Self::Drafts(drafts) => {
+                let rows = client
+                    .query(
+                        "
+                            INSERT INTO entity_drafts_tmp
+                            SELECT DISTINCT * FROM UNNEST($1::entity_drafts[])
+                            ON CONFLICT DO NOTHING
+                            RETURNING 1;
+                        ",
+                        &[&drafts],
+                    )
+                    .await
+                    .change_context(InsertionError)?;
+                if !rows.is_empty() {
+                    tracing::info!("Read {} entity draft ids", rows.len());
                 }
             }
             Self::Editions(editions) => {
@@ -196,6 +217,8 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                 "
                     INSERT INTO entity_ids SELECT * FROM entity_ids_tmp;
 
+                    INSERT INTO entity_drafts SELECT * FROM entity_drafts_tmp;
+
                     INSERT INTO entity_editions
                         SELECT
                             entity_edition_id UUID,
@@ -203,8 +226,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             left_to_right_order INT4,
                             right_to_left_order INT4,
                             edition_created_by_id UUID,
-                            archived BOOLEAN,
-                            draft BOOLEAN
+                            archived BOOLEAN
                         FROM entity_editions_tmp;
 
                     INSERT INTO entity_temporal_metadata SELECT * FROM \
