@@ -1,4 +1,4 @@
-import { Image } from "@local/hash-isomorphic-utils/system-types/shared";
+import { ImageV2 } from "@local/hash-isomorphic-utils/system-types/image";
 import { Box, Stack, SxProps, Theme } from "@mui/material";
 
 const linkSxProperties: SxProps<Theme> = {
@@ -15,7 +15,7 @@ export const Avatar = ({
   name,
   size = 32,
 }: {
-  avatar?: Image | null;
+  avatar?: ImageV2 | null;
   href?: string;
   name: string;
   size?: number;

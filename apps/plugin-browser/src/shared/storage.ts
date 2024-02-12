@@ -9,12 +9,12 @@ import type {
   SimpleProperties,
   Simplified,
 } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { ImageV2Properties } from "@local/hash-isomorphic-utils/system-types/image";
 import type {
   BrowserPluginSettingsProperties,
-  ImageProperties,
   OrganizationProperties,
-  UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { UserV4Properties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   Entity,
   EntityId,
@@ -67,16 +67,16 @@ export type PageEntityInference = InferenceStatus & {
 type SimplifiedUser = Entity & {
   properties: Required<
     Pick<
-      SimpleProperties<UserProperties>,
-      "email" | "preferredName" | "shortname"
+      SimpleProperties<UserV4Properties>,
+      "email" | "displayName" | "shortname"
     >
   >;
 };
 
 type UserAndLinkedData = SimplifiedUser & {
-  avatar?: Entity<ImageProperties>;
+  avatar?: Entity<ImageV2Properties>;
   orgs: (Simplified<Entity<OrganizationProperties>> & {
-    avatar?: Entity<ImageProperties>;
+    avatar?: Entity<ImageV2Properties>;
     webOwnedById: OwnedById;
   })[];
   settingsEntityId: EntityId;

@@ -4,12 +4,12 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { ImageV2Properties } from "@local/hash-isomorphic-utils/system-types/image";
 import {
   BrowserPluginSettingsProperties,
-  ImageProperties,
   OrganizationProperties,
-  UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
+import { UserV4Properties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   Entity,
   EntityId,
@@ -38,7 +38,7 @@ import {
 const getAvatarForEntity = (
   subgraph: Subgraph<EntityRootType>,
   entityId: EntityId,
-): Entity<ImageProperties> | undefined => {
+): Entity<ImageV2Properties> | undefined => {
   const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     entityId,
@@ -49,7 +49,7 @@ const getAvatarForEntity = (
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
   );
   return avatarLinkAndEntities[0]?.rightEntity[0] as unknown as
-    | Entity<ImageProperties>
+    | Entity<ImageV2Properties>
     | undefined;
 };
 
@@ -74,11 +74,11 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
 
       const user = getRoots(subgraph)[0];
 
-      const { email, shortname, preferredName } = simplifyProperties(
-        user.properties as UserProperties,
+      const { email, shortname, displayName } = simplifyProperties(
+        user.properties as UserV4Properties,
       );
 
-      if (!shortname || !preferredName) {
+      if (!shortname || !displayName) {
         // User has not completed signup
         return null;
       }
@@ -221,7 +221,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         orgs,
         properties: {
           email,
-          preferredName,
+          displayName,
           shortname,
         },
         settingsEntityId,
