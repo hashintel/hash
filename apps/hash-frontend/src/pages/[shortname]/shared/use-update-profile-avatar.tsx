@@ -34,7 +34,7 @@ export const useUpdateProfileAvatar = (props: {
 
       const profileName =
         props.profileName ??
-        (profile.kind === "user" ? profile.preferredName : profile.name);
+        (profile.kind === "user" ? profile.displayName : profile.name);
 
       await uploadFile({
         ownedById,

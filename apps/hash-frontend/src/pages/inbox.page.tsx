@@ -139,7 +139,7 @@ const PageRelatedNotificationContent = ({
   return (
     <>
       <Link noLinkStyle href={`/@${triggeredByUser.shortname}`}>
-        {triggeredByUser.preferredName}
+        {triggeredByUser.displayName}
       </Link>{" "}
       {kind === "new-comment"
         ? "commented on "

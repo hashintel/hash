@@ -4,14 +4,14 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { Image } from "@local/hash-isomorphic-utils/system-types/image";
+import { ImageV2 } from "@local/hash-isomorphic-utils/system-types/image";
 import {
   IsMemberOfProperties,
   OrganizationProperties,
   ProfileBioProperties,
   ServiceAccountProperties,
-  UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
+import { UserV4Properties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   AccountEntityId,
   AccountGroupEntityId,
@@ -68,7 +68,7 @@ export type MinimalUser = {
   accountSignupComplete: boolean;
   pinnedEntityTypeBaseUrls?: BaseUrl[];
   shortname?: string;
-  preferredName?: string;
+  displayName?: string;
   preferredPronouns?: string;
   location?: string;
   websiteUrl?: string;
@@ -76,20 +76,19 @@ export type MinimalUser = {
 
 export const isEntityUserEntity = (
   entity: Entity,
-): entity is Entity<UserProperties> =>
+): entity is Entity<UserV4Properties> =>
   entity.metadata.entityTypeId === systemEntityTypes.user.entityTypeId;
 
 export const constructMinimalUser = (params: {
-  userEntity: Entity<UserProperties>;
+  userEntity: Entity<UserV4Properties>;
 }): MinimalUser => {
   const { userEntity } = params;
 
   const simpleProperties = simplifyProperties(userEntity.properties);
 
-  const { shortname, preferredName, pinnedEntityTypeBaseUrl } =
-    simpleProperties;
+  const { shortname, displayName, pinnedEntityTypeBaseUrl } = simpleProperties;
 
-  const accountSignupComplete = !!shortname && !!preferredName;
+  const accountSignupComplete = !!shortname && !!displayName;
 
   return {
     kind: "user",
@@ -112,7 +111,7 @@ export type Org = MinimalOrg & {
   createdAt: Date;
   hasAvatar?: {
     linkEntity: LinkEntity;
-    imageEntity: Image;
+    imageEntity: ImageV2;
   };
   hasBio?: {
     linkEntity: LinkEntity;
@@ -165,7 +164,7 @@ export const constructOrg = (params: {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: avatarLinkAndEntities[0].linkEntity[0] as LinkEntity,
         imageEntity: avatarLinkAndEntities[0]
-          .rightEntity[0] as unknown as Image,
+          .rightEntity[0] as unknown as ImageV2,
       }
     : undefined;
 
@@ -268,11 +267,11 @@ export type User = MinimalUser & {
   emails: { address: string; primary: boolean; verified: boolean }[];
   hasAvatar?: {
     linkEntity: LinkEntity;
-    imageEntity: Image;
+    imageEntity: ImageV2;
   };
   hasCoverImage?: {
     linkEntity: LinkEntity;
-    imageEntity: Image;
+    imageEntity: ImageV2;
   };
   hasBio?: {
     linkEntity: LinkEntity;
@@ -305,7 +304,7 @@ export const constructUser = (params: {
   orgMembershipLinks?: LinkEntity[];
   subgraph: Subgraph<EntityRootType>;
   resolvedOrgs?: Org[];
-  userEntity: Entity<UserProperties>;
+  userEntity: Entity<UserV4Properties>;
 }): User => {
   const { orgMembershipLinks, resolvedOrgs, subgraph, userEntity } = params;
 
@@ -398,7 +397,7 @@ export const constructUser = (params: {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: avatarLinkAndEntities[0].linkEntity[0] as LinkEntity,
         imageEntity: avatarLinkAndEntities[0]
-          .rightEntity[0] as unknown as Image,
+          .rightEntity[0] as unknown as ImageV2,
       }
     : undefined;
 
@@ -417,7 +416,7 @@ export const constructUser = (params: {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: coverImageLinkAndEntities[0].linkEntity[0] as LinkEntity,
         imageEntity: coverImageLinkAndEntities[0]
-          .rightEntity[0] as unknown as Image,
+          .rightEntity[0] as unknown as ImageV2,
       }
     : undefined;
 

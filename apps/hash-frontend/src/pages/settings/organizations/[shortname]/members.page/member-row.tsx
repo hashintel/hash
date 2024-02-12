@@ -65,7 +65,7 @@ export const MemberRow = ({
           href={`/@${membership.user.shortname}`}
           sx={{ textDecoration: "none" }}
         >
-          {membership.user.preferredName}
+          {membership.user.displayName}
         </Link>
       </Cell>
       <TableCell>

@@ -34,7 +34,7 @@ export type UserProfileFormServiceAccount = {
 };
 
 export type UserProfileFormData = {
-  preferredName: string;
+  displayName: string;
   location?: string;
   websiteUrl?: string;
   preferredPronouns?: string;
@@ -60,7 +60,7 @@ export const UserProfileInfoForm: FunctionComponent<{
     useForm<UserProfileFormData>({
       mode: "all",
       defaultValues: {
-        preferredName: userProfile.preferredName,
+        displayName: userProfile.displayName,
         location: userProfile.location,
         websiteUrl: userProfile.websiteUrl,
         preferredPronouns: userProfile.preferredPronouns,
@@ -298,8 +298,8 @@ export const UserProfileInfoForm: FunctionComponent<{
           label="Preferred name"
           placeholder="Enter your preferred name"
           required
-          error={touchedFields.preferredName && !!errors.preferredName}
-          {...register("preferredName", { required: true })}
+          error={touchedFields.displayName && !!errors.displayName}
+          {...register("displayName", { required: true })}
         />
         <TextField
           fullWidth
