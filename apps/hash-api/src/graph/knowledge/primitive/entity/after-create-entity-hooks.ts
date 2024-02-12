@@ -4,7 +4,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { UserV4Properties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
@@ -279,8 +279,8 @@ const userCreateHookCallback: AfterCreateEntityHookCallback = async ({
     const {
       email: emails,
       shortname,
-      preferredName,
-    } = simplifyProperties(entity.properties as UserProperties);
+      displayName,
+    } = simplifyProperties(entity.properties as UserV4Properties);
 
     /**
      * @todo: when we allow users to have more than one email, come up with
@@ -291,7 +291,7 @@ const userCreateHookCallback: AfterCreateEntityHookCallback = async ({
     await createOrUpdateMailchimpUser({
       email,
       shortname,
-      preferredName,
+      displayName,
     });
   }
 };

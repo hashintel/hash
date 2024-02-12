@@ -1,5 +1,5 @@
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { UserV4Properties } from "@local/hash-isomorphic-utils/system-types/user";
 
 import { isProdEnv } from "../../../../../lib/env-config";
 import { createOrUpdateMailchimpUser } from "../../../../../mailchimp";
@@ -11,8 +11,8 @@ export const userAfterUpdateEntityHookCallback: UpdateEntityHookCallback =
       const {
         email: emails,
         shortname,
-        preferredName,
-      } = simplifyProperties(entity.properties as UserProperties);
+        displayName,
+      } = simplifyProperties(entity.properties as UserV4Properties);
 
       /**
        * @todo: when we allow users to have more than one email, come up with
@@ -23,7 +23,7 @@ export const userAfterUpdateEntityHookCallback: UpdateEntityHookCallback =
       await createOrUpdateMailchimpUser({
         email,
         shortname,
-        preferredName,
+        displayName,
       });
     }
   };

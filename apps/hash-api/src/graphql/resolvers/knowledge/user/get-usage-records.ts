@@ -7,7 +7,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { UserV4Properties } from "@local/hash-isomorphic-utils/system-types/user";
 import { AccountEntityId, extractAccountId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { ForbiddenError } from "apollo-server-express";
@@ -56,7 +56,7 @@ export const getUsageRecordsResolver: ResolverFn<
 
   const records: UserUsageRecords[] = [];
   for (const user of users) {
-    const { email } = simplifyProperties(user.properties as UserProperties);
+    const { email } = simplifyProperties(user.properties as UserV4Properties);
     const usageRecords = await getUserServiceUsage(
       { graphApi: dataSources.graphApi },
       authentication,
