@@ -525,11 +525,11 @@ describe("Simple queries", () => {
         },
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: fullDecisionTimeAxis,
-        includeDrafts: false,
+        includeDrafts: true,
       },
     });
     expect(subgraph.roots.length).toEqual(5);
-    expect(Object.keys(subgraph.vertices).length).toEqual(3);
+    expect(Object.keys(subgraph.vertices).length).toEqual(4);
     expect(Object.keys(subgraph.edges).length).toEqual(0);
     const entities = getRoots(subgraph);
 
@@ -569,7 +569,7 @@ describe("Simple queries", () => {
           "2001-01-01T00:00Z" as Timestamp,
           null,
         ),
-        includeDrafts: false,
+        includeDrafts: true,
       },
     });
     expect(subgraph.roots.length).toEqual(1);
