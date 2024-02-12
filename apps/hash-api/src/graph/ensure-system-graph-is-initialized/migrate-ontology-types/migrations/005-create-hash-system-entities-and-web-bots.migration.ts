@@ -14,7 +14,10 @@ import {
   owningWebs,
 } from "../../system-webs-and-entities";
 import { MigrationFunction } from "../types";
-import { getExistingUsersAndOrgs } from "../util";
+import {
+  getCurrentHashSystemEntityTypeId,
+  getExistingUsersAndOrgs,
+} from "../util";
 
 const migrate: MigrationFunction = async ({
   authentication,
@@ -31,6 +34,11 @@ const migrate: MigrationFunction = async ({
 
   const { name, websiteUrl } = owningWebs.hash;
 
+  const currentMachineEntityTypeId = getCurrentHashSystemEntityTypeId({
+    entityTypeKey: "machine",
+    migrationState,
+  });
+
   /**
    * Step 1: Create the system entities associated with the 'hash' web:
    * 1. The HASH org entity is required to create the HASH Instance entity in Step 2
@@ -41,6 +49,7 @@ const migrate: MigrationFunction = async ({
     name,
     websiteUrl,
     webShortname: "hash",
+    machineEntityTypeId: currentMachineEntityTypeId,
   });
 
   /**
@@ -88,6 +97,7 @@ const migrate: MigrationFunction = async ({
           { actorId: userAccountId as AccountId },
           {
             ownedById: userAccountId,
+            machineEntityTypeId: currentMachineEntityTypeId,
           },
         );
         logger.info(`Created web machine actor for user ${userAccountId}`);
@@ -117,6 +127,7 @@ const migrate: MigrationFunction = async ({
           { actorId: orgAdminAccountId },
           {
             ownedById: orgAccountGroupId,
+            machineEntityTypeId: currentMachineEntityTypeId,
           },
         );
         logger.info(`Created web machine actor for org ${orgAccountGroupId}`);

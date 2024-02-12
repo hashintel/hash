@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
@@ -134,11 +135,13 @@ export const ensureSystemWebEntitiesExist = async ({
   name,
   webShortname,
   websiteUrl,
+  machineEntityTypeId,
 }: {
   context: ImpureGraphContext;
   name: string;
   webShortname: SystemTypeWebShortname;
   websiteUrl: string;
+  machineEntityTypeId?: VersionedUrl;
 }) => {
   const { accountGroupId, machineActorId: machineActorAccountId } =
     await getOrCreateOwningAccountGroupId(context, webShortname);
@@ -178,6 +181,7 @@ export const ensureSystemWebEntitiesExist = async ({
         displayName: preferredName,
         shouldBeAbleToCreateMoreMachineEntities: false,
         systemAccountId,
+        machineEntityTypeId,
       });
 
       logger.info(
