@@ -9,13 +9,17 @@ use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
-    snapshot::{ontology::table::DataTypeRow, WriteBatch},
+    snapshot::{
+        ontology::{table::DataTypeRow, DataTypeEmbeddingRow},
+        WriteBatch,
+    },
     store::{AsClient, InsertionError, PostgresStore},
 };
 
 pub enum DataTypeRowBatch {
     Schema(Vec<DataTypeRow>),
     Relations(HashMap<DataTypeId, Vec<DataTypeRelationAndSubject>>),
+    Embeddings(Vec<DataTypeEmbeddingRow>),
 }
 
 #[async_trait]
@@ -28,6 +32,10 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
                 "
                     CREATE TEMPORARY TABLE data_types_tmp
                         (LIKE data_types INCLUDING ALL)
+                        ON COMMIT DROP;
+
+                    CREATE TEMPORARY TABLE data_type_embeddings_tmp
+                        (LIKE data_type_embeddings INCLUDING ALL)
                         ON COMMIT DROP;
                 ",
             )
@@ -77,6 +85,22 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
                     .await
                     .change_context(InsertionError)?;
             }
+            Self::Embeddings(embeddings) => {
+                let rows = client
+                    .query(
+                        "
+                            INSERT INTO data_type_embeddings_tmp
+                            SELECT * FROM UNNEST($1::data_type_embeddings_tmp[])
+                            RETURNING 1;
+                        ",
+                        &[&embeddings],
+                    )
+                    .await
+                    .change_context(InsertionError)?;
+                if !rows.is_empty() {
+                    tracing::info!("Read {} data type embeddings", rows.len());
+                }
+            }
         }
         Ok(())
     }
@@ -91,6 +115,9 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
             .simple_query(
                 "
                     INSERT INTO data_types SELECT * FROM data_types_tmp;
+
+                    INSERT INTO data_type_embeddings
+                        SELECT * FROM data_type_embeddings_tmp;
                 ",
             )
             .await

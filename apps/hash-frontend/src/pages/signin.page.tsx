@@ -1,7 +1,7 @@
 import { TextField } from "@hashintel/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { OwnedById } from "@local/hash-subgraph";
-import { Box, Container, Typography } from "@mui/material";
+import { Box, buttonClasses, styled, Typography } from "@mui/material";
 import { LoginFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
@@ -15,15 +15,36 @@ import {
 } from "react";
 
 import { useHashInstance } from "../components/hooks/use-hash-instance";
-import { useLogoutFlow } from "../components/hooks/use-logout-flow";
+import { ArrowRightToBracketRegularIcon } from "../shared/icons/arrow-right-to-bracket-regular-icon";
+import { ArrowTurnDownLeftRegularIcon } from "../shared/icons/arrow-turn-down-left-regular-icon";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
-import { Button } from "../shared/ui";
+import { Button, ButtonProps } from "../shared/ui";
+import { AuthHeading } from "./shared/auth-heading";
 import { useAuthInfo } from "./shared/auth-info-context";
+import { AuthLayout } from "./shared/auth-layout";
+import { AuthPaper } from "./shared/auth-paper";
 import { mustGetCsrfTokenFromFlow, oryKratosClient } from "./shared/ory-kratos";
 import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
 import { WorkspaceContext } from "./shared/workspace-context";
 
-const LoginPage: NextPageWithLayout = () => {
+const SignupButton = styled((props: ButtonProps) => (
+  <Button variant="secondary" size="small" {...props} />
+))(({ theme }) => ({
+  color: theme.palette.common.white,
+  background: "#1F2933",
+  transition: theme.transitions.create(["background", "box-shadow"]),
+  borderColor: "#283644",
+  boxShadow: theme.shadows[3],
+  "&:hover": {
+    background: "#283644",
+    boxShadow: theme.shadows[4],
+    "&:before": {
+      opacity: 0,
+    },
+  },
+}));
+
+const SigninPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
   const router = useRouter();
   const { refetch } = useAuthInfo();
@@ -94,10 +115,6 @@ const LoginPage: NextPageWithLayout = () => {
     setErrorMessage,
   });
 
-  // This might be confusing, but we want to show the user an option
-  // to sign out if they are performing two-factor authentication!
-  const { logout } = useLogoutFlow();
-
   useEffect(() => {
     // If the router is not ready yet, or we already have a flow, do nothing.
     if (!router.isReady || flow) {
@@ -135,7 +152,7 @@ const LoginPage: NextPageWithLayout = () => {
     void router
       // On submission, add the flow ID to the URL but do not navigate. This prevents the user losing
       // their data when they reload the page.
-      .push(`/login?flow=${flow.id}`, undefined, { shallow: true })
+      .push(`/signin?flow=${flow.id}`, undefined, { shallow: true })
       .then(() =>
         oryKratosClient
           .updateLoginFlow({
@@ -189,84 +206,135 @@ const LoginPage: NextPageWithLayout = () => {
       isUiNodeInputAttributes(attributes) && attributes.name === "password",
   );
 
+  const { userSelfRegistrationIsEnabled } = hashInstance?.properties ?? {};
+
   return (
-    <Container sx={{ pt: 10 }}>
-      <Typography variant="h1" gutterBottom>
-        Log In
-      </Typography>
+    <AuthLayout
+      headerEndAdornment={
+        <SignupButton
+          endIcon={<ArrowRightToBracketRegularIcon />}
+          href="/signup"
+          disabled={!userSelfRegistrationIsEnabled}
+        >
+          Sign up
+        </SignupButton>
+      }
+    >
       <Box
-        component="form"
-        onSubmit={handleSubmit}
         sx={{
+          width: "100%",
           display: "flex",
-          flexDirection: "column",
-          maxWidth: 500,
-          gap: 1,
+          gap: 5.75,
+          justifyContent: "center",
+          alignItems: "center",
+          flexDirection: {
+            xs: "column",
+            md: "row",
+          },
         }}
       >
-        <TextField
-          label="Email"
-          type="email"
-          autoComplete="email"
-          placeholder="Enter your email address"
-          value={email}
-          onChange={({ target }) => setEmail(target.value)}
-          error={
-            !!emailInputUiNode?.messages.find(({ type }) => type === "error")
-          }
-          helperText={emailInputUiNode?.messages.map(({ id, text }) => (
-            <Typography key={id}>{text}</Typography>
-          ))}
-          required
-          inputProps={{ "data-1p-ignore": false }}
-        />
-        <TextField
-          label="Password"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={({ target }) => setPassword(target.value)}
-          error={
-            !!passwordInputUiNode?.messages.find(({ type }) => type === "error")
-          }
-          helperText={passwordInputUiNode?.messages.map(({ id, text }) => (
-            <Typography key={id}>{text}</Typography>
-          ))}
-          required
-          inputProps={{ "data-1p-ignore": false }}
-        />
-        <Button type="submit">Log in to your account</Button>
-        {flow?.ui.messages?.map(({ text, id }) => (
-          <Typography key={id}>{text}</Typography>
-        ))}
-        {errorMessage ? <Typography>{errorMessage}</Typography> : null}
-        {
-          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
-          aal || refresh ? (
-            <Button variant="secondary" onClick={logout}>
-              Log out
-            </Button>
-          ) : (
-            <>
-              {hashInstance?.properties.userSelfRegistrationIsEnabled ? (
-                <Button variant="secondary" href="/signup">
-                  Create account
-                </Button>
-              ) : null}
-              <Button
-                variant="secondary"
-                href={{ pathname: "/recovery", query: { email } }}
-              >
-                Recover your account
-              </Button>
-            </>
-          )
-        }
+        <AuthPaper
+          sx={{
+            flexGrow: 1,
+            maxWidth: 600,
+          }}
+        >
+          <AuthHeading>Sign in to your account</AuthHeading>
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              maxWidth: 500,
+              gap: 1,
+            }}
+          >
+            <TextField
+              label="Email address"
+              type="email"
+              autoComplete="email"
+              autoFocus
+              placeholder="Enter your email address"
+              value={email}
+              onChange={({ target }) => setEmail(target.value)}
+              error={
+                !!emailInputUiNode?.messages.find(
+                  ({ type }) => type === "error",
+                )
+              }
+              helperText={emailInputUiNode?.messages.map(({ id, text }) => (
+                <Typography key={id}>{text}</Typography>
+              ))}
+              required
+              inputProps={{ "data-1p-ignore": false }}
+            />
+            <TextField
+              label="Password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={({ target }) => setPassword(target.value)}
+              error={
+                !!passwordInputUiNode?.messages.find(
+                  ({ type }) => type === "error",
+                )
+              }
+              helperText={passwordInputUiNode?.messages.map(({ id, text }) => (
+                <Typography key={id}>{text}</Typography>
+              ))}
+              required
+              inputProps={{ "data-1p-ignore": false }}
+              // eslint-disable-next-line react/jsx-no-duplicate-props
+              InputProps={{
+                endAdornment: (
+                  <Button
+                    type="submit"
+                    variant="tertiary_quiet"
+                    sx={{
+                      /** @todo: replace this with a blue from the design system */
+                      color: "#2482FF",
+                      "&:hover": {
+                        color: "#2482FF",
+                      },
+                      [` .${buttonClasses.endIcon} svg`]: {
+                        color: "#2482FF",
+                      },
+                    }}
+                    endIcon={<ArrowTurnDownLeftRegularIcon />}
+                  >
+                    Submit
+                  </Button>
+                ),
+              }}
+            />
+            {errorMessage ? <Typography>{errorMessage}</Typography> : null}
+            {flow?.ui.messages?.map(({ text, id }) => (
+              <Typography key={id}>{text}</Typography>
+            ))}
+            {/* @todo: bring back recover account button */}
+            {/* <Button
+              variant="secondary"
+              href={{ pathname: "/recovery", query: { email } }}
+            >
+              Recover your account
+            </Button> */}
+          </Box>
+        </AuthPaper>
+        <Box>
+          <Typography gutterBottom>
+            <strong>No account?</strong> No problem.
+          </Typography>
+          <Button href="/signup" disabled={!userSelfRegistrationIsEnabled}>
+            Create a free account
+          </Button>
+        </Box>
       </Box>
-    </Container>
+    </AuthLayout>
   );
 };
 
-LoginPage.getLayout = getPlainLayout;
+SigninPage.getLayout = getPlainLayout;
 
-export default LoginPage;
+export default SigninPage;

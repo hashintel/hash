@@ -4,7 +4,7 @@ use std::{
     task::{ready, Context, Poll},
 };
 
-use authorization::schema::EntityRelationAndSubject;
+use authorization::schema::{DataTypeId, EntityRelationAndSubject};
 use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Sender, UnboundedReceiver, UnboundedSender},
@@ -15,7 +15,10 @@ use graph_types::knowledge::entity::EntityUuid;
 
 use crate::snapshot::{
     entity::{self, EntityEmbeddingRow, EntitySender},
-    ontology::{self, DataTypeSender, EntityTypeSender, PropertyTypeSender},
+    ontology::{
+        self, DataTypeEmbeddingRow, DataTypeSender, EntityTypeEmbeddingRow, EntityTypeSender,
+        PropertyTypeEmbeddingRow, PropertyTypeSender,
+    },
     owner,
     owner::{Owner, OwnerSender},
     restore::batch::SnapshotRecordBatch,
@@ -30,8 +33,11 @@ pub struct SnapshotRecordSender {
     owner: OwnerSender,
     webs: WebSender,
     data_type: DataTypeSender,
+    data_type_embedding: Sender<DataTypeEmbeddingRow>,
     property_type: PropertyTypeSender,
+    property_type_embedding: Sender<PropertyTypeEmbeddingRow>,
     entity_type: EntityTypeSender,
+    entity_type_embedding: Sender<EntityTypeEmbeddingRow>,
     entity: EntitySender,
     entity_relation: Sender<(EntityUuid, EntityRelationAndSubject)>,
     entity_embedding: Sender<EntityEmbeddingRow>,
@@ -53,10 +59,19 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             .change_context(SnapshotRestoreError::Read)?;
         ready!(self.data_type.poll_ready_unpin(cx))
             .attach_printable("could not poll data type sender")?;
+        ready!(self.data_type_embedding.poll_ready_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not poll data type embedding sender")?;
         ready!(self.property_type.poll_ready_unpin(cx))
             .attach_printable("could not poll property type sender")?;
+        ready!(self.property_type_embedding.poll_ready_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not poll property type embedding sender")?;
         ready!(self.entity_type.poll_ready_unpin(cx))
             .attach_printable("could not poll entity type sender")?;
+        ready!(self.entity_type_embedding.poll_ready_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not poll entity type embedding sender")?;
         ready!(self.entity.poll_ready_unpin(cx))
             .attach_printable("could not poll entity sender")?;
         ready!(self.entity_relation.poll_ready_unpin(cx))
@@ -93,14 +108,41 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
                 .data_type
                 .start_send_unpin(data_type)
                 .attach_printable("could not send data type"),
+            SnapshotEntry::DataTypeEmbedding(embedding) => self
+                .data_type_embedding
+                .start_send_unpin(DataTypeEmbeddingRow {
+                    ontology_id: DataTypeId::from_url(&embedding.data_type_id).into_uuid(),
+                    embedding: embedding.embedding,
+                    updated_at_transaction_time: embedding.updated_at_transaction_time,
+                })
+                .change_context(SnapshotRestoreError::Read)
+                .attach_printable("could not send data type embedding"),
             SnapshotEntry::PropertyType(property_type) => self
                 .property_type
                 .start_send_unpin(property_type)
                 .attach_printable("could not send property type"),
+            SnapshotEntry::PropertyTypeEmbedding(embedding) => self
+                .property_type_embedding
+                .start_send_unpin(PropertyTypeEmbeddingRow {
+                    ontology_id: DataTypeId::from_url(&embedding.property_type_id).into_uuid(),
+                    embedding: embedding.embedding,
+                    updated_at_transaction_time: embedding.updated_at_transaction_time,
+                })
+                .change_context(SnapshotRestoreError::Read)
+                .attach_printable("could not send property type embedding"),
             SnapshotEntry::EntityType(entity_type) => self
                 .entity_type
                 .start_send_unpin(entity_type)
                 .attach_printable("could not send entity type"),
+            SnapshotEntry::EntityTypeEmbedding(embedding) => self
+                .entity_type_embedding
+                .start_send_unpin(EntityTypeEmbeddingRow {
+                    ontology_id: DataTypeId::from_url(&embedding.entity_type_id).into_uuid(),
+                    embedding: embedding.embedding,
+                    updated_at_transaction_time: embedding.updated_at_transaction_time,
+                })
+                .change_context(SnapshotRestoreError::Read)
+                .attach_printable("could not send entity type embedding"),
             SnapshotEntry::Entity(entity) => self
                 .entity
                 .start_send_unpin(entity)
@@ -141,10 +183,19 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             .change_context(SnapshotRestoreError::Read)?;
         ready!(self.data_type.poll_flush_unpin(cx))
             .attach_printable("could not flush data type sender")?;
+        ready!(self.data_type_embedding.poll_flush_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not flush data type embedding sender")?;
         ready!(self.property_type.poll_flush_unpin(cx))
             .attach_printable("could not flush property type sender")?;
+        ready!(self.property_type_embedding.poll_flush_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not flush property type embedding sender")?;
         ready!(self.entity_type.poll_flush_unpin(cx))
             .attach_printable("could not flush entity type sender")?;
+        ready!(self.entity_type_embedding.poll_flush_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not flush entity type embedding sender")?;
         ready!(self.entity.poll_flush_unpin(cx))
             .attach_printable("could not flush entity sender")?;
         ready!(self.entity_relation.poll_flush_unpin(cx))
@@ -170,10 +221,19 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             .change_context(SnapshotRestoreError::Read)?;
         ready!(self.data_type.poll_close_unpin(cx))
             .attach_printable("could not close data type sender")?;
+        ready!(self.data_type_embedding.poll_close_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not close data type embedding sender")?;
         ready!(self.property_type.poll_close_unpin(cx))
             .attach_printable("could not close property type sender")?;
+        ready!(self.property_type_embedding.poll_close_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not close property type embedding sender")?;
         ready!(self.entity_type.poll_close_unpin(cx))
             .attach_printable("could not close entity type sender")?;
+        ready!(self.entity_type_embedding.poll_close_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not close entity type embedding sender")?;
         ready!(self.entity.poll_close_unpin(cx))
             .attach_printable("could not close entity sender")?;
         ready!(self.entity_relation.poll_close_unpin(cx))
@@ -211,12 +271,21 @@ pub fn channel(
     let (web_tx, web_rx) = web::channel(chunk_size);
     let (ontology_metadata_tx, ontology_metadata_rx) =
         ontology::ontology_metadata_channel(chunk_size);
-    let (data_type_tx, data_type_rx) =
-        ontology::data_type_channel(chunk_size, ontology_metadata_tx.clone());
-    let (property_type_tx, property_type_rx) =
-        ontology::property_type_channel(chunk_size, ontology_metadata_tx.clone());
+    let (data_type_embedding_tx, data_type_embedding_rx) = mpsc::channel(chunk_size);
+    let (data_type_tx, data_type_rx) = ontology::data_type_channel(
+        chunk_size,
+        ontology_metadata_tx.clone(),
+        data_type_embedding_rx,
+    );
+    let (property_type_embedding_tx, property_type_embedding_rx) = mpsc::channel(chunk_size);
+    let (property_type_tx, property_type_rx) = ontology::property_type_channel(
+        chunk_size,
+        ontology_metadata_tx.clone(),
+        property_type_embedding_rx,
+    );
+    let (entity_type_embedding_tx, entity_type_embedding_rx) = mpsc::channel(chunk_size);
     let (entity_type_tx, entity_type_rx) =
-        ontology::entity_type_channel(chunk_size, ontology_metadata_tx);
+        ontology::entity_type_channel(chunk_size, ontology_metadata_tx, entity_type_embedding_rx);
     let (entity_relation_tx, entity_relation_rx) = mpsc::channel(chunk_size);
     let (entity_embedding_tx, entity_embedding_rx) = mpsc::channel(chunk_size);
     let (entity_tx, entity_rx) =
@@ -228,8 +297,11 @@ pub fn channel(
             metadata: metadata_tx,
             webs: web_tx,
             data_type: data_type_tx,
+            data_type_embedding: data_type_embedding_tx,
             property_type: property_type_tx,
+            property_type_embedding: property_type_embedding_tx,
             entity_type: entity_type_tx,
+            entity_type_embedding: entity_type_embedding_tx,
             entity: entity_tx,
             entity_relation: entity_relation_tx,
             entity_embedding: entity_embedding_tx,

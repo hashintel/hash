@@ -40,12 +40,14 @@ use graph_types::{
     ontology::{
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
         OntologyTypeRecordId, OntologyTypeReference, PartialPropertyTypeMetadata,
-        PropertyTypeMetadata, PropertyTypeWithMetadata,
+        PropertyTypeEmbedding, PropertyTypeMetadata, PropertyTypeWithMetadata,
     },
     owned_by_id::OwnedById,
 };
 use hash_status::Status;
 use serde::{Deserialize, Serialize};
+use temporal_client::TemporalClient;
+use temporal_versioning::{Timestamp, TransactionTime};
 use time::OffsetDateTime;
 use type_system::{url::VersionedUrl, PropertyType};
 use utoipa::{OpenApi, ToSchema};
@@ -69,6 +71,7 @@ use crate::rest::{
         load_external_property_type,
         get_property_types_by_query,
         update_property_type,
+        update_property_type_embeddings,
         archive_property_type,
         unarchive_property_type,
     ),
@@ -84,10 +87,12 @@ use crate::rest::{
             PropertyTypePermission,
             PropertyTypeRelationAndSubject,
             ModifyPropertyTypeAuthorizationRelationship,
+            PropertyTypeEmbedding,
 
             CreatePropertyTypeRequest,
             LoadExternalPropertyTypeRequest,
             UpdatePropertyTypeRequest,
+            UpdatePropertyTypeEmbeddingsRequest,
             PropertyTypeQueryToken,
             PropertyTypeStructuralQuery,
             ArchivePropertyTypeRequest,
@@ -135,7 +140,8 @@ impl RoutedResource for PropertyTypeResource {
                 .route("/query", post(get_property_types_by_query::<S, A>))
                 .route("/load", post(load_external_property_type::<S, A>))
                 .route("/archive", put(archive_property_type::<S, A>))
-                .route("/unarchive", put(unarchive_property_type::<S, A>)),
+                .route("/unarchive", put(unarchive_property_type::<S, A>))
+                .route("/embeddings", post(update_property_type_embeddings::<S, A>)),
         )
     }
 }
@@ -173,6 +179,7 @@ async fn create_property_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreatePropertyTypeRequest>,
 ) -> Result<Json<ListOrValue<PropertyTypeMetadata>>, StatusCode>
@@ -223,6 +230,7 @@ where
         .create_property_types(
             actor_id,
             &mut authorization_api,
+            temporal_client.as_deref(),
             property_types.into_iter().zip(partial_metadata),
             ConflictBehavior::Fail,
             relationships,
@@ -290,6 +298,7 @@ async fn load_external_property_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
     Json(request): Json<LoadExternalPropertyTypeRequest>,
 ) -> Result<Json<PropertyTypeMetadata>, Response>
@@ -310,6 +319,7 @@ where
                 .load_external_type(
                     actor_id,
                     &mut authorization_api,
+                    temporal_client.as_deref(),
                     &domain_validator,
                     OntologyTypeReference::PropertyTypeReference((&property_type_id).into()),
                 )
@@ -341,6 +351,7 @@ where
                     .create_property_type(
                         actor_id,
                         &mut authorization_api,
+                        temporal_client.as_deref(),
                         schema,
                         PartialPropertyTypeMetadata {
                             record_id,
@@ -381,7 +392,7 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, query))]
 async fn get_property_types_by_query<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -458,6 +469,7 @@ async fn update_property_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<UpdatePropertyTypeRequest>,
 ) -> Result<Json<PropertyTypeMetadata>, StatusCode>
 where
@@ -493,6 +505,7 @@ where
         .update_property_type(
             actor_id,
             &mut authorization_api,
+            temporal_client.as_deref(),
             property_type,
             relationships,
         )
@@ -511,6 +524,64 @@ where
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .map(Json)
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct UpdatePropertyTypeEmbeddingsRequest {
+    embeddings: Vec<PropertyTypeEmbedding<'static>>,
+    updated_at_transaction_time: Timestamp<TransactionTime>,
+    reset: bool,
+}
+
+#[utoipa::path(
+    post,
+    path = "/property-types/embeddings",
+    tag = "PropertyType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 204, content_type = "application/json", description = "The embeddings were created"),
+
+        (status = 403, description = "Insufficient permissions to update the property type"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = UpdatePropertyTypeEmbeddingsRequest,
+)]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+async fn update_property_type_embeddings<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    body: Json<UpdatePropertyTypeEmbeddingsRequest>,
+) -> Result<(), Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let Json(UpdatePropertyTypeEmbeddingsRequest {
+        embeddings,
+        updated_at_transaction_time,
+        reset,
+    }) = body;
+
+    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
+    let mut authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .update_property_type_embeddings(
+            actor_id,
+            &mut authorization_api,
+            embeddings,
+            updated_at_transaction_time,
+            reset,
+        )
+        .await
+        .map_err(report_to_response)
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

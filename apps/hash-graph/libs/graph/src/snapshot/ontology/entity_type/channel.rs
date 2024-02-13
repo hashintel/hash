@@ -6,7 +6,7 @@ use std::{
 use authorization::schema::{EntityTypeId, EntityTypeRelationAndSubject};
 use error_stack::{Report, ResultExt};
 use futures::{
-    channel::mpsc::{self, Sender},
+    channel::mpsc::{self, Receiver, Sender},
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
@@ -21,7 +21,7 @@ use crate::snapshot::{
             EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
             EntityTypeConstrainsPropertiesOnRow, EntityTypeInheritsFromRow, EntityTypeRow,
         },
-        EntityTypeSnapshotRecord, OntologyTypeMetadataSender,
+        EntityTypeEmbeddingRow, EntityTypeSnapshotRecord, OntologyTypeMetadataSender,
     },
     SnapshotRestoreError,
 };
@@ -270,6 +270,7 @@ impl Stream for EntityTypeReceiver {
 pub fn entity_type_channel(
     chunk_size: usize,
     metadata_sender: OntologyTypeMetadataSender,
+    embedding_rx: Receiver<EntityTypeEmbeddingRow>,
 ) -> (EntityTypeSender, EntityTypeReceiver) {
     let (schema_tx, schema_rx) = mpsc::channel(chunk_size);
     let (inherits_from_tx, inherits_from_rx) = mpsc::channel(chunk_size);
@@ -326,6 +327,10 @@ pub fn entity_type_channel(
                 relations_rx
                     .ready_chunks(chunk_size)
                     .map(|relations| EntityTypeRowBatch::Relations(relations.into_iter().collect()))
+                    .boxed(),
+                embedding_rx
+                    .ready_chunks(chunk_size)
+                    .map(EntityTypeRowBatch::Embeddings)
                     .boxed(),
             ]),
         },

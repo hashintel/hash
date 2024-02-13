@@ -1,7 +1,11 @@
 /* eslint-disable import/first */
 require("setimmediate");
 
-import { DataType, EntityType, PropertyType } from "@blockprotocol/graph";
+import {
+  DataType,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { fluidFontClassName, theme } from "@hashintel/design-system/theme";
 import { Box, Stack, ThemeProvider, Typography } from "@mui/material";
@@ -42,11 +46,11 @@ export type EntityTypeEditorProps = {
   // The data types available for assigning to a property type, INCLUDING those used on this entity
   dataTypeOptions: Record<VersionedUrl, DataType>;
   // the entity type being edited
-  entityType: EntityType;
+  entityType: EntityTypeWithMetadata;
   // The entity types available for (a) extending or (b) constraining the destination of a link, INCLUDING those used on this entity
-  entityTypeOptions: Record<VersionedUrl, EntityType>;
+  entityTypeOptions: Record<VersionedUrl, EntityTypeWithMetadata>;
   // The property types available for assigning to an entity type or property type object, INCLUDING those used on this entity
-  propertyTypeOptions: Record<VersionedUrl, PropertyType>;
+  propertyTypeOptions: Record<VersionedUrl, PropertyTypeWithMetadata>;
   // functions for creating and updating types. Pass 'null' if not available (editor will be forced into readonly)
   ontologyFunctions: EditorOntologyFunctions | null;
   // whether or not the type editor should be in readonly mode
@@ -82,8 +86,8 @@ export const EntityTypeEditor = ({
                         Extends
                       </Typography>
                       <InheritanceRow
-                        entityTypeId={entityType.$id}
-                        typeTitle={entityType.title}
+                        entityTypeId={entityType.schema.$id}
+                        typeTitle={entityType.schema.title}
                       />
                     </Box>
 
@@ -91,7 +95,7 @@ export const EntityTypeEditor = ({
                       <Typography variant="h5" mb={2}>
                         Properties of{" "}
                         <Box component="span" sx={{ fontWeight: "bold" }}>
-                          {entityType.title}
+                          {entityType.schema.title}
                         </Box>
                       </Typography>
                       <PropertyListCard />
@@ -101,7 +105,7 @@ export const EntityTypeEditor = ({
                       <Typography variant="h5" mb={2}>
                         Links defined on{" "}
                         <Box component="span" sx={{ fontWeight: "bold" }}>
-                          {entityType.title}
+                          {entityType.schema.title}
                         </Box>
                       </Typography>
                       <LinkListCard />

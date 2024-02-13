@@ -1,4 +1,4 @@
-import { useLazyQuery } from "@apollo/client";
+import { useApolloClient } from "@apollo/client";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -61,10 +61,6 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
     initialAuthenticatedUserSubgraph,
   ); // use the initial server-sent data to start – after that, the client controls the value
 
-  const [getMe] = useLazyQuery<MeQuery>(meQuery, {
-    fetchPolicy: "cache-and-network",
-  });
-
   const userMemberOfLinks = useMemo(() => {
     if (!authenticatedUserSubgraph) {
       return undefined;
@@ -123,15 +119,28 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
     [resolvedOrgs, userMemberOfLinks],
   );
 
+  const apolloClient = useApolloClient();
+
   const fetchAuthenticatedUser =
     useCallback<RefetchAuthInfoFunction>(async () => {
-      const subgraph = await getMe()
+      /**
+       * @todo: use the `useLazyQuery` hook instead of the `apolloClient`
+       * here. This requires upgrading the `@apollo/client` to fix issue
+       * in the `useLazyQuery` hook that causes outdated data to be
+       * returned if an error is encountered by the query.
+       *
+       * @see https://linear.app/hash/issue/H-2182/upgrade-apolloclient-to-latest-version-to-fix-uselazyquery-behaviour
+       * @see https://github.com/apollographql/apollo-client/issues/6086
+       */
+      const subgraph = await apolloClient
+        .query<MeQuery>({
+          query: meQuery,
+          fetchPolicy: "network-only",
+        })
         .then(({ data }) =>
-          data
-            ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-                data.me.subgraph,
-              )
-            : undefined,
+          mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+            data.me.subgraph,
+          ),
         )
         .catch(() => undefined);
 
@@ -143,7 +152,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
       setAuthenticatedUserSubgraph(subgraph);
 
       return { authenticatedUser: constructUserValue(subgraph) };
-    }, [constructUserValue, getMe]);
+    }, [constructUserValue, apolloClient]);
 
   const authenticatedUser = useMemo(
     () => constructUserValue(authenticatedUserSubgraph),

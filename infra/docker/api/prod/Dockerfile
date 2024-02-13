@@ -50,4 +50,4 @@ RUN addgroup --system --gid 60000 hash \
 USER api:hash
 ENV NODE_ENV production
 
-HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:5001 || exit 1
+HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:5001/health-check || exit 1

@@ -97,7 +97,7 @@ export const OptionsContents = () => {
                       </Button>
                     </Box>
                     <Button
-                      href={`${FRONTEND_ORIGIN}/login`}
+                      href={`${FRONTEND_ORIGIN}/signin`}
                       size="small"
                       target="_blank"
                       sx={({ palette }) => ({

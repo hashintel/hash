@@ -19,6 +19,7 @@ import {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
+import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import {
   DataTypeRelationAndSubject,
   UpdatePropertyType,
@@ -1200,22 +1201,37 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
   );
 
   for (const web of [...users, ...orgs]) {
-    const existingEntities = await getEntities(context, authentication, {
+    const webOwnedById = extractOwnedByIdFromEntityId(
+      web.metadata.recordId.entityId,
+    );
+
+    const webBotAccountId = await getWebMachineActorId(
+      context,
+      authentication,
+      {
+        ownedById: webOwnedById,
+      },
+    );
+
+    const webBotAuthentication = { actorId: webBotAccountId };
+
+    const existingEntities = await getEntities(context, webBotAuthentication, {
       query: {
         filter: {
           all: [
             {
               any: entityTypeBaseUrls.map((baseUrl) => ({
-                equal: [{ path: ["type", "baseUrl"] }, { parameter: baseUrl }],
+                equal: [
+                  { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
+                  { parameter: baseUrl },
+                ],
               })),
             },
             {
               equal: [
                 { path: ["ownedById"] },
                 {
-                  parameter: extractOwnedByIdFromEntityId(
-                    web.metadata.recordId.entityId,
-                  ),
+                  parameter: webOwnedById,
                 },
               ],
             },
@@ -1228,40 +1244,20 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
     }).then((subgraph) => getRoots(subgraph));
 
     for (const entity of existingEntities) {
-      let newVersion: number;
       const baseUrl = extractBaseUrl(entity.metadata.entityTypeId);
-      switch (baseUrl) {
-        case systemEntityTypes.user.entityTypeBaseUrl:
-          newVersion = migrationState.entityTypeVersions[baseUrl]!;
-          break;
-        case systemEntityTypes.comment.entityTypeBaseUrl:
-          newVersion = migrationState.entityTypeVersions[baseUrl]!;
-          break;
-        case systemEntityTypes.commentNotification.entityTypeBaseUrl:
-          newVersion =
-            migrationState.entityTypeVersions[
-              systemEntityTypes.commentNotification.entityTypeBaseUrl as BaseUrl
-            ]!;
-          break;
-        case systemEntityTypes.linearIntegration.entityTypeBaseUrl:
-          newVersion =
-            migrationState.entityTypeVersions[
-              systemEntityTypes.linearIntegration.entityTypeBaseUrl as BaseUrl
-            ]!;
-          break;
-        case systemEntityTypes.mentionNotification.entityTypeBaseUrl:
-          newVersion =
-            migrationState.entityTypeVersions[
-              systemEntityTypes.mentionNotification.entityTypeBaseUrl as BaseUrl
-            ]!;
-          break;
-        default:
-          throw new Error(`Unexpected entity type baseUrl: ${baseUrl}`);
+
+      const newVersion = migrationState.entityTypeVersions[baseUrl];
+
+      if (typeof newVersion === "undefined") {
+        throw new Error(
+          `Could not find the version for base URL ${baseUrl} in the migration state`,
+        );
       }
+
       const newEntityTypeId = versionedUrlFromComponents(baseUrl, newVersion);
 
       if (entity.metadata.entityTypeId !== newEntityTypeId) {
-        await updateEntity(context, authentication, {
+        await updateEntity(context, webBotAuthentication, {
           entity,
           entityTypeId: newEntityTypeId,
           properties: entity.properties,

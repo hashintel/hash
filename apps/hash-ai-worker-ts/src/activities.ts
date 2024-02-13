@@ -8,7 +8,9 @@ import type {
 import { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import type {
   BaseUrl,
+  DataTypeWithMetadata,
   EntityPropertiesObject,
+  EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
@@ -18,8 +20,11 @@ import { CreateEmbeddingResponse } from "openai/resources";
 import { inferEntitiesActivity } from "./activities/infer-entities";
 import { parseTextFromFile } from "./activities/parse-text-from-file";
 import {
+  createDataTypeEmbeddings,
   createEmbeddings,
   createEntityEmbeddings,
+  createEntityTypeEmbeddings,
+  createPropertyTypeEmbeddings,
 } from "./activities/shared/embeddings";
 
 export { createGraphActivities } from "./activities/graph";
@@ -50,6 +55,39 @@ export const createAiActivities = ({
     params: CreateEmbeddingsParams,
   ): Promise<CreateEmbeddingsReturn> {
     return createEmbeddings(params);
+  },
+
+  async createDataTypeEmbeddingsActivity(params: {
+    dataType: DataTypeWithMetadata;
+  }): Promise<{
+    embeddings: { embedding: number[] }[];
+    usage: CreateEmbeddingResponse.Usage;
+  }> {
+    return createDataTypeEmbeddings({
+      dataType: params.dataType,
+    });
+  },
+
+  async createPropertyTypeEmbeddingsActivity(params: {
+    propertyType: PropertyTypeWithMetadata;
+  }): Promise<{
+    embeddings: { embedding: number[] }[];
+    usage: CreateEmbeddingResponse.Usage;
+  }> {
+    return createPropertyTypeEmbeddings({
+      propertyType: params.propertyType,
+    });
+  },
+
+  async createEntityTypeEmbeddingsActivity(params: {
+    entityType: EntityTypeWithMetadata;
+  }): Promise<{
+    embeddings: { embedding: number[] }[];
+    usage: CreateEmbeddingResponse.Usage;
+  }> {
+    return createEntityTypeEmbeddings({
+      entityType: params.entityType,
+    });
   },
 
   async createEntityEmbeddingsActivity(params: {

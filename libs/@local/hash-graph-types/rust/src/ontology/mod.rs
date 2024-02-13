@@ -19,9 +19,16 @@ use type_system::{
 };
 
 pub use self::{
-    data_type::{DataTypeMetadata, DataTypeWithMetadata, PartialDataTypeMetadata},
-    entity_type::{EntityTypeMetadata, EntityTypeWithMetadata, PartialEntityTypeMetadata},
-    property_type::{PartialPropertyTypeMetadata, PropertyTypeMetadata, PropertyTypeWithMetadata},
+    data_type::{
+        DataTypeEmbedding, DataTypeMetadata, DataTypeWithMetadata, PartialDataTypeMetadata,
+    },
+    entity_type::{
+        EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, PartialEntityTypeMetadata,
+    },
+    property_type::{
+        PartialPropertyTypeMetadata, PropertyTypeEmbedding, PropertyTypeMetadata,
+        PropertyTypeWithMetadata,
+    },
 };
 use crate::{
     account::{EditionArchivedById, EditionCreatedById},

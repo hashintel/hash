@@ -114,14 +114,14 @@ const LinkTypeRow = ({
     name: `links.${linkIndex}.$id`,
   });
 
-  const link = linkTypes[linkId];
+  const linkSchema = linkTypes[linkId]?.schema;
 
   const [currentVersion, latestVersion, baseUrl] = useTypeVersions(
     linkId,
     linkTypes,
   );
 
-  if (!link) {
+  if (!linkSchema) {
     throw new Error(`Link entity type with ${linkId} not found in options`);
   }
 
@@ -137,7 +137,7 @@ const LinkTypeRow = ({
 
     const res = await ontologyFunctions.updateEntityType({
       data: {
-        entityTypeId: link.$id,
+        entityTypeId: linkSchema.$id,
         entityType: formDataToEntityType(data),
       },
     });
@@ -154,7 +154,7 @@ const LinkTypeRow = ({
   const editDisabledReason = useMemo(() => {
     const canEdit = ontologyFunctions?.canEditResource({
       kind: "link-type",
-      resource: link,
+      resource: linkSchema,
     });
 
     return !canEdit?.allowed
@@ -162,7 +162,7 @@ const LinkTypeRow = ({
       : currentVersion !== latestVersion
         ? "Update the link type to the latest version to edit"
         : undefined;
-  }, [ontologyFunctions, link, currentVersion, latestVersion]);
+  }, [ontologyFunctions, linkSchema, currentVersion, latestVersion]);
 
   return (
     <>
@@ -170,14 +170,14 @@ const LinkTypeRow = ({
         <TableCell>
           <EntityTypeTableTitleCellText>
             <Link
-              href={link.$id}
+              href={linkSchema.$id}
               style={{
                 color: "inherit",
                 fontWeight: 500,
                 whiteSpace: "nowrap",
               }}
             >
-              {link.title}
+              {linkSchema.title}
             </Link>
             {currentVersion !== latestVersion && !isReadonly ? (
               <Box ml={1}>
@@ -199,7 +199,7 @@ const LinkTypeRow = ({
         </TableCell>
         <MultipleValuesCell index={linkIndex} variant="link" />
         <TypeMenuCell
-          typeId={link.$id}
+          typeId={linkSchema.$id}
           editButtonProps={bindTrigger(editModalPopupState)}
           editButtonDisabled={editDisabledReason}
           variant="link"
@@ -216,8 +216,8 @@ const LinkTypeRow = ({
           submitButtonProps={{ children: <>Edit link</> }}
           disabledFields={["name"]}
           getDefaultValues={() => ({
-            name: link.title,
-            description: link.description,
+            name: linkSchema.title,
+            description: linkSchema.description,
           })}
         />
       ) : null}
@@ -239,7 +239,7 @@ const InsertLinkField = (
   const linkTypes = useMemo(
     () =>
       Object.values(linkTypeOptions).map((type) => ({
-        ...type,
+        ...type.schema,
         Icon: LinkTypeIcon,
       })),
     [linkTypeOptions],
@@ -281,7 +281,7 @@ export const LinkListCard = () => {
       sortRows(
         [...unsortedFields, ...inheritedLinks],
         (linkId) => linkTypes[linkId],
-        (row) => row.title,
+        (row) => row.schema.title,
       ),
     [inheritedLinks, linkTypes, unsortedFields],
   );
@@ -407,7 +407,7 @@ export const LinkListCard = () => {
                   shouldDirty: true,
                 });
               }}
-              flash={row ? flashingRows.includes(row.$id) : false}
+              flash={row ? flashingRows.includes(row.schema.$id) : false}
             />
           ),
         )}
