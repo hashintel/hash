@@ -41,8 +41,6 @@ import {
   SchemaKind,
   SystemTypeWebShortname,
 } from "@local/hash-isomorphic-utils/ontology-types";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
 import {
   BaseUrl,
   ConstructDataTypeParams,
@@ -1273,24 +1271,62 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
 
         const migratePropertiesFunction = migrateProperties?.[baseUrl];
 
-        if (baseUrl === systemEntityTypes.machine.entityTypeBaseUrl) {
-          const { machineIdentifier } = simplifyProperties(
-            entity.properties as MachineProperties,
-          );
+        let updateAuthentication = webBotAuthentication;
 
-          if (machineIdentifier === "hash") {
-            await context.graphApi.modifyEntityAuthorizationRelationships(
+        let shouldRemoveTemporaryMachineActorPermission = false;
+
+        if (baseUrl === systemEntityTypes.machine.entityTypeBaseUrl) {
+          /**
+           * If we are updating machine entities, we use the account ID
+           * of the machine user as the actor for the update.
+           */
+          updateAuthentication = {
+            /**
+             * The account ID of the machine entity is the creator of its
+             * first edition.
+             */
+            actorId: entity.metadata.provenance.createdById,
+          };
+
+          /**
+           * We need to temporarily grant the machine account ID the ability
+           * to instantiate new entities of the new machine entity type,
+           * because an actor cannot update an entity without being able
+           * to instantiate it.
+           */
+
+          try {
+            await context.graphApi.modifyEntityTypeAuthorizationRelationships(
+              systemAccountId,
+              [
+                {
+                  operation: "create",
+                  resource: newEntityTypeId,
+                  relationAndSubject: {
+                    subject: {
+                      kind: "account",
+                      subjectId: entity.metadata.provenance.createdById,
+                    },
+                    relation: "instantiator",
+                  },
+                },
+              ],
+            );
+          } catch {
+            shouldRemoveTemporaryMachineActorPermission = true;
+
+            await context.graphApi.modifyEntityTypeAuthorizationRelationships(
               systemAccountId,
               [
                 {
                   operation: "touch",
-                  resource: entity.metadata.recordId.entityId,
-                  relationSubject: {
+                  resource: newEntityTypeId,
+                  relationAndSubject: {
                     subject: {
                       kind: "account",
-                      subjectId: webBotAuthentication.actorId,
+                      subjectId: entity.metadata.provenance.createdById,
                     },
-                    relation: "editor",
+                    relation: "instantiator",
                   },
                 },
               ],
@@ -1298,13 +1334,41 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
           }
         }
 
-        await updateEntity(context, webBotAuthentication, {
-          entity,
-          entityTypeId: newEntityTypeId,
-          properties: migratePropertiesFunction
-            ? migratePropertiesFunction(entity.properties)
-            : entity.properties,
-        });
+        try {
+          await updateEntity(context, updateAuthentication, {
+            entity,
+            entityTypeId: newEntityTypeId,
+            properties: migratePropertiesFunction
+              ? migratePropertiesFunction(entity.properties)
+              : entity.properties,
+          });
+        } finally {
+          if (
+            baseUrl === systemEntityTypes.machine.entityTypeBaseUrl &&
+            shouldRemoveTemporaryMachineActorPermission
+          ) {
+            /**
+             * If we updated a machine entity and granted its actor ID a
+             * new permission, we need to remove the temporary permission.
+             */
+            await context.graphApi.modifyEntityTypeAuthorizationRelationships(
+              systemAccountId,
+              [
+                {
+                  operation: "delete",
+                  resource: newEntityTypeId,
+                  relationAndSubject: {
+                    subject: {
+                      kind: "account",
+                      subjectId: entity.metadata.provenance.createdById,
+                    },
+                    relation: "instantiator",
+                  },
+                },
+              ],
+            );
+          }
+        }
       }
     }
   }

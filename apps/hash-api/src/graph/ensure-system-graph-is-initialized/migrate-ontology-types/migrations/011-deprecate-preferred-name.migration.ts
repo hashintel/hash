@@ -11,6 +11,7 @@ import { MigrationFunction } from "../types";
 import {
   getCurrentHashSystemEntityTypeId,
   updateSystemEntityType,
+  upgradeDependenciesInHashEntityType,
   upgradeEntitiesToNewTypeVersion,
 } from "../util";
 import { replaceEntityTypeReference } from "../util/upgrade-entity-type-dependencies";
@@ -64,11 +65,11 @@ const migrate: MigrationFunction = async ({
    */
 
   /** @todo: fix upgrading "Machine" entity type */
-  // await upgradeDependenciesInHashEntityType(context, authentication, {
-  //   upgradedEntityTypeIds: [updatedActorEntityTypeId],
-  //   dependentEntityTypeKeys: ["machine"],
-  //   migrationState,
-  // });
+  await upgradeDependenciesInHashEntityType(context, authentication, {
+    upgradedEntityTypeIds: [updatedActorEntityTypeId],
+    dependentEntityTypeKeys: ["machine"],
+    migrationState,
+  });
 
   /**
    * Step 3. Update `User` to inherit from the latest version of `Actor`,
@@ -124,7 +125,7 @@ const migrate: MigrationFunction = async ({
    * Step 4: Assign entities of updated types to the latest version
    */
   const baseUrls = [
-    // systemEntityTypes.machine.entityTypeBaseUrl,
+    systemEntityTypes.machine.entityTypeBaseUrl,
     systemEntityTypes.user.entityTypeBaseUrl,
   ] as BaseUrl[];
 
