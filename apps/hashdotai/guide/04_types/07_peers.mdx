@@ -4,7 +4,7 @@ description: Types which refer to the same thing
 meta-title: Peers - HASH
 meta-description: Peers of an entity or type are other entities or types which refer to the same thing
 sidebar-title: Peers
-sidebar-icon: https://example.com/image.svg
+sidebar-icon: https://app.hash.ai/icons/docs/shuffle.svg
 ---
 
 Peers of a type or entity are other types and entities which refer to the same "thing".
@@ -13,21 +13,21 @@ Types and entities may be considered "the same" as one another in a few differen
 
 1. **Semantic** sameness: two or more types may refer to the same concept, and two or more entities refer to the same subject
 1. **Structural** sameness: multiple types or multiple entities may expect the exact same attributes (properties and links)
-1. **Complete** sameness: types and entities may be _both_ semantically _and_ structurally identical 
+1. **Complete** sameness: types and entities may be _both_ semantically _and_ structurally identical
 
 # Semantic sameness
 
 ## Types
 
-Types are said to be semanitcally identically when they refer to the same type of thing.
+Types are said to be semantically identically when they refer to the same type of thing.
 
-Two types which refer to the same concept, or thing, are not necessarilly guaranteed to define the exact same set of expected attributes. For example, let's assume two different people create a `Dog` type in HASH.
+Two types which refer to the same concept, or thing, are not necessarily guaranteed to define the exact same set of expected attributes. For example, let's assume two different people create a `Dog` type in HASH.
 
 The first `Dog` type creator is a vetinarian. They care about certain characteristics of the dog such as its `Name`, `Age`, `Weight`, and `Medical History`.
 
-The second `Dog` type creator is a dogwalker. Like the vetinarian, they care about the dog's `Name`, but they also want to know its `Favorite Toy`. Conversely, its `Weight` doesn't matter.
+The second `Dog` type creator is a dogwalker. Like the veterinarian, they care about the dog's `Name`, but they also want to know its `Favorite Toy`. Conversely, its `Weight` doesn't matter.
 
-Both the vetinarian and the dogwalker have created types that unmistakably refer to the same real-world concept, a dog, but have specified different expected attributes, reflecting those characteristics that are important to them.
+Both the veterinarian and the dogwalker have created types that unmistakably refer to the same real-world concept, a dog, but have specified different expected attributes, reflecting those characteristics that are important to them.
 
 ## Entities
 
@@ -71,9 +71,9 @@ If two entities are both semantically and structurally identical, they can also 
 
 Crosswalking is the attempt to identify, and subsequently link, both types and entities which refer to the same semantic thing.
 
-## Crosswalking Types 
+## Crosswalking Types
 
-ADD INSTRUCTIONS FOR DEFINING PEER RELATIONSHIPS FOR TYPES  HERE.
+ADD INSTRUCTIONS FOR DEFINING PEER RELATIONSHIPS FOR TYPES HERE.
 
 ## Crosswalking Entities
 
@@ -88,7 +88,7 @@ Challenges in automatically crosswalking types:
 - Structural sameness does not imply semantic similarity: two types which expect the exact same attributes may be _more likely_ to be the same as one another, but they do not _necessarily_ refer to the same thing.
 - Semantic sameness is not the same as semantic similarity: two types may be extremely similar, while one or both of creators perceive some nuance or difference between them. For example:
   - Two people may create `Artwork` types, but disagree with each other on what kinds of things qualify as `Artwork`. These types may even be structurally the same as one another, but still semantically differentiated in subtle, hard-to-ascertain ways.
-  - Two businesses may create `Staff Member` types. One may incude temporary workers and contractors in this definition (producing a 'total headcount'), while another may exclude them as they may not legally qualify as "employees".
+  - Two businesses may create `Staff Member` types. One may include temporary workers and contractors in this definition (producing a 'total headcount'), while another may exclude them as they may not legally qualify as "employees".
 
 Challenges in automatically crosswalking entities:
 
