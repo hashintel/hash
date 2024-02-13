@@ -10,17 +10,20 @@ use utoipa::{openapi, ToSchema};
 /// Marker trait for any temporal axis.
 ///
 /// Contains useful metadata about the temporal axis.
+#[cfg(feature = "utoipa")]
 trait TemporalAxisSchema {
     /// The name of the temporal axis.
     fn noun() -> &'static str;
 }
 
+#[cfg(feature = "utoipa")]
 impl TemporalAxisSchema for DecisionTime {
     fn noun() -> &'static str {
         "Decision"
     }
 }
 
+#[cfg(feature = "utoipa")]
 impl TemporalAxisSchema for TransactionTime {
     fn noun() -> &'static str {
         "Transaction"

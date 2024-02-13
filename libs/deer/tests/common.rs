@@ -3,6 +3,7 @@
 
 use error_stack::{Context, Report};
 
+#[allow(dead_code)] // False positive
 pub(crate) trait TupleExt {
     type Context: Context;
     type Ok;

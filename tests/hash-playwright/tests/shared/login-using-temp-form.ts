@@ -12,7 +12,7 @@ export const loginUsingTempForm = async ({
   userEmail?: string;
   userPassword?: string;
 }): Promise<void> => {
-  await page.goto("/login");
+  await page.goto("/signin");
 
   const emailInputSelector = '[placeholder="Enter your email address"]';
 

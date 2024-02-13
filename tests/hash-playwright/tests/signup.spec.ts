@@ -7,12 +7,12 @@ test.beforeEach(async () => {
 
 test("user can sign up", async ({ page }) => {
   await page.goto("/");
-  await page.waitForURL("**/login");
+  await page.waitForURL("**/signin");
 
-  await expect(page.locator("text=Log in to your account")).toBeVisible();
-  await expect(page.locator("text=Create account")).toBeVisible();
+  await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();
+  await expect(page.locator("text=Create a free account")).toBeVisible();
 
-  await page.click("text=Create account");
+  await page.click("text=Create a free account");
 
   await page.waitForURL("**/signup");
 
@@ -27,7 +27,7 @@ test("user can sign up", async ({ page }) => {
 
   await page.fill('[type="password"]', "some-complex-pw-1ab2");
 
-  await page.click("text=Sign up with email");
+  await page.click("text=Sign up");
 
   await expect(
     page.locator("text=Thanks for confirming your account"),
@@ -35,7 +35,7 @@ test("user can sign up", async ({ page }) => {
 
   await page.fill('[placeholder="example"]', randomNumber.toString());
 
-  await page.fill('[placeholder="Bobby"]', "New User");
+  await page.fill('[placeholder="Jonathan Smith"]', "New User");
 
   await page.click("text=Continue");
 

@@ -97,8 +97,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           height: "100%",
           opacity: 0,
           background:
-            "linear-gradient(82.89deg, #9E56FA 5.64%, #644CFF 78.19%, #0070F4 121.05%)",
-          boxShadow: theme.boxShadows.purpleShadowMd,
+            "linear-gradient(270deg, #037CF5 0%, #00B2FF 100%), #0775E3",
           transition: theme.transitions.create("opacity"),
           zIndex: -1,
         };
