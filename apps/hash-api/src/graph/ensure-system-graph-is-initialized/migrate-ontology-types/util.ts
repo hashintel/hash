@@ -1289,7 +1289,7 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
           };
 
           /**
-           * We need to temporarily grant the machine account ID the ability
+           * We may need to temporarily grant the machine account ID the ability
            * to instantiate new entities of the new machine entity type,
            * because an actor cannot update an entity without being able
            * to instantiate it.

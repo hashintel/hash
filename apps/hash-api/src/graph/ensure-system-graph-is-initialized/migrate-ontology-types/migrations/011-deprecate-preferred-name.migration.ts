@@ -64,7 +64,6 @@ const migrate: MigrationFunction = async ({
    * Step 2. Update `Machine` to inherit from the latest version of `Actor`
    */
 
-  /** @todo: fix upgrading "Machine" entity type */
   await upgradeDependenciesInHashEntityType(context, authentication, {
     upgradedEntityTypeIds: [updatedActorEntityTypeId],
     dependentEntityTypeKeys: ["machine"],
