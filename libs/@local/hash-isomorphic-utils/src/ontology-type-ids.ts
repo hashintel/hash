@@ -93,7 +93,7 @@ export const systemEntityTypes = {
       "https://hash.ai/@hash/types/entity-type/linkedin-account/",
   },
   machine: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/machine/v/1",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/machine/v/2",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/machine/",
   },
   mentionNotification: {
