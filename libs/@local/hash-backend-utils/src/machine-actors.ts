@@ -101,7 +101,7 @@ export const getMachineActorId = async (
     );
   }
 
-  return machineEntity.metadata.provenance.edition.createdById;
+  return machineEntity.metadata.provenance.createdById;
 };
 
 /**
