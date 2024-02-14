@@ -1,6 +1,11 @@
 import { useMutation } from "@apollo/client";
 import { AlertModal, CaretDownSolidIcon } from "@hashintel/design-system";
-import { EntityId, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import {
+  EntityId,
+  EntityRootType,
+  extractDraftIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import {
   getEntityRevision,
   getIncomingLinksForEntity,
@@ -79,11 +84,21 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
           ...getIncomingLinksForEntity(
             draftEntitiesWithLinkedDataSubgraph,
             selectedDraftEntity.metadata.recordId.entityId,
-          ).filter((linkEntity) => linkEntity.metadata.draft),
+          ).filter(
+            (linkEntity) =>
+              !!extractDraftIdFromEntityId(
+                linkEntity.metadata.recordId.entityId,
+              ),
+          ),
           ...getOutgoingLinksForEntity(
             draftEntitiesWithLinkedDataSubgraph,
             selectedDraftEntity.metadata.recordId.entityId,
-          ).filter((linkEntity) => linkEntity.metadata.draft),
+          ).filter(
+            (linkEntity) =>
+              !!extractDraftIdFromEntityId(
+                linkEntity.metadata.recordId.entityId,
+              ),
+          ),
         ];
       })
       .flat();
@@ -188,8 +203,16 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
            * may not be present in the subgraph. This is why the `leftEntity` and
            * `rightEntity` are nullable in this context.
            */
-          leftEntity?.metadata.draft ? leftEntity : [],
-          rightEntity?.metadata.draft ? rightEntity : [],
+          leftEntity &&
+          extractDraftIdFromEntityId(leftEntity.metadata.recordId.entityId) !==
+            undefined
+            ? leftEntity
+            : [],
+          rightEntity &&
+          extractDraftIdFromEntityId(rightEntity.metadata.recordId.entityId) !==
+            undefined
+            ? rightEntity
+            : [],
         ].flat();
       })
       .flat();

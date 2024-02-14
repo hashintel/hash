@@ -49,6 +49,35 @@ impl fmt::Display for EntityUuid {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[repr(transparent)]
+pub struct DraftId(Uuid);
+
+impl DraftId {
+    #[must_use]
+    pub const fn new(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+
+    #[must_use]
+    pub const fn as_uuid(&self) -> &Uuid {
+        &self.0
+    }
+
+    #[must_use]
+    pub const fn into_uuid(self) -> Uuid {
+        self.0
+    }
+}
+
+impl fmt::Display for DraftId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
 /// The properties of an entity.
 ///
 /// When expressed as JSON, this should validate against its respective entity type(s).
@@ -127,7 +156,6 @@ pub struct EntityMetadata {
     pub entity_type_id: VersionedUrl,
     pub provenance: EntityProvenanceMetadata,
     pub archived: bool,
-    pub draft: bool,
 }
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
@@ -147,17 +175,30 @@ pub struct Entity {
 pub struct EntityId {
     pub owned_by_id: OwnedById,
     pub entity_uuid: EntityUuid,
+    pub draft_id: Option<DraftId>,
 }
 
 pub const ENTITY_ID_DELIMITER: char = '~';
 
 impl fmt::Display for EntityId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            fmt,
-            "{}{}{}",
-            self.owned_by_id, ENTITY_ID_DELIMITER, self.entity_uuid
-        )
+        if let Some(draft_id) = self.draft_id {
+            write!(
+                fmt,
+                "{}{}{}{}{}",
+                self.owned_by_id,
+                ENTITY_ID_DELIMITER,
+                self.entity_uuid,
+                ENTITY_ID_DELIMITER,
+                draft_id,
+            )
+        } else {
+            write!(
+                fmt,
+                "{}{}{}",
+                self.owned_by_id, ENTITY_ID_DELIMITER, self.entity_uuid
+            )
+        }
     }
 }
 
@@ -175,23 +216,29 @@ impl<'de> Deserialize<'de> for EntityId {
     where
         D: Deserializer<'de>,
     {
-        String::deserialize(deserializer)?
+        let entity_id = String::deserialize(deserializer)?;
+        let (owned_by_id, tail) = entity_id.split_once(ENTITY_ID_DELIMITER).ok_or_else(|| {
+            de::Error::custom(format!(
+                "failed to find `{ENTITY_ID_DELIMITER}` delimited string",
+            ))
+        })?;
+        let (entity_uuid, draft_id) = tail
             .split_once(ENTITY_ID_DELIMITER)
-            .ok_or_else(|| {
-                de::Error::custom(format!(
-                    "failed to find `{ENTITY_ID_DELIMITER}` delimited string",
-                ))
-            })
-            .and_then(|(owned_by_id, entity_uuid)| {
-                Ok(Self {
-                    owned_by_id: OwnedById::new(
-                        Uuid::from_str(owned_by_id).map_err(de::Error::custom)?,
-                    ),
-                    entity_uuid: EntityUuid::new(
-                        Uuid::from_str(entity_uuid).map_err(de::Error::custom)?,
-                    ),
+            .map_or((tail, None), |(entity_uuid, draft_id)| {
+                (entity_uuid, Some(draft_id))
+            });
+
+        Ok(Self {
+            owned_by_id: OwnedById::new(Uuid::from_str(owned_by_id).map_err(de::Error::custom)?),
+            entity_uuid: EntityUuid::new(Uuid::from_str(entity_uuid).map_err(de::Error::custom)?),
+            draft_id: draft_id
+                .map(|draft_id| {
+                    Ok(DraftId::new(
+                        Uuid::from_str(draft_id).map_err(de::Error::custom)?,
+                    ))
                 })
-            })
+                .transpose()?,
+        })
     }
 }
 

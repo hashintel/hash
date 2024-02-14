@@ -8,7 +8,13 @@ import {
 } from "@local/hash-backend-utils/temporal-workflow-types";
 import { GraphApi } from "@local/hash-graph-client";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { AccountId, BaseUrl, EntityId, OwnedById } from "@local/hash-subgraph";
+import {
+  AccountId,
+  BaseUrl,
+  EntityId,
+  extractDraftIdFromEntityId,
+  OwnedById,
+} from "@local/hash-subgraph";
 
 import {
   archiveEntity,
@@ -222,7 +228,9 @@ const createOrUpdateHashEntity = async (params: {
       entityId: existingEntity.metadata.recordId.entityId,
       entityTypeId: existingEntity.metadata.entityTypeId,
       properties: mergedProperties,
-      draft: existingEntity.metadata.draft,
+      draft: !!extractDraftIdFromEntityId(
+        existingEntity.metadata.recordId.entityId,
+      ),
     });
   }
 

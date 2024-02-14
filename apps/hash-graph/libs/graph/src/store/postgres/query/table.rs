@@ -664,6 +664,13 @@ impl EntityIds {
         write!(fmt, r#"."{column}""#)
     }
 
+    pub const fn nullable(self) -> bool {
+        match self {
+            Self::WebId | Self::EntityUuid | Self::CreatedById => false,
+            Self::CreatedAtDecisionTime | Self::CreatedAtTransactionTime => true,
+        }
+    }
+
     pub const fn parameter_type(self) -> ParameterType {
         match self {
             Self::WebId | Self::EntityUuid | Self::CreatedById => ParameterType::Uuid,
@@ -678,6 +685,7 @@ impl EntityIds {
 pub enum EntityTemporalMetadata {
     WebId,
     EntityUuid,
+    DraftId,
     EditionId,
     DecisionTime,
     TransactionTime,
@@ -695,6 +703,7 @@ impl EntityTemporalMetadata {
         let column = match self {
             Self::WebId => "web_id",
             Self::EntityUuid => "entity_uuid",
+            Self::DraftId => "draft_id",
             Self::EditionId => "entity_edition_id",
             Self::DecisionTime => "decision_time",
             Self::TransactionTime => "transaction_time",
@@ -705,7 +714,7 @@ impl EntityTemporalMetadata {
 
     pub const fn parameter_type(self) -> ParameterType {
         match self {
-            Self::WebId | Self::EntityUuid | Self::EditionId => ParameterType::Uuid,
+            Self::WebId | Self::EntityUuid | Self::DraftId | Self::EditionId => ParameterType::Uuid,
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
         }
     }
@@ -848,13 +857,12 @@ pub enum EntityEditions<'p> {
     RightToLeftOrder,
     EditionCreatedById,
     Archived,
-    Draft,
 }
 
 impl<'p> EntityEditions<'p> {
     pub const fn nullable(self) -> bool {
         match self {
-            Self::EditionId | Self::Archived | Self::Draft | Self::EditionCreatedById => false,
+            Self::EditionId | Self::Archived | Self::EditionCreatedById => false,
             Self::Properties(_) | Self::LeftToRightOrder | Self::RightToLeftOrder => true,
         }
     }
@@ -869,7 +877,6 @@ impl<'p> EntityEditions<'p> {
             Self::RightToLeftOrder => (EntityEditions::RightToLeftOrder, None),
             Self::EditionCreatedById => (EntityEditions::EditionCreatedById, None),
             Self::Archived => (EntityEditions::Archived, None),
-            Self::Draft => (EntityEditions::Draft, None),
             Self::Properties(None) => (EntityEditions::Properties(None), None),
             Self::Properties(Some(path)) => {
                 let (path, parameter) = path.into_owned(current_parameter_index);
@@ -891,7 +898,6 @@ impl EntityEditions<'static> {
             Self::RightToLeftOrder => "right_to_left_order",
             Self::EditionCreatedById => "edition_created_by_id",
             Self::Archived => "archived",
-            Self::Draft => "draft",
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
@@ -902,7 +908,7 @@ impl EntityEditions<'static> {
             Self::EditionId | Self::EditionCreatedById => ParameterType::Uuid,
             Self::Properties(_) => ParameterType::Any,
             Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::I32,
-            Self::Archived | Self::Draft => ParameterType::Boolean,
+            Self::Archived => ParameterType::Boolean,
         }
     }
 }
@@ -1267,6 +1273,7 @@ impl<'p> Column<'p> {
             Self::PropertyTypes(column) => column.nullable(),
             Self::EntityTypes(column) => column.nullable(),
             Self::EntityEditions(column) => column.nullable(),
+            Self::EntityIds(column) => column.nullable(),
             Self::EntityEmbeddings(_)
             | Self::EntityHasLeftEntity(_)
             | Self::EntityHasRightEntity(_)

@@ -3339,14 +3339,10 @@
           "temporalVersioning",
           "entityTypeId",
           "provenance",
-          "archived",
-          "draft"
+          "archived"
         ],
         "properties": {
           "archived": {
-            "type": "boolean"
-          },
-          "draft": {
             "type": "boolean"
           },
           "entityTypeId": {
@@ -3470,7 +3466,6 @@
         "type": "string",
         "enum": [
           "archived",
-          "draft",
           "properties",
           "recordCreatedAtTransactionTime",
           "recordCreatedAtDecisionTime",
@@ -3484,8 +3479,8 @@
         "enum": [
           "uuid",
           "editionId",
+          "draftId",
           "archived",
-          "draft",
           "ownedById",
           "editionCreatedById",
           "createdById",

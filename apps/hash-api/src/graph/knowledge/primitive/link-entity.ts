@@ -7,6 +7,7 @@ import {
   EntityMetadata,
   EntityPropertiesObject,
   EntityRelationAndSubject,
+  extractDraftIdFromEntityId,
   LinkData,
   OwnedById,
 } from "@local/hash-subgraph";
@@ -149,9 +150,8 @@ export const updateLinkEntity: ImpureGraphFunction<
     properties,
     archived: linkEntity.metadata.archived,
     draft:
-      typeof params.draft === "undefined"
-        ? linkEntity.metadata.draft
-        : params.draft,
+      params.draft ??
+      !!extractDraftIdFromEntityId(linkEntity.metadata.recordId.entityId),
     leftToRightOrder,
     rightToLeftOrder,
   });

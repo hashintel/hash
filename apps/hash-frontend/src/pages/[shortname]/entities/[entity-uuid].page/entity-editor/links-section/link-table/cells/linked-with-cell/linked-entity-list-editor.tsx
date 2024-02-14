@@ -9,6 +9,7 @@ import {
   Entity,
   EntityId,
   EntityRootType,
+  extractDraftIdFromEntityId,
   Subgraph,
   Timestamp,
 } from "@local/hash-subgraph";
@@ -48,9 +49,6 @@ export const createDraftLinkEntity = ({
     linkData: { rightEntityId, leftEntityId },
     metadata: {
       archived: false,
-      // @todo use the Graph to create draft entities
-      //   see https://linear.app/hash/issue/H-1083/draft-entities
-      draft: false,
       recordId: { editionId: "", entityId: `draft~${Date.now()}` as EntityId },
       entityTypeId: linkEntityTypeId,
       provenance: {
@@ -197,7 +195,9 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       {canAddMore &&
         (addingLink ? (
           <EntitySelector
-            includeDrafts={entity.metadata.draft}
+            includeDrafts={
+              !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)
+            }
             onSelect={onSelect}
             onFinishedEditing={onFinishedEditing}
             expectedEntityTypes={expectedEntityTypes}
