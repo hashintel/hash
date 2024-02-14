@@ -2427,7 +2427,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateWebRequest"
+                "$ref": "#/components/schemas/InsertWebIdParams"
               }
             }
           },
@@ -2810,22 +2810,6 @@
                 }
               }
             ]
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateWebRequest": {
-        "type": "object",
-        "required": [
-          "ownedById",
-          "owner"
-        ],
-        "properties": {
-          "ownedById": {
-            "$ref": "#/components/schemas/OwnedById"
-          },
-          "owner": {
-            "$ref": "#/components/schemas/WebOwnerSubject"
           }
         },
         "additionalProperties": false
@@ -4494,6 +4478,40 @@
           },
           "isOfType": {
             "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InsertAccountGroupIdParams": {
+        "type": "object",
+        "properties": {
+          "accountGroupId": {
+            "$ref": "#/components/schemas/AccountGroupId"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InsertAccountIdParams": {
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "$ref": "#/components/schemas/AccountId"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InsertWebIdParams": {
+        "type": "object",
+        "required": [
+          "ownedById",
+          "owner"
+        ],
+        "properties": {
+          "ownedById": {
+            "$ref": "#/components/schemas/OwnedById"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/WebOwnerSubject"
           }
         },
         "additionalProperties": false

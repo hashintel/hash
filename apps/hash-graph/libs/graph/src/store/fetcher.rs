@@ -12,7 +12,7 @@ use authorization::{
 };
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
-    account::{AccountGroupId, AccountId},
+    account::AccountId,
     knowledge::{
         entity::{Entity, EntityEmbedding, EntityId, EntityMetadata, EntityProperties, EntityUuid},
         link::{EntityLinkOrder, LinkData},
@@ -42,6 +42,7 @@ use validation::ValidationProfile;
 use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
+        account::{InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams},
         crud::{QueryResult, Read, ReadPaginated, Sorting},
         knowledge::{
             EntityQueryCursor, EntityQuerySorting, EntityValidationType, ValidateEntityError,
@@ -753,10 +754,10 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
-        account_id: AccountId,
+        params: InsertAccountIdParams,
     ) -> Result<(), InsertionError> {
         self.store
-            .insert_account_id(actor_id, authorization_api, account_id)
+            .insert_account_id(actor_id, authorization_api, params)
             .await
     }
 
@@ -764,10 +765,10 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
-        account_group_id: AccountGroupId,
+        params: InsertAccountGroupIdParams,
     ) -> Result<(), InsertionError> {
         self.store
-            .insert_account_group_id(actor_id, authorization_api, account_group_id)
+            .insert_account_group_id(actor_id, authorization_api, params)
             .await
     }
 
@@ -775,16 +776,11 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
-        owned_by_id: OwnedById,
-        owner: WebOwnerSubject,
+        params: InsertWebIdParams,
     ) -> Result<(), InsertionError> {
         self.store
-            .insert_web_id(actor_id, authorization_api, owned_by_id, owner)
+            .insert_web_id(actor_id, authorization_api, params)
             .await
-    }
-
-    async fn has_account(&self, account_id: AccountId) -> Result<bool, QueryError> {
-        self.store.has_account(account_id).await
     }
 
     async fn identify_owned_by_id(

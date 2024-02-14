@@ -4,7 +4,11 @@ use authorization::{schema::WebOwnerSubject, NoAuthorization};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
-    store::{query::Filter, AccountStore, EntityQuerySorting, EntityStore},
+    store::{
+        account::{InsertAccountIdParams, InsertWebIdParams},
+        query::Filter,
+        AccountStore, EntityQuerySorting, EntityStore,
+    },
     subgraph::{
         edges::GraphResolveDepths,
         query::StructuralQuery,
@@ -45,15 +49,21 @@ async fn seed_db(
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
     transaction
-        .insert_account_id(account_id, &mut NoAuthorization, account_id)
+        .insert_account_id(
+            account_id,
+            &mut NoAuthorization,
+            InsertAccountIdParams { account_id },
+        )
         .await
         .expect("could not insert account id");
     transaction
         .insert_web_id(
             account_id,
             &mut NoAuthorization,
-            OwnedById::new(account_id.into_uuid()),
-            WebOwnerSubject::Account { id: account_id },
+            InsertWebIdParams {
+                owned_by_id: OwnedById::new(account_id.into_uuid()),
+                owner: WebOwnerSubject::Account { id: account_id },
+            },
         )
         .await
         .expect("could not create web id");

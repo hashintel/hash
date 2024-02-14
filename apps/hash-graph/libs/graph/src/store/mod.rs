@@ -2,7 +2,7 @@ pub mod crud;
 pub mod error;
 pub mod query;
 
-mod account;
+pub mod account;
 mod config;
 mod knowledge;
 mod migration;

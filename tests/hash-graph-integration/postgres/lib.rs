@@ -29,6 +29,7 @@ use graph::{
     load_env,
     ontology::EntityTypeQueryPath,
     store::{
+        account::{InsertAccountIdParams, InsertWebIdParams},
         query::{Filter, FilterExpression, Parameter},
         AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
         EntityQueryCursor, EntityQuerySorting, EntityStore, EntityTypeStore, InsertionError,
@@ -175,15 +176,21 @@ impl DatabaseTestWrapper {
 
         let account_id = AccountId::new(Uuid::new_v4());
         store
-            .insert_account_id(account_id, &mut NoAuthorization, account_id)
+            .insert_account_id(
+                account_id,
+                &mut NoAuthorization,
+                InsertAccountIdParams { account_id },
+            )
             .await
             .expect("could not insert account id");
         store
             .insert_web_id(
                 account_id,
                 &mut NoAuthorization,
-                OwnedById::new(account_id.into_uuid()),
-                WebOwnerSubject::Account { id: account_id },
+                InsertWebIdParams {
+                    owned_by_id: OwnedById::new(account_id.into_uuid()),
+                    owner: WebOwnerSubject::Account { id: account_id },
+                },
             )
             .await
             .expect("could not create web id");

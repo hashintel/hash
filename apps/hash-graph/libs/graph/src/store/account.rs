@@ -5,8 +5,41 @@ use graph_types::{
     account::{AccountGroupId, AccountId},
     owned_by_id::OwnedById,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::store::{InsertionError, QueryError};
+
+fn random_account_id() -> AccountId {
+    AccountId::new(uuid::Uuid::new_v4())
+}
+
+fn random_account_group_id() -> AccountGroupId {
+    AccountGroupId::new(uuid::Uuid::new_v4())
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct InsertAccountIdParams {
+    #[serde(default = "random_account_id")]
+    pub account_id: AccountId,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct InsertAccountGroupIdParams {
+    #[serde(default = "random_account_group_id")]
+    pub account_group_id: AccountGroupId,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct InsertWebIdParams {
+    pub owned_by_id: OwnedById,
+    pub owner: WebOwnerSubject,
+}
 
 /// Describes the API of a store implementation for accounts.
 #[async_trait]
@@ -20,7 +53,7 @@ pub trait AccountStore {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
-        account_id: AccountId,
+        params: InsertAccountIdParams,
     ) -> Result<(), InsertionError>;
 
     /// Inserts the specified [`AccountGroupId`] into the database.
@@ -32,7 +65,7 @@ pub trait AccountStore {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
-        account_group_id: AccountGroupId,
+        params: InsertAccountGroupIdParams,
     ) -> Result<(), InsertionError>;
 
     /// Inserts the specified [`OwnedById`] into the database.
@@ -44,16 +77,8 @@ pub trait AccountStore {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
-        owned_by_id: OwnedById,
-        owner: WebOwnerSubject,
+        params: InsertWebIdParams,
     ) -> Result<(), InsertionError>;
-
-    /// Returns if the [`AccountId`] exists in the database.
-    ///
-    /// # Errors
-    ///
-    /// - if querying failed
-    async fn has_account(&self, account_id: AccountId) -> Result<bool, QueryError>;
 
     /// Returns either an [`AccountId`] or an [`AccountGroupId`] for the specified [`OwnedById`].
     ///
