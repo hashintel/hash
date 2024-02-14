@@ -2,7 +2,7 @@ locals {
   type_fetcher_service_name        = "typefetcher"
   type_fetcher_prefix              = "${var.prefix}-${local.type_fetcher_service_name}"
   type_fetcher_param_prefix        = "${local.param_prefix}/${local.type_fetcher_service_name}"
-  type_fetcher_container_port      = 4444
+  type_fetcher_container_port      = 4455
   type_fetcher_container_port_name = local.type_fetcher_service_name
   type_fetcher_container_port_dns  = "localhost"
 }
