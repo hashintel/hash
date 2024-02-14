@@ -1053,9 +1053,17 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let locked_row = transaction
             .lock_entity_edition(entity_id, decision_time)
-            .await?;
-        let ClosedTemporalBound::Inclusive(transaction_time) = *locked_row.transaction_time.start();
-        let ClosedTemporalBound::Inclusive(decision_time) = *locked_row.decision_time.start();
+            .await?
+            .ok_or_else(|| {
+                Report::new(EntityDoesNotExist)
+                    .attach(StatusCode::NotFound)
+                    .attach_printable(entity_id)
+                    .change_context(UpdateError)
+            })?;
+        let ClosedTemporalBound::Inclusive(locked_transaction_time) =
+            *locked_row.transaction_time.start();
+        let ClosedTemporalBound::Inclusive(locked_decision_time) =
+            *locked_row.decision_time.start();
         let previous_entity = Read::<Entity>::read_one(
             &transaction,
             &Filter::Equal(
@@ -1065,10 +1073,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 ))),
             ),
             Some(&QueryTemporalAxes::DecisionTime {
-                pinned: PinnedTemporalAxis::new(transaction_time),
+                pinned: PinnedTemporalAxis::new(locked_transaction_time),
                 variable: VariableTemporalAxis::new(
-                    TemporalBound::Inclusive(decision_time),
-                    LimitedTemporalBound::Inclusive(decision_time),
+                    TemporalBound::Inclusive(locked_decision_time),
+                    LimitedTemporalBound::Inclusive(locked_decision_time),
                 ),
             }),
             true,
@@ -1096,21 +1104,44 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .await
             .change_context(UpdateError)?;
 
-        let temporal_versioning = match (draft, was_draft_before) {
+        let temporal_versioning = match (was_draft_before, draft) {
             (true, true) | (false, false) => {
                 // regular update
                 transaction
                     .update_temporal_metadata(locked_row, edition_id, false)
                     .await?
             }
-            #[expect(clippy::todo)]
-            (true, false) => {
-                // Create a new draft from a regular entity
-                todo!("https://linear.app/hash/issue/H-2085/allow-creating-a-draft-entity-from-a-given-entity-or-draft-entity");
-            }
             (false, true) => {
+                let draft_id = DraftId::new(Uuid::new_v4());
+                transaction
+                    .as_client()
+                    .query(
+                        "
+                        INSERT INTO entity_drafts (
+                            web_id,
+                            entity_uuid,
+                            draft_id
+                        ) VALUES ($1, $2, $3);",
+                        &[&entity_id.owned_by_id, &entity_id.entity_uuid, &draft_id],
+                    )
+                    .await
+                    .change_context(UpdateError)?;
+                entity_id.draft_id = Some(draft_id);
+                transaction
+                    .insert_temporal_metadata(entity_id, edition_id, decision_time)
+                    .await
+                    .change_context(UpdateError)?
+            }
+            (true, false) => {
                 // Publish a draft
                 entity_id.draft_id = None;
+
+                if let Some(previous_live_entity) = transaction
+                    .lock_entity_edition(entity_id, decision_time)
+                    .await?
+                {
+                    transaction.archive_entity(previous_live_entity).await?;
+                }
                 transaction
                     .update_temporal_metadata(locked_row, edition_id, true)
                     .await?
@@ -1385,17 +1416,17 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         &self,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
-    ) -> Result<LockedEntityEdition, UpdateError> {
+    ) -> Result<Option<LockedEntityEdition>, UpdateError> {
         let current_data = match (entity_id.draft_id, decision_time) {
             (Some(draft_id), Some(decision_time)) => {
                 self.as_client()
-                    .query_one(
+                    .query_opt(
                         "
                             SELECT
                                 entity_temporal_metadata.entity_edition_id,
                                 entity_temporal_metadata.transaction_time,
                                 entity_temporal_metadata.decision_time,
-                                $3::timestamptz
+                                $4::timestamptz
                             FROM entity_temporal_metadata
                             WHERE entity_temporal_metadata.web_id = $1
                               AND entity_temporal_metadata.entity_uuid = $2
@@ -1414,13 +1445,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             }
             (None, Some(decision_time)) => {
                 self.as_client()
-                    .query_one(
+                    .query_opt(
                         "
                             SELECT
                                 entity_temporal_metadata.entity_edition_id,
                                 entity_temporal_metadata.transaction_time,
                                 entity_temporal_metadata.decision_time,
-                                now()
+                                $3::timestamptz
                             FROM entity_temporal_metadata
                             WHERE entity_temporal_metadata.web_id = $1
                               AND entity_temporal_metadata.entity_uuid = $2
@@ -1438,7 +1469,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             }
             (Some(draft_id), None) => {
                 self.as_client()
-                    .query_one(
+                    .query_opt(
                         "
                         SELECT
                             entity_temporal_metadata.entity_edition_id,
@@ -1458,7 +1489,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             }
             (None, None) => {
                 self.as_client()
-                    .query_one(
+                    .query_opt(
                         "
                         SELECT
                             entity_temporal_metadata.entity_edition_id,
@@ -1478,23 +1509,22 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             }
         };
 
-        match current_data {
-            Ok(row) => Ok(LockedEntityEdition {
-                entity_id,
-                entity_edition_id: row.get(0),
-                transaction_time: row.get(1),
-                decision_time: row.get(2),
-                updated_at_decision_time: row.get(3),
-            }),
-            Err(error) => match error.code() {
-                Some(&SqlState::LOCK_NOT_AVAILABLE) => Err(Report::new(RaceConditionOnUpdate)
+        current_data
+            .map(|row| {
+                row.map(|row| LockedEntityEdition {
+                    entity_id,
+                    entity_edition_id: row.get(0),
+                    transaction_time: row.get(1),
+                    decision_time: row.get(2),
+                    updated_at_decision_time: row.get(3),
+                })
+            })
+            .map_err(|error| match error.code() {
+                Some(&SqlState::LOCK_NOT_AVAILABLE) => Report::new(RaceConditionOnUpdate)
                     .attach(entity_id)
-                    .change_context(UpdateError)),
-                _ => Err(Report::new(error)
-                    .attach(StatusCode::NotFound)
-                    .change_context(UpdateError)),
-            },
-        }
+                    .change_context(UpdateError),
+                _ => Report::new(error).change_context(UpdateError),
+            })
     }
 
     #[tracing::instrument(level = "trace", skip(self))]

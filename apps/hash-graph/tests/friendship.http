@@ -2877,3 +2877,84 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         client.assert(response.body.subgraph.roots[1].baseId === client.global.get("person_a_entity_id"), `Invalid order, expected ${client.global.get("person_a_entity_id")} but got ${response.body.subgraph.roots[1].baseId}`);
     });
 %}
+
+
+
+### Insert third Person entity
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "properties": {
+    "http://localhost:3000/@alice/types/property-type/name/": "Charles"
+  },
+  "administrator": "{{account_id}}",
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+       "kind": "setting",
+       "subjectId": "administratorFromWeb"
+    }
+  }],
+  "decisionTime": "2020-01-01T00:00:00.000Z"
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("person_c_entity_id", response.body.recordId.entityId);
+%}
+
+### Update third Person entity
+PUT http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "entityId": "{{person_c_entity_id}}",
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+  "properties": {
+    "http://localhost:3000/@alice/types/property-type/name/": "Charles 2 draft"
+  },
+  "archived": false,
+  "draft": true,
+  "decisionTime": "2020-01-02T00:00:00.000Z"
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("person_c_entity_id_draft", response.body.recordId.entityId);
+%}
+
+### Publish third Person entity
+PUT http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "entityId": "{{person_c_entity_id_draft}}",
+  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+  "properties": {
+    "http://localhost:3000/@alice/types/property-type/name/": "Charles 2"
+  },
+  "archived": false,
+  "draft": false,
+  "decisionTime": "2020-01-03T00:00:00.000Z"
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+    client.global.set("person_c_entity_id", response.body.recordId.entityId);
+%}
