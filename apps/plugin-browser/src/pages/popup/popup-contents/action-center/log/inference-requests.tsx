@@ -57,6 +57,8 @@ const InferenceRequestContainer = ({
     setCancellationRequested(true);
   };
 
+  console.log({ request });
+
   return (
     <Box
       sx={{
