@@ -1,5 +1,10 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import {
+  Entity,
+  EntityRootType,
+  extractDraftIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
@@ -78,7 +83,9 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
 
     return (
       <EntitySelector
-        includeDrafts={entity.metadata.draft}
+        includeDrafts={
+          !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)
+        }
         onSelect={onSelectForSingleLink}
         onFinishedEditing={onCancel}
         expectedEntityTypes={expectedEntityTypes}

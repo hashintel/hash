@@ -18,6 +18,7 @@ import {
   EntityId,
   EntityRootType,
   EntityTypeWithMetadata,
+  extractDraftIdFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -274,7 +275,9 @@ export const EntitySelector = ({
            * */
           typeId: entity.metadata.entityTypeId,
           title: generateEntityLabel(entitiesSubgraph!, entity),
-          draft: entity.metadata.draft,
+          draft: !!extractDraftIdFromEntityId(
+            entity.metadata.recordId.entityId,
+          ),
         })}
         inputPlaceholder={isFileType ? "No file" : "No entity"}
         inputValue={search}

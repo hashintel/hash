@@ -1,7 +1,12 @@
 import { useMutation } from "@apollo/client";
 import { AlertModal } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import {
+  Entity,
+  EntityRootType,
+  extractDraftIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import {
   getIncomingLinksForEntity,
   getOutgoingLinksForEntity,
@@ -93,7 +98,12 @@ export const DiscardDraftEntityButton: FunctionComponent<
         : getIncomingLinksForEntity(
             draftEntitySubgraph,
             draftEntity.metadata.recordId.entityId,
-          ).filter((linkEntity) => linkEntity.metadata.draft),
+          ).filter(
+            (linkEntity) =>
+              !!extractDraftIdFromEntityId(
+                linkEntity.metadata.recordId.entityId,
+              ),
+          ),
     [draftEntitySubgraph, draftEntity, isLinkEntity],
   );
 
@@ -104,7 +114,12 @@ export const DiscardDraftEntityButton: FunctionComponent<
         : getOutgoingLinksForEntity(
             draftEntitySubgraph,
             draftEntity.metadata.recordId.entityId,
-          ).filter((linkEntity) => linkEntity.metadata.draft),
+          ).filter(
+            (linkEntity) =>
+              !!extractDraftIdFromEntityId(
+                linkEntity.metadata.recordId.entityId,
+              ),
+          ),
     [draftEntitySubgraph, draftEntity, isLinkEntity],
   );
 

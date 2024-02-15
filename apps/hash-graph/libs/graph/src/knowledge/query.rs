@@ -51,6 +51,20 @@ pub enum EntityQueryPath<'p> {
     /// [`OwnedById`]: graph_types::owned_by_id::OwnedById
     /// [`EntityId`]: graph_types::knowledge::entity::EntityId
     OwnedById,
+    /// The [`DraftId`] of the [`EntityId`] belonging to the [`Entity`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["draftId"]))?;
+    /// assert_eq!(path, EntityQueryPath::DraftId);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`DraftId`]: graph_types::knowledge::entity::DraftId
+    /// [`EntityId`]: graph_types::knowledge::entity::EntityId
+    DraftId,
     /// The [`EntityEditionId`] of the [`EntityRecordId`] belonging to the [`Entity`].
     ///
     /// ```rust
@@ -120,17 +134,6 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
     /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
     CreatedAtDecisionTime,
-    /// Whether or not the [`Entity`] is archived.
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["draft"]))?;
-    /// assert_eq!(path, EntityQueryPath::Draft);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    Draft,
     /// Whether or not the [`Entity`] is in a draft state.
     ///
     /// ```rust
@@ -398,6 +401,7 @@ impl fmt::Display for EntityQueryPath<'_> {
         match self {
             Self::Uuid => fmt.write_str("uuid"),
             Self::OwnedById => fmt.write_str("ownedById"),
+            Self::DraftId => fmt.write_str("draftId"),
             Self::EditionCreatedById => fmt.write_str("editionCreatedById"),
             Self::CreatedById => fmt.write_str("createdById"),
             Self::EditionId => fmt.write_str("editionId"),
@@ -405,7 +409,6 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::CreatedAtDecisionTime => fmt.write_str("createdAtDecisionTime"),
             Self::CreatedAtTransactionTime => fmt.write_str("createdAtTransactionTime"),
-            Self::Draft => fmt.write_str("draft"),
             Self::Archived => fmt.write_str("archived"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
@@ -452,6 +455,7 @@ impl QueryPath for EntityQueryPath<'_> {
             Self::EditionId
             | Self::Uuid
             | Self::OwnedById
+            | Self::DraftId
             | Self::EditionCreatedById
             | Self::CreatedById => ParameterType::Uuid,
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
@@ -461,7 +465,7 @@ impl QueryPath for EntityQueryPath<'_> {
             Self::Properties(_) => ParameterType::Any,
             Self::Embedding => ParameterType::Vector,
             Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::I32,
-            Self::Archived | Self::Draft => ParameterType::Boolean,
+            Self::Archived => ParameterType::Boolean,
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),
         }
@@ -476,8 +480,8 @@ pub enum EntityQueryToken {
     // TODO: we want to expose `EntityId` here instead
     Uuid,
     EditionId,
+    DraftId,
     Archived,
-    Draft,
     OwnedById,
     EditionCreatedById,
     CreatedById,
@@ -502,7 +506,7 @@ pub struct EntityQueryPathVisitor {
 
 impl EntityQueryPathVisitor {
     pub const EXPECTING: &'static str =
-        "one of `uuid`, `editionId`, `archived`, `draft`, `ownedById`, `editionCreatedById`, \
+        "one of `uuid`, `editionId`, `draftId`, `archived`, `ownedById`, `editionCreatedById`, \
          `createdById`, `createdAtTransactionTime`, `createdAtDecisionTime`, `type`, \
          `properties`, `embedding`, `incomingLinks`, `outgoingLinks`, `leftEntity`, \
          `rightEntity`, `leftToRightOrder`, `rightToLeftOrder`";
@@ -534,12 +538,12 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::Uuid => EntityQueryPath::Uuid,
             EntityQueryToken::EditionId => EntityQueryPath::EditionId,
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
+            EntityQueryToken::DraftId => EntityQueryPath::DraftId,
             EntityQueryToken::EditionCreatedById => EntityQueryPath::EditionCreatedById,
             EntityQueryToken::CreatedById => EntityQueryPath::CreatedById,
             EntityQueryToken::CreatedAtTransactionTime => EntityQueryPath::CreatedAtTransactionTime,
             EntityQueryToken::CreatedAtDecisionTime => EntityQueryPath::CreatedAtDecisionTime,
             EntityQueryToken::Archived => EntityQueryPath::Archived,
-            EntityQueryToken::Draft => EntityQueryPath::Draft,
             EntityQueryToken::Embedding => EntityQueryPath::Embedding,
             EntityQueryToken::Type => EntityQueryPath::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
@@ -612,7 +616,6 @@ impl<'de: 'p, 'p> Deserialize<'de> for EntityQueryPath<'p> {
 #[serde(rename_all = "camelCase")]
 pub enum EntityQuerySortingToken {
     Archived,
-    Draft,
     Properties,
     RecordCreatedAtTransactionTime,
     RecordCreatedAtDecisionTime,
@@ -628,7 +631,7 @@ pub struct EntityQuerySortingVisitor {
 
 impl EntityQuerySortingVisitor {
     pub const EXPECTING: &'static str =
-        "one of `archived`, `draft`, `properties`, `recordCreatedAtTransactionTime`, \
+        "one of `archived`, `properties`, `recordCreatedAtTransactionTime`, \
          `recordCreatedAtDecisionTime`, `createdAtTransactionTime`, `createdAtDecisionTime`";
 
     #[must_use]
@@ -655,7 +658,6 @@ impl<'de> Visitor<'de> for EntityQuerySortingVisitor {
 
         Ok(match token {
             EntityQuerySortingToken::Archived => EntityQueryPath::Archived,
-            EntityQuerySortingToken::Draft => EntityQueryPath::Draft,
             EntityQuerySortingToken::RecordCreatedAtTransactionTime => {
                 EntityQueryPath::TransactionTime
             }
@@ -701,12 +703,12 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
         match self {
             EntityQueryPath::Uuid => EntityQueryPath::Uuid,
             EntityQueryPath::OwnedById => EntityQueryPath::OwnedById,
+            EntityQueryPath::DraftId => EntityQueryPath::DraftId,
             EntityQueryPath::EditionId => EntityQueryPath::EditionId,
             EntityQueryPath::DecisionTime => EntityQueryPath::DecisionTime,
             EntityQueryPath::TransactionTime => EntityQueryPath::TransactionTime,
             EntityQueryPath::CreatedAtTransactionTime => EntityQueryPath::CreatedAtTransactionTime,
             EntityQueryPath::CreatedAtDecisionTime => EntityQueryPath::CreatedAtDecisionTime,
-            EntityQueryPath::Draft => EntityQueryPath::Draft,
             EntityQueryPath::Archived => EntityQueryPath::Archived,
             EntityQueryPath::EditionCreatedById => EntityQueryPath::EditionCreatedById,
             EntityQueryPath::CreatedById => EntityQueryPath::CreatedById,

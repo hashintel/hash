@@ -98,7 +98,6 @@ export const useFetchBlockSubgraph = (): ((
               },
             },
             archived: false,
-            draft: false,
             provenance: {
               createdById: "placeholder-account" as CreatedById,
               createdAtTransactionTime: now as CreatedAtTransactionTime,

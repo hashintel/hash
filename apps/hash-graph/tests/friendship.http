@@ -2125,6 +2125,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
+    client.global.set("person_b_entity_id", response.body.recordId.entityId);
 %}
 
 ### publish Link entity

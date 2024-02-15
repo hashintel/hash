@@ -1,7 +1,7 @@
 use graph_types::{
     account::{CreatedById, EditionCreatedById},
     knowledge::{
-        entity::{EntityEditionId, EntityProperties, EntityUuid},
+        entity::{DraftId, EntityEditionId, EntityProperties, EntityUuid},
         link::LinkOrder,
     },
     ontology::OntologyTypeVersion,
@@ -22,6 +22,14 @@ pub struct EntityIdRow {
 }
 
 #[derive(Debug, ToSql)]
+#[postgres(name = "entity_drafts")]
+pub struct EntityDraftRow {
+    pub web_id: OwnedById,
+    pub entity_uuid: EntityUuid,
+    pub draft_id: DraftId,
+}
+
+#[derive(Debug, ToSql)]
 #[postgres(name = "entity_editions_tmp")]
 pub struct EntityEditionRow {
     pub entity_edition_id: EntityEditionId,
@@ -30,7 +38,6 @@ pub struct EntityEditionRow {
     pub right_to_left_order: Option<LinkOrder>,
     pub edition_created_by_id: EditionCreatedById,
     pub archived: bool,
-    pub draft: bool,
     pub entity_type_base_url: String,
     pub entity_type_version: OntologyTypeVersion,
 }
@@ -40,6 +47,7 @@ pub struct EntityEditionRow {
 pub struct EntityTemporalMetadataRow {
     pub web_id: OwnedById,
     pub entity_uuid: EntityUuid,
+    pub draft_id: Option<DraftId>,
     pub entity_edition_id: EntityEditionId,
     pub decision_time: LeftClosedTemporalInterval<DecisionTime>,
     pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,

@@ -11,14 +11,13 @@ use crate::{
         postgres::query::{
             expression::GroupByExpression,
             table::{
-                DataTypeEmbeddings, EntityEditions, EntityEmbeddings, EntityTemporalMetadata,
-                EntityTypeEmbeddings, OntologyIds, OntologyTemporalMetadata,
-                PropertyTypeEmbeddings,
+                DataTypeEmbeddings, EntityEmbeddings, EntityTemporalMetadata, EntityTypeEmbeddings,
+                OntologyIds, OntologyTemporalMetadata, PropertyTypeEmbeddings,
             },
-            Alias, AliasedColumn, AliasedTable, Column, Condition, Constant, Distinctness,
-            EqualityOperator, Expression, Function, JoinExpression, OrderByExpression,
-            PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table, Transpile,
-            WhereExpression, WindowStatement, WithExpression,
+            Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
+            Expression, Function, JoinExpression, OrderByExpression, PostgresQueryPath,
+            PostgresRecord, SelectExpression, SelectStatement, Table, Transpile, WhereExpression,
+            WindowStatement, WithExpression,
         },
         query::{Filter, FilterExpression, Parameter, ParameterList, ParameterType},
         NullOrdering, Ordering, QueryRecord,
@@ -30,6 +29,11 @@ use crate::{
 // - 'c relates to the lifetime of the `SelectCompiler` (most constrained by the SelectStatement)
 // - 'p relates to the lifetime of the parameters, should be the longest living as they have to
 //   outlive the transpiling process
+
+pub struct AppliedFilters {
+    draft: bool,
+    temporal_axes: bool,
+}
 
 pub struct TableInfo {
     tables: HashSet<AliasedTable>,
@@ -56,6 +60,7 @@ pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
     statement: SelectStatement,
     artifacts: CompilerArtifacts<'p>,
     temporal_axes: Option<&'p QueryTemporalAxes>,
+    include_drafts: bool,
     table_hooks: HashMap<Table, fn(&mut Self, Alias)>,
     selections: HashMap<&'p T::QueryPath<'q>, PathSelection>,
 }
@@ -66,14 +71,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         let mut table_hooks = HashMap::<_, fn(&mut Self, Alias)>::new();
 
         if temporal_axes.is_some() {
-            table_hooks.insert(
-                Table::EntityTemporalMetadata,
-                Self::pin_entity_temporal_metadata_table,
-            );
             table_hooks.insert(Table::OntologyTemporalMetadata, Self::pin_ontology_table);
         }
-        if !include_drafts {
-            table_hooks.insert(Table::EntityEditions, Self::filter_drafts);
+        if temporal_axes.is_some() || !include_drafts {
+            table_hooks.insert(
+                Table::EntityTemporalMetadata,
+                Self::filter_temporal_metadata,
+            );
         }
 
         Self {
@@ -105,6 +109,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             },
             temporal_axes,
             table_hooks,
+            include_drafts,
             selections: HashMap::new(),
         }
     }
@@ -207,32 +212,26 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
     }
 
-    fn filter_drafts(&mut self, alias: Alias) {
+    fn filter_temporal_metadata(&mut self, alias: Alias) {
         if self
             .artifacts
             .table_info
             .tables
-            .insert(Table::EntityEditions.aliased(alias))
+            .insert(Table::EntityTemporalMetadata.aliased(alias))
         {
-            self.statement
-                .where_expression
-                .add_condition(Condition::Equal(
-                    Some(Expression::Column(
-                        Column::EntityEditions(EntityEditions::Draft).aliased(alias),
-                    )),
-                    Some(Expression::Constant(Constant::Boolean(false))),
-                ));
-        }
-    }
+            if !self.include_drafts {
+                self.statement
+                    .where_expression
+                    .add_condition(Condition::Equal(
+                        Some(Expression::Column(
+                            Column::EntityTemporalMetadata(EntityTemporalMetadata::DraftId)
+                                .aliased(alias),
+                        )),
+                        None,
+                    ));
+            }
 
-    fn pin_entity_temporal_metadata_table(&mut self, alias: Alias) {
-        if let Some(temporal_axes) = self.temporal_axes {
-            if self
-                .artifacts
-                .table_info
-                .tables
-                .insert(Table::EntityTemporalMetadata.aliased(alias))
-            {
+            if let Some(temporal_axes) = self.temporal_axes {
                 let pinned_axis = temporal_axes.pinned_time_axis();
                 let variable_axis = temporal_axes.variable_time_axis();
                 let pinned_time_index = self.time_index(temporal_axes, pinned_axis);
