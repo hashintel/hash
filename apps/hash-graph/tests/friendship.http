@@ -1817,8 +1817,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison 3"
   },
   "archived": false,
-  "draft": false,
-  "decisionTime": "2024-01-10T15:41:40Z"
+  "draft": false
 }
 
 > {%
