@@ -93,6 +93,8 @@ export const handleInferEntitiesRequest = async ({
       },
     });
 
+    console.log("Returning results from workflow", status);
+
     sendResponse(
       status,
       status.code === StatusCode.Cancelled ? "user-cancelled" : "complete",
