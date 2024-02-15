@@ -57,7 +57,7 @@ const InferenceRequestContainer = ({
     setCancellationRequested(true);
   };
 
-  console.log({ request });
+  console.log(JSON.stringify(request, undefined, 2));
 
   return (
     <Box
