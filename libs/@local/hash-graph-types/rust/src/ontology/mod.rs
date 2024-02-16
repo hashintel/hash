@@ -19,9 +19,7 @@ use type_system::{
 };
 
 pub use self::{
-    data_type::{
-        DataTypeEmbedding, DataTypeMetadata, DataTypeWithMetadata, PartialDataTypeMetadata,
-    },
+    data_type::{DataTypeMetadata, DataTypeWithMetadata, PartialDataTypeMetadata},
     entity_type::{
         EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, PartialEntityTypeMetadata,
     },
@@ -133,6 +131,7 @@ pub struct OntologyEditionProvenanceMetadata {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
 pub enum OntologyTypeClassificationMetadata {
     #[serde(rename_all = "camelCase")]

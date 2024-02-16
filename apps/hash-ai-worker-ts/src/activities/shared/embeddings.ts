@@ -1,5 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { PropertyType } from "@local/hash-graph-client";
+import type { Embedding, PropertyType } from "@local/hash-graph-client";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
@@ -163,9 +163,7 @@ export const createPropertyTypeEmbeddings = async (params: {
 export const createDataTypeEmbeddings = async (params: {
   dataType: DataTypeWithMetadata;
 }): Promise<{
-  embeddings: {
-    embedding: number[];
-  }[];
+  embedding: Embedding;
   usage: Usage;
 }> => {
   // We want to create embeddings for:
@@ -177,11 +175,12 @@ export const createDataTypeEmbeddings = async (params: {
   const { embeddings, usage } = await createEmbeddings({
     input: embeddingInputs,
   });
+  if (embeddings.length !== 1) {
+    throw new Error("Expected exactly one embedding");
+  }
 
   return {
     usage,
-    embeddings: embeddings.map((embedding) => ({
-      embedding,
-    })),
+    embedding: embeddings[0]!,
   };
 };

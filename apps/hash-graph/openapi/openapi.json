@@ -374,7 +374,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ArchiveDataTypeRequest"
+                "$ref": "#/components/schemas/ArchiveDataTypeParams"
               }
             }
           },
@@ -428,7 +428,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateDataTypeEmbeddingsRequest"
+                "$ref": "#/components/schemas/UpdateDataTypeEmbeddingParams"
               }
             }
           },
@@ -617,7 +617,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UnarchiveDataTypeRequest"
+                "$ref": "#/components/schemas/UnarchiveDataTypeParams"
               }
             }
           },
@@ -2602,14 +2602,14 @@
         "type": "string",
         "format": "uuid"
       },
-      "ArchiveDataTypeRequest": {
+      "ArchiveDataTypeParams": {
         "type": "object",
         "required": [
-          "typeToArchive"
+          "dataTypeId"
         ],
         "properties": {
-          "typeToArchive": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+          "dataTypeId": {
+            "$ref": "#/components/schemas/VersionedUrl"
           }
         },
         "additionalProperties": false
@@ -2817,21 +2817,6 @@
       "CreatedById": {
         "type": "string",
         "format": "uuid"
-      },
-      "DataTypeEmbedding": {
-        "type": "object",
-        "required": [
-          "dataTypeId",
-          "embedding"
-        ],
-        "properties": {
-          "dataTypeId": {
-            "$ref": "#/components/schemas/VersionedUrl"
-          },
-          "embedding": {
-            "$ref": "#/components/schemas/Embedding"
-          }
-        }
       },
       "DataTypeMetadata": {
         "oneOf": [
@@ -5896,14 +5881,14 @@
           "transactionTime"
         ]
       },
-      "UnarchiveDataTypeRequest": {
+      "UnarchiveDataTypeParams": {
         "type": "object",
         "required": [
-          "typeToUnarchive"
+          "dataTypeId"
         ],
         "properties": {
-          "typeToUnarchive": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+          "dataTypeId": {
+            "$ref": "#/components/schemas/VersionedUrl"
           }
         },
         "additionalProperties": false
@@ -5957,19 +5942,20 @@
           }
         }
       },
-      "UpdateDataTypeEmbeddingsRequest": {
+      "UpdateDataTypeEmbeddingParams": {
         "type": "object",
         "required": [
-          "embeddings",
+          "dataTypeId",
+          "embedding",
           "updatedAtTransactionTime",
           "reset"
         ],
         "properties": {
-          "embeddings": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DataTypeEmbedding"
-            }
+          "dataTypeId": {
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+          },
+          "embedding": {
+            "$ref": "#/components/schemas/Embedding"
           },
           "reset": {
             "type": "boolean"
@@ -5977,7 +5963,8 @@
           "updatedAtTransactionTime": {
             "$ref": "#/components/schemas/Timestamp"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UpdateDataTypeRequest": {
         "type": "object",

@@ -11,16 +11,17 @@ use authorization::{
 use graph::{
     load_env,
     store::{
-        AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
-        EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
+        ontology::{CreateDataTypeParams, UpdateDataTypesParams},
+        AsClient, BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo,
+        DatabaseType, EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore,
+        StorePool,
     },
     Environment,
 };
 use graph_types::{
     account::AccountId,
     ontology::{
-        OntologyTypeClassificationMetadata, PartialDataTypeMetadata, PartialEntityTypeMetadata,
-        PartialPropertyTypeMetadata,
+        OntologyTypeClassificationMetadata, PartialEntityTypeMetadata, PartialPropertyTypeMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -226,17 +227,17 @@ pub async fn seed<D, P, E, C>(
                 account_id,
                 &mut NoAuthorization,
                 None,
-                data_type.clone(),
-                PartialDataTypeMetadata {
-                    record_id: data_type.id().clone().into(),
+                CreateDataTypeParams {
+                    schema: data_type.clone(),
                     classification: OntologyTypeClassificationMetadata::Owned {
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
+                    relationships: [DataTypeRelationAndSubject::Viewer {
+                        subject: DataTypeViewerSubject::Public,
+                        level: 0,
+                    }],
+                    conflict_behavior: ConflictBehavior::Fail,
                 },
-                [DataTypeRelationAndSubject::Viewer {
-                    subject: DataTypeViewerSubject::Public,
-                    level: 0,
-                }],
             )
             .await
         {
@@ -248,11 +249,13 @@ pub async fn seed<D, P, E, C>(
                             account_id,
                             &mut NoAuthorization,
                             None,
-                            data_type,
-                            [DataTypeRelationAndSubject::Viewer {
-                                subject: DataTypeViewerSubject::Public,
-                                level: 0,
-                            }],
+                            UpdateDataTypesParams {
+                                schema: data_type,
+                                relationships: [DataTypeRelationAndSubject::Viewer {
+                                    subject: DataTypeViewerSubject::Public,
+                                    level: 0,
+                                }],
+                            },
                         )
                         .await
                         .expect("failed to update data type");

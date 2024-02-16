@@ -30,6 +30,7 @@ use graph::{
     ontology::EntityTypeQueryPath,
     store::{
         account::{InsertAccountIdParams, InsertWebIdParams},
+        ontology::{CreateDataTypeParams, GetDataTypesParams, UpdateDataTypesParams},
         query::{Filter, FilterExpression, Parameter},
         AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
         EntityQueryCursor, EntityQuerySorting, EntityStore, EntityTypeStore, InsertionError,
@@ -56,9 +57,8 @@ use graph_types::{
     },
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
-        OntologyTypeClassificationMetadata, OntologyTypeVersion, PartialDataTypeMetadata,
-        PartialEntityTypeMetadata, PartialPropertyTypeMetadata, PropertyTypeMetadata,
-        PropertyTypeWithMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeVersion, PartialEntityTypeMetadata,
+        PartialPropertyTypeMetadata, PropertyTypeMetadata, PropertyTypeWithMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -195,27 +195,23 @@ impl DatabaseTestWrapper {
             .await
             .expect("could not create web id");
 
-        let data_types_iter = propertys.into_iter().map(|data_type_str| {
-            let data_type: DataType = serde_json::from_str(data_type_str)
-                .expect("could not parse data type representation");
-
-            let metadata = PartialDataTypeMetadata {
-                record_id: data_type.id().clone().into(),
-                classification: OntologyTypeClassificationMetadata::Owned {
-                    owned_by_id: OwnedById::new(account_id.into_uuid()),
-                },
-            };
-
-            (data_type, metadata)
-        });
         store
             .create_data_types(
                 account_id,
                 &mut NoAuthorization,
                 None,
-                data_types_iter,
-                ConflictBehavior::Skip,
-                data_type_relationships(),
+                propertys.into_iter().map(|data_type_str| {
+                    let schema: DataType = serde_json::from_str(data_type_str)
+                        .expect("could not parse data type representation");
+                    CreateDataTypeParams {
+                        schema,
+                        classification: OntologyTypeClassificationMetadata::Owned {
+                            owned_by_id: OwnedById::new(account_id.into_uuid()),
+                        },
+                        relationships: data_type_relationships(),
+                        conflict_behavior: ConflictBehavior::Skip,
+                    }
+                }),
             )
             .await?;
 
@@ -292,21 +288,19 @@ impl DatabaseApi<'_> {
         &mut self,
         data_type: DataType,
     ) -> Result<DataTypeMetadata, InsertionError> {
-        let metadata = PartialDataTypeMetadata {
-            record_id: data_type.id().clone().into(),
-            classification: OntologyTypeClassificationMetadata::Owned {
-                owned_by_id: OwnedById::new(self.account_id.into_uuid()),
-            },
-        };
-
         self.store
             .create_data_type(
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                data_type,
-                metadata,
-                data_type_relationships(),
+                CreateDataTypeParams {
+                    schema: data_type,
+                    classification: OntologyTypeClassificationMetadata::Owned {
+                        owned_by_id: OwnedById::new(self.account_id.into_uuid()),
+                    },
+                    relationships: data_type_relationships(),
+                    conflict_behavior: ConflictBehavior::Fail,
+                },
             )
             .await
     }
@@ -315,21 +309,19 @@ impl DatabaseApi<'_> {
         &mut self,
         data_type: DataType,
     ) -> Result<DataTypeMetadata, InsertionError> {
-        let metadata = PartialDataTypeMetadata {
-            record_id: data_type.id().clone().into(),
-            classification: OntologyTypeClassificationMetadata::External {
-                fetched_at: OffsetDateTime::now_utc(),
-            },
-        };
-
         self.store
             .create_data_type(
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                data_type,
-                metadata,
-                data_type_relationships(),
+                CreateDataTypeParams {
+                    schema: data_type,
+                    classification: OntologyTypeClassificationMetadata::External {
+                        fetched_at: OffsetDateTime::now_utc(),
+                    },
+                    relationships: data_type_relationships(),
+                    conflict_behavior: ConflictBehavior::Fail,
+                },
             )
             .await
     }
@@ -343,20 +335,22 @@ impl DatabaseApi<'_> {
             .get_data_type(
                 self.account_id,
                 &NoAuthorization,
-                &StructuralQuery {
-                    filter: Filter::for_versioned_url(url),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
+                GetDataTypesParams {
+                    query: StructuralQuery {
+                        filter: Filter::for_versioned_url(url),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
+                        },
+                        include_drafts: false,
                     },
-                    include_drafts: false,
+                    limit: None,
+                    after: None,
                 },
-                None,
-                None,
             )
             .await?
             .vertices
@@ -367,15 +361,17 @@ impl DatabaseApi<'_> {
 
     pub async fn update_data_type(
         &mut self,
-        data_type: DataType,
+        schema: DataType,
     ) -> Result<DataTypeMetadata, UpdateError> {
         self.store
             .update_data_type(
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                data_type,
-                data_type_relationships(),
+                UpdateDataTypesParams {
+                    schema,
+                    relationships: data_type_relationships(),
+                },
             )
             .await
     }

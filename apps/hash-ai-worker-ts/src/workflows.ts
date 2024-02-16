@@ -1,4 +1,8 @@
-import type { EntityQueryCursor, Filter } from "@local/hash-graph-client";
+import type {
+  Embedding,
+  EntityQueryCursor,
+  Filter,
+} from "@local/hash-graph-client";
 import type {
   InferEntitiesCallerParams,
   InferEntitiesReturn,
@@ -143,17 +147,14 @@ export const updateDataTypeEmbeddings = async (
         dataType,
       });
 
-    if (generatedEmbeddings.embeddings.length > 0) {
-      await graphActivities.updateDataTypeEmbeddings({
-        authentication: params.authentication,
-        embeddings: generatedEmbeddings.embeddings.map((embedding) => ({
-          ...embedding,
-          dataTypeId: dataType.schema.$id,
-        })),
-        updatedAtTransactionTime:
-          dataType.metadata.temporalVersioning.transactionTime.start.limit,
-      });
-    }
+    await graphActivities.updateDataTypeEmbeddings({
+      authentication: params.authentication,
+      embedding: generatedEmbeddings.embedding,
+      dataTypeId: dataType.schema.$id,
+      updatedAtTransactionTime:
+        dataType.metadata.temporalVersioning.transactionTime.start.limit,
+      reset: true,
+    });
 
     usage.prompt_tokens += generatedEmbeddings.usage.prompt_tokens;
     usage.total_tokens += generatedEmbeddings.usage.total_tokens;

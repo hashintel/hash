@@ -1,5 +1,4 @@
 import type {
-  DataTypeEmbedding,
   DataTypeStructuralQuery,
   EntityEmbedding,
   EntityQueryCursor,
@@ -10,6 +9,7 @@ import type {
   PropertyTypeEmbedding,
   PropertyTypeStructuralQuery,
 } from "@local/hash-graph-client";
+import { UpdateDataTypeEmbeddingParams } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -130,17 +130,18 @@ export const createGraphActivities = ({
       }));
   },
 
-  async updateDataTypeEmbeddings(params: {
-    authentication: {
-      actorId: AccountId;
-    };
-    embeddings: DataTypeEmbedding[];
-    updatedAtTransactionTime: Timestamp;
-  }): Promise<void> {
+  async updateDataTypeEmbeddings(
+    params: {
+      authentication: {
+        actorId: AccountId;
+      };
+    } & UpdateDataTypeEmbeddingParams,
+  ): Promise<void> {
     await graphApiClient
       .updateDataTypeEmbeddings(params.authentication.actorId, {
-        embeddings: params.embeddings,
-        reset: true,
+        dataTypeId: params.dataTypeId,
+        embedding: params.embedding,
+        reset: params.reset,
         updatedAtTransactionTime: params.updatedAtTransactionTime,
       })
       .then((response) => response.data);

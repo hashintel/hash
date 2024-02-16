@@ -1,4 +1,4 @@
-import type { GraphApi } from "@local/hash-graph-client";
+import type { Embedding, GraphApi } from "@local/hash-graph-client";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
@@ -60,7 +60,7 @@ export const createAiActivities = ({
   async createDataTypeEmbeddingsActivity(params: {
     dataType: DataTypeWithMetadata;
   }): Promise<{
-    embeddings: { embedding: number[] }[];
+    embedding: Embedding;
     usage: CreateEmbeddingResponse.Usage;
   }> {
     return createDataTypeEmbeddings({

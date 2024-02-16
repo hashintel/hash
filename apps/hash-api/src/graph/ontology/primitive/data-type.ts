@@ -242,7 +242,7 @@ export const archiveDataType: ImpureGraphFunction<
   const { dataTypeId } = params;
 
   const { data: temporalMetadata } = await graphApi.archiveDataType(actorId, {
-    typeToArchive: dataTypeId,
+    dataTypeId,
   });
 
   return temporalMetadata;
@@ -263,7 +263,7 @@ export const unarchiveDataType: ImpureGraphFunction<
   const { dataTypeId } = params;
 
   const { data: temporalMetadata } = await graphApi.unarchiveDataType(actorId, {
-    typeToUnarchive: dataTypeId,
+    dataTypeId,
   });
 
   return temporalMetadata;
