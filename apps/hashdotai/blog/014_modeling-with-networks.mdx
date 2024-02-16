@@ -3,7 +3,7 @@ title: "Modeling with Networks"
 subtitle: "New open-source network modeling library"
 date: "2021-04-27"
 cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/5a5a2e18-ff85-460f-32bd-74c6f4a71b00/public
-categories: 
+categories:
   - "Simulation"
 ---
 
@@ -11,7 +11,7 @@ Networks are a fundamental pattern within simulation modeling. Many important sy
 
 - Transportation systems such as bus and subway lines
 - Digital systems such as servers and distributed computing systems
-- Social systems such as social networks and organizational charts 
+- Social systems such as social networks and organizational charts
 
 The [Networks Library](https://hash.ai/@hash/networks) allows you to easily model networks. Similar to HASH’s existing neighbor system, it allows agents to view their network neighbors' properties. Network neighbors are specified with a list of agent ids, and by running the basic network behavior `@hash/networks/get_neighbors.js`, agents will be able to see the properties of their network neighbors, populated in their `network_neighbors` field.
 
@@ -63,17 +63,17 @@ Each new node is attached to "m" other nodes initially. If we run an experiment 
 
 You can run your own experiments and continue to [explore the model here](https://hash.ai/@hash/network-opinion-spread). What happens if you modify the way that that agents change their opinions in **`opinion_spread.js`**?
 
-* * *
+---
 
 Performing a classic network simulation exploration like this one becomes very easy with HASH and the Networks Library. Let's take a look at what else you can do!
 
 ## Information Links
 
-Networks can also be used to link a “manager” agent to many other agents. For instance, if I have a simulation with one agent that determines the weather for the day, I can link it to all my other agents and allow them to easily access this weather property. 
+Networks can also be used to link a “manager” agent to many other agents. For instance, if I have a simulation with one agent that determines the weather for the day, I can link it to all my other agents and allow them to easily access this weather property.
 
 Agents could use the following definitions:
 
-```
+```javascript
 // Weather manager
 {
     "agent_id": "weather_agent",
@@ -92,7 +92,7 @@ And then be able to access the “weather” like so:
 // check_weather.js
 const behavior = (state, context) => {
     const weather_agent = state.network_neighbors[0];
-    
+
     const weather = weather_agent.weather;
 }
 ```

@@ -3,7 +3,7 @@ title: "Voting with HASH"
 subtitle: "Simulating elections in-silico"
 date: "2020-10-29"
 cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/1a080be9-c7ef-41e1-f017-f01d8bf13a00/public
-categories: 
+categories:
   - "Simulation"
 ---
 
@@ -84,7 +84,7 @@ The voter success graph in the Plots view allows you to see how many people succ
 
 In the `globals.json` file, we can adjust the `early_pct_closed` and `election_day_pct_closed` values to understand how closures of polling places can affect the total number of ballots that are cast.
 
-```
+```javascript
 {
   "durham_county_population": 320322,
   "minutes_to_vote": 5,
@@ -108,7 +108,71 @@ We've defined two experiments that will run the simulation with a range of value
 
 The relationship between poll closures and votes cast is inverse linear in the output of our model. This is a result of both a very real limit on throughput at polling places, and because of the dissuading effects of longer travel times and wait times, both of which inherently increase when there are fewer polling places available. The impact of closures on average voter travel is exponential, and in a larger county, this would have a larger impact on the number of votes cast.
 
-<table><tbody><tr><td><strong>Percent Polls Closed</strong></td><td><strong>Votes Cast</strong></td><td><strong>Avg Early Voter Travel</strong></td></tr><tr><td>0%</td><td>160,918</td><td>2.2 miles</td></tr><tr><td>10%</td><td>159,934</td><td>2.4 miles</td></tr><tr><td>20%</td><td>149,358</td><td>2.8 miles</td></tr><tr><td>30%</td><td>146,751</td><td>3.0 miles</td></tr><tr><td>40%</td><td>129,737</td><td>3.4 miles</td></tr><tr><td>50%</td><td>119,020</td><td>3.8 miles</td></tr><tr><td>60%</td><td>109,020</td><td>4.6 miles</td></tr><tr><td>70%</td><td>87,410</td><td>5.5 miles</td></tr><tr><td>80%</td><td>76,063</td><td>6.8 miles</td></tr><tr><td>90%</td><td>58,010</td><td>7.6 miles</td></tr></tbody></table>
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <strong>Percent Polls Closed</strong>
+      </td>
+      <td>
+        <strong>Votes Cast</strong>
+      </td>
+      <td>
+        <strong>Avg Early Voter Travel</strong>
+      </td>
+    </tr>
+    <tr>
+      <td>0%</td>
+      <td>160,918</td>
+      <td>2.2 miles</td>
+    </tr>
+    <tr>
+      <td>10%</td>
+      <td>159,934</td>
+      <td>2.4 miles</td>
+    </tr>
+    <tr>
+      <td>20%</td>
+      <td>149,358</td>
+      <td>2.8 miles</td>
+    </tr>
+    <tr>
+      <td>30%</td>
+      <td>146,751</td>
+      <td>3.0 miles</td>
+    </tr>
+    <tr>
+      <td>40%</td>
+      <td>129,737</td>
+      <td>3.4 miles</td>
+    </tr>
+    <tr>
+      <td>50%</td>
+      <td>119,020</td>
+      <td>3.8 miles</td>
+    </tr>
+    <tr>
+      <td>60%</td>
+      <td>109,020</td>
+      <td>4.6 miles</td>
+    </tr>
+    <tr>
+      <td>70%</td>
+      <td>87,410</td>
+      <td>5.5 miles</td>
+    </tr>
+    <tr>
+      <td>80%</td>
+      <td>76,063</td>
+      <td>6.8 miles</td>
+    </tr>
+    <tr>
+      <td>90%</td>
+      <td>58,010</td>
+      <td>7.6 miles</td>
+    </tr>
+  </tbody>
+</table>
 
 Results from an early voting poll closures experiment run
 

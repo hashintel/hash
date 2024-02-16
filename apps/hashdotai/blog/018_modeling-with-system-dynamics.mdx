@@ -3,7 +3,7 @@ title: "Modeling with System Dynamics"
 subtitle: "Simple simulations of complex systems"
 date: "2021-05-18"
 cover: https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/09a23d79-72aa-4b29-4662-161d1a7fc100/public
-categories: 
+categories:
   - "Simulation"
 ---
 
@@ -52,13 +52,13 @@ The third graph shows how expected demand approaches the actual demand for widge
 
 To make our simulation more interesting, the last thing we’ll do is add a behavior to change the demand on a monthly basis. We’ll use a behavior called `change_demand.js` to do that, and add it into the behavior array.
 
-```
+```javascript
 [
   "@hash/age/age.rs",
   "change_demand.js",
   "@hash/sd/calc_rates.js",
-  "@hash/sd/step.js"
-]
+  "@hash/sd/step.js",
+];
 ```
 
 Now we’ll be able to test our model, and see how well it responds to changes in demand.
@@ -73,6 +73,6 @@ Since the delays in our model are controlled by the `hiring_rate` and `firing_ra
 
 ![](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/4937df18-691c-4638-7606-ab4010866c00/public)
 
-* * *
+---
 
 In a future post, we'll show you how we can use HASH's optimization wizard to not just explore our model, but come to concrete conclusions about the ideal configuration of the system, producing quantitative answers.
