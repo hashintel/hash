@@ -152,7 +152,7 @@ pub struct EntityProvenanceMetadata {
 pub struct EntityMetadata {
     pub record_id: EntityRecordId,
     pub temporal_versioning: EntityTemporalMetadata,
-    #[cfg_attr(feature = "utoipa", schema(value_type = String))]
+    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
     pub entity_type_id: VersionedUrl,
     pub provenance: EntityProvenanceMetadata,
     pub archived: bool,

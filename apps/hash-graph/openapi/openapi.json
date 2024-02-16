@@ -1025,7 +1025,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ValidateEntityRequest"
+                "$ref": "#/components/schemas/ValidateEntityParams"
               }
             }
           },
@@ -2609,7 +2609,7 @@
         ],
         "properties": {
           "dataTypeId": {
-            "$ref": "#/components/schemas/VersionedUrl"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         },
         "additionalProperties": false
@@ -2700,13 +2700,20 @@
       "CreateEntityRequest": {
         "type": "object",
         "required": [
-          "properties",
-          "entityTypeId",
           "ownedById",
+          "entityTypeId",
+          "properties",
           "draft",
           "relationships"
         ],
         "properties": {
+          "decisionTime": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ]
+          },
           "draft": {
             "type": "boolean"
           },
@@ -2739,7 +2746,8 @@
               "$ref": "#/components/schemas/EntityRelationAndSubject"
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreateEntityTypeRequest": {
         "type": "object",
@@ -3315,7 +3323,7 @@
             "type": "boolean"
           },
           "entityTypeId": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           },
           "provenance": {
             "$ref": "#/components/schemas/EntityProvenanceMetadata"
@@ -4088,6 +4096,16 @@
         "type": "string",
         "format": "uuid"
       },
+      "EntityValidationType": {
+        "oneOf": [
+          {
+            "$ref": "./models/entity_type.json"
+          },
+          {
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+          }
+        ]
+      },
       "EntityVertexId": {
         "type": "object",
         "required": [
@@ -4834,7 +4852,7 @@
             "$ref": "#/components/schemas/DataTypeRelationAndSubject"
           },
           "resource": {
-            "$ref": "#/components/schemas/VersionedUrl"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -4872,7 +4890,7 @@
             "$ref": "#/components/schemas/EntityTypeRelationAndSubject"
           },
           "resource": {
-            "$ref": "#/components/schemas/VersionedUrl"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -4891,7 +4909,7 @@
             "$ref": "#/components/schemas/PropertyTypeRelationAndSubject"
           },
           "resource": {
-            "$ref": "#/components/schemas/VersionedUrl"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -5888,7 +5906,7 @@
         ],
         "properties": {
           "dataTypeId": {
-            "$ref": "#/components/schemas/VersionedUrl"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         },
         "additionalProperties": false
@@ -6120,34 +6138,26 @@
         },
         "additionalProperties": false
       },
-      "ValidateEntityRequest": {
+      "ValidateEntityParams": {
         "type": "object",
         "required": [
-          "entityTypeId",
+          "entityType",
           "properties",
-          "operations",
-          "draft"
+          "profile"
         ],
         "properties": {
-          "draft": {
-            "type": "boolean"
-          },
-          "entityTypeId": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+          "entityType": {
+            "$ref": "#/components/schemas/EntityValidationType"
           },
           "linkData": {
             "allOf": [
               {
                 "$ref": "#/components/schemas/LinkData"
               }
-            ],
-            "nullable": true
+            ]
           },
-          "operations": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ValidationOperation"
-            }
+          "profile": {
+            "$ref": "#/components/schemas/ValidationProfile"
           },
           "properties": {
             "$ref": "#/components/schemas/EntityProperties"
@@ -6155,10 +6165,11 @@
         },
         "additionalProperties": false
       },
-      "ValidationOperation": {
+      "ValidationProfile": {
         "type": "string",
         "enum": [
-          "all"
+          "full",
+          "draft"
         ]
       },
       "Vertex": {

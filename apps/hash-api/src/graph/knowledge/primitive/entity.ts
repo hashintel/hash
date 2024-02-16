@@ -2,6 +2,7 @@ import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   EntityPermission,
   EntityStructuralQuery,
+  EntityType,
   Filter,
   GraphResolveDepths,
   ModifyRelationshipOperation,
@@ -1010,15 +1011,12 @@ export const getEntityAuthorizationRelationships: ImpureGraphFunction<
 
 export const validateEntity: ImpureGraphFunction<
   {
-    entityTypeId: VersionedUrl;
+    entityType: VersionedUrl | EntityType;
     properties: Entity["properties"];
     linkData?: Entity["linkData"];
-    draft: boolean;
+    profile: "draft" | "full";
   },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.validateEntity(actorId, {
-    operations: ["all"],
-    ...params,
-  });
+  await graphApi.validateEntity(actorId, params);
 };

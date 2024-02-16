@@ -9,13 +9,13 @@ description = "HASH Graph API"
 [dependencies]
 hash-status = { workspace = true }
 graph = { workspace = true, features = ["utoipa"] }
-graph-types = { workspace = true }
+graph-types = { workspace = true, features = ["utoipa"] }
 hash-tracing = { workspace = true }
 temporal-client = { workspace = true }
 temporal-versioning = { workspace = true }
 authorization = { workspace = true }
 type-system = { workspace = true }
-validation = { workspace = true }
+validation = { workspace = true, features = ["utoipa"] }
 codec = { workspace = true, optional = true }
 
 async-trait = "0.1.77"

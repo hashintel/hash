@@ -670,6 +670,7 @@ where
 #[serde(rename_all = "camelCase")]
 struct ModifyDataTypeAuthorizationRelationship {
     operation: ModifyRelationshipOperation,
+    #[schema(value_type = SHARED_VersionedUrl)]
     resource: VersionedUrl,
     relation_and_subject: DataTypeRelationAndSubject,
 }

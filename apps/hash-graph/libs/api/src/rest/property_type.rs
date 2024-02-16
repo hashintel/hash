@@ -720,6 +720,7 @@ where
 #[serde(rename_all = "camelCase")]
 struct ModifyPropertyTypeAuthorizationRelationship {
     operation: ModifyRelationshipOperation,
+    #[schema(value_type = SHARED_VersionedUrl)]
     resource: VersionedUrl,
     relation_and_subject: PropertyTypeRelationAndSubject,
 }

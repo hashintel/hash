@@ -313,9 +313,8 @@ export const createEntities = async ({
 
           try {
             await graphApiClient.validateEntity(actorId, {
-              draft: createAsDraft,
-              entityTypeId,
-              operations: ["all"],
+              entityType: entityTypeId,
+              profile: createAsDraft ? "draft" : "full",
               properties,
             });
 
@@ -502,11 +501,10 @@ export const createEntities = async ({
 
           try {
             await graphApiClient.validateEntity(actorId, {
-              draft: createAsDraft,
-              entityTypeId,
-              operations: ["all"],
-              linkData,
+              entityType: entityTypeId,
+              profile: createAsDraft ? "draft" : "full",
               properties,
+              linkData,
             });
 
             const existingLinkEntity = await getEntityByFilter({

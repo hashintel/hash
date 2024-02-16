@@ -14,8 +14,8 @@ use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{Entity, EntityEmbedding, EntityId, EntityMetadata, EntityProperties, EntityUuid},
-        link::{EntityLinkOrder, LinkData},
+        entity::{EntityEmbedding, EntityMetadata, EntityProperties, EntityUuid},
+        link::LinkData,
     },
     ontology::{
         DataTypeMetadata, EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata,
@@ -36,7 +36,6 @@ use type_system::{
     url::{BaseUrl, VersionedUrl},
     DataType, EntityType, EntityTypeReference, PropertyType,
 };
-use validation::ValidationProfile;
 
 use crate::{
     ontology::domain_validator::DomainValidator,
@@ -44,7 +43,8 @@ use crate::{
         account::{InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams},
         crud::{QueryResult, Read, ReadPaginated, Sorting},
         knowledge::{
-            EntityQueryCursor, EntityQuerySorting, EntityValidationType, ValidateEntityError,
+            CreateEntityParams, EntityQueryCursor, GetEntityParams, UpdateEntityParams,
+            ValidateEntityError, ValidateEntityParams,
         },
         ontology::{
             ArchiveDataTypeParams, CreateDataTypeParams, GetDataTypesParams,
@@ -1215,22 +1215,17 @@ where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore + Send + Sync,
     A: ToSocketAddrs + Send + Sync,
 {
-    async fn create_entity<Au: AuthorizationApi + Send + Sync>(
+    async fn create_entity<Au: AuthorizationApi + Send + Sync, R>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
         temporal_client: Option<&TemporalClient>,
-        owned_by_id: OwnedById,
-        entity_uuid: Option<EntityUuid>,
-        decision_time: Option<Timestamp<DecisionTime>>,
-        archived: bool,
-        draft: bool,
-        entity_type_id: VersionedUrl,
-        properties: EntityProperties,
-        link_data: Option<LinkData>,
-        relationships: impl IntoIterator<Item = EntityRelationAndSubject> + Send,
-    ) -> Result<EntityMetadata, InsertionError> {
-        let entity_type_reference = EntityTypeReference::new(entity_type_id.clone());
+        params: CreateEntityParams<R>,
+    ) -> Result<EntityMetadata, InsertionError>
+    where
+        R: IntoIterator<Item = EntityRelationAndSubject> + Send,
+    {
+        let entity_type_reference = EntityTypeReference::new(params.entity_type_id.clone());
         self.insert_external_types_by_reference(
             actor_id,
             authorization_api,
@@ -1243,44 +1238,20 @@ where
         .await?;
 
         self.store
-            .create_entity(
-                actor_id,
-                authorization_api,
-                temporal_client,
-                owned_by_id,
-                entity_uuid,
-                decision_time,
-                archived,
-                draft,
-                entity_type_id,
-                properties,
-                link_data,
-                relationships,
-            )
+            .create_entity(actor_id, authorization_api, temporal_client, params)
             .await
     }
 
-    #[tracing::instrument(level = "info", skip(self, authorization_api))]
+    #[tracing::instrument(level = "info", skip(self, authorization_api, params))]
     async fn validate_entity<Au: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,
         authorization_api: &Au,
-        consistency: Consistency<'static>,
-        entity_type: EntityValidationType<'_>,
-        properties: &EntityProperties,
-        link_data: Option<&LinkData>,
-        profile: ValidationProfile,
+        consistency: Consistency<'_>,
+        params: ValidateEntityParams<'_>,
     ) -> Result<(), ValidateEntityError> {
         self.store
-            .validate_entity(
-                actor_id,
-                authorization_api,
-                consistency,
-                entity_type,
-                properties,
-                link_data,
-                profile,
-            )
+            .validate_entity(actor_id, authorization_api, consistency, params)
             .await
     }
 
@@ -1321,12 +1292,10 @@ where
         &self,
         actor_id: AccountId,
         authorization_api: &Au,
-        query: &StructuralQuery<'_, Entity>,
-        sorting: EntityQuerySorting<'static>,
-        limit: Option<usize>,
+        params: GetEntityParams<'_>,
     ) -> Result<(Subgraph, Option<EntityQueryCursor<'static>>), QueryError> {
         self.store
-            .get_entity(actor_id, authorization_api, query, sorting, limit)
+            .get_entity(actor_id, authorization_api, params)
             .await
     }
 
@@ -1335,15 +1304,9 @@ where
         actor_id: AccountId,
         authorization_api: &mut Au,
         temporal_client: Option<&TemporalClient>,
-        entity_id: EntityId,
-        decision_time: Option<Timestamp<DecisionTime>>,
-        archived: bool,
-        draft: bool,
-        entity_type_id: VersionedUrl,
-        properties: EntityProperties,
-        link_order: EntityLinkOrder,
+        params: UpdateEntityParams,
     ) -> Result<EntityMetadata, UpdateError> {
-        let entity_type_reference = EntityTypeReference::new(entity_type_id.clone());
+        let entity_type_reference = EntityTypeReference::new(params.entity_type_id.clone());
         self.insert_external_types_by_reference(
             actor_id,
             authorization_api,
@@ -1357,18 +1320,7 @@ where
         .change_context(UpdateError)?;
 
         self.store
-            .update_entity(
-                actor_id,
-                authorization_api,
-                temporal_client,
-                entity_id,
-                decision_time,
-                archived,
-                draft,
-                entity_type_id,
-                properties,
-                link_order,
-            )
+            .update_entity(actor_id, authorization_api, temporal_client, params)
             .await
     }
 

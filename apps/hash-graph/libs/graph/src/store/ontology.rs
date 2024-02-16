@@ -71,6 +71,7 @@ pub struct UpdateDataTypesParams<R> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ArchiveDataTypeParams<'a> {
     #[serde(borrow)]
+    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
     pub data_type_id: Cow<'a, VersionedUrl>,
 }
 
@@ -78,6 +79,7 @@ pub struct ArchiveDataTypeParams<'a> {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UnarchiveDataTypeParams {
+    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
     pub data_type_id: VersionedUrl,
 }
 

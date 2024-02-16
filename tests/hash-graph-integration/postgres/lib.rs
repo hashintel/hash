@@ -30,6 +30,7 @@ use graph::{
     ontology::EntityTypeQueryPath,
     store::{
         account::{InsertAccountIdParams, InsertWebIdParams},
+        knowledge::{CreateEntityParams, GetEntityParams, UpdateEntityParams},
         ontology::{CreateDataTypeParams, GetDataTypesParams, UpdateDataTypesParams},
         query::{Filter, FilterExpression, Parameter},
         AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
@@ -529,15 +530,16 @@ impl DatabaseApi<'_> {
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                OwnedById::new(self.account_id.into_uuid()),
-                entity_uuid,
-                Some(generate_decision_time()),
-                false,
-                false,
-                entity_type_id,
-                properties,
-                None,
-                [],
+                CreateEntityParams {
+                    owned_by_id: OwnedById::new(self.account_id.into_uuid()),
+                    entity_uuid,
+                    decision_time: Some(generate_decision_time()),
+                    entity_type_id,
+                    properties,
+                    link_data: None,
+                    draft: false,
+                    relationships: [],
+                },
             )
             .await
     }
@@ -548,23 +550,25 @@ impl DatabaseApi<'_> {
             .get_entity(
                 self.account_id,
                 &NoAuthorization,
-                &StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(entity_id),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
+                GetEntityParams {
+                    query: StructuralQuery {
+                        filter: Filter::for_entity_by_entity_id(entity_id),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
+                        },
+                        include_drafts: false,
                     },
-                    include_drafts: false,
+                    sorting: EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    limit: None,
                 },
-                EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                None,
             )
             .await?
             .0
@@ -584,17 +588,19 @@ impl DatabaseApi<'_> {
             .get_entity(
                 self.account_id,
                 &NoAuthorization,
-                &StructuralQuery {
-                    filter: Filter::All(Vec::new()),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                GetEntityParams {
+                    query: StructuralQuery {
+                        filter: Filter::All(Vec::new()),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        include_drafts: false,
                     },
-                    include_drafts: false,
+                    sorting,
+                    limit: Some(limit),
                 },
-                sorting,
-                Some(limit),
             )
             .await?;
         let entities = subgraph
@@ -620,23 +626,25 @@ impl DatabaseApi<'_> {
             .get_entity(
                 self.account_id,
                 &NoAuthorization,
-                &StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(entity_id),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Inclusive(timestamp)),
-                            Some(LimitedTemporalBound::Inclusive(timestamp)),
-                        ),
+                GetEntityParams {
+                    query: StructuralQuery {
+                        filter: Filter::for_entity_by_entity_id(entity_id),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Inclusive(timestamp)),
+                                Some(LimitedTemporalBound::Inclusive(timestamp)),
+                            ),
+                        },
+                        include_drafts: false,
                     },
-                    include_drafts: false,
+                    sorting: EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    limit: None,
                 },
-                EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                None,
             )
             .await?
             .0
@@ -654,20 +662,22 @@ impl DatabaseApi<'_> {
             .get_entity(
                 self.account_id,
                 &NoAuthorization,
-                &StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(entity_id),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                GetEntityParams {
+                    query: StructuralQuery {
+                        filter: Filter::for_entity_by_entity_id(entity_id),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        include_drafts: false,
                     },
-                    include_drafts: false,
+                    sorting: EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    limit: None,
                 },
-                EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                None,
             )
             .await?
             .0
@@ -691,13 +701,15 @@ impl DatabaseApi<'_> {
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                entity_id,
-                Some(generate_decision_time()),
-                false,
-                false,
-                entity_type_id,
-                properties,
-                link_order,
+                UpdateEntityParams {
+                    entity_id,
+                    decision_time: Some(generate_decision_time()),
+                    entity_type_id,
+                    properties,
+                    link_order,
+                    archived: false,
+                    draft: false,
+                },
             )
             .await
     }
@@ -715,22 +727,23 @@ impl DatabaseApi<'_> {
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                OwnedById::new(self.account_id.into_uuid()),
-                entity_uuid,
-                None,
-                false,
-                false,
-                entity_type_id,
-                properties,
-                Some(LinkData {
-                    left_entity_id,
-                    right_entity_id,
-                    order: EntityLinkOrder {
-                        left_to_right: None,
-                        right_to_left: None,
-                    },
-                }),
-                [],
+                CreateEntityParams {
+                    owned_by_id: OwnedById::new(self.account_id.into_uuid()),
+                    entity_uuid,
+                    decision_time: Some(generate_decision_time()),
+                    entity_type_id,
+                    properties,
+                    link_data: Some(LinkData {
+                        left_entity_id,
+                        right_entity_id,
+                        order: EntityLinkOrder {
+                            left_to_right: None,
+                            right_to_left: None,
+                        },
+                    }),
+                    draft: false,
+                    relationships: [],
+                },
             )
             .await
     }
@@ -788,23 +801,25 @@ impl DatabaseApi<'_> {
             .get_entity(
                 self.account_id,
                 &NoAuthorization,
-                &StructuralQuery {
-                    filter,
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
+                GetEntityParams {
+                    query: StructuralQuery {
+                        filter,
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
+                        },
+                        include_drafts: false,
                     },
-                    include_drafts: false,
+                    sorting: EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    limit: None,
                 },
-                EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                None,
             )
             .await?;
 
@@ -862,20 +877,22 @@ impl DatabaseApi<'_> {
             .get_entity(
                 self.account_id,
                 &NoAuthorization,
-                &StructuralQuery {
-                    filter,
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                GetEntityParams {
+                    query: StructuralQuery {
+                        filter,
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        include_drafts: false,
                     },
-                    include_drafts: false,
+                    sorting: EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    limit: None,
                 },
-                EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                None,
             )
             .await?;
 
@@ -904,13 +921,15 @@ impl DatabaseApi<'_> {
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                entity_id,
-                None,
-                true,
-                false,
-                entity_type_id,
-                properties,
-                link_order,
+                UpdateEntityParams {
+                    entity_id,
+                    decision_time: None,
+                    archived: true,
+                    draft: false,
+                    entity_type_id,
+                    properties,
+                    link_order,
+                },
             )
             .await
     }

@@ -4,7 +4,7 @@ pub mod query;
 
 pub mod account;
 mod config;
-mod knowledge;
+pub mod knowledge;
 mod migration;
 pub mod ontology;
 mod pool;

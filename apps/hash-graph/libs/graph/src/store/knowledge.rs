@@ -1,4 +1,4 @@
-use std::{error::Error, fmt, future::Future};
+use std::{borrow::Cow, error::Error, fmt, future::Future};
 
 use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency, AuthorizationApi};
 use error_stack::Report;
@@ -28,13 +28,30 @@ use crate::{
         crud, crud::Sorting, postgres::CursorField, InsertionError, NullOrdering, Ordering,
         QueryError, UpdateError,
     },
-    subgraph::{query::StructuralQuery, Subgraph},
+    subgraph::{query::EntityStructuralQuery, Subgraph},
 };
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
 pub enum EntityValidationType<'a> {
-    Schema(&'a EntityType),
-    Id(&'a VersionedUrl),
+    Schema(Cow<'a, EntityType>),
+    Id(Cow<'a, VersionedUrl>),
+}
+
+#[cfg(feature = "utoipa")]
+impl ToSchema<'_> for EntityValidationType<'_> {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "EntityValidationType",
+            Schema::OneOf(
+                schema::OneOfBuilder::new()
+                    .item(Ref::from_schema_name("VAR_ENTITY_TYPE"))
+                    .item(Ref::from_schema_name("SHARED_VersionedUrl"))
+                    .build(),
+            )
+            .into(),
+        )
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -139,6 +156,77 @@ impl<'s> Sorting for EntityQuerySorting<'s> {
     }
 }
 
+#[derive(Debug, Deserialize)]
+#[cfg_attr(
+    feature = "utoipa",
+    derive(utoipa::ToSchema),
+    aliases(CreateEntityRequest = CreateEntityParams<Vec<EntityRelationAndSubject>>),
+)]
+#[serde(
+    rename_all = "camelCase",
+    deny_unknown_fields,
+    bound(deserialize = "R: Deserialize<'de>")
+)]
+pub struct CreateEntityParams<R> {
+    pub owned_by_id: OwnedById,
+    #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub entity_uuid: Option<EntityUuid>,
+    #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub decision_time: Option<Timestamp<DecisionTime>>,
+    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
+    pub entity_type_id: VersionedUrl,
+    pub properties: EntityProperties,
+    #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub link_data: Option<LinkData>,
+    pub draft: bool,
+    pub relationships: R,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ValidateEntityParams<'a> {
+    #[serde(borrow)]
+    pub entity_type: EntityValidationType<'a>,
+    #[serde(borrow)]
+    pub properties: Cow<'a, EntityProperties>,
+    #[serde(borrow, default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub link_data: Option<Cow<'a, LinkData>>,
+    pub profile: ValidationProfile,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GetEntityParams<'a> {
+    #[serde(borrow)]
+    pub query: EntityStructuralQuery<'a>,
+    #[serde(borrow)]
+    pub sorting: EntityQuerySorting<'static>,
+    pub limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct UpdateEntityParams {
+    pub entity_id: EntityId,
+    #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub decision_time: Option<Timestamp<DecisionTime>>,
+    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
+    pub entity_type_id: VersionedUrl,
+    pub properties: EntityProperties,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub link_order: EntityLinkOrder,
+    pub archived: bool,
+    pub draft: bool,
+}
+
 /// Describes the API of a store implementation for [Entities].
 ///
 /// [Entities]: Entity
@@ -153,48 +241,27 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
     /// [`EntityType`]: type_system::EntityType
-    // TODO: Revisit creation parameter to avoid too many parameters, especially as the parameters
-    //       are booleans/optionals and can be easily confused
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "https://linear.app/hash/issue/H-1466"
-    )]
-    fn create_entity<A: AuthorizationApi + Send + Sync>(
+    fn create_entity<A: AuthorizationApi + Send + Sync, R>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         temporal_client: Option<&TemporalClient>,
-        owned_by_id: OwnedById,
-        entity_uuid: Option<EntityUuid>,
-        decision_time: Option<Timestamp<DecisionTime>>,
-        archived: bool,
-        draft: bool,
-        entity_type_id: VersionedUrl,
-        properties: EntityProperties,
-        link_data: Option<LinkData>,
-        relationships: impl IntoIterator<Item = EntityRelationAndSubject> + Send,
-    ) -> impl Future<Output = Result<EntityMetadata, Report<InsertionError>>> + Send;
+        params: CreateEntityParams<R>,
+    ) -> impl Future<Output = Result<EntityMetadata, Report<InsertionError>>> + Send
+    where
+        R: IntoIterator<Item = EntityRelationAndSubject> + Send;
 
     /// Validates an [`Entity`].
     ///
     /// # Errors:
     ///
     /// - if the validation failed
-    // TODO: Revisit parameter to avoid too many parameters, especially as the parameters are
-    //       booleans/optionals and can be easily confused
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "https://linear.app/hash/issue/H-1466"
-    )]
     fn validate_entity<A: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,
         authorization_api: &A,
-        consistency: Consistency<'static>,
-        entity_type: EntityValidationType<'_>,
-        properties: &EntityProperties,
-        link_data: Option<&LinkData>,
-        profile: ValidationProfile,
+        consistency: Consistency<'_>,
+        params: ValidateEntityParams<'_>,
     ) -> impl Future<Output = Result<(), Report<ValidateEntityError>>> + Send;
 
     /// Inserts the entities with the specified [`EntityType`] into the `Store`.
@@ -240,9 +307,7 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
         &self,
         actor_id: AccountId,
         authorization_api: &A,
-        query: &StructuralQuery<'_, Entity>,
-        after: EntityQuerySorting<'static>,
-        limit: Option<usize>,
+        params: GetEntityParams<'_>,
     ) -> impl Future<
         Output = Result<(Subgraph, Option<EntityQueryCursor<'static>>), Report<QueryError>>,
     > + Send;
@@ -259,24 +324,12 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// [`EntityType`]: type_system::EntityType
     // TODO: Allow partial updates to avoid setting the `draft` and `archived` state here
     //   see https://linear.app/hash/issue/H-1455
-    // TODO: Revisit creation parameter to avoid too many parameters, especially as the parameters
-    //       are booleans/optionals and can be easily confused
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "https://linear.app/hash/issue/H-1466"
-    )]
     fn update_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         temporal_client: Option<&TemporalClient>,
-        entity_id: EntityId,
-        decision_time: Option<Timestamp<DecisionTime>>,
-        archived: bool,
-        draft: bool,
-        entity_type_id: VersionedUrl,
-        properties: EntityProperties,
-        link_order: EntityLinkOrder,
+        params: UpdateEntityParams,
     ) -> impl Future<Output = Result<EntityMetadata, Report<UpdateError>>> + Send;
 
     fn update_entity_embeddings<A: AuthorizationApi + Send + Sync>(

@@ -6,6 +6,7 @@ use criterion_macro::criterion;
 use graph::{
     store::{
         account::{InsertAccountIdParams, InsertWebIdParams},
+        knowledge::GetEntityParams,
         query::Filter,
         AccountStore, EntityQuerySorting, EntityStore,
     },
@@ -188,23 +189,25 @@ pub fn bench_get_entity_by_id(
                 .get_entity(
                     actor_id,
                     &NoAuthorization,
-                    &StructuralQuery {
-                        filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
-                        graph_resolve_depths,
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
+                    GetEntityParams {
+                        query: StructuralQuery {
+                            filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
+                            graph_resolve_depths,
+                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                                pinned: PinnedTemporalAxisUnresolved::new(None),
+                                variable: VariableTemporalAxisUnresolved::new(
+                                    Some(TemporalBound::Unbounded),
+                                    None,
+                                ),
+                            },
+                            include_drafts: false,
                         },
-                        include_drafts: false,
+                        sorting: EntityQuerySorting {
+                            paths: Vec::new(),
+                            cursor: None,
+                        },
+                        limit: None,
                     },
-                    EntityQuerySorting {
-                        paths: Vec::new(),
-                        cursor: None,
-                    },
-                    None,
                 )
                 .await
                 .expect("failed to read entity from store");
