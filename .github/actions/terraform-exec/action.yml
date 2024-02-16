@@ -30,7 +30,7 @@ runs:
 
     - name: Authenticate Vault
       id: secrets
-      uses: hashicorp/vault-action@9f522b85981b491eab9a52c144d15aedbd0bf371 # v2.8.0
+      uses: hashicorp/vault-action@9c2d817b85b9fff56bcab21cb74b485aee9e9d73 # v2.8.1
       with:
         exportToken: true
         url: ${{ inputs.vault-address }}
