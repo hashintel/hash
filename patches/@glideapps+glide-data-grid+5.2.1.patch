@@ -62,7 +62,7 @@ index ba1b224..3105602 100644
  /** @category Drawing */
  export interface PrepResult {
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts
-index f13ff02..59b657a 100644
+index f13ff02..1b3c683 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts
 +++ b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts
 @@ -6,6 +6,41 @@ declare type Sprite = HeaderIconMap["headerArray"];
@@ -116,6 +116,7 @@ index f13ff02..59b657a 100644
  }
  export {};
  //# sourceMappingURL=data-grid-sprites.d.ts.map
+\ No newline at end of file
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-types.d.ts b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-types.d.ts
 index 8ead3e1..5763081 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-types.d.ts
