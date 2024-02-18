@@ -400,6 +400,8 @@ where
         .await
         .map_err(report_to_response)?;
 
+    // Manually deserialize the query from a JSON value to allow borrowed deserialization and better
+    // error reporting.
     let mut query = StructuralQuery::deserialize(&query).map_err(report_to_response)?;
     query
         .filter
@@ -544,6 +546,8 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
+    // Manually deserialize the request from a JSON value to allow borrowed deserialization and
+    // better error reporting.
     let params = UpdateDataTypeEmbeddingParams::deserialize(body)
         .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
@@ -588,6 +592,8 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
+    // Manually deserialize the request from a JSON value to allow borrowed deserialization and
+    // better error reporting.
     let params = ArchiveDataTypeParams::deserialize(body)
         .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
@@ -641,6 +647,8 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
+    // Manually deserialize the request from a JSON value to allow borrowed deserialization and
+    // better error reporting.
     let params = UnarchiveDataTypeParams::deserialize(body)
         .attach(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;

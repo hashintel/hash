@@ -592,7 +592,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     //   see https://linear.app/hash/issue/H-1449
     // TODO: Restrict non-draft links to non-draft entities
     //   see https://linear.app/hash/issue/H-1450
-    #[tracing::instrument(level = "info", skip(self, authorization_api, params))]
+    #[tracing::instrument(level = "info", skip(self, authorization_api))]
     async fn validate_entity<A: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,

@@ -151,7 +151,7 @@ async fn create_account_group<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<InsertAccountGroupIdParams>,
-) -> Result<Json<AccountGroupId>, StatusCode>
+) -> Result<Json<AccountGroupId>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,

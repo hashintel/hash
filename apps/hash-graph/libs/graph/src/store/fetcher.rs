@@ -529,7 +529,7 @@ where
                             schema: data_type,
                             classification: metadata.classification,
                             relationships: DATA_TYPE_RELATIONSHIPS,
-                            conflict_behavior: ConflictBehavior::Fail,
+                            conflict_behavior: ConflictBehavior::Skip,
                         }),
                 )
                 .await?;
@@ -1242,7 +1242,6 @@ where
             .await
     }
 
-    #[tracing::instrument(level = "info", skip(self, authorization_api, params))]
     async fn validate_entity<Au: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,
