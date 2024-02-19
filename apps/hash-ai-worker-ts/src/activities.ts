@@ -1,4 +1,8 @@
-import type { Embedding, GraphApi } from "@local/hash-graph-client";
+import type {
+  Embedding,
+  EntityEmbedding,
+  GraphApi,
+} from "@local/hash-graph-client";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
@@ -7,7 +11,6 @@ import type {
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import type {
-  BaseUrl,
   DataTypeWithMetadata,
   EntityPropertiesObject,
   EntityTypeWithMetadata,
@@ -94,7 +97,7 @@ export const createAiActivities = ({
     entityProperties: EntityPropertiesObject;
     propertyTypes: PropertyTypeWithMetadata[];
   }): Promise<{
-    embeddings: { property?: BaseUrl; embedding: number[] }[];
+    embeddings: EntityEmbedding[];
     usage: CreateEmbeddingResponse.Usage;
   }> {
     return createEntityEmbeddings({

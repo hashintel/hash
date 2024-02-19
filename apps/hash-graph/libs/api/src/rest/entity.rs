@@ -27,7 +27,8 @@ use graph::{
     store::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         knowledge::{
-            CreateEntityRequest, GetEntityParams, UpdateEntityParams, ValidateEntityParams,
+            CreateEntityRequest, GetEntityParams, UpdateEntityEmbeddingsParams, UpdateEntityParams,
+            ValidateEntityParams,
         },
         AccountStore, EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
         EntityValidationType, NullOrdering, Ordering, StorePool,
@@ -48,7 +49,6 @@ use graph_types::{
 };
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
-use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
 use validation::ValidationProfile;
@@ -84,7 +84,7 @@ use crate::rest::{
             ValidationProfile,
             UpdateEntityRequest,
             Embedding,
-            EntityEmbeddingUpdateRequest,
+            UpdateEntityEmbeddingsParams,
             EntityEmbedding,
             EntityQueryToken,
             EntityStructuralQuery,
@@ -545,15 +545,6 @@ where
         .map(Json)
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-struct EntityEmbeddingUpdateRequest {
-    embeddings: Vec<EntityEmbedding<'static>>,
-    updated_at_transaction_time: Timestamp<TransactionTime>,
-    updated_at_decision_time: Timestamp<DecisionTime>,
-    reset: bool,
-}
-
 #[utoipa::path(
     post,
     path = "/entities/embeddings",
@@ -567,25 +558,24 @@ struct EntityEmbeddingUpdateRequest {
         (status = 403, description = "Insufficient permissions to update the entity"),
         (status = 500, description = "Store error occurred"),
     ),
-    request_body = EntityEmbeddingUpdateRequest,
+    request_body = UpdateEntityEmbeddingsParams,
 )]
 #[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
 async fn update_entity_embeddings<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
-    body: Json<EntityEmbeddingUpdateRequest>,
+    Json(body): Json<serde_json::Value>,
 ) -> Result<(), Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let Json(EntityEmbeddingUpdateRequest {
-        embeddings,
-        updated_at_transaction_time,
-        updated_at_decision_time,
-        reset,
-    }) = body;
+    // Manually deserialize the request from a JSON value to allow borrowed deserialization and
+    // better error reporting.
+    let params = UpdateEntityEmbeddingsParams::deserialize(body)
+        .attach(hash_status::StatusCode::InvalidArgument)
+        .map_err(report_to_response)?;
 
     let mut store = store_pool.acquire().await.map_err(report_to_response)?;
     let mut authorization_api = authorization_api_pool
@@ -594,14 +584,7 @@ where
         .map_err(report_to_response)?;
 
     store
-        .update_entity_embeddings(
-            actor_id,
-            &mut authorization_api,
-            embeddings,
-            updated_at_transaction_time,
-            updated_at_decision_time,
-            reset,
-        )
+        .update_entity_embeddings(actor_id, &mut authorization_api, params)
         .await
         .map_err(report_to_response)
 }

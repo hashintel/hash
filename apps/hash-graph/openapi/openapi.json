@@ -30,6 +30,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InsertAccountGroupIdParams"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "The schema of the created account",
@@ -214,6 +224,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InsertAccountIdParams"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "The schema of the created account",
@@ -874,7 +894,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EntityEmbeddingUpdateRequest"
+                "$ref": "#/components/schemas/UpdateEntityEmbeddingsParams"
               }
             }
           },
@@ -3229,44 +3249,14 @@
       "EntityEmbedding": {
         "type": "object",
         "required": [
-          "entityId",
           "embedding"
         ],
         "properties": {
           "embedding": {
             "$ref": "#/components/schemas/Embedding"
           },
-          "entityId": {
-            "$ref": "#/components/schemas/EntityId"
-          },
           "property": {
             "$ref": "./models/shared.json#/definitions/BaseUrl"
-          }
-        }
-      },
-      "EntityEmbeddingUpdateRequest": {
-        "type": "object",
-        "required": [
-          "embeddings",
-          "updatedAtTransactionTime",
-          "updatedAtDecisionTime",
-          "reset"
-        ],
-        "properties": {
-          "embeddings": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EntityEmbedding"
-            }
-          },
-          "reset": {
-            "type": "boolean"
-          },
-          "updatedAtDecisionTime": {
-            "$ref": "#/components/schemas/Timestamp"
-          },
-          "updatedAtTransactionTime": {
-            "$ref": "#/components/schemas/Timestamp"
           }
         }
       },
@@ -6003,6 +5993,37 @@
           },
           "typeToUpdate": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateEntityEmbeddingsParams": {
+        "type": "object",
+        "required": [
+          "entityId",
+          "embeddings",
+          "updatedAtTransactionTime",
+          "updatedAtDecisionTime",
+          "reset"
+        ],
+        "properties": {
+          "embeddings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityEmbedding"
+            }
+          },
+          "entityId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "reset": {
+            "type": "boolean"
+          },
+          "updatedAtDecisionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "updatedAtTransactionTime": {
+            "$ref": "#/components/schemas/Timestamp"
           }
         },
         "additionalProperties": false

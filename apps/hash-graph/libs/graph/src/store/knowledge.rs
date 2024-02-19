@@ -227,6 +227,17 @@ pub struct UpdateEntityParams {
     pub draft: bool,
 }
 
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct UpdateEntityEmbeddingsParams<'e> {
+    pub entity_id: EntityId,
+    pub embeddings: Vec<EntityEmbedding<'e>>,
+    pub updated_at_transaction_time: Timestamp<TransactionTime>,
+    pub updated_at_decision_time: Timestamp<DecisionTime>,
+    pub reset: bool,
+}
+
 /// Describes the API of a store implementation for [Entities].
 ///
 /// [Entities]: Entity
@@ -303,6 +314,8 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
+    ///
+    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
     fn get_entity<A: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,
@@ -336,9 +349,6 @@ pub trait EntityStore: crud::ReadPaginated<Entity> {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
-        embeddings: Vec<EntityEmbedding<'_>>,
-        updated_at_transaction_time: Timestamp<TransactionTime>,
-        updated_at_decision_time: Timestamp<DecisionTime>,
-        reset: bool,
+        params: UpdateEntityEmbeddingsParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
 }

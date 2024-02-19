@@ -14,7 +14,7 @@ use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::AccountId,
     knowledge::{
-        entity::{EntityEmbedding, EntityMetadata, EntityProperties, EntityUuid},
+        entity::{EntityMetadata, EntityProperties, EntityUuid},
         link::LinkData,
     },
     ontology::{
@@ -43,8 +43,8 @@ use crate::{
         account::{InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams},
         crud::{QueryResult, Read, ReadPaginated, Sorting},
         knowledge::{
-            CreateEntityParams, EntityQueryCursor, GetEntityParams, UpdateEntityParams,
-            ValidateEntityError, ValidateEntityParams,
+            CreateEntityParams, EntityQueryCursor, GetEntityParams, UpdateEntityEmbeddingsParams,
+            UpdateEntityParams, ValidateEntityError, ValidateEntityParams,
         },
         ontology::{
             ArchiveDataTypeParams, CreateDataTypeParams, GetDataTypesParams,
@@ -1327,20 +1327,10 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
-        embeddings: Vec<EntityEmbedding<'_>>,
-        updated_at_transaction_time: Timestamp<TransactionTime>,
-        updated_at_decision_time: Timestamp<DecisionTime>,
-        reset: bool,
+        params: UpdateEntityEmbeddingsParams<'_>,
     ) -> Result<(), UpdateError> {
         self.store
-            .update_entity_embeddings(
-                actor_id,
-                authorization_api,
-                embeddings,
-                updated_at_transaction_time,
-                updated_at_decision_time,
-                reset,
-            )
+            .update_entity_embeddings(actor_id, authorization_api, params)
             .await
     }
 }

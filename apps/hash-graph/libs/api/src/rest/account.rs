@@ -96,6 +96,7 @@ impl RoutedResource for AccountResource {
     post,
     path = "/accounts",
     tag = "Account",
+    request_body = InsertAccountIdParams,
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
@@ -136,6 +137,7 @@ where
     post,
     path = "/account_groups",
     tag = "Account Group",
+    request_body = InsertAccountGroupIdParams,
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
@@ -151,7 +153,7 @@ async fn create_account_group<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<InsertAccountGroupIdParams>,
-) -> Result<Json<AccountGroupId>, Response>
+) -> Result<Json<AccountGroupId>, StatusCode>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,

@@ -51,7 +51,8 @@ use crate::{
         error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
         knowledge::{
             CreateEntityParams, EntityQueryCursor, EntityQuerySorting, EntityValidationType,
-            GetEntityParams, UpdateEntityParams, ValidateEntityError, ValidateEntityParams,
+            GetEntityParams, UpdateEntityEmbeddingsParams, UpdateEntityParams, ValidateEntityError,
+            ValidateEntityParams,
         },
         postgres::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
@@ -1168,15 +1169,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(entity_metadata)
     }
 
-    #[tracing::instrument(level = "info", skip(self, embeddings))]
+    #[tracing::instrument(level = "info", skip(self, params))]
     async fn update_entity_embeddings<A: AuthorizationApi + Send + Sync>(
         &mut self,
         _: AccountId,
         _: &mut A,
-        embeddings: Vec<EntityEmbedding<'_>>,
-        updated_at_transaction_time: Timestamp<TransactionTime>,
-        updated_at_decision_time: Timestamp<DecisionTime>,
-        reset: bool,
+        params: UpdateEntityEmbeddingsParams<'_>,
     ) -> Result<(), UpdateError> {
         #[derive(Debug, ToSql)]
         #[postgres(name = "entity_embeddings")]
@@ -1189,23 +1187,19 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             updated_at_transaction_time: Timestamp<TransactionTime>,
             updated_at_decision_time: Timestamp<DecisionTime>,
         }
-        let (entity_ids, entity_embeddings): (HashSet<_>, Vec<_>) = embeddings
+        let entity_embeddings = params
+            .embeddings
             .into_iter()
-            .map(|embedding: EntityEmbedding<'_>| {
-                (
-                    embedding.entity_id,
-                    EntityEmbeddingsRow {
-                        web_id: embedding.entity_id.owned_by_id,
-                        entity_uuid: embedding.entity_id.entity_uuid,
-                        draft_id: embedding.entity_id.draft_id,
-                        property: embedding.property.as_ref().map(ToString::to_string),
-                        embedding: embedding.embedding,
-                        updated_at_transaction_time,
-                        updated_at_decision_time,
-                    },
-                )
+            .map(|embedding: EntityEmbedding<'_>| EntityEmbeddingsRow {
+                web_id: params.entity_id.owned_by_id,
+                entity_uuid: params.entity_id.entity_uuid,
+                draft_id: params.entity_id.draft_id,
+                property: embedding.property.as_ref().map(ToString::to_string),
+                embedding: embedding.embedding,
+                updated_at_transaction_time: params.updated_at_transaction_time,
+                updated_at_decision_time: params.updated_at_decision_time,
             })
-            .unzip();
+            .collect::<Vec<_>>();
 
         // TODO: Add permission to allow updating embeddings
         //   see https://linear.app/hash/issue/H-1870
@@ -1230,31 +1224,49 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         //     return Err(status.change_context(UpdateError));
         // }
 
-        if reset {
-            let (owned_by_id, entity_uuids): (Vec<_>, Vec<_>) = entity_ids
-                .into_iter()
-                .map(|entity_id| (entity_id.owned_by_id, entity_id.entity_uuid))
-                .unzip();
-            self.as_client()
-                .query(
-                    "
+        if params.reset {
+            if let Some(draft_id) = params.entity_id.draft_id {
+                self.as_client()
+                    .query(
+                        "
                         DELETE FROM entity_embeddings
-                        WHERE (web_id, entity_uuid) IN (
-                            SELECT *
-                            FROM UNNEST($1::UUID[], $2::UUID[])
-                        )
-                        AND updated_at_transaction_time <= $3
-                        AND updated_at_decision_time <= $4;
+                        WHERE web_id = $1
+                          AND entity_uuid = $2
+                          AND draft_id = $3
+                          AND updated_at_transaction_time <= $4
+                          AND updated_at_decision_time <= $5;
                     ",
-                    &[
-                        &owned_by_id,
-                        &entity_uuids,
-                        &updated_at_transaction_time,
-                        &updated_at_decision_time,
-                    ],
-                )
-                .await
-                .change_context(UpdateError)?;
+                        &[
+                            &params.entity_id.owned_by_id,
+                            &params.entity_id.entity_uuid,
+                            &draft_id,
+                            &params.updated_at_transaction_time,
+                            &params.updated_at_decision_time,
+                        ],
+                    )
+                    .await
+                    .change_context(UpdateError)?;
+            } else {
+                self.as_client()
+                    .query(
+                        "
+                        DELETE FROM entity_embeddings
+                        WHERE web_id = $1
+                          AND entity_uuid = $2
+                          AND draft_id IS NULL
+                          AND updated_at_transaction_time <= $4
+                          AND updated_at_decision_time <= $5;
+                    ",
+                        &[
+                            &params.entity_id.owned_by_id,
+                            &params.entity_id.entity_uuid,
+                            &params.updated_at_transaction_time,
+                            &params.updated_at_decision_time,
+                        ],
+                    )
+                    .await
+                    .change_context(UpdateError)?;
+            }
         }
         self.as_client()
             .query(
