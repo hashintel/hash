@@ -467,6 +467,9 @@ struct UpdateEntityRequest {
     order: EntityLinkOrder,
     archived: bool,
     draft: bool,
+    #[serde(default)]
+    #[schema(nullable = false)]
+    decision_time: Option<Timestamp<DecisionTime>>,
 }
 
 #[utoipa::path(
@@ -508,6 +511,7 @@ where
         order: link_order,
         archived,
         draft,
+        decision_time,
     }) = body;
 
     let mut store = store_pool.acquire().await.map_err(report_to_response)?;

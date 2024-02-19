@@ -115,7 +115,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@5794068c211bc8f5f4514b7c3f03d6adbe66f1b7 # v2.26.18
+        uses: taiki-e/install-action@6943331e01261cdff7420bbc2508cb463574e404 # v2.27.2
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
@@ -182,7 +182,7 @@ jobs:
           mv "$tmp" clippy.sarif
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@e675ced7a7522a761fc9c8eb26682c8b27c42b2b # v3.24.1
+        uses: github/codeql-action/upload-sarif@379614612a29c9e28f31f39a59013eb8012a51f0 # v3.24.3
         if: always() && steps.lints.outputs.has-clippy == 'true'
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif

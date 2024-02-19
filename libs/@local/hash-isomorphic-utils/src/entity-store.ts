@@ -249,7 +249,6 @@ export const createEntityStore = (
       },
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive
     draft[draftId] ??= updated;
   }
 

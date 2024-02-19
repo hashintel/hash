@@ -6,6 +6,7 @@
 )]
 
 mod data_type;
+mod drafts;
 mod entity;
 mod entity_type;
 mod links;
@@ -23,7 +24,7 @@ use authorization::{
     },
     NoAuthorization,
 };
-use error_stack::Result;
+use error_stack::{Report, Result};
 use graph::{
     knowledge::EntityQueryPath,
     load_env,
@@ -524,6 +525,7 @@ impl DatabaseApi<'_> {
         properties: EntityProperties,
         entity_type_id: VersionedUrl,
         entity_uuid: Option<EntityUuid>,
+        draft: bool,
     ) -> Result<EntityMetadata, InsertionError> {
         self.store
             .create_entity(
@@ -670,7 +672,7 @@ impl DatabaseApi<'_> {
                             pinned: PinnedTemporalAxisUnresolved::new(None),
                             variable: VariableTemporalAxisUnresolved::new(None, None),
                         },
-                        include_drafts: false,
+                        include_drafts: entity_id.draft_id.is_some(),
                     },
                     sorting: EntityQuerySorting {
                         paths: Vec::new(),
@@ -685,8 +687,14 @@ impl DatabaseApi<'_> {
             .entities
             .into_values()
             .collect::<Vec<_>>();
-        assert_eq!(entities.len(), 1);
-        Ok(entities.into_iter().next().unwrap())
+        if entities.len() == 1 {
+            Ok(entities.into_iter().next().unwrap())
+        } else {
+            Err(Report::new(QueryError).attach_printable(format!(
+                "unexpected number of entities found, expected 1 but received {}",
+                entities.len()
+            )))
+        }
     }
 
     pub async fn update_entity(
@@ -695,6 +703,7 @@ impl DatabaseApi<'_> {
         properties: EntityProperties,
         entity_type_id: VersionedUrl,
         link_order: EntityLinkOrder,
+        draft: bool,
     ) -> Result<EntityMetadata, UpdateError> {
         self.store
             .update_entity(

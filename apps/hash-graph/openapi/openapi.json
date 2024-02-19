@@ -6046,6 +6046,13 @@
               "archived": {
                 "type": "boolean"
               },
+              "decisionTime": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Timestamp"
+                  }
+                ]
+              },
               "draft": {
                 "type": "boolean"
               },
