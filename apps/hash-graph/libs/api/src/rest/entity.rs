@@ -184,6 +184,9 @@ struct CreateEntityRequest {
     link_data: Option<LinkData>,
     draft: bool,
     relationships: Vec<EntityRelationAndSubject>,
+    #[serde(default)]
+    #[schema(nullable = false)]
+    decision_time: Option<Timestamp<DecisionTime>>,
 }
 
 #[utoipa::path(
@@ -225,6 +228,7 @@ where
         link_data,
         draft,
         relationships,
+        decision_time,
     }) = body;
 
     let mut store = store_pool.acquire().await.map_err(report_to_response)?;
@@ -240,7 +244,7 @@ where
             temporal_client.as_deref(),
             owned_by_id,
             entity_uuid,
-            None,
+            decision_time,
             false,
             draft,
             entity_type_id,
@@ -527,6 +531,9 @@ struct UpdateEntityRequest {
     order: EntityLinkOrder,
     archived: bool,
     draft: bool,
+    #[serde(default)]
+    #[schema(nullable = false)]
+    decision_time: Option<Timestamp<DecisionTime>>,
 }
 
 #[utoipa::path(
@@ -568,6 +575,7 @@ where
         order,
         archived,
         draft,
+        decision_time,
     }) = body;
 
     let mut store = store_pool.acquire().await.map_err(report_to_response)?;
@@ -582,7 +590,7 @@ where
             &mut authorization_api,
             temporal_client.as_deref(),
             entity_id,
-            None,
+            decision_time,
             archived,
             draft,
             entity_type_id,

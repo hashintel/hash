@@ -36,6 +36,7 @@ async fn insert() {
                 version: 1,
             },
             None,
+            false,
         )
         .await
         .expect("could not create entity");
@@ -75,6 +76,7 @@ async fn query() {
                 version: 1,
             },
             None,
+            false,
         )
         .await
         .expect("could not create entity");
@@ -116,6 +118,7 @@ async fn update() {
                 version: 1,
             },
             None,
+            false,
         )
         .await
         .expect("could not create entity");
@@ -135,6 +138,7 @@ async fn update() {
                 left_to_right: None,
                 right_to_left: None,
             },
+            false,
         )
         .await
         .expect("could not update entity");
