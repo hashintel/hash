@@ -2,10 +2,8 @@ import type {
   DataTypeStructuralQuery,
   EntityQueryCursor,
   EntityStructuralQuery,
-  EntityTypeEmbedding,
   EntityTypeStructuralQuery,
   GraphApi,
-  PropertyTypeEmbedding,
   PropertyTypeStructuralQuery,
   UpdateDataTypeEmbeddingParams,
   UpdateEntityEmbeddingsParams,
@@ -28,7 +26,6 @@ import type {
   PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
-  Timestamp,
   Uuid,
 } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
