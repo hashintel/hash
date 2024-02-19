@@ -49,6 +49,7 @@ use graph_types::{
 };
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
+use temporal_versioning::{DecisionTime, Timestamp};
 use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
 use validation::ValidationProfile;
@@ -527,7 +528,7 @@ where
             temporal_client.as_deref(),
             UpdateEntityParams {
                 entity_id,
-                decision_time: None,
+                decision_time,
                 archived,
                 draft,
                 entity_type_id,

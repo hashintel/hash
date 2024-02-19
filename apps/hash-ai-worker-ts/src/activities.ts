@@ -74,7 +74,7 @@ export const createAiActivities = ({
   async createPropertyTypeEmbeddingsActivity(params: {
     propertyType: PropertyTypeWithMetadata;
   }): Promise<{
-    embeddings: { embedding: number[] }[];
+    embedding: Embedding;
     usage: CreateEmbeddingResponse.Usage;
   }> {
     return createPropertyTypeEmbeddings({
@@ -85,7 +85,7 @@ export const createAiActivities = ({
   async createEntityTypeEmbeddingsActivity(params: {
     entityType: EntityTypeWithMetadata;
   }): Promise<{
-    embeddings: { embedding: number[] }[];
+    embedding: Embedding;
     usage: CreateEmbeddingResponse.Usage;
   }> {
     return createEntityTypeEmbeddings({

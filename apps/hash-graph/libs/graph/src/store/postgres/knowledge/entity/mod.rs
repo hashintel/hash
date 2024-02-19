@@ -1032,7 +1032,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .ok_or_else(|| {
                 Report::new(EntityDoesNotExist)
                     .attach(StatusCode::NotFound)
-                    .attach_printable(entity_id)
+                    .attach_printable(params.entity_id)
                     .change_context(UpdateError)
             })?;
         let ClosedTemporalBound::Inclusive(locked_transaction_time) =
@@ -1097,13 +1097,17 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                             entity_uuid,
                             draft_id
                         ) VALUES ($1, $2, $3);",
-                        &[&entity_id.owned_by_id, &entity_id.entity_uuid, &draft_id],
+                        &[
+                            &params.entity_id.owned_by_id,
+                            &params.entity_id.entity_uuid,
+                            &draft_id,
+                        ],
                     )
                     .await
                     .change_context(UpdateError)?;
-                entity_id.draft_id = Some(draft_id);
+                params.entity_id.draft_id = Some(draft_id);
                 transaction
-                    .insert_temporal_metadata(entity_id, edition_id, decision_time)
+                    .insert_temporal_metadata(params.entity_id, edition_id, params.decision_time)
                     .await
                     .change_context(UpdateError)?
             }
@@ -1112,7 +1116,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 params.entity_id.draft_id = None;
 
                 if let Some(previous_live_entity) = transaction
-                    .lock_entity_edition(entity_id, decision_time)
+                    .lock_entity_edition(params.entity_id, params.decision_time)
                     .await?
                 {
                     transaction.archive_entity(previous_live_entity).await?;

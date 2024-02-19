@@ -9,6 +9,8 @@ import type {
   PropertyTypeStructuralQuery,
   UpdateDataTypeEmbeddingParams,
   UpdateEntityEmbeddingsParams,
+  UpdateEntityTypeEmbeddingParams,
+  UpdatePropertyTypeEmbeddingParams,
 } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -147,33 +149,35 @@ export const createGraphActivities = ({
       .then((response) => response.data);
   },
 
-  async updatePropertyTypeEmbeddings(params: {
-    authentication: {
-      actorId: AccountId;
-    };
-    embeddings: PropertyTypeEmbedding[];
-    updatedAtTransactionTime: Timestamp;
-  }): Promise<void> {
+  async updatePropertyTypeEmbeddings(
+    params: {
+      authentication: {
+        actorId: AccountId;
+      };
+    } & UpdatePropertyTypeEmbeddingParams,
+  ): Promise<void> {
     await graphApiClient
       .updatePropertyTypeEmbeddings(params.authentication.actorId, {
-        embeddings: params.embeddings,
-        reset: true,
+        propertyTypeId: params.propertyTypeId,
+        embedding: params.embedding,
+        reset: params.reset,
         updatedAtTransactionTime: params.updatedAtTransactionTime,
       })
       .then((response) => response.data);
   },
 
-  async updateEntityTypeEmbeddings(params: {
-    authentication: {
-      actorId: AccountId;
-    };
-    embeddings: EntityTypeEmbedding[];
-    updatedAtTransactionTime: Timestamp;
-  }): Promise<void> {
+  async updateEntityTypeEmbeddings(
+    params: {
+      authentication: {
+        actorId: AccountId;
+      };
+    } & UpdateEntityTypeEmbeddingParams,
+  ): Promise<void> {
     await graphApiClient
       .updateEntityTypeEmbeddings(params.authentication.actorId, {
-        embeddings: params.embeddings,
-        reset: true,
+        entityTypeId: params.entityTypeId,
+        embedding: params.embedding,
+        reset: params.reset,
         updatedAtTransactionTime: params.updatedAtTransactionTime,
       })
       .then((response) => response.data);

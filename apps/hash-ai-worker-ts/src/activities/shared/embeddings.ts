@@ -111,9 +111,7 @@ export const createEntityEmbeddings = async (params: {
 export const createEntityTypeEmbeddings = async (params: {
   entityType: EntityTypeWithMetadata;
 }): Promise<{
-  embeddings: {
-    embedding: number[];
-  }[];
+  embedding: Embedding;
   usage: Usage;
 }> => {
   // We want to create embeddings for:
@@ -125,21 +123,20 @@ export const createEntityTypeEmbeddings = async (params: {
   const { embeddings, usage } = await createEmbeddings({
     input: embeddingInputs,
   });
+  if (embeddings.length !== 1) {
+    throw new Error("Expected exactly one embedding");
+  }
 
   return {
     usage,
-    embeddings: embeddings.map((embedding) => ({
-      embedding,
-    })),
+    embedding: embeddings[0]!,
   };
 };
 
 export const createPropertyTypeEmbeddings = async (params: {
   propertyType: PropertyTypeWithMetadata;
 }): Promise<{
-  embeddings: {
-    embedding: number[];
-  }[];
+  embedding: Embedding;
   usage: Usage;
 }> => {
   // We want to create embeddings for:
@@ -151,12 +148,13 @@ export const createPropertyTypeEmbeddings = async (params: {
   const { embeddings, usage } = await createEmbeddings({
     input: embeddingInputs,
   });
+  if (embeddings.length !== 1) {
+    throw new Error("Expected exactly one embedding");
+  }
 
   return {
     usage,
-    embeddings: embeddings.map((embedding) => ({
-      embedding,
-    })),
+    embedding: embeddings[0]!,
   };
 };
 

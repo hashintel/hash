@@ -204,14 +204,12 @@ where
 
     let is_list = matches!(&schema, ListOrValue::List(_));
 
-    let schema_iter = schema.into_iter();
-
     let mut metadata = store
         .create_data_types(
             actor_id,
             &mut authorization_api,
             temporal_client.as_deref(),
-            schema_iter.into_iter().map(|schema| {
+            schema.into_iter().map(|schema| {
                 domain_validator.validate(&schema).map_err(|report| {
                     tracing::error!(error=?report, id=schema.id().to_string(), "Data Type ID failed to validate");
                     StatusCode::UNPROCESSABLE_ENTITY

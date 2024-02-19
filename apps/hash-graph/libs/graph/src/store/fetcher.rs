@@ -18,17 +18,16 @@ use graph_types::{
         link::LinkData,
     },
     ontology::{
-        DataTypeMetadata, EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata,
-        OntologyTemporalMetadata, OntologyType, OntologyTypeClassificationMetadata,
-        OntologyTypeMetadata, OntologyTypeReference, OntologyTypeVersion, PartialDataTypeMetadata,
-        PartialEntityTypeMetadata, PartialPropertyTypeMetadata, PropertyTypeEmbedding,
-        PropertyTypeMetadata, PropertyTypeWithMetadata,
+        DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, OntologyType,
+        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
+        OntologyTypeVersion, PartialDataTypeMetadata, PartialEntityTypeMetadata,
+        PartialPropertyTypeMetadata, PropertyTypeMetadata,
     },
     owned_by_id::OwnedById,
 };
 use tarpc::context;
 use temporal_client::TemporalClient;
-use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
+use temporal_versioning::{DecisionTime, Timestamp};
 use tokio::net::ToSocketAddrs;
 use tokio_serde::formats::Json;
 use type_fetcher::fetcher::{FetchedOntologyType, FetcherClient};
@@ -47,8 +46,12 @@ use crate::{
             UpdateEntityParams, ValidateEntityError, ValidateEntityParams,
         },
         ontology::{
-            ArchiveDataTypeParams, CreateDataTypeParams, GetDataTypesParams,
-            UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
+            ArchiveDataTypeParams, ArchiveEntityTypeParams, ArchivePropertyTypeParams,
+            CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
+            GetDataTypesParams, GetEntityTypesParams, GetPropertyTypesParams,
+            UnarchiveDataTypeParams, UnarchiveEntityTypeParams, UnarchivePropertyTypeParams,
+            UpdateDataTypeEmbeddingParams, UpdateDataTypesParams, UpdateEntityTypeEmbeddingParams,
+            UpdateEntityTypesParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
         query::{Filter, OntologyQueryPath},
         AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
@@ -57,7 +60,7 @@ use crate::{
     },
     subgraph::{
         edges::GraphResolveDepths,
-        identifier::{EntityTypeVertexId, PropertyTypeVertexId, VertexId},
+        identifier::VertexId,
         query::StructuralQuery,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
@@ -276,12 +279,28 @@ where
             }
             OntologyTypeReference::PropertyTypeReference(_) => {
                 self.store
-                    .get_property_type(actor_id, authorization_api, &create_query(url), None, None)
+                    .get_property_type(
+                        actor_id,
+                        authorization_api,
+                        GetPropertyTypesParams {
+                            query: create_query(url),
+                            after: None,
+                            limit: None,
+                        },
+                    )
                     .await
             }
             OntologyTypeReference::EntityTypeReference(_) => {
                 self.store
-                    .get_entity_type(actor_id, authorization_api, &create_query(url), None, None)
+                    .get_entity_type(
+                        actor_id,
+                        authorization_api,
+                        GetEntityTypesParams {
+                            query: create_query(url),
+                            after: None,
+                            limit: None,
+                        },
+                    )
                     .await
             }
         }
@@ -525,8 +544,8 @@ where
                     fetched_ontology_types
                         .data_types
                         .into_iter()
-                        .map(|(data_type, metadata)| CreateDataTypeParams {
-                            schema: data_type,
+                        .map(|(schema, metadata)| CreateDataTypeParams {
+                            schema,
                             classification: metadata.classification,
                             relationships: DATA_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
@@ -541,9 +560,15 @@ where
                     actor_id,
                     authorization_api,
                     temporal_client,
-                    fetched_ontology_types.property_types,
-                    ConflictBehavior::Skip,
-                    PROPERTY_TYPE_RELATIONSHIPS,
+                    fetched_ontology_types
+                        .property_types
+                        .into_iter()
+                        .map(|(schema, metadata)| CreatePropertyTypeParams {
+                            schema,
+                            classification: metadata.classification,
+                            relationships: PROPERTY_TYPE_RELATIONSHIPS,
+                            conflict_behavior: ConflictBehavior::Skip,
+                        }),
                 )
                 .await?;
         }
@@ -554,9 +579,17 @@ where
                     actor_id,
                     authorization_api,
                     temporal_client,
-                    fetched_ontology_types.entity_types,
-                    ConflictBehavior::Skip,
-                    ENTITY_TYPE_RELATIONSHIPS,
+                    fetched_ontology_types
+                        .entity_types
+                        .into_iter()
+                        .map(|(schema, metadata)| CreateEntityTypeParams {
+                            schema,
+                            classification: metadata.classification,
+                            icon: metadata.icon,
+                            label_property: metadata.label_property,
+                            relationships: ENTITY_TYPE_RELATIONSHIPS,
+                            conflict_behavior: ConflictBehavior::Skip,
+                        }),
                 )
                 .await?;
         }
@@ -604,14 +637,15 @@ where
                         actor_id,
                         authorization_api,
                         temporal_client,
-                        fetched_ontology_types.data_types.into_iter().map(
-                            |(data_type, metadata)| CreateDataTypeParams {
-                                schema: data_type,
+                        fetched_ontology_types
+                            .data_types
+                            .into_iter()
+                            .map(|(schema, metadata)| CreateDataTypeParams {
+                                schema,
                                 classification: metadata.classification,
                                 relationships: DATA_TYPE_RELATIONSHIPS,
                                 conflict_behavior: on_conflict,
-                            },
-                        ),
+                            }),
                     )
                     .await?
             };
@@ -624,9 +658,14 @@ where
                         actor_id,
                         authorization_api,
                         temporal_client,
-                        fetched_ontology_types.property_types,
-                        ConflictBehavior::Skip,
-                        PROPERTY_TYPE_RELATIONSHIPS,
+                        fetched_ontology_types.property_types.into_iter().map(
+                            |(schema, metadata)| CreatePropertyTypeParams {
+                                schema,
+                                classification: metadata.classification,
+                                relationships: PROPERTY_TYPE_RELATIONSHIPS,
+                                conflict_behavior: on_conflict,
+                            },
+                        ),
                     )
                     .await?
             };
@@ -639,9 +678,16 @@ where
                         actor_id,
                         authorization_api,
                         temporal_client,
-                        fetched_ontology_types.entity_types,
-                        ConflictBehavior::Skip,
-                        ENTITY_TYPE_RELATIONSHIPS,
+                        fetched_ontology_types.entity_types.into_iter().map(
+                            |(schema, metadata)| CreateEntityTypeParams {
+                                schema,
+                                classification: metadata.classification,
+                                icon: metadata.icon,
+                                label_property: metadata.label_property,
+                                relationships: ENTITY_TYPE_RELATIONSHIPS,
+                                conflict_behavior: on_conflict,
+                            },
+                        ),
                     )
                     .await?
             };
@@ -939,38 +985,37 @@ where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send + Sync,
     A: ToSocketAddrs + Send + Sync,
 {
-    async fn create_property_types<Au: AuthorizationApi + Send + Sync>(
+    async fn create_property_types<Au: AuthorizationApi + Send + Sync, P, R>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
         temporal_client: Option<&TemporalClient>,
-        property_types: impl IntoIterator<
-            Item = (PropertyType, PartialPropertyTypeMetadata),
-            IntoIter: Send,
-        > + Send,
-        on_conflict: ConflictBehavior,
-        relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
-    ) -> Result<Vec<PropertyTypeMetadata>, InsertionError> {
-        let property_types = property_types.into_iter().collect::<Vec<_>>();
-        let requested_types = property_types
+        params: P,
+    ) -> Result<Vec<PropertyTypeMetadata>, InsertionError>
+    where
+        P: IntoIterator<Item = CreatePropertyTypeParams<R>, IntoIter: Send> + Send,
+        R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
+    {
+        let creation_parameters = params.into_iter().collect::<Vec<_>>();
+        let requested_types = creation_parameters
             .iter()
-            .map(|(property_type, _)| property_type.id())
+            .map(|parameters| parameters.schema.id())
             .collect::<HashSet<_>>();
 
         self.insert_external_types(
             actor_id,
             authorization_api,
             temporal_client,
-            property_types
+            creation_parameters
                 .iter()
-                .map(|(property_type, _)| property_type),
+                .map(|parameters| &parameters.schema),
             &requested_types,
         )
         .await
         .attach_printable_lazy(|| {
-            property_types
+            requested_types
                 .iter()
-                .map(|(property_type, _)| property_type.id().to_string())
+                .map(ToString::to_string)
                 .collect::<Vec<_>>()
                 .join(", ")
         })?;
@@ -980,9 +1025,7 @@ where
                 actor_id,
                 authorization_api,
                 temporal_client,
-                property_types,
-                on_conflict,
-                relationships,
+                creation_parameters,
             )
             .await
     }
@@ -991,42 +1034,36 @@ where
         &self,
         actor_id: AccountId,
         authorization_api: &Au,
-        query: &StructuralQuery<'_, PropertyTypeWithMetadata>,
-        after: Option<PropertyTypeVertexId>,
-        limit: Option<usize>,
+        params: GetPropertyTypesParams<'_>,
     ) -> Result<Subgraph, QueryError> {
         self.store
-            .get_property_type(actor_id, authorization_api, query, after, limit)
+            .get_property_type(actor_id, authorization_api, params)
             .await
     }
 
-    async fn update_property_type<Au: AuthorizationApi + Send + Sync>(
+    async fn update_property_type<Au: AuthorizationApi + Send + Sync, R>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
         temporal_client: Option<&TemporalClient>,
-        property_type: PropertyType,
-        relationships: impl IntoIterator<Item = PropertyTypeRelationAndSubject> + Send,
-    ) -> Result<PropertyTypeMetadata, UpdateError> {
+        params: UpdatePropertyTypesParams<R>,
+    ) -> Result<PropertyTypeMetadata, UpdateError>
+    where
+        R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
+    {
         self.insert_external_types(
             actor_id,
             authorization_api,
             temporal_client,
-            [&property_type],
-            &HashSet::from([property_type.id()]),
+            [&params.schema],
+            &HashSet::from([params.schema.id()]),
         )
         .await
         .change_context(UpdateError)
-        .attach_printable_lazy(|| property_type.id().clone())?;
+        .attach_printable_lazy(|| params.schema.id().clone())?;
 
         self.store
-            .update_property_type(
-                actor_id,
-                authorization_api,
-                temporal_client,
-                property_type,
-                relationships,
-            )
+            .update_property_type(actor_id, authorization_api, temporal_client, params)
             .await
     }
 
@@ -1034,10 +1071,10 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
-        id: &VersionedUrl,
+        params: ArchivePropertyTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.store
-            .archive_property_type(actor_id, authorization_api, id)
+            .archive_property_type(actor_id, authorization_api, params)
             .await
     }
 
@@ -1045,10 +1082,10 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
-        id: &VersionedUrl,
+        params: UnarchivePropertyTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.store
-            .unarchive_property_type(actor_id, authorization_api, id)
+            .unarchive_property_type(actor_id, authorization_api, params)
             .await
     }
 
@@ -1056,18 +1093,10 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
-        embeddings: Vec<PropertyTypeEmbedding<'_>>,
-        updated_at_transaction_time: Timestamp<TransactionTime>,
-        reset: bool,
+        params: UpdatePropertyTypeEmbeddingParams<'_>,
     ) -> Result<(), UpdateError> {
         self.store
-            .update_property_type_embeddings(
-                actor_id,
-                authorization_api,
-                embeddings,
-                updated_at_transaction_time,
-                reset,
-            )
+            .update_property_type_embeddings(actor_id, authorization_api, params)
             .await
     }
 }
@@ -1077,34 +1106,37 @@ where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send + Sync,
     A: ToSocketAddrs + Send + Sync,
 {
-    async fn create_entity_types<Au: AuthorizationApi + Send + Sync>(
+    async fn create_entity_types<Au: AuthorizationApi + Send + Sync, P, R>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
         temporal_client: Option<&TemporalClient>,
-        entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
-        + Send,
-        on_conflict: ConflictBehavior,
-        relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
-    ) -> Result<Vec<EntityTypeMetadata>, InsertionError> {
-        let entity_types = entity_types.into_iter().collect::<Vec<_>>();
-        let requested_types = entity_types
+        params: P,
+    ) -> Result<Vec<EntityTypeMetadata>, InsertionError>
+    where
+        P: IntoIterator<Item = CreateEntityTypeParams<R>, IntoIter: Send> + Send,
+        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
+    {
+        let creation_parameters = params.into_iter().collect::<Vec<_>>();
+        let requested_types = creation_parameters
             .iter()
-            .map(|(entity_type, _)| entity_type.id())
+            .map(|parameters| parameters.schema.id())
             .collect::<HashSet<_>>();
 
         self.insert_external_types(
             actor_id,
             authorization_api,
             temporal_client,
-            entity_types.iter().map(|(entity_type, _)| entity_type),
+            creation_parameters
+                .iter()
+                .map(|parameters| &parameters.schema),
             &requested_types,
         )
         .await
         .attach_printable_lazy(|| {
-            entity_types
+            requested_types
                 .iter()
-                .map(|(entity_type, _)| entity_type.id().to_string())
+                .map(ToString::to_string)
                 .collect::<Vec<_>>()
                 .join(", ")
         })?;
@@ -1114,9 +1146,7 @@ where
                 actor_id,
                 authorization_api,
                 temporal_client,
-                entity_types,
-                on_conflict,
-                relationships,
+                creation_parameters,
             )
             .await
     }
@@ -1125,46 +1155,36 @@ where
         &self,
         actor_id: AccountId,
         authorization_api: &Au,
-        query: &StructuralQuery<'_, EntityTypeWithMetadata>,
-        cursor: Option<EntityTypeVertexId>,
-        limit: Option<usize>,
+        params: GetEntityTypesParams<'_>,
     ) -> Result<Subgraph, QueryError> {
         self.store
-            .get_entity_type(actor_id, authorization_api, query, cursor, limit)
+            .get_entity_type(actor_id, authorization_api, params)
             .await
     }
 
-    async fn update_entity_type<Au: AuthorizationApi + Send + Sync>(
+    async fn update_entity_type<Au: AuthorizationApi + Send + Sync, R>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
         temporal_client: Option<&TemporalClient>,
-        entity_type: EntityType,
-        label_property: Option<BaseUrl>,
-        icon: Option<String>,
-        relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
-    ) -> Result<EntityTypeMetadata, UpdateError> {
+        params: UpdateEntityTypesParams<R>,
+    ) -> Result<EntityTypeMetadata, UpdateError>
+    where
+        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
+    {
         self.insert_external_types(
             actor_id,
             authorization_api,
             temporal_client,
-            [&entity_type],
-            &HashSet::from([entity_type.id()]),
+            [&params.schema],
+            &HashSet::from([params.schema.id()]),
         )
         .await
         .change_context(UpdateError)
-        .attach_printable_lazy(|| entity_type.id().clone())?;
+        .attach_printable_lazy(|| params.schema.id().clone())?;
 
         self.store
-            .update_entity_type(
-                actor_id,
-                authorization_api,
-                temporal_client,
-                entity_type,
-                label_property,
-                icon,
-                relationships,
-            )
+            .update_entity_type(actor_id, authorization_api, temporal_client, params)
             .await
     }
 
@@ -1172,10 +1192,10 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
-        id: &VersionedUrl,
+        params: ArchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.store
-            .archive_entity_type(actor_id, authorization_api, id)
+            .archive_entity_type(actor_id, authorization_api, params)
             .await
     }
 
@@ -1183,10 +1203,10 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
-        id: &VersionedUrl,
+        params: UnarchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.store
-            .unarchive_entity_type(actor_id, authorization_api, id)
+            .unarchive_entity_type(actor_id, authorization_api, params)
             .await
     }
 
@@ -1194,18 +1214,10 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut Au,
-        embeddings: Vec<EntityTypeEmbedding<'_>>,
-        updated_at_transaction_time: Timestamp<TransactionTime>,
-        reset: bool,
+        params: UpdateEntityTypeEmbeddingParams<'_>,
     ) -> Result<(), UpdateError> {
         self.store
-            .update_entity_type_embeddings(
-                actor_id,
-                authorization_api,
-                embeddings,
-                updated_at_transaction_time,
-                reset,
-            )
+            .update_entity_type_embeddings(actor_id, authorization_api, params)
             .await
     }
 }

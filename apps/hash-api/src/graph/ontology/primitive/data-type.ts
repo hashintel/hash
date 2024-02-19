@@ -4,10 +4,12 @@ import {
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
+  ArchiveDataTypeParams,
   DataTypePermission,
   DataTypeStructuralQuery,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
+  UnarchiveDataTypeParams,
 } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -234,16 +236,13 @@ export const updateDataType: ImpureGraphFunction<
  * @param params.actorId - the id of the account that is archiving the data type
  */
 export const archiveDataType: ImpureGraphFunction<
-  {
-    dataTypeId: VersionedUrl;
-  },
+  ArchiveDataTypeParams,
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { dataTypeId } = params;
-
-  const { data: temporalMetadata } = await graphApi.archiveDataType(actorId, {
-    dataTypeId,
-  });
+  const { data: temporalMetadata } = await graphApi.archiveDataType(
+    actorId,
+    params,
+  );
 
   return temporalMetadata;
 };
@@ -255,16 +254,13 @@ export const archiveDataType: ImpureGraphFunction<
  * @param params.actorId - the id of the account that is unarchiving the data type
  */
 export const unarchiveDataType: ImpureGraphFunction<
-  {
-    dataTypeId: VersionedUrl;
-  },
+  UnarchiveDataTypeParams,
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { dataTypeId } = params;
-
-  const { data: temporalMetadata } = await graphApi.unarchiveDataType(actorId, {
-    dataTypeId,
-  });
+  const { data: temporalMetadata } = await graphApi.unarchiveDataType(
+    actorId,
+    params,
+  );
 
   return temporalMetadata;
 };
