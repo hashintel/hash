@@ -1,3 +1,4 @@
+#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::borrow::ToOwned;
 use core::num::TryFromIntError;
 

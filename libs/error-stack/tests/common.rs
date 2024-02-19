@@ -11,6 +11,7 @@ pub fn create_report() -> Report<RootError> {
 
 extern crate alloc;
 
+#[cfg_attr(feature = "std", allow(unused_imports))]
 pub use alloc::{
     string::{String, ToString},
     vec::Vec,
