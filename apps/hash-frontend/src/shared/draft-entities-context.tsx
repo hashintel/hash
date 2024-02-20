@@ -51,6 +51,8 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     setPreviouslyFetchedDraftEntitiesData,
   ] = useState<StructuralQueryEntitiesQuery>();
 
+  const { authenticatedUser } = useAuthInfo();
+
   const {
     data: draftEntitiesData,
     refetch,
@@ -82,6 +84,7 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     onCompleted: (data) => setPreviouslyFetchedDraftEntitiesData(data),
     pollInterval: draftEntitiesPollingInterval,
     fetchPolicy: "network-only",
+    skip: !authenticatedUser,
   });
 
   const draftEntitiesSubgraph = useMemo(
