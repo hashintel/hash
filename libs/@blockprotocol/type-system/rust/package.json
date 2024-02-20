@@ -1,5 +1,5 @@
 {
-  "name": "type-system-rs",
+  "name": "@blockprotocol/type-system-rs",
   "version": "0.0.0-private",
   "private": true,
   "scripts": {

@@ -3,7 +3,7 @@ members = [
     "apps/hash-graph/bench",
     "apps/hash-graph/bins/cli",
     "apps/hash-graph/libs/*",
-    "libs/type-system/rust",
+    "libs/@blockprotocol/type-system/rust",
     "libs/@local/codec",
     "libs/@local/tracing",
     "libs/@local/status/rust",
@@ -45,7 +45,7 @@ graph.path = "apps/hash-graph/libs/graph"
 graph-api.path = "apps/hash-graph/libs/api"
 validation.path = "libs/@local/hash-validation"
 hash-tracing.path = "libs/@local/tracing"
-type-system.path = "libs/type-system/rust"
+type-system.path = "libs/@blockprotocol/type-system/rust"
 
 # External dependencies owned by HASH
 error-stack = { version = "0.4.1", default-features = false }

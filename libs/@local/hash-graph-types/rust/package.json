@@ -8,8 +8,8 @@
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
-    "@local/temporal-versioning-rs": "0.0.0-private",
-    "type-system-rs": "0.0.0-private"
+    "@blockprotocol/type-system-rs": "0.0.0-private",
+    "@local/temporal-versioning-rs": "0.0.0-private"
   },
   "devDependencies": {
     "@tests/hash-graph-test-data-rs": "0.0.0-private"
