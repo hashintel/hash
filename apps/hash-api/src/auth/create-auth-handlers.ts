@@ -12,7 +12,9 @@ import {
   User,
 } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
+import { hydraAdmin } from "./ory-hydra";
 import { kratosFrontendApi, KratosUserIdentity } from "./ory-kratos";
+import { publicUserAccountId } from "./public-user-account-id";
 
 const KRATOS_API_KEY = getRequiredEnv("KRATOS_API_KEY");
 
@@ -162,22 +164,43 @@ export const createAuthMiddleware = (params: {
     const authHeader = req.header("authorization");
     const hasAuthHeader = authHeader?.startsWith("Bearer ") ?? false;
 
-    const sessionToken =
+    const accessOrSessionToken =
       hasAuthHeader && typeof authHeader === "string"
         ? authHeader.slice(7, authHeader.length)
         : undefined;
+
+    /** Check if the Bearer token is a valid OAuth2 token */
+    if (accessOrSessionToken) {
+      const introspectionResult = await hydraAdmin.introspectOAuth2Token({
+        token: accessOrSessionToken,
+      });
+      if (introspectionResult.data.active && introspectionResult.data.sub) {
+        const user = await getUserByKratosIdentityId(
+          context,
+          { actorId: publicUserAccountId },
+          {
+            kratosIdentityId: introspectionResult.data.sub,
+          },
+        );
+        if (user) {
+          req.user = user;
+          next();
+          return;
+        }
+      }
+    }
 
     const { session, user } = await getUserAndSession({
       context,
       cookie: req.header("cookie"),
       logger,
-      sessionToken,
+      sessionToken: accessOrSessionToken,
     });
 
     const kratosSession = await kratosFrontendApi
       .toSession({
         cookie: req.header("cookie"),
-        xSessionToken: sessionToken,
+        xSessionToken: accessOrSessionToken,
       })
       .then(({ data }) => data)
       .catch((err: AxiosError) => {
