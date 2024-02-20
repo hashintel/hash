@@ -11,4 +11,4 @@ error-stack.workspace = true
 
 serde = { workspace = true, features = ["derive"] }
 
-serde_json = "1.0.113"
+serde_json = "1.0.114"

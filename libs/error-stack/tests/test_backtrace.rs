@@ -1,7 +1,8 @@
 #![cfg(all(rust_1_65, feature = "std"))]
 #![cfg_attr(
     nightly,
-    feature(error_in_core, backtrace_frames, error_generic_member_access)
+    feature(error_in_core, backtrace_frames, error_generic_member_access),
+    allow(clippy::incompatible_msrv)
 )]
 
 mod common;

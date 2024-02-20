@@ -2,11 +2,11 @@ pub mod crud;
 pub mod error;
 pub mod query;
 
-mod account;
+pub mod account;
 mod config;
-mod knowledge;
+pub mod knowledge;
 mod migration;
-mod ontology;
+pub mod ontology;
 mod pool;
 mod record;
 mod validation;
@@ -15,7 +15,7 @@ mod fetcher;
 mod postgres;
 
 use async_trait::async_trait;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
@@ -55,7 +55,7 @@ impl<S> Store for S where
 {
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ConflictBehavior {
     /// If a conflict is detected, the operation will fail.
     Fail,

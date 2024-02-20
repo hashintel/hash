@@ -11,18 +11,18 @@ use authorization::{
 use graph::{
     load_env,
     store::{
-        AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
-        EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
+        ontology::{
+            CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
+            UpdateDataTypesParams, UpdateEntityTypesParams, UpdatePropertyTypesParams,
+        },
+        AsClient, BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo,
+        DatabaseType, EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore,
+        StorePool,
     },
     Environment,
 };
 use graph_types::{
-    account::AccountId,
-    ontology::{
-        OntologyTypeClassificationMetadata, PartialDataTypeMetadata, PartialEntityTypeMetadata,
-        PartialPropertyTypeMetadata,
-    },
-    owned_by_id::OwnedById,
+    account::AccountId, ontology::OntologyTypeClassificationMetadata, owned_by_id::OwnedById,
 };
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
@@ -226,17 +226,17 @@ pub async fn seed<D, P, E, C>(
                 account_id,
                 &mut NoAuthorization,
                 None,
-                data_type.clone(),
-                PartialDataTypeMetadata {
-                    record_id: data_type.id().clone().into(),
+                CreateDataTypeParams {
+                    schema: data_type.clone(),
                     classification: OntologyTypeClassificationMetadata::Owned {
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
+                    relationships: [DataTypeRelationAndSubject::Viewer {
+                        subject: DataTypeViewerSubject::Public,
+                        level: 0,
+                    }],
+                    conflict_behavior: ConflictBehavior::Fail,
                 },
-                [DataTypeRelationAndSubject::Viewer {
-                    subject: DataTypeViewerSubject::Public,
-                    level: 0,
-                }],
             )
             .await
         {
@@ -248,11 +248,13 @@ pub async fn seed<D, P, E, C>(
                             account_id,
                             &mut NoAuthorization,
                             None,
-                            data_type,
-                            [DataTypeRelationAndSubject::Viewer {
-                                subject: DataTypeViewerSubject::Public,
-                                level: 0,
-                            }],
+                            UpdateDataTypesParams {
+                                schema: data_type,
+                                relationships: [DataTypeRelationAndSubject::Viewer {
+                                    subject: DataTypeViewerSubject::Public,
+                                    level: 0,
+                                }],
+                            },
                         )
                         .await
                         .expect("failed to update data type");
@@ -272,17 +274,17 @@ pub async fn seed<D, P, E, C>(
                 account_id,
                 &mut NoAuthorization,
                 None,
-                property_type.clone(),
-                PartialPropertyTypeMetadata {
-                    record_id: property_type.id().clone().into(),
+                CreatePropertyTypeParams {
+                    schema: property_type.clone(),
                     classification: OntologyTypeClassificationMetadata::Owned {
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
+                    relationships: [PropertyTypeRelationAndSubject::Viewer {
+                        subject: PropertyTypeViewerSubject::Public,
+                        level: 0,
+                    }],
+                    conflict_behavior: ConflictBehavior::Fail,
                 },
-                [PropertyTypeRelationAndSubject::Viewer {
-                    subject: PropertyTypeViewerSubject::Public,
-                    level: 0,
-                }],
             )
             .await
         {
@@ -294,11 +296,13 @@ pub async fn seed<D, P, E, C>(
                             account_id,
                             &mut NoAuthorization,
                             None,
-                            property_type,
-                            [PropertyTypeRelationAndSubject::Viewer {
-                                subject: PropertyTypeViewerSubject::Public,
-                                level: 0,
-                            }],
+                            UpdatePropertyTypesParams {
+                                schema: property_type,
+                                relationships: [PropertyTypeRelationAndSubject::Viewer {
+                                    subject: PropertyTypeViewerSubject::Public,
+                                    level: 0,
+                                }],
+                            },
                         )
                         .await
                         .expect("failed to update property type");
@@ -318,25 +322,19 @@ pub async fn seed<D, P, E, C>(
                 account_id,
                 &mut NoAuthorization,
                 None,
-                entity_type.clone(),
-                PartialEntityTypeMetadata {
-                    record_id: entity_type.id().clone().into(),
-                    label_property: None,
-                    icon: None,
+                CreateEntityTypeParams {
+                    schema: entity_type.clone(),
                     classification: OntologyTypeClassificationMetadata::Owned {
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
-                },
-                [
-                    EntityTypeRelationAndSubject::Viewer {
+                    icon: None,
+                    label_property: None,
+                    relationships: [EntityTypeRelationAndSubject::Viewer {
                         subject: EntityTypeViewerSubject::Public,
                         level: 0,
-                    },
-                    EntityTypeRelationAndSubject::Instantiator {
-                        subject: EntityTypeInstantiatorSubject::Public,
-                        level: 0,
-                    },
-                ],
+                    }],
+                    conflict_behavior: ConflictBehavior::Fail,
+                },
             )
             .await
         {
@@ -348,19 +346,21 @@ pub async fn seed<D, P, E, C>(
                             account_id,
                             &mut NoAuthorization,
                             None,
-                            entity_type,
-                            None,
-                            None,
-                            [
-                                EntityTypeRelationAndSubject::Viewer {
-                                    subject: EntityTypeViewerSubject::Public,
-                                    level: 0,
-                                },
-                                EntityTypeRelationAndSubject::Instantiator {
-                                    subject: EntityTypeInstantiatorSubject::Public,
-                                    level: 0,
-                                },
-                            ],
+                            UpdateEntityTypesParams {
+                                schema: entity_type,
+                                icon: None,
+                                label_property: None,
+                                relationships: [
+                                    EntityTypeRelationAndSubject::Viewer {
+                                        subject: EntityTypeViewerSubject::Public,
+                                        level: 0,
+                                    },
+                                    EntityTypeRelationAndSubject::Instantiator {
+                                        subject: EntityTypeInstantiatorSubject::Public,
+                                        level: 0,
+                                    },
+                                ],
+                            },
                         )
                         .await
                         .expect("failed to update entity type");

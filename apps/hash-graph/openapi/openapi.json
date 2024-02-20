@@ -30,6 +30,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InsertAccountGroupIdParams"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "The schema of the created account",
@@ -214,6 +224,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InsertAccountIdParams"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "The schema of the created account",
@@ -374,7 +394,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ArchiveDataTypeRequest"
+                "$ref": "#/components/schemas/ArchiveDataTypeParams"
               }
             }
           },
@@ -428,7 +448,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateDataTypeEmbeddingsRequest"
+                "$ref": "#/components/schemas/UpdateDataTypeEmbeddingParams"
               }
             }
           },
@@ -617,7 +637,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UnarchiveDataTypeRequest"
+                "$ref": "#/components/schemas/UnarchiveDataTypeParams"
               }
             }
           },
@@ -874,7 +894,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EntityEmbeddingUpdateRequest"
+                "$ref": "#/components/schemas/UpdateEntityEmbeddingsParams"
               }
             }
           },
@@ -1025,7 +1045,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ValidateEntityRequest"
+                "$ref": "#/components/schemas/ValidateEntityParams"
               }
             }
           },
@@ -1491,7 +1511,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ArchiveEntityTypeRequest"
+                "$ref": "#/components/schemas/ArchiveEntityTypeParams"
               }
             }
           },
@@ -1545,7 +1565,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateEntityTypeEmbeddingsRequest"
+                "$ref": "#/components/schemas/UpdateEntityTypeEmbeddingParams"
               }
             }
           },
@@ -1755,7 +1775,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UnarchiveEntityTypeRequest"
+                "$ref": "#/components/schemas/UnarchiveEntityTypeParams"
               }
             }
           },
@@ -2030,7 +2050,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ArchivePropertyTypeRequest"
+                "$ref": "#/components/schemas/ArchivePropertyTypeParams"
               }
             }
           },
@@ -2084,7 +2104,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdatePropertyTypeEmbeddingsRequest"
+                "$ref": "#/components/schemas/UpdatePropertyTypeEmbeddingParams"
               }
             }
           },
@@ -2273,7 +2293,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UnarchivePropertyTypeRequest"
+                "$ref": "#/components/schemas/UnarchivePropertyTypeParams"
               }
             }
           },
@@ -2427,7 +2447,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateWebRequest"
+                "$ref": "#/components/schemas/InsertWebIdParams"
               }
             }
           },
@@ -2602,37 +2622,37 @@
         "type": "string",
         "format": "uuid"
       },
-      "ArchiveDataTypeRequest": {
+      "ArchiveDataTypeParams": {
         "type": "object",
         "required": [
-          "typeToArchive"
+          "dataTypeId"
         ],
         "properties": {
-          "typeToArchive": {
+          "dataTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         },
         "additionalProperties": false
       },
-      "ArchiveEntityTypeRequest": {
+      "ArchiveEntityTypeParams": {
         "type": "object",
         "required": [
-          "typeToArchive"
+          "entityTypeId"
         ],
         "properties": {
-          "typeToArchive": {
+          "entityTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         },
         "additionalProperties": false
       },
-      "ArchivePropertyTypeRequest": {
+      "ArchivePropertyTypeParams": {
         "type": "object",
         "required": [
-          "typeToArchive"
+          "propertyTypeId"
         ],
         "properties": {
-          "typeToArchive": {
+          "propertyTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         },
@@ -2700,13 +2720,20 @@
       "CreateEntityRequest": {
         "type": "object",
         "required": [
-          "properties",
-          "entityTypeId",
           "ownedById",
+          "entityTypeId",
+          "properties",
           "draft",
           "relationships"
         ],
         "properties": {
+          "decisionTime": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ]
+          },
           "draft": {
             "type": "boolean"
           },
@@ -2739,7 +2766,8 @@
               "$ref": "#/components/schemas/EntityRelationAndSubject"
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "CreateEntityTypeRequest": {
         "type": "object",
@@ -2814,40 +2842,9 @@
         },
         "additionalProperties": false
       },
-      "CreateWebRequest": {
-        "type": "object",
-        "required": [
-          "ownedById",
-          "owner"
-        ],
-        "properties": {
-          "ownedById": {
-            "$ref": "#/components/schemas/OwnedById"
-          },
-          "owner": {
-            "$ref": "#/components/schemas/WebOwnerSubject"
-          }
-        },
-        "additionalProperties": false
-      },
       "CreatedById": {
         "type": "string",
         "format": "uuid"
-      },
-      "DataTypeEmbedding": {
-        "type": "object",
-        "required": [
-          "dataTypeId",
-          "embedding"
-        ],
-        "properties": {
-          "dataTypeId": {
-            "$ref": "#/components/schemas/VersionedUrl"
-          },
-          "embedding": {
-            "$ref": "#/components/schemas/Embedding"
-          }
-        }
       },
       "DataTypeMetadata": {
         "oneOf": [
@@ -3252,44 +3249,14 @@
       "EntityEmbedding": {
         "type": "object",
         "required": [
-          "entityId",
           "embedding"
         ],
         "properties": {
           "embedding": {
             "$ref": "#/components/schemas/Embedding"
           },
-          "entityId": {
-            "$ref": "#/components/schemas/EntityId"
-          },
           "property": {
             "$ref": "./models/shared.json#/definitions/BaseUrl"
-          }
-        }
-      },
-      "EntityEmbeddingUpdateRequest": {
-        "type": "object",
-        "required": [
-          "embeddings",
-          "updatedAtTransactionTime",
-          "updatedAtDecisionTime",
-          "reset"
-        ],
-        "properties": {
-          "embeddings": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EntityEmbedding"
-            }
-          },
-          "reset": {
-            "type": "boolean"
-          },
-          "updatedAtDecisionTime": {
-            "$ref": "#/components/schemas/Timestamp"
-          },
-          "updatedAtTransactionTime": {
-            "$ref": "#/components/schemas/Timestamp"
           }
         }
       },
@@ -3339,18 +3306,14 @@
           "temporalVersioning",
           "entityTypeId",
           "provenance",
-          "archived",
-          "draft"
+          "archived"
         ],
         "properties": {
           "archived": {
             "type": "boolean"
           },
-          "draft": {
-            "type": "boolean"
-          },
           "entityTypeId": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           },
           "provenance": {
             "$ref": "#/components/schemas/EntityProvenanceMetadata"
@@ -3470,7 +3433,6 @@
         "type": "string",
         "enum": [
           "archived",
-          "draft",
           "properties",
           "recordCreatedAtTransactionTime",
           "recordCreatedAtDecisionTime",
@@ -3484,8 +3446,8 @@
         "enum": [
           "uuid",
           "editionId",
+          "draftId",
           "archived",
-          "draft",
           "ownedById",
           "editionCreatedById",
           "createdById",
@@ -4124,6 +4086,16 @@
         "type": "string",
         "format": "uuid"
       },
+      "EntityValidationType": {
+        "oneOf": [
+          {
+            "$ref": "./models/entity_type.json"
+          },
+          {
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+          }
+        ]
+      },
       "EntityVertexId": {
         "type": "object",
         "required": [
@@ -4503,6 +4475,40 @@
         },
         "additionalProperties": false
       },
+      "InsertAccountGroupIdParams": {
+        "type": "object",
+        "properties": {
+          "accountGroupId": {
+            "$ref": "#/components/schemas/AccountGroupId"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InsertAccountIdParams": {
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "$ref": "#/components/schemas/AccountId"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InsertWebIdParams": {
+        "type": "object",
+        "required": [
+          "ownedById",
+          "owner"
+        ],
+        "properties": {
+          "ownedById": {
+            "$ref": "#/components/schemas/OwnedById"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/WebOwnerSubject"
+          }
+        },
+        "additionalProperties": false
+      },
       "KnowledgeGraphEdgeKind": {
         "type": "string",
         "enum": [
@@ -4836,7 +4842,7 @@
             "$ref": "#/components/schemas/DataTypeRelationAndSubject"
           },
           "resource": {
-            "$ref": "#/components/schemas/VersionedUrl"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -4874,7 +4880,7 @@
             "$ref": "#/components/schemas/EntityTypeRelationAndSubject"
           },
           "resource": {
-            "$ref": "#/components/schemas/VersionedUrl"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -4893,7 +4899,7 @@
             "$ref": "#/components/schemas/PropertyTypeRelationAndSubject"
           },
           "resource": {
-            "$ref": "#/components/schemas/VersionedUrl"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -5883,37 +5889,37 @@
           "transactionTime"
         ]
       },
-      "UnarchiveDataTypeRequest": {
+      "UnarchiveDataTypeParams": {
         "type": "object",
         "required": [
-          "typeToUnarchive"
+          "dataTypeId"
         ],
         "properties": {
-          "typeToUnarchive": {
+          "dataTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         },
         "additionalProperties": false
       },
-      "UnarchiveEntityTypeRequest": {
+      "UnarchiveEntityTypeParams": {
         "type": "object",
         "required": [
-          "typeToUnarchive"
+          "entityTypeId"
         ],
         "properties": {
-          "typeToUnarchive": {
+          "entityTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         },
         "additionalProperties": false
       },
-      "UnarchivePropertyTypeRequest": {
+      "UnarchivePropertyTypeParams": {
         "type": "object",
         "required": [
-          "typeToUnarchive"
+          "propertyTypeId"
         ],
         "properties": {
-          "typeToUnarchive": {
+          "propertyTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         },
@@ -5944,19 +5950,20 @@
           }
         }
       },
-      "UpdateDataTypeEmbeddingsRequest": {
+      "UpdateDataTypeEmbeddingParams": {
         "type": "object",
         "required": [
-          "embeddings",
+          "dataTypeId",
+          "embedding",
           "updatedAtTransactionTime",
           "reset"
         ],
         "properties": {
-          "embeddings": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DataTypeEmbedding"
-            }
+          "dataTypeId": {
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+          },
+          "embedding": {
+            "$ref": "#/components/schemas/Embedding"
           },
           "reset": {
             "type": "boolean"
@@ -5964,7 +5971,8 @@
           "updatedAtTransactionTime": {
             "$ref": "#/components/schemas/Timestamp"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UpdateDataTypeRequest": {
         "type": "object",
@@ -5989,6 +5997,37 @@
         },
         "additionalProperties": false
       },
+      "UpdateEntityEmbeddingsParams": {
+        "type": "object",
+        "required": [
+          "entityId",
+          "embeddings",
+          "updatedAtTransactionTime",
+          "updatedAtDecisionTime",
+          "reset"
+        ],
+        "properties": {
+          "embeddings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityEmbedding"
+            }
+          },
+          "entityId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "reset": {
+            "type": "boolean"
+          },
+          "updatedAtDecisionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "updatedAtTransactionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "additionalProperties": false
+      },
       "UpdateEntityRequest": {
         "allOf": [
           {
@@ -6007,6 +6046,13 @@
               "archived": {
                 "type": "boolean"
               },
+              "decisionTime": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Timestamp"
+                  }
+                ]
+              },
               "draft": {
                 "type": "boolean"
               },
@@ -6023,19 +6069,20 @@
           }
         ]
       },
-      "UpdateEntityTypeEmbeddingsRequest": {
+      "UpdateEntityTypeEmbeddingParams": {
         "type": "object",
         "required": [
-          "embeddings",
+          "entityTypeId",
+          "embedding",
           "updatedAtTransactionTime",
           "reset"
         ],
         "properties": {
-          "embeddings": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EntityTypeEmbedding"
-            }
+          "embedding": {
+            "$ref": "#/components/schemas/Embedding"
+          },
+          "entityTypeId": {
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           },
           "reset": {
             "type": "boolean"
@@ -6043,7 +6090,8 @@
           "updatedAtTransactionTime": {
             "$ref": "#/components/schemas/Timestamp"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UpdateEntityTypeRequest": {
         "type": "object",
@@ -6075,19 +6123,20 @@
         },
         "additionalProperties": false
       },
-      "UpdatePropertyTypeEmbeddingsRequest": {
+      "UpdatePropertyTypeEmbeddingParams": {
         "type": "object",
         "required": [
-          "embeddings",
+          "propertyTypeId",
+          "embedding",
           "updatedAtTransactionTime",
           "reset"
         ],
         "properties": {
-          "embeddings": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PropertyTypeEmbedding"
-            }
+          "embedding": {
+            "$ref": "#/components/schemas/Embedding"
+          },
+          "propertyTypeId": {
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           },
           "reset": {
             "type": "boolean"
@@ -6095,7 +6144,8 @@
           "updatedAtTransactionTime": {
             "$ref": "#/components/schemas/Timestamp"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "UpdatePropertyTypeRequest": {
         "type": "object",
@@ -6120,34 +6170,26 @@
         },
         "additionalProperties": false
       },
-      "ValidateEntityRequest": {
+      "ValidateEntityParams": {
         "type": "object",
         "required": [
-          "entityTypeId",
+          "entityType",
           "properties",
-          "operations",
-          "draft"
+          "profile"
         ],
         "properties": {
-          "draft": {
-            "type": "boolean"
-          },
-          "entityTypeId": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+          "entityType": {
+            "$ref": "#/components/schemas/EntityValidationType"
           },
           "linkData": {
             "allOf": [
               {
                 "$ref": "#/components/schemas/LinkData"
               }
-            ],
-            "nullable": true
+            ]
           },
-          "operations": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ValidationOperation"
-            }
+          "profile": {
+            "$ref": "#/components/schemas/ValidationProfile"
           },
           "properties": {
             "$ref": "#/components/schemas/EntityProperties"
@@ -6155,10 +6197,11 @@
         },
         "additionalProperties": false
       },
-      "ValidationOperation": {
+      "ValidationProfile": {
         "type": "string",
         "enum": [
-          "all"
+          "full",
+          "draft"
         ]
       },
       "Vertex": {

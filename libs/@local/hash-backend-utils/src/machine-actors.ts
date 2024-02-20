@@ -223,7 +223,7 @@ export const createWebMachineActor = async (
   const { graphApi } = context;
 
   const machineAccountId = await graphApi
-    .createAccount(authentication.actorId)
+    .createAccount(authentication.actorId, {})
     .then((resp) => resp.data);
 
   await graphApi.modifyWebAuthorizationRelationships(authentication.actorId, [

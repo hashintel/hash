@@ -381,9 +381,6 @@ const entityStoreReducer = (
         draftState.store.draft[action.payload.draftId] = {
           metadata: {
             archived: false,
-            // @todo use the Graph to create draft entities
-            //   see https://linear.app/hash/issue/H-1083/draft-entities
-            draft: false,
             recordId: {
               entityId: action.payload.entityId,
               editionId: now,

@@ -130,6 +130,7 @@ async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
             properties.clone(),
             type_id.clone(),
             Some(EntityUuid::new(Uuid::from_u128(idx as u128))),
+            false,
         )
         .await
         .expect("could not create entity");
