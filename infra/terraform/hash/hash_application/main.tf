@@ -41,6 +41,16 @@ locals {
       ecr_arn  = var.kratos_image.ecr_arn
     },
     {
+      task_def = local.hydra_migration_container_def
+      env_vars = aws_ssm_parameter.hydra_env_vars
+      ecr_arn  = var.hydra_image.ecr_arn
+    },
+    {
+      task_def = local.hydra_service_container_def
+      env_vars = aws_ssm_parameter.hydra_env_vars
+      ecr_arn  = var.hydra_image.ecr_arn
+    },
+    {
       task_def = local.api_service_container_def
       env_vars = aws_ssm_parameter.api_env_vars
       ecr_arn  = var.api_image.ecr_arn

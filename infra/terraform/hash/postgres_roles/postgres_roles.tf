@@ -116,6 +116,25 @@ resource "postgresql_database" "kratos" {
   allow_connections = true
 }
 
+# Hydra
+resource "postgresql_role" "hydra_user" {
+  name           = "hydra"
+  login          = true
+  password       = var.pg_hydra_user_password_hash
+  inherit        = true
+  roles          = [postgresql_role.readwrite.name]
+  skip_drop_role = true
+}
+
+resource "postgresql_database" "hydra" {
+  name              = "hydra"
+  owner             = postgresql_role.hydra_user.name
+  template          = "template0"
+  lc_collate        = "C"
+  connection_limit  = -1
+  allow_connections = true
+}
+
 # Graph
 resource "postgresql_role" "graph_user" {
   name           = "graph"

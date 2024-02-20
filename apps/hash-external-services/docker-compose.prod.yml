@@ -39,6 +39,11 @@ services:
       COURIER_SMTP_FROM_NAME: "HASH"
     command: serve --watch-courier
 
+  hydra:
+    environment:
+      COOKIES_DOMAIN: "${KRATOS_COOKIE_DOMAIN}"
+      COOKIES_SAME_SITE: "Lax"
+
   spicedb-migrate:
     image: authzed/spicedb:v${HASH_SPICEDB_VERSION}
     depends_on:

@@ -17,6 +17,15 @@ variable "kratos_env_vars" {
   description = "A list of environment variables to save as system parameters and inject into Kratos"
 }
 
+variable "hydra_env_vars" {
+  type = list(object({
+    name   = string,
+    secret = bool,
+    value  = string
+  }))
+  description = "A list of environment variables to save as system parameters and inject into Hydra"
+}
+
 variable "hash_graph_env_vars" {
   type = list(object({
     name   = string,
