@@ -3,6 +3,7 @@ members = [
     "apps/hash-graph/bench",
     "apps/hash-graph/bins/cli",
     "apps/hash-graph/libs/*",
+    "libs/type-system/rust",
     "libs/@local/codec",
     "libs/@local/tracing",
     "libs/@local/status/rust",
@@ -44,10 +45,10 @@ graph.path = "apps/hash-graph/libs/graph"
 graph-api.path = "apps/hash-graph/libs/api"
 validation.path = "libs/@local/hash-validation"
 hash-tracing.path = "libs/@local/tracing"
+type-system.path = "libs/type-system/rust"
 
 # External dependencies owned by HASH
 error-stack = { version = "0.4.1", default-features = false }
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "b87db85", default-features = false }
 
 # Shared third-party dependencies
 bytes = "1.5.0"

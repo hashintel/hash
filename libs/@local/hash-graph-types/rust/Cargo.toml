@@ -20,7 +20,7 @@ time = { version = "0.3.34", default-features = false, features = ["serde", "par
 uuid = { version = "1.7.0", default-features = false, features = ["serde"] }
 
 [dev-dependencies]
-graph-test-data = { path = "../../../../tests/hash-graph-test-data/rust" }
+graph-test-data = { workspace = true }
 
 [features]
 postgres = ["dep:postgres-types", "temporal-versioning/postgres"]

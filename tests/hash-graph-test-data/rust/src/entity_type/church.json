@@ -1,0 +1,20 @@
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+  "kind": "entityType",
+  "$id": "https://blockprotocol.org/@alice/types/entity-type/church/v/1",
+  "type": "object",
+  "title": "Building",
+  "allOf": [
+    {
+      "$ref": "https://blockprotocol.org/@alice/types/entity-type/building/v/1"
+    }
+  ],
+  "properties": {
+    "https://blockprotocol.org/@alice/types/property-type/number-bells/": {
+      "$ref": "https://blockprotocol.org/@alice/types/property-type/number-bells/v/1"
+    }
+  },
+  "required": [
+    "https://blockprotocol.org/@alice/types/property-type/number-bells/"
+  ]
+}

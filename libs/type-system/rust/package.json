@@ -1,0 +1,13 @@
+{
+  "name": "type-system-rs",
+  "version": "0.0.0-private",
+  "private": true,
+  "scripts": {
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy",
+    "test:unit": "cargo nextest run --all-features --all-targets && cargo test --all-features --doc"
+  },
+  "devDependencies": {
+    "@tests/hash-graph-test-data-rs": "0.0.0-private"
+  }
+}
