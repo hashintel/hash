@@ -529,11 +529,11 @@ where
             UpdateEntityParams {
                 entity_id,
                 decision_time,
-                archived,
-                draft,
                 entity_type_id,
                 properties,
                 link_order,
+                archived,
+                draft,
             },
         )
         .await

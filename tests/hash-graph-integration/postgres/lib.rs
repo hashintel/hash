@@ -539,7 +539,7 @@ impl DatabaseApi<'_> {
                     entity_type_id,
                     properties,
                     link_data: None,
-                    draft: false,
+                    draft,
                     relationships: [],
                 },
             )
@@ -717,7 +717,7 @@ impl DatabaseApi<'_> {
                     properties,
                     link_order,
                     archived: false,
-                    draft: false,
+                    draft,
                 },
             )
             .await
