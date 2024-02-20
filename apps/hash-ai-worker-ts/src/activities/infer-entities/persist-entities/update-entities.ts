@@ -33,12 +33,14 @@ type EntityUpdateStatusMap = {
 
 export const updateEntities = async ({
   actorId,
+  createAsDraft,
   graphApiClient,
   log,
   proposedEntityUpdatesByType,
   requestedEntityTypes,
 }: {
   actorId: AccountId;
+  createAsDraft: boolean;
   graphApiClient: GraphApi;
   log: (message: string) => void;
   proposedEntityUpdatesByType: ProposedEntityUpdatesByType;
@@ -112,13 +114,9 @@ export const updateEntities = async ({
               ...properties,
             };
 
-            const draft = !!extractDraftIdFromEntityId(
-              existingEntity.metadata.recordId.entityId,
-            );
-
             await graphApiClient.validateEntity(actorId, {
               entityTypes: [entityTypeId],
-              profile: draft ? "draft" : "full",
+              profile: createAsDraft ? "draft" : "full",
               properties,
               linkData: existingEntity.linkData,
             });
@@ -126,7 +124,7 @@ export const updateEntities = async ({
             const { data: updateEntityMetadata } =
               await graphApiClient.updateEntity(actorId, {
                 archived: existingEntity.metadata.archived,
-                draft,
+                draft: createAsDraft,
                 entityTypeIds: [entityTypeId],
                 entityId: updateEntityId,
                 properties: newProperties,
