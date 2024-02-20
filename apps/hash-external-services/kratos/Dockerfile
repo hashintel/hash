@@ -1,4 +1,4 @@
-FROM oryd/kratos:v0.13.0
+FROM oryd/kratos:v1.0.0
 
 USER root
 
@@ -27,9 +27,11 @@ RUN yq -i '.selfservice.flows.registration.after.password.hooks[0].config.url |=
 
 RUN ln /etc/config/kratos/kratos.$ENV.yml /etc/config/kratos/kratos.yml
 
+# Add AWS certificate bundle for SSL connection
 ADD https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /home/ory/.postgresql/root.crt
 RUN chown -R ory:ory /home/ory && \
     chmod a+r /home/ory/.postgresql
+
 USER ory
 
 ENTRYPOINT ["kratos", "-c", "/etc/config/kratos/kratos.yml"]
