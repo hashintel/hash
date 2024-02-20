@@ -8,6 +8,7 @@
     "test:unit": "cargo hack nextest run --feature-powerset --lib && cargo test --all-features --doc"
   },
   "dependencies": {
-    "@local/hash-graph-types-rs": "0.0.0-private"
+    "@local/hash-graph-types-rs": "0.0.0-private",
+    "type-system-rs": "0.0.0-private"
   }
 }
