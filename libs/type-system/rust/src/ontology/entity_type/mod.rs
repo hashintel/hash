@@ -9,11 +9,10 @@ use std::{
     ptr,
 };
 
-pub use error::ParseEntityTypeError;
+pub use error::{MergeEntityTypeError, ParseEntityTypeError};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    ontology::entity_type::error::MergeEntityTypeError,
     url::{BaseUrl, VersionedUrl},
     AllOf, Links, MaybeOrderedArray, Object, OneOf, PropertyTypeReference, ValidateUrl,
     ValidationError, ValueOrArray,
