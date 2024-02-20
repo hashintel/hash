@@ -4,10 +4,12 @@ import {
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
+  ArchivePropertyTypeParams,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
   PropertyTypePermission,
   PropertyTypeStructuralQuery,
+  UnarchivePropertyTypeParams,
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
 import {
@@ -228,18 +230,12 @@ export const updatePropertyType: ImpureGraphFunction<
  * @param params.actorId - the id of the account that is archiving the property type
  */
 export const archivePropertyType: ImpureGraphFunction<
-  {
-    propertyTypeId: VersionedUrl;
-  },
+  ArchivePropertyTypeParams,
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { propertyTypeId } = params;
-
   const { data: temporalMetadata } = await graphApi.archivePropertyType(
     actorId,
-    {
-      typeToArchive: propertyTypeId,
-    },
+    params,
   );
 
   return temporalMetadata;
@@ -252,18 +248,12 @@ export const archivePropertyType: ImpureGraphFunction<
  * @param params.actorId - the id of the account that is unarchiving the property type
  */
 export const unarchivePropertyType: ImpureGraphFunction<
-  {
-    propertyTypeId: VersionedUrl;
-  },
+  UnarchivePropertyTypeParams,
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { propertyTypeId } = params;
-
   const { data: temporalMetadata } = await graphApi.unarchivePropertyType(
     actorId,
-    {
-      typeToUnarchive: propertyTypeId,
-    },
+    params,
   );
 
   return temporalMetadata;

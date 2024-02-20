@@ -5,11 +5,13 @@ import {
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
+  ArchiveEntityTypeParams,
   EntityType,
   EntityTypePermission,
   EntityTypeStructuralQuery,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
+  UnarchiveEntityTypeParams,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
 import {
@@ -358,16 +360,13 @@ export const isEntityTypeLinkEntityType: ImpureGraphFunction<
  * @param params.actorId - the id of the account that is archiving the entity type
  */
 export const archiveEntityType: ImpureGraphFunction<
-  {
-    entityTypeId: VersionedUrl;
-  },
+  ArchiveEntityTypeParams,
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { entityTypeId } = params;
-
-  const { data: temporalMetadata } = await graphApi.archiveEntityType(actorId, {
-    typeToArchive: entityTypeId,
-  });
+  const { data: temporalMetadata } = await graphApi.archiveEntityType(
+    actorId,
+    params,
+  );
 
   return temporalMetadata;
 };
@@ -379,18 +378,12 @@ export const archiveEntityType: ImpureGraphFunction<
  * @param params.actorId - the id of the account that is unarchiving the entity type
  */
 export const unarchiveEntityType: ImpureGraphFunction<
-  {
-    entityTypeId: VersionedUrl;
-  },
+  UnarchiveEntityTypeParams,
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { entityTypeId } = params;
-
   const { data: temporalMetadata } = await graphApi.unarchiveEntityType(
     actorId,
-    {
-      typeToUnarchive: entityTypeId,
-    },
+    params,
   );
 
   return temporalMetadata;

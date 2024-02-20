@@ -50,6 +50,7 @@ pub use self::{
     traversal_context::TraversalContext,
 };
 use crate::store::{
+    account::{InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams},
     error::{
         DeletionError, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
         VersionedUrlAlreadyExists,
@@ -1319,16 +1320,16 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         &mut self,
         _actor_id: AccountId,
         _authorization_api: &mut A,
-        account_id: AccountId,
+        params: InsertAccountIdParams,
     ) -> Result<(), InsertionError> {
         self.as_client()
             .query(
                 "INSERT INTO accounts (account_id) VALUES ($1);",
-                &[&account_id],
+                &[&params.account_id],
             )
             .await
             .change_context(InsertionError)
-            .attach_printable(account_id)?;
+            .attach_printable(params.account_id)?;
         Ok(())
     }
 
@@ -1337,7 +1338,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
-        account_group_id: AccountGroupId,
+        params: InsertAccountGroupIdParams,
     ) -> Result<(), InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
@@ -1345,16 +1346,16 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .as_client()
             .query(
                 "INSERT INTO account_groups (account_group_id) VALUES ($1);",
-                &[&account_group_id],
+                &[&params.account_group_id],
             )
             .await
             .change_context(InsertionError)
-            .attach_printable(account_group_id)?;
+            .attach_printable(params.account_group_id)?;
 
         authorization_api
             .modify_account_group_relations([(
                 ModifyRelationshipOperation::Create,
-                account_group_id,
+                params.account_group_id,
                 AccountGroupRelationAndSubject::Administrator {
                     subject: AccountGroupAdministratorSubject::Account { id: actor_id },
                     level: 0,
@@ -1367,7 +1368,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             if let Err(auth_error) = authorization_api
                 .modify_account_group_relations([(
                     ModifyRelationshipOperation::Delete,
-                    account_group_id,
+                    params.account_group_id,
                     AccountGroupRelationAndSubject::Administrator {
                         subject: AccountGroupAdministratorSubject::Account { id: actor_id },
                         level: 0,
@@ -1392,21 +1393,23 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         &mut self,
         _actor_id: AccountId,
         authorization_api: &mut A,
-        owned_by_id: OwnedById,
-        owner: WebOwnerSubject,
+        params: InsertWebIdParams,
     ) -> Result<(), InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
         transaction
             .as_client()
-            .query("INSERT INTO webs (web_id) VALUES ($1);", &[&owned_by_id])
+            .query(
+                "INSERT INTO webs (web_id) VALUES ($1);",
+                &[&params.owned_by_id],
+            )
             .await
             .change_context(InsertionError)
-            .attach_printable(owned_by_id)?;
+            .attach_printable(params.owned_by_id)?;
 
         let mut relationships = vec![
             WebRelationAndSubject::Owner {
-                subject: owner,
+                subject: params.owner,
                 level: 0,
             },
             WebRelationAndSubject::EntityTypeViewer {
@@ -1422,7 +1425,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 level: 0,
             },
         ];
-        if let WebOwnerSubject::AccountGroup { id } = owner {
+        if let WebOwnerSubject::AccountGroup { id } = params.owner {
             relationships.extend([
                 WebRelationAndSubject::EntityCreator {
                     subject: WebEntityCreatorSubject::AccountGroup {
@@ -1450,7 +1453,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                     .map(|relation_and_subject| {
                         (
                             ModifyRelationshipOperation::Create,
-                            owned_by_id,
+                            params.owned_by_id,
                             relation_and_subject,
                         )
                     }),
@@ -1463,7 +1466,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 .modify_web_relations(relationships.into_iter().map(|relation_and_subject| {
                     (
                         ModifyRelationshipOperation::Delete,
-                        owned_by_id,
+                        params.owned_by_id,
                         relation_and_subject,
                     )
                 }))
@@ -1479,25 +1482,6 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         } else {
             Ok(())
         }
-    }
-
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn has_account(&self, account_id: AccountId) -> Result<bool, QueryError> {
-        Ok(self
-            .as_client()
-            .query_one(
-                "
-                    SELECT EXISTS (
-                        SELECT 1
-                        FROM accounts
-                        WHERE account_id = $1
-                    );
-                ",
-                &[&account_id],
-            )
-            .await
-            .change_context(QueryError)?
-            .get(0))
     }
 
     #[tracing::instrument(level = "info", skip(self))]

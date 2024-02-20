@@ -30,6 +30,13 @@ use graph::{
     load_env,
     ontology::EntityTypeQueryPath,
     store::{
+        account::{InsertAccountIdParams, InsertWebIdParams},
+        knowledge::{CreateEntityParams, GetEntityParams, UpdateEntityParams},
+        ontology::{
+            CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
+            GetDataTypesParams, GetEntityTypesParams, GetPropertyTypesParams,
+            UpdateDataTypesParams, UpdateEntityTypesParams, UpdatePropertyTypesParams,
+        },
         query::{Filter, FilterExpression, Parameter},
         AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
         EntityQueryCursor, EntityQuerySorting, EntityStore, EntityTypeStore, InsertionError,
@@ -56,8 +63,7 @@ use graph_types::{
     },
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
-        OntologyTypeClassificationMetadata, OntologyTypeVersion, PartialDataTypeMetadata,
-        PartialEntityTypeMetadata, PartialPropertyTypeMetadata, PropertyTypeMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeVersion, PropertyTypeMetadata,
         PropertyTypeWithMetadata,
     },
     owned_by_id::OwnedById,
@@ -159,7 +165,7 @@ impl DatabaseTestWrapper {
 
     pub async fn seed<D, P, E>(
         &mut self,
-        propertys: D,
+        data_types: D,
         property_types: P,
         entity_types: E,
     ) -> Result<DatabaseApi<'_>, InsertionError>
@@ -176,90 +182,84 @@ impl DatabaseTestWrapper {
 
         let account_id = AccountId::new(Uuid::new_v4());
         store
-            .insert_account_id(account_id, &mut NoAuthorization, account_id)
+            .insert_account_id(
+                account_id,
+                &mut NoAuthorization,
+                InsertAccountIdParams { account_id },
+            )
             .await
             .expect("could not insert account id");
         store
             .insert_web_id(
                 account_id,
                 &mut NoAuthorization,
-                OwnedById::new(account_id.into_uuid()),
-                WebOwnerSubject::Account { id: account_id },
+                InsertWebIdParams {
+                    owned_by_id: OwnedById::new(account_id.into_uuid()),
+                    owner: WebOwnerSubject::Account { id: account_id },
+                },
             )
             .await
             .expect("could not create web id");
 
-        let data_types_iter = propertys.into_iter().map(|data_type_str| {
-            let data_type: DataType = serde_json::from_str(data_type_str)
-                .expect("could not parse data type representation");
-
-            let metadata = PartialDataTypeMetadata {
-                record_id: data_type.id().clone().into(),
-                classification: OntologyTypeClassificationMetadata::Owned {
-                    owned_by_id: OwnedById::new(account_id.into_uuid()),
-                },
-            };
-
-            (data_type, metadata)
-        });
         store
             .create_data_types(
                 account_id,
                 &mut NoAuthorization,
                 None,
-                data_types_iter,
-                ConflictBehavior::Skip,
-                data_type_relationships(),
+                data_types.into_iter().map(|data_type_str| {
+                    let schema: DataType = serde_json::from_str(data_type_str)
+                        .expect("could not parse data type representation");
+                    CreateDataTypeParams {
+                        schema,
+                        classification: OntologyTypeClassificationMetadata::Owned {
+                            owned_by_id: OwnedById::new(account_id.into_uuid()),
+                        },
+                        relationships: data_type_relationships(),
+                        conflict_behavior: ConflictBehavior::Skip,
+                    }
+                }),
             )
             .await?;
 
-        let property_types_iter = property_types.into_iter().map(|property_type_str| {
-            let property_type: PropertyType = serde_json::from_str(property_type_str)
-                .expect("could not parse property type representation");
-
-            let metadata = PartialPropertyTypeMetadata {
-                record_id: property_type.id().clone().into(),
-                classification: OntologyTypeClassificationMetadata::Owned {
-                    owned_by_id: OwnedById::new(account_id.into_uuid()),
-                },
-            };
-
-            (property_type, metadata)
-        });
         store
             .create_property_types(
                 account_id,
                 &mut NoAuthorization,
                 None,
-                property_types_iter,
-                ConflictBehavior::Skip,
-                property_type_relationships(),
+                property_types.into_iter().map(|property_type_str| {
+                    let schema: PropertyType = serde_json::from_str(property_type_str)
+                        .expect("could not property data type representation");
+                    CreatePropertyTypeParams {
+                        schema,
+                        classification: OntologyTypeClassificationMetadata::Owned {
+                            owned_by_id: OwnedById::new(account_id.into_uuid()),
+                        },
+                        relationships: property_type_relationships(),
+                        conflict_behavior: ConflictBehavior::Skip,
+                    }
+                }),
             )
             .await?;
 
-        let entity_types_iter = entity_types.into_iter().map(|entity_type_str| {
-            let entity_type: EntityType = serde_json::from_str(entity_type_str)
-                .expect("could not parse entity type representation");
-
-            let metadata = PartialEntityTypeMetadata {
-                record_id: entity_type.id().clone().into(),
-                label_property: None,
-                icon: None,
-                classification: OntologyTypeClassificationMetadata::Owned {
-                    owned_by_id: OwnedById::new(account_id.into_uuid()),
-                },
-            };
-
-            (entity_type, metadata)
-        });
         store
             .create_entity_types(
                 account_id,
                 &mut NoAuthorization,
                 None,
-                entity_types_iter,
-                ConflictBehavior::Skip,
-                entity_type_relationships(),
+                entity_types.into_iter().map(|entity_type_str| {
+                    let schema: EntityType = serde_json::from_str(entity_type_str)
+                        .expect("could not entity data type representation");
+                    CreateEntityTypeParams {
+                        schema,
+                        classification: OntologyTypeClassificationMetadata::Owned {
+                            owned_by_id: OwnedById::new(account_id.into_uuid()),
+                        },
+                        label_property: None,
+                        icon: None,
+                        relationships: entity_type_relationships(),
+                        conflict_behavior: ConflictBehavior::Skip,
+                    }
+                }),
             )
             .await?;
 
@@ -286,21 +286,19 @@ impl DatabaseApi<'_> {
         &mut self,
         data_type: DataType,
     ) -> Result<DataTypeMetadata, InsertionError> {
-        let metadata = PartialDataTypeMetadata {
-            record_id: data_type.id().clone().into(),
-            classification: OntologyTypeClassificationMetadata::Owned {
-                owned_by_id: OwnedById::new(self.account_id.into_uuid()),
-            },
-        };
-
         self.store
             .create_data_type(
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                data_type,
-                metadata,
-                data_type_relationships(),
+                CreateDataTypeParams {
+                    schema: data_type,
+                    classification: OntologyTypeClassificationMetadata::Owned {
+                        owned_by_id: OwnedById::new(self.account_id.into_uuid()),
+                    },
+                    relationships: data_type_relationships(),
+                    conflict_behavior: ConflictBehavior::Fail,
+                },
             )
             .await
     }
@@ -309,21 +307,19 @@ impl DatabaseApi<'_> {
         &mut self,
         data_type: DataType,
     ) -> Result<DataTypeMetadata, InsertionError> {
-        let metadata = PartialDataTypeMetadata {
-            record_id: data_type.id().clone().into(),
-            classification: OntologyTypeClassificationMetadata::External {
-                fetched_at: OffsetDateTime::now_utc(),
-            },
-        };
-
         self.store
             .create_data_type(
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                data_type,
-                metadata,
-                data_type_relationships(),
+                CreateDataTypeParams {
+                    schema: data_type,
+                    classification: OntologyTypeClassificationMetadata::External {
+                        fetched_at: OffsetDateTime::now_utc(),
+                    },
+                    relationships: data_type_relationships(),
+                    conflict_behavior: ConflictBehavior::Fail,
+                },
             )
             .await
     }
@@ -337,20 +333,22 @@ impl DatabaseApi<'_> {
             .get_data_type(
                 self.account_id,
                 &NoAuthorization,
-                &StructuralQuery {
-                    filter: Filter::for_versioned_url(url),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
+                GetDataTypesParams {
+                    query: StructuralQuery {
+                        filter: Filter::for_versioned_url(url),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
+                        },
+                        include_drafts: false,
                     },
-                    include_drafts: false,
+                    limit: None,
+                    after: None,
                 },
-                None,
-                None,
             )
             .await?
             .vertices
@@ -361,15 +359,17 @@ impl DatabaseApi<'_> {
 
     pub async fn update_data_type(
         &mut self,
-        data_type: DataType,
+        schema: DataType,
     ) -> Result<DataTypeMetadata, UpdateError> {
         self.store
             .update_data_type(
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                data_type,
-                data_type_relationships(),
+                UpdateDataTypesParams {
+                    schema,
+                    relationships: data_type_relationships(),
+                },
             )
             .await
     }
@@ -378,21 +378,19 @@ impl DatabaseApi<'_> {
         &mut self,
         property_type: PropertyType,
     ) -> Result<PropertyTypeMetadata, InsertionError> {
-        let metadata = PartialPropertyTypeMetadata {
-            record_id: property_type.id().clone().into(),
-            classification: OntologyTypeClassificationMetadata::Owned {
-                owned_by_id: OwnedById::new(self.account_id.into_uuid()),
-            },
-        };
-
         self.store
             .create_property_type(
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                property_type,
-                metadata,
-                property_type_relationships(),
+                CreatePropertyTypeParams {
+                    schema: property_type,
+                    classification: OntologyTypeClassificationMetadata::Owned {
+                        owned_by_id: OwnedById::new(self.account_id.into_uuid()),
+                    },
+                    relationships: property_type_relationships(),
+                    conflict_behavior: ConflictBehavior::Fail,
+                },
             )
             .await
     }
@@ -406,20 +404,22 @@ impl DatabaseApi<'_> {
             .get_property_type(
                 self.account_id,
                 &NoAuthorization,
-                &StructuralQuery {
-                    filter: Filter::for_versioned_url(url),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
+                GetPropertyTypesParams {
+                    query: StructuralQuery {
+                        filter: Filter::for_versioned_url(url),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
+                        },
+                        include_drafts: false,
                     },
-                    include_drafts: false,
+                    after: None,
+                    limit: None,
                 },
-                None,
-                None,
             )
             .await?
             .vertices
@@ -437,8 +437,10 @@ impl DatabaseApi<'_> {
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                property_type,
-                property_type_relationships(),
+                UpdatePropertyTypesParams {
+                    schema: property_type,
+                    relationships: property_type_relationships(),
+                },
             )
             .await
     }
@@ -447,23 +449,21 @@ impl DatabaseApi<'_> {
         &mut self,
         entity_type: EntityType,
     ) -> Result<EntityTypeMetadata, InsertionError> {
-        let metadata = PartialEntityTypeMetadata {
-            record_id: entity_type.id().clone().into(),
-            label_property: None,
-            icon: None,
-            classification: OntologyTypeClassificationMetadata::Owned {
-                owned_by_id: OwnedById::new(self.account_id.into_uuid()),
-            },
-        };
-
         self.store
             .create_entity_type(
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                entity_type,
-                metadata,
-                entity_type_relationships(),
+                CreateEntityTypeParams {
+                    schema: entity_type,
+                    classification: OntologyTypeClassificationMetadata::Owned {
+                        owned_by_id: OwnedById::new(self.account_id.into_uuid()),
+                    },
+                    label_property: None,
+                    icon: None,
+                    relationships: entity_type_relationships(),
+                    conflict_behavior: ConflictBehavior::Fail,
+                },
             )
             .await
     }
@@ -477,20 +477,22 @@ impl DatabaseApi<'_> {
             .get_entity_type(
                 self.account_id,
                 &NoAuthorization,
-                &StructuralQuery {
-                    filter: Filter::for_versioned_url(url),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
+                GetEntityTypesParams {
+                    query: StructuralQuery {
+                        filter: Filter::for_versioned_url(url),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
+                        },
+                        include_drafts: false,
                     },
-                    include_drafts: false,
+                    after: None,
+                    limit: None,
                 },
-                None,
-                None,
             )
             .await?
             .vertices
@@ -508,10 +510,12 @@ impl DatabaseApi<'_> {
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                entity_type,
-                None,
-                None,
-                entity_type_relationships(),
+                UpdateEntityTypesParams {
+                    schema: entity_type,
+                    icon: None,
+                    label_property: None,
+                    relationships: entity_type_relationships(),
+                },
             )
             .await
     }
@@ -528,15 +532,16 @@ impl DatabaseApi<'_> {
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                OwnedById::new(self.account_id.into_uuid()),
-                entity_uuid,
-                Some(generate_decision_time()),
-                false,
-                draft,
-                entity_type_id,
-                properties,
-                None,
-                [],
+                CreateEntityParams {
+                    owned_by_id: OwnedById::new(self.account_id.into_uuid()),
+                    entity_uuid,
+                    decision_time: Some(generate_decision_time()),
+                    entity_type_id,
+                    properties,
+                    link_data: None,
+                    draft,
+                    relationships: [],
+                },
             )
             .await
     }
@@ -547,23 +552,25 @@ impl DatabaseApi<'_> {
             .get_entity(
                 self.account_id,
                 &NoAuthorization,
-                &StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(entity_id),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
+                GetEntityParams {
+                    query: StructuralQuery {
+                        filter: Filter::for_entity_by_entity_id(entity_id),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
+                        },
+                        include_drafts: false,
                     },
-                    include_drafts: false,
+                    sorting: EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    limit: None,
                 },
-                EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                None,
             )
             .await?
             .0
@@ -583,17 +590,19 @@ impl DatabaseApi<'_> {
             .get_entity(
                 self.account_id,
                 &NoAuthorization,
-                &StructuralQuery {
-                    filter: Filter::All(Vec::new()),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                GetEntityParams {
+                    query: StructuralQuery {
+                        filter: Filter::All(Vec::new()),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        include_drafts: false,
                     },
-                    include_drafts: false,
+                    sorting,
+                    limit: Some(limit),
                 },
-                sorting,
-                Some(limit),
             )
             .await?;
         let entities = subgraph
@@ -619,23 +628,25 @@ impl DatabaseApi<'_> {
             .get_entity(
                 self.account_id,
                 &NoAuthorization,
-                &StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(entity_id),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Inclusive(timestamp)),
-                            Some(LimitedTemporalBound::Inclusive(timestamp)),
-                        ),
+                GetEntityParams {
+                    query: StructuralQuery {
+                        filter: Filter::for_entity_by_entity_id(entity_id),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Inclusive(timestamp)),
+                                Some(LimitedTemporalBound::Inclusive(timestamp)),
+                            ),
+                        },
+                        include_drafts: false,
                     },
-                    include_drafts: false,
+                    sorting: EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    limit: None,
                 },
-                EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                None,
             )
             .await?
             .0
@@ -653,20 +664,22 @@ impl DatabaseApi<'_> {
             .get_entity(
                 self.account_id,
                 &NoAuthorization,
-                &StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(entity_id),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                GetEntityParams {
+                    query: StructuralQuery {
+                        filter: Filter::for_entity_by_entity_id(entity_id),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        include_drafts: entity_id.draft_id.is_some(),
                     },
-                    include_drafts: entity_id.draft_id.is_some(),
+                    sorting: EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    limit: None,
                 },
-                EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                None,
             )
             .await?
             .0
@@ -697,13 +710,15 @@ impl DatabaseApi<'_> {
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                entity_id,
-                Some(generate_decision_time()),
-                false,
-                draft,
-                entity_type_id,
-                properties,
-                link_order,
+                UpdateEntityParams {
+                    entity_id,
+                    decision_time: Some(generate_decision_time()),
+                    entity_type_id,
+                    properties,
+                    link_order,
+                    archived: false,
+                    draft,
+                },
             )
             .await
     }
@@ -721,22 +736,23 @@ impl DatabaseApi<'_> {
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                OwnedById::new(self.account_id.into_uuid()),
-                entity_uuid,
-                None,
-                false,
-                false,
-                entity_type_id,
-                properties,
-                Some(LinkData {
-                    left_entity_id,
-                    right_entity_id,
-                    order: EntityLinkOrder {
-                        left_to_right: None,
-                        right_to_left: None,
-                    },
-                }),
-                [],
+                CreateEntityParams {
+                    owned_by_id: OwnedById::new(self.account_id.into_uuid()),
+                    entity_uuid,
+                    decision_time: Some(generate_decision_time()),
+                    entity_type_id,
+                    properties,
+                    link_data: Some(LinkData {
+                        left_entity_id,
+                        right_entity_id,
+                        order: EntityLinkOrder {
+                            left_to_right: None,
+                            right_to_left: None,
+                        },
+                    }),
+                    draft: false,
+                    relationships: [],
+                },
             )
             .await
     }
@@ -794,23 +810,25 @@ impl DatabaseApi<'_> {
             .get_entity(
                 self.account_id,
                 &NoAuthorization,
-                &StructuralQuery {
-                    filter,
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
+                GetEntityParams {
+                    query: StructuralQuery {
+                        filter,
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
+                        },
+                        include_drafts: false,
                     },
-                    include_drafts: false,
+                    sorting: EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    limit: None,
                 },
-                EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                None,
             )
             .await?;
 
@@ -868,20 +886,22 @@ impl DatabaseApi<'_> {
             .get_entity(
                 self.account_id,
                 &NoAuthorization,
-                &StructuralQuery {
-                    filter,
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                GetEntityParams {
+                    query: StructuralQuery {
+                        filter,
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        include_drafts: false,
                     },
-                    include_drafts: false,
+                    sorting: EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    limit: None,
                 },
-                EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                None,
             )
             .await?;
 
@@ -910,13 +930,15 @@ impl DatabaseApi<'_> {
                 self.account_id,
                 &mut NoAuthorization,
                 None,
-                entity_id,
-                None,
-                true,
-                false,
-                entity_type_id,
-                properties,
-                link_order,
+                UpdateEntityParams {
+                    entity_id,
+                    decision_time: None,
+                    archived: true,
+                    draft: false,
+                    entity_type_id,
+                    properties,
+                    link_order,
+                },
             )
             .await
     }

@@ -17,9 +17,9 @@ use futures::TryStreamExt;
 use graph_types::{
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
-        EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata,
-        OntologyEditionProvenanceMetadata, OntologyProvenanceMetadata, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, OntologyTypeRecordId, PartialEntityTypeMetadata,
+        EntityTypeMetadata, EntityTypeWithMetadata, OntologyEditionProvenanceMetadata,
+        OntologyProvenanceMetadata, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
+        OntologyTypeRecordId, PartialEntityTypeMetadata,
     },
     Embedding,
 };
@@ -38,6 +38,10 @@ use crate::{
     store::{
         crud::{QueryResult, ReadPaginated, VertexIdSorting},
         error::DeletionError,
+        ontology::{
+            ArchiveEntityTypeParams, CreateEntityTypeParams, GetEntityTypesParams,
+            UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        },
         postgres::{
             crud::QueryRecordDecode,
             ontology::{
@@ -48,8 +52,8 @@ use crate::{
             TraversalContext,
         },
         query::{Filter, FilterExpression, ParameterList},
-        AsClient, ConflictBehavior, EntityTypeStore, InsertionError, PostgresStore, QueryError,
-        SubgraphRecord, UpdateError,
+        AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, SubgraphRecord,
+        UpdateError,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
@@ -417,29 +421,19 @@ pub struct EntityTypeInsertion {
 }
 
 impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
-    #[tracing::instrument(
-        level = "info",
-        skip(self, entity_types, authorization_api, relationships)
-    )]
-    async fn create_entity_types<A: AuthorizationApi + Send + Sync>(
+    #[tracing::instrument(level = "info", skip(self, authorization_api, temporal_client, params))]
+    async fn create_entity_types<A: AuthorizationApi + Send + Sync, P, R>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         temporal_client: Option<&TemporalClient>,
-        entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
-        + Send,
-        on_conflict: ConflictBehavior,
-        relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
-    ) -> Result<Vec<EntityTypeMetadata>, InsertionError> {
-        let requested_relationships = relationships.into_iter().collect::<Vec<_>>();
-
+        params: P,
+    ) -> Result<Vec<EntityTypeMetadata>, InsertionError>
+    where
+        P: IntoIterator<Item = CreateEntityTypeParams<R>, IntoIter: Send> + Send,
+        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
+    {
         let transaction = self.transaction().await.change_context(InsertionError)?;
-
-        let (entity_type_schemas, metadatas): (Vec<_>, Vec<_>) = entity_types.into_iter().unzip();
-        let insertions = transaction
-            .resolve_entity_types(entity_type_schemas)
-            .await
-            .change_context(InsertionError)?;
 
         let provenance = OntologyProvenanceMetadata {
             edition: OntologyEditionProvenanceMetadata {
@@ -454,7 +448,30 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let mut inserted_entity_types = Vec::new();
         let mut inserted_entity_type_metadata = Vec::new();
 
-        for (insertion, metadata) in insertions.into_iter().zip(metadatas) {
+        let mut schemas = Vec::new();
+        let mut metadatas = Vec::new();
+        for param in params {
+            metadatas.push((
+                PartialEntityTypeMetadata {
+                    record_id: OntologyTypeRecordId::from(param.schema.id().clone()),
+                    classification: param.classification,
+                    label_property: param.label_property,
+                    icon: param.icon,
+                },
+                param.conflict_behavior,
+                param.relationships,
+            ));
+            schemas.push(param.schema);
+        }
+
+        let insertions = transaction
+            .resolve_entity_types(schemas)
+            .await
+            .change_context(InsertionError)?;
+
+        for (insertion, (metadata, on_conflict, requested_relationships)) in
+            insertions.into_iter().zip(metadatas)
+        {
             let EntityTypeInsertion {
                 schema,
                 closed_schema,
@@ -524,8 +541,8 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
             relationships.extend(
                 requested_relationships
-                    .iter()
-                    .map(|relation_and_subject| (entity_type_id, *relation_and_subject)),
+                    .into_iter()
+                    .map(|relation_and_subject| (entity_type_id, relation_and_subject)),
             );
         }
 
@@ -596,16 +613,14 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         &self,
         actor_id: AccountId,
         authorization_api: &A,
-        query: &StructuralQuery<'_, EntityTypeWithMetadata>,
-        cursor: Option<EntityTypeVertexId>,
-        limit: Option<usize>,
+        params: GetEntityTypesParams<'_>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
             temporal_axes: ref unresolved_temporal_axes,
             include_drafts,
-        } = *query;
+        } = params.query;
 
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
@@ -618,8 +633,10 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             self,
             filter,
             Some(&temporal_axes),
-            &VertexIdSorting { cursor },
-            limit,
+            &VertexIdSorting {
+                cursor: params.after,
+            },
+            params.limit,
             include_drafts,
         )
         .await?;
@@ -699,20 +716,20 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
-    #[tracing::instrument(level = "info", skip(self, schema, authorization_api, relationships))]
-    async fn update_entity_type<A: AuthorizationApi + Send + Sync>(
+    #[tracing::instrument(level = "info", skip(self, authorization_api, params))]
+    async fn update_entity_type<A: AuthorizationApi + Send + Sync, R>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         temporal_client: Option<&TemporalClient>,
-        schema: EntityType,
-        label_property: Option<BaseUrl>,
-        icon: Option<String>,
-        relationships: impl IntoIterator<Item = EntityTypeRelationAndSubject> + Send,
-    ) -> Result<EntityTypeMetadata, UpdateError> {
+        params: UpdateEntityTypesParams<R>,
+    ) -> Result<EntityTypeMetadata, UpdateError>
+    where
+        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
+    {
         let old_ontology_id = EntityTypeId::from_url(&VersionedUrl {
-            base_url: schema.id().base_url.clone(),
-            version: schema.id().version - 1,
+            base_url: params.schema.id().base_url.clone(),
+            version: params.schema.id().version - 1,
         });
         authorization_api
             .check_entity_type_permission(
@@ -728,7 +745,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
-        let url = schema.id();
+        let url = params.schema.id();
         let record_id = OntologyTypeRecordId::from(url.clone());
 
         let provenance = OntologyProvenanceMetadata {
@@ -743,7 +760,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             .await?;
 
         let mut insertions = transaction
-            .resolve_entity_types([schema])
+            .resolve_entity_types([params.schema])
             .await
             .change_context(UpdateError)?;
         let EntityTypeInsertion {
@@ -758,16 +775,16 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 ontology_id,
                 &schema,
                 &closed_schema,
-                label_property.as_ref(),
-                icon.as_deref(),
+                params.label_property.as_ref(),
+                params.icon.as_deref(),
             )
             .await
             .change_context(UpdateError)?;
 
         let metadata = PartialEntityTypeMetadata {
             record_id,
-            label_property,
-            icon,
+            label_property: params.label_property,
+            icon: params.icon,
             classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
         };
 
@@ -784,7 +801,8 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             .attach_lazy(|| schema.clone())?;
 
         let entity_type_id = EntityTypeId::from(ontology_id);
-        let relationships = relationships
+        let relationships = params
+            .relationships
             .into_iter()
             .chain(once(EntityTypeRelationAndSubject::Owner {
                 subject: EntityTypeOwnerSubject::Web { id: owned_by_id },
@@ -857,9 +875,9 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         &mut self,
         actor_id: AccountId,
         _: &mut A,
-        id: &VersionedUrl,
+        params: ArchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.archive_ontology_type(id, EditionArchivedById::new(actor_id))
+        self.archive_ontology_type(&params.entity_type_id, EditionArchivedById::new(actor_id))
             .await
     }
 
@@ -868,20 +886,18 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         &mut self,
         actor_id: AccountId,
         _: &mut A,
-        id: &VersionedUrl,
+        params: UnarchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(id, EditionCreatedById::new(actor_id))
+        self.unarchive_ontology_type(&params.entity_type_id, EditionCreatedById::new(actor_id))
             .await
     }
 
-    #[tracing::instrument(level = "info", skip(self, embeddings))]
+    #[tracing::instrument(level = "info", skip(self, params))]
     async fn update_entity_type_embeddings<A: AuthorizationApi + Send + Sync>(
         &mut self,
         _: AccountId,
         _: &mut A,
-        embeddings: Vec<EntityTypeEmbedding<'_>>,
-        updated_at_transaction_time: Timestamp<TransactionTime>,
-        reset: bool,
+        params: UpdateEntityTypeEmbeddingParams<'_>,
     ) -> Result<(), UpdateError> {
         #[derive(Debug, ToSql)]
         #[postgres(name = "entity_type_embeddings")]
@@ -890,14 +906,11 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             embedding: Embedding<'a>,
             updated_at_transaction_time: Timestamp<TransactionTime>,
         }
-        let entity_type_embeddings = embeddings
-            .into_iter()
-            .map(|embedding| EntityTypeEmbeddingsRow {
-                ontology_id: OntologyId::from(DataTypeId::from_url(&embedding.entity_type_id)),
-                embedding: embedding.embedding,
-                updated_at_transaction_time,
-            })
-            .collect::<Vec<_>>();
+        let entity_type_embeddings = vec![EntityTypeEmbeddingsRow {
+            ontology_id: OntologyId::from(DataTypeId::from_url(&params.entity_type_id)),
+            embedding: params.embedding,
+            updated_at_transaction_time: params.updated_at_transaction_time,
+        }];
 
         // TODO: Add permission to allow updating embeddings
         //   see https://linear.app/hash/issue/H-1870
@@ -940,7 +953,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 WHERE entity_type_embeddings.updated_at_transaction_time
                       <= EXCLUDED.updated_at_transaction_time;
                 ",
-                &[&entity_type_embeddings, &reset],
+                &[&entity_type_embeddings, &params.reset],
             )
             .await
             .change_context(UpdateError)?;

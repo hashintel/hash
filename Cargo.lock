@@ -3886,11 +3886,13 @@ dependencies = [
  "graph-types",
  "iso8601-duration",
  "regex",
+ "serde",
  "serde_json",
  "thiserror",
  "tokio",
  "type-system",
  "url",
+ "utoipa",
  "uuid",
 ]
 

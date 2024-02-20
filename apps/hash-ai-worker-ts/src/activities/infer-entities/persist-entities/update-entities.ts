@@ -117,11 +117,10 @@ export const updateEntities = async ({
             );
 
             await graphApiClient.validateEntity(actorId, {
-              draft,
-              entityTypeId,
+              entityType: entityTypeId,
+              profile: draft ? "draft" : "full",
+              properties,
               linkData: existingEntity.linkData,
-              operations: ["all"],
-              properties: newProperties,
             });
 
             const { data: updateEntityMetadata } =

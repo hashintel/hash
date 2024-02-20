@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 pub struct Embedding<'v>(Cow<'v, [f32]>);
 
 impl Embedding<'_> {
-    pub const DIM: usize = 1536;
+    pub const DIM: usize = 3072;
 
     pub fn iter(&self) -> impl Iterator<Item = f32> + '_ {
         self.0.iter().copied()

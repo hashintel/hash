@@ -152,7 +152,7 @@ pub struct EntityProvenanceMetadata {
 pub struct EntityMetadata {
     pub record_id: EntityRecordId,
     pub temporal_versioning: EntityTemporalMetadata,
-    #[cfg_attr(feature = "utoipa", schema(value_type = String))]
+    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
     pub entity_type_id: VersionedUrl,
     pub provenance: EntityProvenanceMetadata,
     pub archived: bool,
@@ -298,7 +298,6 @@ pub struct EntityRecordId {
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct EntityEmbedding<'e> {
-    pub entity_id: EntityId,
     // TODO: Stop allocating everywhere in type-system package
     //   see https://linear.app/hash/issue/BP-57
     #[serde(default, skip_serializing_if = "Option::is_none")]

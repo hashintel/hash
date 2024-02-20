@@ -20,6 +20,7 @@ use std::{borrow::Borrow, future::Future};
 
 use error_stack::{Context, Report};
 use graph_types::knowledge::entity::{Entity, EntityId};
+use serde::Deserialize;
 use type_system::{
     url::{BaseUrl, VersionedUrl},
     EntityType,
@@ -63,7 +64,9 @@ impl<T> Valid<T> {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
 pub enum ValidationProfile {
     Full,
     Draft,
