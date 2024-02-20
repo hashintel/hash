@@ -333,8 +333,8 @@ const main = async () => {
   });
 
   /** OAuth2 consent flow */
-  app.get("/oauth2/consent", oauthConsentRequestHandler);
-  app.post("/oauth2/consent", oauthConsentSubmissionHandler);
+  app.get("/oauth2/consent", rateLimiter, oauthConsentRequestHandler);
+  app.post("/oauth2/consent", rateLimiter, oauthConsentSubmissionHandler);
 
   const hbs = handlebarsCreate({ defaultLayout: "main", extname: ".hbs" });
   app.engine(
