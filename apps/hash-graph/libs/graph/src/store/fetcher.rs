@@ -644,7 +644,7 @@ where
                                 schema,
                                 classification: metadata.classification,
                                 relationships: DATA_TYPE_RELATIONSHIPS,
-                                conflict_behavior: on_conflict,
+                                conflict_behavior: ConflictBehavior::Skip,
                             }),
                     )
                     .await?
@@ -663,7 +663,7 @@ where
                                 schema,
                                 classification: metadata.classification,
                                 relationships: PROPERTY_TYPE_RELATIONSHIPS,
-                                conflict_behavior: on_conflict,
+                                conflict_behavior: ConflictBehavior::Skip,
                             },
                         ),
                     )
@@ -685,7 +685,7 @@ where
                                 icon: metadata.icon,
                                 label_property: metadata.label_property,
                                 relationships: ENTITY_TYPE_RELATIONSHIPS,
-                                conflict_behavior: on_conflict,
+                                conflict_behavior: ConflictBehavior::Skip,
                             },
                         ),
                     )
