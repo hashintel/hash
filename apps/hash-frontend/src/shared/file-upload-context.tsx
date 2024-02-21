@@ -236,6 +236,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           fileData,
           linkedEntityData,
           makePublic,
+          onComplete,
           ownedById,
           requestId: newRequestId!,
           status: "creating-file-entity",
