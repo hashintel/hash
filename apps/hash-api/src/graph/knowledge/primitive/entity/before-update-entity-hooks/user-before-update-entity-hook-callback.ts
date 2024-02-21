@@ -1,5 +1,5 @@
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserV4Properties } from "@local/hash-isomorphic-utils/system-types/user";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { AccountId, OwnedById } from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
@@ -63,7 +63,7 @@ export const userBeforeEntityUpdateHookCallback: UpdateEntityHookCallback =
       email: updatedEmails,
       shortname: updatedShortname,
       displayName: updatedDisplayName,
-    } = simplifyProperties(updatedProperties as UserV4Properties);
+    } = simplifyProperties(updatedProperties as UserProperties);
 
     if (currentShortname !== updatedShortname) {
       if (!updatedShortname) {

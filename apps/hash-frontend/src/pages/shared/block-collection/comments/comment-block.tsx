@@ -15,7 +15,7 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserV4Properties } from "@local/hash-isomorphic-utils/system-types/user";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { EntityId } from "@local/hash-subgraph";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
@@ -132,7 +132,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   });
 
   const displayName = useMemo(
-    () => simplifyProperties(author.properties as UserV4Properties).displayName,
+    () => simplifyProperties(author.properties as UserProperties).displayName,
     [author.properties],
   );
 

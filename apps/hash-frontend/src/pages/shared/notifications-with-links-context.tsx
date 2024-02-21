@@ -26,7 +26,7 @@ import {
 } from "@local/hash-isomorphic-utils/system-types/commentnotification";
 import { GraphChangeNotificationProperties } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
-import { UserV4Properties } from "@local/hash-isomorphic-utils/system-types/user";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   Entity,
   EntityRootType,
@@ -242,7 +242,7 @@ export const useNotificationsWithLinksContextValue =
             }
 
             const triggeredByUser = constructMinimalUser({
-              userEntity: triggeredByUserEntity as Entity<UserV4Properties>,
+              userEntity: triggeredByUserEntity as Entity<UserProperties>,
             });
 
             const occurredInComment = outgoingLinks.find(
@@ -313,7 +313,7 @@ export const useNotificationsWithLinksContextValue =
             }
 
             const triggeredByUser = constructMinimalUser({
-              userEntity: triggeredByUserEntity as Entity<UserV4Properties>,
+              userEntity: triggeredByUserEntity as Entity<UserProperties>,
             });
 
             const repliedToComment = outgoingLinks.find(

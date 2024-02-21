@@ -4,7 +4,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserV4Properties } from "@local/hash-isomorphic-utils/system-types/user";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
@@ -280,7 +280,7 @@ const userCreateHookCallback: AfterCreateEntityHookCallback = async ({
       email: emails,
       shortname,
       displayName,
-    } = simplifyProperties(entity.properties as UserV4Properties);
+    } = simplifyProperties(entity.properties as UserProperties);
 
     /**
      * @todo: when we allow users to have more than one email, come up with

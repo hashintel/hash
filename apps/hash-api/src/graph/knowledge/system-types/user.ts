@@ -12,7 +12,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserV4Properties } from "@local/hash-isomorphic-utils/system-types/user";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   AccountEntityId,
   AccountGroupId,
@@ -84,7 +84,7 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
     shortname,
     displayName,
     email: emails,
-  } = simplifyProperties(entity.properties as UserV4Properties);
+  } = simplifyProperties(entity.properties as UserProperties);
 
   const isAccountSignupComplete = !!shortname && !!displayName;
 
@@ -326,7 +326,7 @@ export const createUser: ImpureGraphFunction<
     },
   );
 
-  const properties: UserV4Properties = {
+  const properties: UserProperties = {
     "https://hash.ai/@hash/types/property-type/email/": emails as [
       string,
       ...string[],

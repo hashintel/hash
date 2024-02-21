@@ -1,5 +1,5 @@
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserV4Properties } from "@local/hash-isomorphic-utils/system-types/user";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { TextToken } from "@local/hash-isomorphic-utils/types";
 import {
   AccountEntityId,
@@ -72,7 +72,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
   const displayName = useMemo(
     () =>
-      simplifyProperties(comment.author.properties as UserV4Properties)
+      simplifyProperties(comment.author.properties as UserProperties)
         .displayName,
     [comment.author.properties],
   );

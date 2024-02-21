@@ -1,5 +1,5 @@
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserV4Properties } from "@local/hash-isomorphic-utils/system-types/user";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 
 import { isProdEnv } from "../../../../../lib/env-config";
 import { createOrUpdateMailchimpUser } from "../../../../../mailchimp";
@@ -12,7 +12,7 @@ export const userAfterUpdateEntityHookCallback: UpdateEntityHookCallback =
         email: emails,
         shortname,
         displayName,
-      } = simplifyProperties(entity.properties as UserV4Properties);
+      } = simplifyProperties(entity.properties as UserProperties);
 
       /**
        * @todo: when we allow users to have more than one email, come up with

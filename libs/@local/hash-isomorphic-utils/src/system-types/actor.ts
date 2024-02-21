@@ -3,19 +3,19 @@
  */
 
 import {
-  ActorV2,
-  ActorV2OutgoingLinkAndTarget,
-  ActorV2OutgoingLinksByLinkEntityTypeId,
-  ActorV2Properties,
+  Actor,
+  ActorOutgoingLinkAndTarget,
+  ActorOutgoingLinksByLinkEntityTypeId,
+  ActorProperties,
   DisplayNamePropertyValue,
   TextDataType,
 } from "./shared";
 
 export type {
-  ActorV2,
-  ActorV2OutgoingLinkAndTarget,
-  ActorV2OutgoingLinksByLinkEntityTypeId,
-  ActorV2Properties,
+  Actor,
+  ActorOutgoingLinkAndTarget,
+  ActorOutgoingLinksByLinkEntityTypeId,
+  ActorProperties,
   DisplayNamePropertyValue,
   TextDataType,
 };

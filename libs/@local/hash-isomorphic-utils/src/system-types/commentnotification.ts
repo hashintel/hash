@@ -5,10 +5,10 @@
 import { Entity, LinkData } from "@blockprotocol/graph";
 
 import {
-  ActorV1,
-  ActorV1OutgoingLinkAndTarget,
-  ActorV1OutgoingLinksByLinkEntityTypeId,
-  ActorV1Properties,
+  Actor,
+  ActorOutgoingLinkAndTarget,
+  ActorOutgoingLinksByLinkEntityTypeId,
+  ActorProperties,
   ArchivedPropertyValue,
   AuthoredBy,
   AuthoredByOutgoingLinkAndTarget,
@@ -143,7 +143,6 @@ import {
   PageOutgoingLinksByLinkEntityTypeId,
   PageProperties,
   PinnedEntityTypeBaseURLPropertyValue,
-  PreferredNamePropertyValue,
   PreferredPronounsPropertyValue,
   ProfileBio,
   ProfileBioHasIndexedContentLink,
@@ -170,23 +169,23 @@ import {
   TriggeredByUserOutgoingLinkAndTarget,
   TriggeredByUserOutgoingLinksByLinkEntityTypeId,
   TriggeredByUserProperties,
-  UserV3,
-  UserV3HasAvatarLink,
-  UserV3HasBioLink,
-  UserV3HasLink,
-  UserV3HasServiceAccountLink,
-  UserV3IsMemberOfLink,
-  UserV3OutgoingLinkAndTarget,
-  UserV3OutgoingLinksByLinkEntityTypeId,
-  UserV3Properties,
+  User,
+  UserHasAvatarLink,
+  UserHasBioLink,
+  UserHasLink,
+  UserHasServiceAccountLink,
+  UserIsMemberOfLink,
+  UserOutgoingLinkAndTarget,
+  UserOutgoingLinksByLinkEntityTypeId,
+  UserProperties,
   WebsiteURLPropertyValue,
 } from "./shared";
 
 export type {
-  ActorV1,
-  ActorV1OutgoingLinkAndTarget,
-  ActorV1OutgoingLinksByLinkEntityTypeId,
-  ActorV1Properties,
+  Actor,
+  ActorOutgoingLinkAndTarget,
+  ActorOutgoingLinksByLinkEntityTypeId,
+  ActorProperties,
   ArchivedPropertyValue,
   AuthoredBy,
   AuthoredByOutgoingLinkAndTarget,
@@ -321,7 +320,6 @@ export type {
   PageOutgoingLinksByLinkEntityTypeId,
   PageProperties,
   PinnedEntityTypeBaseURLPropertyValue,
-  PreferredNamePropertyValue,
   PreferredPronounsPropertyValue,
   ProfileBio,
   ProfileBioHasIndexedContentLink,
@@ -348,15 +346,15 @@ export type {
   TriggeredByUserOutgoingLinkAndTarget,
   TriggeredByUserOutgoingLinksByLinkEntityTypeId,
   TriggeredByUserProperties,
-  UserV3,
-  UserV3HasAvatarLink,
-  UserV3HasBioLink,
-  UserV3HasLink,
-  UserV3HasServiceAccountLink,
-  UserV3IsMemberOfLink,
-  UserV3OutgoingLinkAndTarget,
-  UserV3OutgoingLinksByLinkEntityTypeId,
-  UserV3Properties,
+  User,
+  UserHasAvatarLink,
+  UserHasBioLink,
+  UserHasLink,
+  UserHasServiceAccountLink,
+  UserIsMemberOfLink,
+  UserOutgoingLinkAndTarget,
+  UserOutgoingLinksByLinkEntityTypeId,
+  UserProperties,
   WebsiteURLPropertyValue,
 };
 
@@ -408,7 +406,7 @@ export type CommentNotificationTriggeredByCommentLink = {
 
 export type CommentNotificationTriggeredByUserLink = {
   linkEntity: TriggeredByUser;
-  rightEntity: UserV3;
+  rightEntity: User;
 };
 
 export type RepliedToComment = Entity<RepliedToCommentProperties> & {

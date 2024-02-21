@@ -114,18 +114,40 @@ const migrate: MigrationFunction = async ({
     ),
   };
 
-  await updateSystemEntityType(context, authentication, {
-    currentEntityTypeId: currentUserEntityTypeId,
+  const { updatedEntityTypeId: updatedUserEntityTypeId } =
+    await updateSystemEntityType(context, authentication, {
+      currentEntityTypeId: currentUserEntityTypeId,
+      migrationState,
+      newSchema: newUserEntityTypeSchema,
+    });
+
+  /**
+   * Step 4: Update entity types that reference the `User` entity type
+   */
+
+  await upgradeDependenciesInHashEntityType(context, authentication, {
+    upgradedEntityTypeIds: [updatedUserEntityTypeId],
+    dependentEntityTypeKeys: [
+      // These can all link to a User
+      "comment",
+      "commentNotification",
+      "linearIntegration",
+      "mentionNotification",
+    ],
     migrationState,
-    newSchema: newUserEntityTypeSchema,
   });
 
   /**
-   * Step 4: Assign entities of updated types to the latest version
+   * Step 5: Assign entities of updated types to the latest version
    */
   const baseUrls = [
     systemEntityTypes.machine.entityTypeBaseUrl,
     systemEntityTypes.user.entityTypeBaseUrl,
+    // Types that reference `User` which were updated
+    systemEntityTypes.comment.entityTypeBaseUrl,
+    systemEntityTypes.commentNotification.entityTypeBaseUrl,
+    systemEntityTypes.linearIntegration.entityTypeBaseUrl,
+    systemEntityTypes.mentionNotification.entityTypeBaseUrl,
   ] as BaseUrl[];
 
   await upgradeEntitiesToNewTypeVersion(context, authentication, {

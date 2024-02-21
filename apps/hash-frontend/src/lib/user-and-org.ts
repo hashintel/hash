@@ -11,7 +11,7 @@ import {
   ProfileBioProperties,
   ServiceAccountProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import { UserV4Properties } from "@local/hash-isomorphic-utils/system-types/user";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   AccountEntityId,
   AccountGroupEntityId,
@@ -76,11 +76,11 @@ export type MinimalUser = {
 
 export const isEntityUserEntity = (
   entity: Entity,
-): entity is Entity<UserV4Properties> =>
+): entity is Entity<UserProperties> =>
   entity.metadata.entityTypeId === systemEntityTypes.user.entityTypeId;
 
 export const constructMinimalUser = (params: {
-  userEntity: Entity<UserV4Properties>;
+  userEntity: Entity<UserProperties>;
 }): MinimalUser => {
   const { userEntity } = params;
 
@@ -304,7 +304,7 @@ export const constructUser = (params: {
   orgMembershipLinks?: LinkEntity[];
   subgraph: Subgraph<EntityRootType>;
   resolvedOrgs?: Org[];
-  userEntity: Entity<UserV4Properties>;
+  userEntity: Entity<UserProperties>;
 }): User => {
   const { orgMembershipLinks, resolvedOrgs, subgraph, userEntity } = params;
 

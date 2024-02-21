@@ -14,7 +14,7 @@ import type {
   BrowserPluginSettingsProperties,
   OrganizationProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { UserV4Properties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   Entity,
   EntityId,
@@ -67,7 +67,7 @@ export type PageEntityInference = InferenceStatus & {
 type SimplifiedUser = Entity & {
   properties: Required<
     Pick<
-      SimpleProperties<UserV4Properties>,
+      SimpleProperties<UserProperties>,
       "email" | "displayName" | "shortname"
     >
   >;

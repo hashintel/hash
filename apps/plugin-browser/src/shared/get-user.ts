@@ -9,7 +9,7 @@ import {
   BrowserPluginSettingsProperties,
   OrganizationProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import { UserV4Properties } from "@local/hash-isomorphic-utils/system-types/user";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   Entity,
   EntityId,
@@ -75,7 +75,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
       const user = getRoots(subgraph)[0];
 
       const { email, shortname, displayName } = simplifyProperties(
-        user.properties as UserV4Properties,
+        user.properties as UserProperties,
       );
 
       if (!shortname || !displayName) {

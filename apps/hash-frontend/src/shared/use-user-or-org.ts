@@ -10,7 +10,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { UserV4Properties } from "@local/hash-isomorphic-utils/system-types/user";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   AccountGroupId,
   AccountId,
@@ -110,7 +110,7 @@ export const useUserOrOrg = (
 
     const rootEntity = subgraph
       ? getRoots(subgraph).reduce<
-          Entity<OrganizationProperties> | Entity<UserV4Properties> | undefined
+          Entity<OrganizationProperties> | Entity<UserProperties> | undefined
         >((prev, currentEntity) => {
           if (
             !isEntityUserEntity(currentEntity) &&

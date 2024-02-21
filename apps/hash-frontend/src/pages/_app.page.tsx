@@ -11,7 +11,7 @@ import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import wasm from "@blockprotocol/type-system/type-system.wasm";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/design-system/theme";
-import { UserV4Properties } from "@local/hash-isomorphic-utils/system-types/user";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
@@ -244,7 +244,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
 
   const userEntity = initialAuthenticatedUserSubgraph
     ? (getRoots<EntityRootType>(initialAuthenticatedUserSubgraph)[0] as
-        | Entity<UserV4Properties>
+        | Entity<UserProperties>
         | undefined)
     : undefined;
 

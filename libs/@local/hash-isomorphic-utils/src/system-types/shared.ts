@@ -4,27 +4,16 @@
 
 import { Entity, LinkData } from "@blockprotocol/graph";
 
-export type ActorV1 = Entity<ActorV1Properties>;
+export type Actor = Entity<ActorProperties>;
 
-export type ActorV1OutgoingLinkAndTarget = never;
+export type ActorOutgoingLinkAndTarget = never;
 
-export type ActorV1OutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * Someone or something that can perform actions in the system
- */
-export type ActorV1Properties = {};
-
-export type ActorV2 = Entity<ActorV2Properties>;
-
-export type ActorV2OutgoingLinkAndTarget = never;
-
-export type ActorV2OutgoingLinksByLinkEntityTypeId = {};
+export type ActorOutgoingLinksByLinkEntityTypeId = {};
 
 /**
  * Someone or something that can perform actions in the system
  */
-export type ActorV2Properties = {
+export type ActorProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
 };
 
@@ -121,7 +110,7 @@ export type Comment = Entity<CommentProperties>;
 
 export type CommentAuthoredByLink = {
   linkEntity: AuthoredBy;
-  rightEntity: UserV3;
+  rightEntity: User;
 };
 
 export type CommentHasParentLink = {
@@ -722,11 +711,6 @@ export type PageProperties2 = {
 export type PinnedEntityTypeBaseURLPropertyValue = TextDataType;
 
 /**
- * The preferred name of someone or something.
- */
-export type PreferredNamePropertyValue = TextDataType;
-
-/**
  * Someone's preferred pronouns.
  */
 export type PreferredPronounsPropertyValue = TextDataType;
@@ -888,67 +872,49 @@ export type TriggeredByUserProperties2 = {};
  */
 export type UploadCompletedAtPropertyValue = DateTimeDataType;
 
-export type UserSecret = Entity<UserSecretProperties>;
+export type User = Entity<UserProperties>;
 
-export type UserSecretOutgoingLinkAndTarget = never;
+export type UserHasAvatarLink = { linkEntity: HasAvatar; rightEntity: ImageV1 };
 
-export type UserSecretOutgoingLinksByLinkEntityTypeId = {};
+export type UserHasBioLink = { linkEntity: HasBio; rightEntity: ProfileBio };
 
-/**
- * A secret or credential belonging to a user.
- */
-export type UserSecretProperties = {
-  "https://hash.ai/@hash/types/property-type/connection-source-name/": ConnectionSourceNamePropertyValue;
-  "https://hash.ai/@hash/types/property-type/expired-at/": ExpiredAtPropertyValue;
-  "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValue;
-};
-
-export type UserV3 = Entity<UserV3Properties>;
-
-export type UserV3HasAvatarLink = {
-  linkEntity: HasAvatar;
-  rightEntity: ImageV1;
-};
-
-export type UserV3HasBioLink = { linkEntity: HasBio; rightEntity: ProfileBio };
-
-export type UserV3HasLink = {
+export type UserHasLink = {
   linkEntity: Has;
   rightEntity: BrowserPluginSettings;
 };
 
-export type UserV3HasServiceAccountLink = {
+export type UserHasServiceAccountLink = {
   linkEntity: HasServiceAccount;
   rightEntity: ServiceAccount;
 };
 
-export type UserV3IsMemberOfLink = {
+export type UserIsMemberOfLink = {
   linkEntity: IsMemberOf;
   rightEntity: Organization;
 };
 
-export type UserV3OutgoingLinkAndTarget =
-  | UserV3HasAvatarLink
-  | UserV3HasBioLink
-  | UserV3HasServiceAccountLink
-  | UserV3HasLink
-  | UserV3IsMemberOfLink;
+export type UserOutgoingLinkAndTarget =
+  | UserHasAvatarLink
+  | UserHasBioLink
+  | UserHasServiceAccountLink
+  | UserHasLink
+  | UserIsMemberOfLink;
 
-export type UserV3OutgoingLinksByLinkEntityTypeId = {
-  "https://hash.ai/@hash/types/entity-type/has-avatar/v/1": UserV3HasAvatarLink;
-  "https://hash.ai/@hash/types/entity-type/has-bio/v/1": UserV3HasBioLink;
-  "https://hash.ai/@hash/types/entity-type/has-service-account/v/1": UserV3HasServiceAccountLink;
-  "https://hash.ai/@hash/types/entity-type/has/v/1": UserV3HasLink;
-  "https://hash.ai/@hash/types/entity-type/is-member-of/v/1": UserV3IsMemberOfLink;
+export type UserOutgoingLinksByLinkEntityTypeId = {
+  "https://hash.ai/@hash/types/entity-type/has-avatar/v/1": UserHasAvatarLink;
+  "https://hash.ai/@hash/types/entity-type/has-bio/v/1": UserHasBioLink;
+  "https://hash.ai/@hash/types/entity-type/has-service-account/v/1": UserHasServiceAccountLink;
+  "https://hash.ai/@hash/types/entity-type/has/v/1": UserHasLink;
+  "https://hash.ai/@hash/types/entity-type/is-member-of/v/1": UserIsMemberOfLink;
 };
 
 /**
  * A user of the HASH application.
  */
-export type UserV3Properties = UserV3Properties1 & UserV3Properties2;
-export type UserV3Properties1 = ActorV1Properties;
+export type UserProperties = UserProperties1 & UserProperties2;
+export type UserProperties1 = ActorProperties;
 
-export type UserV3Properties2 = {
+export type UserProperties2 = {
   /**
    * @minItems 1
    */
@@ -986,10 +952,24 @@ export type UserV3Properties2 = {
         PinnedEntityTypeBaseURLPropertyValue,
         PinnedEntityTypeBaseURLPropertyValue,
       ];
-  "https://hash.ai/@hash/types/property-type/preferred-name/"?: PreferredNamePropertyValue;
   "https://hash.ai/@hash/types/property-type/preferred-pronouns/"?: PreferredPronounsPropertyValue;
   "https://hash.ai/@hash/types/property-type/shortname/"?: ShortnamePropertyValue;
   "https://hash.ai/@hash/types/property-type/website-url/"?: WebsiteURLPropertyValue;
+};
+
+export type UserSecret = Entity<UserSecretProperties>;
+
+export type UserSecretOutgoingLinkAndTarget = never;
+
+export type UserSecretOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A secret or credential belonging to a user.
+ */
+export type UserSecretProperties = {
+  "https://hash.ai/@hash/types/property-type/connection-source-name/": ConnectionSourceNamePropertyValue;
+  "https://hash.ai/@hash/types/property-type/expired-at/": ExpiredAtPropertyValue;
+  "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValue;
 };
 
 /**
