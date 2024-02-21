@@ -76,6 +76,8 @@ type FileUploadRequestData = {
   ownedById: OwnedById;
   // Pass if retrying an earlier request
   requestId?: string;
+  // A function which will be called when the upload is complete
+  onComplete?: (upload: FileUploadComplete) => unknown;
 };
 
 type FileUploadEntities = {
@@ -206,6 +208,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
       fileData,
       linkedEntityData,
       makePublic,
+      onComplete,
       ownedById,
       requestId,
     }) => {
@@ -241,6 +244,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             fileData,
             linkedEntityData,
             makePublic,
+            onComplete,
             ownedById,
             requestId: newRequestId!,
             status: "creating-file-entity",
@@ -439,6 +443,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           createdEntities: { fileEntity },
         };
         updateUpload(updatedUpload);
+        upload.onComplete?.(updatedUpload);
         return updatedUpload;
       }
 
@@ -536,6 +541,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           },
         };
         updateUpload(updatedUpload);
+        upload.onComplete?.(updatedUpload);
         return updatedUpload;
       } catch (err) {
         const errorMessage = `Error creating link entity: ${
