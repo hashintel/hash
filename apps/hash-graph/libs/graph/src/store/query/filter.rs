@@ -453,12 +453,11 @@ impl Parameter<'_> {
 #[cfg(test)]
 mod tests {
     use graph_types::{
-        knowledge::entity::{DraftId, EntityId, EntityUuid},
+        knowledge::entity::{DraftId, EntityUuid},
         ontology::DataTypeWithMetadata,
         owned_by_id::OwnedById,
     };
     use serde_json::json;
-    use type_system::url::BaseUrl;
 
     use super::*;
     use crate::ontology::DataTypeQueryPath;

@@ -121,16 +121,13 @@ pub trait EntityProvider {
 mod tests {
     use std::collections::HashMap;
 
-    use graph_types::knowledge::entity::{EntityId, EntityProperties};
+    use graph_types::knowledge::entity::EntityProperties;
     use serde_json::Value as JsonValue;
     use thiserror::Error;
-    use type_system::{DataType, EntityType, PropertyType};
+    use type_system::{DataType, PropertyType};
 
     use super::*;
-    use crate::{
-        data_type::DataValidationError, entity_type::EntityValidationError,
-        error::install_error_stack_hooks, property_type::PropertyValidationError,
-    };
+    use crate::error::install_error_stack_hooks;
 
     struct Provider {
         entities: HashMap<EntityId, Entity>,

@@ -126,10 +126,7 @@ impl Transpile for JoinExpression {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::store::postgres::query::{
-        table::{Column, DataTypes, OntologyIds},
-        Alias,
-    };
+    use crate::store::postgres::query::table::{DataTypes, OntologyIds};
 
     #[test]
     fn transpile_join_expression() {
