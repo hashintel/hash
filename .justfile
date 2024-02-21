@@ -122,10 +122,6 @@ install-llvm-cov:
 install-cargo-insta:
   @just install-cargo-tool 'cargo insta' cargo-insta 1.18.2
 
-[private]
-install-wasm-pack:
-  @just install-cargo-tool 'wasm-pack' wasm-pack 0.12.1
-
 
 ######################################################################
 ## Predefined commands

@@ -5,6 +5,7 @@
   "scripts": {
     "build:wasm": "wasm-pack build --target web --out-name type-system --scope blockprotocol --release . && rm pkg/package.json",
     "fix:clippy": "just clippy --fix",
+    "postinstall": "wasm-pack --version | grep -q '0.12.1' || cargo install 'wasm-pack' --version '0.12.1' --locked --force",
     "lint:clippy": "just clippy",
     "test:unit": "cargo nextest run --all-features --all-targets && cargo test --all-features --doc"
   },
