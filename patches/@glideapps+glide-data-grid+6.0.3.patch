@@ -1,0 +1,77 @@
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/data-editor.js b/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/data-editor.js
+index 081f3b3..7237eac 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/data-editor.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/cjs/data-editor/data-editor.js
+@@ -2597,7 +2597,9 @@ const DataEditorImpl = (p, forwardedRef) => {
+                 void normalSizeColumn(col + rowMarkerOffset);
+             }
+         },
+-    }), [appendRow, normalSizeColumn, onCopy, onKeyDown, onPasteInternal, rowMarkerOffset, scrollTo]);
++        /** Patched to expose setOverlaySimple – search repo for usage */
++        setOverlaySimple
++    }), [appendRow, normalSizeColumn, onCopy, onKeyDown, onPasteInternal, rowMarkerOffset, scrollTo, setOverlaySimple]);
+     const [selCol, selRow] = currentCell ?? [];
+     const onCellFocused = React.useCallback((cell) => {
+         const [col, row] = cell;
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/dts/cells/cell-types.d.ts b/node_modules/@glideapps/glide-data-grid/dist/dts/cells/cell-types.d.ts
+index ba1b317..737b584 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/dts/cells/cell-types.d.ts
++++ b/node_modules/@glideapps/glide-data-grid/dist/dts/cells/cell-types.d.ts
+@@ -24,6 +24,8 @@ export interface BaseDrawArgs {
+ export type DrawStateTuple = [any, (state: any) => void];
+ export interface DrawArgs<T extends InnerGridCell> extends BaseDrawArgs {
+     cell: T;
++    /** Patched to be able to use a tableId to distinguish between multiple tables on a page */
++    tableId: string;
+     requestAnimationFrame: (state?: any) => void;
+     drawState: DrawStateTuple;
+     frameTime: number;
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/dts/data-editor/data-editor.d.ts b/node_modules/@glideapps/glide-data-grid/dist/dts/data-editor/data-editor.d.ts
+index 6194a16..804374b 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/dts/data-editor/data-editor.d.ts
++++ b/node_modules/@glideapps/glide-data-grid/dist/dts/data-editor/data-editor.d.ts
+@@ -468,6 +468,15 @@ export interface DataEditorRef {
+      * Causes the columns in the selection to have their natural size recomputed and re-emitted as a resize event.
+      */
+     remeasureColumns: (cols: CompactSelection) => void;
++    /** Patched to expose setOverlaySimple – search repo for usage */
++    setOverlaySimple: (val: NonNullable<{
++       target: Rectangle;
++       content: GridCell;
++       initialValue: string | undefined;
++       cell: Item;
++       highlight: boolean;
++       forceEditMode: boolean;
++    }>) => void
+ }
+ /**
+  * The primary component of Glide Data Grid.
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/dts/internal/data-grid/data-grid-types.d.ts b/node_modules/@glideapps/glide-data-grid/dist/dts/internal/data-grid/data-grid-types.d.ts
+index 4007ec6..1958aa7 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/dts/internal/data-grid/data-grid-types.d.ts
++++ b/node_modules/@glideapps/glide-data-grid/dist/dts/internal/data-grid/data-grid-types.d.ts
+@@ -141,7 +141,8 @@ export declare function isSizedGridColumn(c: GridColumn): c is SizedGridColumn;
+ /** @category Columns */
+ export interface SizedGridColumn extends BaseGridColumn {
+     readonly width: number;
+-    readonly id?: string;
++    /** Patched to require that SizedGridColumn has an id */
++    readonly id: string;
+ }
+ /** @category Columns */
+ export interface AutoGridColumn extends BaseGridColumn {
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/data-editor.js b/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/data-editor.js
+index ec05aa9..b063bf0 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/data-editor.js
++++ b/node_modules/@glideapps/glide-data-grid/dist/esm/data-editor/data-editor.js
+@@ -2568,7 +2568,9 @@ const DataEditorImpl = (p, forwardedRef) => {
+                 void normalSizeColumn(col + rowMarkerOffset);
+             }
+         },
+-    }), [appendRow, normalSizeColumn, onCopy, onKeyDown, onPasteInternal, rowMarkerOffset, scrollTo]);
++        /** Patched to expose setOverlaySimple – search repo for usage */
++        setOverlaySimple
++    }), [appendRow, normalSizeColumn, onCopy, onKeyDown, onPasteInternal, rowMarkerOffset, scrollTo, setOverlaySimple]);
+     const [selCol, selRow] = currentCell ?? [];
+     const onCellFocused = React.useCallback((cell) => {
+         const [col, row] = cell;
