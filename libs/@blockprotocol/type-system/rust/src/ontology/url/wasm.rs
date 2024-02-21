@@ -3,6 +3,7 @@ use tsify::Tsify;
 // Generates the TypeScript alias: type VersionedUrl = `${BaseUrl}v/${number}`
 #[derive(Tsify)]
 #[serde(rename = "VersionedUrl")]
+#[expect(dead_code, reason = "Used in the generated TypeScript types")]
 pub struct VersionedUrlPatch(#[tsify(type = "`${BaseUrl}v/${number}`")] String);
 
 // #[wasm_bindgen(typescript_custom_section)]

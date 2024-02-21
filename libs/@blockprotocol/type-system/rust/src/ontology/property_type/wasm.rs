@@ -1,14 +1,11 @@
 use wasm_bindgen::prelude::*;
 
-use crate::{
-    raw,
-    utils::{set_panic_hook, Result},
-    ParsePropertyTypeError, PropertyType,
-};
+use crate::{raw, utils::Result, ParsePropertyTypeError, PropertyType};
 
 fn convert_property_type(
     property_type_obj: &JsValue,
 ) -> std::result::Result<PropertyType, ParsePropertyTypeError> {
+    #[expect(deprecated, reason = "https://linear.app/hash/issue/H-2212")]
     let property_type_repr = property_type_obj
         .into_serde::<raw::PropertyType>()
         .map_err(|err| ParsePropertyTypeError::InvalidJson(err.to_string()))?;
@@ -30,9 +27,10 @@ export function validatePropertyType(propertyType: PropertyType): Result<undefin
 #[wasm_bindgen(skip_typescript, js_name = validatePropertyType)]
 pub fn validate_property_type(property_type_obj: &JsValue) -> JsValue {
     #[cfg(debug_assertions)]
-    set_panic_hook();
+    crate::utils::set_panic_hook();
 
     let validate_result: Result<(), _> =
         convert_property_type(property_type_obj).map(|_| ()).into();
+    #[expect(deprecated, reason = "https://linear.app/hash/issue/H-2212")]
     JsValue::from_serde(&validate_result).expect("failed to serialize result")
 }

@@ -1,14 +1,11 @@
 use wasm_bindgen::prelude::*;
 
-use crate::{
-    raw,
-    utils::{set_panic_hook, Result},
-    EntityType, ParseEntityTypeError,
-};
+use crate::{raw, utils::Result, EntityType, ParseEntityTypeError};
 
 fn convert_entity_type(
     entity_type_obj: &JsValue,
 ) -> std::result::Result<EntityType, ParseEntityTypeError> {
+    #[expect(deprecated, reason = "https://linear.app/hash/issue/H-2212")]
     let entity_type_repr = entity_type_obj
         .into_serde::<raw::EntityType>()
         .map_err(|err| ParseEntityTypeError::InvalidJson(err.to_string()))?;
@@ -30,8 +27,9 @@ export function validateEntityType(entityType: EntityType): Result<undefined, Pa
 #[wasm_bindgen(skip_typescript, js_name = validateEntityType)]
 pub fn validate_entity_type(entity_type_obj: &JsValue) -> JsValue {
     #[cfg(debug_assertions)]
-    set_panic_hook();
+    crate::utils::set_panic_hook();
 
     let validate_result: Result<(), _> = convert_entity_type(entity_type_obj).map(|_| ()).into();
+    #[expect(deprecated, reason = "https://linear.app/hash/issue/H-2212")]
     JsValue::from_serde(&validate_result).expect("failed to serialize result")
 }
