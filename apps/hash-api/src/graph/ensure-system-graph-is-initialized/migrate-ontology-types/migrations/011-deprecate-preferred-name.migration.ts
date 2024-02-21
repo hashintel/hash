@@ -14,7 +14,7 @@ import {
   upgradeDependenciesInHashEntityType,
   upgradeEntitiesToNewTypeVersion,
 } from "../util";
-import { replaceEntityTypeReference } from "../util/upgrade-entity-type-dependencies";
+import { upgradeEntityTypeDependencies } from "../util/upgrade-entity-type-dependencies";
 
 const migrate: MigrationFunction = async ({
   context,
@@ -71,7 +71,28 @@ const migrate: MigrationFunction = async ({
   });
 
   /**
-   * Step 3. Update `User` to inherit from the latest version of `Actor`,
+   * Step 3: as a drive-by update entity types that reference the
+   * `Image` entity type
+   */
+
+  const latestImageEntityTypeId = getCurrentHashSystemEntityTypeId({
+    entityTypeKey: "image",
+    migrationState,
+  });
+
+  await upgradeDependenciesInHashEntityType(context, authentication, {
+    upgradedEntityTypeIds: [latestImageEntityTypeId],
+    dependentEntityTypeKeys: ["organization"],
+    migrationState,
+  });
+
+  const latestOrganizationEntityTypeId = getCurrentHashSystemEntityTypeId({
+    entityTypeKey: "organization",
+    migrationState,
+  });
+
+  /**
+   * Step 4. Update `User` to inherit from the latest version of `Actor`,
    * removing the `preferredName` property type in the same update
    */
 
@@ -89,7 +110,18 @@ const migrate: MigrationFunction = async ({
   );
 
   const newUserEntityTypeSchema: EntityType = {
-    ...userEntityTypeSchema,
+    ...upgradeEntityTypeDependencies({
+      schema: userEntityTypeSchema,
+      upgradedEntityTypeIds: [
+        updatedActorEntityTypeId,
+        /**
+         * Drive by: upgrade references to the `Image` entity type
+         * to the latest version of the type.
+         */
+        latestImageEntityTypeId,
+        latestOrganizationEntityTypeId,
+      ],
+    }),
     properties: Object.entries(userEntityTypeSchema.properties).reduce(
       (prev, [propertyTypeBaseUrl, value]) => {
         if (
@@ -106,12 +138,6 @@ const migrate: MigrationFunction = async ({
       },
       {},
     ),
-    allOf: userEntityTypeSchema.allOf?.map((reference) =>
-      replaceEntityTypeReference({
-        reference,
-        upgradedEntityTypeIds: [updatedActorEntityTypeId],
-      }),
-    ),
   };
 
   const { updatedEntityTypeId: updatedUserEntityTypeId } =
@@ -122,7 +148,7 @@ const migrate: MigrationFunction = async ({
     });
 
   /**
-   * Step 4: Update entity types that reference the `User` entity type
+   * Step 5: Update entity types that reference the `User` entity type
    */
 
   await upgradeDependenciesInHashEntityType(context, authentication, {
@@ -138,7 +164,18 @@ const migrate: MigrationFunction = async ({
   });
 
   /**
-   * Step 5: Assign entities of updated types to the latest version
+   * Step 6. Update entity types that reference the `Organization` entity type
+   * (excluding the `User` entity type which was updated in step 4)
+   */
+
+  await upgradeDependenciesInHashEntityType(context, authentication, {
+    upgradedEntityTypeIds: [latestOrganizationEntityTypeId],
+    dependentEntityTypeKeys: ["linearIntegration"],
+    migrationState,
+  });
+
+  /**
+   * Step 7: Assign entities of updated types to the latest version
    */
   const baseUrls = [
     systemEntityTypes.machine.entityTypeBaseUrl,
@@ -148,6 +185,10 @@ const migrate: MigrationFunction = async ({
     systemEntityTypes.commentNotification.entityTypeBaseUrl,
     systemEntityTypes.linearIntegration.entityTypeBaseUrl,
     systemEntityTypes.mentionNotification.entityTypeBaseUrl,
+    // Types that reference `Image` which were updated (excluding `User`)
+    systemEntityTypes.organization.entityTypeBaseUrl,
+    // Types that reference `Organization` which were updated (excluding `User`)
+    systemEntityTypes.linearIntegration.entityTypeBaseUrl,
   ] as BaseUrl[];
 
   await upgradeEntitiesToNewTypeVersion(context, authentication, {

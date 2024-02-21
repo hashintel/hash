@@ -2,15 +2,17 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity } from "@blockprotocol/graph";
-
 import {
   BooleanDataType,
   DateTimeDataType,
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
+  File,
   FileHashPropertyValue,
   FileNamePropertyValue,
+  FileOutgoingLinkAndTarget,
+  FileOutgoingLinksByLinkEntityTypeId,
+  FileProperties,
   FileSizePropertyValue,
   FileStorageBucketPropertyValue,
   FileStorageEndpointPropertyValue,
@@ -19,10 +21,10 @@ import {
   FileStorageProviderPropertyValue,
   FileStorageRegionPropertyValue,
   FileURLPropertyValue,
-  FileV2,
-  FileV2OutgoingLinkAndTarget,
-  FileV2OutgoingLinksByLinkEntityTypeId,
-  FileV2Properties,
+  Image,
+  ImageOutgoingLinkAndTarget,
+  ImageOutgoingLinksByLinkEntityTypeId,
+  ImageProperties,
   MIMETypePropertyValue,
   NumberDataType,
   OriginalFileNamePropertyValue,
@@ -37,8 +39,12 @@ export type {
   DateTimeDataType,
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
+  File,
   FileHashPropertyValue,
   FileNamePropertyValue,
+  FileOutgoingLinkAndTarget,
+  FileOutgoingLinksByLinkEntityTypeId,
+  FileProperties,
   FileSizePropertyValue,
   FileStorageBucketPropertyValue,
   FileStorageEndpointPropertyValue,
@@ -47,10 +53,10 @@ export type {
   FileStorageProviderPropertyValue,
   FileStorageRegionPropertyValue,
   FileURLPropertyValue,
-  FileV2,
-  FileV2OutgoingLinkAndTarget,
-  FileV2OutgoingLinksByLinkEntityTypeId,
-  FileV2Properties,
+  Image,
+  ImageOutgoingLinkAndTarget,
+  ImageOutgoingLinksByLinkEntityTypeId,
+  ImageProperties,
   MIMETypePropertyValue,
   NumberDataType,
   OriginalFileNamePropertyValue,
@@ -59,17 +65,3 @@ export type {
   TextDataType,
   UploadCompletedAtPropertyValue,
 };
-
-export type ImageV2 = Entity<ImageV2Properties>;
-
-export type ImageV2OutgoingLinkAndTarget = never;
-
-export type ImageV2OutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * An image file hosted at a URL
- */
-export type ImageV2Properties = ImageV2Properties1 & ImageV2Properties2;
-export type ImageV2Properties1 = FileV2Properties;
-
-export type ImageV2Properties2 = {};

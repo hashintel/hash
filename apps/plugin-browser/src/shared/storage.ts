@@ -9,7 +9,7 @@ import type {
   SimpleProperties,
   Simplified,
 } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { ImageV2Properties } from "@local/hash-isomorphic-utils/system-types/image";
+import type { ImageProperties } from "@local/hash-isomorphic-utils/system-types/image";
 import type {
   BrowserPluginSettingsProperties,
   OrganizationProperties,
@@ -74,9 +74,9 @@ type SimplifiedUser = Entity & {
 };
 
 type UserAndLinkedData = SimplifiedUser & {
-  avatar?: Entity<ImageV2Properties>;
+  avatar?: Entity<ImageProperties>;
   orgs: (Simplified<Entity<OrganizationProperties>> & {
-    avatar?: Entity<ImageV2Properties>;
+    avatar?: Entity<ImageProperties>;
     webOwnedById: OwnedById;
   })[];
   settingsEntityId: EntityId;

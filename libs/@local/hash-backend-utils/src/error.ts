@@ -1,26 +1,32 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
+import { BaseUrl } from "@local/hash-subgraph";
 
 export class EntityTypeMismatchError extends Error {
   entityId: string;
-  expectedEntityTypeId: VersionedUrl | VersionedUrl[];
-  actualEntityTypeId: VersionedUrl;
+  expectedEntityTypeIdOrBaseUrl:
+    | (BaseUrl | VersionedUrl)
+    | (BaseUrl | VersionedUrl)[];
+
+  actualEntityTypeBaseUrl: BaseUrl | VersionedUrl;
 
   constructor(
     entityId: string,
-    expectedEntityTypeId: VersionedUrl | VersionedUrl[],
-    actualEntityTypeId: VersionedUrl,
+    expectedEntityTypeIdOrBaseUrl:
+      | (BaseUrl | VersionedUrl)
+      | (BaseUrl | VersionedUrl)[],
+    actualEntityTypeBaseUrl: BaseUrl | VersionedUrl,
   ) {
     super(
       `Expected entity with id "${entityId}" to be of type "${
-        typeof expectedEntityTypeId === "string"
-          ? expectedEntityTypeId
-          : expectedEntityTypeId.join('" or "')
-      }" but got:  ${actualEntityTypeId}`,
+        typeof expectedEntityTypeIdOrBaseUrl === "string"
+          ? expectedEntityTypeIdOrBaseUrl
+          : expectedEntityTypeIdOrBaseUrl.join('" or "')
+      }" but got:  ${actualEntityTypeBaseUrl}`,
     );
     this.name = "TypeMismatchError";
     this.entityId = entityId;
-    this.expectedEntityTypeId = expectedEntityTypeId;
-    this.actualEntityTypeId = actualEntityTypeId;
+    this.expectedEntityTypeIdOrBaseUrl = expectedEntityTypeIdOrBaseUrl;
+    this.actualEntityTypeBaseUrl = actualEntityTypeBaseUrl;
   }
 }
 

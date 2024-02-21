@@ -82,7 +82,7 @@ export const systemEntityTypes = {
   },
   linearIntegration: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/linear-integration/v/4",
+      "https://hash.ai/@hash/types/entity-type/linear-integration/v/5",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/linear-integration/",
   },
@@ -107,7 +107,7 @@ export const systemEntityTypes = {
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/notification/",
   },
   organization: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/organization/v/1",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/organization/v/2",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/organization/",
   },
   page: {

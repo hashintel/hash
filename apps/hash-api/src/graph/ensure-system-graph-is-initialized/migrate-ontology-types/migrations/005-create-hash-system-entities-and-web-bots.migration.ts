@@ -39,6 +39,11 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
+  const currentOrganizationEntityTypeId = getCurrentHashSystemEntityTypeId({
+    entityTypeKey: "organization",
+    migrationState,
+  });
+
   /**
    * Step 1: Create the system entities associated with the 'hash' web:
    * 1. The HASH org entity is required to create the HASH Instance entity in Step 2
@@ -50,6 +55,7 @@ const migrate: MigrationFunction = async ({
     websiteUrl,
     webShortname: "hash",
     machineEntityTypeId: currentMachineEntityTypeId,
+    organizationEntityTypeId: currentOrganizationEntityTypeId,
   });
 
   /**

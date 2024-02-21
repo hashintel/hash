@@ -3,8 +3,8 @@ import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
-  FileV2 as File,
-  FileV2Properties,
+  File,
+  FileProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import mime from "mime-types";
@@ -142,7 +142,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   MutationRequestFileUploadArgs,
   Promise<{
     presignedPut: PresignedPutUpload;
-    entity: Entity<FileV2Properties>;
+    entity: Entity<FileProperties>;
   }>,
   true,
   true
@@ -153,7 +153,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   const { entityTypeId, existingEntity, mimeType, ownedById } =
     await generateCommonParameters(ctx, authentication, params, name);
 
-  const initialProperties: FileV2Properties = {
+  const initialProperties: FileProperties = {
     "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
       description ?? undefined,
     "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
@@ -179,7 +179,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
       properties: initialProperties,
       entityTypeId,
       relationships: createDefaultAuthorizationRelationships(authentication),
-    })) as Entity<FileV2Properties>;
+    })) as Entity<FileProperties>;
   }
 
   const editionIdentifier = genId();
@@ -204,7 +204,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
     const { bucket, endpoint, forcePathStyle, provider, region } =
       fileStorageProperties;
 
-    const storageProperties: Partial<FileV2Properties> = {
+    const storageProperties: Partial<FileProperties> = {
       "https://hash.ai/@hash/types/property-type/file-storage-bucket/": bucket,
       "https://hash.ai/@hash/types/property-type/file-storage-endpoint/":
         endpoint,
@@ -216,7 +216,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
       "https://hash.ai/@hash/types/property-type/file-storage-region/": region,
     };
 
-    const properties: FileV2Properties = {
+    const properties: FileProperties = {
       ...initialProperties,
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
         formatUrl(key),
@@ -227,7 +227,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
       entity: fileEntity,
       entityTypeId,
       properties,
-    })) as Entity<FileV2Properties>;
+    })) as Entity<FileProperties>;
 
     return {
       presignedPut,
@@ -252,7 +252,7 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
     await generateCommonParameters(ctx, authentication, params, filename);
 
   try {
-    const properties: FileV2Properties = {
+    const properties: FileProperties = {
       "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
         description ?? undefined,
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":

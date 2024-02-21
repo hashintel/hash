@@ -4,7 +4,7 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { ImageV2 } from "@local/hash-isomorphic-utils/system-types/image";
+import { Image } from "@local/hash-isomorphic-utils/system-types/image";
 import {
   IsMemberOfProperties,
   OrganizationProperties,
@@ -111,7 +111,7 @@ export type Org = MinimalOrg & {
   createdAt: Date;
   hasAvatar?: {
     linkEntity: LinkEntity;
-    imageEntity: ImageV2;
+    imageEntity: Image;
   };
   hasBio?: {
     linkEntity: LinkEntity;
@@ -164,7 +164,7 @@ export const constructOrg = (params: {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: avatarLinkAndEntities[0].linkEntity[0] as LinkEntity,
         imageEntity: avatarLinkAndEntities[0]
-          .rightEntity[0] as unknown as ImageV2,
+          .rightEntity[0] as unknown as Image,
       }
     : undefined;
 
@@ -267,11 +267,11 @@ export type User = MinimalUser & {
   emails: { address: string; primary: boolean; verified: boolean }[];
   hasAvatar?: {
     linkEntity: LinkEntity;
-    imageEntity: ImageV2;
+    imageEntity: Image;
   };
   hasCoverImage?: {
     linkEntity: LinkEntity;
-    imageEntity: ImageV2;
+    imageEntity: Image;
   };
   hasBio?: {
     linkEntity: LinkEntity;
@@ -397,7 +397,7 @@ export const constructUser = (params: {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: avatarLinkAndEntities[0].linkEntity[0] as LinkEntity,
         imageEntity: avatarLinkAndEntities[0]
-          .rightEntity[0] as unknown as ImageV2,
+          .rightEntity[0] as unknown as Image,
       }
     : undefined;
 
@@ -416,7 +416,7 @@ export const constructUser = (params: {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: coverImageLinkAndEntities[0].linkEntity[0] as LinkEntity,
         imageEntity: coverImageLinkAndEntities[0]
-          .rightEntity[0] as unknown as ImageV2,
+          .rightEntity[0] as unknown as Image,
       }
     : undefined;
 

@@ -9,6 +9,7 @@ import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
 import { AccountGroupId, AccountId, OwnedById } from "@local/hash-subgraph";
+import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { enabledIntegrations } from "../../integrations/enabled-integrations";
 import { logger } from "../../logger";
@@ -136,12 +137,14 @@ export const ensureSystemWebEntitiesExist = async ({
   webShortname,
   websiteUrl,
   machineEntityTypeId,
+  organizationEntityTypeId,
 }: {
   context: ImpureGraphContext;
   name: string;
   webShortname: SystemTypeWebShortname;
   websiteUrl: string;
   machineEntityTypeId?: VersionedUrl;
+  organizationEntityTypeId?: VersionedUrl;
 }) => {
   const { accountGroupId, machineActorId: machineActorAccountId } =
     await getOrCreateOwningAccountGroupId(context, webShortname);
@@ -206,6 +209,9 @@ export const ensureSystemWebEntitiesExist = async ({
         shortname: webShortname,
         name,
         websiteUrl,
+        entityTypeVersion: organizationEntityTypeId
+          ? componentsFromVersionedUrl(organizationEntityTypeId).version
+          : undefined,
       });
     }
   }
