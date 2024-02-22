@@ -79,7 +79,7 @@ import { createVaultClient } from "./vault";
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
 const rateLimiter = rateLimit({
-  windowMs: 60 * 20, // 20 seconds
+  windowMs: 1000 * 20, // 20 seconds
   limit: 5, // Limit each IP to 5 requests every 20 seconds
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
@@ -204,6 +204,14 @@ const main = async () => {
   // Longer-term we can set rules which allow only the playground to load
   // Potentially only in development mode
   app.use(helmet({ contentSecurityPolicy: false }));
+
+  if (isProdEnv) {
+    /**
+     * Trust the first proxy, on the assumption that we are running behind a load balancer in production.
+     * This means, for example, that `req.ip` will be set as the rightmost IP in the `X-Forwarded-For` header.
+     */
+    app.set("trust proxy", 1);
+  }
 
   const jsonParser = json({
     // default is 100kb
@@ -347,6 +355,7 @@ const main = async () => {
       logger.info({
         requestId,
         method: req.method,
+        origin: req.headers.origin,
         ip: req.ip,
         path: req.path,
         message: "request",
