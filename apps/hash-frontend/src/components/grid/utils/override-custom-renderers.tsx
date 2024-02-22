@@ -1,7 +1,6 @@
 import {
   DataEditorProps,
   isObjectEditorCallbackResult,
-  Item,
 } from "@glideapps/glide-data-grid";
 import { MutableRefObject, PropsWithChildren } from "react";
 

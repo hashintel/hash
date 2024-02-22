@@ -8,7 +8,6 @@ import {
   GridCell,
   GridCellKind,
   GridColumn,
-  GridMouseEventArgs,
   GridSelection,
   HeaderClickedEventArgs,
   Item,
