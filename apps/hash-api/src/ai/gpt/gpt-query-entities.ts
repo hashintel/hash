@@ -20,28 +20,10 @@ import {
   getPropertyTypeForEntity,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
-import { Session } from "@ory/client";
 import { RequestHandler } from "express";
 
-import { ImpureGraphContext } from "../../graph/context-types";
 import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
-import { User } from "../../graph/knowledge/system-types/user";
-import { VaultClient } from "../../vault";
 import { getUserSimpleWebs, SimpleWeb } from "./shared/webs";
-
-// @todo make this not required –– possibly related to https://github.com/vega/ts-json-schema-generator/issues/1851
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Express {
-    interface Request {
-      context: ImpureGraphContext<true, true> & {
-        vaultClient?: VaultClient;
-      };
-      session: Session | undefined;
-      user: User | undefined;
-    }
-  }
-}
 
 export type GptQueryEntitiesRequestBody = {
   /**
