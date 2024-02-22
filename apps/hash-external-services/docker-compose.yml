@@ -135,6 +135,7 @@ services:
       - "4445:4445" # admin API
     environment:
       DSN: "postgres://${HASH_HYDRA_PG_USER}:${HASH_HYDRA_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_HYDRA_PG_DATABASE}"
+      SECRETS_COOKIE: "${HASH_HYDRA_SECRETS_COOKIE}"
       SECRETS_SYSTEM: "${HASH_HYDRA_SECRETS_SYSTEM}"
       URLS_CONSENT: "${API_ORIGIN}/oauth2/consent"
       URLS_IDENTITY_PROVIDER_PUBLICURL: "http://kratos:4433"

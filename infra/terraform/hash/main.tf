@@ -288,6 +288,10 @@ module "application" {
       value = "postgres://hydra:${sensitive(data.vault_kv_secret_v2.secrets.data["pg_hydra_user_password_raw"])}@${module.postgres.pg_host}:${module.postgres.pg_port}/hydra"
     },
     {
+      name  = "SECRETS_COOKIE", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_hydra_secrets_cookie"])
+    },
+    {
       name  = "SECRETS_SYSTEM", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_hydra_secrets_system"])
     },

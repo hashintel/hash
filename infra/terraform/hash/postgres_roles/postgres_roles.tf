@@ -93,7 +93,7 @@ resource "postgresql_grant" "make_references" {
 # 4. Extract password
 #    select rolpassword from pg_authid where rolname = 'postgres';
 # 5. Copy the result, repeat from step 3 as needed
-# 6. Quit wiht `\q` and stop the container
+# 6. Quit with `\q` and stop the container
 #    docker stop postgres-dummy
 ######################################################################
 
