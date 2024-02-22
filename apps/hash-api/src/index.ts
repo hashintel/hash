@@ -27,7 +27,7 @@ import * as Sentry from "@sentry/node";
 import { json } from "body-parser";
 import cors from "cors";
 import proxy from "express-http-proxy";
-import { rateLimit } from "express-rate-limit";
+import { Options as RateLimitOptions, rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
 import { createHttpTerminator } from "http-terminator";
@@ -87,14 +87,23 @@ import { createVaultClient } from "./vault";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
-/**
- * A rate limiter for routes which grant authentication or authorization credentials
- */
-const authRouteRateLimiter = rateLimit({
+const baseRateLimitOptions: Partial<RateLimitOptions> = {
   windowMs: process.env.NODE_ENV === "test" ? 1000 * 5 : 1000 * 20, // 20 seconds
   limit: 5, // Limit each IP to 5 requests every 20 seconds
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+};
+
+/**
+ * A rate limiter for routes which grant authentication or authorization credentials
+ */
+const authRouteRateLimiter = rateLimit(baseRateLimitOptions);
+
+/**
+ * A rate limit which throttles requests based on the user identifier rather than the IP address.
+ */
+const userIdentifierRateLimiter = rateLimit({
+  ...baseRateLimitOptions,
   keyGenerator: (req) => {
     if (req.body.identifier) {
       /**
@@ -284,6 +293,7 @@ const main = async () => {
   app.use(
     "/auth/*",
     authRouteRateLimiter,
+    userIdentifierRateLimiter,
     cors(CORS_CONFIG),
     (req, res, next) => {
       const expectedAccessControlAllowOriginHeader = res.getHeader(
