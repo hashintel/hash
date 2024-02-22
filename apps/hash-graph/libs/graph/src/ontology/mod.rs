@@ -12,7 +12,6 @@ use graph_types::ontology::{
     DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
 };
 use serde::Deserialize;
-use serde_json;
 use temporal_versioning::TimeAxis;
 use type_system::url::VersionedUrl;
 #[cfg(feature = "utoipa")]

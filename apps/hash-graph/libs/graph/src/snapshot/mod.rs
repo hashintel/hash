@@ -493,6 +493,7 @@ where
                 "SELECT
                     web_id,
                     entity_uuid,
+                    draft_id,
                     property,
                     embedding,
                     updated_at_decision_time,
@@ -508,13 +509,14 @@ where
                     entity_id: EntityId {
                         owned_by_id: OwnedById::new(row.get(0)),
                         entity_uuid: row.get(1),
+                        draft_id: row.get(2),
                     },
-                    property: row.get::<_, Option<String>>(2).map(|property| {
+                    property: row.get::<_, Option<String>>(3).map(|property| {
                         BaseUrl::new(property).expect("Invalid property URL returned from Postgres")
                     }),
-                    embedding: row.get(3),
-                    updated_at_decision_time: row.get(4),
-                    updated_at_transaction_time: row.get(5),
+                    embedding: row.get(4),
+                    updated_at_decision_time: row.get(5),
+                    updated_at_transaction_time: row.get(6),
                 })
             }))
     }

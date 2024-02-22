@@ -290,6 +290,16 @@ pub struct PinnedTemporalAxis<A> {
     pub timestamp: Timestamp<A>,
 }
 
+impl<A: Default> PinnedTemporalAxis<A> {
+    #[must_use]
+    pub fn new(timestamp: Timestamp<A>) -> Self {
+        Self {
+            axis: A::default(),
+            timestamp,
+        }
+    }
+}
+
 #[cfg(feature = "utoipa")]
 impl<'s, A> ToSchema<'s> for PinnedTemporalAxis<A>
 where
@@ -320,6 +330,19 @@ where
 pub struct VariableTemporalAxis<A> {
     pub axis: A,
     pub interval: RightBoundedTemporalInterval<A>,
+}
+
+impl<A> VariableTemporalAxis<A>
+where
+    A: Default,
+{
+    #[must_use]
+    pub fn new(start: TemporalBound<A>, end: LimitedTemporalBound<A>) -> Self {
+        Self {
+            axis: A::default(),
+            interval: RightBoundedTemporalInterval::new(start, end),
+        }
+    }
 }
 
 impl<A> VariableTemporalAxis<A> {

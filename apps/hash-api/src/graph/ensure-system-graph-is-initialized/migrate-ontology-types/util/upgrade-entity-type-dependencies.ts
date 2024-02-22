@@ -6,7 +6,7 @@ import {
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-const replaceEntityTypeReference = ({
+export const replaceEntityTypeReference = ({
   reference,
   upgradedEntityTypeIds,
 }: {

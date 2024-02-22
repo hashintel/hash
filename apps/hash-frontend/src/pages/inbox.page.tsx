@@ -1,5 +1,6 @@
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
+  extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
@@ -114,7 +115,9 @@ const GraphChangeNotificationContent = ({
       >
         {occurredInEntityLabel}
       </Link>{" "}
-      {occurredInEntity.metadata.draft ? "as draft" : ""}
+      {extractDraftIdFromEntityId(occurredInEntity.metadata.recordId.entityId)
+        ? "as draft"
+        : ""}
     </Typography>
   );
 };
@@ -139,7 +142,7 @@ const PageRelatedNotificationContent = ({
   return (
     <>
       <Link noLinkStyle href={`/@${triggeredByUser.shortname}`}>
-        {triggeredByUser.preferredName}
+        {triggeredByUser.displayName}
       </Link>{" "}
       {kind === "new-comment"
         ? "commented on "

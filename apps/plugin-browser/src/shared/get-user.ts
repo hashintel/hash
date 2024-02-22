@@ -4,12 +4,12 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { ImageProperties } from "@local/hash-isomorphic-utils/system-types/image";
 import {
   BrowserPluginSettingsProperties,
-  ImageProperties,
   OrganizationProperties,
-  UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   Entity,
   EntityId,
@@ -74,11 +74,11 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
 
       const user = getRoots(subgraph)[0];
 
-      const { email, shortname, preferredName } = simplifyProperties(
+      const { email, shortname, displayName } = simplifyProperties(
         user.properties as UserProperties,
       );
 
-      if (!shortname || !preferredName) {
+      if (!shortname || !displayName) {
         // User has not completed signup
         return null;
       }
@@ -221,7 +221,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         orgs,
         properties: {
           email,
-          preferredName,
+          displayName,
           shortname,
         },
         settingsEntityId,

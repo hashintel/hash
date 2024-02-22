@@ -10,7 +10,6 @@ import {
   Item,
   TextCell,
 } from "@glideapps/glide-data-grid";
-import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
 import { ListRegularIcon } from "@hashintel/design-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -51,6 +50,7 @@ import {
   gridRowHeight,
 } from "../../components/grid/grid";
 import { BlankCell, blankCell } from "../../components/grid/utils";
+import { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
 import { ColumnFilter } from "../../components/grid/utils/filtering";
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { useEntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
@@ -324,9 +324,7 @@ export const EntitiesTable: FunctionComponent<{
           } else if (columnId === "lastEditedBy") {
             const { lastEditedBy } = row;
             const lastEditedByName = lastEditedBy
-              ? "displayName" in lastEditedBy
-                ? lastEditedBy.displayName
-                : lastEditedBy.preferredName
+              ? lastEditedBy.displayName
               : undefined;
 
             const lastEditedByIcon = lastEditedBy
@@ -509,10 +507,7 @@ export const EntitiesTable: FunctionComponent<{
         columnKey: "lastEditedBy",
         filterItems: lastEditedByActors.map((actor) => ({
           id: actor.accountId,
-          label:
-            ("displayName" in actor
-              ? actor.displayName
-              : actor.preferredName) ?? "Unknown Actor",
+          label: actor.displayName ?? "Unknown Actor",
         })),
         selectedFilterItemIds: selectedLastEditedByAccountIds,
         setSelectedFilterItemIds: setSelectedLastEditedByAccountIds,

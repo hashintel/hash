@@ -1,4 +1,8 @@
-import type { GraphApi } from "@local/hash-graph-client";
+import type {
+  Embedding,
+  EntityEmbedding,
+  GraphApi,
+} from "@local/hash-graph-client";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
@@ -7,7 +11,6 @@ import type {
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import type {
-  BaseUrl,
   DataTypeWithMetadata,
   EntityPropertiesObject,
   EntityTypeWithMetadata,
@@ -60,7 +63,7 @@ export const createAiActivities = ({
   async createDataTypeEmbeddingsActivity(params: {
     dataType: DataTypeWithMetadata;
   }): Promise<{
-    embeddings: { embedding: number[] }[];
+    embedding: Embedding;
     usage: CreateEmbeddingResponse.Usage;
   }> {
     return createDataTypeEmbeddings({
@@ -71,7 +74,7 @@ export const createAiActivities = ({
   async createPropertyTypeEmbeddingsActivity(params: {
     propertyType: PropertyTypeWithMetadata;
   }): Promise<{
-    embeddings: { embedding: number[] }[];
+    embedding: Embedding;
     usage: CreateEmbeddingResponse.Usage;
   }> {
     return createPropertyTypeEmbeddings({
@@ -82,7 +85,7 @@ export const createAiActivities = ({
   async createEntityTypeEmbeddingsActivity(params: {
     entityType: EntityTypeWithMetadata;
   }): Promise<{
-    embeddings: { embedding: number[] }[];
+    embedding: Embedding;
     usage: CreateEmbeddingResponse.Usage;
   }> {
     return createEntityTypeEmbeddings({
@@ -94,7 +97,7 @@ export const createAiActivities = ({
     entityProperties: EntityPropertiesObject;
     propertyTypes: PropertyTypeWithMetadata[];
   }): Promise<{
-    embeddings: { property?: BaseUrl; embedding: number[] }[];
+    embeddings: EntityEmbedding[];
     usage: CreateEmbeddingResponse.Usage;
   }> {
     return createEntityEmbeddings({

@@ -1,5 +1,5 @@
+import type { DrawArgs } from "@glideapps/glide-data-grid";
 import { CustomCell } from "@glideapps/glide-data-grid";
-import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
 
 const addAlpha = (color: string, opacity: number) => {
   if (opacity < 0 || opacity > 1) {

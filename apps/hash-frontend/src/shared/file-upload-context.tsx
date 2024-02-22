@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { FileV2Properties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
   EntityId,
@@ -81,7 +81,7 @@ type FileUploadRequestData = {
 };
 
 type FileUploadEntities = {
-  fileEntity: Entity<FileV2Properties>;
+  fileEntity: Entity<FileProperties>;
   linkEntity?: LinkEntity;
 };
 
@@ -278,7 +278,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           }
 
           fileEntity =
-            data.createFileFromUrl as unknown as Entity<FileV2Properties>;
+            data.createFileFromUrl as unknown as Entity<FileProperties>;
 
           if (makePublic) {
             /** @todo: make entity public as part of `createEntity` query once this is supported */
@@ -341,7 +341,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             }
 
             fileEntity = data.requestFileUpload
-              .entity as unknown as Entity<FileV2Properties>;
+              .entity as unknown as Entity<FileProperties>;
 
             if (makePublic) {
               /** @todo: make entity public as part of `createEntity` query once this is supported */
@@ -395,7 +395,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
                   ...fileEntity.properties,
                   "https://hash.ai/@hash/types/property-type/upload-completed-at/":
                     uploadCompletedAt.toISOString(),
-                } as FileV2Properties,
+                } as FileProperties,
               },
             },
           });

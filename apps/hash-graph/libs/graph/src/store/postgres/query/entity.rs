@@ -19,7 +19,8 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             | Self::OwnedById
             | Self::EditionId
             | Self::DecisionTime
-            | Self::TransactionTime => vec![],
+            | Self::TransactionTime
+            | Self::DraftId => vec![],
             Self::CreatedById | Self::CreatedAtTransactionTime | Self::CreatedAtDecisionTime => {
                 vec![Relation::EntityIds]
             }
@@ -28,8 +29,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             | Self::LeftToRightOrder
             | Self::RightToLeftOrder
             | Self::EditionCreatedById
-            | Self::Archived
-            | Self::Draft => vec![Relation::EntityEditions],
+            | Self::Archived => vec![Relation::EntityEditions],
             Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path,
@@ -81,7 +81,9 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
 
     fn terminating_column(&self) -> Column {
         match self {
+            Self::OwnedById => Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),
             Self::Uuid => Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
+            Self::DraftId => Column::EntityTemporalMetadata(EntityTemporalMetadata::DraftId),
             Self::EditionId => Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
             Self::DecisionTime => {
                 Column::EntityTemporalMetadata(EntityTemporalMetadata::DecisionTime)
@@ -90,8 +92,6 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 Column::EntityTemporalMetadata(EntityTemporalMetadata::TransactionTime)
             }
             Self::Archived => Column::EntityEditions(EntityEditions::Archived),
-            Self::Draft => Column::EntityEditions(EntityEditions::Draft),
-            Self::OwnedById => Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),
             Self::EditionCreatedById => Column::EntityEditions(EntityEditions::EditionCreatedById),
             Self::Embedding => Column::EntityEmbeddings(EntityEmbeddings::Embedding),
             Self::CreatedById => Column::EntityIds(EntityIds::CreatedById),

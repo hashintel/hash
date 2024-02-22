@@ -8,7 +8,6 @@ import {
   GridCell,
   GridCellKind,
   GridColumn,
-  GridMouseEventArgs,
   GridSelection,
   HeaderClickedEventArgs,
   Item,
@@ -301,29 +300,6 @@ export const Grid = <T extends Row & { rowId: string }>({
     [hoveredRow, palette],
   );
 
-  const onCellSelect = ({
-    location: [colIndex, rowIndex],
-    kind,
-  }: GridMouseEventArgs) => {
-    setHoveredRow(kind === "cell" ? rowIndex : undefined);
-    setSelection({
-      ...selection,
-      current:
-        kind === "cell"
-          ? {
-              cell: [colIndex, rowIndex],
-              range: {
-                x: colIndex,
-                y: rowIndex,
-                width: 1,
-                height: 1,
-              },
-              rangeStack: [],
-            }
-          : undefined,
-    });
-  };
-
   const overriddenCustomRenderers = useMemo(
     () => overrideCustomRenderers(customRenderers, tableIdRef),
     [customRenderers],
@@ -526,11 +502,13 @@ export const Grid = <T extends Row & { rowId: string }>({
         drawFocusRing={false}
         rangeSelect="cell"
         columnSelect="none"
+        cellActivationBehavior="single-click"
         smoothScrollX
         smoothScrollY
         getCellsForSelection
-        onItemHovered={onCellSelect}
-        onCellClicked={(_, args) => args.isTouch && onCellSelect(args)}
+        onItemHovered={({ location: [_colIndex, rowIndex], kind }) => {
+          setHoveredRow(kind === "cell" ? rowIndex : undefined);
+        }}
         customRenderers={overriddenCustomRenderers}
         onVisibleRegionChanged={handleVisibleRegionChanged}
         onColumnResize={resizable ? handleColumnResize : undefined}
@@ -564,26 +542,22 @@ export const Grid = <T extends Row & { rowId: string }>({
                   : defaultValue;
               }
         }
+        onGridSelectionChange={(newSelection) => {
+          setSelection(newSelection);
+
+          if (onSelectedRowsChange && sortedAndFilteredRows) {
+            newSelection.rows.toArray();
+            const updatedSelectedRows = sortedAndFilteredRows.filter(
+              (_, rowIndex) => selection.rows.hasIndex(rowIndex),
+            );
+
+            onSelectedRowsChange(updatedSelectedRows);
+          }
+        }}
         {...(enableCheckboxSelection
           ? {
               rowMarkers: "checkbox",
               rowSelectionMode: "multi",
-              onGridSelectionChange: onSelectedRowsChange
-                ? (updatedGridSelection) => {
-                    updatedGridSelection.rows.toArray();
-
-                    if (!sortedAndFilteredRows) {
-                      return;
-                    }
-
-                    const updatedSelectedRows = sortedAndFilteredRows.filter(
-                      (_, rowIndex) =>
-                        updatedGridSelection.rows.hasIndex(rowIndex),
-                    );
-
-                    onSelectedRowsChange(updatedSelectedRows);
-                  }
-                : undefined,
             }
           : {})}
         {...rest}

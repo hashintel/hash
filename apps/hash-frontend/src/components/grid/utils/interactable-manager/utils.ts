@@ -1,5 +1,5 @@
+import type { DrawArgs } from "@glideapps/glide-data-grid";
 import { CustomCell, Rectangle } from "@glideapps/glide-data-grid";
-import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
 
 import {
   CellPath,

@@ -11,10 +11,6 @@ pub fn create_report() -> Report<RootError> {
 
 extern crate alloc;
 
-pub use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
 use core::{any::TypeId, panic::Location};
 #[allow(unused_imports)]
 use core::{

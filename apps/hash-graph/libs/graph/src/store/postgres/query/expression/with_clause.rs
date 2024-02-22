@@ -57,7 +57,7 @@ mod tests {
     use crate::store::postgres::query::{
         expression::{GroupByExpression, OrderByExpression},
         test_helper::{max_version_expression, trim_whitespace},
-        Alias, Expression, SelectExpression, SelectStatement, Table, WhereExpression,
+        Alias, Expression, SelectExpression, SelectStatement, WhereExpression,
     };
 
     #[test]

@@ -159,6 +159,7 @@ impl<C: AsClient> PostgresStore<C> {
                             base_id: EntityId {
                                 owned_by_id: traversal_data.owned_by_ids[index],
                                 entity_uuid: traversal_data.entity_uuids[index],
+                                draft_id: None,
                             },
                             revision_id: traversal_data.entity_revision_ids[index],
                         },
@@ -257,6 +258,7 @@ impl<C: AsClient> PostgresStore<C> {
                 let right_endpoint_base_id = EntityId {
                     owned_by_id: row.get(1),
                     entity_uuid: row.get(2),
+                    draft_id: None,
                 };
                 (
                     right_endpoint_base_id,
@@ -265,6 +267,7 @@ impl<C: AsClient> PostgresStore<C> {
                             base_id: EntityId {
                                 owned_by_id: traversal_data.owned_by_ids[index],
                                 entity_uuid: traversal_data.entity_uuids[index],
+                                draft_id: None,
                             },
                             revision_id: traversal_data.entity_revision_ids[index],
                         },

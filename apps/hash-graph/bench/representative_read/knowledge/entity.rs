@@ -5,6 +5,7 @@ use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     knowledge::EntityQueryPath,
     store::{
+        knowledge::GetEntityParams,
         query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
         EntityQuerySorting, EntityStore,
     },
@@ -44,25 +45,27 @@ pub fn bench_get_entity_by_id(
                 .get_entity(
                     actor_id,
                     &NoAuthorization,
-                    &StructuralQuery {
-                        filter: Filter::Equal(
-                            Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-                            Some(FilterExpression::Parameter(Parameter::Uuid(
-                                entity_uuid.into_uuid(),
-                            ))),
-                        ),
-                        graph_resolve_depths: GraphResolveDepths::default(),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                    GetEntityParams {
+                        query: StructuralQuery {
+                            filter: Filter::Equal(
+                                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+                                Some(FilterExpression::Parameter(Parameter::Uuid(
+                                    entity_uuid.into_uuid(),
+                                ))),
+                            ),
+                            graph_resolve_depths: GraphResolveDepths::default(),
+                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                                pinned: PinnedTemporalAxisUnresolved::new(None),
+                                variable: VariableTemporalAxisUnresolved::new(None, None),
+                            },
+                            include_drafts: false,
                         },
-                        include_drafts: false,
+                        sorting: EntityQuerySorting {
+                            paths: Vec::new(),
+                            cursor: None,
+                        },
+                        limit: None,
                     },
-                    EntityQuerySorting {
-                        paths: Vec::new(),
-                        cursor: None,
-                    },
-                    None,
                 )
                 .await
                 .expect("failed to read entity from store");
@@ -97,23 +100,25 @@ pub fn bench_get_entities_by_property(
             .get_entity(
                 actor_id,
                 &NoAuthorization,
-                &StructuralQuery {
-                    filter,
-                    graph_resolve_depths,
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
+                GetEntityParams {
+                    query: StructuralQuery {
+                        filter,
+                        graph_resolve_depths,
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
+                        },
+                        include_drafts: false,
                     },
-                    include_drafts: false,
+                    sorting: EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    limit: None,
                 },
-                EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                None,
             )
             .await
             .expect("failed to read entity from store");
@@ -150,23 +155,25 @@ pub fn bench_get_link_by_target_by_property(
             .get_entity(
                 actor_id,
                 &NoAuthorization,
-                &StructuralQuery {
-                    filter,
-                    graph_resolve_depths,
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
+                GetEntityParams {
+                    query: StructuralQuery {
+                        filter,
+                        graph_resolve_depths,
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
+                        },
+                        include_drafts: false,
                     },
-                    include_drafts: false,
+                    sorting: EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    limit: None,
                 },
-                EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                None,
             )
             .await
             .expect("failed to read entity from store");

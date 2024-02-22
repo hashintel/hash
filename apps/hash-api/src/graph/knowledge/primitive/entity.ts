@@ -2,6 +2,7 @@ import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   EntityPermission,
   EntityStructuralQuery,
+  EntityType,
   Filter,
   GraphResolveDepths,
   ModifyRelationshipOperation,
@@ -31,6 +32,7 @@ import {
   EntityRelationAndSubject,
   EntityRootType,
   EntityUuid,
+  extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   isEntityVertex,
@@ -488,9 +490,8 @@ export const updateEntity: ImpureGraphFunction<
     entityTypeId: entityTypeId ?? entity.metadata.entityTypeId,
     archived: entity.metadata.archived,
     draft:
-      typeof params.draft === "undefined"
-        ? entity.metadata.draft
-        : params.draft,
+      params.draft ??
+      !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
     properties,
   });
 
@@ -527,7 +528,7 @@ export const archiveEntity: ImpureGraphFunction<
      *
      * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
      * */
-    draft: entity.metadata.draft,
+    draft: !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
     entityTypeId: entity.metadata.entityTypeId,
     properties: entity.properties,
   });
@@ -548,7 +549,7 @@ export const unarchiveEntity: ImpureGraphFunction<
      * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
      * */
     archived: false,
-    draft: entity.metadata.draft,
+    draft: !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
     entityTypeId: entity.metadata.entityTypeId,
     properties: entity.properties,
   });
@@ -1010,15 +1011,12 @@ export const getEntityAuthorizationRelationships: ImpureGraphFunction<
 
 export const validateEntity: ImpureGraphFunction<
   {
-    entityTypeId: VersionedUrl;
+    entityType: VersionedUrl | EntityType;
     properties: Entity["properties"];
     linkData?: Entity["linkData"];
-    draft: boolean;
+    profile: "draft" | "full";
   },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.validateEntity(actorId, {
-    operations: ["all"],
-    ...params,
-  });
+  await graphApi.validateEntity(actorId, params);
 };

@@ -1,6 +1,9 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  blockProtocolPropertyTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -19,7 +22,7 @@ import { useAuthInfo } from "../../pages/shared/auth-info-context";
 
 type UpdateAuthenticatedUserParams = {
   shortname?: string;
-  preferredName?: string;
+  displayName?: string;
   location?: string;
   websiteUrl?: string;
   preferredPronouns?: string;
@@ -95,11 +98,11 @@ export const useUpdateAuthenticatedUser = () => {
                       )]: params.shortname,
                     }
                   : {}),
-                ...(params.preferredName
+                ...(params.displayName
                   ? {
                       [extractBaseUrl(
-                        systemPropertyTypes.preferredName.propertyTypeId,
-                      )]: params.preferredName,
+                        blockProtocolPropertyTypes.displayName.propertyTypeId,
+                      )]: params.displayName,
                     }
                   : {}),
                 ...(typeof params.location !== "undefined"

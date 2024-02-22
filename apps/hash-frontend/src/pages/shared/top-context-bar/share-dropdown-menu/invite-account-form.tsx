@@ -97,7 +97,7 @@ export const InviteAccountForm: FunctionComponent<{
         onChange={(_, account) => setSelectedAccount(account)}
         getOptionLabel={(option) =>
           option?.kind === "user"
-            ? option.preferredName ?? ""
+            ? option.displayName ?? ""
             : option?.name ?? ""
         }
         renderOption={(props, option) => {
@@ -117,14 +117,14 @@ export const InviteAccountForm: FunctionComponent<{
               <Avatar
                 src={avatarSrc}
                 title={
-                  option.kind === "user" ? option.preferredName : option.name
+                  option.kind === "user" ? option.displayName : option.name
                 }
                 size={28}
                 sx={{ marginRight: 1 }}
                 borderRadius={option.kind === "org" ? "4px" : undefined}
               />
               <Typography>
-                {option.kind === "user" ? option.preferredName : option.name}
+                {option.kind === "user" ? option.displayName : option.name}
               </Typography>
             </Box>
           );

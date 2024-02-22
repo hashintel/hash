@@ -60,7 +60,7 @@ export const DraftEntityProvenance: FunctionComponent<{
         sx={{ marginRight: 1 }}
         icon={
           createdBy &&
-          "displayName" in createdBy &&
+          createdBy.kind === "machine" &&
           createdBy.displayName === "HASH AI" ? (
             <WandMagicSparklesIcon />
           ) : (
@@ -73,7 +73,7 @@ export const DraftEntityProvenance: FunctionComponent<{
               ? "Me"
               : "displayName" in createdBy
                 ? createdBy.displayName
-                : createdBy.preferredName
+                : createdBy.displayName
             : ""
         }
       />

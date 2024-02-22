@@ -15,7 +15,7 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { TextToken } from "@local/hash-isomorphic-utils/types";
 import { EntityId } from "@local/hash-subgraph";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
@@ -131,8 +131,8 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
     popupId: "comment-block-menu",
   });
 
-  const preferredName = useMemo(
-    () => simplifyProperties(author.properties as UserProperties).preferredName,
+  const displayName = useMemo(
+    () => simplifyProperties(author.properties as UserProperties).displayName,
     [author.properties],
   );
 
@@ -177,7 +177,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
     >
       <Box display="flex" justifyContent="space-between">
         {}
-        <Avatar size={36} title={preferredName ?? "U"} />
+        <Avatar size={36} title={displayName ?? "U"} />
         <Box
           sx={{ flexDirection: "column", flex: 1, overflow: "hidden", pl: 1.5 }}
         >
@@ -192,7 +192,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
               color: ({ palette }) => palette.gray[90],
             }}
           >
-            {preferredName}
+            {displayName}
           </Typography>
           <Typography
             component="p"

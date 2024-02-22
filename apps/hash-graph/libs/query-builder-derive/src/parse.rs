@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use proc_macro::TokenStream;
 use virtue::{
     parse::Attribute,
     prelude::*,

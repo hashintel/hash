@@ -143,17 +143,14 @@ export const updateDataTypeEmbeddings = async (
         dataType,
       });
 
-    if (generatedEmbeddings.embeddings.length > 0) {
-      await graphActivities.updateDataTypeEmbeddings({
-        authentication: params.authentication,
-        embeddings: generatedEmbeddings.embeddings.map((embedding) => ({
-          ...embedding,
-          dataTypeId: dataType.schema.$id,
-        })),
-        updatedAtTransactionTime:
-          dataType.metadata.temporalVersioning.transactionTime.start.limit,
-      });
-    }
+    await graphActivities.updateDataTypeEmbeddings({
+      authentication: params.authentication,
+      embedding: generatedEmbeddings.embedding,
+      dataTypeId: dataType.schema.$id,
+      updatedAtTransactionTime:
+        dataType.metadata.temporalVersioning.transactionTime.start.limit,
+      reset: true,
+    });
 
     usage.prompt_tokens += generatedEmbeddings.usage.prompt_tokens;
     usage.total_tokens += generatedEmbeddings.usage.total_tokens;
@@ -231,17 +228,14 @@ export const updatePropertyTypeEmbeddings = async (
         propertyType,
       });
 
-    if (generatedEmbeddings.embeddings.length > 0) {
-      await graphActivities.updatePropertyTypeEmbeddings({
-        authentication: params.authentication,
-        embeddings: generatedEmbeddings.embeddings.map((embedding) => ({
-          ...embedding,
-          propertyTypeId: propertyType.schema.$id,
-        })),
-        updatedAtTransactionTime:
-          propertyType.metadata.temporalVersioning.transactionTime.start.limit,
-      });
-    }
+    await graphActivities.updatePropertyTypeEmbeddings({
+      authentication: params.authentication,
+      embedding: generatedEmbeddings.embedding,
+      propertyTypeId: propertyType.schema.$id,
+      updatedAtTransactionTime:
+        propertyType.metadata.temporalVersioning.transactionTime.start.limit,
+      reset: true,
+    });
 
     usage.prompt_tokens += generatedEmbeddings.usage.prompt_tokens;
     usage.total_tokens += generatedEmbeddings.usage.total_tokens;
@@ -319,17 +313,14 @@ export const updateEntityTypeEmbeddings = async (
         entityType,
       });
 
-    if (generatedEmbeddings.embeddings.length > 0) {
-      await graphActivities.updateEntityTypeEmbeddings({
-        authentication: params.authentication,
-        embeddings: generatedEmbeddings.embeddings.map((embedding) => ({
-          ...embedding,
-          entityTypeId: entityType.schema.$id,
-        })),
-        updatedAtTransactionTime:
-          entityType.metadata.temporalVersioning.transactionTime.start.limit,
-      });
-    }
+    await graphActivities.updateEntityTypeEmbeddings({
+      authentication: params.authentication,
+      entityTypeId: entityType.schema.$id,
+      embedding: generatedEmbeddings.embedding,
+      updatedAtTransactionTime:
+        entityType.metadata.temporalVersioning.transactionTime.start.limit,
+      reset: true,
+    });
 
     usage.prompt_tokens += generatedEmbeddings.usage.prompt_tokens;
     usage.total_tokens += generatedEmbeddings.usage.total_tokens;
@@ -452,14 +443,13 @@ export const updateEntityEmbeddings = async (
       if (generatedEmbeddings.embeddings.length > 0) {
         await graphActivities.updateEntityEmbeddings({
           authentication: params.authentication,
-          embeddings: generatedEmbeddings.embeddings.map((embedding) => ({
-            ...embedding,
-            entityId: entity.metadata.recordId.entityId,
-          })),
+          entityId: entity.metadata.recordId.entityId,
+          embeddings: generatedEmbeddings.embeddings,
           updatedAtTransactionTime:
             entity.metadata.temporalVersioning.transactionTime.start.limit,
           updatedAtDecisionTime:
             entity.metadata.temporalVersioning.decisionTime.start.limit,
+          reset: true,
         });
       }
 

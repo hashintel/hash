@@ -1,14 +1,14 @@
 import type {
-  DataTypeEmbedding,
   DataTypeStructuralQuery,
-  EntityEmbedding,
   EntityQueryCursor,
   EntityStructuralQuery,
-  EntityTypeEmbedding,
   EntityTypeStructuralQuery,
   GraphApi,
-  PropertyTypeEmbedding,
   PropertyTypeStructuralQuery,
+  UpdateDataTypeEmbeddingParams,
+  UpdateEntityEmbeddingsParams,
+  UpdateEntityTypeEmbeddingParams,
+  UpdatePropertyTypeEmbeddingParams,
 } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -26,7 +26,6 @@ import type {
   PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
-  Timestamp,
   Uuid,
 } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
@@ -130,66 +129,69 @@ export const createGraphActivities = ({
       }));
   },
 
-  async updateDataTypeEmbeddings(params: {
-    authentication: {
-      actorId: AccountId;
-    };
-    embeddings: DataTypeEmbedding[];
-    updatedAtTransactionTime: Timestamp;
-  }): Promise<void> {
+  async updateDataTypeEmbeddings(
+    params: {
+      authentication: {
+        actorId: AccountId;
+      };
+    } & UpdateDataTypeEmbeddingParams,
+  ): Promise<void> {
     await graphApiClient
       .updateDataTypeEmbeddings(params.authentication.actorId, {
-        embeddings: params.embeddings,
-        reset: true,
+        dataTypeId: params.dataTypeId,
+        embedding: params.embedding,
+        reset: params.reset,
         updatedAtTransactionTime: params.updatedAtTransactionTime,
       })
       .then((response) => response.data);
   },
 
-  async updatePropertyTypeEmbeddings(params: {
-    authentication: {
-      actorId: AccountId;
-    };
-    embeddings: PropertyTypeEmbedding[];
-    updatedAtTransactionTime: Timestamp;
-  }): Promise<void> {
+  async updatePropertyTypeEmbeddings(
+    params: {
+      authentication: {
+        actorId: AccountId;
+      };
+    } & UpdatePropertyTypeEmbeddingParams,
+  ): Promise<void> {
     await graphApiClient
       .updatePropertyTypeEmbeddings(params.authentication.actorId, {
-        embeddings: params.embeddings,
-        reset: true,
+        propertyTypeId: params.propertyTypeId,
+        embedding: params.embedding,
+        reset: params.reset,
         updatedAtTransactionTime: params.updatedAtTransactionTime,
       })
       .then((response) => response.data);
   },
 
-  async updateEntityTypeEmbeddings(params: {
-    authentication: {
-      actorId: AccountId;
-    };
-    embeddings: EntityTypeEmbedding[];
-    updatedAtTransactionTime: Timestamp;
-  }): Promise<void> {
+  async updateEntityTypeEmbeddings(
+    params: {
+      authentication: {
+        actorId: AccountId;
+      };
+    } & UpdateEntityTypeEmbeddingParams,
+  ): Promise<void> {
     await graphApiClient
       .updateEntityTypeEmbeddings(params.authentication.actorId, {
-        embeddings: params.embeddings,
-        reset: true,
+        entityTypeId: params.entityTypeId,
+        embedding: params.embedding,
+        reset: params.reset,
         updatedAtTransactionTime: params.updatedAtTransactionTime,
       })
       .then((response) => response.data);
   },
 
-  async updateEntityEmbeddings(params: {
-    authentication: {
-      actorId: AccountId;
-    };
-    embeddings: EntityEmbedding[];
-    updatedAtTransactionTime: Timestamp;
-    updatedAtDecisionTime: Timestamp;
-  }): Promise<void> {
+  async updateEntityEmbeddings(
+    params: {
+      authentication: {
+        actorId: AccountId;
+      };
+    } & UpdateEntityEmbeddingsParams,
+  ): Promise<void> {
     await graphApiClient
       .updateEntityEmbeddings(params.authentication.actorId, {
+        entityId: params.entityId,
         embeddings: params.embeddings,
-        reset: true,
+        reset: params.reset,
         updatedAtTransactionTime: params.updatedAtTransactionTime,
         updatedAtDecisionTime: params.updatedAtDecisionTime,
       })

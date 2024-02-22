@@ -86,20 +86,33 @@ impl<'p> Filter<'p, Entity> {
     /// Creates a `Filter` to search for a specific entities, identified by its [`EntityId`].
     #[must_use]
     pub fn for_entity_by_entity_id(entity_id: EntityId) -> Self {
-        Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id.into_uuid(),
-                ))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid.into_uuid(),
-                ))),
-            ),
-        ])
+        let owned_by_id_filter = Self::Equal(
+            Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
+            Some(FilterExpression::Parameter(Parameter::Uuid(
+                entity_id.owned_by_id.into_uuid(),
+            ))),
+        );
+        let entity_uuid_filter = Self::Equal(
+            Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+            Some(FilterExpression::Parameter(Parameter::Uuid(
+                entity_id.entity_uuid.into_uuid(),
+            ))),
+        );
+
+        if let Some(draft_id) = entity_id.draft_id {
+            Self::All(vec![
+                owned_by_id_filter,
+                entity_uuid_filter,
+                Self::Equal(
+                    Some(FilterExpression::Path(EntityQueryPath::DraftId)),
+                    Some(FilterExpression::Parameter(Parameter::Uuid(
+                        draft_id.into_uuid(),
+                    ))),
+                ),
+            ])
+        } else {
+            Self::All(vec![owned_by_id_filter, entity_uuid_filter])
+        }
     }
 }
 
@@ -440,12 +453,11 @@ impl Parameter<'_> {
 #[cfg(test)]
 mod tests {
     use graph_types::{
-        knowledge::entity::{EntityId, EntityUuid},
+        knowledge::entity::{DraftId, EntityUuid},
         ontology::DataTypeWithMetadata,
         owned_by_id::OwnedById,
     };
     use serde_json::json;
-    use type_system::url::BaseUrl;
 
     use super::*;
     use crate::ontology::DataTypeQueryPath;
@@ -494,6 +506,7 @@ mod tests {
         let entity_id = EntityId {
             owned_by_id: OwnedById::new(Uuid::new_v4()),
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            draft_id: None,
         };
 
         let expected = json!({
@@ -505,6 +518,34 @@ mod tests {
             { "equal": [
               { "path": ["uuid"] },
               { "parameter": entity_id.entity_uuid }
+            ]}
+          ]
+        });
+
+        test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
+    }
+
+    #[test]
+    fn for_entity_by_entity_draft_id() {
+        let entity_id = EntityId {
+            owned_by_id: OwnedById::new(Uuid::new_v4()),
+            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            draft_id: Some(DraftId::new(Uuid::new_v4())),
+        };
+
+        let expected = json!({
+          "all": [
+            { "equal": [
+              { "path": ["ownedById"] },
+              { "parameter": entity_id.owned_by_id }
+            ]},
+            { "equal": [
+              { "path": ["uuid"] },
+              { "parameter": entity_id.entity_uuid }
+            ]},
+            { "equal": [
+              { "path": ["draftId"] },
+              { "parameter": entity_id.draft_id }
             ]}
           ]
         });

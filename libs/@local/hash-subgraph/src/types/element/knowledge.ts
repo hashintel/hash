@@ -91,7 +91,6 @@ export type EntityMetadata = Subtype<
     entityTypeId: VersionedUrl;
     temporalVersioning: EntityTemporalVersioningMetadata;
     archived: boolean;
-    draft: boolean;
     provenance: EntityProvenanceMetadata;
   }
 >;

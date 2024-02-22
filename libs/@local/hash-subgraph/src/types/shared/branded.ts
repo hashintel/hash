@@ -40,6 +40,9 @@ export type OwnedById = Brand<AccountId | AccountGroupId, "OwnedById">;
 /** A `Uuid` that points to an Entity without any edition */
 export type EntityUuid = Brand<Uuid, "EntityUuid">;
 
+/** The draft identifier for an entity */
+export type DraftId = Brand<Uuid, "DraftId">;
+
 export const ENTITY_ID_DELIMITER = "~";
 
 /** An ID to uniquely identify an entity */
@@ -65,9 +68,11 @@ export const entityIdFromOwnedByIdAndEntityUuid = (
   return `${ownedById}${ENTITY_ID_DELIMITER}${entityUuid}` as EntityId;
 };
 
-export const splitEntityId = (entityId: EntityId): [OwnedById, EntityUuid] => {
-  const [ownedById, entityUuid] = entityId.split(ENTITY_ID_DELIMITER);
-  return [ownedById as OwnedById, entityUuid as EntityUuid];
+export const splitEntityId = (
+  entityId: EntityId,
+): [OwnedById, EntityUuid, DraftId?] => {
+  const [ownedById, entityUuid, draftId] = entityId.split(ENTITY_ID_DELIMITER);
+  return [ownedById as OwnedById, entityUuid as EntityUuid, draftId as DraftId];
 };
 
 export const extractOwnedByIdFromEntityId = (entityId: EntityId): OwnedById => {
@@ -78,6 +83,12 @@ export const extractEntityUuidFromEntityId = (
   entityId: EntityId,
 ): EntityUuid => {
   return splitEntityId(entityId)[1];
+};
+
+export const extractDraftIdFromEntityId = (
+  entityId: EntityId,
+): DraftId | undefined => {
+  return splitEntityId(entityId)[2];
 };
 
 /** An account ID of creating actor */
