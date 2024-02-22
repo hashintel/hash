@@ -43,27 +43,15 @@
             <p style="margin-bottom: 20px">Hi, <strong>@{{username}}</strong>!</p>
             <p><strong>{{client.client_name}}</strong> wants access to your HASH graph.</p>
 
-            <input name="challenge" type="hidden" value={{challenge}} />
+            <input name="challenge" type="hidden" value="{{challenge}}" />
 
             <div style="margin-bottom: 15px; margin-top: 8px; font-weight: 600; font-size: 15px;" >Scopes requested</div>
             {{#each requested_scope as |scope|}}
                 <div style="margin-bottom: 5px">
-                    <input checked style="display: inline-block;" type="checkbox" id={{scope}} value={{scope}} name="grant_scope" />
-                    <label for={{scope}} style="display: inline-block">{{scope}}</label>
+                    <input checked style="display: inline-block;" type="checkbox" id="{{scope}}" value="{{scope}}" name="grant_scope" />
+                    <label for="{{scope}}" style="display: inline-block">{{scope}}</label>
                 </div>
             {{/each}}
-            <ul class="scopes">
-                {{#if client.policy_url}}
-                    <li>
-                        <a href={{client.policy_url}}>Read the Privacy Policy</a>
-                    </li>
-                {{/if}}
-                {{#if client.tos_uri}}
-                    <li>
-                        <a href={{client.tos_uri}}>Terms of Service</a>
-                    </li>
-                {{/if}}
-            </ul>
             <div>
                 <input checked type="checkbox" id="remember" value="1" name="remember" />
                 <label for="remember" style="display: inline-block; margin-right: 3px">Remember my choice</label>
