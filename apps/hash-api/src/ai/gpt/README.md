@@ -17,11 +17,11 @@ fetch("http://localhost:5001/gpt/upsert-gpt-oauth-client", {
     "content-type": "application/json",
   },
   method: "POST",
-  body: JSON.stringify({ redirectUri: "http://localhost" }),
+  body: JSON.stringify({ redirectUri: "https://chat.openai.com" }),
 });
 ```
 
-The redirect URI does not matter at this point because the GPT will have a new one generated as soon as you set the client details in OpenAI.
+The redirect URI must start with https://chat.openai.com but the rest does not matter at this point because the GPT will have a new one generated as soon as you set the client details in OpenAI.
 
 The response will include a client id and client secret which you will need to set the OAuth values in the development GPT, in OpenAI.
 
@@ -30,6 +30,8 @@ The other values you will need to update in OpenAI's config are:
 - The Authorization URL and Token URL – see [Testing the GPT](#testing-the-gpt)
 - If creating a new action, the OAuth Scope should be `read` and the Token Exchange Method should be `Basic`
 - from the root edit screen, the action schema should be updated to use the tunnel to your local machine (see [Testing the GPT](#testing-the-gpt))
+
+If creating a new GPT, once you have created an action and given it some OAuth values, the Callback (redirect) URL will appear in the GPT's root edit screen.
 
 ### Iteration
 
@@ -42,7 +44,7 @@ Any change in one place will likely involve a change in the other – **note par
 
 ### Keeping the OAuth2 Redirect URI up to date
 
-Making almost any change or clicking 'save' in the OpenAI interface will generate a new OAuth2 redirect URI, listed as 'Callback URL' in the GPT's edit screen ([relevant OpenAI discussion post](https://community.openai.com/t/gpt-oauth-callback-url-keeps-changing/493236)) – this can be found in the root screen, not the edit screen for the action.
+Making almost any change or clicking 'save' in the OpenAI interface will generate a new OAuth2 redirect URI, listed as 'Callback URL' in the GPT's edit screen ([relevant OpenAI discussion post](https://community.openai.com/t/gpt-oauth-callback-url-keeps-changing/493236)) – this can be found in the root screen, not the edit screen for the action. **You must set some OAuth2 values in an action before this will appear**.
 
 **The OAuth2 client in HASH must be updated with this new URI before new OAuth2 consent flows will work**.
 
@@ -99,7 +101,7 @@ If you add **new** endpoints, you must edit the generation script to include the
 
 Note that:
 
-1. any internal `$ref` links in the schema must point to `components.schemas` (see existing examples) – they cannot point to definitions elsewhere in the JSON.
+1. any internal `$ref` links in the schema must point to `components.schemas` (see existing examples of moving the definitions in the generation script) – they cannot point to definitions elsewhere in the JSON.
 1. at the time of writing (Feb 2023) OpenAI does not support circular references in the schema.
 
 ### Choosing where to iterate
@@ -146,10 +148,10 @@ In practice this means that **the OAuth2 flow cannot be completed when the entry
 
 1. Open DevTools and ensure you are recording network requests
 1. Trigger the OAuth2 flow from the GPT – when viewing an action you can click 'Test' against any endpoint to do so
-1. You should end up on the frontend login screen. From here:
+1. You should end up on the frontend login screen – **don't bother to log in**. From here:
    1. Clear your `localhost` cookies (they will interfere with subsequent steps otherwise)
    1. From the network request log, copy the path that GPT directed you to, i.e. `[your-tunnel-domain]/[path]`. It will start with `/oauth2/auth` and contain query params.
-1. Now visit `http://localhost:5001/[path]` in your browser. You should be successfully sent through the OAuth2 flow and back to the GPT.
+1. Now visit `http://localhost:5001/[path]` in your browser. You should be successfully sent through the OAuth2 flow (login, grant consent) and back to the GPT.
 
 Once you have completed the OAuth2 flow, the GPT will have an access token which it can use to make authenticated requests to the HASH API.
 
