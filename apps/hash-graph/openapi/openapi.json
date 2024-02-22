@@ -3384,6 +3384,20 @@
           },
           "edition": {
             "$ref": "#/components/schemas/EntityEditionProvenanceMetadata"
+          },
+          "firstNonDraftCreatedAtDecisionTime": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ]
+          },
+          "firstNonDraftCreatedAtTransactionTime": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ]
           }
         },
         "additionalProperties": false
@@ -3453,6 +3467,8 @@
           "createdById",
           "createdAtTransactionTime",
           "createdAtDecisionTime",
+          "firstNonDraftCreatedAtTransactionTime",
+          "firstNonDraftCreatedAtDecisionTime",
           "type",
           "properties",
           "embedding",
