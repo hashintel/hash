@@ -167,7 +167,7 @@ The GPT can be used in two modes:
 
 ## Deployment
 
-Because changes are made in the OpenAI interface and reflected immediately, the only 'deployment' to consider
+Because changes are made in the OpenAI interface and are reflected immediately, the only 'deployment' to consider
 is ensuring that any changes made to the HashGPT-Dev GPT are then reflected into the production HashGPT.
 
 This will be a manual process of copying over the latest instructions and action schema, and saving.
