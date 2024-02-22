@@ -96,6 +96,13 @@ const authRouteRateLimiter = rateLimit({
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   keyGenerator: (req) => {
+    if (req.body.identifier) {
+      /**
+       * 'identifier' is the field which identifies the user on a login attempt.
+       * We use this as a rate limiting key if present to mitigate brute force login attempts spread across multiple IPs.
+       */
+      return req.body.identifier;
+    }
     return req.ip;
   },
 });
@@ -240,7 +247,12 @@ const main = async () => {
   });
   const rawParser = raw({ type: "application/json" });
 
-  /** PROXIES – these should come BEFORE bodyParser so that the body is proxied without changes */
+  /**
+   * PROXIES – these should come BEFORE bodyParser so that the body is proxied without being consumed and parsed
+   * @see https://www.npmjs.com/package/express-http-proxy#middleware-mixing
+   *
+   * Kratos is given an exception as we check the body for rate limiting purposes and parsing it out doesn't break it.
+   */
 
   /**
    * Proxy to Ory Hydra's OAuth2 authorization and token endpoints, for OAuth2 clients (e.g. HashGPT)
@@ -249,8 +261,25 @@ const main = async () => {
   app.use("/oauth2/token", authRouteRateLimiter, hydraProxy);
   app.use("/oauth2/fallbacks", authRouteRateLimiter, hydraProxy);
 
+  /** END PROXIES */
+
+  /** Body parsing middleware */
+  app.use((req, res, next) => {
+    if (
+      req.path.startsWith("/webhooks/") ||
+      req.path === LOCAL_FILE_UPLOAD_PATH
+    ) {
+      // webhooks typically need the raw body for signature verification
+      return rawParser(req, res, next);
+    }
+    return jsonParser(req, res, next);
+  });
+
   /**
    * Proxy for requests to the Ory Kratos public API, to be consumed by the frontend.
+   *
+   * Although the proxy would ideally come before the body parser, so that we're passing it through untouched,
+   * we check the body in this process in order to rate limit requests based on the user attempting to log in.
    */
   app.use(
     "/auth/*",
@@ -298,20 +327,6 @@ const main = async () => {
       })(req, res, next);
     },
   );
-
-  /** END PROXIES */
-
-  /** Body parsing middleware */
-  app.use((req, res, next) => {
-    if (
-      req.path.startsWith("/webhooks/") ||
-      req.path === LOCAL_FILE_UPLOAD_PATH
-    ) {
-      // webhooks typically need the raw body for signature verification
-      return rawParser(req, res, next);
-    }
-    return jsonParser(req, res, next);
-  });
 
   // Set up authentication related middleware and routes
   addKratosAfterRegistrationHandler({ app, context });
@@ -362,7 +377,7 @@ const main = async () => {
   const hbs = handlebarsCreate({ defaultLayout: "main", extname: ".hbs" });
   app.engine(
     "hbs",
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+
     hbs.engine,
   );
   app.set("view engine", "hbs");
