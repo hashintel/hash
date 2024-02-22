@@ -387,7 +387,7 @@ const main = async () => {
   const hbs = handlebarsCreate({ defaultLayout: "main", extname: ".hbs" });
   app.engine(
     "hbs",
-
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     hbs.engine,
   );
   app.set("view engine", "hbs");
