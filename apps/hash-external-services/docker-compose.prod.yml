@@ -113,8 +113,8 @@ services:
       HASH_OPENSEARCH_ENABLED: "false"
       HASH_INTEGRATION_QUEUE_NAME: "${HASH_INTEGRATION_QUEUE_NAME}"
 
-      ORY_KRATOS_PUBLIC_URL: "http://kratos:4433"
-      ORY_KRATOS_ADMIN_URL: "http://kratos:4434"
+      HASH_KRATOS_PUBLIC_URL: "http://kratos:4433"
+      HASH_KRATOS_ADMIN_URL: "http://kratos:4434"
       KRATOS_API_KEY: "${KRATOS_API_KEY}"
     ports:
       - "5001:5001"
@@ -141,7 +141,6 @@ services:
       # appropriately. The backend is not on "localhost" from the perspective of
       # this container.
       API_ORIGIN: "http://hash-api:5001"
-      ORY_KRATOS_PUBLIC_URL: "http://kratos:4433"
 
     ports:
       - "3000:3000"
