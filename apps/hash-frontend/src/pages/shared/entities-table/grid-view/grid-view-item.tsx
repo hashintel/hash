@@ -1,6 +1,6 @@
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { FileV2Properties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { BaseUrl, Entity } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Typography } from "@mui/material";
@@ -73,7 +73,7 @@ export const GridViewItem: FunctionComponent<{
       isSpecialEntityTypeLookup?.[entity.metadata.entityTypeId]?.isFile;
 
     if (isFileEntity) {
-      return entity as Entity<FileV2Properties>;
+      return entity as Entity<FileProperties>;
     }
   }, [isSpecialEntityTypeLookup, entity]);
 

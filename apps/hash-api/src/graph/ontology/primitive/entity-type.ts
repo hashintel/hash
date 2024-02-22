@@ -1,5 +1,4 @@
 import {
-  BaseUrl,
   ENTITY_TYPE_META_SCHEMA,
   VersionedUrl,
 } from "@blockprotocol/type-system";
@@ -24,6 +23,7 @@ import {
   UserPermissionsOnEntityType,
 } from "@local/hash-isomorphic-utils/types";
 import {
+  BaseUrl,
   EntityTypeAuthorizationRelationship,
   EntityTypeMetadata,
   EntityTypeRelationAndSubject,

@@ -4,6 +4,6 @@
 export interface CollabPosition {
   userId: string;
   userShortname: string;
-  userPreferredName: string;
+  userDisplayName: string;
   entityId: string;
 }

@@ -4,7 +4,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
@@ -279,7 +279,7 @@ const userCreateHookCallback: AfterCreateEntityHookCallback = async ({
     const {
       email: emails,
       shortname,
-      preferredName,
+      displayName,
     } = simplifyProperties(entity.properties as UserProperties);
 
     /**
@@ -291,7 +291,7 @@ const userCreateHookCallback: AfterCreateEntityHookCallback = async ({
     await createOrUpdateMailchimpUser({
       email,
       shortname,
-      preferredName,
+      displayName,
     });
   }
 };

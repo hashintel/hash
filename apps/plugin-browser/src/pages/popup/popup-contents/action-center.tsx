@@ -137,7 +137,7 @@ export const ActionCenter = ({
               ? `${FRONTEND_ORIGIN}/@${user.properties.shortname}`
               : undefined
           }
-          name={user.properties.preferredName}
+          name={user.properties.displayName}
         />
       </Stack>
       <Box sx={{ maxHeight: 545, overflowY: "scroll" }}>

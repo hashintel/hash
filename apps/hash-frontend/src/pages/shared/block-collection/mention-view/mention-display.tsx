@@ -2,7 +2,7 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,

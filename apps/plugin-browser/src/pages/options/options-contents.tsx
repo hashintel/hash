@@ -68,7 +68,7 @@ export const OptionsContents = () => {
                       fontSize: 20,
                     }}
                   >
-                    Welcome, {user.properties.preferredName}
+                    Welcome, {user.properties.displayName}
                   </Typography>
                   <Typography
                     sx={{

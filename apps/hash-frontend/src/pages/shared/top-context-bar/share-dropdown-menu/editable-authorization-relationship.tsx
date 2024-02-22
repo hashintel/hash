@@ -256,7 +256,7 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
 
   const name = account
     ? account.kind === "user"
-      ? account.preferredName
+      ? account.displayName
       : account.name
     : "Public";
 

@@ -71,7 +71,7 @@ const SignupPage: NextPageWithLayout = () => {
 
       const { errors } = await updateAuthenticatedUser({
         shortname,
-        preferredName: displayName,
+        displayName,
       });
 
       if (errors && errors.length > 0) {

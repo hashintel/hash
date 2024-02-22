@@ -13,9 +13,9 @@ const mailchimpListId = process.env.MAILCHIMP_LIST_ID;
 export const createOrUpdateMailchimpUser = async (params: {
   email: string;
   shortname?: string;
-  preferredName?: string;
+  displayName?: string;
 }) => {
-  const { email, preferredName, shortname } = params;
+  const { email, displayName, shortname } = params;
 
   if (!mailchimpListId) {
     return;
@@ -25,7 +25,7 @@ export const createOrUpdateMailchimpUser = async (params: {
     // Indicates the user registered with HASH
     APPREG: "Yes",
     ...(shortname ? { SHORTNAME: shortname } : {}),
-    ...(preferredName ? { FNAME: preferredName } : {}),
+    ...(displayName ? { FNAME: displayName } : {}),
   };
 
   try {

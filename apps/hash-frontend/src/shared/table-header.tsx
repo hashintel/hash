@@ -235,7 +235,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
           } else if (key === "lastEditedBy") {
             const user = value as MinimalUser | undefined;
 
-            return user?.preferredName ?? "";
+            return user?.displayName ?? "";
           } else if (isBaseUrl(key)) {
             /**
              * If the key is a base URL, then the value needs to be obtained

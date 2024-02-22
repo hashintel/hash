@@ -1,8 +1,8 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { GraphApi } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -51,10 +51,16 @@ export const getMachineActorId = async (
       query: {
         filter: {
           all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.machine.entityTypeId,
-              { ignoreParents: true },
-            ),
+            {
+              equal: [
+                {
+                  path: ["type(inheritanceDepth = 0)", "baseUrl"],
+                },
+                {
+                  parameter: systemEntityTypes.machine.entityTypeBaseUrl,
+                },
+              ],
+            },
             {
               equal: [
                 {
@@ -95,7 +101,7 @@ export const getMachineActorId = async (
     );
   }
 
-  return machineEntity.metadata.provenance.edition.createdById;
+  return machineEntity.metadata.provenance.createdById;
 };
 
 /**
@@ -110,6 +116,7 @@ export const createMachineActorEntity = async (
     displayName,
     shouldBeAbleToCreateMoreMachineEntities,
     systemAccountId,
+    machineEntityTypeId,
   }: {
     // A unique identifier for the machine actor
     identifier: MachineActorIdentifier;
@@ -123,6 +130,7 @@ export const createMachineActorEntity = async (
     shouldBeAbleToCreateMoreMachineEntities: boolean;
     // The accountId of the system account, used to grant the machine actor permissions to instantiate system types
     systemAccountId: AccountId;
+    machineEntityTypeId?: VersionedUrl;
   },
 ): Promise<EntityMetadata> => {
   // Give the machine actor permissions to instantiate its own entity (entities of type Machine)
@@ -131,7 +139,7 @@ export const createMachineActorEntity = async (
     [
       {
         operation: "touch",
-        resource: systemEntityTypes.machine.entityTypeId,
+        resource: machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
         relationAndSubject: {
           subject: {
             kind: "account",
@@ -146,7 +154,8 @@ export const createMachineActorEntity = async (
   const metadata = await context.graphApi
     .createEntity(machineAccountId, {
       draft: false,
-      entityTypeId: systemEntityTypes.machine.entityTypeId,
+      entityTypeId:
+        machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
       ownedById,
       properties: {
         "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
@@ -178,7 +187,8 @@ export const createMachineActorEntity = async (
       [
         {
           operation: "delete",
-          resource: systemEntityTypes.machine.entityTypeId,
+          resource:
+            machineEntityTypeId ?? systemEntityTypes.machine.entityTypeId,
           relationAndSubject: {
             subject: {
               kind: "account",
@@ -204,8 +214,10 @@ export const createWebMachineActor = async (
   authentication: { actorId: AccountId },
   {
     ownedById,
+    machineEntityTypeId,
   }: {
     ownedById: OwnedById;
+    machineEntityTypeId?: VersionedUrl;
   },
 ): Promise<AccountId> => {
   const { graphApi } = context;
@@ -239,6 +251,7 @@ export const createWebMachineActor = async (
     displayName: "HASH",
     shouldBeAbleToCreateMoreMachineEntities: true,
     systemAccountId,
+    machineEntityTypeId,
   });
 
   return machineAccountId as AccountId;

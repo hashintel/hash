@@ -23,10 +23,10 @@ import {
   NotificationProperties,
   OccurredInEntityProperties,
   PageProperties,
-  UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/commentnotification";
 import { GraphChangeNotificationProperties } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   Entity,
   EntityRootType,
