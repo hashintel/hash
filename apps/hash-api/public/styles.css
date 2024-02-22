@@ -1,0 +1,48 @@
+body {
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+h1 {
+  font-size: 22px;
+}
+
+.centered-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 120px;
+}
+
+.auth-box {
+  width: 300px;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin: 40px;
+}
+
+button {
+  background: #0775e3;
+  border-radius: 6px;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 15px;
+  padding: 10px 15px;
+}
+
+button.deny {
+  background: white;
+  color: black;
+  border: 1px solid #ccc;
+  margin-left: 10px;
+}
+
+.scopes {
+  border-bottom: 1px solid lightgrey;
+}
+
+label {
+  cursor: pointer;
+  margin-left: 5px;
+}

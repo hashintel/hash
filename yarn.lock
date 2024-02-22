@@ -4877,6 +4877,13 @@
   dependencies:
     axios "^0.21.4"
 
+"@ory/hydra-client@2.2.0-rc.3":
+  version "2.2.0-rc.3"
+  resolved "https://registry.yarnpkg.com/@ory/hydra-client/-/hydra-client-2.2.0-rc.3.tgz#236be3ac395b35ba9ffec021701fac5438d3b24c"
+  integrity sha512-FEGhnEBmRlnrZyW5WPIH6Jmc00+kfZYRdFbSHBqqOfWJP7/Vj6z7q3MfA4osvQgGUfvdZsb1/HHCe6aoLaYZaQ==
+  dependencies:
+    axios "^0.21.4"
+
 "@ory/integrations@1.1.4":
   version "1.1.4"
   resolved "https://registry.yarnpkg.com/@ory/integrations/-/integrations-1.1.4.tgz#266948d3dd6e8abb5b8cfe24b79a768de977749e"
@@ -4892,10 +4899,10 @@
     set-cookie-parser "^2.4.8"
     tldjs "^2.3.1"
 
-"@ory/kratos-client@0.13.1":
-  version "0.13.1"
-  resolved "https://registry.yarnpkg.com/@ory/kratos-client/-/kratos-client-0.13.1.tgz#80681817ff5c76138f4c9e45d8d8b12f937ecb93"
-  integrity sha512-s5HHJDvCMkrHq2r5i7g+Snt82mT9vffGlpkhAjuskiWGZ8s1CI9bFAl9XWYydDFZLUb0EyuDc5GfgQa1O4yQ1g==
+"@ory/kratos-client@1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@ory/kratos-client/-/kratos-client-1.0.0.tgz#803c8afb9379e54eec9f25bfc27f094809be43d7"
+  integrity sha512-gYc+tfyOwNkc8t9CI7aUJhOfMtcoVmWmpJuOsHnbosU9tPxUWaxMM8FgIM+tCc1ksDEyBukR1OY+9PCoo6tpqg==
   dependencies:
     axios "^0.21.4"
 
@@ -11256,7 +11263,7 @@ command-line-usage@^5.0.5:
     table-layout "^0.4.3"
     typical "^2.6.1"
 
-commander@11.1.0, commander@^11.1.0, commander@~11.1.0:
+commander@11.1.0, commander@^11.0.0, commander@^11.1.0, commander@~11.1.0:
   version "11.1.0"
   resolved "https://registry.yarnpkg.com/commander/-/commander-11.1.0.tgz#62fdce76006a68e5c1ab3314dc92e800eb83d906"
   integrity sha512-yPVavfyCcRhmorC7rWlkHn15b4wDVgVmBA7kV4QVBsF7kv/9TKJAbAXVTxvTnwP8HHKjRCJDClKbciiYS7p0DQ==
@@ -13588,6 +13595,15 @@ exponential-backoff@^3.1.1:
   resolved "https://registry.yarnpkg.com/exponential-backoff/-/exponential-backoff-3.1.1.tgz#64ac7526fe341ab18a39016cd22c787d01e00bf6"
   integrity sha512-dX7e/LHVJ6W3DE1MHWi9S1EYzDESENfLrYohG2G++ovZrYOkm4Knwa0mc1cn84xJOR4KEU0WSchhLbd0UklbHw==
 
+express-handlebars@7.1.2:
+  version "7.1.2"
+  resolved "https://registry.yarnpkg.com/express-handlebars/-/express-handlebars-7.1.2.tgz#2471673d11af46f496cba4098a705f0217232fda"
+  integrity sha512-ss9d3mBChOLTEtyfzXCsxlItUxpgS3i4cb/F70G6Q5ohQzmD12XB4x/Y9U6YboeeYBJZt7WQ5yUNu7ZSQ/EGyQ==
+  dependencies:
+    glob "^10.3.3"
+    graceful-fs "^4.2.11"
+    handlebars "^4.7.8"
+
 express-http-proxy@2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/express-http-proxy/-/express-http-proxy-2.0.0.tgz#c47f4d8b53e8d9c2b9a2f1d158eedf6eb84828a5"
@@ -14600,7 +14616,7 @@ glob@9.3.2:
     minipass "^4.2.4"
     path-scurry "^1.6.1"
 
-glob@^10.2.2, glob@^10.3.7, glob@~10.3.10:
+glob@^10.2.2, glob@^10.3.3, glob@^10.3.7, glob@~10.3.10:
   version "10.3.10"
   resolved "https://registry.yarnpkg.com/glob/-/glob-10.3.10.tgz#0351ebb809fd187fe421ab96af83d3a70715df4b"
   integrity sha512-fa46+tv1Ak0UPK1TOy/pZrIybNNt4HCv7SDzwyfiOZkvZLEbjsZkJBPtDHVshZjbecAoAGSC20MjLDG/qr679g==
@@ -14764,7 +14780,7 @@ got@^11.7.0, got@^11.8.6:
     p-cancelable "^2.0.0"
     responselike "^2.0.0"
 
-graceful-fs@^4.1.10, graceful-fs@^4.1.11, graceful-fs@^4.1.2, graceful-fs@^4.1.5, graceful-fs@^4.1.6, graceful-fs@^4.2.0, graceful-fs@^4.2.4, graceful-fs@^4.2.6, graceful-fs@^4.2.9:
+graceful-fs@^4.1.10, graceful-fs@^4.1.11, graceful-fs@^4.1.2, graceful-fs@^4.1.5, graceful-fs@^4.1.6, graceful-fs@^4.2.0, graceful-fs@^4.2.11, graceful-fs@^4.2.4, graceful-fs@^4.2.6, graceful-fs@^4.2.9:
   version "4.2.11"
   resolved "https://registry.yarnpkg.com/graceful-fs/-/graceful-fs-4.2.11.tgz#4183e4e8bf08bb6e05bbb2f7d2e0c8f712ca40e3"
   integrity sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==
@@ -14902,7 +14918,7 @@ handle-thing@^2.0.0:
   resolved "https://registry.yarnpkg.com/handle-thing/-/handle-thing-2.0.1.tgz#857f79ce359580c340d43081cc648970d0bb234e"
   integrity "sha1-hX95zjWVgMNA1DCBzGSJcNC7I04= sha512-9Qn4yBxelxoh2Ow62nP+Ka/kMnOXRi8BXnRaUwezLNhqelnN49xKz4F/dPP8OYLxLxq6JDtZb2i9XznUQbNPTg=="
 
-handlebars@^4.7.6, handlebars@^4.7.7:
+handlebars@^4.7.6, handlebars@^4.7.7, handlebars@^4.7.8:
   version "4.7.8"
   resolved "https://registry.yarnpkg.com/handlebars/-/handlebars-4.7.8.tgz#41c42c18b1be2365439188c77c6afae71c0cd9e9"
   integrity sha512-vafaFqs8MZkRrSX7sFVUdo3ap/eNiLnb4IakshzvP56X5Nr1iGKAIqdX6tMlm6HcNRIkr6AxO5jFEoJzzpT8aQ==
@@ -23824,6 +23840,19 @@ ts-jest@29.1.2:
     semver "^7.5.3"
     yargs-parser "^21.0.1"
 
+ts-json-schema-generator@1.5.0:
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/ts-json-schema-generator/-/ts-json-schema-generator-1.5.0.tgz#9f5cea606c27ebcf13060157542ac1d3b225430f"
+  integrity sha512-RkiaJ6YxGc5EWVPfyHxszTmpGxX8HC2XBvcFlAl1zcvpOG4tjjh+eXioStXJQYTvr9MoK8zCOWzAUlko3K0DiA==
+  dependencies:
+    "@types/json-schema" "^7.0.12"
+    commander "^11.0.0"
+    glob "^8.0.3"
+    json5 "^2.2.3"
+    normalize-path "^3.0.0"
+    safe-stable-stringify "^2.4.3"
+    typescript "~5.3.2"
+
 ts-loader@9.4.2:
   version "9.4.2"
   resolved "https://registry.yarnpkg.com/ts-loader/-/ts-loader-9.4.2.tgz#80a45eee92dd5170b900b3d00abcfa14949aeb78"
@@ -24213,6 +24242,11 @@ typescript@~4.8.2:
   version "4.8.4"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.8.4.tgz#c464abca159669597be5f96b8943500b238e60e6"
   integrity sha512-QCh+85mCy+h0IGff8r5XWzOVSbBO+KfeYrMQh7NJ58QujwcE22u+NUSmUxqF+un70P9GXKxa2HCNiTTMJknyjQ==
+
+typescript@~5.3.2:
+  version "5.3.3"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-5.3.3.tgz#b3ce6ba258e72e6305ba66f5c9b452aaee3ffe37"
+  integrity sha512-pXWcraxM0uxAS+tN0AG/BF2TyqmHO014Z070UsJ+pFvYuRSq8KH8DmWpnbXe0pEPDHXZV3FcAbJkijJ5oNEnWw==
 
 typical@^2.6.0, typical@^2.6.1:
   version "2.6.1"

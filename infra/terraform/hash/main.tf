@@ -150,6 +150,7 @@ module "postgres_roles" {
   pg_superuser_password = data.vault_kv_secret_v2.secrets.data["pg_superuser_password"]
 
   pg_kratos_user_password_hash   = data.vault_kv_secret_v2.secrets.data["pg_kratos_user_password_hash"]
+  pg_hydra_user_password_hash   = data.vault_kv_secret_v2.secrets.data["pg_hydra_user_password_hash"]
   pg_graph_user_password_hash    = data.vault_kv_secret_v2.secrets.data["pg_graph_user_password_hash"]
   pg_temporal_user_password_hash = data.vault_kv_secret_v2.secrets.data["pg_temporal_user_password_hash"]
   pg_spicedb_user_password_hash  = data.vault_kv_secret_v2.secrets.data["pg_spicedb_user_password_hash"]
@@ -184,6 +185,12 @@ module "kratos_ecr" {
   source   = "../modules/container_registry"
   prefix   = local.prefix
   ecr_name = "kratosecr"
+}
+
+module "hydra_ecr" {
+  source   = "../modules/container_registry"
+  prefix   = local.prefix
+  ecr_name = "hydraecr"
 }
 
 module "api_ecr" {
@@ -272,6 +279,21 @@ module "application" {
     {
       name  = "DSN", secret = true,
       value = "postgres://kratos:${sensitive(data.vault_kv_secret_v2.secrets.data["pg_kratos_user_password_raw"])}@${module.postgres.pg_host}:${module.postgres.pg_port}/kratos"
+    },
+  ])
+  hydra_image       = module.hydra_ecr
+  hydra_env_vars    = concat(var.hydra_env_vars, [
+    {
+      name  = "DSN", secret = true,
+      value = "postgres://hydra:${sensitive(data.vault_kv_secret_v2.secrets.data["pg_hydra_user_password_raw"])}@${module.postgres.pg_host}:${module.postgres.pg_port}/hydra"
+    },
+    {
+      name  = "SECRETS_COOKIE", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_hydra_secrets_cookie"])
+    },
+    {
+      name  = "SECRETS_SYSTEM", secret = true,
+      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_hydra_secrets_system"])
     },
   ])
   api_image    = module.api_ecr

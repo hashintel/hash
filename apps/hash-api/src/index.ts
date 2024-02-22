@@ -6,6 +6,7 @@ import {
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
 import express, { ErrorRequestHandler, raw } from "express";
+import { create as handlebarsCreate } from "express-handlebars";
 
 // eslint-disable-next-line import/order
 import { initSentry } from "./sentry";
@@ -22,7 +23,6 @@ import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
-import { oryKratosPublicUrl } from "@local/hash-isomorphic-utils/environment";
 import * as Sentry from "@sentry/node";
 import { json } from "body-parser";
 import cors from "cors";
@@ -33,12 +33,21 @@ import { StatsD } from "hot-shots";
 import { createHttpTerminator } from "http-terminator";
 import { customAlphabet } from "nanoid";
 
+import { gptGetUserWebs } from "./ai/gpt/gpt-get-user-webs";
+import { gptQueryEntities } from "./ai/gpt/gpt-query-entities";
+import { upsertGptOauthClient } from "./ai/gpt/upsert-gpt-oauth-client";
 import { openInferEntitiesWebSocket } from "./ai/infer-entities-websocket";
 import {
   addKratosAfterRegistrationHandler,
   createAuthMiddleware,
 } from "./auth/create-auth-handlers";
 import { getActorIdFromRequest } from "./auth/get-actor-id";
+import {
+  oauthConsentRequestHandler,
+  oauthConsentSubmissionHandler,
+} from "./auth/oauth-consent-handlers";
+import { hydraPublicUrl } from "./auth/ory-hydra";
+import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { RedisCache } from "./cache";
 import {
@@ -82,13 +91,17 @@ const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
  * A rate limiter for routes which grant authentication or authorization credentials
  */
 const authRouteRateLimiter = rateLimit({
-  windowMs: 1000 * 20, // 20 seconds
+  windowMs: process.env.NODE_ENV === "test" ? 1000 * 5 : 1000 * 20, // 20 seconds
   limit: 5, // Limit each IP to 5 requests every 20 seconds
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   keyGenerator: (req) => {
     return req.ip;
   },
+});
+
+const hydraProxy = proxy(hydraPublicUrl ?? "", {
+  proxyReqPathResolver: (req) => req.originalUrl,
 });
 
 const main = async () => {
@@ -211,6 +224,8 @@ const main = async () => {
   // Potentially only in development mode
   app.use(helmet({ contentSecurityPolicy: false }));
 
+  app.use(express.static("public"));
+
   if (isProdEnv) {
     /**
      * Trust the first proxy, on the assumption that we are running behind a load balancer in production.
@@ -225,7 +240,68 @@ const main = async () => {
   });
   const rawParser = raw({ type: "application/json" });
 
-  // Body parsing middleware
+  /** PROXIES – these should come BEFORE bodyParser so that the body is proxied without changes */
+
+  /**
+   * Proxy to Ory Hydra's OAuth2 authorization and token endpoints, for OAuth2 clients (e.g. HashGPT)
+   */
+  app.use("/oauth2/auth", authRouteRateLimiter, hydraProxy);
+  app.use("/oauth2/token", authRouteRateLimiter, hydraProxy);
+  app.use("/oauth2/fallbacks", authRouteRateLimiter, hydraProxy);
+
+  /**
+   * Proxy for requests to the Ory Kratos public API, to be consumed by the frontend.
+   */
+  app.use(
+    "/auth/*",
+    authRouteRateLimiter,
+    cors(CORS_CONFIG),
+    (req, res, next) => {
+      const expectedAccessControlAllowOriginHeader = res.getHeader(
+        "Access-Control-Allow-Origin",
+      );
+
+      if (!kratosPublicUrl) {
+        throw new Error("No kratosPublicUrl provided");
+      }
+
+      return proxy(kratosPublicUrl, {
+        /**
+         * Remove the `/auth` prefix from the request path, so the path is
+         * formatted correctly for the Ory Kratos API.
+         */
+        proxyReqPathResolver: ({ originalUrl }) =>
+          originalUrl.replace("/auth", ""),
+        /**
+         * Ory Kratos includes the wildcard `*` in the `Access-Control-Allow-Origin`
+         * by default, which is not permitted by browsers when including credentials
+         * in requests.
+         *
+         * When setting the value of the `Access-Control-Allow-Origin` header in
+         * the Ory Kratos configuration, the frontend URL is included twice in the
+         * header for some reason (e.g. ["https://localhost:3000", "https://localhost:3000"]),
+         * which is also not permitted by browsers when including credentials in requests.
+         *
+         * Therefore we manually set the `Access-Control-Allow-Origin` header to the
+         * expected value here before returning the response, to prevent CORS errors
+         * in modern browsers.
+         */
+        userResDecorator: (_proxyRes, proxyResData, _userReq, userRes) => {
+          if (typeof expectedAccessControlAllowOriginHeader === "string") {
+            userRes.set(
+              "Access-Control-Allow-Origin",
+              expectedAccessControlAllowOriginHeader,
+            );
+          }
+          return proxyResData;
+        },
+      })(req, res, next);
+    },
+  );
+
+  /** END PROXIES */
+
+  /** Body parsing middleware */
   app.use((req, res, next) => {
     if (
       req.path.startsWith("/webhooks/") ||
@@ -274,6 +350,23 @@ const main = async () => {
 
     next();
   });
+
+  /** OAuth2 consent flow */
+  app.get("/oauth2/consent", authRouteRateLimiter, oauthConsentRequestHandler);
+  app.post(
+    "/oauth2/consent",
+    authRouteRateLimiter,
+    oauthConsentSubmissionHandler,
+  );
+
+  const hbs = handlebarsCreate({ defaultLayout: "main", extname: ".hbs" });
+  app.engine(
+    "hbs",
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    hbs.engine,
+  );
+  app.set("view engine", "hbs");
+  app.set("views", "./views");
 
   // Create an email transporter
   const emailTransporter =
@@ -349,7 +442,9 @@ const main = async () => {
 
   setupBlockProtocolExternalServiceMethodProxy(app);
 
-  app.get("/", (_, res) => res.send("Hello World"));
+  app.get("/", (_req, res) => {
+    res.send("Hello World");
+  });
 
   // Used by AWS Application Load Balancer (ALB) for health checks
   app.get("/health-check", (_, res) => res.status(200).send("Hello World!"));
@@ -372,60 +467,6 @@ const main = async () => {
     next();
   });
 
-  /**
-   * Add a proxy for requests to the Ory Kratos public API, to be consumed
-   * by the frontend for authentication related requests made in the
-   * browser. Note that server-side frontend authentication requests
-   * can be sent the the Ory Kratos public URL directly, because the
-   * CORS requirements are not as strict as the one from the browser.
-   */
-  app.use(
-    "/auth/*",
-    authRouteRateLimiter,
-    cors(CORS_CONFIG),
-    (req, res, next) => {
-      const expectedAccessControlAllowOriginHeader = res.getHeader(
-        "Access-Control-Allow-Origin",
-      );
-
-      if (!oryKratosPublicUrl) {
-        throw new Error("`ORY_KRATOS_PUBLIC_URL` has not been provided");
-      }
-
-      return proxy(oryKratosPublicUrl, {
-        /**
-         * Remove the `/auth` prefix from the request path, so the path is
-         * formatted correctly for the Ory Kratos API.
-         */
-        proxyReqPathResolver: ({ originalUrl }) =>
-          originalUrl.replace("/auth", ""),
-        /**
-         * Ory Kratos includes the wildcard `*` in the `Access-Control-Allow-Origin`
-         * by default, which is not permitted by browsers when including credentials
-         * in requests.
-         *
-         * When setting the value of the `Access-Control-Allow-Origin` header in
-         * the Ory Kratos configuration, the frontend URL is included twice in the
-         * header for some reason (e.g. ["https://localhost:3000", "https://localhost:3000"]),
-         * which is also not permitted by browsers when including credentials in requests.
-         *
-         * Therefore we manually set the `Access-Control-Allow-Origin` header to the
-         * expected value here before returning the response, to prevent CORS errors
-         * in modern browsers.
-         */
-        userResDecorator: (_proxyRes, proxyResData, _userReq, userRes) => {
-          if (typeof expectedAccessControlAllowOriginHeader === "string") {
-            userRes.set(
-              "Access-Control-Allow-Origin",
-              expectedAccessControlAllowOriginHeader,
-            );
-          }
-          return proxyResData;
-        },
-      })(req, res, next);
-    },
-  );
-
   app.use((req, _res, next) => {
     if (req.path !== "/graphql") {
       if (!req.user?.isAccountSignupComplete) {
@@ -443,6 +484,11 @@ const main = async () => {
   app.get("/oauth/linear", authRouteRateLimiter, oAuthLinear);
   app.get("/oauth/linear/callback", authRouteRateLimiter, oAuthLinearCallback);
   app.post("/webhooks/linear", linearWebhook);
+
+  // Endpoints used by HashGPT or in support of it
+  app.post("/gpt/entities/query", gptQueryEntities);
+  app.get("/gpt/user-webs", gptGetUserWebs);
+  app.post("/gpt/upsert-gpt-oauth-client", upsertGptOauthClient);
 
   /**
    * This middleware MUST:

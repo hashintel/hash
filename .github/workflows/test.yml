@@ -326,7 +326,7 @@ jobs:
         run: |
           turbo codegen --filter '@apps/hash-external-services'
 
-          SERVICES="kratos redis spicedb"
+          SERVICES="hydra kratos redis spicedb"
 
           if [[ ${{ steps.tests.outputs.external-service-graph == 'true' }} == 'true' ]]; then
             SERVICES="$SERVICES graph"

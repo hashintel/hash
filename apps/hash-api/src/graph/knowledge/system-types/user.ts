@@ -507,7 +507,7 @@ export const joinOrg: ImpureGraphFunction<
 /**
  * Get the org memberships of a user.
  *
- * @param params.user - the user
+ * @param params.userEntityId - the entityId of the user
  */
 export const getUserOrgMemberships: ImpureGraphFunction<
   { userEntityId: EntityId },
