@@ -3,7 +3,6 @@ import {
   CustomRenderer,
   DataEditorRef,
   GridCellKind,
-  Item,
 } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 import { DataTypeWithMetadata } from "@local/hash-subgraph";
@@ -103,7 +102,7 @@ export const createRenderChangeTypeCell = (
     onClick: (args) => {
       const { valueCellOfThisRow } = args.cell.data;
 
-      const [_, rowIndex] = (args as unknown as { location: Item }).location;
+      const [_, rowIndex] = args.location;
 
       const valueCellColumnIndex = propertyGridIndexes.findIndex(
         (val) => val === "value",
