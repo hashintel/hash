@@ -2,9 +2,10 @@ use graph_types::{
     account::{EditionArchivedById, EditionCreatedById},
     ontology::OntologyTypeVersion,
     owned_by_id::OwnedById,
+    Embedding,
 };
 use postgres_types::{Json, ToSql};
-use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
+use temporal_versioning::{LeftClosedTemporalInterval, Timestamp, TransactionTime};
 use time::OffsetDateTime;
 use type_system::{DataType, EntityType, PropertyType};
 use uuid::Uuid;
@@ -48,6 +49,14 @@ pub struct DataTypeRow {
 }
 
 #[derive(Debug, ToSql)]
+#[postgres(name = "data_type_embeddings_tmp")]
+pub struct DataTypeEmbeddingRow {
+    pub ontology_id: Uuid,
+    pub embedding: Embedding<'static>,
+    pub updated_at_transaction_time: Timestamp<TransactionTime>,
+}
+
+#[derive(Debug, ToSql)]
 #[postgres(name = "property_types")]
 pub struct PropertyTypeRow {
     pub ontology_id: Uuid,
@@ -60,6 +69,14 @@ pub struct PropertyTypeConstrainsValuesOnRow {
     pub source_property_type_ontology_id: Uuid,
     pub target_data_type_base_url: String,
     pub target_data_type_version: OntologyTypeVersion,
+}
+
+#[derive(Debug, ToSql)]
+#[postgres(name = "property_type_embeddings_tmp")]
+pub struct PropertyTypeEmbeddingRow {
+    pub ontology_id: Uuid,
+    pub embedding: Embedding<'static>,
+    pub updated_at_transaction_time: Timestamp<TransactionTime>,
 }
 
 #[derive(Debug, ToSql)]
@@ -78,6 +95,14 @@ pub struct EntityTypeRow {
     pub closed_schema: Json<EntityType>,
     pub label_property: Option<String>,
     pub icon: Option<String>,
+}
+
+#[derive(Debug, ToSql)]
+#[postgres(name = "entity_type_embeddings_tmp")]
+pub struct EntityTypeEmbeddingRow {
+    pub ontology_id: Uuid,
+    pub embedding: Embedding<'static>,
+    pub updated_at_transaction_time: Timestamp<TransactionTime>,
 }
 
 #[derive(Debug, ToSql)]

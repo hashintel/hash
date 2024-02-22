@@ -24,8 +24,11 @@ pub enum Table {
     OntologyExternalMetadata,
     OntologyAdditionalMetadata,
     DataTypes,
+    DataTypeEmbeddings,
     PropertyTypes,
+    PropertyTypeEmbeddings,
     EntityTypes,
+    EntityTypeEmbeddings,
     EntityIds,
     EntityTemporalMetadata,
     EntityEditions,
@@ -285,8 +288,11 @@ impl Table {
             Self::OntologyExternalMetadata => "ontology_external_metadata",
             Self::OntologyAdditionalMetadata => "ontology_additional_metadata",
             Self::DataTypes => "data_types",
+            Self::DataTypeEmbeddings => "data_type_embeddings",
             Self::PropertyTypes => "property_types",
+            Self::PropertyTypeEmbeddings => "property_type_embeddings",
             Self::EntityTypes => "entity_types",
+            Self::EntityTypeEmbeddings => "entity_type_embeddings",
             Self::EntityIds => "entity_ids",
             Self::EntityTemporalMetadata => "entity_temporal_metadata",
             Self::EntityEditions => "entity_editions",
@@ -658,6 +664,13 @@ impl EntityIds {
         write!(fmt, r#"."{column}""#)
     }
 
+    pub const fn nullable(self) -> bool {
+        match self {
+            Self::WebId | Self::EntityUuid | Self::CreatedById => false,
+            Self::CreatedAtDecisionTime | Self::CreatedAtTransactionTime => true,
+        }
+    }
+
     pub const fn parameter_type(self) -> ParameterType {
         match self {
             Self::WebId | Self::EntityUuid | Self::CreatedById => ParameterType::Uuid,
@@ -672,6 +685,7 @@ impl EntityIds {
 pub enum EntityTemporalMetadata {
     WebId,
     EntityUuid,
+    DraftId,
     EditionId,
     DecisionTime,
     TransactionTime,
@@ -689,6 +703,7 @@ impl EntityTemporalMetadata {
         let column = match self {
             Self::WebId => "web_id",
             Self::EntityUuid => "entity_uuid",
+            Self::DraftId => "draft_id",
             Self::EditionId => "entity_edition_id",
             Self::DecisionTime => "decision_time",
             Self::TransactionTime => "transaction_time",
@@ -699,8 +714,98 @@ impl EntityTemporalMetadata {
 
     pub const fn parameter_type(self) -> ParameterType {
         match self {
-            Self::WebId | Self::EntityUuid | Self::EditionId => ParameterType::Uuid,
+            Self::WebId | Self::EntityUuid | Self::DraftId | Self::EditionId => ParameterType::Uuid,
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum DataTypeEmbeddings {
+    OntologyId,
+    Embedding,
+    UpdatedAtTransactionTime,
+    Distance,
+}
+
+impl DataTypeEmbeddings {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::OntologyId => "ontology_id",
+            Self::Embedding => "embedding",
+            Self::UpdatedAtTransactionTime => "updated_at_transaction_time",
+            Self::Distance => "distance",
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyId => ParameterType::Uuid,
+            Self::Embedding => ParameterType::Vector,
+            Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
+            Self::Distance => ParameterType::F64,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum PropertyTypeEmbeddings {
+    OntologyId,
+    Embedding,
+    UpdatedAtTransactionTime,
+    Distance,
+}
+
+impl PropertyTypeEmbeddings {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::OntologyId => "ontology_id",
+            Self::Embedding => "embedding",
+            Self::UpdatedAtTransactionTime => "updated_at_transaction_time",
+            Self::Distance => "distance",
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyId => ParameterType::Uuid,
+            Self::Embedding => ParameterType::Vector,
+            Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
+            Self::Distance => ParameterType::F64,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum EntityTypeEmbeddings {
+    OntologyId,
+    Embedding,
+    UpdatedAtTransactionTime,
+    Distance,
+}
+
+impl EntityTypeEmbeddings {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::OntologyId => "ontology_id",
+            Self::Embedding => "embedding",
+            Self::UpdatedAtTransactionTime => "updated_at_transaction_time",
+            Self::Distance => "distance",
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyId => ParameterType::Uuid,
+            Self::Embedding => ParameterType::Vector,
+            Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
+            Self::Distance => ParameterType::F64,
         }
     }
 }
@@ -710,6 +815,9 @@ pub enum EntityEmbeddings {
     WebId,
     EntityUuid,
     Embedding,
+    Property,
+    UpdatedAtTransactionTime,
+    UpdatedAtDecisionTime,
     Distance,
 }
 
@@ -719,6 +827,9 @@ impl EntityEmbeddings {
             Self::WebId => "web_id",
             Self::EntityUuid => "entity_uuid",
             Self::Embedding => "embedding",
+            Self::Property => "property",
+            Self::UpdatedAtDecisionTime => "updated_at_decision_time",
+            Self::UpdatedAtTransactionTime => "updated_at_transaction_time",
             Self::Distance => "distance",
         };
         table.transpile(fmt)?;
@@ -729,6 +840,10 @@ impl EntityEmbeddings {
         match self {
             Self::WebId | Self::EntityUuid => ParameterType::Uuid,
             Self::Embedding => ParameterType::Vector,
+            Self::Property => ParameterType::BaseUrl,
+            Self::UpdatedAtTransactionTime | Self::UpdatedAtDecisionTime => {
+                ParameterType::Timestamp
+            }
             Self::Distance => ParameterType::F64,
         }
     }
@@ -742,13 +857,12 @@ pub enum EntityEditions<'p> {
     RightToLeftOrder,
     EditionCreatedById,
     Archived,
-    Draft,
 }
 
 impl<'p> EntityEditions<'p> {
     pub const fn nullable(self) -> bool {
         match self {
-            Self::EditionId | Self::Archived | Self::Draft | Self::EditionCreatedById => false,
+            Self::EditionId | Self::Archived | Self::EditionCreatedById => false,
             Self::Properties(_) | Self::LeftToRightOrder | Self::RightToLeftOrder => true,
         }
     }
@@ -763,7 +877,6 @@ impl<'p> EntityEditions<'p> {
             Self::RightToLeftOrder => (EntityEditions::RightToLeftOrder, None),
             Self::EditionCreatedById => (EntityEditions::EditionCreatedById, None),
             Self::Archived => (EntityEditions::Archived, None),
-            Self::Draft => (EntityEditions::Draft, None),
             Self::Properties(None) => (EntityEditions::Properties(None), None),
             Self::Properties(Some(path)) => {
                 let (path, parameter) = path.into_owned(current_parameter_index);
@@ -785,7 +898,6 @@ impl EntityEditions<'static> {
             Self::RightToLeftOrder => "right_to_left_order",
             Self::EditionCreatedById => "edition_created_by_id",
             Self::Archived => "archived",
-            Self::Draft => "draft",
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
@@ -796,7 +908,7 @@ impl EntityEditions<'static> {
             Self::EditionId | Self::EditionCreatedById => ParameterType::Uuid,
             Self::Properties(_) => ParameterType::Any,
             Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::I32,
-            Self::Archived | Self::Draft => ParameterType::Boolean,
+            Self::Archived => ParameterType::Boolean,
         }
     }
 }
@@ -1076,8 +1188,11 @@ pub enum Column<'p> {
     OntologyExternalMetadata(OntologyExternalMetadata),
     OntologyAdditionalMetadata(OntologyAdditionalMetadata),
     DataTypes(DataTypes<'p>),
+    DataTypeEmbeddings(DataTypeEmbeddings),
     PropertyTypes(PropertyTypes<'p>),
+    PropertyTypeEmbeddings(PropertyTypeEmbeddings),
     EntityTypes(EntityTypes<'p>),
+    EntityTypeEmbeddings(EntityTypeEmbeddings),
     EntityIds(EntityIds),
     EntityTemporalMetadata(EntityTemporalMetadata),
     EntityEditions(EntityEditions<'p>),
@@ -1102,8 +1217,11 @@ impl<'p> Column<'p> {
             Self::OntologyExternalMetadata(_) => Table::OntologyExternalMetadata,
             Self::OntologyAdditionalMetadata(_) => Table::OntologyAdditionalMetadata,
             Self::DataTypes(_) => Table::DataTypes,
+            Self::DataTypeEmbeddings(_) => Table::DataTypeEmbeddings,
             Self::PropertyTypes(_) => Table::PropertyTypes,
+            Self::PropertyTypeEmbeddings(_) => Table::PropertyTypeEmbeddings,
             Self::EntityTypes(_) => Table::EntityTypes,
+            Self::EntityTypeEmbeddings(_) => Table::EntityTypeEmbeddings,
             Self::EntityIds(_) => Table::EntityIds,
             Self::EntityTemporalMetadata(_) => Table::EntityTemporalMetadata,
             Self::EntityEditions(_) => Table::EntityEditions,
@@ -1155,6 +1273,7 @@ impl<'p> Column<'p> {
             Self::PropertyTypes(column) => column.nullable(),
             Self::EntityTypes(column) => column.nullable(),
             Self::EntityEditions(column) => column.nullable(),
+            Self::EntityIds(column) => column.nullable(),
             Self::EntityEmbeddings(_)
             | Self::EntityHasLeftEntity(_)
             | Self::EntityHasRightEntity(_)
@@ -1184,14 +1303,17 @@ impl<'p> Column<'p> {
                 let (column, parameter) = column.into_owned(current_parameter_index);
                 (Column::DataTypes(column), parameter)
             }
+            Self::DataTypeEmbeddings(column) => (Column::DataTypeEmbeddings(column), None),
             Self::PropertyTypes(column) => {
                 let (column, parameter) = column.into_owned(current_parameter_index);
                 (Column::PropertyTypes(column), parameter)
             }
+            Self::PropertyTypeEmbeddings(column) => (Column::PropertyTypeEmbeddings(column), None),
             Self::EntityTypes(column) => {
                 let (column, parameter) = column.into_owned(current_parameter_index);
                 (Column::EntityTypes(column), parameter)
             }
+            Self::EntityTypeEmbeddings(column) => (Column::EntityTypeEmbeddings(column), None),
             Self::EntityIds(column) => (Column::EntityIds(column), None),
             Self::EntityTemporalMetadata(column) => (Column::EntityTemporalMetadata(column), None),
             Self::EntityEditions(column) => {
@@ -1246,8 +1368,11 @@ impl Column<'static> {
             Self::OntologyExternalMetadata(column) => column.transpile_column(table, fmt),
             Self::OntologyAdditionalMetadata(column) => column.transpile_column(table, fmt),
             Self::DataTypes(column) => column.transpile_column(table, fmt),
+            Self::DataTypeEmbeddings(column) => column.transpile_column(table, fmt),
             Self::PropertyTypes(column) => column.transpile_column(table, fmt),
+            Self::PropertyTypeEmbeddings(column) => column.transpile_column(table, fmt),
             Self::EntityTypes(column) => column.transpile_column(table, fmt),
+            Self::EntityTypeEmbeddings(column) => column.transpile_column(table, fmt),
             Self::EntityIds(column) => column.transpile_column(table, fmt),
             Self::EntityTemporalMetadata(column) => column.transpile_column(table, fmt),
             Self::EntityEditions(column) => column.transpile_column(table, fmt),
@@ -1276,8 +1401,11 @@ impl Column<'static> {
             Self::OntologyExternalMetadata(column) => column.parameter_type(),
             Self::OntologyAdditionalMetadata(column) => column.parameter_type(),
             Self::DataTypes(column) => column.parameter_type(),
+            Self::DataTypeEmbeddings(column) => column.parameter_type(),
             Self::PropertyTypes(column) => column.parameter_type(),
+            Self::PropertyTypeEmbeddings(column) => column.parameter_type(),
             Self::EntityTypes(column) => column.parameter_type(),
+            Self::EntityTypeEmbeddings(column) => column.parameter_type(),
             Self::EntityIds(column) => column.parameter_type(),
             Self::EntityTemporalMetadata(column) => column.parameter_type(),
             Self::EntityEditions(column) => column.parameter_type(),
@@ -1386,6 +1514,9 @@ pub enum Relation {
     EntityTypeIds,
     EntityIds,
     EntityEditions,
+    DataTypeEmbeddings,
+    PropertyTypeEmbeddings,
+    EntityTypeEmbeddings,
     EntityEmbeddings,
     LeftEntity,
     RightEntity,
@@ -1449,6 +1580,7 @@ impl Iterator for ForeignKeyJoin {
 }
 
 impl Relation {
+    #[expect(clippy::too_many_lines)]
     pub fn joins(self) -> ForeignKeyJoin {
         match self {
             Self::OntologyIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
@@ -1479,14 +1611,32 @@ impl Relation {
                 on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::DataTypes(DataTypes::OntologyId),
             }),
+            Self::DataTypeEmbeddings => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                    join: Column::DataTypeEmbeddings(DataTypeEmbeddings::OntologyId),
+                })
+            }
             Self::PropertyTypeIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
                 on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::PropertyTypes(PropertyTypes::OntologyId),
             }),
+            Self::PropertyTypeEmbeddings => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                    join: Column::PropertyTypeEmbeddings(PropertyTypeEmbeddings::OntologyId),
+                })
+            }
             Self::EntityTypeIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
                 on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::EntityTypes(EntityTypes::OntologyId),
             }),
+            Self::EntityTypeEmbeddings => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                    join: Column::EntityTypeEmbeddings(EntityTypeEmbeddings::OntologyId),
+                })
+            }
             Self::EntityIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Double {
                 on: [
                     Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),

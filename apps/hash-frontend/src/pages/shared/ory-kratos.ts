@@ -1,7 +1,4 @@
-import {
-  apiOrigin,
-  oryKratosPublicUrl,
-} from "@local/hash-isomorphic-utils/environment";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import {
   Configuration,
   FrontendApi,
@@ -20,11 +17,9 @@ import {
 } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 
-import { isBrowser } from "../../lib/config";
-
 export const oryKratosClient = new FrontendApi(
   new Configuration({
-    basePath: isBrowser ? `${apiOrigin}/auth` : oryKratosPublicUrl,
+    basePath: `${apiOrigin}/auth`,
     baseOptions: {
       withCredentials: true,
     },

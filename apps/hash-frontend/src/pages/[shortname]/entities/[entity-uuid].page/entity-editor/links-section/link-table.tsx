@@ -23,6 +23,7 @@ export const LinkTable = ({ showSearch, onSearchClose }: LinkTableProps) => {
       columns={linkGridColumns}
       rows={rows}
       createGetCellContent={createGetCellContent}
+      dataLoading={false}
       drawCell={drawCell}
       showSearch={showSearch}
       onSearchClose={onSearchClose}

@@ -1,15 +1,16 @@
 import {
-  BaseUrl,
   ENTITY_TYPE_META_SCHEMA,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
+  ArchiveEntityTypeParams,
   EntityType,
   EntityTypePermission,
   EntityTypeStructuralQuery,
   ModifyRelationshipOperation,
   OntologyTemporalMetadata,
+  UnarchiveEntityTypeParams,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
 import {
@@ -17,8 +18,12 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
+  ConstructEntityTypeParams,
+  UserPermissionsOnEntityType,
+} from "@local/hash-isomorphic-utils/types";
+import {
+  BaseUrl,
   EntityTypeAuthorizationRelationship,
   EntityTypeMetadata,
   EntityTypeRelationAndSubject,
@@ -35,6 +40,7 @@ import {
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
+import { publicUserAccountId } from "../../../auth/public-user-account-id";
 import { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname, isExternalTypeId } from "./util";
 
@@ -78,6 +84,38 @@ export const checkEntityTypePermission: ImpureGraphFunction<
   graphApi
     .checkEntityTypePermission(actorId, params.entityTypeId, params.permission)
     .then(({ data }) => data.has_permission);
+
+export const checkPermissionsOnEntityType: ImpureGraphFunction<
+  { entityTypeId: VersionedUrl },
+  Promise<UserPermissionsOnEntityType>
+> = async (graphContext, { actorId }, params) => {
+  const { entityTypeId } = params;
+
+  const isPublicUser = actorId === publicUserAccountId;
+
+  const [canUpdate, canInstantiateEntities] = await Promise.all([
+    isPublicUser
+      ? false
+      : await checkEntityTypePermission(
+          graphContext,
+          { actorId },
+          { entityTypeId, permission: "update" },
+        ),
+    isPublicUser
+      ? false
+      : await checkEntityTypePermission(
+          graphContext,
+          { actorId },
+          { entityTypeId, permission: "instantiate" },
+        ),
+  ]);
+
+  return {
+    edit: canUpdate,
+    instantiate: canInstantiateEntities,
+    view: true,
+  };
+};
 
 /**
  * Create an entity type.
@@ -322,16 +360,13 @@ export const isEntityTypeLinkEntityType: ImpureGraphFunction<
  * @param params.actorId - the id of the account that is archiving the entity type
  */
 export const archiveEntityType: ImpureGraphFunction<
-  {
-    entityTypeId: VersionedUrl;
-  },
+  ArchiveEntityTypeParams,
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { entityTypeId } = params;
-
-  const { data: temporalMetadata } = await graphApi.archiveEntityType(actorId, {
-    typeToArchive: entityTypeId,
-  });
+  const { data: temporalMetadata } = await graphApi.archiveEntityType(
+    actorId,
+    params,
+  );
 
   return temporalMetadata;
 };
@@ -343,18 +378,12 @@ export const archiveEntityType: ImpureGraphFunction<
  * @param params.actorId - the id of the account that is unarchiving the entity type
  */
 export const unarchiveEntityType: ImpureGraphFunction<
-  {
-    entityTypeId: VersionedUrl;
-  },
+  UnarchiveEntityTypeParams,
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { entityTypeId } = params;
-
   const { data: temporalMetadata } = await graphApi.unarchiveEntityType(
     actorId,
-    {
-      typeToUnarchive: entityTypeId,
-    },
+    params,
   );
 
   return temporalMetadata;

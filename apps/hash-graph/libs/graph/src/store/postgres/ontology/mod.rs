@@ -30,7 +30,7 @@ use crate::{
             query::{Distinctness, PostgresSorting, SelectCompiler},
         },
         query::Parameter,
-        AsClient, Ordering, PostgresStore, Record,
+        AsClient, Ordering, PostgresStore, SubgraphRecord,
     },
     subgraph::temporal_axes::QueryTemporalAxes,
 };
@@ -146,7 +146,7 @@ macro_rules! impl_ontology_cursor {
     ($ty:ty, $query_path:ty) => {
         impl QueryRecordDecode for VertexIdSorting<$ty> {
             type CompilationArtifacts = VersionedUrlIndices;
-            type Output = <$ty as Record>::VertexId;
+            type Output = <$ty as SubgraphRecord>::VertexId;
 
             fn decode(row: &Row, indices: &Self::CompilationArtifacts) -> Self::Output {
                 Self::Output {

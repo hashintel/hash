@@ -1,5 +1,9 @@
 #![allow(dead_code, unreachable_pub, unused_attributes)]
-#![cfg_attr(nightly, feature(error_in_core, error_generic_member_access))]
+#![cfg_attr(
+    nightly,
+    feature(error_in_core, error_generic_member_access),
+    allow(clippy::incompatible_msrv)
+)]
 
 pub fn create_report() -> Report<RootError> {
     Report::new(RootError)
@@ -7,10 +11,6 @@ pub fn create_report() -> Report<RootError> {
 
 extern crate alloc;
 
-pub use alloc::{
-    string::{String, ToString},
-    vec::Vec,
-};
 use core::{any::TypeId, panic::Location};
 #[allow(unused_imports)]
 use core::{

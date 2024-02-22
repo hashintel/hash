@@ -34,7 +34,7 @@ futures = { workspace = true }
 mime = "0.3.17"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 regex = "1.10.3"
-semver = { version = "1.0.21", default-features = false, features = ["serde"] }
+semver = { version = "1.0.22", default-features = false, features = ["serde"] }
 sentry = { version = "0.32.2", features = ["tracing", "tower", "tower-http"], default-features = false }
 serde_json = { workspace = true }
 tarpc = { version = "0.33", features = ["serde-transport", "tcp"] }

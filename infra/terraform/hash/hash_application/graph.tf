@@ -58,8 +58,8 @@ resource "aws_security_group" "graph" {
     cidr_blocks = [var.vpc.cidr_block]
   }
   egress {
-    from_port   = 4444
-    to_port     = 4444
+    from_port   = 4455
+    to_port     = 4455
     protocol    = "tcp"
     description = "Allow connections with the type fetcher"
     cidr_blocks = [var.vpc.cidr_block]
@@ -177,7 +177,6 @@ locals {
       retries  = 5
       interval = 20
       timeout  = 5
-
     }
     portMappings = [
       {

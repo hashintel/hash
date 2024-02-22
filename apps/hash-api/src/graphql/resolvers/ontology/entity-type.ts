@@ -4,7 +4,9 @@ import {
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { UserPermissionsOnEntityType } from "@local/hash-isomorphic-utils/types";
 import {
+  BaseUrl,
   EntityTypeRootType,
   EntityTypeWithMetadata,
   OwnedById,
@@ -14,6 +16,7 @@ import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 
 import {
   archiveEntityType,
+  checkPermissionsOnEntityType,
   createEntityType,
   getEntityTypeSubgraphById,
   unarchiveEntityType,
@@ -24,6 +27,7 @@ import {
   MutationCreateEntityTypeArgs,
   MutationUnarchiveEntityTypeArgs,
   MutationUpdateEntityTypeArgs,
+  QueryCheckUserPermissionsOnEntityTypeArgs,
   QueryGetEntityTypeArgs,
   QueryQueryEntityTypesArgs,
   ResolverFn,
@@ -46,6 +50,7 @@ export const createEntityTypeResolver: ResolverFn<
     ownedById: ownedById ?? (user.accountId as OwnedById),
     schema: entityType,
     icon: params.icon ?? undefined,
+    labelProperty: (params.labelProperty as BaseUrl | undefined) ?? undefined,
     relationships: [
       {
         relation: "setting",
@@ -171,7 +176,7 @@ export const updateEntityTypeResolver: ResolverFn<
     {
       entityTypeId: params.entityTypeId,
       schema: params.updatedEntityType,
-      labelProperty: params.labelProperty ?? undefined,
+      labelProperty: (params.labelProperty as BaseUrl | undefined) ?? undefined,
       icon: params.icon ?? undefined,
       relationships: [
         {
@@ -196,6 +201,14 @@ export const updateEntityTypeResolver: ResolverFn<
       ],
     },
   );
+
+export const checkUserPermissionsOnEntityTypeResolver: ResolverFn<
+  Promise<UserPermissionsOnEntityType>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  QueryCheckUserPermissionsOnEntityTypeArgs
+> = async (_, params, { dataSources, authentication }) =>
+  checkPermissionsOnEntityType(dataSources, authentication, params);
 
 export const archiveEntityTypeResolver: ResolverFn<
   Promise<OntologyTemporalMetadata>,

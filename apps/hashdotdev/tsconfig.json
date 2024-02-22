@@ -10,8 +10,8 @@
     "incremental": true,
     "isolatedModules": true,
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
-    "module": "ESNext",
-    "moduleResolution": "Node",
+    "module": "esnext",
+    "moduleResolution": "node",
     "noUncheckedIndexedAccess": true,
     "resolveJsonModule": true,
     "sourceMap": true,
@@ -19,14 +19,14 @@
     "target": "ES2020",
     "noEmit": true,
     "jsx": "preserve",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
   "include": [
     "@types/gtag.js",
     "next-env.d.ts",
     "theme-override.d.ts",
     "**/*.ts",
-    "**/*.tsx",
+    "**/*.tsx"
   ],
-  "exclude": ["node_modules"],
+  "exclude": ["node_modules"]
 }

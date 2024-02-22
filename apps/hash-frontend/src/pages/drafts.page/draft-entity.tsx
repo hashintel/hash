@@ -1,18 +1,13 @@
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
-  Entity,
-  EntityRootType,
-  extractEntityUuidFromEntityId,
-  Subgraph,
-} from "@local/hash-subgraph";
+import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Checkbox, Typography } from "@mui/material";
 import { FunctionComponent, useMemo, useRef, useState } from "react";
 
-import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
 import { Link } from "../../shared/ui";
 import { EditEntityModal } from "../[shortname]/entities/[entity-uuid].page/edit-entity-modal";
+import { useEntityHref } from "../shared/use-entity-href";
 import { DraftEntityActionButtons } from "./draft-entity/draft-entity-action-buttons";
 import { DraftEntityProvenance } from "./draft-entity/draft-entity-provenance";
 import { DraftEntityType } from "./draft-entity/draft-entity-type";
@@ -40,17 +35,9 @@ export const DraftEntity: FunctionComponent<{
 }> = ({ entity, subgraph, selected, toggleSelected }) => {
   const { refetch } = useDraftEntities();
 
-  const getOwnerForEntity = useGetOwnerForEntity();
-
   const [displayEntityModal, setDisplayEntityModal] = useState<boolean>(false);
 
-  const href = useMemo(() => {
-    const { shortname } = getOwnerForEntity(entity);
-
-    return `/@${shortname}/entities/${extractEntityUuidFromEntityId(
-      entity.metadata.recordId.entityId,
-    )}`;
-  }, [getOwnerForEntity, entity]);
+  const href = useEntityHref(entity);
 
   const label = useMemo(
     () => generateEntityLabel(subgraph, entity),

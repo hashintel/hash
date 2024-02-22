@@ -1,5 +1,5 @@
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { AccountId, OwnedById } from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
@@ -62,7 +62,7 @@ export const userBeforeEntityUpdateHookCallback: UpdateEntityHookCallback =
     const {
       email: updatedEmails,
       shortname: updatedShortname,
-      preferredName: updatedPreferredName,
+      displayName: updatedDisplayName,
     } = simplifyProperties(updatedProperties as UserProperties);
 
     if (currentShortname !== updatedShortname) {
@@ -77,17 +77,17 @@ export const userBeforeEntityUpdateHookCallback: UpdateEntityHookCallback =
       );
     }
 
-    const currentPreferredName = user.preferredName;
+    const currentDisplayName = user.displayName;
 
-    if (currentPreferredName !== updatedPreferredName) {
-      if (!updatedPreferredName) {
+    if (currentDisplayName !== updatedDisplayName) {
+      if (!updatedDisplayName) {
         throw new ApolloError("Cannot unset preferred name");
       }
     }
 
     const isIncompleteUser = !user.isAccountSignupComplete;
 
-    if (isIncompleteUser && updatedShortname && updatedPreferredName) {
+    if (isIncompleteUser && updatedShortname && updatedDisplayName) {
       /**
        * If the user doesn't have access to the HASH instance,
        * we need to forbid them from completing account signup

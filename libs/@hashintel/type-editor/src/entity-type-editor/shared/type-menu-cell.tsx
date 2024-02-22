@@ -1,4 +1,8 @@
-import { extractVersion, VersionedUrl } from "@blockprotocol/type-system/slim";
+import {
+  extractBaseUrl,
+  extractVersion,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
 import { faCopy } from "@fortawesome/free-regular-svg-icons";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -42,7 +46,9 @@ import {
   useId,
   useState,
 } from "react";
+import { useController, useFormContext } from "react-hook-form";
 
+import { EntityTypeEditorFormData } from "../../shared/form-types";
 import { useIsReadonly } from "../../shared/read-only-context";
 
 export const TYPE_MENU_CELL_WIDTH = 70;
@@ -84,6 +90,16 @@ export const TypeMenuCell = ({
 
   const isReadonly = useIsReadonly();
   const canEdit = editable && !isReadonly;
+
+  const { control } = useFormContext<EntityTypeEditorFormData>();
+
+  const labelPropertyController = useController({
+    control,
+    name: "labelProperty",
+  });
+  const isLabelProperty =
+    variant === "property" &&
+    extractBaseUrl(typeId) === labelPropertyController.field.value;
 
   const EditButton = useCallback(
     () => (
@@ -205,6 +221,27 @@ export const TypeMenuCell = ({
               >
                 <ListItemText primary={<>Remove {variant}</>} />
               </MenuItem>,
+              ...(variant === "property"
+                ? [
+                    <MenuItem
+                      key="label-property"
+                      onClick={() => {
+                        popupState.close();
+                        labelPropertyController.field.onChange(
+                          isLabelProperty ? null : extractBaseUrl(typeId),
+                        );
+                      }}
+                    >
+                      <ListItemText
+                        primary={
+                          <>
+                            {isLabelProperty ? "Unset" : "Set"} as entity label
+                          </>
+                        }
+                      />
+                    </MenuItem>,
+                  ]
+                : []),
               <Divider key="divider" />,
             ]
           : null}

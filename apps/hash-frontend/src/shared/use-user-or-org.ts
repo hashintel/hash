@@ -9,10 +9,8 @@ import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  OrganizationProperties,
-  UserProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
+import { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   AccountGroupId,
   AccountId,

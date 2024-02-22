@@ -1,4 +1,4 @@
-import { FileV2 as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
+import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-types/file";
 import {

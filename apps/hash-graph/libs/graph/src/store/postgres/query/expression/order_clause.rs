@@ -15,6 +15,15 @@ impl OrderByExpression {
         self.columns.push((column, ordering, nulls));
     }
 
+    pub fn insert_front(
+        &mut self,
+        column: AliasedColumn,
+        ordering: Ordering,
+        nulls: Option<NullOrdering>,
+    ) {
+        self.columns.insert(0, (column, ordering, nulls));
+    }
+
     pub fn is_empty(&self) -> bool {
         self.columns.is_empty()
     }

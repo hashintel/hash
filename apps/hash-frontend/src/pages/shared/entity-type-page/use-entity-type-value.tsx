@@ -9,7 +9,6 @@ import { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
 import {
   AccountId,
   BaseUrl,
-  EditableOntologyElementMetadata,
   EntityTypeWithMetadata,
   OwnedById,
   PropertyTypeWithMetadata,
@@ -293,7 +292,10 @@ export const useEntityTypeValue = (
   const updateCallback = useCallback(
     async (
       partialEntityType: Partial<ConstructEntityTypeParams>,
-      metadata: EditableOntologyElementMetadata,
+      metadata: Pick<
+        EntityTypeWithMetadata["metadata"],
+        "icon" | "labelProperty"
+      >,
     ) => {
       if (!stateEntityTypeRef.current) {
         throw new Error("Cannot update yet");
@@ -310,7 +312,7 @@ export const useEntityTypeValue = (
             ...restOfEntityType,
             ...partialEntityType,
           },
-          icon: metadata.icon,
+          ...metadata,
         },
       });
 
@@ -324,13 +326,16 @@ export const useEntityTypeValue = (
   const publishDraft = useCallback(
     async (
       draftEntityType: EntityType,
-      metadata: EditableOntologyElementMetadata,
+      metadata: Pick<
+        EntityTypeWithMetadata["metadata"],
+        "icon" | "labelProperty"
+      >,
     ) => {
       const res = await createEntityType({
         variables: {
           ownedById: accountId as OwnedById,
           entityType: draftEntityType,
-          icon: metadata.icon,
+          ...metadata,
         },
       });
 

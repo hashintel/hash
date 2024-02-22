@@ -97,7 +97,7 @@ export const PropertyTypeRow = ({
   });
 
   const propertyTypesOptions = usePropertyTypesOptions();
-  const property = propertyTypesOptions[propertyId];
+  const propertySchema = propertyTypesOptions[propertyId]?.schema;
 
   const ontologyFunctions = useOntologyFunctions();
   const isReadonly = useIsReadonly();
@@ -107,26 +107,26 @@ export const PropertyTypeRow = ({
     propertyTypesOptions,
   );
 
-  if (!property) {
+  if (!propertySchema) {
     throw new Error(`Property type with ${propertyId} not found in options`);
   }
 
   const getDefaultValues = useCallback(() => {
     const [expectedValues, flattenedCustomExpectedValueList] =
-      propertyTypeToFormDataExpectedValues(property);
+      propertyTypeToFormDataExpectedValues(propertySchema);
 
     return {
-      name: property.title,
-      description: property.description,
+      name: propertySchema.title,
+      description: propertySchema.description,
       expectedValues,
       flattenedCustomExpectedValueList,
     };
-  }, [property]);
+  }, [propertySchema]);
 
   const editDisabledReason = useMemo(() => {
     const canEdit = ontologyFunctions?.canEditResource({
       kind: "property-type",
-      resource: property,
+      resource: propertySchema,
     });
 
     return !canEdit?.allowed
@@ -134,12 +134,12 @@ export const PropertyTypeRow = ({
       : currentVersion !== latestVersion
         ? "Update the property type to the latest version to edit"
         : undefined;
-  }, [ontologyFunctions, property, currentVersion, latestVersion]);
+  }, [ontologyFunctions, propertySchema, currentVersion, latestVersion]);
 
   return (
     <>
       <PropertyRow
-        property={property}
+        property={propertySchema}
         isArray={isArray}
         isRequired={isRequired}
         allowArraysTableCell={
@@ -160,7 +160,7 @@ export const PropertyTypeRow = ({
           <TypeMenuCell
             editButtonProps={bindTrigger(editModalPopupState)}
             onRemove={onRemove}
-            typeId={property.$id}
+            typeId={propertySchema.$id}
             variant="property"
             editButtonDisabled={editDisabledReason}
           />
@@ -210,10 +210,10 @@ const InsertPropertyField = (
   const properties = useWatch({ control, name: "properties" });
 
   const propertyTypeOptions = usePropertyTypesOptions();
-  const propertyTypes = useMemo(
+  const propertyTypeSchemas = useMemo(
     () =>
       Object.values(propertyTypeOptions).map((type) => ({
-        ...type,
+        ...type.schema,
         Icon: PropertyTypeIcon,
       })),
     [propertyTypeOptions],
@@ -228,7 +228,7 @@ const InsertPropertyField = (
       ...inheritedProperties,
       { $id: linkEntityTypeUrl },
     ],
-    typeOptions: propertyTypes,
+    typeOptions: propertyTypeSchemas,
   });
 
   return (
@@ -273,7 +273,7 @@ export const PropertyListCard = () => {
       sortRows(
         [...unsortedFields, ...inheritedProperties],
         (propertyId) => propertyTypeOptions[propertyId],
-        (row) => row.title,
+        (row) => row.schema.title,
       ),
     [inheritedProperties, propertyTypeOptions, unsortedFields],
   );

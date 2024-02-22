@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    iter::once,
+};
 
 use postgres_types::ToSql;
 use temporal_versioning::TimeAxis;
@@ -8,16 +11,16 @@ use crate::{
         postgres::query::{
             expression::GroupByExpression,
             table::{
-                EntityEditions, EntityEmbeddings, EntityTemporalMetadata, OntologyIds,
-                OntologyTemporalMetadata,
+                DataTypeEmbeddings, EntityEmbeddings, EntityTemporalMetadata, EntityTypeEmbeddings,
+                OntologyIds, OntologyTemporalMetadata, PropertyTypeEmbeddings,
             },
-            Alias, AliasedColumn, AliasedTable, Column, Condition, Constant, Distinctness,
-            EqualityOperator, Expression, Function, JoinExpression, OrderByExpression,
-            PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table, Transpile,
-            WhereExpression, WindowStatement, WithExpression,
+            Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
+            Expression, Function, JoinExpression, OrderByExpression, PostgresQueryPath,
+            PostgresRecord, SelectExpression, SelectStatement, Table, Transpile, WhereExpression,
+            WindowStatement, WithExpression,
         },
         query::{Filter, FilterExpression, Parameter, ParameterList, ParameterType},
-        NullOrdering, Ordering, Record,
+        NullOrdering, Ordering, QueryRecord,
     },
     subgraph::temporal_axes::QueryTemporalAxes,
 };
@@ -26,6 +29,11 @@ use crate::{
 // - 'c relates to the lifetime of the `SelectCompiler` (most constrained by the SelectStatement)
 // - 'p relates to the lifetime of the parameters, should be the longest living as they have to
 //   outlive the transpiling process
+
+pub struct AppliedFilters {
+    draft: bool,
+    temporal_axes: bool,
+}
 
 pub struct TableInfo {
     tables: HashSet<AliasedTable>,
@@ -48,10 +56,11 @@ struct PathSelection {
     ordering: Option<(Ordering, Option<NullOrdering>)>,
 }
 
-pub struct SelectCompiler<'p, 'q: 'p, T: Record> {
+pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
     statement: SelectStatement,
     artifacts: CompilerArtifacts<'p>,
     temporal_axes: Option<&'p QueryTemporalAxes>,
+    include_drafts: bool,
     table_hooks: HashMap<Table, fn(&mut Self, Alias)>,
     selections: HashMap<&'p T::QueryPath<'q>, PathSelection>,
 }
@@ -62,14 +71,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         let mut table_hooks = HashMap::<_, fn(&mut Self, Alias)>::new();
 
         if temporal_axes.is_some() {
-            table_hooks.insert(
-                Table::EntityTemporalMetadata,
-                Self::pin_entity_temporal_metadata_table,
-            );
             table_hooks.insert(Table::OntologyTemporalMetadata, Self::pin_ontology_table);
         }
-        if !include_drafts {
-            table_hooks.insert(Table::EntityEditions, Self::filter_drafts);
+        if temporal_axes.is_some() || !include_drafts {
+            table_hooks.insert(
+                Table::EntityTemporalMetadata,
+                Self::filter_temporal_metadata,
+            );
         }
 
         Self {
@@ -101,6 +109,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             },
             temporal_axes,
             table_hooks,
+            include_drafts,
             selections: HashMap::new(),
         }
     }
@@ -203,32 +212,26 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
     }
 
-    fn filter_drafts(&mut self, alias: Alias) {
+    fn filter_temporal_metadata(&mut self, alias: Alias) {
         if self
             .artifacts
             .table_info
             .tables
-            .insert(Table::EntityEditions.aliased(alias))
+            .insert(Table::EntityTemporalMetadata.aliased(alias))
         {
-            self.statement
-                .where_expression
-                .add_condition(Condition::Equal(
-                    Some(Expression::Column(
-                        Column::EntityEditions(EntityEditions::Draft).aliased(alias),
-                    )),
-                    Some(Expression::Constant(Constant::Boolean(false))),
-                ));
-        }
-    }
+            if !self.include_drafts {
+                self.statement
+                    .where_expression
+                    .add_condition(Condition::Equal(
+                        Some(Expression::Column(
+                            Column::EntityTemporalMetadata(EntityTemporalMetadata::DraftId)
+                                .aliased(alias),
+                        )),
+                        None,
+                    ));
+            }
 
-    fn pin_entity_temporal_metadata_table(&mut self, alias: Alias) {
-        if let Some(temporal_axes) = self.temporal_axes {
-            if self
-                .artifacts
-                .table_info
-                .tables
-                .insert(Table::EntityTemporalMetadata.aliased(alias))
-            {
+            if let Some(temporal_axes) = self.temporal_axes {
                 let pinned_axis = temporal_axes.pinned_time_axis();
                 let variable_axis = temporal_axes.variable_time_axis();
                 let pinned_time_index = self.time_index(temporal_axes, pinned_axis);
@@ -427,18 +430,37 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     let parameter_expression = self.compile_parameter(parameter).0;
                     let maximum_expression = self.compile_filter_expression(max).0;
 
-                    let distance_column = Column::EntityEmbeddings(EntityEmbeddings::Distance)
-                        .aliased(path_column.alias);
+                    let distance_column = match path.terminating_column().table() {
+                        Table::DataTypeEmbeddings => {
+                            Column::DataTypeEmbeddings(DataTypeEmbeddings::Distance)
+                        }
+                        Table::PropertyTypeEmbeddings => {
+                            Column::PropertyTypeEmbeddings(PropertyTypeEmbeddings::Distance)
+                        }
+                        Table::EntityTypeEmbeddings => {
+                            Column::EntityTypeEmbeddings(EntityTypeEmbeddings::Distance)
+                        }
+                        Table::EntityEmbeddings => {
+                            Column::EntityEmbeddings(EntityEmbeddings::Distance)
+                        }
+                        _ => panic!("Only embeddings are supported for cosine distance"),
+                    }
+                    .aliased(path_column.alias);
 
                     if let Some(last_join) = self.statement.joins.last_mut() {
                         assert!(
-                            last_join.table.table == Table::EntityEmbeddings
-                                || last_join.statement.is_some(),
+                            matches!(
+                                last_join.table.table,
+                                Table::DataTypeEmbeddings
+                                    | Table::PropertyTypeEmbeddings
+                                    | Table::EntityTypeEmbeddings
+                                    | Table::EntityEmbeddings
+                            ) || last_join.statement.is_some(),
                             "Only a single embedding for the same path is allowed"
                         );
 
                         let table = AliasedTable {
-                            table: Table::EntityEmbeddings,
+                            table: path.terminating_column().table(),
                             alias: Alias {
                                 condition_index: 0,
                                 chain_depth: 0,
@@ -446,29 +468,43 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             },
                         };
                         let embeddings_column = AliasedColumn {
-                            column: Column::EntityEmbeddings(EntityEmbeddings::Embedding),
+                            column: path
+                                .terminating_column()
+                                .into_owned(self.artifacts.parameters.len() + 1)
+                                .0,
                             alias: table.alias,
+                        };
+
+                        let select_columns = match table.table {
+                            Table::DataTypeEmbeddings => {
+                                &[Column::DataTypeEmbeddings(DataTypeEmbeddings::OntologyId)]
+                                    as &[_]
+                            }
+                            Table::PropertyTypeEmbeddings => &[Column::PropertyTypeEmbeddings(
+                                PropertyTypeEmbeddings::OntologyId,
+                            )],
+                            Table::EntityTypeEmbeddings => &[Column::EntityTypeEmbeddings(
+                                EntityTypeEmbeddings::OntologyId,
+                            )],
+                            Table::EntityEmbeddings => &[
+                                Column::EntityEmbeddings(EntityEmbeddings::WebId),
+                                Column::EntityEmbeddings(EntityEmbeddings::EntityUuid),
+                            ],
+                            _ => unreachable!(),
                         };
 
                         last_join.statement = Some(SelectStatement {
                             with: WithExpression::default(),
                             distinct: vec![],
-                            selects: vec![
-                                SelectExpression::new(
-                                    Expression::Column(
-                                        Column::EntityEmbeddings(EntityEmbeddings::WebId)
-                                            .aliased(table.alias),
-                                    ),
-                                    None,
-                                ),
-                                SelectExpression::new(
-                                    Expression::Column(
-                                        Column::EntityEmbeddings(EntityEmbeddings::EntityUuid)
-                                            .aliased(table.alias),
-                                    ),
-                                    None,
-                                ),
-                                SelectExpression::new(
+                            selects: select_columns
+                                .iter()
+                                .map(|column| {
+                                    SelectExpression::new(
+                                        Expression::Column(column.aliased(table.alias)),
+                                        None,
+                                    )
+                                })
+                                .chain(once(SelectExpression::new(
                                     Expression::Function(Function::Min(Box::new(
                                         Expression::CosineDistance(
                                             Box::new(Expression::Column(embeddings_column)),
@@ -476,25 +512,23 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                         ),
                                     ))),
                                     Some("distance"),
-                                ),
-                            ],
+                                )))
+                                .collect(),
                             from: table,
                             joins: vec![],
                             where_expression: WhereExpression::default(),
                             order_by_expression: OrderByExpression::default(),
                             group_by_expression: GroupByExpression {
-                                columns: vec![
-                                    Column::EntityEmbeddings(EntityEmbeddings::WebId)
-                                        .aliased(table.alias),
-                                    Column::EntityEmbeddings(EntityEmbeddings::EntityUuid)
-                                        .aliased(table.alias),
-                                ],
+                                columns: select_columns
+                                    .iter()
+                                    .map(|column| column.aliased(table.alias))
+                                    .collect(),
                             },
                             limit: None,
                         });
                     }
 
-                    self.statement.order_by_expression.push(
+                    self.statement.order_by_expression.insert_front(
                         distance_column,
                         Ordering::Ascending,
                         None,

@@ -85,67 +85,75 @@ export const EditEmojiIconButton: FunctionComponent<
 
   const sizes = iconVariantSizes[size];
 
+  const buttonIsDisabled = disabled || loading;
+
+  const buttonContent = (
+    <IconButton
+      {...trigger}
+      onClick={(event) => {
+        onClick?.(event);
+        trigger.onClick(event);
+      }}
+      sx={[
+        ({ palette }) => {
+          const background = hasDarkBg ? palette.gray[40] : palette.gray[30];
+
+          const hoverState: SystemStyleObject = {
+            background,
+            ...(hasDarkBg && {
+              [`.${fontAwesomeIconClasses.icon}`]: {
+                color: palette.gray[50],
+              },
+            }),
+          };
+          return {
+            p: 0,
+            ...(popupState.isOpen && hoverState),
+            "&:focus-visible, &:hover": hoverState,
+            [`&.${iconButtonClasses.disabled}`]: { color: "unset" },
+          };
+        },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
+      disabled={buttonIsDisabled}
+    >
+      <Box
+        sx={[
+          {
+            width: sizes.container,
+            height: sizes.container,
+            fontSize: sizes.font,
+            fontFamily: "auto",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            svg: {
+              fontSize: `${sizes.font}px !important`,
+            },
+          },
+        ]}
+      >
+        {icon ?? defaultIcon ?? (
+          <FontAwesomeIcon
+            icon={faAsterisk}
+            sx={(theme) => ({
+              color: theme.palette.gray[40],
+            })}
+          />
+        )}
+      </Box>
+    </IconButton>
+  );
+
   return (
     <>
-      <Tooltip title="Change icon" placement="bottom">
-        <IconButton
-          {...trigger}
-          onClick={(event) => {
-            onClick?.(event);
-            trigger.onClick(event);
-          }}
-          sx={[
-            ({ palette }) => {
-              const background = hasDarkBg
-                ? palette.gray[40]
-                : palette.gray[30];
-
-              const hoverState: SystemStyleObject = {
-                background,
-                ...(hasDarkBg && {
-                  [`.${fontAwesomeIconClasses.icon}`]: {
-                    color: palette.gray[50],
-                  },
-                }),
-              };
-              return {
-                p: 0,
-                ...(popupState.isOpen && hoverState),
-                "&:focus-visible, &:hover": hoverState,
-                [`&.${iconButtonClasses.disabled}`]: { color: "unset" },
-              };
-            },
-            ...(Array.isArray(sx) ? sx : [sx]),
-          ]}
-          disabled={disabled || loading}
-        >
-          <Box
-            sx={[
-              {
-                width: sizes.container,
-                height: sizes.container,
-                fontSize: sizes.font,
-                fontFamily: "auto",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                svg: {
-                  fontSize: `${sizes.font}px !important`,
-                },
-              },
-            ]}
-          >
-            {icon ?? defaultIcon ?? (
-              <FontAwesomeIcon
-                icon={faAsterisk}
-                sx={(theme) => ({
-                  color: theme.palette.gray[40],
-                })}
-              />
-            )}
-          </Box>
-        </IconButton>
-      </Tooltip>
+      {buttonIsDisabled ? (
+        buttonContent
+      ) : (
+        <Tooltip title="Change icon" placement="bottom">
+          {buttonContent}
+        </Tooltip>
+      )}
       <EmojiPicker
         popoverProps={popoverProps}
         popupState={popupState}

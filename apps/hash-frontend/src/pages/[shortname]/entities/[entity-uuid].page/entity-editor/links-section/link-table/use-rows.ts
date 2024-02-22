@@ -1,9 +1,5 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import {
-  Entity,
-  EntityTypeWithMetadata,
-  extractEntityUuidFromEntityId,
-} from "@local/hash-subgraph";
+import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import {
   getEntityTypeAndParentsById,
   getEntityTypeById,
@@ -17,6 +13,7 @@ import { useCallback, useMemo } from "react";
 import { useGetOwnerForEntity } from "../../../../../../../components/hooks/use-get-owner-for-entity";
 import { useEntityTypesContextRequired } from "../../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useFileUploads } from "../../../../../../../shared/file-upload-context";
+import { generateEntityHref } from "../../../../../../shared/use-entity-href";
 import { useMarkLinkEntityToArchive } from "../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../entity-editor-context";
 import { LinkRow } from "./types";
@@ -37,9 +34,10 @@ export const useRows = () => {
       const { shortname } = getOwnerForEntity(entity);
 
       void router.push(
-        `/@${shortname}/entities/${extractEntityUuidFromEntityId(
-          entity.metadata.recordId.entityId,
-        )}`,
+        generateEntityHref({
+          shortname,
+          entityId: entity.metadata.recordId.entityId,
+        }),
       );
     },
     [getOwnerForEntity, router],
@@ -47,7 +45,7 @@ export const useRows = () => {
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
-  const { uploads } = useFileUploads();
+  const { uploads, uploadFile } = useFileUploads();
 
   const rows = useMemo<LinkRow[]>(() => {
     const entity = getRoots(entitySubgraph)[0]!;
@@ -91,6 +89,8 @@ export const useRows = () => {
             !!relevantUpload &&
             relevantUpload.status !== "complete" &&
             relevantUpload.status !== "error";
+
+          const isErroredUpload = relevantUpload?.status === "error";
 
           let expectedEntityTypes: EntityTypeWithMetadata[] = [];
 
@@ -178,14 +178,20 @@ export const useRows = () => {
               isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.isFile,
           );
 
+          const retryErroredUpload =
+            relevantUpload?.status === "error"
+              ? () => uploadFile(relevantUpload)
+              : undefined;
+
           return {
             rowId: linkEntityTypeId,
             linkEntityTypeId,
             linkTitle: linkEntityType.schema.title,
             linkAndTargetEntities,
             maxItems: linkSchema.maxItems,
+            isErroredUpload,
             isFile,
-            isLoading,
+            isUploading: isLoading,
             isList:
               linkSchema.maxItems === undefined || linkSchema.maxItems > 1,
             expectedEntityTypes,
@@ -193,6 +199,7 @@ export const useRows = () => {
             entitySubgraph,
             markLinkAsArchived: markLinkEntityToArchive,
             onEntityClick,
+            retryErroredUpload,
           };
         },
       ),
@@ -205,6 +212,7 @@ export const useRows = () => {
     markLinkEntityToArchive,
     onEntityClick,
     uploads,
+    uploadFile,
   ]);
 
   return rows;

@@ -35,16 +35,16 @@ export const useLogoutFlow = () => {
            * hook on the current page.
            */
           await router.push({
-            pathname: "/login",
+            pathname: "/signin",
             query: { return_to: router.asPath },
           });
         }
 
-        await refetchUser();
-
         resetLocalStorage();
 
         await client.clearStore();
+
+        await refetchUser();
       } catch (err) {
         if (err instanceof AxiosError && err.response?.status === 401) {
           // do nothing, the user is not logged in

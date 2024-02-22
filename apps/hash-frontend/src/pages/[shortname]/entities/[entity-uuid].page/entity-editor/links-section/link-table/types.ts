@@ -15,9 +15,10 @@ export type LinkRow = {
   linkEntityTypeId: VersionedUrl;
   linkTitle: string;
   maxItems?: number;
+  isErroredUpload: boolean;
   isFile: boolean;
   isList: boolean;
-  isLoading: boolean;
+  isUploading: boolean;
   expectedEntityTypes: EntityTypeWithMetadata[];
   expectedEntityTypeTitles: string[];
   linkAndTargetEntities: (LinkAndTargetEntity & {
@@ -27,6 +28,7 @@ export type LinkRow = {
   entitySubgraph: Subgraph<EntityRootType>;
   markLinkAsArchived: (linkEntityId: EntityId) => void;
   onEntityClick: (params: { entity: Entity }) => void;
+  retryErroredUpload?: () => void;
 };
 
 export type LinkColumnKey = "linkTitle" | "linkedWith" | "expectedEntityTypes";

@@ -46,7 +46,7 @@ export const SignIn = () => {
             Create a free account
           </Button>
           <Button
-            href={`${FRONTEND_ORIGIN}/login`}
+            href={`${FRONTEND_ORIGIN}/signin`}
             size="small"
             target="_blank"
             variant="tertiary"

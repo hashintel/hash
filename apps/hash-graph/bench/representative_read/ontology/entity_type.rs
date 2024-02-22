@@ -1,7 +1,7 @@
 use authorization::NoAuthorization;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
-    store::{query::Filter, EntityTypeStore},
+    store::{ontology::GetEntityTypesParams, query::Filter, EntityTypeStore},
     subgraph::{
         edges::GraphResolveDepths,
         query::StructuralQuery,
@@ -39,20 +39,22 @@ pub fn bench_get_entity_type_by_id(
                 .get_entity_type(
                     actor_id,
                     &NoAuthorization,
-                    &StructuralQuery {
-                        filter: Filter::for_versioned_url(entity_type_id),
-                        graph_resolve_depths: GraphResolveDepths::default(),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
+                    GetEntityTypesParams {
+                        query: StructuralQuery {
+                            filter: Filter::for_versioned_url(entity_type_id),
+                            graph_resolve_depths: GraphResolveDepths::default(),
+                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                                pinned: PinnedTemporalAxisUnresolved::new(None),
+                                variable: VariableTemporalAxisUnresolved::new(
+                                    Some(TemporalBound::Unbounded),
+                                    None,
+                                ),
+                            },
+                            include_drafts: false,
                         },
-                        include_drafts: false,
+                        after: None,
+                        limit: None,
                     },
-                    None,
-                    None,
                 )
                 .await
                 .expect("failed to read entity type from store");

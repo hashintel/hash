@@ -55,6 +55,7 @@
 //!
 //! [`Location`]: core::panic::Location
 
+#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{boxed::Box, format, string::String};
 #[cfg(nightly)]
 use core::error::Request;

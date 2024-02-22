@@ -14,7 +14,10 @@ use validation::{Validate, ValidationProfile};
 
 use crate::{
     snapshot::{
-        entity::{EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityTemporalMetadataRow},
+        entity::{
+            table::{EntityDraftRow, EntityEmbeddingRow},
+            EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityTemporalMetadataRow,
+        },
         WriteBatch,
     },
     store::{
@@ -25,10 +28,12 @@ use crate::{
 
 pub enum EntityRowBatch {
     Ids(Vec<EntityIdRow>),
+    Drafts(Vec<EntityDraftRow>),
     Editions(Vec<EntityEditionRow>),
     TemporalMetadata(Vec<EntityTemporalMetadataRow>),
     Links(Vec<EntityLinkEdgeRow>),
-    Relations(HashMap<EntityUuid, Vec<EntityRelationAndSubject>>),
+    Relations(Vec<(EntityUuid, EntityRelationAndSubject)>),
+    Embeddings(Vec<EntityEmbeddingRow>),
 }
 
 #[async_trait]
@@ -43,6 +48,10 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         (LIKE entity_ids INCLUDING ALL)
                         ON COMMIT DROP;
 
+                    CREATE TEMPORARY TABLE entity_drafts_tmp
+                        (LIKE entity_drafts INCLUDING ALL)
+                        ON COMMIT DROP;
+
                     CREATE TEMPORARY TABLE entity_editions_tmp (
                         entity_edition_id UUID PRIMARY KEY,
                         properties JSONB NOT NULL,
@@ -50,7 +59,6 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         right_to_left_order INTEGER,
                         edition_created_by_id UUID NOT NULL,
                         archived BOOLEAN NOT NULL,
-                        draft BOOLEAN NOT NULL,
                         entity_type_base_url TEXT NOT NULL,
                         entity_type_version INT8 NOT NULL
                     ) ON COMMIT DROP;
@@ -70,6 +78,10 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         right_web_id UUID NOT NULL,
                         right_entity_uuid UUID NOT NULL
                     ) ON COMMIT DROP;
+
+                    CREATE TEMPORARY TABLE entity_embeddings_tmp
+                        (LIKE entity_embeddings INCLUDING ALL)
+                        ON COMMIT DROP;
                 ",
             )
             .await
@@ -78,6 +90,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
         Ok(())
     }
 
+    #[expect(clippy::too_many_lines)]
     async fn write(
         self,
         postgres_client: &PostgresStore<C>,
@@ -100,6 +113,23 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} entity ids", rows.len());
+                }
+            }
+            Self::Drafts(drafts) => {
+                let rows = client
+                    .query(
+                        "
+                            INSERT INTO entity_drafts_tmp
+                            SELECT DISTINCT * FROM UNNEST($1::entity_drafts[])
+                            ON CONFLICT DO NOTHING
+                            RETURNING 1;
+                        ",
+                        &[&drafts],
+                    )
+                    .await
+                    .change_context(InsertionError)?;
+                if !rows.is_empty() {
+                    tracing::info!("Read {} entity draft ids", rows.len());
                 }
             }
             Self::Editions(editions) => {
@@ -151,22 +181,27 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     tracing::info!("Read {} entity links", rows.len());
                 }
             }
-            #[expect(
-                clippy::needless_collect,
-                reason = "Lifetime error, probably the signatures are wrong"
-            )]
             Self::Relations(relations) => {
                 authorization_api
-                    .touch_relationships(
-                        relations
-                            .into_iter()
-                            .flat_map(|(id, relations)| {
-                                relations.into_iter().map(move |relation| (id, relation))
-                            })
-                            .collect::<Vec<_>>(),
+                    .touch_relationships(relations)
+                    .await
+                    .change_context(InsertionError)?;
+            }
+            Self::Embeddings(embeddings) => {
+                let rows = client
+                    .query(
+                        "
+                            INSERT INTO entity_embeddings_tmp
+                            SELECT * FROM UNNEST($1::entity_embeddings_tmp[])
+                            RETURNING 1;
+                        ",
+                        &[&embeddings],
                     )
                     .await
                     .change_context(InsertionError)?;
+                if !rows.is_empty() {
+                    tracing::info!("Read {} entity embeddings", rows.len());
+                }
             }
         }
         Ok(())
@@ -183,6 +218,8 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                 "
                     INSERT INTO entity_ids SELECT * FROM entity_ids_tmp;
 
+                    INSERT INTO entity_drafts SELECT * FROM entity_drafts_tmp;
+
                     INSERT INTO entity_editions
                         SELECT
                             entity_edition_id UUID,
@@ -190,8 +227,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             left_to_right_order INT4,
                             right_to_left_order INT4,
                             edition_created_by_id UUID,
-                            archived BOOLEAN,
-                            draft BOOLEAN
+                            archived BOOLEAN
                         FROM entity_editions_tmp;
 
                     INSERT INTO entity_temporal_metadata SELECT * FROM \
@@ -221,6 +257,9 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             right_web_id UUID,
                             right_entity_uuid UUID
                         FROM entity_link_edges_tmp;
+
+                    INSERT INTO entity_embeddings
+                        SELECT * FROM entity_embeddings_tmp;
             ",
             )
             .await
@@ -252,7 +291,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                 entity
                     .validate(
                         schema,
-                        if entity.metadata.draft {
+                        if entity.metadata.record_id.entity_id.draft_id.is_some() {
                             ValidationProfile::Draft
                         } else {
                             ValidationProfile::Full

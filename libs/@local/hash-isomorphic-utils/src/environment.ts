@@ -6,11 +6,6 @@ export const frontendUrl =
 
 export const frontendDomain = new URL(frontendUrl).hostname;
 
-/**
- * Note this is not available in the browser.
- */
-export const oryKratosPublicUrl = process.env.ORY_KRATOS_PUBLIC_URL;
-
 export const apiOrigin =
   process.env.API_ORIGIN ??
   process.env.NEXT_PUBLIC_API_ORIGIN ??
