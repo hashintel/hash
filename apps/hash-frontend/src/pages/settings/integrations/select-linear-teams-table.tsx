@@ -59,7 +59,7 @@ const SelectWorkspaces: FunctionComponent<{
                 key={value}
                 label={
                   workspace.kind === "user"
-                    ? workspace.preferredName
+                    ? workspace.displayName
                     : workspace.name
                 }
               />
@@ -73,7 +73,7 @@ const SelectWorkspaces: FunctionComponent<{
           key={userOrOrg.entity.metadata.recordId.entityId}
           value={userOrOrg.entity.metadata.recordId.entityId}
         >
-          {userOrOrg.kind === "org" ? userOrOrg.name : userOrOrg.preferredName}
+          {userOrOrg.kind === "org" ? userOrOrg.name : userOrOrg.displayName}
         </MenuItem>
       ))}
     </Select>

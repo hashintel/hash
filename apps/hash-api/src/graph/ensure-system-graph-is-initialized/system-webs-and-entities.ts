@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
@@ -8,6 +9,7 @@ import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
 import { AccountGroupId, AccountId, OwnedById } from "@local/hash-subgraph";
+import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { enabledIntegrations } from "../../integrations/enabled-integrations";
 import { logger } from "../../logger";
@@ -134,11 +136,15 @@ export const ensureSystemWebEntitiesExist = async ({
   name,
   webShortname,
   websiteUrl,
+  machineEntityTypeId,
+  organizationEntityTypeId,
 }: {
   context: ImpureGraphContext;
   name: string;
   webShortname: SystemTypeWebShortname;
   websiteUrl: string;
+  machineEntityTypeId?: VersionedUrl;
+  organizationEntityTypeId?: VersionedUrl;
 }) => {
   const { accountGroupId, machineActorId: machineActorAccountId } =
     await getOrCreateOwningAccountGroupId(context, webShortname);
@@ -158,12 +164,12 @@ export const ensureSystemWebEntitiesExist = async ({
       identifier: webShortname,
     });
   } catch (error) {
-    let preferredName;
+    let displayName;
     if (webShortname === "hash") {
-      preferredName = "HASH";
+      displayName = "HASH";
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     } else if (webShortname === "linear") {
-      preferredName = "Linear Integration";
+      displayName = "Linear Integration";
     } else {
       throw new Error(
         `Unhandled web shortname ${webShortname} requires a display name for the machine actor specified`,
@@ -175,9 +181,10 @@ export const ensureSystemWebEntitiesExist = async ({
         machineAccountId: machineActorAccountId,
         identifier: webShortname,
         ownedById: accountGroupId as OwnedById,
-        displayName: preferredName,
+        displayName,
         shouldBeAbleToCreateMoreMachineEntities: false,
         systemAccountId,
+        machineEntityTypeId,
       });
 
       logger.info(
@@ -202,6 +209,9 @@ export const ensureSystemWebEntitiesExist = async ({
         shortname: webShortname,
         name,
         websiteUrl,
+        entityTypeVersion: organizationEntityTypeId
+          ? componentsFromVersionedUrl(organizationEntityTypeId).version
+          : undefined,
       });
     }
   }

@@ -4,7 +4,7 @@ type InviteHeaderProps = {
   invitationInfo: {
     orgName: string;
     orgEntityId: string;
-    inviterPreferredName?: string;
+    inviterDisplayName?: string;
   };
 };
 
@@ -20,8 +20,8 @@ export const InviteHeader: FunctionComponent<InviteHeaderProps> = memo(
           marginBottom: "3rem",
         }}
       >
-        {invitationInfo.inviterPreferredName
-          ? `${invitationInfo.inviterPreferredName} has invited you to join 
+        {invitationInfo.inviterDisplayName
+          ? `${invitationInfo.inviterDisplayName} has invited you to join 
           ${invitationInfo.orgName}`
           : ` You have been invited you to join ${invitationInfo.orgName}`}
       </p>

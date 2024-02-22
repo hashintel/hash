@@ -443,11 +443,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
               const label =
                 authenticatedUser.accountId === source.accountId
                   ? "Me"
-                  : "preferredName" in source
-                    ? source.preferredName!
-                    : "displayName" in source
-                      ? source.displayName
-                      : "Unknown";
+                  : source.displayName ?? "Unknown";
               return { label, source };
             })
             .sort(
@@ -503,8 +499,8 @@ export const DraftEntitiesFilters: FunctionComponent<{
                 web.kind === "user"
                   ? web.accountId === authenticatedUser.accountId
                     ? "My Web"
-                    : web.preferredName
-                      ? web.preferredName
+                    : web.displayName
+                      ? web.displayName
                       : "Unknown User"
                   : web.name;
 

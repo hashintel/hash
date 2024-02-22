@@ -149,8 +149,8 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
         ownedById: userProfile.accountId as OwnedById,
         makePublic: true,
         fileData: {
-          description: `The cover image for the ${userProfile.preferredName} user in HASH`,
-          name: `${userProfile.preferredName}'s cover image`,
+          description: `The cover image for the ${userProfile.displayName} user in HASH`,
+          name: `${userProfile.displayName}'s cover image`,
           file,
           ...(existingCoverImageEntity
             ? {
@@ -238,7 +238,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
       />
       <Avatar
         src={avatarSrc}
-        title={userProfile.preferredName}
+        title={userProfile.displayName}
         size={leftColumnWidth}
         sx={{
           border: "none",

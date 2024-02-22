@@ -64,7 +64,7 @@ describe("User model class", () => {
       emails: ["alice@example.com"],
       kratosIdentityId,
       shortname,
-      preferredName: "Alice",
+      displayName: "Alice",
     });
   });
 

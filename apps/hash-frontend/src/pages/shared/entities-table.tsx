@@ -324,9 +324,7 @@ export const EntitiesTable: FunctionComponent<{
           } else if (columnId === "lastEditedBy") {
             const { lastEditedBy } = row;
             const lastEditedByName = lastEditedBy
-              ? "displayName" in lastEditedBy
-                ? lastEditedBy.displayName
-                : lastEditedBy.preferredName
+              ? lastEditedBy.displayName
               : undefined;
 
             const lastEditedByIcon = lastEditedBy
@@ -509,10 +507,7 @@ export const EntitiesTable: FunctionComponent<{
         columnKey: "lastEditedBy",
         filterItems: lastEditedByActors.map((actor) => ({
           id: actor.accountId,
-          label:
-            ("displayName" in actor
-              ? actor.displayName
-              : actor.preferredName) ?? "Unknown Actor",
+          label: actor.displayName ?? "Unknown Actor",
         })),
         selectedFilterItemIds: selectedLastEditedByAccountIds,
         setSelectedFilterItemIds: setSelectedLastEditedByAccountIds,

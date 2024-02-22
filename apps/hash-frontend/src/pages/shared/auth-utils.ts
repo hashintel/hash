@@ -53,7 +53,7 @@ export const isParsedInvitationLinkQuery = (
 type InvitationEmailInfo = {
   orgName: string;
   orgEntityId: string;
-  inviterPreferredName: string;
+  inviterDisplayName: string;
   invitationEmailToken: string;
 };
 

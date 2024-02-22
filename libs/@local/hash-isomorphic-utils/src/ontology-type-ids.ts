@@ -1,6 +1,6 @@
 export const systemEntityTypes = {
   actor: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/actor/v/1",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/actor/v/2",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/actor/",
   },
   block: {
@@ -24,12 +24,12 @@ export const systemEntityTypes = {
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/canvas/",
   },
   comment: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/3",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/4",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/comment/",
   },
   commentNotification: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/comment-notification/v/3",
+      "https://hash.ai/@hash/types/entity-type/comment-notification/v/4",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/comment-notification/",
   },
@@ -82,7 +82,7 @@ export const systemEntityTypes = {
   },
   linearIntegration: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/linear-integration/v/3",
+      "https://hash.ai/@hash/types/entity-type/linear-integration/v/5",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/linear-integration/",
   },
@@ -93,12 +93,12 @@ export const systemEntityTypes = {
       "https://hash.ai/@hash/types/entity-type/linkedin-account/",
   },
   machine: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/machine/v/1",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/machine/v/2",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/machine/",
   },
   mentionNotification: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/mention-notification/v/3",
+      "https://hash.ai/@hash/types/entity-type/mention-notification/v/4",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/mention-notification/",
   },
@@ -107,7 +107,7 @@ export const systemEntityTypes = {
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/notification/",
   },
   organization: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/organization/v/1",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/organization/v/2",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/organization/",
   },
   page: {
@@ -167,7 +167,7 @@ export const systemEntityTypes = {
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/usage-record/",
   },
   user: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/3",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/4",
     entityTypeBaseUrl: "https://hash.ai/@hash/types/entity-type/user/",
   },
   userSecret: {
