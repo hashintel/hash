@@ -88,7 +88,7 @@ import { createVaultClient } from "./vault";
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
 const rateLimiter = rateLimit({
-  windowMs: 60 * 20, // 20 seconds
+  windowMs: 1000 * 20, // 20 seconds
   limit: 5, // Limit each IP to 5 requests every 20 seconds
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
