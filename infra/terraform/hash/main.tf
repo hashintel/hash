@@ -150,7 +150,7 @@ module "postgres_roles" {
   pg_superuser_password = data.vault_kv_secret_v2.secrets.data["pg_superuser_password"]
 
   pg_kratos_user_password_hash   = data.vault_kv_secret_v2.secrets.data["pg_kratos_user_password_hash"]
-  pg_hydra_user_password_hash   = data.vault_kv_secret_v2.secrets.data["pg_kratos_user_password_hash"]
+  pg_hydra_user_password_hash   = data.vault_kv_secret_v2.secrets.data["pg_hydra_user_password_hash"]
   pg_graph_user_password_hash    = data.vault_kv_secret_v2.secrets.data["pg_graph_user_password_hash"]
   pg_temporal_user_password_hash = data.vault_kv_secret_v2.secrets.data["pg_temporal_user_password_hash"]
   pg_spicedb_user_password_hash  = data.vault_kv_secret_v2.secrets.data["pg_spicedb_user_password_hash"]
