@@ -78,11 +78,17 @@ import { createVaultClient } from "./vault";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
-const rateLimiter = rateLimit({
+/**
+ * A rate limiter for routes which grant authentication or authorization credentials
+ */
+const authRouteRateLimiter = rateLimit({
   windowMs: 1000 * 20, // 20 seconds
   limit: 5, // Limit each IP to 5 requests every 20 seconds
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  keyGenerator: (req) => {
+    return req.ip;
+  },
 });
 
 const main = async () => {
@@ -373,47 +379,52 @@ const main = async () => {
    * can be sent the the Ory Kratos public URL directly, because the
    * CORS requirements are not as strict as the one from the browser.
    */
-  app.use("/auth/*", rateLimiter, cors(CORS_CONFIG), (req, res, next) => {
-    const expectedAccessControlAllowOriginHeader = res.getHeader(
-      "Access-Control-Allow-Origin",
-    );
+  app.use(
+    "/auth/*",
+    authRouteRateLimiter,
+    cors(CORS_CONFIG),
+    (req, res, next) => {
+      const expectedAccessControlAllowOriginHeader = res.getHeader(
+        "Access-Control-Allow-Origin",
+      );
 
-    if (!oryKratosPublicUrl) {
-      throw new Error("`ORY_KRATOS_PUBLIC_URL` has not been provided");
-    }
+      if (!oryKratosPublicUrl) {
+        throw new Error("`ORY_KRATOS_PUBLIC_URL` has not been provided");
+      }
 
-    return proxy(oryKratosPublicUrl, {
-      /**
-       * Remove the `/auth` prefix from the request path, so the path is
-       * formatted correctly for the Ory Kratos API.
-       */
-      proxyReqPathResolver: ({ originalUrl }) =>
-        originalUrl.replace("/auth", ""),
-      /**
-       * Ory Kratos includes the wildcard `*` in the `Access-Control-Allow-Origin`
-       * by default, which is not permitted by browsers when including credentials
-       * in requests.
-       *
-       * When setting the value of the `Access-Control-Allow-Origin` header in
-       * the Ory Kratos configuration, the frontend URL is included twice in the
-       * header for some reason (e.g. ["https://localhost:3000", "https://localhost:3000"]),
-       * which is also not permitted by browsers when including credentials in requests.
-       *
-       * Therefore we manually set the `Access-Control-Allow-Origin` header to the
-       * expected value here before returning the response, to prevent CORS errors
-       * in modern browsers.
-       */
-      userResDecorator: (_proxyRes, proxyResData, _userReq, userRes) => {
-        if (typeof expectedAccessControlAllowOriginHeader === "string") {
-          userRes.set(
-            "Access-Control-Allow-Origin",
-            expectedAccessControlAllowOriginHeader,
-          );
-        }
-        return proxyResData;
-      },
-    })(req, res, next);
-  });
+      return proxy(oryKratosPublicUrl, {
+        /**
+         * Remove the `/auth` prefix from the request path, so the path is
+         * formatted correctly for the Ory Kratos API.
+         */
+        proxyReqPathResolver: ({ originalUrl }) =>
+          originalUrl.replace("/auth", ""),
+        /**
+         * Ory Kratos includes the wildcard `*` in the `Access-Control-Allow-Origin`
+         * by default, which is not permitted by browsers when including credentials
+         * in requests.
+         *
+         * When setting the value of the `Access-Control-Allow-Origin` header in
+         * the Ory Kratos configuration, the frontend URL is included twice in the
+         * header for some reason (e.g. ["https://localhost:3000", "https://localhost:3000"]),
+         * which is also not permitted by browsers when including credentials in requests.
+         *
+         * Therefore we manually set the `Access-Control-Allow-Origin` header to the
+         * expected value here before returning the response, to prevent CORS errors
+         * in modern browsers.
+         */
+        userResDecorator: (_proxyRes, proxyResData, _userReq, userRes) => {
+          if (typeof expectedAccessControlAllowOriginHeader === "string") {
+            userRes.set(
+              "Access-Control-Allow-Origin",
+              expectedAccessControlAllowOriginHeader,
+            );
+          }
+          return proxyResData;
+        },
+      })(req, res, next);
+    },
+  );
 
   app.use((req, _res, next) => {
     if (req.path !== "/graphql") {
@@ -429,8 +440,8 @@ const main = async () => {
   });
 
   // Integrations
-  app.get("/oauth/linear", rateLimiter, oAuthLinear);
-  app.get("/oauth/linear/callback", rateLimiter, oAuthLinearCallback);
+  app.get("/oauth/linear", authRouteRateLimiter, oAuthLinear);
+  app.get("/oauth/linear/callback", authRouteRateLimiter, oAuthLinearCallback);
   app.post("/webhooks/linear", linearWebhook);
 
   /**
