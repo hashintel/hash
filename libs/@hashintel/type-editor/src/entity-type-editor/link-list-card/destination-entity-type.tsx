@@ -9,22 +9,22 @@ import { TypeChipLabel } from "./type-chip-label";
 export const DestinationEntityType = ({
   updateVersion,
   onDelete,
-  entityType,
+  entityTypeSchema,
 }: {
   updateVersion?: (newVersion: VersionedUrl) => void;
   onDelete?: () => void;
-  entityType: EntityType;
+  entityTypeSchema: EntityType;
 }) => {
   const { entityTypes } = useEntityTypesOptions();
 
   const [currentVersion, latestVersion, baseUrl] = useTypeVersions(
-    entityType.$id,
+    entityTypeSchema.$id,
     entityTypes,
   );
 
   return (
     <Chip
-      key={entityType.$id}
+      key={entityTypeSchema.$id}
       sx={{ m: 0.25 }}
       tabIndex={-1}
       onDelete={onDelete}
@@ -38,9 +38,9 @@ export const DestinationEntityType = ({
               ? () => updateVersion(`${baseUrl}v/${latestVersion}`)
               : undefined
           }
-          versionedUrl={entityType.$id}
+          versionedUrl={entityTypeSchema.$id}
         >
-          {entityType.title}
+          {entityTypeSchema.title}
         </TypeChipLabel>
       }
     />

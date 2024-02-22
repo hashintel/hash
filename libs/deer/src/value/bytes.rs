@@ -1,3 +1,4 @@
+#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::vec::Vec;
 
 use error_stack::{Report, Result, ResultExt};

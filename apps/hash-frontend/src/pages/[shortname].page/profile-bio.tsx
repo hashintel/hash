@@ -199,7 +199,7 @@ export const ProfileBio: FunctionComponent<{
             sx={{ color: ({ palette }) => palette.gray[60] }}
           >
             Add a bio for{" "}
-            {profile.kind === "user" ? profile.preferredName : profile.name}...
+            {profile.kind === "user" ? profile.displayName : profile.name}...
           </Typography>
         ) : (
           <Skeleton width="75%" />

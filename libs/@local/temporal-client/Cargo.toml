@@ -16,4 +16,4 @@ uuid = { workspace = true, features = ["v4"] }
 url = { version = "2.5.0", default-features = false }
 serde = { workspace = true }
 serde_json = { workspace = true }
-thiserror = "1.0.56"
+thiserror = "1.0.57"

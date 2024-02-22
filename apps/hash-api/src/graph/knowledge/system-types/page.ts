@@ -1,6 +1,5 @@
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
-import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -26,12 +25,8 @@ import {
 import {
   Entity,
   EntityId,
-  entityIdFromOwnedByIdAndEntityUuid,
   EntityRootType,
-  EntityUuid,
-  extractEntityUuidFromEntityId,
   OwnedById,
-  Uuid,
 } from "@local/hash-subgraph";
 import {
   getEntities as getEntitiesFromSubgraph,
@@ -49,7 +44,6 @@ import {
   archiveEntity,
   createEntity,
   CreateEntityParams,
-  getEntities,
   getEntityOutgoingLinks,
   getLatestEntityById,
   updateEntityProperty,
@@ -61,7 +55,6 @@ import {
 import { Block, getBlockComments, getBlockFromEntity } from "./block";
 import { addBlockToBlockCollection } from "./block-collection";
 import { Comment } from "./comment";
-import { getUserById, User } from "./user";
 
 export type Page = {
   title: string;
@@ -103,7 +96,9 @@ export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
  */
 export const getPageById: ImpureGraphFunction<
   { entityId: EntityId },
-  Promise<Page>
+  Promise<Page>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { entityId } = params;
 
@@ -192,7 +187,9 @@ export const createPage: ImpureGraphFunction<
  */
 export const getPageParentPage: ImpureGraphFunction<
   { page: Page },
-  Promise<Page | null>
+  Promise<Page | null>,
+  false,
+  true
 > = async (ctx, authentication, { page }) => {
   const parentPageLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: page.entity.metadata.recordId.entityId,
@@ -226,7 +223,9 @@ export const getPageParentPage: ImpureGraphFunction<
  */
 export const isPageArchived: ImpureGraphFunction<
   { page: Page },
-  Promise<boolean>
+  Promise<boolean>,
+  false,
+  true
 > = async (ctx, authentication, { page }) => {
   if (page.archived) {
     return true;
@@ -250,26 +249,32 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
     includeArchived?: boolean;
     includeDrafts?: boolean;
   },
-  Promise<Page[]>
+  Promise<Page[]>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { graphApi } = ctx;
   const { ownedById, includeArchived = false, includeDrafts = false } = params;
   const pageEntities = await graphApi
     .getEntitiesByQuery(authentication.actorId, {
-      filter: {
-        all: [
-          pageEntityTypeFilter,
-          {
-            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
-          },
-        ],
+      query: {
+        filter: {
+          all: [
+            pageEntityTypeFilter,
+            {
+              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
     })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+      );
 
       return getEntitiesFromSubgraph(subgraph);
     });
@@ -300,7 +305,9 @@ export const pageHasParentPage: ImpureGraphFunction<
     page: Page;
     parentPage: Page;
   },
-  Promise<boolean>
+  Promise<boolean>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { page, parentPage } = params;
 
@@ -342,7 +349,9 @@ export const removeParentPage: ImpureGraphFunction<
   {
     page: Page;
   },
-  Promise<void>
+  Promise<void>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { page } = params;
   const parentPageLinks = await getEntityOutgoingLinks(ctx, authentication, {
@@ -385,7 +394,9 @@ export const setPageParentPage: ImpureGraphFunction<
     prevFractionalIndex: string | null;
     nextIndex: string | null;
   },
-  Promise<Page>
+  Promise<Page>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { page, parentPage, prevFractionalIndex, nextIndex } = params;
 
@@ -444,7 +455,9 @@ export const setPageParentPage: ImpureGraphFunction<
  */
 export const getPageBlocks: ImpureGraphFunction<
   { pageEntityId: EntityId; type: "canvas" | "document" },
-  Promise<{ linkEntity: LinkEntity<HasDataProperties>; rightEntity: Block }[]>
+  Promise<{ linkEntity: LinkEntity<HasDataProperties>; rightEntity: Block }[]>,
+  false,
+  true
 > = async (ctx, authentication, { pageEntityId, type }) => {
   const outgoingBlockDataLinks = (await getEntityOutgoingLinks(
     ctx,
@@ -480,7 +493,9 @@ export const getPageBlocks: ImpureGraphFunction<
  */
 export const getPageComments: ImpureGraphFunction<
   { pageEntityId: EntityId },
-  Promise<Comment[]>
+  Promise<Comment[]>,
+  false,
+  true
 > = async (ctx, authentication, { pageEntityId }) => {
   const blocks = await getPageBlocks(ctx, authentication, {
     pageEntityId,
@@ -496,61 +511,4 @@ export const getPageComments: ImpureGraphFunction<
   return comments
     .flat()
     .filter((comment) => !comment.resolvedAt && !comment.deletedAt);
-};
-
-/**
- * Get the author of the page (i.e. the creator of the first revision).
- *
- * @param params.page - the page
- */
-export const getPageAuthor: ImpureGraphFunction<
-  { pageEntityId: EntityId; includeDrafts?: boolean },
-  Promise<User>
-> = async (context, authentication, params) => {
-  const { pageEntityId, includeDrafts = false } = params;
-
-  const pageEntityRevisionsSubgraph = await getEntities(
-    context,
-    authentication,
-    {
-      query: {
-        filter: {
-          all: [
-            {
-              equal: [
-                { path: ["uuid"] },
-                { parameter: extractEntityUuidFromEntityId(pageEntityId) },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: {
-          pinned: { axis: "transactionTime", timestamp: null },
-          variable: {
-            axis: "decisionTime",
-            interval: { start: { kind: "unbounded" }, end: null },
-          },
-        },
-        includeDrafts,
-      },
-    },
-  );
-
-  const firstRevision = getFirstEntityRevision(
-    pageEntityRevisionsSubgraph,
-    pageEntityId,
-  );
-
-  const firstRevisionCreatorId =
-    firstRevision.metadata.provenance.edition.createdById;
-
-  const user = await getUserById(context, authentication, {
-    entityId: entityIdFromOwnedByIdAndEntityUuid(
-      firstRevisionCreatorId as Uuid as OwnedById,
-      firstRevisionCreatorId as Uuid as EntityUuid,
-    ),
-  });
-
-  return user;
 };

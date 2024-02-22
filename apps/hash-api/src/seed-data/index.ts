@@ -69,7 +69,7 @@ export const CACHED_ENTITY_TYPE_SCHEMAS: Record<VersionedUrl, string> = {
 // Seed Org with some pages.
 const seedOrg = async (params: {
   logger: Logger;
-  context: ImpureGraphContext;
+  context: ImpureGraphContext<false, true>;
   owner: User;
 }): Promise<Org> => {
   const authentication = { actorId: params.owner.accountId };
@@ -123,7 +123,7 @@ const seedOrg = async (params: {
 
 export const seedOrgsAndUsers = async (params: {
   logger: Logger;
-  context: ImpureGraphContext;
+  context: ImpureGraphContext<false, true>;
 }): Promise<void> => {
   const { logger, context } = params;
 

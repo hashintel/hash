@@ -55,7 +55,7 @@
     "unist-util-visit": "4.1.2"
   },
   "devDependencies": {
-    "@babel/core": "7.20.2",
+    "@babel/core": "7.23.9",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/d3": "7.4.0",

@@ -14,7 +14,7 @@ import {
   UploadFileData as BpUploadFileData,
 } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/file";
+import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
   EntityId,

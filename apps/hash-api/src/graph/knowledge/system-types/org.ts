@@ -2,7 +2,6 @@ import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
 import {
   currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -14,6 +13,7 @@ import { OrganizationProperties } from "@local/hash-isomorphic-utils/system-type
 import {
   AccountGroupEntityId,
   AccountGroupId,
+  BaseUrl,
   Entity,
   EntityId,
   EntityRootType,
@@ -25,7 +25,10 @@ import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import {
+  extractBaseUrl,
+  versionedUrlFromComponents,
+} from "@local/hash-subgraph/type-system-patch";
 
 import {
   createAccountGroup,
@@ -53,13 +56,12 @@ export type Org = {
 export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
   entity,
 }) => {
-  if (
-    entity.metadata.entityTypeId !== systemEntityTypes.organization.entityTypeId
-  ) {
+  const entityTypeBaseUrl = extractBaseUrl(entity.metadata.entityTypeId);
+  if (entityTypeBaseUrl !== systemEntityTypes.organization.entityTypeBaseUrl) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      systemEntityTypes.organization.entityTypeId,
-      entity.metadata.entityTypeId,
+      systemEntityTypes.organization.entityTypeBaseUrl as BaseUrl,
+      entityTypeBaseUrl,
     );
   }
 
@@ -93,10 +95,11 @@ export const createOrg: ImpureGraphFunction<
     name: string;
     orgAccountGroupId?: AccountGroupId;
     websiteUrl?: string | null;
+    entityTypeVersion?: number;
   },
   Promise<Org>
 > = async (ctx, authentication, params) => {
-  const { shortname, name, websiteUrl } = params;
+  const { shortname, name, websiteUrl, entityTypeVersion } = params;
 
   if (shortnameIsInvalid({ shortname })) {
     throw new Error(`The shortname "${shortname}" is invalid`);
@@ -139,7 +142,13 @@ export const createOrg: ImpureGraphFunction<
   const entity = await createEntity(ctx, authentication, {
     ownedById: orgAccountGroupId as OwnedById,
     properties,
-    entityTypeId: systemEntityTypes.organization.entityTypeId,
+    entityTypeId:
+      typeof entityTypeVersion === "undefined"
+        ? systemEntityTypes.organization.entityTypeId
+        : versionedUrlFromComponents(
+            systemEntityTypes.organization.entityTypeBaseUrl as BaseUrl,
+            entityTypeVersion,
+          ),
     entityUuid: orgAccountGroupId as string as EntityUuid,
     relationships: [
       {
@@ -188,36 +197,42 @@ export const getOrgByShortname: ImpureGraphFunction<
 > = async ({ graphApi }, { actorId }, params) => {
   const [orgEntity, ...unexpectedEntities] = await graphApi
     .getEntitiesByQuery(actorId, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.organization.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  extractBaseUrl(systemPropertyTypes.shortname.propertyTypeId),
-                ],
-              },
-              { parameter: params.shortname },
-            ],
-          },
-        ],
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [
+                { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
+                { parameter: systemEntityTypes.organization.entityTypeBaseUrl },
+              ],
+            },
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    extractBaseUrl(
+                      systemPropertyTypes.shortname.propertyTypeId,
+                    ),
+                  ],
+                },
+                { parameter: params.shortname },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        // TODO: Should this be an all-time query? What happens if the org is
+        //       archived/deleted, do we want to allow orgs to replace their
+        //       shortname?
+        //   see https://linear.app/hash/issue/H-757
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: params.includeDrafts ?? false,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      // TODO: Should this be an all-time query? What happens if the org is
-      //       archived/deleted, do we want to allow orgs to replace their
-      //       shortname?
-      //   see https://linear.app/hash/issue/H-757
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: params.includeDrafts ?? false,
     })
     .then(({ data }) => {
       const userEntitiesSubgraph =
-        mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+        mapGraphApiSubgraphToSubgraph<EntityRootType>(data.subgraph);
 
       return getRoots(userEntitiesSubgraph);
     });
@@ -240,7 +255,9 @@ export const getOrgByShortname: ImpureGraphFunction<
  */
 export const updateOrgShortname: ImpureGraphFunction<
   { org: Org; updatedShortname: string },
-  Promise<Org>
+  Promise<Org>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { org, updatedShortname } = params;
 
@@ -289,7 +306,9 @@ export const orgNameIsInvalid: PureGraphFunction<
  */
 export const updateOrgName: ImpureGraphFunction<
   { org: Org; updatedOrgName: string },
-  Promise<Org>
+  Promise<Org>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { org, updatedOrgName } = params;
 

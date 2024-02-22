@@ -1,4 +1,6 @@
-use alloc::{boxed::Box, collections::BTreeMap};
+#[cfg_attr(feature = "std", allow(unused_imports))]
+use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
 use core::any::{Any, TypeId};
 
 pub(crate) type Storage = BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>;

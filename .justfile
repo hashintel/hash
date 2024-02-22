@@ -156,7 +156,9 @@ clippy *arguments: install-cargo-hack install-rust-script
 # Creates the documentation for the crate
 [no-cd]
 doc *arguments:
-  cargo doc --all-features --no-deps -Zunstable-options -Zrustdoc-scrape-examples {{arguments}}
+  @just in-pr RUSTDOCFLAGS=-Dwarnings cargo doc --all-features --workspace --no-deps -Zunstable-options -Zrustdoc-scrape-examples {{arguments}}
+  @just not-in-pr cargo doc --all-features --workspace --no-deps -Zunstable-options -Zrustdoc-scrape-examples {{arguments}}
+
 
 # Builds the crate
 [no-cd]

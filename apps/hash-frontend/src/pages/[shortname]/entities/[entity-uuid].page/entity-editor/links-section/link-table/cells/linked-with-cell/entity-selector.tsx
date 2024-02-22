@@ -18,6 +18,7 @@ import {
   EntityId,
   EntityRootType,
   EntityTypeWithMetadata,
+  extractDraftIdFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -195,7 +196,7 @@ export const EntitySelector = ({
       // Close the dropdown immediately as we want the file upload to happen in the background
       onFinishedEditing();
 
-      const upload = await uploadFile({
+      await uploadFile({
         fileData: {
           file,
           fileEntityCreationInput: {
@@ -203,6 +204,13 @@ export const EntitySelector = ({
           },
         },
         makePublic: false,
+        onComplete: (upload) =>
+          onSelect(
+            upload.createdEntities.fileEntity as unknown as Entity,
+            // the entity's subgraph should mostly contain the file's type, since we're choosing it based on the expected type
+            // it will not if the expected type is File and we automatically choose a narrower type of e.g. Image based on the upload
+            entitySubgraph,
+          ),
         ownedById: activeWorkspaceOwnedById,
         /**
          * Link creation is handled in the onSelect, since we might need to manage drafts,
@@ -215,15 +223,7 @@ export const EntitySelector = ({
         },
       });
 
-      if (upload.status === "complete") {
-        onSelect(
-          upload.createdEntities.fileEntity as unknown as Entity,
-          // the entity's subgraph should mostly contain the file's type, since we're choosing it based on the expected type
-          // it will not if the expected type is File and we automatically choose a narrower type of e.g. Image based on the upload
-          entitySubgraph,
-        );
-      }
-      // @todo handle errored uploads – H-724
+      /** Upload error handling is in {@link LinkedWithCell} */
     },
     [
       activeWorkspaceOwnedById,
@@ -275,7 +275,9 @@ export const EntitySelector = ({
            * */
           typeId: entity.metadata.entityTypeId,
           title: generateEntityLabel(entitiesSubgraph!, entity),
-          draft: entity.metadata.draft,
+          draft: !!extractDraftIdFromEntityId(
+            entity.metadata.recordId.entityId,
+          ),
         })}
         inputPlaceholder={isFileType ? "No file" : "No entity"}
         inputValue={search}

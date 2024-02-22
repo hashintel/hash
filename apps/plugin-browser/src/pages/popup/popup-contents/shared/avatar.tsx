@@ -1,4 +1,4 @@
-import { Image } from "@local/hash-isomorphic-utils/system-types/shared";
+import { Image } from "@local/hash-isomorphic-utils/system-types/image";
 import { Box, Stack, SxProps, Theme } from "@mui/material";
 
 const linkSxProperties: SxProps<Theme> = {

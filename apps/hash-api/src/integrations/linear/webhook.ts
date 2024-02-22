@@ -13,6 +13,7 @@ import {
 } from "@local/hash-subgraph";
 import { RequestHandler } from "express";
 
+import { ImpureGraphContext } from "../../graph/context-types";
 import {
   getAllLinearIntegrationsWithLinearOrgId,
   getSyncedWorkspacesForLinearIntegration,
@@ -62,12 +63,6 @@ export const linearWebhook: RequestHandler<
 
   const temporalClient = await createTemporalClient(logger);
 
-  if (!temporalClient) {
-    throw new Error(
-      "Cannot create Temporal client – are there missing environment variables?",
-    );
-  }
-
   const organizationId = payload.organizationId;
 
   if (!payload.data) {
@@ -100,8 +95,10 @@ export const linearWebhook: RequestHandler<
     { identifier: "linear" },
   );
 
+  const graphContext: ImpureGraphContext = { graphApi, temporalClient };
+
   const linearIntegrations = await getAllLinearIntegrationsWithLinearOrgId(
-    { graphApi },
+    graphContext,
     { actorId: linearBotAccountId },
     { linearOrgId: organizationId },
   );
@@ -116,7 +113,7 @@ export const linearWebhook: RequestHandler<
     await Promise.all(
       linearIntegrations.map(async (linearIntegration) => {
         const syncedWorkspaces = await getSyncedWorkspacesForLinearIntegration(
-          { graphApi },
+          graphContext,
           { actorId: linearBotAccountId },
           {
             linearIntegrationEntityId:
@@ -143,7 +140,7 @@ export const linearWebhook: RequestHandler<
               `${payloadAction}HashEntityFromLinearData` as const satisfies keyof WorkflowTypeMap;
 
             const linearApiKey = await getLinearSecretValueByHashWorkspaceId(
-              { graphApi },
+              graphContext,
               { actorId: linearBotAccountId },
               {
                 hashWorkspaceEntityId,

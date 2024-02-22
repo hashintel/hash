@@ -63,12 +63,12 @@ export const WebSelector = ({
         // Creating the component here reduces loading state in the dropdown
         <Avatar
           avatar={user.avatar}
-          name={user.properties.preferredName}
+          name={user.properties.displayName}
           size={16}
         />
       ),
       label: "My web",
-      name: user.properties.preferredName,
+      name: user.properties.displayName,
       value: user.webOwnedById,
     },
     ...user.orgs.map((org) => ({

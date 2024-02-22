@@ -30,7 +30,7 @@
     "trailingComma": "all"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.3.1-canary-20240108132503",
+    "@blockprotocol/graph": "0.3.3",
     "@hashintel/block-design-system": "0.0.1",
     "@hashintel/design-system": "0.0.7",
     "@mui/material": "5.14.11",
@@ -43,7 +43,7 @@
     "@types/uuid": "8.3.0",
     "block-scripts": "0.3.1",
     "mock-block-dock": "0.1.6",
-    "prettier": "3.2.4",
+    "prettier": "3.2.5",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },

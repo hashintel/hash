@@ -1,0 +1,7 @@
+{
+  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "compilerOptions": {
+    "esModuleInterop": true
+  },
+  "include": ["./pkg/src/", "./scripts", "./type-defs"]
+}

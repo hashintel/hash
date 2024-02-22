@@ -2,11 +2,11 @@ pub mod crud;
 pub mod error;
 pub mod query;
 
-mod account;
+pub mod account;
 mod config;
-mod knowledge;
+pub mod knowledge;
 mod migration;
-mod ontology;
+pub mod ontology;
 mod pool;
 mod record;
 mod validation;
@@ -15,6 +15,9 @@ mod fetcher;
 mod postgres;
 
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "utoipa")]
+use utoipa::ToSchema;
 
 pub use self::{
     account::AccountStore,
@@ -24,12 +27,15 @@ pub use self::{
         UpdateError,
     },
     fetcher::{FetchingPool, FetchingStore, TypeFetcher},
-    knowledge::{EntityStore, EntityValidationType},
+    knowledge::{
+        EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
+        EntityValidationType,
+    },
     migration::{Migration, MigrationState, StoreMigration},
     ontology::{DataTypeStore, EntityTypeStore, PropertyTypeStore},
     pool::StorePool,
     postgres::{AsClient, PostgresStore, PostgresStorePool},
-    record::Record,
+    record::{QueryRecord, SubgraphRecord},
     validation::{StoreCache, StoreProvider},
 };
 
@@ -49,10 +55,26 @@ impl<S> Store for S where
 {
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ConflictBehavior {
     /// If a conflict is detected, the operation will fail.
     Fail,
     /// If a conflict is detected, the operation will be skipped.
     Skip,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum Ordering {
+    Ascending,
+    Descending,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum NullOrdering {
+    First,
+    Last,
 }

@@ -22,7 +22,7 @@ use crate::{
 /// A path to a [`EntityType`] field.
 ///
 /// [`EntityType`]: type_system::EntityType
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum EntityTypeQueryPath<'p> {
     /// The [`BaseUrl`] of the [`EntityType`].
     ///
@@ -476,6 +476,19 @@ pub enum EntityTypeQueryPath<'p> {
     ClosedSchema(Option<JsonPath<'p>>),
     /// Only used internally and not available for deserialization.
     AdditionalMetadata,
+    /// The embedding for the whole entity blob.
+    ///
+    /// Deserializes from `["embedding"]`:
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["embedding"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::Embedding);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    Embedding,
 }
 
 impl OntologyQueryPath for EntityTypeQueryPath<'_> {
@@ -504,6 +517,7 @@ impl QueryPath for EntityTypeQueryPath<'_> {
             Self::Version => ParameterType::OntologyTypeVersion,
             Self::TransactionTime => ParameterType::TimeInterval,
             Self::Title | Self::Description | Self::Icon => ParameterType::Text,
+            Self::Embedding => ParameterType::Vector,
             Self::PropertyTypeEdge { path, .. } => path.expected_type(),
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),
@@ -532,6 +546,7 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
             Self::Required => fmt.write_str("required"),
             Self::LabelProperty => fmt.write_str("labelProperty"),
             Self::Icon => fmt.write_str("icon"),
+            Self::Embedding => fmt.write_str("embedding"),
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                 path,
@@ -628,6 +643,7 @@ pub enum EntityTypeQueryToken {
     Links,
     InheritsFrom,
     Children,
+    Embedding,
     #[serde(skip)]
     Schema,
     #[serde(skip)]
@@ -644,7 +660,7 @@ impl EntityTypeQueryPathVisitor {
     pub const EXPECTING: &'static str =
         "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `editionCreatedById`, \
          `editionArchivedById`, `title`, `description`, `examples`, `properties`, `required`, \
-         `labelProperty`, `icon`, `links`, `inheritsFrom`, `children`";
+         `labelProperty`, `icon`, `links`, `inheritsFrom`, `children`, `embedding`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -698,6 +714,7 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
             EntityTypeQueryToken::Required => EntityTypeQueryPath::Required,
             EntityTypeQueryToken::LabelProperty => EntityTypeQueryPath::LabelProperty,
             EntityTypeQueryToken::Icon => EntityTypeQueryPath::Icon,
+            EntityTypeQueryToken::Embedding => EntityTypeQueryPath::Embedding,
             EntityTypeQueryToken::Links => {
                 seq.next_element::<Selector>()?
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
@@ -791,6 +808,63 @@ impl<'de: 'p, 'p> Deserialize<'de> for EntityTypeQueryPath<'p> {
         D: Deserializer<'de>,
     {
         deserializer.deserialize_seq(EntityTypeQueryPathVisitor::new(0))
+    }
+}
+
+impl EntityTypeQueryPath<'_> {
+    #[must_use]
+    pub fn into_owned(self) -> EntityTypeQueryPath<'static> {
+        match self {
+            Self::BaseUrl => EntityTypeQueryPath::BaseUrl,
+            Self::Version => EntityTypeQueryPath::Version,
+            Self::VersionedUrl => EntityTypeQueryPath::VersionedUrl,
+            Self::TransactionTime => EntityTypeQueryPath::TransactionTime,
+            Self::OwnedById => EntityTypeQueryPath::OwnedById,
+            Self::EditionCreatedById => EntityTypeQueryPath::EditionCreatedById,
+            Self::EditionArchivedById => EntityTypeQueryPath::EditionArchivedById,
+            Self::Title => EntityTypeQueryPath::Title,
+            Self::Description => EntityTypeQueryPath::Description,
+            Self::Examples => EntityTypeQueryPath::Examples,
+            Self::Required => EntityTypeQueryPath::Required,
+            Self::LabelProperty => EntityTypeQueryPath::LabelProperty,
+            Self::Icon => EntityTypeQueryPath::Icon,
+            Self::PropertyTypeEdge {
+                path,
+                edge_kind,
+                inheritance_depth,
+            } => EntityTypeQueryPath::PropertyTypeEdge {
+                path: path.into_owned(),
+                edge_kind,
+                inheritance_depth,
+            },
+            Self::EntityTypeEdge {
+                path,
+                edge_kind,
+                inheritance_depth,
+                direction,
+            } => EntityTypeQueryPath::EntityTypeEdge {
+                path: Box::new(path.into_owned()),
+                edge_kind,
+                inheritance_depth,
+                direction,
+            },
+            Self::EntityEdge {
+                path,
+                edge_kind,
+                inheritance_depth,
+            } => EntityTypeQueryPath::EntityEdge {
+                path: Box::new(path.into_owned()),
+                edge_kind,
+                inheritance_depth,
+            },
+            Self::OntologyId => EntityTypeQueryPath::OntologyId,
+            Self::Schema(path) => EntityTypeQueryPath::Schema(path.map(JsonPath::into_owned)),
+            Self::Embedding => EntityTypeQueryPath::Embedding,
+            Self::ClosedSchema(path) => {
+                EntityTypeQueryPath::ClosedSchema(path.map(JsonPath::into_owned))
+            }
+            Self::AdditionalMetadata => EntityTypeQueryPath::AdditionalMetadata,
+        }
     }
 }
 

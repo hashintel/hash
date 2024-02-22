@@ -1,0 +1,2 @@
+DROP TRIGGER update_entity_version_trigger ON entity_temporal_metadata;
+DROP FUNCTION update_entity_version_trigger();

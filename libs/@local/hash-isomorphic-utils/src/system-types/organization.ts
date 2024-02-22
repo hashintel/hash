@@ -14,6 +14,7 @@ import {
   BlockProperties,
   BooleanDataType,
   ComponentIdPropertyValue,
+  DateTimeDataType,
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
   File,
@@ -81,6 +82,7 @@ import {
   ProfileBioProperties,
   ShortnamePropertyValue,
   TextDataType,
+  UploadCompletedAtPropertyValue,
   WebsiteURLPropertyValue,
 } from "./shared";
 
@@ -96,6 +98,7 @@ export type {
   BlockProperties,
   BooleanDataType,
   ComponentIdPropertyValue,
+  DateTimeDataType,
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
   File,
@@ -163,5 +166,6 @@ export type {
   ProfileBioProperties,
   ShortnamePropertyValue,
   TextDataType,
+  UploadCompletedAtPropertyValue,
   WebsiteURLPropertyValue,
 };

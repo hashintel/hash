@@ -10,7 +10,7 @@ pub use self::{
     conditional::{Constant, Expression, Function},
     group_by_clause::GroupByExpression,
     join_clause::JoinExpression,
-    order_clause::{OrderByExpression, Ordering},
+    order_clause::OrderByExpression,
     select_clause::SelectExpression,
     where_clause::WhereExpression,
     with_clause::WithExpression,

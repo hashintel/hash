@@ -7,10 +7,10 @@ import {
 
 import { getRequiredEnv } from "../util";
 
-const publicUrl = getRequiredEnv("ORY_KRATOS_PUBLIC_URL");
+export const kratosPublicUrl = getRequiredEnv("ORY_KRATOS_PUBLIC_URL");
 
 export const kratosFrontendApi = new FrontendApi(
-  new Configuration({ basePath: publicUrl }),
+  new Configuration({ basePath: kratosPublicUrl }),
 );
 
 const adminUrl = getRequiredEnv("ORY_KRATOS_ADMIN_URL");

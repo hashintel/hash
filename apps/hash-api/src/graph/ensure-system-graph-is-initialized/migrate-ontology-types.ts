@@ -15,7 +15,7 @@ import {
  */
 export const migrateOntologyTypes = async (params: {
   logger: Logger;
-  context: ImpureGraphContext;
+  context: ImpureGraphContext<false, true>;
 }) => {
   const authentication = { actorId: systemAccountId };
 

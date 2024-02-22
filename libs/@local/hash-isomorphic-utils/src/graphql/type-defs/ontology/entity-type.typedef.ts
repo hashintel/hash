@@ -4,6 +4,7 @@ export const entityTypeTypedef = gql`
   scalar ConstructEntityTypeParams
   scalar EntityTypeWithMetadata
   scalar BaseUrl
+  scalar UserPermissionsOnEntityType
 
   extend type Query {
     """
@@ -31,6 +32,13 @@ export const entityTypeTypedef = gql`
       inheritsFrom: OutgoingEdgeResolveDepthInput!
       includeArchived: Boolean = false
     ): Subgraph!
+
+    """
+    Check the requesting user's permissions on an entity type
+    """
+    checkUserPermissionsOnEntityType(
+      entityTypeId: VersionedUrl!
+    ): UserPermissionsOnEntityType!
   }
 
   extend type Mutation {

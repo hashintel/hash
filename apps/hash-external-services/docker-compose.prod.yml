@@ -1,15 +1,11 @@
 services:
-  type-fetcher:
-    image: hash-graph:prod
-
-  graph-migrate:
-    image: hash-graph:prod
-
-  graph:
-    image: hash-graph:prod
+  postgres:
     environment:
-      HASH_GRAPH_LOG_LEVEL: "${HASH_GRAPH_LOG_LEVEL}"
-      RUST_BACKTRACE: 0
+      HASH_SPICEDB_PG_USER: "${HASH_SPICEDB_PG_USER}"
+      HASH_SPICEDB_PG_PASSWORD: "${HASH_SPICEDB_PG_PASSWORD}"
+      HASH_SPICEDB_PG_DATABASE: "${HASH_SPICEDB_PG_DATABASE}"
+    ports:
+      - "${POSTGRES_PORT}:5432"
 
   kratos-migrate:
     build:
@@ -31,8 +27,8 @@ services:
       SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: "${FRONTEND_URL}/"
       SELFSERVICE_ALLOWED_RETURN_URLS: "${FRONTEND_URL}"
       SELFSERVICE_FLOWS_ERROR_UI_URL: "${FRONTEND_URL}/error"
-      SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL: "${FRONTEND_URL}/login"
-      SELFSERVICE_FLOWS_LOGIN_UI_URL: "${FRONTEND_URL}/login"
+      SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL: "${FRONTEND_URL}/signin"
+      SELFSERVICE_FLOWS_LOGIN_UI_URL: "${FRONTEND_URL}/signin"
       SELFSERVICE_FLOWS_REGISTRATION_UI_URL: "${FRONTEND_URL}/signup"
       SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL: "${FRONTEND_URL}/api/ory"
       SELFSERVICE_FLOWS_VERIFICATION_UI_URL: "${FRONTEND_URL}/verification"
@@ -42,6 +38,52 @@ services:
       COURIER_SMTP_FROM_ADDRESS: "noreply@hash.ai"
       COURIER_SMTP_FROM_NAME: "HASH"
     command: serve --watch-courier
+
+  hydra:
+    environment:
+      COOKIES_DOMAIN: "${KRATOS_COOKIE_DOMAIN}"
+      COOKIES_SAME_SITE: "Lax"
+
+  spicedb-migrate:
+    image: authzed/spicedb:v${HASH_SPICEDB_VERSION}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPICEDB_DATASTORE_ENGINE: postgres
+      SPICEDB_DATASTORE_CONN_URI: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_SPICEDB_PG_DATABASE}"
+      SPICEDB_LOG_FORMAT: "console"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    command: migrate head
+
+  spicedb:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      spicedb-migrate:
+        condition: service_completed_successfully
+    environment:
+      SPICEDB_DATASTORE_ENGINE: postgres
+      SPICEDB_DATASTORE_CONN_URI: "postgres://${HASH_SPICEDB_PG_USER}:${HASH_SPICEDB_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_SPICEDB_PG_DATABASE}?plan_cache_mode=force_custom_plan"
+      SPICEDB_GRPC_PRESHARED_KEY: "${HASH_SPICEDB_GRPC_PRESHARED_KEY}"
+
+  # TODO: Services below this line are developed by HASH and should not be part of this file
+
+  type-fetcher:
+    image: hash-graph:prod
+
+  graph-migrate:
+    image: hash-graph:prod
+
+  graph:
+    image: hash-graph:prod
+    environment:
+      HASH_SPICEDB_HOST: http://spicedb
+      HASH_SPICEDB_HTTP_PORT: "${HASH_SPICEDB_HTTP_PORT}"
+      HASH_SPICEDB_GRPC_PRESHARED_KEY: "${HASH_SPICEDB_GRPC_PRESHARED_KEY}"
+      RUST_BACKTRACE: 0
 
   hash-api:
     build:

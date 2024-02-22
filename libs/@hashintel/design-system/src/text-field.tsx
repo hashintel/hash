@@ -29,7 +29,7 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
       helperText,
       variant = "outlined",
       sx,
-      InputProps: inputProps = {},
+      InputProps,
       success,
       error,
       label,
@@ -82,15 +82,12 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
         }
         InputLabelProps={inputLabelProps}
         InputProps={getInputProps({
-          ...inputProps,
+          ...InputProps,
           variant,
           success,
           error,
           autoResize,
           multiline: textFieldProps.multiline,
-          slotProps: {
-            input: theme.components?.MuiInputBase?.defaultProps?.inputProps,
-          },
         })}
         helperText={
           <Collapse in={!!helperText}>
@@ -108,6 +105,11 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
           }),
         }}
         {...textFieldProps}
+        // eslint-disable-next-line react/jsx-no-duplicate-props
+        inputProps={{
+          ...theme.components?.MuiInputBase?.defaultProps?.inputProps,
+          ...textFieldProps.inputProps,
+        }}
       />
     );
   },

@@ -299,9 +299,10 @@ mod hook;
 mod location;
 mod r#override;
 
+use alloc::collections::VecDeque;
+#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{
     borrow::ToOwned,
-    collections::VecDeque,
     format,
     string::{String, ToString},
     vec,

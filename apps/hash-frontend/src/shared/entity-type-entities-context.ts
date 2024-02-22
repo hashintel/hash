@@ -12,7 +12,7 @@ import {
 } from "@local/hash-subgraph";
 import { createContext, useContext } from "react";
 
-import { QueryEntitiesQuery } from "../graphql/api-types.gen";
+import { StructuralQueryEntitiesQuery } from "../graphql/api-types.gen";
 
 export type EntityTypeEntitiesContextValue = {
   entityTypeId?: VersionedUrl;
@@ -27,7 +27,7 @@ export type EntityTypeEntitiesContextValue = {
    * The cached content will be replaced automatically and the value updated when the network request completes.
    */
   loading: boolean;
-  refetch: () => Promise<ApolloQueryResult<QueryEntitiesQuery>>;
+  refetch: () => Promise<ApolloQueryResult<StructuralQueryEntitiesQuery>>;
   propertyTypes?: PropertyType[];
   subgraph?: Subgraph<EntityRootType>;
 };

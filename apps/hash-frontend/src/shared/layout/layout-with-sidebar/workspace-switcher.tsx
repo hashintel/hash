@@ -36,8 +36,8 @@ export const WorkspaceSwitcher = () => {
   const activeWorkspace = useMemo<{ name: string; avatarSrc?: string }>(() => {
     if (activeWorkspaceOwnedById === authenticatedUser.accountId) {
       return {
-        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty preferredName
-        name: authenticatedUser.preferredName || authenticatedUser.shortname!,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty displayName
+        name: authenticatedUser.displayName || authenticatedUser.shortname!,
         avatarSrc: authenticatedUser.hasAvatar
           ? getImageUrlFromEntityProperties(
               authenticatedUser.hasAvatar.imageEntity.properties,
@@ -72,7 +72,7 @@ export const WorkspaceSwitcher = () => {
         ownedById: authenticatedUser.accountId as OwnedById,
         title: "My personal workspace",
         subText: `@${authenticatedUser.shortname ?? "user"}`,
-        avatarTitle: authenticatedUser.preferredName ?? "U",
+        avatarTitle: authenticatedUser.displayName ?? "U",
         avatarSrc: authenticatedUser.hasAvatar
           ? getImageUrlFromEntityProperties(
               authenticatedUser.hasAvatar.imageEntity.properties,
@@ -159,7 +159,7 @@ export const WorkspaceSwitcher = () => {
                 size={34}
                 title={
                   ownedById === authenticatedUser.accountId
-                    ? authenticatedUser.preferredName
+                    ? authenticatedUser.displayName
                     : title
                 }
               />

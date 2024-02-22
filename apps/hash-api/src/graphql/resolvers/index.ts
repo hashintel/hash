@@ -69,6 +69,7 @@ import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signe
 import { getDataType, queryDataTypes } from "./ontology/data-type";
 import {
   archiveEntityTypeResolver,
+  checkUserPermissionsOnEntityTypeResolver,
   createEntityTypeResolver,
   getEntityTypeResolver,
   queryEntityTypesResolver,
@@ -122,6 +123,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     ),
     checkUserPermissionsOnEntity: (_, { metadata }, context, info) =>
       checkUserPermissionsOnEntity({ metadata }, _, context, info),
+    checkUserPermissionsOnEntityType: checkUserPermissionsOnEntityTypeResolver,
     hasAccessToHash: loggedInMiddleware(hasAccessToHashResolver),
   },
 

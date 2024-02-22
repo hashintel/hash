@@ -108,6 +108,22 @@ variable "kratos_env_vars" {
   description = "A list of environment variables to save as system parameters and inject into Kratos"
 }
 
+variable "hydra_image" {
+  type = object({
+    url     = string
+    ecr_arn = optional(string)
+  })
+  description = "URL of the docker image for the Hydra service"
+}
+
+variable "hydra_env_vars" {
+  type = list(object({
+    name   = string,
+    secret = bool,
+    value  = string
+  }))
+  description = "A list of environment variables to save as system parameters and inject into Hydra"
+}
 
 variable "api_image" {
   type = object({

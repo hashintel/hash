@@ -17,7 +17,7 @@ echo "updating certificates"
 yum update ca-certificates -y
 
 echo "Installing prerequisites"
-yum install -y wget tar gzip
+yum install -y wget tar gzip jq
 
 echo "Installing eget"
 curl https://zyedidia.github.io/eget.sh | sh

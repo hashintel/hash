@@ -25,11 +25,12 @@ use crate::{
         postgres::{
             crud::QueryRecordDecode,
             query::{
-                Distinctness, Expression, Function, Ordering, PostgresRecord, PostgresSorting,
+                Distinctness, Expression, Function, PostgresRecord, PostgresSorting,
                 SelectCompiler, Table,
             },
         },
         query::Parameter,
+        NullOrdering, Ordering,
     },
     subgraph::{
         edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
@@ -40,15 +41,17 @@ use crate::{
 
 #[derive(Debug, Copy, Clone)]
 pub struct EntityVertexIdIndices {
-    pub owned_by_id: usize,
-    pub entity_uuid: usize,
     pub revision_id: usize,
+    pub entity_uuid: usize,
+    pub draft_id: usize,
+    pub owned_by_id: usize,
 }
 
 pub struct EntityVertexIdCursorParameters<'p> {
-    owned_by_id: Parameter<'p>,
-    entity_uuid: Parameter<'p>,
     revision_id: Parameter<'p>,
+    entity_uuid: Parameter<'p>,
+    draft_id: Option<Parameter<'p>>,
+    owned_by_id: Parameter<'p>,
 }
 
 impl QueryRecordDecode for VertexIdSorting<Entity> {
@@ -63,6 +66,7 @@ impl QueryRecordDecode for VertexIdSorting<Entity> {
             base_id: EntityId {
                 owned_by_id: row.get(indices.owned_by_id),
                 entity_uuid: row.get(indices.entity_uuid),
+                draft_id: row.get(indices.draft_id),
             },
             revision_id,
         }
@@ -77,6 +81,10 @@ impl<'s> PostgresSorting<'s, Entity> for VertexIdSorting<Entity> {
         Ok(self.cursor().map(|cursor| EntityVertexIdCursorParameters {
             owned_by_id: Parameter::Uuid(cursor.base_id.owned_by_id.into_uuid()),
             entity_uuid: Parameter::Uuid(cursor.base_id.entity_uuid.into_uuid()),
+            draft_id: cursor
+                .base_id
+                .draft_id
+                .map(|draft_id| Parameter::Uuid(draft_id.into_uuid())),
             revision_id: Parameter::Timestamp(cursor.revision_id.cast()),
         }))
     }
@@ -94,46 +102,65 @@ impl<'s> PostgresSorting<'s, Entity> for VertexIdSorting<Entity> {
 
         if let Some(parameters) = parameters {
             // We already had a cursor, add them as parameters:
-            let owned_by_id_expression = compiler.compile_parameter(&parameters.owned_by_id).0;
-            let entity_uuid_expression = compiler.compile_parameter(&parameters.entity_uuid).0;
             let revision_id_expression = compiler.compile_parameter(&parameters.revision_id).0;
+            let entity_uuid_expression = compiler.compile_parameter(&parameters.entity_uuid).0;
+            let draft_id_expression = parameters
+                .draft_id
+                .as_ref()
+                .map(|draft_id| compiler.compile_parameter(draft_id).0);
+            let owned_by_id_expression = compiler.compile_parameter(&parameters.owned_by_id).0;
 
             EntityVertexIdIndices {
-                owned_by_id: compiler.add_cursor_selection(
-                    &EntityQueryPath::OwnedById,
-                    identity,
-                    owned_by_id_expression,
-                    Ordering::Ascending,
+                revision_id: compiler.add_cursor_selection(
+                    revision_id_path,
+                    |column| Expression::Function(Function::Lower(Box::new(column))),
+                    Some(revision_id_expression),
+                    Ordering::Descending,
+                    None,
                 ),
                 entity_uuid: compiler.add_cursor_selection(
                     &EntityQueryPath::Uuid,
                     identity,
-                    entity_uuid_expression,
+                    Some(entity_uuid_expression),
                     Ordering::Ascending,
+                    None,
                 ),
-                revision_id: compiler.add_cursor_selection(
-                    revision_id_path,
-                    |column| Expression::Function(Function::Lower(Box::new(column))),
-                    revision_id_expression,
-                    Ordering::Descending,
+                draft_id: compiler.add_cursor_selection(
+                    &EntityQueryPath::DraftId,
+                    identity,
+                    draft_id_expression,
+                    Ordering::Ascending,
+                    Some(NullOrdering::First),
+                ),
+                owned_by_id: compiler.add_cursor_selection(
+                    &EntityQueryPath::OwnedById,
+                    identity,
+                    Some(owned_by_id_expression),
+                    Ordering::Ascending,
+                    None,
                 ),
             }
         } else {
             EntityVertexIdIndices {
-                owned_by_id: compiler.add_distinct_selection_with_ordering(
-                    &EntityQueryPath::OwnedById,
+                revision_id: compiler.add_distinct_selection_with_ordering(
+                    revision_id_path,
                     Distinctness::Distinct,
-                    Some(Ordering::Ascending),
+                    Some((Ordering::Descending, None)),
                 ),
                 entity_uuid: compiler.add_distinct_selection_with_ordering(
                     &EntityQueryPath::Uuid,
                     Distinctness::Distinct,
-                    Some(Ordering::Ascending),
+                    Some((Ordering::Ascending, None)),
                 ),
-                revision_id: compiler.add_distinct_selection_with_ordering(
-                    revision_id_path,
+                draft_id: compiler.add_distinct_selection_with_ordering(
+                    &EntityQueryPath::DraftId,
                     Distinctness::Distinct,
-                    Some(Ordering::Descending),
+                    Some((Ordering::Ascending, Some(NullOrdering::First))),
+                ),
+                owned_by_id: compiler.add_distinct_selection_with_ordering(
+                    &EntityQueryPath::OwnedById,
+                    Distinctness::Distinct,
+                    Some((Ordering::Ascending, None)),
                 ),
             }
         }
@@ -144,6 +171,7 @@ impl<'s> PostgresSorting<'s, Entity> for VertexIdSorting<Entity> {
 pub struct EntityRecordRowIndices {
     pub owned_by_id: usize,
     pub entity_uuid: usize,
+    pub draft_id: usize,
     pub transaction_time: usize,
     pub decision_time: usize,
 
@@ -165,7 +193,6 @@ pub struct EntityRecordRowIndices {
     pub edition_created_by_id: usize,
 
     pub archived: usize,
-    pub draft: usize,
 }
 
 pub struct EntityRecordPaths<'q> {
@@ -230,10 +257,12 @@ impl QueryRecordDecode for Entity {
                     left_entity_id: EntityId {
                         owned_by_id: OwnedById::new(left_owned_by_id),
                         entity_uuid: EntityUuid::new(left_entity_uuid),
+                        draft_id: None,
                     },
                     right_entity_id: EntityId {
                         owned_by_id: OwnedById::new(right_owned_by_id),
                         entity_uuid: EntityUuid::new(right_entity_uuid),
+                        draft_id: None,
                     },
                     order: EntityLinkOrder {
                         left_to_right: row.get(indices.left_to_right_order),
@@ -251,6 +280,7 @@ impl QueryRecordDecode for Entity {
         let entity_id = EntityId {
             owned_by_id: row.get(indices.owned_by_id),
             entity_uuid: row.get(indices.entity_uuid),
+            draft_id: row.get(indices.draft_id),
         };
 
         if let Ok(distance) = row.try_get::<_, f64>("distance") {
@@ -279,7 +309,6 @@ impl QueryRecordDecode for Entity {
                     },
                 },
                 archived: row.get(indices.archived),
-                draft: row.get(indices.draft),
             },
         }
     }
@@ -308,6 +337,11 @@ impl PostgresRecord for Entity {
             ),
             entity_uuid: compiler.add_distinct_selection_with_ordering(
                 &EntityQueryPath::Uuid,
+                Distinctness::Distinct,
+                None,
+            ),
+            draft_id: compiler.add_distinct_selection_with_ordering(
+                &EntityQueryPath::DraftId,
                 Distinctness::Distinct,
                 None,
             ),
@@ -347,7 +381,6 @@ impl PostgresRecord for Entity {
                 .add_selection_path(&EntityQueryPath::EditionCreatedById),
 
             archived: compiler.add_selection_path(&EntityQueryPath::Archived),
-            draft: compiler.add_selection_path(&EntityQueryPath::Draft),
         }
     }
 }

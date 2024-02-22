@@ -79,7 +79,6 @@ export const useDraftEntitySubgraph = (
                         createdById: "" as EditionCreatedById,
                       },
                     },
-                    draft: false,
                     archived: false,
                     temporalVersioning: {
                       decisionTime: {

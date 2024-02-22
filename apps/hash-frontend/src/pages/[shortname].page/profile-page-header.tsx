@@ -60,7 +60,7 @@ export const ProfilePageHeader: FunctionComponent<{
               <Avatar
                 src={avatarSrc}
                 title={
-                  profile.kind === "user" ? profile.preferredName : profile.name
+                  profile.kind === "user" ? profile.displayName : profile.name
                 }
                 size={leftColumnWidth}
                 sx={{
@@ -106,9 +106,7 @@ export const ProfilePageHeader: FunctionComponent<{
                     color: ({ palette }) => palette.gray[90],
                   }}
                 >
-                  {profile.kind === "user"
-                    ? profile.preferredName
-                    : profile.name}
+                  {profile.kind === "user" ? profile.displayName : profile.name}
                 </Typography>
               ) : (
                 <Skeleton

@@ -36,6 +36,20 @@ impl<'p> JsonPath<'p> {
         }
         Ok(())
     }
+
+    #[must_use]
+    pub fn into_owned(self) -> JsonPath<'static> {
+        JsonPath {
+            path: self
+                .path
+                .into_iter()
+                .map(|token| match token {
+                    PathToken::Field(field) => PathToken::Field(Cow::Owned(field.into_owned())),
+                    PathToken::Index(index) => PathToken::Index(index),
+                })
+                .collect(),
+        }
+    }
 }
 
 impl fmt::Debug for JsonPath<'_> {

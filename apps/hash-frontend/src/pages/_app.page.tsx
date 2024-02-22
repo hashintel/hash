@@ -11,7 +11,7 @@ import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import wasm from "@blockprotocol/type-system/type-system.wasm";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/design-system/theme";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
@@ -215,7 +215,7 @@ const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
 // The list of page pathnames that should be accessible whether or not the user is authenticated
 const publiclyAccessiblePagePathnames = [
   "/[shortname]/[page-slug]",
-  "/login",
+  "/signin",
   "/signup",
   "/recovery",
 ];
@@ -253,7 +253,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     // If the user is logged out and not on a page that should be publicly accessible...
     if (!publiclyAccessiblePagePathnames.includes(pathname)) {
       // ...redirect them to the login page
-      redirectInGetInitialProps({ appContext, location: "/login" });
+      redirectInGetInitialProps({ appContext, location: "/signin" });
     }
 
     return {};

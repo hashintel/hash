@@ -18,7 +18,7 @@ use crate::{
 /// A path to a [`PropertyType`] field.
 ///
 /// [`PropertyType`]: type_system::PropertyType
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PropertyTypeQueryPath<'p> {
     /// The [`BaseUrl`] of the [`PropertyType`].
     ///
@@ -245,6 +245,19 @@ pub enum PropertyTypeQueryPath<'p> {
     Schema(Option<JsonPath<'p>>),
     /// Only used internally and not available for deserialization.
     AdditionalMetadata,
+    /// The embedding for the whole entity blob.
+    ///
+    /// Deserializes from `["embedding"]`:
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["embedding"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::Embedding);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    Embedding,
 }
 
 impl OntologyQueryPath for PropertyTypeQueryPath<'_> {
@@ -270,6 +283,7 @@ impl QueryPath for PropertyTypeQueryPath<'_> {
             Self::Version => ParameterType::OntologyTypeVersion,
             Self::TransactionTime => ParameterType::TimeInterval,
             Self::Title | Self::Description => ParameterType::Text,
+            Self::Embedding => ParameterType::Vector,
             Self::DataTypeEdge { path, .. } => path.expected_type(),
             Self::PropertyTypeEdge { path, .. } => path.expected_type(),
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
@@ -292,6 +306,7 @@ impl fmt::Display for PropertyTypeQueryPath<'_> {
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
+            Self::Embedding => fmt.write_str("embedding"),
             Self::DataTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
                 path,
@@ -340,6 +355,7 @@ pub enum PropertyTypeQueryToken {
     Description,
     DataTypes,
     PropertyTypes,
+    Embedding,
     #[serde(skip)]
     Schema,
 }
@@ -353,7 +369,7 @@ pub struct PropertyTypeQueryPathVisitor {
 impl PropertyTypeQueryPathVisitor {
     pub const EXPECTING: &'static str =
         "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `editionCreatedById`, \
-         `editionArchivedById`, `title`, `description`, `dataTypes`, `propertyTypes`";
+         `editionArchivedById`, `title`, `description`, `dataTypes`, `propertyTypes`, `embedding`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -388,6 +404,7 @@ impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
             PropertyTypeQueryToken::Version => PropertyTypeQueryPath::Version,
             PropertyTypeQueryToken::Title => PropertyTypeQueryPath::Title,
             PropertyTypeQueryToken::Description => PropertyTypeQueryPath::Description,
+            PropertyTypeQueryToken::Embedding => PropertyTypeQueryPath::Embedding,
             PropertyTypeQueryToken::DataTypes => {
                 seq.next_element::<Selector>()?
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
@@ -432,6 +449,49 @@ impl<'de: 'p, 'p> Deserialize<'de> for PropertyTypeQueryPath<'p> {
         D: Deserializer<'de>,
     {
         deserializer.deserialize_seq(PropertyTypeQueryPathVisitor::new(0))
+    }
+}
+
+impl PropertyTypeQueryPath<'_> {
+    #[must_use]
+    pub fn into_owned(self) -> PropertyTypeQueryPath<'static> {
+        match self {
+            Self::BaseUrl => PropertyTypeQueryPath::BaseUrl,
+            Self::Version => PropertyTypeQueryPath::Version,
+            Self::VersionedUrl => PropertyTypeQueryPath::VersionedUrl,
+            Self::TransactionTime => PropertyTypeQueryPath::TransactionTime,
+            Self::OwnedById => PropertyTypeQueryPath::OwnedById,
+            Self::EditionCreatedById => PropertyTypeQueryPath::EditionCreatedById,
+            Self::EditionArchivedById => PropertyTypeQueryPath::EditionArchivedById,
+            Self::Title => PropertyTypeQueryPath::Title,
+            Self::Description => PropertyTypeQueryPath::Description,
+            Self::Embedding => PropertyTypeQueryPath::Embedding,
+            Self::DataTypeEdge { path, edge_kind } => PropertyTypeQueryPath::DataTypeEdge {
+                path: path.into_owned(),
+                edge_kind,
+            },
+            Self::PropertyTypeEdge {
+                path,
+                edge_kind,
+                direction,
+            } => PropertyTypeQueryPath::PropertyTypeEdge {
+                path: Box::new(path.into_owned()),
+                edge_kind,
+                direction,
+            },
+            Self::EntityTypeEdge {
+                path,
+                edge_kind,
+                inheritance_depth,
+            } => PropertyTypeQueryPath::EntityTypeEdge {
+                path: Box::new(path.into_owned()),
+                edge_kind,
+                inheritance_depth,
+            },
+            Self::OntologyId => PropertyTypeQueryPath::OntologyId,
+            Self::Schema(path) => PropertyTypeQueryPath::Schema(path.map(JsonPath::into_owned)),
+            Self::AdditionalMetadata => PropertyTypeQueryPath::AdditionalMetadata,
+        }
     }
 }
 

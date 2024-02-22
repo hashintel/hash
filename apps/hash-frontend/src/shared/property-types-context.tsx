@@ -60,7 +60,6 @@ export const usePropertyTypes = (params?: {
         }
         filteredPropertyTypeVersionsByBaseUrl[baseUrl] = [propertyType];
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive
         filteredPropertyTypeVersionsByBaseUrl[baseUrl] ??= [];
         filteredPropertyTypeVersionsByBaseUrl[baseUrl]!.push(propertyType);
       }

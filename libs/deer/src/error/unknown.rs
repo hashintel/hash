@@ -1,3 +1,4 @@
+#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{string::String, vec::Vec};
 use core::{
     fmt,
@@ -341,6 +342,7 @@ impl Display for UnknownIdentifierError {
 
 #[cfg(test)]
 mod tests {
+    #[cfg_attr(feature = "std", allow(unused_imports))]
     use alloc::{borrow::ToOwned, vec};
 
     use error_stack::Report;

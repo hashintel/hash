@@ -4,6 +4,7 @@
 
 import {
   BooleanDataType,
+  DateTimeDataType,
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
   File,
@@ -30,10 +31,12 @@ import {
   OriginalSourcePropertyValue,
   OriginalURLPropertyValue,
   TextDataType,
+  UploadCompletedAtPropertyValue,
 } from "./shared";
 
 export type {
   BooleanDataType,
+  DateTimeDataType,
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
   File,
@@ -60,4 +63,5 @@ export type {
   OriginalSourcePropertyValue,
   OriginalURLPropertyValue,
   TextDataType,
+  UploadCompletedAtPropertyValue,
 };

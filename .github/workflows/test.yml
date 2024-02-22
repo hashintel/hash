@@ -162,7 +162,7 @@ jobs:
         run: sudo apt install protobuf-compiler
 
       - name: Install yarn dependencies
-        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
         env:
           HUSKY: 0
         with:
@@ -180,7 +180,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@8984d603c208823d3c1a1b796f4081736f3ae3f9 # v2.25.9
+        uses: taiki-e/install-action@6943331e01261cdff7420bbc2508cb463574e404 # v2.27.2
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -205,7 +205,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - uses: codecov/codecov-action@4fe8c5f003fae66aa5ebb77cfd3e7bfbbda0b6b0 # v3.1.5
+      - uses: codecov/codecov-action@e0b68c6749509c5f83f984dd99a76a1c1a231044 # v4.0.1
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
@@ -259,7 +259,7 @@ jobs:
             @apps/hash-external-services
 
       - name: Install yarn dependencies
-        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
         env:
           HUSKY: 0
         with:
@@ -305,7 +305,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@8984d603c208823d3c1a1b796f4081736f3ae3f9 # v2.25.9
+        uses: taiki-e/install-action@6943331e01261cdff7420bbc2508cb463574e404 # v2.27.2
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -333,7 +333,7 @@ jobs:
         run: |
           turbo codegen --filter '@apps/hash-external-services'
 
-          SERVICES="kratos redis spicedb"
+          SERVICES="hydra kratos redis spicedb"
 
           if [[ ${{ steps.tests.outputs.external-service-graph }} == 'true' ]]; then
             SERVICES="$SERVICES graph"
@@ -361,7 +361,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - uses: codecov/codecov-action@4fe8c5f003fae66aa5ebb77cfd3e7bfbbda0b6b0 # v3.1.5
+      - uses: codecov/codecov-action@e0b68c6749509c5f83f984dd99a76a1c1a231044 # v4.0.1
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
@@ -418,7 +418,7 @@ jobs:
         run: sudo apt install protobuf-compiler
 
       - name: Install yarn dependencies
-        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
         env:
           HUSKY: 0
         with:
@@ -436,7 +436,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@8984d603c208823d3c1a1b796f4081736f3ae3f9 # v2.25.9
+        uses: taiki-e/install-action@6943331e01261cdff7420bbc2508cb463574e404 # v2.27.2
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -449,7 +449,7 @@ jobs:
 
       - name: Install playwright
         if: matrix.package == '@tests/hash-playwright'
-        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
         with:
           max_attempts: 3
           timeout_minutes: 10
@@ -577,7 +577,7 @@ jobs:
 
       - name: Install tools
         if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
-        uses: taiki-e/install-action@8984d603c208823d3c1a1b796f4081736f3ae3f9 # v2.25.9
+        uses: taiki-e/install-action@6943331e01261cdff7420bbc2508cb463574e404 # v2.27.2
         with:
           tool: cargo-semver-checks
 

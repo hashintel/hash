@@ -2,12 +2,13 @@ mod query;
 mod read;
 
 use std::{
+    borrow::Cow,
     collections::{HashMap, HashSet},
     iter::once,
 };
 
 use authorization::{
-    backend::{ModifyRelationshipOperation, PermissionAssertion},
+    backend::ModifyRelationshipOperation,
     schema::{
         EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, EntityTypeId,
         EntityTypePermission, WebPermission,
@@ -21,8 +22,8 @@ use graph_types::{
     account::{AccountId, CreatedById, EditionCreatedById},
     knowledge::{
         entity::{
-            Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding, EntityId,
-            EntityMetadata, EntityProperties, EntityProvenanceMetadata, EntityRecordId,
+            DraftId, Entity, EntityEditionId, EntityEditionProvenanceMetadata, EntityEmbedding,
+            EntityId, EntityMetadata, EntityProperties, EntityProvenanceMetadata, EntityRecordId,
             EntityTemporalMetadata, EntityUuid,
         },
         link::{EntityLinkOrder, LinkData},
@@ -33,33 +34,41 @@ use graph_types::{
 use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
 use temporal_client::TemporalClient;
-use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp, TransactionTime};
-use tokio_postgres::GenericClient;
+use temporal_versioning::{
+    ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
+    RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
+};
+use tokio_postgres::{error::SqlState, GenericClient, Row};
 use type_system::{url::VersionedUrl, EntityType};
 use uuid::Uuid;
 use validation::{Validate, ValidationProfile};
 
 use crate::{
+    knowledge::EntityQueryPath,
     ontology::EntityTypeQueryPath,
     store::{
-        crud::{QueryResult, Read, ReadPaginated, VertexIdSorting},
+        crud::{QueryResult, Read, ReadPaginated, Sorting},
         error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
-        knowledge::{EntityValidationType, ValidateEntityError},
+        knowledge::{
+            CreateEntityParams, EntityQueryCursor, EntityQuerySorting, EntityValidationType,
+            GetEntityParams, UpdateEntityEmbeddingsParams, UpdateEntityParams, ValidateEntityError,
+            ValidateEntityParams,
+        },
         postgres::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
             TraversalContext,
         },
         query::{Filter, FilterExpression, Parameter},
         validation::StoreProvider,
-        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, StoreCache,
-        UpdateError,
+        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, StoreCache,
+        SubgraphRecord, UpdateError,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
         identifier::{EntityIdWithInterval, EntityVertexId},
-        query::StructuralQuery,
         temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableAxis,
+            PinnedTemporalAxis, PinnedTemporalAxisUnresolved, QueryTemporalAxes,
+            QueryTemporalAxesUnresolved, VariableAxis, VariableTemporalAxis,
             VariableTemporalAxisUnresolved,
         },
         Subgraph,
@@ -280,6 +289,7 @@ impl<C: AsClient> PostgresStore<C> {
                     DELETE FROM entity_temporal_metadata;
                     DELETE FROM entity_editions;
                     DELETE FROM entity_embeddings;
+                    DELETE FROM entity_drafts;
                     DELETE FROM entity_ids;
                 ",
             )
@@ -291,29 +301,24 @@ impl<C: AsClient> PostgresStore<C> {
 }
 
 impl<C: AsClient> EntityStore for PostgresStore<C> {
-    #[tracing::instrument(
-        level = "info",
-        skip(self, properties, authorization_api, relationships, temporal_client)
-    )]
-    async fn create_entity<A: AuthorizationApi + Send + Sync>(
+    #[tracing::instrument(level = "info", skip(self, authorization_api, temporal_client, params))]
+    async fn create_entity<A: AuthorizationApi + Send + Sync, R>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         temporal_client: Option<&TemporalClient>,
-        owned_by_id: OwnedById,
-        entity_uuid: Option<EntityUuid>,
-        decision_time: Option<Timestamp<DecisionTime>>,
-        archived: bool,
-        draft: bool,
-        entity_type_url: VersionedUrl,
-        properties: EntityProperties,
-        link_data: Option<LinkData>,
-        relationships: impl IntoIterator<Item = EntityRelationAndSubject> + Send,
-    ) -> Result<EntityMetadata, InsertionError> {
-        let relationships = relationships
+        params: CreateEntityParams<R>,
+    ) -> Result<EntityMetadata, InsertionError>
+    where
+        R: IntoIterator<Item = EntityRelationAndSubject> + Send,
+    {
+        let relationships = params
+            .relationships
             .into_iter()
             .chain(once(EntityRelationAndSubject::Owner {
-                subject: EntityOwnerSubject::Web { id: owned_by_id },
+                subject: EntityOwnerSubject::Web {
+                    id: params.owned_by_id,
+                },
                 level: 0,
             }))
             .collect::<Vec<_>>();
@@ -322,7 +327,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .attach_printable("At least one relationship must be provided"));
         }
 
-        let entity_type_id = EntityTypeId::from_url(&entity_type_url);
+        let entity_type_id = EntityTypeId::from_url(&params.entity_type_id);
         authorization_api
             .check_entity_type_permission(
                 actor_id,
@@ -336,12 +341,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(InsertionError)
             .attach(StatusCode::PermissionDenied)?;
 
-        if Some(owned_by_id.into_uuid()) != entity_uuid.map(EntityUuid::into_uuid) {
+        if Some(params.owned_by_id.into_uuid()) != params.entity_uuid.map(EntityUuid::into_uuid) {
             authorization_api
                 .check_web_permission(
                     actor_id,
                     WebPermission::CreateEntity,
-                    owned_by_id,
+                    params.owned_by_id,
                     Consistency::FullyConsistent,
                 )
                 .await
@@ -352,13 +357,16 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         }
 
         let entity_id = EntityId {
-            owned_by_id,
-            entity_uuid: entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
+            owned_by_id: params.owned_by_id,
+            entity_uuid: params
+                .entity_uuid
+                .unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
+            draft_id: params.draft.then(|| DraftId::new(Uuid::new_v4())),
         };
 
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        if let Some(decision_time) = decision_time {
+        if let Some(decision_time) = params.decision_time {
             transaction
                 .as_client()
                 .query(
@@ -403,7 +411,24 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(InsertionError)?;
         }
 
-        let link_order = if let Some(link_data) = link_data {
+        if let Some(draft_id) = entity_id.draft_id {
+            transaction
+                .as_client()
+                .query(
+                    "
+                    INSERT INTO entity_drafts (
+                        web_id,
+                        entity_uuid,
+                        draft_id
+                    ) VALUES ($1, $2, $3);
+                ",
+                    &[&entity_id.owned_by_id, &entity_id.entity_uuid, &draft_id],
+                )
+                .await
+                .change_context(InsertionError)?;
+        }
+
+        let link_order = if let Some(link_data) = params.link_data {
             transaction
                 .as_client()
                 .query(
@@ -458,66 +483,16 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let (edition_id, closed_schema) = transaction
             .insert_entity_edition(
                 edition_created_by_id,
-                archived,
-                draft,
-                &entity_type_url,
-                &properties,
+                false,
+                &params.entity_type_id,
+                &params.properties,
                 &link_order,
             )
             .await?;
 
-        let row = if let Some(decision_time) = decision_time {
-            transaction
-                .as_client()
-                .query_one(
-                    "
-                    INSERT INTO entity_temporal_metadata (
-                        web_id,
-                        entity_uuid,
-                        entity_edition_id,
-                        decision_time,
-                        transaction_time
-                    ) VALUES (
-                        $1,
-                        $2,
-                        $3,
-                        tstzrange($4, NULL, '[)'),
-                        tstzrange(now(), NULL, '[)')
-                    ) RETURNING decision_time, transaction_time;
-                ",
-                    &[
-                        &entity_id.owned_by_id,
-                        &entity_id.entity_uuid,
-                        &edition_id,
-                        &decision_time,
-                    ],
-                )
-                .await
-                .change_context(InsertionError)?
-        } else {
-            transaction
-                .as_client()
-                .query_one(
-                    "
-                    INSERT INTO entity_temporal_metadata (
-                        web_id,
-                        entity_uuid,
-                        entity_edition_id,
-                        decision_time,
-                        transaction_time
-                    ) VALUES (
-                        $1,
-                        $2,
-                        $3,
-                        tstzrange(now(), NULL, '[)'),
-                        tstzrange(now(), NULL, '[)')
-                    ) RETURNING decision_time, transaction_time;
-                ",
-                    &[&entity_id.owned_by_id, &entity_id.entity_uuid, &edition_id],
-                )
-                .await
-                .change_context(InsertionError)?
-        };
+        let temporal_versioning = transaction
+            .insert_temporal_metadata(entity_id, edition_id, params.decision_time)
+            .await?;
 
         authorization_api
             .modify_entity_relations(relationships.clone().into_iter().map(
@@ -537,13 +512,15 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 actor_id,
                 authorization_api,
                 Consistency::FullyConsistent,
-                EntityValidationType::Schema(&closed_schema),
-                &properties,
-                link_data.as_ref(),
-                if draft {
-                    ValidationProfile::Draft
-                } else {
-                    ValidationProfile::Full
+                ValidateEntityParams {
+                    entity_type: EntityValidationType::Schema(Cow::Borrowed(&closed_schema)),
+                    properties: Cow::Borrowed(&params.properties),
+                    link_data: params.link_data.as_ref().map(Cow::Borrowed),
+                    profile: if params.draft {
+                        ValidationProfile::Draft
+                    } else {
+                        ValidationProfile::Full
+                    },
                 },
             )
             .await
@@ -574,36 +551,34 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
             Err(error)
         } else {
-            let decision_time = row.get(0);
-            let transaction_time = row.get(1);
             let entity_metadata = EntityMetadata {
                 record_id: EntityRecordId {
                     entity_id,
                     edition_id,
                 },
-                temporal_versioning: EntityTemporalMetadata {
-                    decision_time,
-                    transaction_time,
-                },
-                entity_type_id: entity_type_url,
+                entity_type_id: params.entity_type_id,
                 provenance: EntityProvenanceMetadata {
                     created_by_id: CreatedById::new(edition_created_by_id.as_account_id()),
-                    created_at_decision_time: Timestamp::from(*decision_time.start()),
-                    created_at_transaction_time: Timestamp::from(*transaction_time.start()),
+                    created_at_decision_time: Timestamp::from(
+                        *temporal_versioning.decision_time.start(),
+                    ),
+                    created_at_transaction_time: Timestamp::from(
+                        *temporal_versioning.transaction_time.start(),
+                    ),
                     edition: EntityEditionProvenanceMetadata {
                         created_by_id: edition_created_by_id,
                     },
                 },
-                archived,
-                draft,
+                temporal_versioning,
+                archived: false,
             };
             if let Some(temporal_client) = temporal_client {
                 temporal_client
                     .start_update_entity_embeddings_workflow(
                         actor_id,
                         &[Entity {
-                            properties,
-                            link_data,
+                            properties: params.properties,
+                            link_data: params.link_data,
                             metadata: entity_metadata.clone(),
                         }],
                     )
@@ -623,21 +598,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         &self,
         actor_id: AccountId,
         authorization_api: &A,
-        consistency: Consistency<'static>,
-        entity_type: EntityValidationType<'_>,
-        properties: &EntityProperties,
-        link_data: Option<&LinkData>,
-        profile: ValidationProfile,
+        consistency: Consistency<'_>,
+        params: ValidateEntityParams<'_>,
     ) -> Result<(), ValidateEntityError> {
-        enum MaybeBorrowed<'a, T> {
-            Borrowed(&'a T),
-            Owned(T),
-        }
-
-        let schema = match entity_type {
-            EntityValidationType::Schema(schema) => MaybeBorrowed::Borrowed(schema),
+        let schema = match params.entity_type {
+            EntityValidationType::Schema(schema) => schema,
             EntityValidationType::Id(entity_type_url) => {
-                let entity_type_id = EntityTypeId::from_url(entity_type_url);
+                let entity_type_id = EntityTypeId::from_url(entity_type_url.as_ref());
 
                 authorization_api
                     .check_entity_type_permission(
@@ -683,18 +650,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         closed_schemas.len(),
                     ))
                 );
-                MaybeBorrowed::Owned(closed_schemas.pop().ok_or_else(|| {
+                Cow::Owned(closed_schemas.pop().ok_or_else(|| {
                     Report::new(ValidateEntityError).attach_printable(
                         "Expected exactly one closed schema to be returned from the query but \
                          none was returned",
                     )
                 })?)
             }
-        };
-
-        let schema = match &schema {
-            MaybeBorrowed::Borrowed(schema) => *schema,
-            MaybeBorrowed::Owned(schema) => schema,
         };
 
         let mut status: Result<(), validation::EntityValidationError> = Ok(());
@@ -705,8 +667,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             authorization: Some((authorization_api, actor_id, Consistency::FullyConsistent)),
         };
 
-        if let Err(error) = properties
-            .validate(schema, profile, &validator_provider)
+        if let Err(error) = params
+            .properties
+            .validate(schema.as_ref(), params.profile, &validator_provider)
             .await
         {
             if let Err(ref mut report) = status {
@@ -716,8 +679,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             }
         }
 
-        if let Err(error) = link_data
-            .validate(schema, profile, &validator_provider)
+        if let Err(error) = params
+            .link_data
+            .as_deref()
+            .validate(schema.as_ref(), params.profile, &validator_provider)
             .await
         {
             if let Err(ref mut report) = status {
@@ -774,6 +739,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 EntityId {
                     owned_by_id,
                     entity_uuid: entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
+                    draft_id: None,
                 },
                 actor_id,
                 decision_time,
@@ -877,53 +843,49 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     },
                     temporal_versioning,
                     archived: false,
-                    draft: false,
                 },
             )
             .collect())
     }
 
-    #[tracing::instrument(level = "info", skip(self, authorization_api, query))]
+    #[tracing::instrument(level = "info", skip(self, authorization_api, params))]
     async fn get_entity<A: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,
         authorization_api: &A,
-        query: &StructuralQuery<'_, Entity>,
-        cursor: Option<&EntityVertexId>,
-        limit: Option<usize>,
-    ) -> Result<(Subgraph, Option<EntityVertexId>), QueryError> {
-        let StructuralQuery {
-            ref filter,
-            graph_resolve_depths,
-            temporal_axes: ref unresolved_temporal_axes,
-            include_drafts,
-        } = *query;
+        mut params: GetEntityParams<'_>,
+    ) -> Result<(Subgraph, Option<EntityQueryCursor<'static>>), QueryError> {
+        let query = &mut params.query;
 
-        let unresolved_temporal_axes = unresolved_temporal_axes.clone();
+        let unresolved_temporal_axes = query.temporal_axes.clone();
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
         let mut root_entities = Vec::new();
-        let mut cursor = cursor.copied();
 
         let (latest_zookie, last) = loop {
             // We query one more than requested to determine if there are more entities to return.
-            let (stream, artifacts) = ReadPaginated::<Entity>::read_paginated(
-                self,
-                filter,
-                Some(&temporal_axes),
-                &VertexIdSorting { cursor },
-                limit,
-                include_drafts,
-            )
-            .await?;
-            let entities = stream
-                .map_ok(|row| (row.decode_record(&artifacts), row))
-                .try_collect::<Vec<_>>()
+            let (rows, artifacts) =
+                ReadPaginated::<Entity, EntityQuerySorting>::read_paginated_vec(
+                    self,
+                    &query.filter,
+                    Some(&temporal_axes),
+                    &params.sorting,
+                    params.limit,
+                    query.include_drafts,
+                )
                 .await?;
-            cursor = entities
+            let entities = rows
+                .into_iter()
+                .map(|row: Row| (row.decode_record(&artifacts), row))
+                .collect::<Vec<_>>();
+            if let Some(cursor) = entities
                 .last()
-                .map(|(_, row)| row.decode_cursor(&artifacts));
+                .map(|(_, row): &(Entity, Row)| row.decode_cursor(&artifacts))
+            {
+                params.sorting.set_cursor(cursor);
+            }
+
             let num_returned_entities = entities.len();
 
             // TODO: The subgraph structure differs from the API interface. At the API the vertices
@@ -956,10 +918,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     .filter(|(entity, _)| {
                         permitted_ids.contains(&entity.metadata.record_id.entity_id.entity_uuid)
                     })
-                    .take(limit.unwrap_or(usize::MAX) - root_entities.len()),
+                    .take(params.limit.unwrap_or(usize::MAX) - root_entities.len()),
             );
 
-            if let Some(limit) = limit {
+            if let Some(limit) = params.limit {
                 if num_returned_entities < limit {
                     // When the returned entities are less than the requested amount we know
                     // that there are no more entities to return.
@@ -981,7 +943,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         };
 
         let mut subgraph = Subgraph::new(
-            graph_resolve_depths,
+            query.graph_resolve_depths,
             unresolved_temporal_axes,
             temporal_axes,
         );
@@ -1022,30 +984,21 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph, include_drafts)
+            .read_traversed_vertices(self, &mut subgraph, query.include_drafts)
             .await?;
 
         Ok((subgraph, last))
     }
 
-    #[tracing::instrument(
-        level = "info",
-        skip(self, properties, authorization_api, temporal_client)
-    )]
+    #[tracing::instrument(level = "info", skip(self, authorization_api, temporal_client, params))]
     async fn update_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
         temporal_client: Option<&TemporalClient>,
-        entity_id: EntityId,
-        decision_time: Option<Timestamp<DecisionTime>>,
-        archived: bool,
-        draft: bool,
-        entity_type_url: VersionedUrl,
-        properties: EntityProperties,
-        link_order: EntityLinkOrder,
+        mut params: UpdateEntityParams,
     ) -> Result<EntityMetadata, UpdateError> {
-        let entity_type_id = EntityTypeId::from_url(&entity_type_url);
+        let entity_type_id = EntityTypeId::from_url(&params.entity_type_id);
         authorization_api
             .check_entity_type_permission(
                 actor_id,
@@ -1063,7 +1016,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .check_entity_permission(
                 actor_id,
                 EntityPermission::Update,
-                entity_id,
+                params.entity_id,
                 Consistency::FullyConsistent,
             )
             .await
@@ -1073,100 +1026,108 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
-        // TODO: Allow partial updates in Postgres by returning the previous entity edition
-        //       directly. This may result in a data race if the entity is updated concurrently but
-        //       as we allow the draft state to only change once this is fine to use for that. For
-        //       the link data this is fine as well because that can never change. This is also used
-        //       to read the creating-provenance data, which is only set once.
-        //   see https://linear.app/hash/issue/H-969
+        let locked_row = transaction
+            .lock_entity_edition(params.entity_id, params.decision_time)
+            .await?
+            .ok_or_else(|| {
+                Report::new(EntityDoesNotExist)
+                    .attach(StatusCode::NotFound)
+                    .attach_printable(params.entity_id)
+                    .change_context(UpdateError)
+            })?;
+        let ClosedTemporalBound::Inclusive(locked_transaction_time) =
+            *locked_row.transaction_time.start();
+        let ClosedTemporalBound::Inclusive(locked_decision_time) =
+            *locked_row.decision_time.start();
         let previous_entity = Read::<Entity>::read_one(
             &transaction,
-            &Filter::for_entity_by_entity_id(entity_id),
-            Some(
-                &QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                }
-                .resolve(),
+            &Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::EditionId)),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    locked_row.entity_edition_id.into_uuid(),
+                ))),
             ),
+            Some(&QueryTemporalAxes::DecisionTime {
+                pinned: PinnedTemporalAxis::new(locked_transaction_time),
+                variable: VariableTemporalAxis::new(
+                    TemporalBound::Inclusive(locked_decision_time),
+                    LimitedTemporalBound::Inclusive(locked_decision_time),
+                ),
+            }),
             true,
         )
         .await
         .change_context(EntityDoesNotExist)
-        .attach(entity_id)
+        .attach(params.entity_id)
         .change_context(UpdateError)?;
-        let was_draft_before = previous_entity.metadata.draft;
 
-        if draft && !was_draft_before {
-            return Err(PermissionAssertion)
-                .attach(hash_status::StatusCode::PermissionDenied)
-                .change_context(UpdateError);
-        }
+        let was_draft_before = previous_entity
+            .metadata
+            .record_id
+            .entity_id
+            .draft_id
+            .is_some();
 
         let (edition_id, closed_schema) = transaction
             .insert_entity_edition(
                 EditionCreatedById::new(actor_id),
-                archived,
-                draft,
-                &entity_type_url,
-                &properties,
-                &link_order,
+                params.archived,
+                &params.entity_type_id,
+                &params.properties,
+                &params.link_order,
             )
             .await
             .change_context(UpdateError)?;
 
-        // Calling `UPDATE` on `entity_temporal_metadata` will invoke a trigger that properly
-        // updates the temporal versioning of the entity.
-        let optional_row = if let Some(decision_time) = decision_time {
-            transaction
-                .as_client()
-                .query_opt(
-                    "
-                        UPDATE entity_temporal_metadata
-                        SET decision_time = tstzrange($4, upper(decision_time), '[)'),
-                            transaction_time = tstzrange(now(), NULL, '[)'),
-                            entity_edition_id = $3
-                        WHERE web_id = $1
-                          AND entity_uuid = $2
-                          AND decision_time @> $4::TIMESTAMPTZ
-                          AND transaction_time @> now()
-                        RETURNING decision_time, transaction_time;
-                    ",
-                    &[
-                        &entity_id.owned_by_id,
-                        &entity_id.entity_uuid,
-                        &edition_id,
-                        &decision_time,
-                    ],
-                )
-                .await
-        } else {
-            transaction
-                .as_client()
-                .query_opt(
-                    "
-                        UPDATE entity_temporal_metadata
-                        SET decision_time = tstzrange(now(), upper(decision_time), '[)'),
-                            transaction_time = tstzrange(now(), NULL, '[)'),
-                            entity_edition_id = $3
-                        WHERE web_id = $1
-                          AND entity_uuid = $2
-                          AND decision_time @> now()
-                          AND transaction_time @> now()
-                        RETURNING decision_time, transaction_time;
-                    ",
-                    &[&entity_id.owned_by_id, &entity_id.entity_uuid, &edition_id],
-                )
-                .await
-        }
-        .change_context(UpdateError)?;
-        let row = optional_row.ok_or_else(|| {
-            Report::new(RaceConditionOnUpdate)
-                .attach(entity_id)
-                .change_context(UpdateError)
-        })?;
+        let temporal_versioning = match (was_draft_before, params.draft) {
+            (true, true) | (false, false) => {
+                // regular update
+                transaction
+                    .update_temporal_metadata(locked_row, edition_id, false)
+                    .await?
+            }
+            (false, true) => {
+                let draft_id = DraftId::new(Uuid::new_v4());
+                transaction
+                    .as_client()
+                    .query(
+                        "
+                        INSERT INTO entity_drafts (
+                            web_id,
+                            entity_uuid,
+                            draft_id
+                        ) VALUES ($1, $2, $3);",
+                        &[
+                            &params.entity_id.owned_by_id,
+                            &params.entity_id.entity_uuid,
+                            &draft_id,
+                        ],
+                    )
+                    .await
+                    .change_context(UpdateError)?;
+                params.entity_id.draft_id = Some(draft_id);
+                transaction
+                    .insert_temporal_metadata(params.entity_id, edition_id, params.decision_time)
+                    .await
+                    .change_context(UpdateError)?
+            }
+            (true, false) => {
+                // Publish a draft
+                params.entity_id.draft_id = None;
 
-        let validation_profile = if draft {
+                if let Some(previous_live_entity) = transaction
+                    .lock_entity_edition(params.entity_id, params.decision_time)
+                    .await?
+                {
+                    transaction.archive_entity(previous_live_entity).await?;
+                }
+                transaction
+                    .update_temporal_metadata(locked_row, edition_id, true)
+                    .await?
+            }
+        };
+
+        let validation_profile = if params.draft {
             ValidationProfile::Draft
         } else {
             ValidationProfile::Full
@@ -1177,17 +1138,20 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 actor_id,
                 authorization_api,
                 Consistency::FullyConsistent,
-                EntityValidationType::Schema(&closed_schema),
-                &properties,
-                previous_entity
-                    .link_data
-                    .map(|link_data| LinkData {
-                        left_entity_id: link_data.left_entity_id,
-                        right_entity_id: link_data.right_entity_id,
-                        order: link_order,
-                    })
-                    .as_ref(),
-                validation_profile,
+                ValidateEntityParams {
+                    entity_type: EntityValidationType::Schema(Cow::Borrowed(&closed_schema)),
+                    properties: Cow::Borrowed(&params.properties),
+                    link_data: previous_entity
+                        .link_data
+                        .map(|link_data| LinkData {
+                            left_entity_id: link_data.left_entity_id,
+                            right_entity_id: link_data.right_entity_id,
+                            order: params.link_order,
+                        })
+                        .as_ref()
+                        .map(Cow::Borrowed),
+                    profile: validation_profile,
+                },
             )
             .await
             .change_context(UpdateError)
@@ -1197,14 +1161,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let entity_metadata = EntityMetadata {
             record_id: EntityRecordId {
-                entity_id,
+                entity_id: params.entity_id,
                 edition_id,
             },
-            temporal_versioning: EntityTemporalMetadata {
-                decision_time: row.get(0),
-                transaction_time: row.get(1),
-            },
-            entity_type_id: entity_type_url,
+            temporal_versioning,
+            entity_type_id: params.entity_type_id,
             provenance: EntityProvenanceMetadata {
                 created_by_id: previous_entity.metadata.provenance.created_by_id,
                 created_at_transaction_time: previous_entity
@@ -1219,21 +1180,20 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     created_by_id: EditionCreatedById::new(actor_id),
                 },
             },
-            archived,
-            draft,
+            archived: params.archived,
         };
         if let Some(temporal_client) = temporal_client {
             temporal_client
                 .start_update_entity_embeddings_workflow(
                     actor_id,
                     &[Entity {
-                        properties,
+                        properties: params.properties,
                         link_data: previous_entity
                             .link_data
                             .map(|previous_link_data| LinkData {
                                 left_entity_id: previous_link_data.left_entity_id,
                                 right_entity_id: previous_link_data.right_entity_id,
-                                order: link_order,
+                                order: params.link_order,
                             }),
                         metadata: entity_metadata.clone(),
                     }],
@@ -1244,42 +1204,37 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(entity_metadata)
     }
 
-    #[tracing::instrument(level = "info", skip(self, embeddings))]
+    #[tracing::instrument(level = "info", skip(self, params))]
     async fn update_entity_embeddings<A: AuthorizationApi + Send + Sync>(
         &mut self,
         _: AccountId,
         _: &mut A,
-        embeddings: Vec<EntityEmbedding<'_>>,
-        updated_at_transaction_time: Timestamp<TransactionTime>,
-        updated_at_decision_time: Timestamp<DecisionTime>,
-        reset: bool,
+        params: UpdateEntityEmbeddingsParams<'_>,
     ) -> Result<(), UpdateError> {
         #[derive(Debug, ToSql)]
         #[postgres(name = "entity_embeddings")]
         pub struct EntityEmbeddingsRow<'a> {
             web_id: OwnedById,
             entity_uuid: EntityUuid,
+            draft_id: Option<DraftId>,
             property: Option<String>,
             embedding: Embedding<'a>,
             updated_at_transaction_time: Timestamp<TransactionTime>,
             updated_at_decision_time: Timestamp<DecisionTime>,
         }
-        let (entity_ids, entity_embeddings): (HashSet<_>, Vec<_>) = embeddings
+        let entity_embeddings = params
+            .embeddings
             .into_iter()
-            .map(|embedding: EntityEmbedding<'_>| {
-                (
-                    embedding.entity_id,
-                    EntityEmbeddingsRow {
-                        web_id: embedding.entity_id.owned_by_id,
-                        entity_uuid: embedding.entity_id.entity_uuid,
-                        property: embedding.property.as_ref().map(ToString::to_string),
-                        embedding: embedding.embedding,
-                        updated_at_transaction_time,
-                        updated_at_decision_time,
-                    },
-                )
+            .map(|embedding: EntityEmbedding<'_>| EntityEmbeddingsRow {
+                web_id: params.entity_id.owned_by_id,
+                entity_uuid: params.entity_id.entity_uuid,
+                draft_id: params.entity_id.draft_id,
+                property: embedding.property.as_ref().map(ToString::to_string),
+                embedding: embedding.embedding,
+                updated_at_transaction_time: params.updated_at_transaction_time,
+                updated_at_decision_time: params.updated_at_decision_time,
             })
-            .unzip();
+            .collect::<Vec<_>>();
 
         // TODO: Add permission to allow updating embeddings
         //   see https://linear.app/hash/issue/H-1870
@@ -1304,31 +1259,49 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         //     return Err(status.change_context(UpdateError));
         // }
 
-        if reset {
-            let (owned_by_id, entity_uuids): (Vec<_>, Vec<_>) = entity_ids
-                .into_iter()
-                .map(|entity_id| (entity_id.owned_by_id, entity_id.entity_uuid))
-                .unzip();
-            self.as_client()
-                .query(
-                    "
+        if params.reset {
+            if let Some(draft_id) = params.entity_id.draft_id {
+                self.as_client()
+                    .query(
+                        "
                         DELETE FROM entity_embeddings
-                        WHERE (web_id, entity_uuid) IN (
-                            SELECT *
-                            FROM UNNEST($1::UUID[], $2::UUID[])
-                        )
-                        AND updated_at_transaction_time <= $3
-                        AND updated_at_decision_time <= $4;
+                        WHERE web_id = $1
+                          AND entity_uuid = $2
+                          AND draft_id = $3
+                          AND updated_at_transaction_time <= $4
+                          AND updated_at_decision_time <= $5;
                     ",
-                    &[
-                        &owned_by_id,
-                        &entity_uuids,
-                        &updated_at_transaction_time,
-                        &updated_at_decision_time,
-                    ],
-                )
-                .await
-                .change_context(UpdateError)?;
+                        &[
+                            &params.entity_id.owned_by_id,
+                            &params.entity_id.entity_uuid,
+                            &draft_id,
+                            &params.updated_at_transaction_time,
+                            &params.updated_at_decision_time,
+                        ],
+                    )
+                    .await
+                    .change_context(UpdateError)?;
+            } else {
+                self.as_client()
+                    .query(
+                        "
+                        DELETE FROM entity_embeddings
+                        WHERE web_id = $1
+                          AND entity_uuid = $2
+                          AND draft_id IS NULL
+                          AND updated_at_transaction_time <= $4
+                          AND updated_at_decision_time <= $5;
+                    ",
+                        &[
+                            &params.entity_id.owned_by_id,
+                            &params.entity_id.entity_uuid,
+                            &params.updated_at_transaction_time,
+                            &params.updated_at_decision_time,
+                        ],
+                    )
+                    .await
+                    .change_context(UpdateError)?;
+            }
         }
         self.as_client()
             .query(
@@ -1354,13 +1327,22 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     }
 }
 
+#[derive(Debug)]
+#[must_use]
+struct LockedEntityEdition {
+    entity_id: EntityId,
+    entity_edition_id: EntityEditionId,
+    decision_time: LeftClosedTemporalInterval<DecisionTime>,
+    transaction_time: LeftClosedTemporalInterval<TransactionTime>,
+    updated_at_decision_time: Timestamp<DecisionTime>,
+}
+
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[tracing::instrument(level = "trace", skip(self))]
     async fn insert_entity_edition(
         &self,
         edition_created_by_id: EditionCreatedById,
         archived: bool,
-        draft: bool,
         entity_type_id: &VersionedUrl,
         properties: &EntityProperties,
         link_order: &EntityLinkOrder,
@@ -1373,17 +1355,15 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         entity_edition_id,
                         edition_created_by_id,
                         archived,
-                        draft,
                         properties,
                         left_to_right_order,
                         right_to_left_order
-                    ) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)
+                    ) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
                     RETURNING entity_edition_id;
                 ",
                 &[
                     &edition_created_by_id,
                     &archived,
-                    &draft,
                     &properties,
                     &link_order.left_to_right,
                     &link_order.right_to_left,
@@ -1422,5 +1402,436 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .get(0);
 
         Ok((edition_id, entity_type))
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    async fn lock_entity_edition(
+        &self,
+        entity_id: EntityId,
+        decision_time: Option<Timestamp<DecisionTime>>,
+    ) -> Result<Option<LockedEntityEdition>, UpdateError> {
+        let current_data = match (entity_id.draft_id, decision_time) {
+            (Some(draft_id), Some(decision_time)) => {
+                self.as_client()
+                    .query_opt(
+                        "
+                            SELECT
+                                entity_temporal_metadata.entity_edition_id,
+                                entity_temporal_metadata.transaction_time,
+                                entity_temporal_metadata.decision_time,
+                                $4::timestamptz
+                            FROM entity_temporal_metadata
+                            WHERE entity_temporal_metadata.web_id = $1
+                              AND entity_temporal_metadata.entity_uuid = $2
+                              AND entity_temporal_metadata.draft_id = $3
+                              AND entity_temporal_metadata.decision_time @> $4::timestamptz
+                              AND entity_temporal_metadata.transaction_time @> now()
+                              FOR NO KEY UPDATE NOWAIT;",
+                        &[
+                            &entity_id.owned_by_id,
+                            &entity_id.entity_uuid,
+                            &draft_id,
+                            &decision_time,
+                        ],
+                    )
+                    .await
+            }
+            (None, Some(decision_time)) => {
+                self.as_client()
+                    .query_opt(
+                        "
+                            SELECT
+                                entity_temporal_metadata.entity_edition_id,
+                                entity_temporal_metadata.transaction_time,
+                                entity_temporal_metadata.decision_time,
+                                $3::timestamptz
+                            FROM entity_temporal_metadata
+                            WHERE entity_temporal_metadata.web_id = $1
+                              AND entity_temporal_metadata.entity_uuid = $2
+                              AND entity_temporal_metadata.draft_id IS NULL
+                              AND entity_temporal_metadata.decision_time @> $3::timestamptz
+                              AND entity_temporal_metadata.transaction_time @> now()
+                              FOR NO KEY UPDATE NOWAIT;",
+                        &[
+                            &entity_id.owned_by_id,
+                            &entity_id.entity_uuid,
+                            &decision_time,
+                        ],
+                    )
+                    .await
+            }
+            (Some(draft_id), None) => {
+                self.as_client()
+                    .query_opt(
+                        "
+                        SELECT
+                            entity_temporal_metadata.entity_edition_id,
+                            entity_temporal_metadata.transaction_time,
+                            entity_temporal_metadata.decision_time,
+                            now()
+                        FROM entity_temporal_metadata
+                        WHERE entity_temporal_metadata.web_id = $1
+                          AND entity_temporal_metadata.entity_uuid = $2
+                          AND entity_temporal_metadata.draft_id = $3
+                          AND entity_temporal_metadata.decision_time @> now()
+                          AND entity_temporal_metadata.transaction_time @> now()
+                          FOR NO KEY UPDATE NOWAIT;",
+                        &[&entity_id.owned_by_id, &entity_id.entity_uuid, &draft_id],
+                    )
+                    .await
+            }
+            (None, None) => {
+                self.as_client()
+                    .query_opt(
+                        "
+                        SELECT
+                            entity_temporal_metadata.entity_edition_id,
+                            entity_temporal_metadata.transaction_time,
+                            entity_temporal_metadata.decision_time,
+                            now()
+                        FROM entity_temporal_metadata
+                        WHERE entity_temporal_metadata.web_id = $1
+                          AND entity_temporal_metadata.entity_uuid = $2
+                          AND entity_temporal_metadata.draft_id IS NULL
+                          AND entity_temporal_metadata.decision_time @> now()
+                          AND entity_temporal_metadata.transaction_time @> now()
+                          FOR NO KEY UPDATE NOWAIT;",
+                        &[&entity_id.owned_by_id, &entity_id.entity_uuid],
+                    )
+                    .await
+            }
+        };
+
+        current_data
+            .map(|row| {
+                row.map(|row| LockedEntityEdition {
+                    entity_id,
+                    entity_edition_id: row.get(0),
+                    transaction_time: row.get(1),
+                    decision_time: row.get(2),
+                    updated_at_decision_time: row.get(3),
+                })
+            })
+            .map_err(|error| match error.code() {
+                Some(&SqlState::LOCK_NOT_AVAILABLE) => Report::new(RaceConditionOnUpdate)
+                    .attach(entity_id)
+                    .change_context(UpdateError),
+                _ => Report::new(error).change_context(UpdateError),
+            })
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    async fn insert_temporal_metadata(
+        &self,
+        entity_id: EntityId,
+        edition_id: EntityEditionId,
+        decision_time: Option<Timestamp<DecisionTime>>,
+    ) -> Result<EntityTemporalMetadata, InsertionError> {
+        let row = if let Some(decision_time) = decision_time {
+            self.as_client()
+                .query_one(
+                    "
+                    INSERT INTO entity_temporal_metadata (
+                        web_id,
+                        entity_uuid,
+                        draft_id,
+                        entity_edition_id,
+                        decision_time,
+                        transaction_time
+                    ) VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        $4,
+                        tstzrange($5, NULL, '[)'),
+                        tstzrange(now(), NULL, '[)')
+                    ) RETURNING decision_time, transaction_time;",
+                    &[
+                        &entity_id.owned_by_id,
+                        &entity_id.entity_uuid,
+                        &entity_id.draft_id,
+                        &edition_id,
+                        &decision_time,
+                    ],
+                )
+                .await
+                .change_context(InsertionError)?
+        } else {
+            self.as_client()
+                .query_one(
+                    "
+                    INSERT INTO entity_temporal_metadata (
+                        web_id,
+                        entity_uuid,
+                        draft_id,
+                        entity_edition_id,
+                        decision_time,
+                        transaction_time
+                    ) VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        $4,
+                        tstzrange(now(), NULL, '[)'),
+                        tstzrange(now(), NULL, '[)')
+                    ) RETURNING decision_time, transaction_time;",
+                    &[
+                        &entity_id.owned_by_id,
+                        &entity_id.entity_uuid,
+                        &entity_id.draft_id,
+                        &edition_id,
+                    ],
+                )
+                .await
+                .change_context(InsertionError)?
+        };
+
+        Ok(EntityTemporalMetadata {
+            decision_time: row.get(0),
+            transaction_time: row.get(1),
+        })
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    async fn update_temporal_metadata(
+        &self,
+        locked_row: LockedEntityEdition,
+        entity_edition_id: EntityEditionId,
+        undraft: bool,
+    ) -> Result<EntityTemporalMetadata, UpdateError> {
+        let row = if let Some(draft_id) = locked_row.entity_id.draft_id {
+            if undraft {
+                self.client
+                    .as_client()
+                    .query_one(
+                        "
+                UPDATE entity_temporal_metadata
+                SET decision_time = tstzrange($4::timestamptz, upper(decision_time), '[)'),
+                    transaction_time = tstzrange(now(), NULL, '[)'),
+                    entity_edition_id = $5,
+                    draft_id = NULL
+                WHERE entity_temporal_metadata.web_id = $1
+                  AND entity_temporal_metadata.entity_uuid = $2
+                  AND entity_temporal_metadata.draft_id = $3
+                  AND entity_temporal_metadata.decision_time @> $4::timestamptz
+                  AND entity_temporal_metadata.transaction_time @> now()
+                RETURNING decision_time, transaction_time;",
+                        &[
+                            &locked_row.entity_id.owned_by_id,
+                            &locked_row.entity_id.entity_uuid,
+                            &draft_id,
+                            &locked_row.updated_at_decision_time,
+                            &entity_edition_id,
+                        ],
+                    )
+                    .await
+                    .change_context(UpdateError)?
+            } else {
+                self.client
+                    .as_client()
+                    .query_one(
+                        "
+                UPDATE entity_temporal_metadata
+                SET decision_time = tstzrange($4::timestamptz, upper(decision_time), '[)'),
+                    transaction_time = tstzrange(now(), NULL, '[)'),
+                    entity_edition_id = $5
+                WHERE entity_temporal_metadata.web_id = $1
+                  AND entity_temporal_metadata.entity_uuid = $2
+                  AND entity_temporal_metadata.draft_id = $3
+                  AND entity_temporal_metadata.decision_time @> $4::timestamptz
+                  AND entity_temporal_metadata.transaction_time @> now()
+                RETURNING decision_time, transaction_time;",
+                        &[
+                            &locked_row.entity_id.owned_by_id,
+                            &locked_row.entity_id.entity_uuid,
+                            &draft_id,
+                            &locked_row.updated_at_decision_time,
+                            &entity_edition_id,
+                        ],
+                    )
+                    .await
+                    .change_context(UpdateError)?
+            }
+        } else {
+            self.client
+                .as_client()
+                .query_one(
+                    "
+                UPDATE entity_temporal_metadata
+                SET decision_time = tstzrange($3::timestamptz, upper(decision_time), '[)'),
+                    transaction_time = tstzrange(now(), NULL, '[)'),
+                    entity_edition_id = $4
+                WHERE entity_temporal_metadata.web_id = $1
+                  AND entity_temporal_metadata.entity_uuid = $2
+                  AND entity_temporal_metadata.draft_id IS NULL
+                  AND entity_temporal_metadata.decision_time @> $3::timestamptz
+                  AND entity_temporal_metadata.transaction_time @> now()
+                RETURNING decision_time, transaction_time;",
+                    &[
+                        &locked_row.entity_id.owned_by_id,
+                        &locked_row.entity_id.entity_uuid,
+                        &locked_row.updated_at_decision_time,
+                        &entity_edition_id,
+                    ],
+                )
+                .await
+                .change_context(UpdateError)?
+        };
+
+        self.client
+            .as_client()
+            .query(
+                "
+                INSERT INTO entity_temporal_metadata (
+                    web_id,
+                    entity_uuid,
+                    draft_id,
+                    entity_edition_id,
+                    decision_time,
+                    transaction_time
+                ) VALUES (
+                    $1,
+                    $2,
+                    $3,
+                    $4,
+                    $5,
+                    tstzrange(lower($6::tstzrange), now(), '[)')
+                );",
+                &[
+                    &locked_row.entity_id.owned_by_id,
+                    &locked_row.entity_id.entity_uuid,
+                    &locked_row.entity_id.draft_id,
+                    &locked_row.entity_edition_id,
+                    &locked_row.decision_time,
+                    &locked_row.transaction_time,
+                ],
+            )
+            .await
+            .change_context(UpdateError)?;
+
+        self.client
+            .as_client()
+            .query(
+                "
+                INSERT INTO entity_temporal_metadata (
+                    web_id,
+                    entity_uuid,
+                    draft_id,
+                    entity_edition_id,
+                    decision_time,
+                    transaction_time
+                ) VALUES (
+                    $1,
+                    $2,
+                    $3,
+                    $4,
+                    tstzrange(lower($5::tstzrange), $6, '[)'),
+                    tstzrange(now(), NULL, '[)')
+                );",
+                &[
+                    &locked_row.entity_id.owned_by_id,
+                    &locked_row.entity_id.entity_uuid,
+                    &locked_row.entity_id.draft_id,
+                    &locked_row.entity_edition_id,
+                    &locked_row.decision_time,
+                    &locked_row.updated_at_decision_time,
+                ],
+            )
+            .await
+            .change_context(UpdateError)?;
+
+        Ok(EntityTemporalMetadata {
+            decision_time: row.get(0),
+            transaction_time: row.get(1),
+        })
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    async fn archive_entity(
+        &self,
+        locked_row: LockedEntityEdition,
+    ) -> Result<EntityTemporalMetadata, UpdateError> {
+        let row = if let Some(draft_id) = locked_row.entity_id.draft_id {
+            self.client
+                .as_client()
+                .query_one(
+                    "
+                UPDATE entity_temporal_metadata
+                SET decision_time = tstzrange(lower(decision_time), $4::timestamptz, '[)'),
+                    transaction_time = tstzrange(now(), NULL, '[)')
+                WHERE entity_temporal_metadata.web_id = $1
+                  AND entity_temporal_metadata.entity_uuid = $2
+                  AND entity_temporal_metadata.draft_id = $3
+                  AND entity_temporal_metadata.decision_time @> $4::timestamptz
+                  AND entity_temporal_metadata.transaction_time @> now()
+                RETURNING decision_time, transaction_time;",
+                    &[
+                        &locked_row.entity_id.owned_by_id,
+                        &locked_row.entity_id.entity_uuid,
+                        &draft_id,
+                        &locked_row.updated_at_decision_time,
+                    ],
+                )
+                .await
+                .change_context(UpdateError)?
+        } else {
+            self.client
+                .as_client()
+                .query_one(
+                    "
+                UPDATE entity_temporal_metadata
+                SET decision_time = tstzrange(lower(decision_time), $3::timestamptz, '[)'),
+                    transaction_time = tstzrange(now(), NULL, '[)')
+                WHERE entity_temporal_metadata.web_id = $1
+                  AND entity_temporal_metadata.entity_uuid = $2
+                  AND entity_temporal_metadata.draft_id IS NULL
+                  AND entity_temporal_metadata.decision_time @> $3::timestamptz
+                  AND entity_temporal_metadata.transaction_time @> now()
+                RETURNING decision_time, transaction_time;",
+                    &[
+                        &locked_row.entity_id.owned_by_id,
+                        &locked_row.entity_id.entity_uuid,
+                        &locked_row.updated_at_decision_time,
+                    ],
+                )
+                .await
+                .change_context(UpdateError)?
+        };
+
+        self.client
+            .as_client()
+            .query(
+                "
+                INSERT INTO entity_temporal_metadata (
+                    web_id,
+                    entity_uuid,
+                    draft_id,
+                    entity_edition_id,
+                    decision_time,
+                    transaction_time
+                ) VALUES (
+                    $1,
+                    $2,
+                    $3,
+                    $4,
+                    $5,
+                    tstzrange(lower($6::tstzrange), now(), '[)')
+                );",
+                &[
+                    &locked_row.entity_id.owned_by_id,
+                    &locked_row.entity_id.entity_uuid,
+                    &locked_row.entity_id.draft_id,
+                    &locked_row.entity_edition_id,
+                    &locked_row.decision_time,
+                    &locked_row.transaction_time,
+                ],
+            )
+            .await
+            .change_context(UpdateError)?;
+
+        Ok(EntityTemporalMetadata {
+            decision_time: row.get(0),
+            transaction_time: row.get(1),
+        })
     }
 }

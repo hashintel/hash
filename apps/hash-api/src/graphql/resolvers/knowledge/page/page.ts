@@ -8,7 +8,7 @@ import {
   ResolverFn,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { dataSourcesToImpureGraphContext } from "../../util";
+import { graphQLContextToImpureGraphContext } from "../../util";
 import {
   mapCommentToGQL,
   mapPageToGQL,
@@ -24,11 +24,11 @@ export const createPageResolver: ResolverFn<
 > = async (
   _,
   { ownedById, properties: { title, prevFractionalIndex, type } },
-  { dataSources, authentication },
+  graphQLContext,
 ) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const page = await createPage(context, authentication, {
+  const page = await createPage(context, graphQLContext.authentication, {
     ownedById,
     title,
     prevFractionalIndex: prevFractionalIndex ?? undefined,
@@ -43,12 +43,16 @@ export const pageCommentsResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   QueryPageCommentsArgs
-> = async (_, { entityId }, { dataSources, authentication }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
+> = async (_, { entityId }, graphQLContext) => {
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const comments = await getPageComments(context, authentication, {
-    pageEntityId: entityId,
-  });
+  const comments = await getPageComments(
+    context,
+    graphQLContext.authentication,
+    {
+      pageEntityId: entityId,
+    },
+  );
 
   return comments.map(mapCommentToGQL);
 };

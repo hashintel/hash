@@ -10,8 +10,8 @@ import {
   OrganizationProperties,
   ProfileBioProperties,
   ServiceAccountProperties,
-  UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   AccountEntityId,
   AccountGroupEntityId,
@@ -68,7 +68,7 @@ export type MinimalUser = {
   accountSignupComplete: boolean;
   pinnedEntityTypeBaseUrls?: BaseUrl[];
   shortname?: string;
-  preferredName?: string;
+  displayName?: string;
   preferredPronouns?: string;
   location?: string;
   websiteUrl?: string;
@@ -86,10 +86,9 @@ export const constructMinimalUser = (params: {
 
   const simpleProperties = simplifyProperties(userEntity.properties);
 
-  const { shortname, preferredName, pinnedEntityTypeBaseUrl } =
-    simpleProperties;
+  const { shortname, displayName, pinnedEntityTypeBaseUrl } = simpleProperties;
 
-  const accountSignupComplete = !!shortname && !!preferredName;
+  const accountSignupComplete = !!shortname && !!displayName;
 
   return {
     kind: "user",
@@ -474,13 +473,8 @@ export const constructUser = (params: {
    */
   const isInstanceAdmin = false;
 
-  const firstRevision = getFirstEntityRevision(
-    subgraph,
-    userEntity.metadata.recordId.entityId,
-  );
-
   const joinedAt = new Date(
-    firstRevision.metadata.temporalVersioning.decisionTime.start.limit,
+    userEntity.metadata.provenance.createdAtDecisionTime,
   );
 
   return {

@@ -1,6 +1,4 @@
-import { CustomCell } from "@glideapps/glide-data-grid";
-import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
-import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
+import { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
 
 import {
   ChipCellColor,
@@ -8,6 +6,7 @@ import {
   getChipColors,
 } from "../../../pages/shared/chip-cell";
 import { getYCenter } from "../utils";
+import { CustomIcon } from "./custom-grid-icons";
 import { drawChip } from "./draw-chip";
 
 const drawClippedImage = ({

@@ -1,5 +1,4 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
 import {
@@ -52,7 +51,7 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+const graphContext = createTestImpureGraphContext();
 const { graphApi } = graphContext;
 
 describe("Entity CRU", () => {
@@ -258,7 +257,7 @@ describe("Entity CRU", () => {
             "Even more text than before",
         },
       },
-    ).catch((err) => Promise.reject(err.data));
+    ).catch((err) => Promise.reject(err));
 
     expect(updatedEntity.metadata.provenance.edition.createdById).toBe(
       testUser2.accountId,
@@ -268,29 +267,31 @@ describe("Entity CRU", () => {
   it("can read all latest person entities", async () => {
     const allEntities = await graphApi
       .getEntitiesByQuery(testUser.accountId, {
-        filter: {
-          all: [
-            {
-              equal: [
-                { path: ["ownedById"] },
-                { parameter: testOrg.accountGroupId },
-              ],
-            },
-            {
-              endsWith: [
-                { path: ["type(inheritanceDepth=0)", "baseUrl"] },
-                {
-                  parameter: `/types/entity-type/person/`,
-                },
-              ],
-            },
-          ],
+        query: {
+          filter: {
+            all: [
+              {
+                equal: [
+                  { path: ["ownedById"] },
+                  { parameter: testOrg.accountGroupId },
+                ],
+              },
+              {
+                endsWith: [
+                  { path: ["type(inheritanceDepth=0)", "baseUrl"] },
+                  {
+                    parameter: `/types/entity-type/person/`,
+                  },
+                ],
+              },
+            ],
+          },
+          graphResolveDepths: zeroedGraphResolveDepths,
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: false,
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
       })
-      .then(({ data }) => getRoots(data as Subgraph<EntityRootType>));
+      .then(({ data }) => getRoots(data.subgraph as Subgraph<EntityRootType>));
 
     const newlyUpdated = allEntities.find(
       (ent) =>

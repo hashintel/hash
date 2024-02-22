@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/file";
+import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/shared";
 import { OwnedById } from "@local/hash-subgraph";
 import { useCallback } from "react";
 

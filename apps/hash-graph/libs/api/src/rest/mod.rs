@@ -187,6 +187,7 @@ pub trait RestApiStore: Store + TypeFetcher {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
+        temporal_client: Option<&TemporalClient>,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
     ) -> Result<OntologyTypeMetadata, Response>;
@@ -201,6 +202,7 @@ where
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
+        temporal_client: Option<&TemporalClient>,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
     ) -> Result<OntologyTypeMetadata, Response> {
@@ -214,7 +216,7 @@ where
             )));
         }
 
-        self.insert_external_ontology_type(actor_id, authorization_api, reference)
+        self.insert_external_ontology_type(actor_id, authorization_api, temporal_client, reference)
             .await
             .attach_printable("Could not insert external type")
             .attach_printable_lazy(|| reference.url().clone())
@@ -745,6 +747,20 @@ impl Modify for FilterSchemaAddon {
                                 .title(Some("ParameterExpression"))
                                 .property("parameter", Any::schema().1)
                                 .required("parameter"),
+                        )
+                        .build(),
+                )
+                .into(),
+            );
+            components.schemas.insert(
+                "EntityQuerySortingPath".to_owned(),
+                schema::Schema::Array(
+                    ArrayBuilder::new()
+                        .items(
+                            OneOfBuilder::new()
+                                .item(Ref::from_schema_name("EntityQuerySortingToken"))
+                                .item(ObjectBuilder::new().schema_type(SchemaType::String))
+                                .item(ObjectBuilder::new().schema_type(SchemaType::Number)),
                         )
                         .build(),
                 )

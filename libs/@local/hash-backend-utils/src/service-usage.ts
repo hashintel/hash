@@ -48,44 +48,46 @@ export const getUserServiceUsage = async (
 ): Promise<AggregatedUsageRecord[]> => {
   const serviceUsageRecordSubgraph = await context.graphApi
     .getEntitiesByQuery(authentication.actorId, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.usageRecord.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              {
-                path: ["ownedById"],
+      query: {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.usageRecord.entityTypeId,
+              { ignoreParents: true },
+            ),
+            {
+              equal: [
+                {
+                  path: ["ownedById"],
+                },
+                { parameter: userAccountId },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          // Depths required to retrieve the service the usage record relates to
+          hasLeftEntity: { incoming: 1, outgoing: 0 },
+          hasRightEntity: { incoming: 0, outgoing: 1 },
+        },
+        temporalAxes: decisionTimeInterval
+          ? {
+              pinned: {
+                axis: "transactionTime",
+                timestamp: null,
               },
-              { parameter: userAccountId },
-            ],
-          },
-        ],
+              variable: {
+                axis: "decisionTime",
+                interval: decisionTimeInterval,
+              },
+            }
+          : currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        // Depths required to retrieve the service the usage record relates to
-        hasLeftEntity: { incoming: 1, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 1 },
-      },
-      temporalAxes: decisionTimeInterval
-        ? {
-            pinned: {
-              axis: "transactionTime",
-              timestamp: null,
-            },
-            variable: {
-              axis: "decisionTime",
-              interval: decisionTimeInterval,
-            },
-          }
-        : currentTimeInstantTemporalAxes,
-      includeDrafts: false,
     })
     .then(({ data }) => {
-      return mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+      return mapGraphApiSubgraphToSubgraph<EntityRootType>(data.subgraph);
     });
 
   const serviceUsageRecords = getRoots(serviceUsageRecordSubgraph);
@@ -129,7 +131,6 @@ export const getUserServiceUsage = async (
       record.properties as UsageRecordProperties,
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive
     aggregateUsageByServiceFeature[serviceFeatureKey] ??= {
       serviceName,
       featureName,
@@ -221,42 +222,46 @@ export const createUsageRecord = async (
 
   const serviceFeatureEntities = await context.graphApi
     .getEntitiesByQuery(authentication.actorId, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.serviceFeature.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  systemPropertyTypes.serviceName.propertyTypeBaseUrl,
-                ],
-              },
-              { parameter: serviceName },
-            ],
-          },
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  systemPropertyTypes.featureName.propertyTypeBaseUrl,
-                ],
-              },
-              { parameter: featureName },
-            ],
-          },
-        ],
+      query: {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.serviceFeature.entityTypeId,
+              { ignoreParents: true },
+            ),
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    systemPropertyTypes.serviceName.propertyTypeBaseUrl,
+                  ],
+                },
+                { parameter: serviceName },
+              ],
+            },
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    systemPropertyTypes.featureName.propertyTypeBaseUrl,
+                  ],
+                },
+                { parameter: featureName },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
     })
     .then((data) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data.data);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.data.subgraph,
+      );
 
       return getRoots(subgraph);
     });

@@ -13,7 +13,9 @@ export type ActorOutgoingLinksByLinkEntityTypeId = {};
 /**
  * Someone or something that can perform actions in the system
  */
-export type ActorProperties = {};
+export type ActorProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
+};
 
 /**
  * The point in time at which something begins to apply
@@ -148,7 +150,7 @@ export type ComponentIdPropertyValue = TextDataType;
 export type ConnectionSourceNamePropertyValue = TextDataType;
 
 /**
- * A reference to a particular date and time.
+ * A reference to a particular date and time, formatted according to RFC 3339.
  */
 export type DateTimeDataType = string;
 
@@ -166,6 +168,23 @@ export type DescriptionPropertyValue = TextDataType;
  * A human-friendly display name for something
  */
 export type DisplayNamePropertyValue = TextDataType;
+
+export type DocumentFile = Entity<DocumentFileProperties>;
+
+export type DocumentFileOutgoingLinkAndTarget = never;
+
+export type DocumentFileOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A document file.
+ */
+export type DocumentFileProperties = DocumentFileProperties1 &
+  DocumentFileProperties2;
+export type DocumentFileProperties1 = FileProperties;
+
+export type DocumentFileProperties2 = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
+};
 
 /**
  * A working draft of a text note
@@ -228,6 +247,7 @@ export type FileProperties = {
   "https://hash.ai/@hash/types/property-type/file-storage-key/"?: FileStorageKeyPropertyValue;
   "https://hash.ai/@hash/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValue;
   "https://hash.ai/@hash/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValue;
+  "https://hash.ai/@hash/types/property-type/upload-completed-at/"?: UploadCompletedAtPropertyValue;
 };
 
 /**
@@ -663,14 +683,26 @@ export type PageProperties2 = {
 export type PinnedEntityTypeBaseURLPropertyValue = TextDataType;
 
 /**
- * The preferred name of someone or something.
- */
-export type PreferredNamePropertyValue = TextDataType;
-
-/**
  * Someone's preferred pronouns.
  */
 export type PreferredPronounsPropertyValue = TextDataType;
+
+export type PresentationFile = Entity<PresentationFileProperties>;
+
+export type PresentationFileOutgoingLinkAndTarget = never;
+
+export type PresentationFileOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A presentation file.
+ */
+export type PresentationFileProperties = PresentationFileProperties1 &
+  PresentationFileProperties2;
+export type PresentationFileProperties1 = FileProperties;
+
+export type PresentationFileProperties2 = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
+};
 
 export type ProfileBio = Entity<ProfileBioProperties>;
 
@@ -807,6 +839,11 @@ export type TriggeredByUserProperties1 = LinkProperties;
 
 export type TriggeredByUserProperties2 = {};
 
+/**
+ * The timestamp when the upload of something has completed
+ */
+export type UploadCompletedAtPropertyValue = DateTimeDataType;
+
 export type User = Entity<UserProperties>;
 
 export type UserHasAvatarLink = { linkEntity: HasAvatar; rightEntity: Image };
@@ -887,7 +924,6 @@ export type UserProperties2 = {
         PinnedEntityTypeBaseURLPropertyValue,
         PinnedEntityTypeBaseURLPropertyValue,
       ];
-  "https://hash.ai/@hash/types/property-type/preferred-name/"?: PreferredNamePropertyValue;
   "https://hash.ai/@hash/types/property-type/preferred-pronouns/"?: PreferredPronounsPropertyValue;
   "https://hash.ai/@hash/types/property-type/shortname/"?: ShortnamePropertyValue;
   "https://hash.ai/@hash/types/property-type/website-url/"?: WebsiteURLPropertyValue;

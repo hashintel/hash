@@ -11,7 +11,7 @@ import {
   EntityTypeEditor,
   EntityTypeEditorFormData,
   EntityTypeFormProvider,
-  getFormDataFromSchema,
+  getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
 import { EntityTypeWithMetadata } from "@local/hash-subgraph";
@@ -27,7 +27,6 @@ import { useRouteNamespace } from "../../../[shortname]/shared/use-route-namespa
 import { useDataTypesContext } from "../../data-types-context";
 import { EntityTypeContext } from "../shared/entity-type-context";
 import { EntityTypeHeader } from "../shared/entity-type-header";
-import { getTypesWithoutMetadata } from "../shared/get-types-without-metadata";
 import { useEntityTypeValue } from "../use-entity-type-value";
 
 const CopyableOntologyChip: FunctionComponent<{
@@ -142,7 +141,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
     version,
     routeNamespace?.accountId ?? null,
     (fetchedEntityType) => {
-      reset(getFormDataFromSchema(fetchedEntityType.schema));
+      reset(getFormDataFromEntityType(fetchedEntityType));
     },
   );
 
@@ -155,7 +154,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
       Object.fromEntries(
         (entityTypesContext.entityTypes ?? []).map((entityType) => [
           entityType.schema.$id,
-          entityType.schema,
+          entityType,
         ]),
       ),
     [entityTypesContext.entityTypes],
@@ -182,8 +181,6 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
   if (!remotePropertyTypes || !dataTypeOptions) {
     return null;
   }
-
-  const propertyTypeOptions = getTypesWithoutMetadata(remotePropertyTypes);
 
   return (
     <Slide
@@ -259,16 +256,16 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
                   ontologyChip={
                     <CopyableOntologyChip entityType={remoteEntityType} />
                   }
-                  entityType={remoteEntityType.schema}
+                  entityTypeSchema={remoteEntityType.schema}
                   isReadonly
                 />
                 <EntityTypeEditor
                   customization={{ onNavigateToType }}
                   dataTypeOptions={dataTypeOptions}
-                  entityType={remoteEntityType.schema}
+                  entityType={remoteEntityType}
                   entityTypeOptions={entityTypeOptions}
                   ontologyFunctions={null}
-                  propertyTypeOptions={propertyTypeOptions}
+                  propertyTypeOptions={remotePropertyTypes}
                   readonly
                 />
               </EntityTypeContext.Provider>

@@ -4,7 +4,12 @@ use authorization::{schema::WebOwnerSubject, NoAuthorization};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
-    store::{query::Filter, AccountStore, EntityStore},
+    store::{
+        account::{InsertAccountIdParams, InsertWebIdParams},
+        knowledge::GetEntityParams,
+        query::Filter,
+        AccountStore, EntityQuerySorting, EntityStore,
+    },
     subgraph::{
         edges::GraphResolveDepths,
         query::StructuralQuery,
@@ -45,15 +50,21 @@ async fn seed_db(
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
     transaction
-        .insert_account_id(account_id, &mut NoAuthorization, account_id)
+        .insert_account_id(
+            account_id,
+            &mut NoAuthorization,
+            InsertAccountIdParams { account_id },
+        )
         .await
         .expect("could not insert account id");
     transaction
         .insert_web_id(
             account_id,
             &mut NoAuthorization,
-            OwnedById::new(account_id.into_uuid()),
-            WebOwnerSubject::Account { id: account_id },
+            InsertWebIdParams {
+                owned_by_id: OwnedById::new(account_id.into_uuid()),
+                owner: WebOwnerSubject::Account { id: account_id },
+            },
         )
         .await
         .expect("could not create web id");
@@ -61,11 +72,12 @@ async fn seed_db(
     seed(
         &mut transaction,
         account_id,
-        [data_type::TEXT_V1],
+        [data_type::TEXT_V1, data_type::NUMBER_V1],
         [
             property_type::NAME_V1,
             property_type::BLURB_V1,
             property_type::PUBLISHED_ON_V1,
+            property_type::AGE_V1,
         ],
         [
             entity_type::LINK_V1,
@@ -138,20 +150,25 @@ pub fn bench_get_entity_by_id(
                 .get_entity(
                     actor_id,
                     &NoAuthorization,
-                    &StructuralQuery {
-                        filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
-                        graph_resolve_depths: GraphResolveDepths::default(),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
+                    GetEntityParams {
+                        query: StructuralQuery {
+                            filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
+                            graph_resolve_depths: GraphResolveDepths::default(),
+                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                                pinned: PinnedTemporalAxisUnresolved::new(None),
+                                variable: VariableTemporalAxisUnresolved::new(
+                                    Some(TemporalBound::Unbounded),
+                                    None,
+                                ),
+                            },
+                            include_drafts: false,
                         },
-                        include_drafts: false,
+                        sorting: EntityQuerySorting {
+                            paths: Vec::new(),
+                            cursor: None,
+                        },
+                        limit: None,
                     },
-                    None,
-                    None,
                 )
                 .await
                 .expect("failed to read entity from store");

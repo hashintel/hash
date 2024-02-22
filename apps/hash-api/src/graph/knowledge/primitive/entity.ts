@@ -2,6 +2,7 @@ import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   EntityPermission,
   EntityStructuralQuery,
+  EntityType,
   Filter,
   GraphResolveDepths,
   ModifyRelationshipOperation,
@@ -31,6 +32,7 @@ import {
   EntityRelationAndSubject,
   EntityRootType,
   EntityUuid,
+  extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   isEntityVertex,
@@ -55,6 +57,7 @@ import { genId, linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../../context-types";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
+import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
 import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
 import {
   createLinkEntity,
@@ -91,7 +94,6 @@ export const createEntity: ImpureGraphFunction<
   const {
     ownedById,
     entityTypeId,
-    properties,
     outgoingLinks,
     entityUuid: overrideEntityUuid,
     draft = false,
@@ -99,6 +101,21 @@ export const createEntity: ImpureGraphFunction<
 
   const { graphApi } = context;
   const { actorId } = authentication;
+
+  let properties = params.properties;
+
+  for (const beforeCreateHook of beforeCreateEntityHooks) {
+    if (beforeCreateHook.entityTypeId === entityTypeId) {
+      const { properties: hookReturnedProperties } =
+        await beforeCreateHook.callback({
+          context,
+          properties,
+          authentication,
+        });
+
+      properties = hookReturnedProperties;
+    }
+  }
 
   const { data: metadata } = await graphApi.createEntity(actorId, {
     ownedById,
@@ -179,26 +196,34 @@ export const getEntities: ImpureGraphFunction<
     }
   }
 
-  return await graphApi.getEntitiesByQuery(actorId, query).then(({ data }) => {
-    // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
-    for (const [entityId, editionMap] of Object.entries(data.vertices)) {
-      const latestEditionTimestamp = Object.keys(editionMap).sort().pop();
+  return await graphApi
+    .getEntitiesByQuery(actorId, { query })
+    .then(({ data }) => {
+      // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
+      for (const [entityId, editionMap] of Object.entries(
+        data.subgraph.vertices,
+      )) {
+        const latestEditionTimestamp = Object.keys(editionMap).sort().pop();
 
-      if (
-        (editionMap[latestEditionTimestamp!]!.inner.metadata as EntityMetadata)
-          .archived &&
-        // if the vertex is in the roots of the query, then it is intentionally included
-        !data.roots.find((root) => root.baseId === entityId)
-      ) {
-        // eslint-disable-next-line no-param-reassign -- temporary hack
-        delete data.vertices[entityId];
+        if (
+          (
+            editionMap[latestEditionTimestamp!]!.inner
+              .metadata as EntityMetadata
+          ).archived &&
+          // if the vertex is in the roots of the query, then it is intentionally included
+          !data.subgraph.roots.find((root) => root.baseId === entityId)
+        ) {
+          // eslint-disable-next-line no-param-reassign -- temporary hack
+          delete data.subgraph.vertices[entityId];
+        }
       }
-    }
 
-    const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+      );
 
-    return subgraph;
-  });
+      return subgraph;
+    });
 };
 
 /**
@@ -270,7 +295,9 @@ export const getOrCreateEntity: ImpureGraphFunction<
     relationships: EntityRelationAndSubject[];
     draft?: boolean;
   },
-  Promise<Entity>
+  Promise<Entity>,
+  false,
+  true
 > = async (context, authentication, params) => {
   const { entityDefinition, ownedById, relationships, draft } = params;
   const { entityProperties, existingEntityId } = entityDefinition;
@@ -332,7 +359,9 @@ export const createEntityWithLinks: ImpureGraphFunction<
     relationships: EntityRelationAndSubject[];
     draft?: boolean;
   },
-  Promise<Entity>
+  Promise<Entity>,
+  false,
+  true
 > = async (context, authentication, params) => {
   const {
     ownedById,
@@ -431,7 +460,9 @@ export const updateEntity: ImpureGraphFunction<
     properties: EntityPropertiesObject;
     draft?: boolean;
   },
-  Promise<Entity>
+  Promise<Entity>,
+  false,
+  true
 > = async (context, authentication, params) => {
   const { entity, properties, entityTypeId } = params;
 
@@ -459,9 +490,8 @@ export const updateEntity: ImpureGraphFunction<
     entityTypeId: entityTypeId ?? entity.metadata.entityTypeId,
     archived: entity.metadata.archived,
     draft:
-      typeof params.draft === "undefined"
-        ? entity.metadata.draft
-        : params.draft,
+      params.draft ??
+      !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
     properties,
   });
 
@@ -498,7 +528,7 @@ export const archiveEntity: ImpureGraphFunction<
      *
      * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
      * */
-    draft: entity.metadata.draft,
+    draft: !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
     entityTypeId: entity.metadata.entityTypeId,
     properties: entity.properties,
   });
@@ -519,7 +549,7 @@ export const unarchiveEntity: ImpureGraphFunction<
      * @see https://app.asana.com/0/1201095311341924/1203285029221330/f
      * */
     archived: false,
-    draft: entity.metadata.draft,
+    draft: !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
     entityTypeId: entity.metadata.entityTypeId,
     properties: entity.properties,
   });
@@ -540,7 +570,9 @@ export const updateEntityProperties: ImpureGraphFunction<
       value: PropertyValue | undefined;
     }[];
   },
-  Promise<Entity>
+  Promise<Entity>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { entity, updatedProperties } = params;
 
@@ -573,7 +605,9 @@ export const updateEntityProperty: ImpureGraphFunction<
     propertyTypeBaseUrl: BaseUrl;
     value: PropertyValue | undefined;
   },
-  Promise<Entity>
+  Promise<Entity>,
+  false,
+  true
 > = async (ctx, authentication, params) => {
   const { entity, propertyTypeBaseUrl, value } = params;
 
@@ -778,7 +812,9 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
     graphResolveDepths: Partial<GraphResolveDepths>;
     includeDrafts?: boolean;
   },
-  Promise<Subgraph<EntityRootType>>
+  Promise<Subgraph<EntityRootType>>,
+  false,
+  true
 > = async (context, authentication, params) => {
   const { entity, graphResolveDepths, includeDrafts = false } = params;
 
@@ -975,15 +1011,12 @@ export const getEntityAuthorizationRelationships: ImpureGraphFunction<
 
 export const validateEntity: ImpureGraphFunction<
   {
-    entityTypeId: VersionedUrl;
+    entityType: VersionedUrl | EntityType;
     properties: Entity["properties"];
     linkData?: Entity["linkData"];
-    draft: boolean;
+    profile: "draft" | "full";
   },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.validateEntity(actorId, {
-    operations: ["all"],
-    ...params,
-  });
+  await graphApi.validateEntity(actorId, params);
 };

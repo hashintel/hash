@@ -20,8 +20,13 @@ use type_system::{
 
 pub use self::{
     data_type::{DataTypeMetadata, DataTypeWithMetadata, PartialDataTypeMetadata},
-    entity_type::{EntityTypeMetadata, EntityTypeWithMetadata, PartialEntityTypeMetadata},
-    property_type::{PartialPropertyTypeMetadata, PropertyTypeMetadata, PropertyTypeWithMetadata},
+    entity_type::{
+        EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, PartialEntityTypeMetadata,
+    },
+    property_type::{
+        PartialPropertyTypeMetadata, PropertyTypeEmbedding, PropertyTypeMetadata,
+        PropertyTypeWithMetadata,
+    },
 };
 use crate::{
     account::{EditionArchivedById, EditionCreatedById},
@@ -126,6 +131,7 @@ pub struct OntologyEditionProvenanceMetadata {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
 pub enum OntologyTypeClassificationMetadata {
     #[serde(rename_all = "camelCase")]

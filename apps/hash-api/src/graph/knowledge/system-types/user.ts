@@ -12,7 +12,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   AccountEntityId,
   AccountGroupId,
@@ -63,7 +63,7 @@ export type User = {
   kratosIdentityId: string;
   emails: string[];
   shortname?: string;
-  preferredName?: string;
+  displayName?: string;
   isAccountSignupComplete: boolean;
   entity: Entity;
 };
@@ -82,18 +82,18 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
   const {
     kratosIdentityId,
     shortname,
-    preferredName,
+    displayName,
     email: emails,
   } = simplifyProperties(entity.properties as UserProperties);
 
-  const isAccountSignupComplete = !!shortname && !!preferredName;
+  const isAccountSignupComplete = !!shortname && !!displayName;
 
   return {
     accountId: extractAccountId(
       entity.metadata.recordId.entityId as AccountEntityId,
     ),
     shortname,
-    preferredName,
+    displayName,
     isAccountSignupComplete,
     emails,
     kratosIdentityId,
@@ -126,35 +126,41 @@ export const getUserByShortname: ImpureGraphFunction<
 > = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
     .getEntitiesByQuery(actorId, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.user.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  extractBaseUrl(systemPropertyTypes.shortname.propertyTypeId),
-                ],
-              },
-              { parameter: params.shortname },
-            ],
-          },
-        ],
+      query: {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.user.entityTypeId,
+              { ignoreParents: true },
+            ),
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    extractBaseUrl(
+                      systemPropertyTypes.shortname.propertyTypeId,
+                    ),
+                  ],
+                },
+                { parameter: params.shortname },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        // TODO: Should this be an all-time query? What happens if the user is
+        //       archived/deleted, do we want to allow users to replace their
+        //       shortname?
+        //   see https://linear.app/hash/issue/H-757
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: params.includeDrafts ?? false,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      // TODO: Should this be an all-time query? What happens if the user is
-      //       archived/deleted, do we want to allow users to replace their
-      //       shortname?
-      //   see https://linear.app/hash/issue/H-757
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: params.includeDrafts ?? false,
     })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+      );
 
       return getRoots(subgraph);
     });
@@ -179,33 +185,37 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
 > = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
     .getEntitiesByQuery(actorId, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.user.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  extractBaseUrl(
-                    systemPropertyTypes.kratosIdentityId.propertyTypeId,
-                  ),
-                ],
-              },
-              { parameter: params.kratosIdentityId },
-            ],
-          },
-        ],
+      query: {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.user.entityTypeId,
+              { ignoreParents: true },
+            ),
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    extractBaseUrl(
+                      systemPropertyTypes.kratosIdentityId.propertyTypeId,
+                    ),
+                  ],
+                },
+                { parameter: params.kratosIdentityId },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: params.includeDrafts ?? false,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: params.includeDrafts ?? false,
     })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
+        data.subgraph,
+      );
 
       return getRoots(subgraph);
     });
@@ -226,7 +236,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
  * @param params.kratosIdentityId - the kratos identity id of the user
  * @param params.isInstanceAdmin (optional) - whether or not the user is an instance admin of the HASH instance (defaults to `false`)
  * @param params.shortname (optional) - the shortname of the user
- * @param params.preferredName (optional) - the preferred name of the user
+ * @param params.displayName (optional) - the display name of the user
  * @param params.accountId (optional) - the pre-populated account Id of the user
  */
 export const createUser: ImpureGraphFunction<
@@ -234,7 +244,7 @@ export const createUser: ImpureGraphFunction<
     emails: string[];
     kratosIdentityId: string;
     shortname?: string;
-    preferredName?: string;
+    displayName?: string;
     isInstanceAdmin?: boolean;
     userAccountId?: AccountId;
   },
@@ -244,7 +254,7 @@ export const createUser: ImpureGraphFunction<
     emails,
     kratosIdentityId,
     shortname,
-    preferredName,
+    displayName,
     isInstanceAdmin = false,
   } = params;
 
@@ -277,7 +287,7 @@ export const createUser: ImpureGraphFunction<
     }
   }
 
-  const userShouldHavePermissionsOnWeb = shortname && preferredName;
+  const userShouldHavePermissionsOnWeb = shortname && displayName;
 
   let userAccountId: AccountId;
   if (params.userAccountId) {
@@ -294,7 +304,7 @@ export const createUser: ImpureGraphFunction<
           kind: "account",
           /**
            * Creating a web allows users to create further entities in it
-           * – we don't want them to do that until they've completed signup (have a shortname and preferredName)
+           * – we don't want them to do that until they've completed signup (have a shortname and display name)
            * - the web is created with the system account as the owner and will be updated to the user account as the
            *   owner once the user has completed signup
            */
@@ -328,10 +338,10 @@ export const createUser: ImpureGraphFunction<
           "https://hash.ai/@hash/types/property-type/shortname/": shortname,
         }
       : {}),
-    ...(preferredName
+    ...(displayName
       ? {
-          "https://hash.ai/@hash/types/property-type/preferred-name/":
-            preferredName,
+          "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+            displayName,
         }
       : {}),
   };
@@ -497,7 +507,7 @@ export const joinOrg: ImpureGraphFunction<
 /**
  * Get the org memberships of a user.
  *
- * @param params.user - the user
+ * @param params.userEntityId - the entityId of the user
  */
 export const getUserOrgMemberships: ImpureGraphFunction<
   { userEntityId: EntityId },

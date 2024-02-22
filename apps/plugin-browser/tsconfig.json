@@ -13,13 +13,13 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "noEmit": false,
-    "jsx": "react-jsx",
+    "jsx": "react-jsx"
   },
   "include": [
     "src",
     "theme-override.d.ts",
     "webpack-injected-env.d.ts",
-    "codegen.config.ts",
+    "codegen.config.ts"
   ],
-  "exclude": ["build", "node_modules"],
+  "exclude": ["build", "node_modules"]
 }

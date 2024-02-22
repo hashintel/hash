@@ -20,7 +20,7 @@ export const seedPages = async (
   ownedById: OwnedById,
   sharedParams: {
     logger: Logger;
-    context: ImpureGraphContext;
+    context: ImpureGraphContext<false, true>;
   },
   parentPage?: Page,
 ) => {

@@ -55,7 +55,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
               }}
               mb={0.5}
             >
-              <strong>{authenticatedUser.preferredName}</strong>
+              <strong>{authenticatedUser.displayName}</strong>
             </Typography>
             {userPrimaryEmail && (
               <Typography
@@ -82,7 +82,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
         >
           <Avatar
             size={32}
-            title={authenticatedUser.preferredName ?? "U"}
+            title={authenticatedUser.displayName ?? "U"}
             src={
               authenticatedUser.hasAvatar
                 ? getImageUrlFromEntityProperties(
@@ -133,7 +133,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
                 fontWeight: 500,
               })}
             >
-              {authenticatedUser.preferredName}
+              {authenticatedUser.displayName}
             </Typography>
             {userPrimaryEmail && (
               <Typography

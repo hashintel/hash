@@ -68,7 +68,7 @@ export const OptionsContents = () => {
                       fontSize: 20,
                     }}
                   >
-                    Welcome, {user.properties.preferredName}
+                    Welcome, {user.properties.displayName}
                   </Typography>
                   <Typography
                     sx={{
@@ -97,7 +97,7 @@ export const OptionsContents = () => {
                       </Button>
                     </Box>
                     <Button
-                      href={`${FRONTEND_ORIGIN}/login`}
+                      href={`${FRONTEND_ORIGIN}/signin`}
                       size="small"
                       target="_blank"
                       sx={({ palette }) => ({

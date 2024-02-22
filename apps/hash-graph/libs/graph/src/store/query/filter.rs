@@ -17,7 +17,7 @@ use crate::{
     knowledge::EntityQueryPath,
     store::{
         query::{OntologyQueryPath, ParameterType, QueryPath},
-        Record,
+        QueryRecord, SubgraphRecord,
     },
     subgraph::identifier::VertexId,
 };
@@ -32,7 +32,7 @@ use crate::{
     rename_all = "camelCase",
     bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"
 )]
-pub enum Filter<'p, R: Record + ?Sized> {
+pub enum Filter<'p, R: QueryRecord + ?Sized> {
     All(Vec<Self>),
     Any(Vec<Self>),
     Not(Box<Self>),
@@ -58,7 +58,7 @@ pub enum Filter<'p, R: Record + ?Sized> {
 
 impl<'p, R> Filter<'p, R>
 where
-    R: Record<QueryPath<'p>: OntologyQueryPath>,
+    R: SubgraphRecord<QueryPath<'p>: OntologyQueryPath>,
     R::VertexId: VertexId<BaseId = BaseUrl, RevisionId = OntologyTypeVersion>,
 {
     /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
@@ -86,24 +86,37 @@ impl<'p> Filter<'p, Entity> {
     /// Creates a `Filter` to search for a specific entities, identified by its [`EntityId`].
     #[must_use]
     pub fn for_entity_by_entity_id(entity_id: EntityId) -> Self {
-        Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id.into_uuid(),
-                ))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid.into_uuid(),
-                ))),
-            ),
-        ])
+        let owned_by_id_filter = Self::Equal(
+            Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
+            Some(FilterExpression::Parameter(Parameter::Uuid(
+                entity_id.owned_by_id.into_uuid(),
+            ))),
+        );
+        let entity_uuid_filter = Self::Equal(
+            Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+            Some(FilterExpression::Parameter(Parameter::Uuid(
+                entity_id.entity_uuid.into_uuid(),
+            ))),
+        );
+
+        if let Some(draft_id) = entity_id.draft_id {
+            Self::All(vec![
+                owned_by_id_filter,
+                entity_uuid_filter,
+                Self::Equal(
+                    Some(FilterExpression::Path(EntityQueryPath::DraftId)),
+                    Some(FilterExpression::Parameter(Parameter::Uuid(
+                        draft_id.into_uuid(),
+                    ))),
+                ),
+            ])
+        } else {
+            Self::All(vec![owned_by_id_filter, entity_uuid_filter])
+        }
     }
 }
 
-impl<'p, R: Record> Filter<'p, R>
+impl<'p, R: QueryRecord> Filter<'p, R>
 where
     R::QueryPath<'p>: fmt::Display,
 {
@@ -177,7 +190,7 @@ where
     rename_all = "camelCase",
     bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"
 )]
-pub enum FilterExpression<'p, R: Record + ?Sized> {
+pub enum FilterExpression<'p, R: QueryRecord + ?Sized> {
     Path(R::QueryPath<'p>),
     Parameter(Parameter<'p>),
 }
@@ -205,79 +218,6 @@ pub enum ParameterList<'p> {
 }
 
 impl<'p> Parameter<'p> {
-    /// Creates a `Parameter` from a JSON value.
-    ///
-    /// # Errors
-    ///
-    /// - Returns [`ParameterConversionError`] if conversion fails.
-    #[expect(
-        clippy::todo,
-        reason = "https://linear.app/hash/issue/H-2005/allow-reading-arbitrary-values-from-postgres"
-    )]
-    pub fn from_value(
-        value: &'p serde_json::Value,
-        ty: ParameterType,
-    ) -> Result<Self, ParameterConversionError> {
-        match ty {
-            ParameterType::Boolean => {
-                value
-                    .as_bool()
-                    .map(Parameter::Boolean)
-                    .ok_or_else(|| ParameterConversionError {
-                        actual: ActualParameterType::Value(value.clone()),
-                        expected: ty,
-                    })
-            }
-            ParameterType::I32 => value
-                .as_i64()
-                .and_then(|number| Some(Parameter::I32(number.try_into().ok()?)))
-                .ok_or_else(|| ParameterConversionError {
-                    actual: ActualParameterType::Value(value.clone()),
-                    expected: ty,
-                }),
-            ParameterType::F64 => {
-                value
-                    .as_f64()
-                    .map(Parameter::F64)
-                    .ok_or_else(|| ParameterConversionError {
-                        actual: ActualParameterType::Value(value.clone()),
-                        expected: ty,
-                    })
-            }
-            ParameterType::OntologyTypeVersion => value
-                .as_i64()
-                .and_then(|number| {
-                    Some(Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
-                        number.try_into().ok()?,
-                    )))
-                })
-                .ok_or_else(|| ParameterConversionError {
-                    actual: ActualParameterType::Value(value.clone()),
-                    expected: ty,
-                }),
-            ParameterType::Text | ParameterType::BaseUrl | ParameterType::VersionedUrl => value
-                .as_str()
-                .map(|text| Parameter::Text(Cow::Borrowed(text)))
-                .ok_or_else(|| ParameterConversionError {
-                    actual: ActualParameterType::Value(value.clone()),
-                    expected: ty,
-                }),
-            ParameterType::Vector => todo!("Converting vectors is not yet supported"),
-            ParameterType::Uuid => value
-                .as_str()
-                .and_then(|text| Uuid::from_str(text).ok())
-                .map(Parameter::Uuid)
-                .ok_or_else(|| ParameterConversionError {
-                    actual: ActualParameterType::Value(value.clone()),
-                    expected: ty,
-                }),
-            ParameterType::TimeInterval => todo!("Converting time intervals is not yet supported"),
-            ParameterType::Timestamp => todo!("Converting timestamps is not yet supported"),
-            ParameterType::Object => todo!("Converting objects is not yet supported"),
-            ParameterType::Any => Ok(Parameter::Any(value.clone())),
-        }
-    }
-
     #[must_use]
     pub fn to_owned(&self) -> Parameter<'static> {
         match self {
@@ -513,19 +453,18 @@ impl Parameter<'_> {
 #[cfg(test)]
 mod tests {
     use graph_types::{
-        knowledge::entity::{EntityId, EntityUuid},
+        knowledge::entity::{DraftId, EntityUuid},
         ontology::DataTypeWithMetadata,
         owned_by_id::OwnedById,
     };
     use serde_json::json;
-    use type_system::url::BaseUrl;
 
     use super::*;
     use crate::ontology::DataTypeQueryPath;
 
     fn test_filter_representation<'de, R>(actual: &Filter<'de, R>, expected: &'de serde_json::Value)
     where
-        R: Record<QueryPath<'de>: fmt::Debug + fmt::Display + PartialEq + Deserialize<'de>>,
+        R: QueryRecord<QueryPath<'de>: fmt::Debug + fmt::Display + PartialEq + Deserialize<'de>>,
     {
         let mut expected =
             Filter::<R>::deserialize(expected).expect("Could not deserialize filter");
@@ -567,6 +506,7 @@ mod tests {
         let entity_id = EntityId {
             owned_by_id: OwnedById::new(Uuid::new_v4()),
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            draft_id: None,
         };
 
         let expected = json!({
@@ -578,6 +518,34 @@ mod tests {
             { "equal": [
               { "path": ["uuid"] },
               { "parameter": entity_id.entity_uuid }
+            ]}
+          ]
+        });
+
+        test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
+    }
+
+    #[test]
+    fn for_entity_by_entity_draft_id() {
+        let entity_id = EntityId {
+            owned_by_id: OwnedById::new(Uuid::new_v4()),
+            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            draft_id: Some(DraftId::new(Uuid::new_v4())),
+        };
+
+        let expected = json!({
+          "all": [
+            { "equal": [
+              { "path": ["ownedById"] },
+              { "parameter": entity_id.owned_by_id }
+            ]},
+            { "equal": [
+              { "path": ["uuid"] },
+              { "parameter": entity_id.entity_uuid }
+            ]},
+            { "equal": [
+              { "path": ["draftId"] },
+              { "parameter": entity_id.draft_id }
             ]}
           ]
         });
