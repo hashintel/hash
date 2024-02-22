@@ -21,6 +21,12 @@ variable "pg_kratos_user_password_hash" {
   description = "Hashed form of the 'kratos' user Postgres password."
 }
 
+variable "pg_hydra_user_password_hash" {
+  type        = string
+  sensitive   = true
+  description = "Hashed form of the 'hydra' user Postgres password."
+}
+
 variable "pg_graph_user_password_hash" {
   type        = string
   sensitive   = true

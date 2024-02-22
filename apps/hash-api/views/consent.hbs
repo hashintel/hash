@@ -1,0 +1,64 @@
+<div class="centered-content">
+    <script>
+        function submit() {
+            var submitButton = document.querySelector('button[type="submit"]');
+            var submitValue = submitButton.value;
+            var grantScope = document.querySelectorAll('input[name="grant_scope"]:checked');
+            var grantScopeValues = [];
+            for (var i = 0; i < grantScope.length; i++) {
+                grantScopeValues.push(grantScope[i].value);
+            }
+
+            var challenge = document.querySelector('input[name="challenge"]').value;
+            var data = {
+                grant_scope: grantScopeValues,
+                submit: submitValue,
+                challenge: challenge,
+            };
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/oauth2/consent');
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = function() {
+                console.log(xhr.status, xhr.responseText);
+                if (xhr.status === 200) {
+                    window.location.href = JSON.parse(xhr.responseText).redirectTo;
+                } else {
+                    alert('Something went wrong');
+                }
+            };
+            xhr.send(JSON.stringify(data));
+        }
+
+        window.addEventListener("DOMContentLoaded", function() {
+            var form = document.querySelector('form');
+            form.addEventListener('submit', function(event) {
+                event.preventDefault();
+                submit();
+            });
+        })
+    </script>
+    <div class="auth-box">
+        <h1>Grant access to HASH</h1>
+        <form action="">
+            <p style="margin-bottom: 20px">Hi, <strong>@{{username}}</strong>!</p>
+            <p><strong>{{client.client_name}}</strong> wants access to your HASH graph.</p>
+
+            <input name="challenge" type="hidden" value="{{challenge}}" />
+
+            <div style="margin-bottom: 15px; margin-top: 8px; font-weight: 600; font-size: 15px;" >Scopes requested</div>
+            {{#each requested_scope as |scope|}}
+                <div style="margin-bottom: 5px">
+                    <input checked style="display: inline-block;" type="checkbox" id="{{scope}}" value="{{scope}}" name="grant_scope" />
+                    <label for="{{scope}}" style="display: inline-block">{{scope}}</label>
+                </div>
+            {{/each}}
+            <div>
+                <input checked type="checkbox" id="remember" value="1" name="remember" />
+                <label for="remember" style="display: inline-block; margin-right: 3px">Remember my choice</label>
+            </div>
+
+            <button type="submit" id="accept" name="submit" value="allow">Allow access</button>
+            <button style="margin-top: 15px" type="submit" id="accept" name="submit" value="deny" class="deny">Deny access</button>
+        </form>
+    </div>
+</div>

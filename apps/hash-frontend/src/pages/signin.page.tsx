@@ -56,6 +56,7 @@ const SigninPage: NextPageWithLayout = () => {
     // Refresh means we want to refresh the session. This is needed, for example, when we want to update the password
     // of a user.
     refresh,
+    login_challenge: loginChallenge,
     // AAL = Authorization Assurance Level. This implies that we want to upgrade the AAL, meaning that we want
     // to perform two-factor authentication/verification.
     aal,
@@ -135,15 +136,32 @@ const SigninPage: NextPageWithLayout = () => {
       .createBrowserLoginFlow({
         refresh: Boolean(refresh),
         aal: aal ? String(aal) : undefined,
+        loginChallenge:
+          typeof loginChallenge === "string" ? loginChallenge : undefined,
       })
       .then(({ data }) => setFlow(data))
       .catch(handleFlowError);
-  }, [flowId, router, router.isReady, aal, refresh, flow, handleFlowError]);
+  }, [
+    flowId,
+    loginChallenge,
+    router,
+    router.isReady,
+    aal,
+    refresh,
+    flow,
+    handleFlowError,
+  ]);
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault();
 
-    if (!flow || !email || !password) {
+    if (!flow) {
+      throw new Error(
+        "No login flow available – please try clearing your cookies.",
+      );
+    }
+
+    if (!email || !password) {
       return;
     }
 

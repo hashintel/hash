@@ -76,9 +76,10 @@ services:
       telemetry-collector:
         condition: service_healthy
     ports:
-      - "4433:4433" # public
-      - "4434:4434" # admin
+      - "4433:4433" # public API
+      - "4434:4434" # admin API
     environment:
+      OAUTH2_PROVIDER_URL: "http://hydra:4445"
       TRACING_PROVIDER: "jaeger"
       TRACING_PROVIDERS_JAEGER_SAMPLING_SERVER_URL: "telemetry-collector:5778/sampling"
       TRACING_PROVIDERS_JAEGER_LOCAL_AGENT_ADDRESS: "telemetry-collector:6831"
