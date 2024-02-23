@@ -39,11 +39,14 @@ hydra_env_vars = [
   { name = "COOKIES_PATH", secret = false, value = "/" },
   { name = "COOKIES_DOMAIN", secret = false, value = "hash.ai" },
   { name = "COOKIES_SAME_SITE", secret = false, value = "Lax" },
+  { name = "URLS_CONSENT", value = "https://app-api.hash.ai/oauth2/consent"},
   { name = "URLS_LOGIN", secret = false, value = "https://app.hash.ai/signin" },
   { name = "URLS_REGISTRATION", secret = false, value = "https://app.hash.ai/signup" },
   { name = "URLS_POST_LOGOUT_REDIRECT", secret = false, value = "https://app.hash.ai" },
   { name = "URLS_IDENTITY_PROVIDER_PUBLICURL", secret = false, value = "http://localhost:4433" }, # Kratos public endpoint
   { name = "URLS_IDENTITY_PROVIDER_URL", secret = false, value = "http://localhost:4434" }, # Kratos admin endpoint
+  { name = "URLS_SELF_ISSUER", secret = false, value = "https://app-api.hash.ai" },
+  { name = "URLS_SELF_PUBLIC", secret = false, value = "https://app-api.hash.ai" }
 ]
 
 hash_graph_env_vars = [
