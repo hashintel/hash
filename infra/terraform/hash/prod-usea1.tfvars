@@ -31,6 +31,7 @@ kratos_env_vars = [
   { name = "LOG_LEAK_SENSITIVE_VALUES", secret = false, value = "false" },
   { name = "COURIER_SMTP_FROM_ADDRESS", secret = false, value = "noreply@hash.ai" },
   { name = "COURIER_SMTP_FROM_NAME", secret = false, value = "HASH" },
+  { name = "OAUTH2_PROVIDER_URL", secret = false, value = "http://localhost:4445" } # Hydra admin endpoint
 ]
 
 hydra_env_vars = [
@@ -41,8 +42,8 @@ hydra_env_vars = [
   { name = "URLS_LOGIN", secret = false, value = "https://app.hash.ai/signin" },
   { name = "URLS_REGISTRATION", secret = false, value = "https://app.hash.ai/signup" },
   { name = "URLS_POST_LOGOUT_REDIRECT", secret = false, value = "https://app.hash.ai" },
-  { name = "URLs_IDENTITY_PROVIDER_PUBLICURL", secret = false, value = "http://localhost:4444" },
-  { name = "URLS_IDENTITY_PROVIDER_URL", secret = false, value = "http://localhost:4445" },
+  { name = "URLS_IDENTITY_PROVIDER_PUBLICURL", secret = false, value = "http://localhost:4433" }, # Kratos public endpoint
+  { name = "URLS_IDENTITY_PROVIDER_URL", secret = false, value = "http://localhost:4434" }, # Kratos admin endpoint
 ]
 
 hash_graph_env_vars = [
