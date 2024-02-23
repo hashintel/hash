@@ -1,15 +1,11 @@
-import { EntityPropertyValue } from "@local/hash-subgraph";
-
 /**
- * Stringify an arbitrary property value to be as human readable as possible, where:
+ * Stringify an arbitrary value to be as human readable as possible, where:
  *  - `null` values are treated as empty strings
  *  - `boolean` values are converted to "True" or "False"
  *  - arrays are converted to comma separated strings
  *  - objects are stringified
  */
-export const stringifyPropertyValue = (
-  propertyValue: EntityPropertyValue,
-): string => {
+export const stringifyPropertyValue = (propertyValue: unknown): string => {
   if (typeof propertyValue === "string") {
     // If the property value is a string, we can return it directly
     return propertyValue;
