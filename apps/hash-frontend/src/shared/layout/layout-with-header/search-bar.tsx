@@ -11,7 +11,7 @@ import {
   extractOwnedByIdFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import { getRoots, isEntityRootedSubgraph } from "@local/hash-subgraph/stdlib";
 import { Box, SxProps, Theme, useMediaQuery, useTheme } from "@mui/material";
 import {
   FunctionComponent,
@@ -53,7 +53,7 @@ const ResultList: FunctionComponent<{
     sx={(theme) => ({
       position: !isMobile ? "absolute" : "unset",
       top: !isMobile ? "calc(100% + 1px)" : "unset",
-      zIndex: 10,
+      zIndex: 10_000,
       width: "100%",
       maxHeight: "15rem",
       overflow: "auto",
@@ -204,14 +204,17 @@ export const SearchBar: FunctionComponent = () => {
         includeDrafts: true,
       },
       includePermissions: false,
+      skip: !submittedQuery,
     },
   });
 
-  const results = resultData?.structuralQueryEntities
-    ? getRoots(
-        resultData.structuralQueryEntities.subgraph as Subgraph<EntityRootType>,
-      )
-    : [];
+  const subgraph =
+    resultData &&
+    isEntityRootedSubgraph(resultData.structuralQueryEntities.subgraph)
+      ? resultData.structuralQueryEntities.subgraph
+      : undefined;
+
+  const results = subgraph ? getRoots(subgraph) : [];
 
   useKey(["Escape"], () => setResultListVisible(false));
 
@@ -286,9 +289,7 @@ export const SearchBar: FunctionComponent = () => {
                 <EntityResult
                   key={entity.metadata.recordId.entityId}
                   entity={entity}
-                  subgraph={
-                    resultData?.structuralQueryEntities.subgraph as Subgraph
-                  }
+                  subgraph={subgraph!}
                 />
               );
             })
