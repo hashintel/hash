@@ -42,8 +42,8 @@ services:
 
   hydra:
     environment:
-      COOKIES_DOMAIN: "${KRATOS_COOKIE_DOMAIN}"
-      COOKIES_SAME_SITE: "Lax"
+      SERVE_COOKIES_DOMAIN: "${KRATOS_COOKIE_DOMAIN}"
+      SERVE_COOKIES_SAME_SITE_MODE: "Lax"
 
   spicedb-migrate:
     image: authzed/spicedb:v${HASH_SPICEDB_VERSION}

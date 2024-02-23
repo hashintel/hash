@@ -37,8 +37,8 @@ kratos_env_vars = [
 hydra_env_vars = [
   { name = "LOG_LEVEL", secret = false, value = "info" },
   { name = "COOKIES_PATH", secret = false, value = "/" },
-  { name = "COOKIES_DOMAIN", secret = false, value = "hash.ai" },
-  { name = "COOKIES_SAME_SITE", secret = false, value = "Lax" },
+  { name = "SERVE_COOKIES_DOMAIN", secret = false, value = "hash.ai" },
+  { name = "SERVE_COOKIES_SAME_SITE_MODE", secret = false, value = "Lax" },
   { name = "URLS_CONSENT", secret = false, value = "https://app-api.hash.ai/oauth2/consent"},
   { name = "URLS_LOGIN", secret = false, value = "https://app.hash.ai/signin" },
   { name = "URLS_REGISTRATION", secret = false, value = "https://app.hash.ai/signup" },
