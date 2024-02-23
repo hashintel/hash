@@ -29,13 +29,21 @@
             xhr.send(JSON.stringify(data));
         }
 
-        window.addEventListener("DOMContentLoaded", function() {
+        if (document.readyState !== 'loading') {
             var form = document.querySelector('form');
             form.addEventListener('submit', function(event) {
                 event.preventDefault();
                 submit();
             });
-        })
+        } else {
+            document.addEventListener('DOMContentLoaded', function() {
+                var form = document.querySelector('form');
+                form.addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    submit();
+                });
+            });
+        }
     </script>
     <div class="auth-box">
         <h1>Grant access to HASH</h1>
