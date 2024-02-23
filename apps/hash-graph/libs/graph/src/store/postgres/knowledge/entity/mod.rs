@@ -1289,8 +1289,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         WHERE web_id = $1
                           AND entity_uuid = $2
                           AND draft_id IS NULL
-                          AND updated_at_transaction_time <= $4
-                          AND updated_at_decision_time <= $5;
+                          AND updated_at_transaction_time <= $3
+                          AND updated_at_decision_time <= $4;
                     ",
                         &[
                             &params.entity_id.owned_by_id,

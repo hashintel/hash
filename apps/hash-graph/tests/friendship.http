@@ -1813,7 +1813,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   ],
   "updatedAtTransactionTime": "{{person_a_transaction_time}}",
   "updatedAtDecisionTime": "{{person_a_decision_time}}",
-  "reset": false
+  "reset": true
 }
 
 > {%
@@ -1877,7 +1877,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   ],
   "updatedAtTransactionTime": "{{person_b_transaction_time}}",
   "updatedAtDecisionTime": "{{person_b_decision_time}}",
-  "reset": false
+  "reset": true
 }
 
 > {%
