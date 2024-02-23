@@ -21,6 +21,7 @@ services:
       COOKIES_PATH: "/"
       COOKIES_DOMAIN: "${KRATOS_COOKIE_DOMAIN}"
       COOKIES_SAME_SITE: "Lax"
+      OAUTH2_PROVIDER_URL: "http://hydra:4445"
       SERVE_PUBLIC_BASE_URL: "${FRONTEND_URL}/api/ory"
       SERVE_PUBLIC_CORS_ALLOWED_HEADERS: "Authorization,Content-Type,X-Session-Token,X-CSRF-Token"
       SERVE_PUBLIC_CORS_ALLOWED_ORIGINS: "${FRONTEND_URL}"
