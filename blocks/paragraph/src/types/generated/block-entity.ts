@@ -12,7 +12,7 @@ export type BlockEntityOutgoingLinkAndTarget =
 /**
  * An opaque, untyped JSON object
  */
-export type Object = {};
+export type ObjectDataType = {};
 
 export type ParagraphBlock = Entity<ParagraphBlockProperties>;
 
@@ -32,9 +32,9 @@ export type ParagraphBlockProperties = {
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataType = string;
 
 /**
  * The text material, information, or body, that makes up the content of this thing.
  */
-export type TextualContentPropertyValue = Text | Object[];
+export type TextualContentPropertyValue = TextDataType | ObjectDataType[];

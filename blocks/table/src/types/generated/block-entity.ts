@@ -11,7 +11,7 @@ export type BlockEntityOutgoingLinkAndTarget = TableBlockOutgoingLinkAndTarget;
 /**
  * A True or False value
  */
-export type Boolean = boolean;
+export type BooleanDataType = boolean;
 
 export type HasQuery = Entity<HasQueryProperties> & { linkData: LinkData };
 
@@ -38,7 +38,7 @@ export type LinkProperties = {};
 /**
  * An opaque, untyped JSON object
  */
-export type Object = {};
+export type ObjectDataType = {};
 
 export type Query = Entity<QueryProperties>;
 
@@ -53,7 +53,7 @@ export type QueryProperties = {
 /**
  * The query for something.
  */
-export type QueryPropertyValue = Object;
+export type QueryPropertyValue = ObjectDataType;
 
 export type TableBlock = Entity<TableBlockProperties>;
 
@@ -91,12 +91,12 @@ export type TableBlockProperties = {
 /**
  * Whether the table header row is hidden.
  */
-export type TableHeaderRowIsHiddenPropertyValue = Boolean;
+export type TableHeaderRowIsHiddenPropertyValue = BooleanDataType;
 
 /**
  * A unique identifier for a local column stored on the "Table" block.
  */
-export type TableLocalColumnIDPropertyValue = Text;
+export type TableLocalColumnIDPropertyValue = TextDataType;
 
 /**
  * Local column stored on "Table" block.
@@ -111,24 +111,24 @@ export type TableLocalColumnPropertyValue = {
  *
  * See: https://blockprotocol.org/@hash/types/property-type/table-local-column/
  */
-export type TableLocalRowPropertyValue = Object;
+export type TableLocalRowPropertyValue = ObjectDataType;
 
 /**
  * Whether the table row numbers are hidden.
  */
-export type TableRowNumbersAreHiddenPropertyValue = Boolean;
+export type TableRowNumbersAreHiddenPropertyValue = BooleanDataType;
 
 /**
  * Whether the alternating table rows are zebra striped.
  */
-export type TableRowsAreStripedPropertyValue = Boolean;
+export type TableRowsAreStripedPropertyValue = BooleanDataType;
 
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataType = string;
 
 /**
  * The name given to something to identify it, generally associated with objects or inanimate things such as books, websites, songs, etc.
  */
-export type TitlePropertyValue = Text;
+export type TitlePropertyValue = TextDataType;

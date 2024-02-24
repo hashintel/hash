@@ -7,12 +7,12 @@ import { Entity, LinkData } from "@blockprotocol/graph";
 /**
  * A response to a question that provides information, clarification, or confirmation.
  */
-export type AnswerPropertyValue = Text;
+export type AnswerPropertyValue = TextDataType;
 
 /**
  * Defines whether or not toggles should be displayed on questions to show/hide their respective answer.
  */
-export type AnswerVisibilityIsConfigurablePropertyValue = Boolean;
+export type AnswerVisibilityIsConfigurablePropertyValue = BooleanDataType;
 
 export type BlockEntity = FAQBlock;
 
@@ -21,12 +21,12 @@ export type BlockEntityOutgoingLinkAndTarget = FAQBlockOutgoingLinkAndTarget;
 /**
  * A True or False value
  */
-export type Boolean = boolean;
+export type BooleanDataType = boolean;
 
 /**
  * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
  */
-export type DescriptionPropertyValue = Text;
+export type DescriptionPropertyValue = TextDataType;
 
 export type FAQBlock = Entity<FAQBlockProperties>;
 
@@ -87,19 +87,19 @@ export type LinkProperties = {};
 /**
  * A sentence that is used to request information, clarification, or confirmation about something.
  */
-export type QuestionPropertyValue = Text;
+export type QuestionPropertyValue = TextDataType;
 
 /**
  * Defines whether or not sections should be numbered.
  */
-export type SectionsShouldBeNumberedPropertyValue = Boolean;
+export type SectionsShouldBeNumberedPropertyValue = BooleanDataType;
 
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataType = string;
 
 /**
  * The name given to something to identify it, generally associated with objects or inanimate things such as books, websites, songs, etc.
  */
-export type TitlePropertyValue = Text;
+export type TitlePropertyValue = TextDataType;

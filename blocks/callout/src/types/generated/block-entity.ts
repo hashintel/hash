@@ -16,7 +16,7 @@ export type CalloutBlock = Entity<CalloutBlockProperties>;
  *
  * See: https://unicode.org/emoji/charts/full-emoji-list.html
  */
-export type CalloutBlockEmojiPropertyValue = Text;
+export type CalloutBlockEmojiPropertyValue = TextDataType;
 
 export type CalloutBlockOutgoingLinkAndTarget = never;
 
@@ -35,14 +35,14 @@ export type CalloutBlockProperties = {
 /**
  * An opaque, untyped JSON object
  */
-export type Object = {};
+export type ObjectDataType = {};
 
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataType = string;
 
 /**
  * The text material, information, or body, that makes up the content of this thing.
  */
-export type TextualContentPropertyValue = Text | Object[];
+export type TextualContentPropertyValue = TextDataType | ObjectDataType[];

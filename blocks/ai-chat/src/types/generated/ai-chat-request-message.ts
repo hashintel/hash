@@ -25,7 +25,7 @@ import {
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
-  Text,
+  TextDataType,
   TextualContentPropertyValue,
 } from "./shared";
 
@@ -52,6 +52,6 @@ export type {
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
-  Text,
+  TextDataType,
   TextualContentPropertyValue,
 };
