@@ -106,6 +106,9 @@ jobs:
           if [[ $REQUIRES_INTEGRATION_WORKER == 'true' ]]; then
             DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-integration-worker"]')
           fi
+          if [[ $REQUIRES_API_IMAGE == 'true' ]]; then
+            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-api"]')
+          fi
 
           DOCKER_PACKAGES=$(echo $DOCKER_PACKAGES | jq -c '{ include: [{ package: .[] }] }')
 
