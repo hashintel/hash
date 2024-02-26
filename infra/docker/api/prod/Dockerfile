@@ -35,7 +35,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     wget -q -O- https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal && \
     rustup show && \
-    cargo install wasm-opt
+    cargo install wasm-opt --debug
 
 
 FROM rust AS installer
