@@ -89,12 +89,13 @@ jobs:
             REQUIRES_GRAPH=true
             REQUIRES_AI_WORKER_TS=true
             REQUIRES_INTEGRATION_WORKER=true
+            REQUIRES_API=true
           else
             REQUIRES_GRAPH=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-graph" and .task == "build")] != []')
             REQUIRES_AI_WORKER_TS=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
             REQUIRES_INTEGRATION_WORKER=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
+            REQUIRES_API=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-api" and .task == "build")] != []')
           fi
-          REQUIRES_API_IMAGE=$(echo "$UNIT_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-api" and .task == "build")] != []')
 
           DOCKER_PACKAGES=[]
           if [[ $REQUIRES_GRAPH == 'true' ]]; then
@@ -106,7 +107,7 @@ jobs:
           if [[ $REQUIRES_INTEGRATION_WORKER == 'true' ]]; then
             DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-integration-worker"]')
           fi
-          if [[ $REQUIRES_API_IMAGE == 'true' ]]; then
+          if [[ $REQUIRES_API == 'true' ]]; then
             DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-api"]')
           fi
 
@@ -262,6 +263,7 @@ jobs:
           REQUIRES_GRAPH=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-graph" and .task == "build")] != []')
           REQUIRES_AI_WORKER_TS=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
           REQUIRES_INTEGRATION_WORKER=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
+          REQUIRES_API=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-api" and .task == "build")] != []')
 
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
@@ -278,6 +280,7 @@ jobs:
           echo "external-service-graph=$REQUIRES_GRAPH" >> $GITHUB_OUTPUT
           echo "external-service-ai-worker-ts=$REQUIRES_AI_WORKER_TS" >> $GITHUB_OUTPUT
           echo "external-service-worker-integration=$REQUIRES_INTEGRATION_WORKER" >> $GITHUB_OUTPUT
+          echo "external-service-api=$REQUIRES_API" >> $GITHUB_OUTPUT
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
@@ -335,6 +338,7 @@ jobs:
           hash-graph: ${{ steps.tests.outputs.external-service-graph == 'true' }}
           hash-ai-worker-ts: ${{ steps.tests.outputs.external-service-ai-worker-ts == 'true' }}
           hash-integration-worker: ${{ steps.tests.outputs.external-service-worker-integration == 'true' }}
+          hash-api: ${{ steps.tests.outputs.external-service-api == 'true' }}
 
       - name: Show disk usage
         run: df -h

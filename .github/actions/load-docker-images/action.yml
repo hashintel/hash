@@ -13,6 +13,10 @@ inputs:
     description: "Build hash-integration-worker image"
     required: false
     default: "false"
+  hash-api:
+    description: "Build hash-api image"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -63,6 +67,13 @@ runs:
         name: hash-integration-worker
         path: /tmp
 
+    - name: Download hash-api image
+      if: inputs.hash-api == 'true'
+      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+      with:
+        name: hash-api
+        path: /tmp
+
     - name: Load hash-graph image
       if: inputs.hash-graph == 'true'
       shell: bash
@@ -77,6 +88,11 @@ runs:
       if: inputs.hash-integration-worker == 'true'
       shell: bash
       run: docker load --input /tmp/hash-integration-worker.tar
+
+    - name: Load hash-api image
+      if: inputs.hash-api == 'true'
+      shell: bash
+      run: docker load --input /tmp/hash-api.tar
 
     - name: Summarize docker images
       shell: bash
