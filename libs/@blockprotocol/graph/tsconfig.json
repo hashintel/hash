@@ -1,6 +1,7 @@
 {
-  "extends": "@local/tsconfig/dom.json",
+  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "esnext"],
     "outDir": "dist"
   },
   "include": ["src"]

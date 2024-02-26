@@ -8,8 +8,10 @@ const removeEmptyAllOfsFromObject = (obj: object) => {
     const currentObj = stack.pop()!;
     for (const [key, value] of Object.entries(currentObj)) {
       if (key === "allOf" && Array.isArray(value) && value.length === 0) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         delete (currentObj as any)[key];
       } else if (typeof value === "object" && value !== null) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         stack.push(value);
       }
     }

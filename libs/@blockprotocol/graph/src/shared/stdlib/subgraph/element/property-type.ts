@@ -94,7 +94,7 @@ export const getPropertyTypesByBaseUrl = (
   if (!versionObject) {
     return [];
   }
-  const propertyTypeVertices = Object.values(versionObject);
+  const propertyTypeVertices = typedValues(versionObject);
 
   return propertyTypeVertices.map((vertex) => {
     if (!isPropertyTypeVertex(vertex)) {

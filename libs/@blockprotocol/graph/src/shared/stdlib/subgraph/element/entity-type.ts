@@ -94,7 +94,7 @@ export const getEntityTypesByBaseUrl = (
   if (!versionObject) {
     return [];
   }
-  const entityTypeVertices = Object.values(versionObject);
+  const entityTypeVertices = typedValues(versionObject);
 
   return entityTypeVertices.map((vertex) => {
     if (!isEntityTypeVertex(vertex)) {

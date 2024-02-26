@@ -155,6 +155,7 @@ export type GraphEmbedderMessageCallbacks<Temporal extends boolean> = {
     QueryEntityTypesData,
     null,
     MessageReturn<
+      // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
       QueryEntityTypesResult<Subgraph<Temporal, EntityTypeRootType>>
     >,
     ReadOrModifyResourceError
@@ -181,6 +182,7 @@ export type GraphEmbedderMessageCallbacks<Temporal extends boolean> = {
     QueryPropertyTypesData,
     null,
     MessageReturn<
+      // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
       QueryPropertyTypesResult<Subgraph<Temporal, PropertyTypeRootType>>
     >,
     ReadOrModifyResourceError
@@ -194,6 +196,7 @@ export type GraphEmbedderMessageCallbacks<Temporal extends boolean> = {
   queryDataTypes: MessageCallback<
     QueryDataTypesData,
     null,
+    // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
     MessageReturn<QueryDataTypesResult<Subgraph<Temporal, DataTypeRootType>>>,
     ReadOrModifyResourceError
   >;

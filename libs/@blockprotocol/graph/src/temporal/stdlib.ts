@@ -73,7 +73,6 @@ import {
   type SubgraphRootType,
   type SubgraphTemporalAxes,
   type TimeInterval,
-  type Timestamp,
   type Vertex,
 } from "./main.js";
 

@@ -5,11 +5,12 @@ import {
 } from "@blockprotocol/type-system/slim";
 
 const isObjectWithKindString = (
-  obj: any,
+  obj: unknown,
   kind: string,
 ): obj is { kind: string } => {
   return (
     typeof obj === "object" &&
+    obj !== null &&
     "kind" in obj &&
     typeof obj.kind === "string" &&
     obj.kind === kind

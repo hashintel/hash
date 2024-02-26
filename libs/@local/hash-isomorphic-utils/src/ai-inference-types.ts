@@ -1,5 +1,5 @@
 import { VersionedUrl } from "@blockprotocol/graph";
-import { Subtype } from "@local/advanced-types/subtype";
+import type { Subtype } from "@local/advanced-types/subtype";
 import {
   AccountId,
   BaseUrl,

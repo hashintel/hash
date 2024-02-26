@@ -3,7 +3,7 @@
   "version": "0.0.0-private",
   "private": true,
   "scripts": {
-    "exe": "ts-node --transpile-only",
+    "exe": "tsx",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit"
@@ -17,7 +17,7 @@
     "globby": "11.0.1",
     "prettier": "3.2.5",
     "regex-parser": "2.2.11",
-    "ts-node": "10.9.1",
+    "tsx": "3.13.0",
     "typescript": "5.1.6"
   },
   "devDependencies": {

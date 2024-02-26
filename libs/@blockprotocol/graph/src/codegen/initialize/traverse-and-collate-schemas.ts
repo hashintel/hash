@@ -81,12 +81,15 @@ class TraversalContext {
    * This indicates the next type to explore, if there is one in the queue.
    */
   nextToExplore(): VersionedUrl | undefined {
-    const typeId = this.exploreQueue.values().next().value;
-    if (typeId) {
+    const result = this.exploreQueue.values().next();
+
+    if (!result.done) {
+      const typeId = result.value;
       this.exploreQueue.delete(typeId);
       this.explored.add(typeId);
+    } else {
+      return undefined;
     }
-    return typeId;
   }
 }
 
@@ -104,7 +107,7 @@ export const traverseAndCollateSchemas = async (
     fetchQueue.push(fetchPromise);
 
     void fetchPromise.then(() => {
-      fetchQueue.splice(fetchQueue.indexOf(fetchPromise), 1);
+      void fetchQueue.splice(fetchQueue.indexOf(fetchPromise), 1);
     });
   };
 
