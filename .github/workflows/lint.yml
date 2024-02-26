@@ -75,7 +75,7 @@ jobs:
           echo "codegen=$CODEGEN" >> $GITHUB_OUTPUT
 
           HAS_RUST=$(turbo run lint:clippy --filter '${{ matrix.package }}' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+            | jq '[.tasks[] | select(.task == "lint:clippy" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
 
           if [[ $HAS_RUST = 'true' ]]; then

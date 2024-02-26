@@ -134,7 +134,7 @@ jobs:
         id: tests
         run: |
           HAS_RUST=$(turbo run lint:clippy --filter '${{ matrix.package }}' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+            | jq '[.tasks[] | select(.task == "lint:clippy" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
 
           if [[ $HAS_RUST = 'true' ]]; then
@@ -262,7 +262,7 @@ jobs:
           REQUIRES_INTEGRATION_WORKER=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
 
           HAS_RUST=$(turbo run lint:clippy --filter '${{ matrix.package }}' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+            | jq '[.tasks[] | select(.task == "lint:clippy" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
 
           if [[ $HAS_RUST = 'true' ]]; then
@@ -392,7 +392,7 @@ jobs:
         id: tests
         run: |
           HAS_RUST=$(turbo run lint:clippy --filter '${{ matrix.package }}' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+            | jq '[.tasks[] | select(.task == "lint:clippy" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
 
           if [[ $HAS_RUST = 'true' ]]; then
