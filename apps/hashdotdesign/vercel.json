@@ -3,7 +3,7 @@
     "silent": true,
     "autoJobCancelation": true
   },
-  "installCommand": "cd ../.. && yarn install",
-  "buildCommand": "turbo --filter '@apps/hashdotdesign' build",
+  "installCommand": "./vercel-install.sh",
+  "buildCommand": "./vercel-build.sh",
   "outputDirectory": "storybook-static"
 }
