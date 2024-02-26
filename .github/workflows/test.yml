@@ -38,8 +38,8 @@ jobs:
         id: packages
         run: |
           UNIT_TEST_FILTER=$(turbo run test:unit --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
-          UNIT_TEST_PACKAGES=$(sh -c "turbo run test:unit --dry-run=json $UNIT_TEST_FILTER" \
-            | jq '.tasks[]' \
+          UNIT_TEST_TASKS=$(sh -c "turbo run test:unit --dry-run=json $UNIT_TEST_FILTER" | jq -c '.tasks[]')
+          UNIT_TEST_PACKAGES=$(echo "$UNIT_TEST_TASKS" \
             | jq 'select(.task == "test:unit" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
@@ -94,6 +94,7 @@ jobs:
             REQUIRES_AI_WORKER_TS=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
             REQUIRES_INTEGRATION_WORKER=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
           fi
+          REQUIRES_API_IMAGE=$(echo "$UNIT_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-api" and .task == "build")] != []')
 
           DOCKER_PACKAGES=[]
           if [[ $REQUIRES_GRAPH == 'true' ]]; then
@@ -234,6 +235,7 @@ jobs:
           hash-graph: ${{ matrix.package == '@apps/hash-graph' }}
           hash-ai-worker-ts: ${{ matrix.package == '@apps/hash-ai-worker-ts' }}
           hash-integration-worker: ${{ matrix.package == '@apps/hash-integration-worker' }}
+          hash-api: ${{ matrix.package == '@apps/hash-api' }}
 
   integration-tests:
     name: Integration
