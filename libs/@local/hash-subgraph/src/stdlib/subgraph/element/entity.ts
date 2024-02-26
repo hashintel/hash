@@ -43,7 +43,7 @@ export const getEntities = (
 export const getEntityRevision = (
   subgraph: Subgraph,
   entityId: EntityId,
-  targetRevisionInformation?: EntityRevisionId | Timestamp | Date,
+  targetRevisionInformation?: EntityRevisionId | Date,
 ): Entity | undefined =>
   getEntityRevisionBp(
     subgraph as unknown as SubgraphBp,

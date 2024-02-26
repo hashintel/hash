@@ -330,7 +330,6 @@ export const LinkListCard = () => {
       },
     });
 
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     if (res.errors?.length || !res.data) {
       // @todo handle this
       throw new Error("Could not create");
