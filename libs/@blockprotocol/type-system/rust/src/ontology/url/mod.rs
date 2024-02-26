@@ -1,4 +1,4 @@
-use std::{fmt, num::IntErrorKind, result::Result, str::FromStr};
+use std::{fmt, num::IntErrorKind, str::FromStr};
 
 pub use error::{ParseBaseUrlError, ParseVersionedUrlError};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};

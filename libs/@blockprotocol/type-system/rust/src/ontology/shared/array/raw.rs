@@ -207,7 +207,6 @@ mod tests {
         use serde_json::json;
 
         use super::*;
-        use crate::utils::tests::check_repr_serialization_from_value;
 
         #[test]
         fn value() {
