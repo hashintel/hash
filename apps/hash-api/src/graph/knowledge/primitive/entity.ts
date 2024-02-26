@@ -196,8 +196,6 @@ export const getEntities: ImpureGraphFunction<
     }
   }
 
-  console.log(JSON.stringify(query, undefined, 2));
-
   return await graphApi
     .getEntitiesByQuery(actorId, { query })
     .then(({ data }) => {
