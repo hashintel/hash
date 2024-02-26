@@ -1,5 +1,11 @@
 # @blockprotocol/graph
 
+## 0.3.3
+
+### Patch Changes
+
+- [#1310](https://github.com/blockprotocol/blockprotocol/pull/1310) [`0ff1d7c4`](https://github.com/blockprotocol/blockprotocol/commit/0ff1d7c47680c118585d721da5627e89b9623ef6) Thanks [@CiaranMn](https://github.com/CiaranMn)! - remove node-fetch dependency
+
 ## 0.3.2
 
 ### Patch Changes

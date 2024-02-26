@@ -137,7 +137,6 @@
     "json-schema-to-typescript": "^11.0.2",
     "lit": "^2.4.1",
     "lodash.isequal": "4.5.0",
-    "node-fetch": "^3.3.0",
     "typescript": "5.1.6"
   },
   "devDependencies": {
