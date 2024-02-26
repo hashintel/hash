@@ -59,9 +59,7 @@ export const getOutgoingLinksForEntity = <Temporal extends boolean>(
   forceNonTemporal?: boolean,
 ): Entity<Temporal>[] => {
   const searchInterval =
-    interval !== undefined
-      ? interval
-      : getLatestInstantIntervalForSubgraph(subgraph);
+    interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
   const entityEdges = subgraph.edges[entityId];
 
@@ -125,6 +123,7 @@ export const getOutgoingLinksForEntity = <Temporal extends boolean>(
     }
   }
 
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   return entities;
 };
 
@@ -149,9 +148,7 @@ export const getIncomingLinksForEntity = <Temporal extends boolean>(
   forceNonTemporal?: boolean,
 ): Entity<Temporal>[] => {
   const searchInterval =
-    interval !== undefined
-      ? interval
-      : getLatestInstantIntervalForSubgraph(subgraph);
+    interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
   const entityEdges = subgraph.edges[entityId];
 
@@ -214,6 +211,7 @@ export const getIncomingLinksForEntity = <Temporal extends boolean>(
     }
   }
 
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   return entities;
 };
 
@@ -239,9 +237,7 @@ export const getLeftEntityForLinkEntity = <Temporal extends boolean>(
 ): Entity<Temporal>[] | undefined => {
   if (!forceNonTemporal && isTemporalSubgraph(subgraph)) {
     const searchInterval =
-      interval !== undefined
-        ? interval
-        : getLatestInstantIntervalForSubgraph(subgraph);
+      interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
     const outwardEdge = Object.values(subgraph.edges[entityId] ?? {})
       .flat()
@@ -267,11 +263,8 @@ export const getLeftEntityForLinkEntity = <Temporal extends boolean>(
       );
     }
 
-    return getEntityRevisionsByEntityId(
-      subgraph as Subgraph<true>,
-      leftEntityId,
-      intersection,
-    );
+    // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
+    return getEntityRevisionsByEntityId(subgraph, leftEntityId, intersection);
   } else {
     const outwardEdge = Object.values(subgraph.edges[entityId] ?? {})
       .flat()
@@ -314,9 +307,7 @@ export const getRightEntityForLinkEntity = <Temporal extends boolean>(
 ): Entity<Temporal>[] | undefined => {
   if (!forceNonTemporal && isTemporalSubgraph(subgraph)) {
     const searchInterval =
-      interval !== undefined
-        ? interval
-        : getLatestInstantIntervalForSubgraph(subgraph);
+      interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
     const outwardEdge = Object.values(subgraph.edges[entityId] ?? {})
       .flat()
@@ -343,11 +334,8 @@ export const getRightEntityForLinkEntity = <Temporal extends boolean>(
       );
     }
 
-    return getEntityRevisionsByEntityId(
-      subgraph as Subgraph<true>,
-      rightEntityId,
-      intersection,
-    );
+    // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
+    return getEntityRevisionsByEntityId(subgraph, rightEntityId, intersection);
   } else {
     const outwardEdge = Object.values(subgraph.edges[entityId] ?? {})
       .flat()

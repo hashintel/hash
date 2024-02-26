@@ -149,10 +149,12 @@ export const addEntityVerticesToSubgraphByMutation = <Temporal extends boolean>(
       };
 
       if (!subgraph.vertices[entityId]) {
+        // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
         subgraph.vertices[entityId] = {
           [entityInterval.start.limit]: entityVertex,
         };
       } else {
+        // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
         subgraph.vertices[entityId]![entityInterval.start.limit] = entityVertex;
       }
 

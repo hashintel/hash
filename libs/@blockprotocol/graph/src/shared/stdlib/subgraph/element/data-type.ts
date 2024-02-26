@@ -94,7 +94,7 @@ export const getDataTypesByBaseUrl = (
   if (!versionObject) {
     return [];
   }
-  const dataTypeVertices = Object.values(versionObject);
+  const dataTypeVertices = typedValues(versionObject);
 
   return dataTypeVertices.map((vertex) => {
     if (!isDataTypeVertex(vertex)) {

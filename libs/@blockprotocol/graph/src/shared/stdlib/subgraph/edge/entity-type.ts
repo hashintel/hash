@@ -64,9 +64,9 @@ export const getEntityTypesReferencedByEntityType = (
     revisionId = entityTypeId.revisionId;
   }
 
-  const outwardEdges = subgraph.edges[baseUrl]?.[
-    revisionId
-  ] as OntologyOutwardEdge<boolean>[];
+  const outwardEdges = subgraph.edges[baseUrl]?.[revisionId] as
+    | OntologyOutwardEdge<boolean>[]
+    | undefined;
 
   const ontologyVertexIds = {
     inheritsFrom: [],

@@ -1,10 +1,10 @@
 import {
-  BaseUrl,
   extractBaseUrl,
   extractVersion,
   getReferencedIdsFromEntityType,
   getReferencedIdsFromPropertyType,
 } from "@blockprotocol/type-system/slim";
+import isEqual from "lodash.isequal";
 
 import { unionOfIntervals } from "../../shared/stdlib.js";
 import { Entity, EntityId } from "../../shared/types/entity.js";
@@ -20,8 +20,6 @@ import {
   OutwardEdge,
   Subgraph,
 } from "../../shared/types/subgraph.js";
-import { Timestamp } from "../../shared/types/temporal-versioning.js";
-import { isEqual } from "./is-equal.js";
 
 /**
  * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`

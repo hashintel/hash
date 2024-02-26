@@ -10,7 +10,7 @@ const deleteRecords = async (endpoint: string) => {
   await fetch(`http://127.0.0.1:${port}/${endpoint}`, {
     method: "DELETE",
   }).then(async (response) => {
-    const status: GraphStatus = await response.json();
+    const status = (await response.json()) as GraphStatus;
     if (status.code !== StatusCode.Ok) {
       throw new Error(
         `Could not remove ${endpoint}: ${JSON.stringify(status)}`,
@@ -70,7 +70,7 @@ export const restoreSnapshot = async (snapshotPath: string) => {
     method: "POST",
     body: createReadStream(snapshotPath),
   }).then(async (response) => {
-    const status: GraphStatus = await response.json();
+    const status = (await response.json()) as GraphStatus;
     if (status.code !== StatusCode.Ok) {
       throw new Error(`Snapshot restoration error: ${JSON.stringify(status)}`);
     }

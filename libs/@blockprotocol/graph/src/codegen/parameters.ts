@@ -73,25 +73,37 @@ export const validateCodegenParameters = (
       if (!Array.isArray(targetsForFile)) {
         errors.push(`file '${fileName}' in 'targets' must be an array`);
       } else {
-        for (const target of targetsForFile) {
-          if (!(typeof target === "object" && target !== null)) {
+        for (const target of targetsForFile as unknown[]) {
+          if (typeof target !== "object" || target === null) {
             errors.push(
               `each entry under file '${fileName}' in 'targets' must be an object`,
             );
             continue;
           }
-          if (typeof target.sourceTypeId !== "string") {
+          if (!("sourceTypeId" in target)) {
+            errors.push(
+              `each entry under file '${fileName}' in 'targets' must have a 'sourceTypeId' property`,
+            );
+            continue;
+          }
+
+          if (
+            !(
+              "sourceTypeId" in target &&
+              typeof target.sourceTypeId === "string"
+            )
+          ) {
             errors.push(
               `each entry under file '${fileName}' in 'targets' must have a 'sourceTypeId' string`,
             );
-          }
-          if (!validateVersionedUrl(target.sourceTypeId)) {
+          } else if (validateVersionedUrl(target.sourceTypeId).type !== "Ok") {
             errors.push(
               `each entry under file '${fileName}' in 'targets' must have a valid 'sourceTypeId' property set to the Versioned URL of an entity type`,
             );
           }
 
           if (
+            "blockEntity" in target &&
             target.blockEntity !== undefined &&
             typeof target.blockEntity !== "boolean"
           ) {
@@ -113,7 +125,7 @@ export const validateCodegenParameters = (
       for (const [typeId, typeNameOverride] of Object.entries(
         typeNameOverrides,
       )) {
-        if (!validateVersionedUrl(typeId)) {
+        if (validateVersionedUrl(typeId).type !== "Ok") {
           errors.push(
             `each key in 'typeNameOverrides' must be a valid Versioned URL`,
           );
@@ -153,7 +165,7 @@ export const validateCodegenParameters = (
           for (const [versionedUrl, alias] of Object.entries(
             typeIdAliases.overrides,
           )) {
-            if (!validateVersionedUrl(versionedUrl)) {
+            if (validateVersionedUrl(versionedUrl).type !== "Ok") {
               errors.push(
                 `each key in 'typeIdAliases.overrides' must be a valid Versioned URL`,
               );

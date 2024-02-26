@@ -41,9 +41,9 @@ export const getOntologyEndpointsForOntologyOutwardEdge = (
     revisionId = ontologyTypeId.revisionId;
   }
 
-  const outwardEdges = subgraph.edges[baseUrl]?.[
-    revisionId
-  ] as OntologyOutwardEdge<boolean>[];
+  const outwardEdges = subgraph.edges[baseUrl]?.[revisionId] as
+    | OntologyOutwardEdge<boolean>[]
+    | undefined;
 
   if (outwardEdges === undefined) {
     return [];

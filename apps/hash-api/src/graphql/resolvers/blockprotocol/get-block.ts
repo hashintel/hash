@@ -31,7 +31,9 @@ export const getBlockProtocolBlocksResolver: ResolverFn<
     );
   }
 
-  const { results } = await res.json();
+  const { results } = await (res.json() as Promise<{
+    results: BlockProtocolBlock[];
+  }>);
 
-  return results as BlockProtocolBlock[];
+  return results;
 };

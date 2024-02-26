@@ -89,7 +89,7 @@ export const createApolloClient = (params?: {
   const httpLink = new HttpLink({
     uri: apiGraphQLEndpoint,
     credentials: "include",
-    fetch: wrappedFetch,
+    fetch: wrappedFetch as WindowOrWorkerGlobalScope["fetch"],
     headers: params?.additionalHeaders,
   });
 

@@ -106,6 +106,7 @@ export const buildSubgraph = (
   depths: GraphResolveDepths,
 ) => buildSubgraphGeneral<false>(data, rootRecordIds, depths, undefined);
 export const inferSubgraphEdges = (subgraph: Subgraph) =>
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   inferSubgraphEdgesGeneral<false>(subgraph);
 
 export const getPropertyTypesReferencedByEntityType =
@@ -120,12 +121,14 @@ export const getIncomingLinksForEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
 ) =>
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   getIncomingLinksForEntityGeneral<false>(subgraph, entityId, undefined, true);
 export const getLeftEntityForLinkEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
 ) =>
   getLeftEntityForLinkEntityGeneral<false>(
+    // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
     subgraph,
     entityId,
     undefined,
@@ -139,6 +142,7 @@ export const getOutgoingLinkAndTargetEntities = <
   entityId: EntityId,
 ): LinkAndRightEntities =>
   getOutgoingLinkAndTargetEntitiesGeneral<false, LinkAndRightEntities>(
+    // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
     subgraph,
     entityId,
     undefined,
@@ -148,12 +152,14 @@ export const getOutgoingLinksForEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
 ) =>
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   getOutgoingLinksForEntityGeneral<false>(subgraph, entityId, undefined, true);
 export const getRightEntityForLinkEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
 ) =>
   getRightEntityForLinkEntityGeneral<false>(
+    // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
     subgraph,
     entityId,
     undefined,
@@ -164,8 +170,10 @@ export const getDataTypeByVertexId = getDataTypeByVertexIdGeneral;
 export const getDataTypes = getDataTypesGeneral;
 export const getDataTypesByBaseUrl = getDataTypesByBaseUrlGeneral;
 export const getEntities = (subgraph: Subgraph) =>
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   getEntitiesGeneral<false>(subgraph, true);
 export const getEntityRevision = (subgraph: Subgraph, entityId: EntityId) =>
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   getEntityRevisionGeneral<false>(subgraph, entityId);
 // export const getEntityRevisionsByEntityId = (
 //   subgraph: Subgraph,
@@ -186,10 +194,12 @@ export const getPropertyTypes = getPropertyTypesGeneral;
 export const getPropertyTypesByBaseUrl = getPropertyTypesByBaseUrlGeneral;
 export const getRoots = <RootType extends SubgraphRootType>(
   subgraph: Subgraph<RootType>,
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
 ): RootType["element"][] => getRootsGeneral<false, RootType>(subgraph);
 export const getVertexIdForRecordId = (
   subgraph: Subgraph,
   recordId: EntityRecordId | OntologyTypeRecordId,
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
 ): GraphElementVertexId => getVertexIdForRecordIdGeneral(subgraph, recordId);
 export const isDataTypeRootedSubgraph = isDataTypeRootedSubgraphGeneral<false>;
 export const isEntityRootedSubgraph = isEntityRootedSubgraphGeneral<false>;
@@ -202,4 +212,5 @@ export const isPropertyTypeRootedSubgraph =
 export const parseLabelFromEntity = (
   entityToLabel: Entity,
   subgraph: Subgraph,
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
 ) => parseLabelFromEntityGeneral<false>(entityToLabel, subgraph);

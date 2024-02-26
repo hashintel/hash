@@ -21,6 +21,7 @@ export interface BlockElementBase<
  * A class to use as a base for implementing Block Protocol blocks as custom elements.
  * This class handles establishing communication with the embedding application.
  */
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export abstract class BlockElementBase<
   RootEntity,
   RootEntityLinkedEntities,
@@ -84,6 +85,7 @@ export abstract class BlockElementBase<
    * of blockEntitySubgraph, i.e. the 'block entity'
    */
   getLinkedEntities() {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime check in case being consumed as JS / to catch bugs
     if (!this.graph || !this.graph.blockEntitySubgraph) {
       throw new Error("graph.blockEntitySubgraph was not passed to block.");
     }
@@ -107,6 +109,7 @@ export abstract class BlockElementBase<
 
     const blockEntity = this.getBlockEntity();
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- runtime check in case being consumed as JS / to catch bugs
     if (!blockEntity) {
       throw new Error(
         "Cannot update self: no root entity on graph.blockEntitySubgraph passed to block",

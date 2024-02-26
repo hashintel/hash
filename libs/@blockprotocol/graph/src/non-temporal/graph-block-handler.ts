@@ -155,6 +155,7 @@ export class GraphBlockHandler
     });
   }
 
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   getEntity({ data }: { data?: GetEntityDataGeneral<boolean> }) {
     return this.sendMessage<
       Subgraph<EntityRootType>,
@@ -168,6 +169,7 @@ export class GraphBlockHandler
     });
   }
 
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   queryEntities({ data }: { data?: QueryEntitiesDataGeneral<boolean> }) {
     return this.sendMessage<
       QueryEntitiesResult<Subgraph<EntityRootType>>,
@@ -213,6 +215,7 @@ export class GraphBlockHandler
   //   });
   // }
 
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   getEntityType({ data }: { data?: GetEntityTypeData }) {
     return this.sendMessage<
       Subgraph<EntityTypeRootType>,
@@ -226,6 +229,7 @@ export class GraphBlockHandler
     });
   }
 
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   queryEntityTypes({ data }: { data?: QueryEntityTypesData }) {
     return this.sendMessage<
       QueryEntityTypesResult<Subgraph<EntityTypeRootType>>,
@@ -239,6 +243,7 @@ export class GraphBlockHandler
     });
   }
 
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   getPropertyType({ data }: { data?: GetPropertyTypeData }) {
     return this.sendMessage<
       Subgraph<PropertyTypeRootType>,
@@ -252,6 +257,7 @@ export class GraphBlockHandler
     });
   }
 
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   queryPropertyTypes({ data }: { data?: QueryPropertyTypesData }) {
     return this.sendMessage<
       QueryPropertyTypesResult<Subgraph<PropertyTypeRootType>>,
@@ -265,6 +271,7 @@ export class GraphBlockHandler
     });
   }
 
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   getDataType({ data }: { data?: GetDataTypeData }) {
     return this.sendMessage<
       Subgraph<DataTypeRootType>,
@@ -278,6 +285,7 @@ export class GraphBlockHandler
     });
   }
 
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   queryDataTypes({ data }: { data?: QueryDataTypesData }) {
     return this.sendMessage<
       QueryDataTypesResult<Subgraph<DataTypeRootType>>,

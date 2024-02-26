@@ -35,7 +35,7 @@ const isTypescriptKeyword = (name: string) => {
 const generateValidTypeScriptIdentifierFromTitle = (title: string): string => {
   /* @todo - Handle acronyms, we should do a non-case-sensitive match and then convert all the groups to lower-case */
   // extract all letters and numbers from the title, and capitalise the start of each component
-  const pascalCase = (title.match(/[a-zA-Z0-9]+/g) || [])
+  const pascalCase = (title.match(/[a-zA-Z0-9]+/g) ?? [])
     .map((word: string) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
     .join("");
 
@@ -85,8 +85,8 @@ export const rewriteTypeTitles = (context: PreprocessContext) => {
     }
 
     typeNamesToTypes[type.kind][typeNameFromTitle] ??= [];
-    // This `any` is safe as we just checked the `kind`
-    typeNamesToTypes[type.kind][typeNameFromTitle]!.push(type as any);
+    // @ts-expect-error –– this is safe as we just checked the `kind`
+    typeNamesToTypes[type.kind][typeNameFromTitle]!.push(type);
   }
 
   for (const [typeKind, nameMap] of typedEntries(typeNamesToTypes)) {
@@ -98,9 +98,9 @@ export const rewriteTypeTitles = (context: PreprocessContext) => {
         for (const type of typesForName) {
           const baseUrl = extractBaseUrl(type.$id);
           baseUrlToTypes[baseUrl] ??= [];
-          // This `any` is safe as we're literally passing the same type back in, TS is just confused by the disjoint
+          // @ts-expect-error ––  This `any` is safe as we're literally passing the same type back in, TS is just confused by the disjoint
           // union of `DataType[] | PropertyType[] | EntityType[]`
-          baseUrlToTypes[baseUrl]!.push(type as any);
+          baseUrlToTypes[baseUrl]!.push(type);
         }
 
         if (typedKeys(baseUrlToTypes).length > 1) {
@@ -115,9 +115,10 @@ export const rewriteTypeTitles = (context: PreprocessContext) => {
           );
 
           /* @todo - Add option to pass in a named capture-group regex which can extract more components */
-          for (const [index, [_baseUrl, typesOfBaseUrl]] of typedEntries(
-            baseUrlToTypesEntries,
-          )) {
+          for (const [
+            index,
+            [_baseUrl, typesOfBaseUrl],
+          ] of baseUrlToTypesEntries.entries()) {
             if (typesOfBaseUrl.length > 1) {
               for (const currentTypeRevision of typesOfBaseUrl) {
                 // We have multiple revisions of this type, so we need to differentiate it from the other types with the

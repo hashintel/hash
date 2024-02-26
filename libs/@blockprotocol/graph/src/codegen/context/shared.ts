@@ -33,7 +33,9 @@ export class TypeDependencyMap {
   getDependenciesForType(typeId: VersionedUrl): Set<VersionedUrl> {
     const flattenedDependencies = new Set<VersionedUrl>();
 
-    const dependencyQueue = [this.dependencyMap[typeId]] ?? [];
+    const dependencyQueue = this.dependencyMap[typeId]
+      ? [this.dependencyMap[typeId]]
+      : [];
 
     while (dependencyQueue.length > 0) {
       const dependencies = mustBeDefined(dependencyQueue.pop());

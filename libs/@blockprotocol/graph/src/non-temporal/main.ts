@@ -274,6 +274,7 @@ export type MultiSort = MultiSortGeneral;
 export type QueryOperationInput = QueryOperationInputGeneral;
 export type QueryEntitiesData = QueryEntitiesDataGeneral<false>;
 export type QueryEntitiesResult<T extends Subgraph<EntityRootType>> =
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   QueryEntitiesResultGeneral<false, T>;
 export type SimpleProperties<Properties extends EntityPropertiesObject> =
   SimplePropertiesGeneral<Properties>;
@@ -289,6 +290,7 @@ export type DataTypeWithMetadata = DataTypeWithMetadataGeneral;
 export type EntityTypeWithMetadata = EntityTypeWithMetadataGeneral;
 export type QueryEntityTypesData = QueryEntityTypesDataGeneral;
 export type QueryEntityTypesResult<T extends Subgraph<EntityTypeRootType>> =
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   QueryEntityTypesResultGeneral<T>;
 export type GetEntityTypeData = GetEntityTypeDataGeneral;
 export type CreateEntityTypeData = CreateEntityTypeDataGeneral;
@@ -297,12 +299,14 @@ export type OntologyElementMetadata = OntologyElementMetadataGeneral;
 export type PropertyTypeWithMetadata = PropertyTypeWithMetadataGeneral;
 export type QueryPropertyTypesData = QueryPropertyTypesDataGeneral;
 export type QueryPropertyTypesResult<T extends Subgraph<PropertyTypeRootType>> =
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   QueryPropertyTypesResultGeneral<T>;
 export type GetPropertyTypeData = GetPropertyTypeDataGeneral;
 export type CreatePropertyTypeData = CreatePropertyTypeDataGeneral;
 export type UpdatePropertyTypeData = UpdatePropertyTypeDataGeneral;
 export type QueryDataTypesData = QueryDataTypesDataGeneral;
 export type QueryDataTypesResult<T extends Subgraph<DataTypeRootType>> =
+  // @ts-expect-error -- Issue with temporal/non-temporal subgraph differences. Non-temporal to be removed in H-2251
   QueryDataTypesResultGeneral<T>;
 export type GetDataTypeData = GetDataTypeDataGeneral;
 export type OntologyTypeRecordId = OntologyTypeRecordIdGeneral;

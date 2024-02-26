@@ -94,18 +94,17 @@ export const embedCode: ResolverFn<
   GraphQLContext,
   QueryEmbedCodeArgs
 > = async (_, { url, type }) => {
-  const embedResponse: OembedResponse & { error: boolean } =
-    await getEmbedResponse({
-      url,
-      type,
-    }).catch((__) => {
-      throw new ApolloError(
-        `Embed Code for URL ${url} not found${
-          type?.trim() ? ` for type ${type}` : ""
-        }`,
-        "NOT_FOUND",
-      );
-    });
+  const embedResponse = (await getEmbedResponse({
+    url,
+    type,
+  }).catch((__) => {
+    throw new ApolloError(
+      `Embed Code for URL ${url} not found${
+        type?.trim() ? ` for type ${type}` : ""
+      }`,
+      "NOT_FOUND",
+    );
+  })) as OembedResponse & { error: boolean };
 
   const { html, error, provider_name, height, width } = embedResponse;
 
