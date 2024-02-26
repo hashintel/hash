@@ -175,7 +175,7 @@ jobs:
         if: always() && steps.tests.outputs.has-rust == 'true'
         uses: taiki-e/install-action@b7add58e53e52e624966da65007ce24524f3dcf3 # v2.27.9
         with:
-          tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
+          tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9,wasm-pack@0.12.1
 
       - name: Cache Rust dependencies
         if: always() && steps.tests.outputs.has-rust == 'true'
@@ -300,7 +300,7 @@ jobs:
         if: always() && steps.tests.outputs.has-rust == 'true'
         uses: taiki-e/install-action@b7add58e53e52e624966da65007ce24524f3dcf3 # v2.27.9
         with:
-          tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
+          tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9,wasm-pack@0.12.1
 
       - name: Cache Rust dependencies
         if: always() && steps.tests.outputs.has-rust == 'true'
@@ -431,7 +431,7 @@ jobs:
         if: always() && steps.tests.outputs.has-rust == 'true'
         uses: taiki-e/install-action@b7add58e53e52e624966da65007ce24524f3dcf3 # v2.27.9
         with:
-          tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
+          tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9,wasm-pack@0.12.1
 
       - name: Cache Rust dependencies
         if: always() && steps.tests.outputs.has-rust == 'true'
