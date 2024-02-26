@@ -485,6 +485,7 @@ jobs:
           hash-graph: true
           hash-ai-worker-ts: true
           hash-integration-worker: true
+          hash-api: true
 
       - name: Show disk usage
         run: df -h
