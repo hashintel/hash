@@ -148,10 +148,10 @@ runs:
         file: infra/docker/api/prod/Dockerfile
         tags: hash-api
         cache-from: |
-          type=registry,ref=ghcr.io/hashintel/hash-api{{ env.IMAGE_TAG }}
+          type=registry,ref=ghcr.io/hashintel/hash-api${{ env.IMAGE_TAG }}
           type=registry,ref=ghcr.io/hashintel/hash-api
         cache-to: |
-          type=registry,ref=ghcr.io/hashintel/hash-api{{ env.IMAGE_TAG }},mode=max
+          type=registry,ref=ghcr.io/hashintel/hash-api${{ env.IMAGE_TAG }},mode=max
         outputs: type=docker,dest=/tmp/hash-api.tar
         labels: |
           org.opencontainers.image.source="https://github.com/hashintel/hash"

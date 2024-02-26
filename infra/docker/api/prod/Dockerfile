@@ -11,7 +11,7 @@ RUN turbo prune --scope='@apps/hash-api' --docker
 COPY patches /app/out/full/patches
 
 
-FROM builder as installer
+FROM builder AS installer
 
 WORKDIR /usr/local/src/hash
 
@@ -32,7 +32,7 @@ ENV NODE_ENV production
 RUN yarn turbo build --filter '@apps/hash-api'
 
 
-FROM node:18.15-alpine as runner
+FROM node:18.15-alpine A runner
 
 RUN apk add --no-cache curl
 
