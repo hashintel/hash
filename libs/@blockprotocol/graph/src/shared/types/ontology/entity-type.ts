@@ -1,4 +1,8 @@
-import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
+import {
+  BaseUrl,
+  EntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
 
 import { QueryOperationInput } from "../entity.js";
 import { EntityTypeRootType, Subgraph } from "../subgraph.js";
@@ -6,7 +10,10 @@ import { OntologyElementMetadata } from "./metadata.js";
 
 export type EntityTypeWithMetadata = {
   schema: EntityType;
-  metadata: OntologyElementMetadata;
+  metadata: OntologyElementMetadata & {
+    labelProperty?: BaseUrl | null;
+    icon?: string | null;
+  };
 };
 
 export type QueryEntityTypesData = {

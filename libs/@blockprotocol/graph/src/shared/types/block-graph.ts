@@ -200,6 +200,12 @@ export type GraphEmbedderMessageCallbacks<Temporal extends boolean> = {
     MessageReturn<QueryDataTypesResult<Subgraph<Temporal, DataTypeRootType>>>,
     ReadOrModifyResourceError
   >;
+  requestLinkedQuery: MessageCallback<
+    null,
+    null,
+    MessageReturn<null>,
+    "NOT_IMPLEMENTED"
+  >;
   /** @todo - Reimplement linked queries */
   // createLinkedQuery: MessageCallback<
   //   CreateLinkedQueryData,

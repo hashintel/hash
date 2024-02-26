@@ -299,6 +299,16 @@ export class GraphBlockHandler
     });
   }
 
+  requestLinkedQuery() {
+    return this.sendMessage<null, "NOT_IMPLEMENTED">({
+      message: {
+        messageName: "requestLinkedQuery",
+        data: null,
+      },
+      respondedToBy: "requestLinkedQueryResponse",
+    });
+  }
+
   /** @todo - Reimplement linked queries */
   // createLinkedQuery({ data }: { data?: CreateLinkedQueryData }) {
   //   return this.sendMessage<LinkedQuery, CreateResourceError>({
