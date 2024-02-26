@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { IconButton } from "@hashintel/design-system";
+import { Chip, IconButton } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
@@ -8,10 +8,15 @@ import {
 import {
   Entity,
   EntityRootType,
+  extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots, isEntityRootedSubgraph } from "@local/hash-subgraph/stdlib";
+import {
+  getEntityTypeById,
+  getRoots,
+  isEntityRootedSubgraph,
+} from "@local/hash-subgraph/stdlib";
 import { Box, SxProps, Theme, useMediaQuery, useTheme } from "@mui/material";
 import {
   FunctionComponent,
@@ -32,7 +37,11 @@ import { SearchIcon } from "../../icons";
 import { Button, Link } from "../../ui";
 import { SearchInput } from "./search-bar/search-input";
 
-/** finds the query's words in the result and chops it into parts at the words' boundaries */
+/**
+ * finds the query's words in the result and chops it into parts at the words' boundaries
+ * @todo reintroduce this for entities with textual-content – H-2258
+ *    bear in mind that text may not contain the search term, given that it's semantic search
+ */
 // const splitByMatches = (result: string, query: string) => {
 //   const separator = query
 //     .split(/\s+/g)
@@ -106,14 +115,19 @@ const EntityResult: FunctionComponent<{
     { ownedById },
   );
 
+  const entityType = getEntityTypeById(subgraph, entity.metadata.entityTypeId);
+
   return (
     <ResultItem>
       <Link
         noLinkStyle
-        href={`/@${entityOwningShortname}/entities/${entityId}`}
+        href={`/@${entityOwningShortname}/entities/${extractEntityUuidFromEntityId(entityId)}`}
       >
         {generateEntityLabel(subgraph, entity)}
       </Link>
+      {entityType && (
+        <Chip color="teal" label={entityType.schema.title} sx={{ ml: 1 }} />
+      )}
     </ResultItem>
   );
 };
@@ -162,7 +176,7 @@ const getSearchBarResponsiveStyles = (
 /**
  * The maximum distance between the search query and an entity's embedding for it to appear in results
  */
-const maximumSemanticDistance = 0.2;
+const maximumSemanticDistance = 0.6;
 
 export const SearchBar: FunctionComponent = () => {
   const theme = useTheme();
@@ -204,8 +218,8 @@ export const SearchBar: FunctionComponent = () => {
         includeDrafts: true,
       },
       includePermissions: false,
-      skip: !submittedQuery,
     },
+    skip: !submittedQuery,
   });
 
   const subgraph =
