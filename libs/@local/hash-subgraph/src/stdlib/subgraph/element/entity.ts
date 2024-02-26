@@ -11,7 +11,6 @@ import {
   EntityRevisionId,
   Subgraph,
   TimeInterval,
-  Timestamp,
 } from "../../../main";
 
 /**
