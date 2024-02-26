@@ -54,7 +54,7 @@ export type Subgraph<
   depths: GraphResolveDepths;
 } & (Temporal extends true
   ? { temporalAxes: SubgraphTemporalAxes }
-  : Record<string, never>);
+  : { temporalAxes?: never });
 
 export const isTemporalSubgraph = <
   RootType extends SubgraphRootType<boolean> = SubgraphRootType<boolean>,

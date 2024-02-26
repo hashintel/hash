@@ -21,6 +21,7 @@ export const fetchTypeAsJson = async (versionedUrl: string) => {
         continue;
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return await response.json();
     } catch (err) {
       if (retry === MAX_RETRIES - 1) {

@@ -67,7 +67,7 @@ export type EntityMetadata<Temporal extends boolean> = {
   entityTypeId: VersionedUrl;
 } & (Temporal extends true
   ? { temporalVersioning: EntityTemporalVersioningMetadata }
-  : Record<string, never>);
+  : { temporalVersioning?: never });
 
 export type LinkData = {
   leftToRightOrder?: number;
@@ -86,7 +86,7 @@ export type Entity<
   metadata: EntityMetadata<Temporal>;
   linkData?: LinkData;
 } & (Properties extends null
-  ? Record<string, never>
+  ? { properties?: never }
   : { properties: Properties });
 
 export type LinkEntityAndRightEntity<Temporal extends boolean> = {
@@ -106,7 +106,7 @@ export type GetEntityData<Temporal extends boolean> = {
   graphResolveDepths?: Partial<GraphResolveDepths>;
 } & (Temporal extends true
   ? { temporalAxes: QueryTemporalAxesUnresolved }
-  : Record<string, never>);
+  : { temporalAxes?: never });
 
 export type UpdateEntityData = {
   entityId: EntityId;
@@ -163,7 +163,7 @@ export type QueryEntitiesData<Temporal extends boolean> = {
   graphResolveDepths?: Partial<GraphResolveDepths>;
 } & (Temporal extends true
   ? { temporalAxes: QueryTemporalAxesUnresolved }
-  : Record<string, never>);
+  : { temporalAxes?: never });
 
 export type QueryEntitiesResult<
   Temporal extends boolean,

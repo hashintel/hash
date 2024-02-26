@@ -321,7 +321,7 @@ export const PropertyListCard = () => {
       },
     });
 
-    if (res.errors?.length || !res.data) {
+    if (!!res.errors?.length || !res.data) {
       // @todo handle this
       throw new Error("Could not create");
     }
