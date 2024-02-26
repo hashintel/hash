@@ -32,7 +32,7 @@ ENV NODE_ENV production
 RUN yarn turbo build --filter '@apps/hash-api'
 
 
-FROM node:18.15-alpine A runner
+FROM node:18.15-alpine AS runner
 
 RUN apk add --no-cache curl
 
