@@ -3,7 +3,7 @@
     "silent": true,
     "autoJobCancelation": true
   },
-  "installCommand": "./vercel-install.sh",
   "buildCommand": "./vercel-build.sh",
+  "installCommand": "./vercel-install.sh",
   "outputDirectory": "storybook-static"
 }
