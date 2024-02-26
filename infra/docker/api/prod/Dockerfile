@@ -57,9 +57,9 @@ RUN yarn turbo build --filter '@apps/hash-api'
 
 FROM node:18.15-slim AS runner
 
-COPY --from=installer /usr/local/src/hash /usr/local/src/hash
-WORKDIR /usr/local/src/hash/apps/hash-api
-RUN mkdir -p /usr/local/src/hash/var/uploads
+COPY --from=installer /usr/local/src /usr/local/src
+WORKDIR /usr/local/src/apps/hash-api
+RUN mkdir -p /usr/local/src/var/uploads
 
 ENTRYPOINT [ "yarn", "--cache-folder", "/tmp/yarn-cache", "--global-folder", "/tmp/yarn-global" ]
 CMD ["start"]
