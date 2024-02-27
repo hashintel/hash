@@ -24,7 +24,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/node": "18.15.13",
     "@types/set-interval-async": "1.0.0",
-    "eslint": "8.56.0",
+    "eslint": "8.57.0",
     "ts-node-dev": "2.0.0"
   }
 }

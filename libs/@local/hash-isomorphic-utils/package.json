@@ -61,7 +61,7 @@
     "@types/node": "18.15.13",
     "@types/node-fetch": "^2.6.2",
     "@types/pluralize": "0.0.33",
-    "eslint": "8.56.0",
+    "eslint": "8.57.0",
     "graphql": "16.8.1",
     "next": "13.5.5",
     "react": "18.2.0",
