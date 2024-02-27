@@ -1,3 +1,4 @@
+import { Timestamp } from "@blockprotocol/graph";
 import { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
 import {
   getEntities as getEntitiesBp,
@@ -42,7 +43,7 @@ export const getEntities = (
 export const getEntityRevision = (
   subgraph: Subgraph,
   entityId: EntityId,
-  targetRevisionInformation?: EntityRevisionId | Date,
+  targetRevisionInformation?: EntityRevisionId | Timestamp | Date,
 ): Entity | undefined =>
   getEntityRevisionBp(
     subgraph as unknown as SubgraphBp,

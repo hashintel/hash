@@ -115,7 +115,7 @@ export type OntologyTypeVertexId = Subtype<
 >;
 export type GraphElementVertexId = Subtype<
   GraphElementVertexIdBp,
-  EntityVertexId
+  EntityVertexId | OntologyTypeVertexId
 >;
 
 export const isOntologyTypeVertexId = (
