@@ -7,6 +7,7 @@ import { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   BaseUrl,
@@ -21,7 +22,6 @@ import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import { MinimalActor, useActors } from "../../../shared/use-actors";
-import { stringifyPropertyValue } from "./stringify-property-value";
 
 export interface TypeEntitiesRow {
   rowId: string;
