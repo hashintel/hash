@@ -147,6 +147,7 @@
     "@rollup/plugin-typescript": "11.1.6",
     "@types/lodash.isequal": "4.5.6",
     "@types/node": "18.15.13",
+    "@types/react": "18.0.26",
     "eslint": "8.57.0",
     "rimraf": "5.0.5",
     "rollup": "4.12.0"
