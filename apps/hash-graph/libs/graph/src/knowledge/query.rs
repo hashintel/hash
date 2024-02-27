@@ -134,8 +134,8 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
     /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
     CreatedAtDecisionTime,
-    /// The timestamp of the transaction time when the [`Entity`] was _first undrafted_ in the
-    /// database.
+    /// The timestamp of the transaction time when the first non-draft edition of the [`Entity`] 
+    /// was inserted into the database. This may be the first edition, if created as non-draft.
     ///
     /// ```rust
     /// # use serde::Deserialize;
