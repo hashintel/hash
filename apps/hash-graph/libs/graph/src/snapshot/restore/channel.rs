@@ -160,6 +160,7 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
                 .start_send_unpin(EntityEmbeddingRow {
                     web_id: embedding.entity_id.owned_by_id,
                     entity_uuid: embedding.entity_id.entity_uuid,
+                    draft_id: embedding.entity_id.draft_id,
                     property: embedding.property.as_ref().map(ToString::to_string),
                     embedding: embedding.embedding,
                     updated_at_transaction_time: embedding.updated_at_transaction_time,
