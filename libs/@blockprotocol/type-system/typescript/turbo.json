@@ -1,0 +1,12 @@
+{
+  "extends": ["//"],
+  "pipeline": {
+    "codegen": {
+      "dependsOn": ["@blockprotocol/type-system-rs#build:wasm"],
+      "outputs": ["wasm/**"]
+    },
+    "build": {
+      "outputs": ["dist/**"]
+    }
+  }
+}

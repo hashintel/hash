@@ -1,0 +1,5 @@
+{
+  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "include": ["scripts", "src", "test"],
+  "exclude": ["wasm", "dist"]
+}
