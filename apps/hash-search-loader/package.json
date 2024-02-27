@@ -10,7 +10,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "start": "cross-env NODE_ENV=production tsx --max-old-space-size=2048 ./src/index.ts"
+    "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts"
   },
   "dependencies": {
     "@apps/hash-api": "0.0.0-private",
@@ -27,3 +27,4 @@
     "eslint": "8.57.0"
   }
 }
+
