@@ -25,8 +25,8 @@ import {
   mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces,
   mapLinearOrganizationToSyncWithWorkspacesInputVariable,
   SelectLinearTeamsTable,
-} from "../select-linear-teams-table";
-import { useLinearIntegrations } from "../use-linear-integrations";
+} from "./select-linear-teams-table";
+import { useLinearIntegrations } from "./use-linear-integrations";
 
 const NewLinearIntegrationPage: NextPageWithLayout = () => {
   const router = useRouter();

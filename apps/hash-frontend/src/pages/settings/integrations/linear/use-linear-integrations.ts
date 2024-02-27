@@ -11,8 +11,8 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { useEffect, useState } from "react";
 
-import { useBlockProtocolQueryEntities } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
-import { useAuthenticatedUser } from "../../shared/auth-info-context";
+import { useBlockProtocolQueryEntities } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
+import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 
 export type LinearIntegration = {
   entity: Entity;

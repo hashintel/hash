@@ -22,10 +22,10 @@ import {
 import {
   GetLinearOrganizationQuery,
   SyncWithWorkspace,
-} from "../../../graphql/api-types.gen";
-import { MinimalUser, Org } from "../../../lib/user-and-org";
-import { MenuItem } from "../../../shared/ui";
-import { useAuthenticatedUser } from "../../shared/auth-info-context";
+} from "../../../../graphql/api-types.gen";
+import { MinimalUser, Org } from "../../../../lib/user-and-org";
+import { MenuItem } from "../../../../shared/ui";
+import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { LinearIntegration } from "./use-linear-integrations";
 
 const SelectWorkspaces: FunctionComponent<{

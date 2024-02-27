@@ -29,11 +29,11 @@ import {
   mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces,
   mapLinearOrganizationToSyncWithWorkspacesInputVariable,
   SelectLinearTeamsTable,
-} from "./select-linear-teams-table";
+} from "./linear/select-linear-teams-table";
 import {
   LinearIntegration,
   useLinearIntegrations,
-} from "./use-linear-integrations";
+} from "./linear/use-linear-integrations";
 
 const LinearConnections: FunctionComponent<{
   connectedLinearOrganizations: GetLinearOrganizationQuery["getLinearOrganization"][];
