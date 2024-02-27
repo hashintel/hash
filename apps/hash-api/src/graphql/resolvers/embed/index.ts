@@ -1,5 +1,4 @@
 import { ApolloError } from "apollo-server-errors";
-import fetch from "node-fetch";
 import oEmbedData from "oembed-providers/providers.json";
 
 import {
