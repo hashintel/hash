@@ -26,7 +26,7 @@
     "build": "tsc --build && yarn exe ./scripts/bundle-workflow-code.ts",
     "build:docker": "docker buildx build --tag hash-ai-worker-ts --file ./docker/Dockerfile ../../ --load",
     "dev": "NODE_ENV=development node --max-old-space-size=2048 ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/main.ts",
-    "exe": "ts-node --transpile-only",
+    "exe": "tsx --transpile-only",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
@@ -62,6 +62,7 @@
     "@types/dotenv-flow": "3.2.0",
     "@types/lodash.ismatch": "4.4.9",
     "eslint": "8.57.0",
-    "ts-node-dev": "2.0.0"
+    "ts-node-dev": "2.0.0",
+    "tsx": "3.13.0"
   }
 }
