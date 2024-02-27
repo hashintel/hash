@@ -125,8 +125,8 @@ pub enum EntityQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["createdAtTransactionTime"]))?;
-    /// assert_eq!(path, EntityQueryPath::CreatedAtTransactionTime);
+    /// let path = EntityQueryPath::deserialize(json!(["createdAtDecisionTime"]))?;
+    /// assert_eq!(path, EntityQueryPath::CreatedAtDecisionTime);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
