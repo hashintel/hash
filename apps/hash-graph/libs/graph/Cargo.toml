@@ -1,7 +1,9 @@
+cargo-features = ["edition2024"]
+
 [package]
 name = "graph"
 version = "0.0.0"
-edition = "2021"
+edition.workspace = true
 publish = false
 description = "HASH Graph API"
 

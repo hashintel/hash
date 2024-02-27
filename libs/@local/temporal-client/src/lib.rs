@@ -1,11 +1,11 @@
 #![feature(impl_trait_in_assoc_type)]
 
+use std::future::{Future, IntoFuture};
+
 pub use self::error::{ConfigError, ConnectionError, WorkflowError};
 
 mod ai;
 mod error;
-
-use std::future::{Future, IntoFuture};
 
 use error_stack::{Report, ResultExt};
 use temporal_io_client::{Client, ClientOptions, ClientOptionsBuilder, RetryClient};

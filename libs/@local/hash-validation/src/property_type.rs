@@ -1,5 +1,5 @@
 use core::{borrow::Borrow, future::Future, pin::Pin};
-use std::{collections::HashMap, num::NonZeroUsize};
+use std::{collections::HashMap, future::Future, num::NonZeroUsize};
 
 use error_stack::{bail, Report, ResultExt};
 use serde_json::Value as JsonValue;
