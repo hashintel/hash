@@ -1,4 +1,4 @@
-import init from "../wasm/type-system";
+import init from "@blockprotocol/type-system-rs/pkg/type-system";
 
 export type InitInput =
   | RequestInfo

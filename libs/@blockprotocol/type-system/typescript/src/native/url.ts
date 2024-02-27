@@ -4,7 +4,7 @@ import {
   ParseVersionedUrlError,
   Result,
   VersionedUrl,
-} from "../../wasm/type-system";
+} from "@blockprotocol/type-system-rs/pkg/type-system";
 
 /**
  * Checks if a given URL string is a valid base URL.

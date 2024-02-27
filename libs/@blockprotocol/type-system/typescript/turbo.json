@@ -2,8 +2,7 @@
   "extends": ["//"],
   "pipeline": {
     "codegen": {
-      "dependsOn": ["@blockprotocol/type-system-rs#build:wasm"],
-      "outputs": ["wasm/**"]
+      "dependsOn": ["@blockprotocol/type-system-rs#build:wasm"]
     },
     "build": {
       "outputs": ["dist/**"]

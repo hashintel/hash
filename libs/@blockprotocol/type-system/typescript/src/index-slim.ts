@@ -1,3 +1,3 @@
-export * from "../wasm/type-system";
 export { TypeSystemInitializer } from "./common";
 export * from "./native";
+export * from "@blockprotocol/type-system-rs/pkg/type-system";
