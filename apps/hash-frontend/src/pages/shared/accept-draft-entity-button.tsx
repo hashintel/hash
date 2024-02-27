@@ -1,7 +1,12 @@
 import { useMutation } from "@apollo/client";
 import { AlertModal, FeatherRegularIcon } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph/.";
+import {
+  Entity,
+  EntityRootType,
+  extractDraftIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { getEntityRevision } from "@local/hash-subgraph/stdlib";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { BoxProps, Typography } from "@mui/material";
@@ -100,8 +105,16 @@ export const AcceptDraftEntityButton: FunctionComponent<
          * may not be present in the subgraph. This is why the `leftEntity` and
          * `rightEntity` are nullable in this context.
          */
-        draftLeftEntity: leftEntity?.metadata.draft ? leftEntity : undefined,
-        draftRightEntity: rightEntity?.metadata.draft ? rightEntity : undefined,
+        draftLeftEntity:
+          leftEntity &&
+          extractDraftIdFromEntityId(leftEntity.metadata.recordId.entityId)
+            ? leftEntity
+            : undefined,
+        draftRightEntity:
+          rightEntity &&
+          extractDraftIdFromEntityId(rightEntity.metadata.recordId.entityId)
+            ? rightEntity
+            : undefined,
       };
     }
 

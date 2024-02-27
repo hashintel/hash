@@ -1,3 +1,4 @@
+#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{string::String, vec::Vec};
 use core::{
     fmt,
@@ -244,16 +245,13 @@ impl Display for ArrayLengthError {
 
 #[cfg(test)]
 mod tests {
+    #[cfg_attr(feature = "std", allow(unused_imports))]
     use alloc::{borrow::ToOwned, vec};
 
-    use error_stack::Report;
     use serde_json::json;
 
     use super::*;
-    use crate::{
-        error::Error,
-        test::{to_json, to_message},
-    };
+    use crate::test::{to_json, to_message};
 
     #[test]
     fn array() {

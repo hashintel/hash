@@ -3,12 +3,12 @@ import {
   ArrowUpRightIcon,
   DashIcon,
 } from "@hashintel/design-system";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { Box, Stack, SxProps, Theme, Tooltip } from "@mui/material";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { FileUpload } from "../../../../shared/file-upload-context";
 import { Link } from "../../../../shared/ui/link";
+import { generateEntityHref } from "../../use-entity-href";
 
 const buttonSx: SxProps<Theme> = {
   color: "blue.70",
@@ -37,9 +37,16 @@ export const Action = ({
       return (
         <Tooltip title="View entity">
           <Link
-            href={`/@${shortname}/entities/${extractEntityUuidFromEntityId(
-              upload.createdEntities.fileEntity.metadata.recordId.entityId,
-            )}`}
+            href={
+              shortname
+                ? generateEntityHref({
+                    shortname,
+                    entityId:
+                      upload.createdEntities.fileEntity.metadata.recordId
+                        .entityId,
+                  })
+                : "#"
+            }
             sx={{
               display: "block",
               height: actionHeight,

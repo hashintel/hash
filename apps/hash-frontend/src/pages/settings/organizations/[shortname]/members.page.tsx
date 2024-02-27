@@ -82,7 +82,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
             {org.memberships
               .sort(
                 ({ user: a }, { user: b }) =>
-                  a.preferredName?.localeCompare(b.preferredName ?? "ZZZ") ?? 1,
+                  a.displayName?.localeCompare(b.displayName ?? "ZZZ") ?? 1,
               )
               .map((membership) => (
                 <MemberRow

@@ -3,6 +3,7 @@
 // implementation: `pub(crate)` and `pub`.
 #![cfg_attr(not(feature = "std"), allow(unreachable_pub))]
 
+#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{boxed::Box, string::String, vec::Vec};
 use core::{any::TypeId, mem};
 
@@ -453,6 +454,7 @@ impl Hooks {
 mod default {
     #[cfg(any(all(feature = "std", rust_1_65), feature = "spantrace"))]
     use alloc::format;
+    #[cfg_attr(feature = "std", allow(unused_imports))]
     use alloc::string::ToString;
     use core::{
         panic::Location,

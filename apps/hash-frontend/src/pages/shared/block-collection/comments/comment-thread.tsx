@@ -1,5 +1,5 @@
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { TextToken } from "@local/hash-isomorphic-utils/types";
 import {
   AccountEntityId,
@@ -70,10 +70,10 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
     return [replies, lastItems];
   }, [comment]);
 
-  const preferredName = useMemo(
+  const displayName = useMemo(
     () =>
       simplifyProperties(comment.author.properties as UserProperties)
-        .preferredName,
+        .displayName,
     [comment.author.properties],
   );
 
@@ -182,7 +182,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
           >
             <CommentTextField
               value={inputValue}
-              placeholder={`Reply to ${preferredName}`}
+              placeholder={`Reply to ${displayName}`}
               onClose={cancelSubmit}
               onSubmit={handleReplySubmit}
               editable={!loading}

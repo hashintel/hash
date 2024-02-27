@@ -257,7 +257,7 @@ describe("Entity CRU", () => {
             "Even more text than before",
         },
       },
-    ).catch((err) => Promise.reject(err.data));
+    ).catch((err) => Promise.reject(err));
 
     expect(updatedEntity.metadata.provenance.edition.createdById).toBe(
       testUser2.accountId,

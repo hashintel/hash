@@ -1,6 +1,6 @@
+import { EntityTypeWithMetadata } from "@blockprotocol/graph";
 import { validateEntityType } from "@blockprotocol/type-system";
-import { EntityType } from "@blockprotocol/type-system/slim";
-import { OwnedById } from "@local/hash-subgraph";
+import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
@@ -9,7 +9,6 @@ import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../../shared/layout";
-import { useIsReadonlyModeForType } from "../../../../shared/readonly-mode";
 import { EntityTypePage } from "../../../shared/entity-type-page";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { getEntityTypeBaseUrl } from "./[...slug-maybe-version].page/get-entity-type-base-url";
@@ -30,16 +29,27 @@ const Page: NextPageWithLayout = () => {
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
-      const entityType = JSON.parse(
+      const entityTypeSchema = JSON.parse(
         Buffer.from(
           decodeURIComponent(router.query.draft.toString()),
           "base64",
         ).toString("utf8"),
       );
 
-      const validationResult = validateEntityType(entityType);
+      const validationResult = validateEntityType(entityTypeSchema);
       if (validationResult.type === "Ok") {
-        return entityType as EntityType;
+        const { baseUrl, version } = componentsFromVersionedUrl(
+          entityTypeSchema.$id,
+        );
+        return {
+          metadata: {
+            recordId: {
+              baseUrl,
+              version,
+            },
+          },
+          schema: entityTypeSchema,
+        } satisfies EntityTypeWithMetadata;
       } else {
         throw Error(
           `Invalid draft entity type: ${JSON.stringify(validationResult)}`,
@@ -53,10 +63,6 @@ const Page: NextPageWithLayout = () => {
   const requestedVersion = requestedVersionString
     ? parseInt(requestedVersionString, 10)
     : null;
-
-  const userUnauthorized = useIsReadonlyModeForType(
-    routeNamespace?.accountId as OwnedById,
-  );
 
   if (!routeNamespace) {
     if (loadingNamespace) {
@@ -72,7 +78,6 @@ const Page: NextPageWithLayout = () => {
       draftEntityType={draftEntityType}
       entityTypeBaseUrl={entityTypeBaseUrl}
       requestedVersion={requestedVersion}
-      readonly={userUnauthorized}
     />
   );
 };

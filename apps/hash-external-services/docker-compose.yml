@@ -13,6 +13,9 @@ services:
     environment:
       POSTGRES_USER: "${POSTGRES_USER}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      HASH_HYDRA_PG_USER: "${HASH_HYDRA_PG_USER}"
+      HASH_HYDRA_PG_PASSWORD: "${HASH_HYDRA_PG_PASSWORD}"
+      HASH_HYDRA_PG_DATABASE: "${HASH_HYDRA_PG_DATABASE}"
       HASH_KRATOS_PG_USER: "${HASH_KRATOS_PG_USER}"
       HASH_KRATOS_PG_PASSWORD: "${HASH_KRATOS_PG_PASSWORD}"
       HASH_KRATOS_PG_DATABASE: "${HASH_KRATOS_PG_DATABASE}"
@@ -94,6 +97,55 @@ services:
       COURIER_SMTP_CONNECTION_URI: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
       DSN: "postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DATABASE}"
     command: serve --dev --watch-courier
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  hydra-migrate:
+    build:
+      context: ./hydra
+      args:
+        ENV: dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      DSN: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_HYDRA_PG_DATABASE}"
+
+    command: migrate sql -e --yes
+
+  hydra:
+    build:
+      context: ./hydra
+      args:
+        ENV: dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      hydra-migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    ports:
+      - "4444:4444" # public API
+      - "4445:4445" # admin API
+    environment:
+      DSN: "postgres://${HASH_HYDRA_PG_USER}:${HASH_HYDRA_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_HYDRA_PG_DATABASE}"
+      SECRETS_COOKIE: "${HASH_HYDRA_SECRETS_COOKIE}"
+      SECRETS_SYSTEM: "${HASH_HYDRA_SECRETS_SYSTEM}"
+      URLS_CONSENT: "${API_ORIGIN}/oauth2/consent"
+      URLS_IDENTITY_PROVIDER_PUBLICURL: "http://kratos:4433"
+      URLS_IDENTITY_PROVIDER_URL: "http://kratos:4434"
+      URLS_LOGIN: "${FRONTEND_URL}/signin"
+      URLS_REGISTRATION: "${FRONTEND_URL}/signup"
+      URLS_POST_LOGOUT_REDIRECT: "${FRONTEND_URL}"
+      URLS_SELF_ISSUER: "${API_ORIGIN}"
+      URLS_SELF_PUBLIC: "${API_ORIGIN}"
+    command: serve all --dev
     read_only: true
     security_opt:
       - no-new-privileges:true

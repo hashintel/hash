@@ -52,7 +52,6 @@ export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
                   width: "1.5rem",
                 }}
                 alt={option.variant.name}
-                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
                 src={option.variant.icon ?? "/format-font.svg"}
               />
             )}

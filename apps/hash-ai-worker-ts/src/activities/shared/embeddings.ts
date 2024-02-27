@@ -1,9 +1,12 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { PropertyType } from "@local/hash-graph-client";
+import type { Embedding, PropertyType } from "@local/hash-graph-client";
 import type {
   BaseUrl,
+  DataTypeWithMetadata,
   EntityPropertiesObject,
   EntityPropertyValue,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import OpenAI from "openai";
@@ -17,7 +20,8 @@ const openai = new OpenAI({
 export const createEmbeddings = async (params: { input: string[] }) => {
   const response = await openai.embeddings.create({
     input: params.input,
-    model: "text-embedding-ada-002",
+    model: "text-embedding-3-large",
+    encoding_format: "float",
   });
 
   return {
@@ -101,5 +105,80 @@ export const createEntityEmbeddings = async (params: {
       property: usedPropertyBaseUrls[idx],
       embedding,
     })),
+  };
+};
+
+export const createEntityTypeEmbeddings = async (params: {
+  entityType: EntityTypeWithMetadata;
+}): Promise<{
+  embedding: Embedding;
+  usage: Usage;
+}> => {
+  // We want to create embeddings for:
+  //   1. The `Title: Description` pair
+  const embeddingInputs: string[] = [
+    `${params.entityType.schema.title}: ${params.entityType.schema.description}`,
+  ];
+
+  const { embeddings, usage } = await createEmbeddings({
+    input: embeddingInputs,
+  });
+  if (embeddings.length !== 1) {
+    throw new Error("Expected exactly one embedding");
+  }
+
+  return {
+    usage,
+    embedding: embeddings[0]!,
+  };
+};
+
+export const createPropertyTypeEmbeddings = async (params: {
+  propertyType: PropertyTypeWithMetadata;
+}): Promise<{
+  embedding: Embedding;
+  usage: Usage;
+}> => {
+  // We want to create embeddings for:
+  //   1. The `Title: Description` pair
+  const embeddingInputs: string[] = [
+    `${params.propertyType.schema.title}: ${params.propertyType.schema.description}`,
+  ];
+
+  const { embeddings, usage } = await createEmbeddings({
+    input: embeddingInputs,
+  });
+  if (embeddings.length !== 1) {
+    throw new Error("Expected exactly one embedding");
+  }
+
+  return {
+    usage,
+    embedding: embeddings[0]!,
+  };
+};
+
+export const createDataTypeEmbeddings = async (params: {
+  dataType: DataTypeWithMetadata;
+}): Promise<{
+  embedding: Embedding;
+  usage: Usage;
+}> => {
+  // We want to create embeddings for:
+  //   1. The `Title: Description` pair
+  const embeddingInputs: string[] = [
+    `${params.dataType.schema.title}: ${params.dataType.schema.description}`,
+  ];
+
+  const { embeddings, usage } = await createEmbeddings({
+    input: embeddingInputs,
+  });
+  if (embeddings.length !== 1) {
+    throw new Error("Expected exactly one embedding");
+  }
+
+  return {
+    usage,
+    embedding: embeddings[0]!,
   };
 };

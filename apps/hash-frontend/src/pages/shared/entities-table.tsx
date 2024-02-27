@@ -2,6 +2,7 @@ import {
   Entity as BpEntity,
   EntityRootType as BpEntityRootType,
   Subgraph as BpSubgraph,
+  VersionedUrl,
 } from "@blockprotocol/graph";
 import {
   CustomCell,
@@ -9,13 +10,14 @@ import {
   Item,
   TextCell,
 } from "@glideapps/glide-data-grid";
-import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
 import { ListRegularIcon } from "@hashintel/design-system";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
+  BaseUrl,
   Entity,
   EntityId,
   extractEntityUuidFromEntityId,
@@ -33,6 +35,7 @@ import {
 import { useRouter } from "next/router";
 import {
   FunctionComponent,
+  ReactNode,
   useCallback,
   useEffect,
   useMemo,
@@ -47,10 +50,13 @@ import {
   gridRowHeight,
 } from "../../components/grid/grid";
 import { BlankCell, blankCell } from "../../components/grid/utils";
+import { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
 import { ColumnFilter } from "../../components/grid/utils/filtering";
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { useEntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
+import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
+import { GridSolidIcon } from "../../shared/icons/grid-solid-icon";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import {
   FilterState,
@@ -61,6 +67,7 @@ import { isAiMachineActor } from "../../shared/use-actors";
 import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { renderChipCell } from "./chip-cell";
+import { GridView } from "./entities-table/grid-view";
 import {
   createRenderTextIconCell,
   TextIconCell,
@@ -71,6 +78,38 @@ import {
 } from "./entities-table/use-entities-table";
 import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-entities-table-additional-csv-data";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
+
+/**
+ * @todo: avoid having to maintain this list, potentially by
+ * adding an `isFile` boolean to the generated ontology IDs file.
+ */
+const allFileEntityTypeOntologyIds = [
+  systemEntityTypes.file,
+  systemEntityTypes.image,
+  systemEntityTypes.documentFile,
+  systemEntityTypes.docxDocument,
+  systemEntityTypes.pdfDocument,
+  systemEntityTypes.presentationFile,
+  systemEntityTypes.pptxPresentation,
+];
+
+const allFileEntityTypeIds = allFileEntityTypeOntologyIds.map(
+  ({ entityTypeId }) => entityTypeId,
+) as VersionedUrl[];
+
+const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
+  ({ entityTypeBaseUrl }) => entityTypeBaseUrl,
+) as BaseUrl[];
+
+const entitiesTableViews = ["Table", "Graph", "Grid"] as const;
+
+type EntityTableView = (typeof entitiesTableViews)[number];
+
+const entitiesTableViewIcons: Record<EntityTableView, ReactNode> = {
+  Table: <ListRegularIcon sx={{ fontSize: 18 }} />,
+  Graph: <ChartNetworkRegularIcon sx={{ fontSize: 18 }} />,
+  Grid: <GridSolidIcon sx={{ fontSize: 14 }} />,
+};
 
 export const EntitiesTable: FunctionComponent<{
   hideEntityTypeVersionColumn?: boolean;
@@ -85,8 +124,6 @@ export const EntitiesTable: FunctionComponent<{
   });
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
-  const [view, setView] = useState<"table" | "graph">("table");
-
   const {
     entityTypeBaseUrl,
     entityTypeId,
@@ -97,6 +134,37 @@ export const EntitiesTable: FunctionComponent<{
     propertyTypes,
     subgraph: subgraphWithoutLinkedEntities,
   } = useEntityTypeEntitiesContext();
+
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+
+  const isDisplayingFilesOnly = useMemo(
+    () =>
+      /**
+       * To allow the `Grid` view to come into view on first render where
+       * possible, we check whether `entityTypeId` or `entityTypeBaseUrl`
+       * matches a `File` entity type from a statically defined list.
+       */
+      (entityTypeId && allFileEntityTypeIds.includes(entityTypeId)) ||
+      (entityTypeBaseUrl &&
+        allFileEntityTypeBaseUrl.includes(entityTypeBaseUrl)) ||
+      /**
+       * Otherwise we check the fetched `entityTypes` as a fallback.
+       */
+      entityTypes?.every(({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile),
+    [entityTypeBaseUrl, entityTypeId, entityTypes, isSpecialEntityTypeLookup],
+  );
+
+  const supportGridView = isDisplayingFilesOnly;
+
+  const [view, setView] = useState<EntityTableView>(
+    isDisplayingFilesOnly ? "Grid" : "Table",
+  );
+
+  useEffect(() => {
+    if (isDisplayingFilesOnly) {
+      setView("Grid");
+    }
+  }, [isDisplayingFilesOnly]);
 
   const { subgraph: subgraphWithLinkedEntities } = useEntityTypeEntities({
     entityTypeBaseUrl,
@@ -256,9 +324,7 @@ export const EntitiesTable: FunctionComponent<{
           } else if (columnId === "lastEditedBy") {
             const { lastEditedBy } = row;
             const lastEditedByName = lastEditedBy
-              ? "displayName" in lastEditedBy
-                ? lastEditedBy.displayName
-                : lastEditedBy.preferredName
+              ? lastEditedBy.displayName
               : undefined;
 
             const lastEditedByIcon = lastEditedBy
@@ -441,10 +507,7 @@ export const EntitiesTable: FunctionComponent<{
         columnKey: "lastEditedBy",
         filterItems: lastEditedByActors.map((actor) => ({
           id: actor.accountId,
-          label:
-            ("displayName" in actor
-              ? actor.displayName
-              : actor.preferredName) ?? "Unknown Actor",
+          label: actor.displayName ?? "Unknown Actor",
         })),
         selectedFilterItemIds: selectedLastEditedByAccountIds,
         setSelectedFilterItemIds: setSelectedLastEditedByAccountIds,
@@ -531,33 +594,38 @@ export const EntitiesTable: FunctionComponent<{
                 svg: {
                   transition: ({ transitions }) => transitions.create("color"),
                   color: ({ palette }) => palette.gray[50],
-                  fontSize: 18,
                 },
               },
             }}
           >
-            <ToggleButton disableRipple value="table" aria-label="table">
-              <Tooltip title="Table view" placement="top">
-                <Box sx={{ lineHeight: 0 }}>
-                  <ListRegularIcon />
-                </Box>
-              </Tooltip>
-            </ToggleButton>
-            <ToggleButton disableRipple value="graph" aria-label="graph">
-              <Tooltip title="Graph view" placement="top">
-                <Box sx={{ lineHeight: 0 }}>
-                  <ChartNetworkRegularIcon />
-                </Box>
-              </Tooltip>
-            </ToggleButton>
+            {(
+              [
+                "Table",
+                ...(supportGridView ? (["Grid"] as const) : []),
+                "Graph",
+              ] satisfies EntityTableView[]
+            ).map((viewName) => (
+              <ToggleButton
+                key={viewName}
+                disableRipple
+                value={viewName}
+                aria-label={viewName}
+              >
+                <Tooltip title={`${viewName} view`} placement="top">
+                  <Box sx={{ lineHeight: 0 }}>
+                    {entitiesTableViewIcons[viewName]}
+                  </Box>
+                </Tooltip>
+              </ToggleButton>
+            ))}
           </ToggleButtonGroup>
         }
         filterState={filterState}
         setFilterState={setFilterState}
-        toggleSearch={view === "table" ? () => setShowSearch(true) : undefined}
+        toggleSearch={view === "Table" ? () => setShowSearch(true) : undefined}
         onBulkActionCompleted={() => setSelectedRows([])}
       />
-      {view === "graph" ? (
+      {view === "Graph" ? (
         <EntitiesGraphChart
           isPrimaryEntity={(entity) =>
             entityTypeBaseUrl
@@ -587,12 +655,15 @@ export const EntitiesTable: FunctionComponent<{
           }}
           subgraph={subgraph as unknown as BpSubgraph<BpEntityRootType>}
         />
+      ) : view === "Grid" ? (
+        <GridView entities={entities} />
       ) : (
         <Grid
           showSearch={showSearch}
           onSearchClose={() => setShowSearch(false)}
           columns={columns}
           columnFilters={columnFilters}
+          dataLoading={loading}
           rows={rows}
           enableCheckboxSelection
           selectedRows={selectedRows}

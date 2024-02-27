@@ -36,6 +36,9 @@ process.env.NEXT_PUBLIC_SENTRY_DSN = process.env.SENTRY_DSN ?? "";
 process.env.NEXT_PUBLIC_SENTRY_REPLAY_SESSION_SAMPLE_RATE =
   process.env.SENTRY_REPLAY_SESSION_SAMPLE_RATE ?? 1;
 
+process.env.NEXT_PUBLIC_NOTIFICATION_POLL_INTERVAL =
+  process.env.NOTIFICATION_POLL_INTERVAL ?? "";
+
 process.env.NEXT_PUBLIC_SELF_HOSTED_HASH = process.env.SELF_HOSTED_HASH ?? "";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_ORIGIN ?? "http://localhost:5001";

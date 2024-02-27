@@ -4,8 +4,8 @@ use crate::{
     ontology::EntityTypeQueryPath,
     store::postgres::query::{
         table::{
-            Column, EntityTypes, JsonField, OntologyAdditionalMetadata, OntologyIds,
-            OntologyOwnedMetadata, OntologyTemporalMetadata, ReferenceTable, Relation,
+            Column, EntityTypeEmbeddings, EntityTypes, JsonField, OntologyAdditionalMetadata,
+            OntologyIds, OntologyOwnedMetadata, OntologyTemporalMetadata, ReferenceTable, Relation,
         },
         PostgresQueryPath,
     },
@@ -30,6 +30,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             Self::OwnedById => vec![Relation::OntologyOwnedMetadata],
             Self::AdditionalMetadata => vec![Relation::OntologyAdditionalMetadata],
             Self::TransactionTime | Self::EditionCreatedById | Self::EditionArchivedById => vec![],
+            Self::Embedding => vec![Relation::EntityTypeEmbeddings],
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                 path,
@@ -127,6 +128,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
                 Column::OntologyTemporalMetadata(OntologyTemporalMetadata::ArchivedById)
             }
             Self::OntologyId => Column::EntityTypes(EntityTypes::OntologyId),
+            Self::Embedding => Column::EntityTypeEmbeddings(EntityTypeEmbeddings::Embedding),
             Self::Schema(path) => path
                 .as_ref()
                 .map_or(Column::EntityTypes(EntityTypes::Schema(None)), |path| {

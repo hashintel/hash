@@ -34,6 +34,7 @@ import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import { TabLink } from "../shared/ui/tab-link";
 import { Tabs } from "../shared/ui/tabs";
+import { useUserPermissionsOnEntityType } from "../shared/use-user-permissions-on-entity-type";
 import { EntitiesTable } from "./shared/entities-table";
 import { TopContextBar } from "./shared/top-context-bar";
 import { useActiveWorkspace } from "./shared/workspace-context";
@@ -205,6 +206,9 @@ const EntitiesPage: NextPageWithLayout = () => {
     entityTypeId,
   });
 
+  const { userPermissions, loading: userPermissionsLoading } =
+    useUserPermissionsOnEntityType(entityType?.schema.$id);
+
   const isViewAllPagesPage =
     entityType && entityType.schema.$id === systemEntityTypes.page.entityTypeId;
 
@@ -217,12 +221,25 @@ const EntitiesPage: NextPageWithLayout = () => {
   const { entities, loading } = entityTypeEntitiesValue;
 
   const displayCreateEntityButton = useMemo(() => {
+    if (userPermissionsLoading) {
+      return false;
+    }
+
+    if (userPermissions && !userPermissions.instantiate) {
+      return false;
+    }
+
     if (isViewAllPagesPage) {
       return hashInstance?.properties.pagesAreEnabled;
     }
 
     return true;
-  }, [isViewAllPagesPage, hashInstance]);
+  }, [
+    isViewAllPagesPage,
+    hashInstance,
+    userPermissions,
+    userPermissionsLoading,
+  ]);
 
   return (
     <>

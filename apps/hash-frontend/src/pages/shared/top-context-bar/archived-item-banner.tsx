@@ -156,7 +156,7 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
                     marginRight: 0.75,
                   }}
                 />
-                {archivedByUser.preferredName}
+                {archivedByUser.displayName}
               </Link>
             </>
           ) : null}

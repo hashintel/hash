@@ -9,12 +9,12 @@ import type {
   SimpleProperties,
   Simplified,
 } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { ImageProperties } from "@local/hash-isomorphic-utils/system-types/image";
 import type {
   BrowserPluginSettingsProperties,
-  ImageProperties,
   OrganizationProperties,
-  UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import {
   Entity,
   EntityId,
@@ -68,7 +68,7 @@ type SimplifiedUser = Entity & {
   properties: Required<
     Pick<
       SimpleProperties<UserProperties>,
-      "email" | "preferredName" | "shortname"
+      "email" | "displayName" | "shortname"
     >
   >;
 };

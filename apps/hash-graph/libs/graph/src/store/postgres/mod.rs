@@ -50,6 +50,7 @@ pub use self::{
     traversal_context::TraversalContext,
 };
 use crate::store::{
+    account::{InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams},
     error::{
         DeletionError, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
         VersionedUrlAlreadyExists,
@@ -904,9 +905,76 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         self.client.rollback().await.change_context(StoreError)
     }
 
+    // async fn insert_entity_id(
+    //     &self,
+    //     actor_id: AccountId,
+    //     entity_id: EntityId,
+    //     decision_time: Option<Timestamp<DecisionTime>>,
+    // ) -> Result<u64, InsertionError> {
+    //     if let Some(decision_time) = decision_time {
+    //         self.as_client()
+    //             .query(
+    //                 "
+    //                 INSERT INTO entity_ids (
+    //                     web_id,
+    //                     entity_uuid,
+    //                     created_by_id,
+    //                     created_at_transaction_time,
+    //                     created_at_decision_time
+    //                 ) VALUES ($1, $2, $3, now(), $4);
+    //             ",
+    //                 &[
+    //                     &entity_id.owned_by_id,
+    //                     &entity_id.entity_uuid,
+    //                     &CreatedById::new(actor_id),
+    //                     &decision_time,
+    //                 ],
+    //             )
+    //             .await
+    //             .change_context(InsertionError)?;
+    //     } else {
+    //         self.as_client()
+    //             .query(
+    //                 "
+    //                 INSERT INTO entity_ids (
+    //                     web_id,
+    //                     entity_uuid,
+    //                     created_by_id,
+    //                     created_at_transaction_time,
+    //                     created_at_decision_time
+    //                 ) VALUES ($1, $2, $3, now(), now());
+    //             ",
+    //                 &[
+    //                     &entity_id.owned_by_id,
+    //                     &entity_id.entity_uuid,
+    //                     &CreatedById::new(actor_id),
+    //                 ],
+    //             )
+    //             .await
+    //             .change_context(InsertionError)?;
+    //     }
+    //
+    //     if let Some(draft_id) = entity_id.draft_id {
+    //         transaction
+    //             .as_client()
+    //             .query(
+    //                 "
+    //                 INSERT INTO entity_drafts (
+    //                     web_id,
+    //                     entity_uuid,
+    //                     draft_id
+    //                 ) VALUES ($1, $2, $3);
+    //             ",
+    //                 &[&entity_id.owned_by_id, &entity_id.entity_uuid, &draft_id],
+    //             )
+    //             .await
+    //             .change_context(InsertionError)?;
+    //     }
+    // }
+
     async fn insert_entity_ids(
         &self,
-        entity_uuids: impl IntoIterator<
+        entity_ids: impl IntoIterator<
             Item = (EntityId, CreatedById, Option<Timestamp<DecisionTime>>),
             IntoIter: Send,
         > + Send,
@@ -941,7 +1009,11 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         );
 
         futures::pin_mut!(writer);
-        for (entity_id, actor_id, decision_time) in entity_uuids {
+        for (entity_id, actor_id, decision_time) in entity_ids {
+            #[expect(clippy::todo)]
+            if entity_id.draft_id.is_some() {
+                todo!("https://linear.app/hash/issue/H-2142/support-draft-entities-in-batch-entity-creation")
+            }
             writer
                 .as_mut()
                 .write(&[
@@ -1071,8 +1143,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     left_to_right_order INT,
                     right_to_left_order INT,
                     edition_created_by_id UUID NOT NULL,
-                    archived BOOLEAN NOT NULL,
-                    draft BOOLEAN NOT NULL
+                    archived BOOLEAN NOT NULL
                 );",
             )
             .await
@@ -1086,22 +1157,14 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     left_to_right_order,
                     right_to_left_order,
                     edition_created_by_id,
-                    archived,
-                    draft
+                    archived
                 ) FROM STDIN BINARY",
             )
             .await
             .change_context(InsertionError)?;
         let writer = BinaryCopyInWriter::new(
             sink,
-            &[
-                Type::JSONB,
-                Type::INT4,
-                Type::INT4,
-                Type::UUID,
-                Type::BOOL,
-                Type::BOOL,
-            ],
+            &[Type::JSONB, Type::INT4, Type::INT4, Type::UUID, Type::BOOL],
         );
         futures::pin_mut!(writer);
         for (properties, left_to_right_order, right_to_left_order) in entities {
@@ -1114,7 +1177,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     &left_to_right_order,
                     &right_to_left_order,
                     &actor_id,
-                    &false,
                     &false,
                 ])
                 .await
@@ -1132,8 +1194,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     left_to_right_order,
                     right_to_left_order,
                     edition_created_by_id,
-                    archived,
-                    draft
+                    archived
                 )
                 SELECT
                     gen_random_uuid(),
@@ -1141,8 +1202,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     left_to_right_order,
                     right_to_left_order,
                     edition_created_by_id,
-                    archived,
-                    draft
+                    archived
                 FROM entity_editions_temp
                 RETURNING entity_edition_id;",
                 &[],
@@ -1260,16 +1320,16 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         &mut self,
         _actor_id: AccountId,
         _authorization_api: &mut A,
-        account_id: AccountId,
+        params: InsertAccountIdParams,
     ) -> Result<(), InsertionError> {
         self.as_client()
             .query(
                 "INSERT INTO accounts (account_id) VALUES ($1);",
-                &[&account_id],
+                &[&params.account_id],
             )
             .await
             .change_context(InsertionError)
-            .attach_printable(account_id)?;
+            .attach_printable(params.account_id)?;
         Ok(())
     }
 
@@ -1278,7 +1338,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         &mut self,
         actor_id: AccountId,
         authorization_api: &mut A,
-        account_group_id: AccountGroupId,
+        params: InsertAccountGroupIdParams,
     ) -> Result<(), InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
@@ -1286,16 +1346,16 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .as_client()
             .query(
                 "INSERT INTO account_groups (account_group_id) VALUES ($1);",
-                &[&account_group_id],
+                &[&params.account_group_id],
             )
             .await
             .change_context(InsertionError)
-            .attach_printable(account_group_id)?;
+            .attach_printable(params.account_group_id)?;
 
         authorization_api
             .modify_account_group_relations([(
                 ModifyRelationshipOperation::Create,
-                account_group_id,
+                params.account_group_id,
                 AccountGroupRelationAndSubject::Administrator {
                     subject: AccountGroupAdministratorSubject::Account { id: actor_id },
                     level: 0,
@@ -1308,7 +1368,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             if let Err(auth_error) = authorization_api
                 .modify_account_group_relations([(
                     ModifyRelationshipOperation::Delete,
-                    account_group_id,
+                    params.account_group_id,
                     AccountGroupRelationAndSubject::Administrator {
                         subject: AccountGroupAdministratorSubject::Account { id: actor_id },
                         level: 0,
@@ -1333,21 +1393,23 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         &mut self,
         _actor_id: AccountId,
         authorization_api: &mut A,
-        owned_by_id: OwnedById,
-        owner: WebOwnerSubject,
+        params: InsertWebIdParams,
     ) -> Result<(), InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
         transaction
             .as_client()
-            .query("INSERT INTO webs (web_id) VALUES ($1);", &[&owned_by_id])
+            .query(
+                "INSERT INTO webs (web_id) VALUES ($1);",
+                &[&params.owned_by_id],
+            )
             .await
             .change_context(InsertionError)
-            .attach_printable(owned_by_id)?;
+            .attach_printable(params.owned_by_id)?;
 
         let mut relationships = vec![
             WebRelationAndSubject::Owner {
-                subject: owner,
+                subject: params.owner,
                 level: 0,
             },
             WebRelationAndSubject::EntityTypeViewer {
@@ -1363,7 +1425,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 level: 0,
             },
         ];
-        if let WebOwnerSubject::AccountGroup { id } = owner {
+        if let WebOwnerSubject::AccountGroup { id } = params.owner {
             relationships.extend([
                 WebRelationAndSubject::EntityCreator {
                     subject: WebEntityCreatorSubject::AccountGroup {
@@ -1391,7 +1453,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                     .map(|relation_and_subject| {
                         (
                             ModifyRelationshipOperation::Create,
-                            owned_by_id,
+                            params.owned_by_id,
                             relation_and_subject,
                         )
                     }),
@@ -1404,7 +1466,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 .modify_web_relations(relationships.into_iter().map(|relation_and_subject| {
                     (
                         ModifyRelationshipOperation::Delete,
-                        owned_by_id,
+                        params.owned_by_id,
                         relation_and_subject,
                     )
                 }))
@@ -1420,25 +1482,6 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         } else {
             Ok(())
         }
-    }
-
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn has_account(&self, account_id: AccountId) -> Result<bool, QueryError> {
-        Ok(self
-            .as_client()
-            .query_one(
-                "
-                    SELECT EXISTS (
-                        SELECT 1
-                        FROM accounts
-                        WHERE account_id = $1
-                    );
-                ",
-                &[&account_id],
-            )
-            .await
-            .change_context(QueryError)?
-            .get(0))
     }
 
     #[tracing::instrument(level = "info", skip(self))]

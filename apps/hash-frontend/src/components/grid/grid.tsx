@@ -8,7 +8,6 @@ import {
   GridCell,
   GridCellKind,
   GridColumn,
-  GridMouseEventArgs,
   GridSelection,
   HeaderClickedEventArgs,
   Item,
@@ -54,21 +53,22 @@ export type GridProps<T extends Row & { rowId: string }> = Omit<
   | "rows"
   | "onCellEdited"
 > & {
-  columns: SizedGridColumn[];
   columnFilters?: ColumnFilter<string, T>[];
-  enableCheckboxSelection?: boolean;
-  selectedRows?: T[];
-  onSelectedRowsChange?: (selectedRows: T[]) => void;
-  rows?: T[];
-  resizable?: boolean;
-  sortable?: boolean;
-  initialSortedColumnKey?: string;
-  firstColumnLeftPadding?: number;
-  gridRef?: Ref<DataEditorRef>;
-  currentlyDisplayedRowsRef?: MutableRefObject<T[] | null>;
+  columns: SizedGridColumn[];
   createGetCellContent: (rows: T[]) => (cell: Item) => GridCell;
   createOnCellEdited?: (rows: T[]) => DataEditorProps["onCellEdited"];
+  currentlyDisplayedRowsRef?: MutableRefObject<T[] | null>;
+  dataLoading: boolean;
+  enableCheckboxSelection?: boolean;
+  firstColumnLeftPadding?: number;
+  gridRef?: Ref<DataEditorRef>;
+  initialSortedColumnKey?: string;
+  onSelectedRowsChange?: (selectedRows: T[]) => void;
+  resizable?: boolean;
+  rows?: T[];
+  selectedRows?: T[];
   sortRows?: (rows: T[], sort: ColumnSort<string>) => T[];
+  sortable?: boolean;
 };
 
 const gridHeaderHeight = 42;
@@ -80,24 +80,25 @@ export const gridRowHeight = 42;
 export const gridHorizontalScrollbarHeight = 17;
 
 export const Grid = <T extends Row & { rowId: string }>({
-  customRenderers,
-  onVisibleRegionChanged,
-  drawHeader,
-  columns,
-  rows,
-  firstColumnLeftPadding,
-  enableCheckboxSelection = false,
-  resizable = true,
-  sortable = true,
-  columnFilters,
-  initialSortedColumnKey,
   createGetCellContent,
-  sortRows,
-  gridRef,
   createOnCellEdited,
-  selectedRows,
+  columnFilters,
+  columns,
   currentlyDisplayedRowsRef,
+  customRenderers,
+  dataLoading,
+  drawHeader,
+  enableCheckboxSelection = false,
+  firstColumnLeftPadding,
+  gridRef,
+  initialSortedColumnKey,
   onSelectedRowsChange,
+  onVisibleRegionChanged,
+  resizable = true,
+  rows,
+  selectedRows,
+  sortable = true,
+  sortRows,
   ...rest
 }: GridProps<T>) => {
   useRenderGridPortal();
@@ -299,29 +300,6 @@ export const Grid = <T extends Row & { rowId: string }>({
     [hoveredRow, palette],
   );
 
-  const onCellSelect = ({
-    location: [colIndex, rowIndex],
-    kind,
-  }: GridMouseEventArgs) => {
-    setHoveredRow(kind === "cell" ? rowIndex : undefined);
-    setSelection({
-      ...selection,
-      current:
-        kind === "cell"
-          ? {
-              cell: [colIndex, rowIndex],
-              range: {
-                x: colIndex,
-                y: rowIndex,
-                width: 1,
-                height: 1,
-              },
-              rangeStack: [],
-            }
-          : undefined,
-    });
-  };
-
   const overriddenCustomRenderers = useMemo(
     () => overrideCustomRenderers(customRenderers, tableIdRef),
     [customRenderers],
@@ -363,18 +341,20 @@ export const Grid = <T extends Row & { rowId: string }>({
     });
   }, [columns, columnSizes]);
 
+  const emptyStateText = dataLoading ? "Loading..." : "No results";
+
   const getSkeletonCellContent = useCallback(
     ([colIndex]: Item): TextCell => ({
       kind: GridCellKind.Text,
-      displayData: colIndex === 0 ? "Loading..." : "",
-      data: colIndex === 0 ? "Loading..." : "",
+      displayData: colIndex === 0 ? emptyStateText : "",
+      data: colIndex === 0 ? emptyStateText : "",
       allowOverlay: false,
       themeOverride: {
         cellHorizontalPadding: 15,
       },
       style: "faded",
     }),
-    [],
+    [emptyStateText],
   );
 
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -522,11 +502,13 @@ export const Grid = <T extends Row & { rowId: string }>({
         drawFocusRing={false}
         rangeSelect="cell"
         columnSelect="none"
+        cellActivationBehavior="single-click"
         smoothScrollX
         smoothScrollY
         getCellsForSelection
-        onItemHovered={onCellSelect}
-        onCellClicked={(_, args) => args.isTouch && onCellSelect(args)}
+        onItemHovered={({ location: [_colIndex, rowIndex], kind }) => {
+          setHoveredRow(kind === "cell" ? rowIndex : undefined);
+        }}
         customRenderers={overriddenCustomRenderers}
         onVisibleRegionChanged={handleVisibleRegionChanged}
         onColumnResize={resizable ? handleColumnResize : undefined}
@@ -560,26 +542,22 @@ export const Grid = <T extends Row & { rowId: string }>({
                   : defaultValue;
               }
         }
+        onGridSelectionChange={(newSelection) => {
+          setSelection(newSelection);
+
+          if (onSelectedRowsChange && sortedAndFilteredRows) {
+            newSelection.rows.toArray();
+            const updatedSelectedRows = sortedAndFilteredRows.filter(
+              (_, rowIndex) => selection.rows.hasIndex(rowIndex),
+            );
+
+            onSelectedRowsChange(updatedSelectedRows);
+          }
+        }}
         {...(enableCheckboxSelection
           ? {
               rowMarkers: "checkbox",
               rowSelectionMode: "multi",
-              onGridSelectionChange: onSelectedRowsChange
-                ? (updatedGridSelection) => {
-                    updatedGridSelection.rows.toArray();
-
-                    if (!sortedAndFilteredRows) {
-                      return;
-                    }
-
-                    const updatedSelectedRows = sortedAndFilteredRows.filter(
-                      (_, rowIndex) =>
-                        updatedGridSelection.rows.hasIndex(rowIndex),
-                    );
-
-                    onSelectedRowsChange(updatedSelectedRows);
-                  }
-                : undefined,
             }
           : {})}
         {...rest}

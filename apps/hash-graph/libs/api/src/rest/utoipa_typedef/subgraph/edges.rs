@@ -262,6 +262,7 @@ mod tests {
             base_id: EntityId {
                 owned_by_id: OwnedById::new(Uuid::new_v4()),
                 entity_uuid: EntityUuid::new(Uuid::new_v4()),
+                draft_id: None,
             },
             revision_id: Timestamp::now(),
         };
@@ -277,6 +278,7 @@ mod tests {
                 entity_id: EntityId {
                     owned_by_id: OwnedById::new(Uuid::new_v4()),
                     entity_uuid: EntityUuid::new(Uuid::new_v4()),
+                    draft_id: None,
                 },
                 interval: LeftClosedTemporalInterval::new(
                     ClosedTemporalBound::Inclusive(Timestamp::now()),

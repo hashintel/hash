@@ -16,7 +16,7 @@ use self::{
     vertices::Vertices,
 };
 use crate::{
-    store::Record,
+    store::SubgraphRecord,
     subgraph::{
         edges::{EdgeDirection, EdgeKind},
         identifier::{EdgeEndpoint, VertexId},
@@ -51,18 +51,18 @@ impl Subgraph {
         }
     }
 
-    fn vertex_entry_mut<R: Record>(
+    fn vertex_entry_mut<R: SubgraphRecord>(
         &mut self,
         vertex_id: &R::VertexId,
     ) -> RawEntryMut<R::VertexId, R, RandomState> {
         vertex_id.subgraph_entry_mut(&mut self.vertices)
     }
 
-    pub fn get_vertex<R: Record>(&self, vertex_id: &R::VertexId) -> Option<&R> {
+    pub fn get_vertex<R: SubgraphRecord>(&self, vertex_id: &R::VertexId) -> Option<&R> {
         vertex_id.subgraph_entry(&self.vertices)
     }
 
-    pub fn insert_vertex<R: Record>(&mut self, vertex_id: R::VertexId, record: R)
+    pub fn insert_vertex<R: SubgraphRecord>(&mut self, vertex_id: R::VertexId, record: R)
     where
         R::VertexId: Eq + Hash,
     {

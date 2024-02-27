@@ -1,7 +1,9 @@
 // NOTE: this is still a prototype, and might be deleted at any stage, this minimally expands on the
 // existing schema things, but instead allows for deeply nested values.
 
-use alloc::{boxed::Box, collections::BTreeMap, format, string::String};
+use alloc::collections::BTreeMap;
+#[cfg_attr(feature = "std", allow(unused_imports))]
+use alloc::{boxed::Box, format, string::String};
 use core::any::{type_name, TypeId};
 
 use serde::{ser::SerializeMap, Serialize, Serializer};
@@ -298,7 +300,9 @@ pub(crate) mod visitor {
 
 #[cfg(test)]
 mod tests {
-    use alloc::{boxed::Box, collections::BTreeMap, vec::Vec};
+    use alloc::collections::BTreeMap;
+    #[cfg_attr(feature = "std", allow(unused_imports))]
+    use alloc::{boxed::Box, vec::Vec};
 
     use serde_json::{json, to_value};
     use similar_asserts::assert_serde_eq;

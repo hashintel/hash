@@ -5,7 +5,7 @@ import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   DOCXDocumentProperties,
-  FileV2Properties,
+  FileProperties,
 } from "@local/hash-isomorphic-utils/system-types/docxdocument";
 import type { PDFDocumentProperties } from "@local/hash-isomorphic-utils/system-types/pdfdocument";
 import type { PPTXPresentationProperties } from "@local/hash-isomorphic-utils/system-types/pptxpresentation";
@@ -86,7 +86,7 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: UpdateEntityHookCal
               presignedFileDownloadUrl,
               fileEntity: {
                 ...fileEntity,
-                properties: updatedProperties as FileV2Properties,
+                properties: updatedProperties as FileProperties,
               },
               webMachineActorId,
             },

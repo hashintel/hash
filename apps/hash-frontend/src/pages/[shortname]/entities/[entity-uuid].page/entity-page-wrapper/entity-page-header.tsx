@@ -1,6 +1,11 @@
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import {
+  Entity,
+  EntityRootType,
+  extractDraftIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 import { useRouter } from "next/router";
@@ -64,7 +69,9 @@ export const EntityPageHeader = ({
 
       {entity && entitySubgraph ? (
         <NotificationsWithLinksContextProvider>
-          <Collapse in={entity.metadata.draft}>
+          <Collapse
+            in={!!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)}
+          >
             <DraftEntityBanner
               draftEntity={entity}
               draftEntitySubgraph={entitySubgraph}

@@ -22,7 +22,7 @@ export class Telemetry {
 
   public static userRegister(params: {
     shortname: string;
-    preferredName: string;
+    displayName: string;
     email: string;
   }): void {
     Telemetry.client()?.track({
@@ -30,7 +30,7 @@ export class Telemetry {
       event: "user_register",
       properties: {
         domain: frontendDomain,
-        name: params.preferredName,
+        name: params.displayName,
         shortname: params.shortname,
         email: params.email,
       },

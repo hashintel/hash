@@ -21,15 +21,21 @@ use axum::{
     routing::{get, post, put},
     Extension, Router,
 };
-use error_stack::Report;
+use error_stack::{Report, ResultExt};
 use graph::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, PropertyTypeQueryToken,
     },
     store::{
-        error::VersionedUrlAlreadyExists, BaseUrlAlreadyExists, ConflictBehavior,
-        OntologyVersionDoesNotExist, PropertyTypeStore, StorePool,
+        error::VersionedUrlAlreadyExists,
+        ontology::{
+            ArchivePropertyTypeParams, CreatePropertyTypeParams, GetPropertyTypesParams,
+            UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams,
+            UpdatePropertyTypesParams,
+        },
+        BaseUrlAlreadyExists, ConflictBehavior, OntologyVersionDoesNotExist, PropertyTypeStore,
+        StorePool,
     },
     subgraph::{
         identifier::PropertyTypeVertexId,
@@ -39,13 +45,14 @@ use graph::{
 use graph_types::{
     ontology::{
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
-        OntologyTypeRecordId, OntologyTypeReference, PartialPropertyTypeMetadata,
-        PropertyTypeMetadata, PropertyTypeWithMetadata,
+        OntologyTypeReference, PropertyTypeEmbedding, PropertyTypeMetadata,
+        PropertyTypeWithMetadata,
     },
     owned_by_id::OwnedById,
 };
 use hash_status::Status;
 use serde::{Deserialize, Serialize};
+use temporal_client::TemporalClient;
 use time::OffsetDateTime;
 use type_system::{url::VersionedUrl, PropertyType};
 use utoipa::{OpenApi, ToSchema};
@@ -69,6 +76,7 @@ use crate::rest::{
         load_external_property_type,
         get_property_types_by_query,
         update_property_type,
+        update_property_type_embeddings,
         archive_property_type,
         unarchive_property_type,
     ),
@@ -84,14 +92,16 @@ use crate::rest::{
             PropertyTypePermission,
             PropertyTypeRelationAndSubject,
             ModifyPropertyTypeAuthorizationRelationship,
+            PropertyTypeEmbedding,
 
             CreatePropertyTypeRequest,
             LoadExternalPropertyTypeRequest,
             UpdatePropertyTypeRequest,
+            UpdatePropertyTypeEmbeddingParams,
             PropertyTypeQueryToken,
             PropertyTypeStructuralQuery,
-            ArchivePropertyTypeRequest,
-            UnarchivePropertyTypeRequest,
+            ArchivePropertyTypeParams,
+            UnarchivePropertyTypeParams,
         )
     ),
     tags(
@@ -135,7 +145,8 @@ impl RoutedResource for PropertyTypeResource {
                 .route("/query", post(get_property_types_by_query::<S, A>))
                 .route("/load", post(load_external_property_type::<S, A>))
                 .route("/archive", put(archive_property_type::<S, A>))
-                .route("/unarchive", put(unarchive_property_type::<S, A>)),
+                .route("/unarchive", put(unarchive_property_type::<S, A>))
+                .route("/embeddings", post(update_property_type_embeddings::<S, A>)),
         )
     }
 }
@@ -173,6 +184,7 @@ async fn create_property_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreatePropertyTypeRequest>,
 ) -> Result<Json<ListOrValue<PropertyTypeMetadata>>, StatusCode>
@@ -186,6 +198,11 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
     let Json(CreatePropertyTypeRequest {
         schema,
         owned_by_id,
@@ -194,42 +211,29 @@ where
 
     let is_list = matches!(&schema, ListOrValue::List(_));
 
-    let schema_iter = schema.into_iter();
-    let mut property_types = Vec::with_capacity(schema_iter.size_hint().0);
-    let mut partial_metadata = Vec::with_capacity(schema_iter.size_hint().0);
-
-    for property_type in schema_iter {
-        domain_validator
-            .validate(&property_type)
-            .map_err(|report| {
-                tracing::error!(error=?report, id=property_type.id().to_string(), "Property Type ID failed to validate");
-                StatusCode::UNPROCESSABLE_ENTITY
-            })?;
-
-        partial_metadata.push(PartialPropertyTypeMetadata {
-            record_id: property_type.id().clone().into(),
-            classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
-        });
-
-        property_types.push(property_type);
-    }
-
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
     let mut metadata = store
         .create_property_types(
             actor_id,
             &mut authorization_api,
-            property_types.into_iter().zip(partial_metadata),
-            ConflictBehavior::Fail,
-            relationships,
+            temporal_client.as_deref(),
+            schema.into_iter().map(|schema| {
+                domain_validator.validate(&schema).map_err(|report| {
+                    tracing::error!(error=?report, id=schema.id().to_string(), "Property Type ID failed to validate");
+                    StatusCode::UNPROCESSABLE_ENTITY
+                })?;
+
+                Ok(CreatePropertyTypeParams {
+                    schema,
+                    classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
+                    relationships: relationships.clone(),
+                    conflict_behavior: ConflictBehavior::Fail,
+                })
+            }).collect::<Result<Vec<_>, StatusCode>>()?
         )
         .await
         .map_err(|report| {
-            tracing::error!(error=?report, "Could not create property types");
+            // TODO: consider adding the data type, or at least its URL in the trace
+            tracing::error!(error=?report, "Could not create data types");
 
             if report.contains::<PermissionAssertion>() {
                 return StatusCode::FORBIDDEN;
@@ -290,6 +294,7 @@ async fn load_external_property_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
     Json(request): Json<LoadExternalPropertyTypeRequest>,
 ) -> Result<Json<PropertyTypeMetadata>, Response>
@@ -310,6 +315,7 @@ where
                 .load_external_type(
                     actor_id,
                     &mut authorization_api,
+                    temporal_client.as_deref(),
                     &domain_validator,
                     OntologyTypeReference::PropertyTypeReference((&property_type_id).into()),
                 )
@@ -324,8 +330,6 @@ where
             schema,
             relationships,
         } => {
-            let record_id = OntologyTypeRecordId::from(schema.id().clone());
-
             if domain_validator.validate_url(schema.id().base_url.as_str()) {
                 let error = "Ontology type is not external".to_owned();
                 tracing::error!(id=%schema.id(), error);
@@ -341,14 +345,15 @@ where
                     .create_property_type(
                         actor_id,
                         &mut authorization_api,
-                        schema,
-                        PartialPropertyTypeMetadata {
-                            record_id,
+                        temporal_client.as_deref(),
+                        CreatePropertyTypeParams {
+                            schema,
                             classification: OntologyTypeClassificationMetadata::External {
                                 fetched_at: OffsetDateTime::now_utc(),
                             },
+                            relationships,
+                            conflict_behavior: ConflictBehavior::Fail,
                         },
-                        relationships,
                     )
                     .await
                     .map_err(report_to_response)?,
@@ -381,7 +386,7 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool, query))]
 async fn get_property_types_by_query<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -410,9 +415,11 @@ where
         .get_property_type(
             actor_id,
             &authorization_api,
-            &query,
-            pagination.after.map(|cursor| cursor.0),
-            pagination.limit,
+            GetPropertyTypesParams {
+                query,
+                after: pagination.after.map(|cursor| cursor.0),
+                limit: pagination.limit,
+            },
         )
         .await
         .map_err(report_to_response)?;
@@ -458,6 +465,7 @@ async fn update_property_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<UpdatePropertyTypeRequest>,
 ) -> Result<Json<PropertyTypeMetadata>, StatusCode>
 where
@@ -493,8 +501,11 @@ where
         .update_property_type(
             actor_id,
             &mut authorization_api,
-            property_type,
-            relationships,
+            temporal_client.as_deref(),
+            UpdatePropertyTypesParams {
+                schema: property_type,
+                relationships,
+            },
         )
         .await
         .map_err(|report| {
@@ -513,11 +524,48 @@ where
         .map(Json)
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct ArchivePropertyTypeRequest {
-    #[schema(value_type = SHARED_VersionedUrl)]
-    type_to_archive: VersionedUrl,
+#[utoipa::path(
+    post,
+    path = "/property-types/embeddings",
+    tag = "PropertyType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 204, content_type = "application/json", description = "The embeddings were created"),
+
+        (status = 403, description = "Insufficient permissions to update the property type"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = UpdatePropertyTypeEmbeddingParams,
+)]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+async fn update_property_type_embeddings<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    Json(body): Json<serde_json::Value>,
+) -> Result<(), Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    // Manually deserialize the request from a JSON value to allow borrowed deserialization and
+    // better error reporting.
+    let params = UpdatePropertyTypeEmbeddingParams::deserialize(body)
+        .attach(hash_status::StatusCode::InvalidArgument)
+        .map_err(report_to_response)?;
+
+    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
+    let mut authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .update_property_type_embeddings(actor_id, &mut authorization_api, params)
+        .await
+        .map_err(report_to_response)
 }
 
 #[utoipa::path(
@@ -535,55 +583,44 @@ struct ArchivePropertyTypeRequest {
         (status = 409, description = "Property type ID is already archived"),
         (status = 500, description = "Store error occurred"),
     ),
-    request_body = ArchivePropertyTypeRequest,
+    request_body = ArchivePropertyTypeParams,
 )]
 #[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
 async fn archive_property_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
-    body: Json<ArchivePropertyTypeRequest>,
-) -> Result<Json<OntologyTemporalMetadata>, StatusCode>
+    Json(body): Json<serde_json::Value>,
+) -> Result<Json<OntologyTemporalMetadata>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let Json(ArchivePropertyTypeRequest { type_to_archive }) = body;
+    // Manually deserialize the request from a JSON value to allow borrowed deserialization and
+    // better error reporting.
+    let params = ArchivePropertyTypeParams::deserialize(body)
+        .attach(hash_status::StatusCode::InvalidArgument)
+        .map_err(report_to_response)?;
 
-    let mut store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
+    let mut authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
 
     store
-        .archive_property_type(actor_id, &mut authorization_api, &type_to_archive)
+        .archive_property_type(actor_id, &mut authorization_api, params)
         .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not archive property type");
-
+        .map_err(|mut report| {
             if report.contains::<OntologyVersionDoesNotExist>() {
-                return StatusCode::NOT_FOUND;
+                report = report.attach(hash_status::StatusCode::NotFound);
             }
             if report.contains::<VersionedUrlAlreadyExists>() {
-                return StatusCode::CONFLICT;
+                report = report.attach(hash_status::StatusCode::AlreadyExists);
             }
-
-            // Insertion/update errors are considered internal server errors.
-            StatusCode::INTERNAL_SERVER_ERROR
+            report_to_response(report)
         })
         .map(Json)
-}
-
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct UnarchivePropertyTypeRequest {
-    #[schema(value_type = SHARED_VersionedUrl)]
-    type_to_unarchive: VersionedUrl,
 }
 
 #[utoipa::path(
@@ -601,46 +638,42 @@ struct UnarchivePropertyTypeRequest {
         (status = 409, description = "Property type ID already exists and is not archived"),
         (status = 500, description = "Store error occurred"),
     ),
-    request_body = UnarchivePropertyTypeRequest,
+    request_body = UnarchivePropertyTypeParams,
 )]
 #[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
 async fn unarchive_property_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
-    body: Json<UnarchivePropertyTypeRequest>,
-) -> Result<Json<OntologyTemporalMetadata>, StatusCode>
+    Json(body): Json<serde_json::Value>,
+) -> Result<Json<OntologyTemporalMetadata>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let Json(UnarchivePropertyTypeRequest { type_to_unarchive }) = body;
+    // Manually deserialize the request from a JSON value to allow borrowed deserialization and
+    // better error reporting.
+    let params = UnarchivePropertyTypeParams::deserialize(body)
+        .attach(hash_status::StatusCode::InvalidArgument)
+        .map_err(report_to_response)?;
 
-    let mut store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
+    let mut authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
 
     store
-        .unarchive_property_type(actor_id, &mut authorization_api, &type_to_unarchive)
+        .unarchive_property_type(actor_id, &mut authorization_api, params)
         .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not unarchive property type");
-
+        .map_err(|mut report| {
             if report.contains::<OntologyVersionDoesNotExist>() {
-                return StatusCode::NOT_FOUND;
+                report = report.attach(hash_status::StatusCode::NotFound);
             }
             if report.contains::<VersionedUrlAlreadyExists>() {
-                return StatusCode::CONFLICT;
+                report = report.attach(hash_status::StatusCode::AlreadyExists);
             }
-
-            // Insertion/update errors are considered internal server errors.
-            StatusCode::INTERNAL_SERVER_ERROR
+            report_to_response(report)
         })
         .map(Json)
 }
@@ -649,6 +682,7 @@ where
 #[serde(rename_all = "camelCase")]
 struct ModifyPropertyTypeAuthorizationRelationship {
     operation: ModifyRelationshipOperation,
+    #[schema(value_type = SHARED_VersionedUrl)]
     resource: VersionedUrl,
     relation_and_subject: PropertyTypeRelationAndSubject,
 }

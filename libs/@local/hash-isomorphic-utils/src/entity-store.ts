@@ -22,9 +22,6 @@ export const textualContentPropertyTypeBaseUrl = extractBaseUrl(
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   metadata: {
     archived: boolean;
-    // @todo use the Graph API to create draft entities
-    //   see https://linear.app/hash/issue/H-1083/draft-entities
-    draft: boolean;
     recordId: {
       entityId: EntityId | null;
       editionId: string;
@@ -252,7 +249,6 @@ export const createEntityStore = (
       },
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive
     draft[draftId] ??= updated;
   }
 

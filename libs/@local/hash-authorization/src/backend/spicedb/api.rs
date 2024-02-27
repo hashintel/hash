@@ -517,7 +517,7 @@ impl ZanzibarBackend for SpiceDbOpenApi {
             impl Serialize + Send + Sync,
         >,
         consistency: Consistency<'_>,
-    ) -> Result<Vec<R>, Report<ReadError>>
+    ) -> Result<impl Stream<Item = Result<R, Report<ReadError>>>, Report<ReadError>>
     where
         for<'de> R: Relationship<
                 Resource: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
@@ -554,19 +554,18 @@ impl ZanzibarBackend for SpiceDbOpenApi {
             relationship: R,
         }
 
-        self.stream::<ReadRelationshipsResponse<R>>(
-            "/v1/relationships/read",
-            &ReadRelationshipsRequest {
-                consistency: model::Consistency::from(consistency),
-                relationship_filter: filter,
-            },
-        )
-        .await
-        .change_context(ReadError)?
-        .map_ok(|response| response.relationship)
-        .map_err(|error| error.change_context(ReadError))
-        .try_collect::<Vec<_>>()
-        .await
+        Ok(self
+            .stream::<ReadRelationshipsResponse<R>>(
+                "/v1/relationships/read",
+                &ReadRelationshipsRequest {
+                    consistency: model::Consistency::from(consistency),
+                    relationship_filter: filter,
+                },
+            )
+            .await
+            .change_context(ReadError)?
+            .map_ok(|response| response.relationship)
+            .map_err(|error| error.change_context(ReadError)))
     }
 
     #[expect(

@@ -34,12 +34,12 @@ async fn insert() {
     };
 
     let alice_metadata = api
-        .create_entity(alice, person_type_id.clone(), None)
+        .create_entity(alice, person_type_id.clone(), None, false)
         .await
         .expect("could not create entity");
 
     let bob_metadata = api
-        .create_entity(bob, person_type_id.clone(), None)
+        .create_entity(bob, person_type_id.clone(), None, false)
         .await
         .expect("could not create entity");
 
@@ -118,17 +118,17 @@ async fn get_entity_links() {
     };
 
     let alice_metadata = api
-        .create_entity(alice, person_type_id.clone(), None)
+        .create_entity(alice, person_type_id.clone(), None, false)
         .await
         .expect("could not create entity");
 
     let bob_metadata = api
-        .create_entity(bob, person_type_id.clone(), None)
+        .create_entity(bob, person_type_id.clone(), None, false)
         .await
         .expect("could not create entity");
 
     let charles_metadata = api
-        .create_entity(charles, person_type_id.clone(), None)
+        .create_entity(charles, person_type_id.clone(), None, false)
         .await
         .expect("could not create entity");
 
@@ -227,12 +227,12 @@ async fn remove_link() {
     };
 
     let alice_metadata = api
-        .create_entity(alice, person_type_id.clone(), None)
+        .create_entity(alice, person_type_id.clone(), None, false)
         .await
         .expect("could not create entity");
 
     let bob_metadata = api
-        .create_entity(bob, person_type_id.clone(), None)
+        .create_entity(bob, person_type_id.clone(), None, false)
         .await
         .expect("could not create entity");
 

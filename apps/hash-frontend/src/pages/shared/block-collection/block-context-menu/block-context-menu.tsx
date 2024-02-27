@@ -346,7 +346,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
               (account) =>
                 account.entityId ===
                 blockEntity?.properties.entity.createdByAccountId,
-            )?.preferredName
+            )?.displayName
           } */}
           </Typography>
           {/* @todo re-implement after collab works https://app.asana.com/0/0/1203099452204542/f */}

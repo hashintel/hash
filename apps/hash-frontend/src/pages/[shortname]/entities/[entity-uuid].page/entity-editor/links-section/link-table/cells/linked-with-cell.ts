@@ -43,7 +43,9 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       onEntityClick,
       isFile,
       isList,
-      isLoading,
+      isUploading,
+      isErroredUpload,
+      retryErroredUpload,
     } = linkRow;
 
     ctx.fillStyle = theme.textHeader;
@@ -53,21 +55,77 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     const cellPadding = getCellHorizontalPadding();
     const left = rect.x + cellPadding;
 
-    if (isLoading || !linkAndTargetEntities.length) {
-      ctx.fillStyle = isLoading ? customColors.gray[90] : customColors.gray[50];
-      ctx.font = isLoading ? "14px Inter" : "italic 14px Inter";
+    if (isUploading || isErroredUpload || !linkAndTargetEntities.length) {
+      ctx.fillStyle = isFile ? customColors.gray[90] : customColors.gray[50];
+      ctx.font = isFile ? "14px Inter" : "italic 14px Inter";
 
-      const text = isLoading
-        ? "Uploading file, please stay on the page..."
-        : isFile
-          ? `No file${isList ? "s" : ""}`
-          : isList
-            ? "No entities"
-            : "No entity";
-      ctx.fillText(text, left, yCenter);
+      const text =
+        isFile && isUploading
+          ? "Uploading file, don't close your browser..."
+          : isErroredUpload
+            ? "Error uploading file"
+            : isFile
+              ? `No file${isList ? "s" : ""}`
+              : isList
+                ? "No entities"
+                : "No entity";
 
-      // before returning, set interactables to empty array to clear any stale interactables saved on previous draw
-      InteractableManager.setInteractablesForCell(args, []);
+      let leftDrawPosition = left;
+
+      if (isErroredUpload) {
+        // If we have an errored upload, draw a warning indicator
+        const warningIconWidth = 14;
+        args.spriteManager.drawSprite(
+          "warning",
+          "normal",
+          ctx,
+          leftDrawPosition,
+          yCenter - warningIconWidth / 2 - 1,
+          warningIconWidth,
+          { ...theme, fgIconHeader: customColors.yellow[80] },
+        );
+
+        leftDrawPosition = leftDrawPosition + warningIconWidth + 6;
+      }
+
+      ctx.fillText(text, leftDrawPosition, yCenter);
+      const textWidth = ctx.measureText(text).width;
+
+      const interactables: Interactable[] = [];
+
+      if (isErroredUpload) {
+        // If we have an errored upload, add a retry button
+        leftDrawPosition = leftDrawPosition + textWidth + 10;
+
+        const retryIconWidth = 14;
+        interactables.push(
+          InteractableManager.createCellInteractable(args, {
+            id: `${cell.data.linkRow.rowId}-retry-upload`,
+            pos: {
+              left: leftDrawPosition,
+              right: leftDrawPosition + retryIconWidth,
+              top: yCenter - retryIconWidth / 2,
+              bottom: yCenter + retryIconWidth / 2,
+            },
+            onClick: () => {
+              retryErroredUpload?.();
+            },
+          }),
+        );
+
+        args.spriteManager.drawSprite(
+          "arrowRotateLeft",
+          "normal",
+          ctx,
+          leftDrawPosition,
+          yCenter - retryIconWidth / 2 - 1,
+          retryIconWidth,
+          { ...theme, fgIconHeader: customColors.gray[50] },
+        );
+      }
+
+      // even if interactables is empty, we set it to clear any stale interactables saved on previous draw
+      InteractableManager.setInteractablesForCell(args, interactables);
       return drawCellFadeOutGradient(args);
     }
 
@@ -118,7 +176,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     if (isList) {
       const overflowed = accumulatedLeft > rect.x + rect.width;
 
-      if (!overflowed) {
+      if (!overflowed || sortedLinkedEntities.length <= 1) {
         return drawCellFadeOutGradient(args);
       }
 

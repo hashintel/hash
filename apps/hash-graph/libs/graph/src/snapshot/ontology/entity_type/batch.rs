@@ -13,9 +13,12 @@ use type_system::EntityType;
 
 use crate::{
     snapshot::{
-        ontology::table::{
-            EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
-            EntityTypeConstrainsPropertiesOnRow, EntityTypeInheritsFromRow, EntityTypeRow,
+        ontology::{
+            table::{
+                EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
+                EntityTypeConstrainsPropertiesOnRow, EntityTypeInheritsFromRow, EntityTypeRow,
+            },
+            EntityTypeEmbeddingRow,
         },
         WriteBatch,
     },
@@ -29,6 +32,7 @@ pub enum EntityTypeRowBatch {
     ConstrainsLinks(Vec<EntityTypeConstrainsLinksOnRow>),
     ConstrainsLinkDestinations(Vec<EntityTypeConstrainsLinkDestinationsOnRow>),
     Relations(HashMap<EntityTypeId, Vec<EntityTypeRelationAndSubject>>),
+    Embeddings(Vec<EntityTypeEmbeddingRow>),
 }
 
 #[async_trait]
@@ -66,6 +70,10 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                         target_entity_type_base_url TEXT NOT NULL,
                         target_entity_type_version INT8 NOT NULL
                     ) ON COMMIT DROP;
+
+                    CREATE TEMPORARY TABLE entity_type_embeddings_tmp
+                        (LIKE entity_type_embeddings INCLUDING ALL)
+                        ON COMMIT DROP;
                 ",
             )
             .await
@@ -184,6 +192,22 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                     )
                     .await
                     .change_context(InsertionError)?;
+            }
+            Self::Embeddings(embeddings) => {
+                let rows = client
+                    .query(
+                        "
+                            INSERT INTO entity_type_embeddings_tmp
+                            SELECT * FROM UNNEST($1::entity_type_embeddings_tmp[])
+                            RETURNING 1;
+                        ",
+                        &[&embeddings],
+                    )
+                    .await
+                    .change_context(InsertionError)?;
+                if !rows.is_empty() {
+                    tracing::info!("Read {} entity type embeddings", rows.len());
+                }
             }
         }
         Ok(())
@@ -314,6 +338,9 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                  entity_type_constrains_link_destinations_on_tmp.target_entity_type_base_url
                             AND ontology_ids_tmp.version = \
                  entity_type_constrains_link_destinations_on_tmp.target_entity_type_version;
+
+                    INSERT INTO entity_type_embeddings
+                        SELECT * FROM entity_type_embeddings_tmp;
                 ",
             )
             .await

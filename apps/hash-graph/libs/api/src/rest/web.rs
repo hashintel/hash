@@ -22,7 +22,7 @@ use axum::{
     Extension, Json, Router,
 };
 use error_stack::Report;
-use graph::store::{AccountStore, StorePool};
+use graph::store::{account::InsertWebIdParams, AccountStore, StorePool};
 use graph_types::owned_by_id::OwnedById;
 use serde::Deserialize;
 use utoipa::{OpenApi, ToSchema};
@@ -40,7 +40,7 @@ use crate::rest::{status::report_to_response, AuthenticatedUserHeader, Permissio
     ),
     components(
         schemas(
-            CreateWebRequest,
+            InsertWebIdParams,
 
             WebRelationAndSubject,
             WebPermission,
@@ -88,17 +88,10 @@ impl RoutedResource for WebResource {
     }
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct CreateWebRequest {
-    owned_by_id: OwnedById,
-    owner: WebOwnerSubject,
-}
-
 #[utoipa::path(
     post,
     path = "/webs",
-    request_body = CreateWebRequest,
+    request_body = InsertWebIdParams,
     tag = "Web",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -114,14 +107,12 @@ async fn create_web<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     authorization_api_pool: Extension<Arc<A>>,
     store_pool: Extension<Arc<S>>,
-    Json(body): Json<CreateWebRequest>,
+    Json(params): Json<InsertWebIdParams>,
 ) -> Result<StatusCode, StatusCode>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let CreateWebRequest { owned_by_id, owner } = body;
-
     let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
@@ -133,7 +124,7 @@ where
     })?;
 
     store
-        .insert_web_id(actor_id, &mut authorization_api, owned_by_id, owner)
+        .insert_web_id(actor_id, &mut authorization_api, params)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create web id");

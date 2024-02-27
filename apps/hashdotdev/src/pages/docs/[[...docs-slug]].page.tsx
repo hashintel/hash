@@ -1,8 +1,8 @@
-import { Box, Tab, Tabs } from "@mui/material";
+import { Box, Tab, Tabs, tabsClasses } from "@mui/material";
 import { GetStaticPaths, GetStaticProps } from "next";
 import { useRouter } from "next/router";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
-import { MouseEvent, useMemo } from "react";
+import { MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import siteMap from "../../../sitemap.json";
 import { Button } from "../../components/button";
@@ -106,6 +106,42 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
 }) => {
   const router = useRouter();
 
+  const tabsRef = useRef<HTMLDivElement>(null);
+
+  const [isLastTabVisible, setIsLastTabVisible] = useState(false);
+  const [isFirstTabVisible, setIsFirstTabVisible] = useState(false);
+
+  useEffect(() => {
+    const tabsElement = tabsRef.current;
+
+    const tabsScrollerElement = tabsElement?.getElementsByClassName(
+      tabsClasses.scroller,
+    )[0] as HTMLDivElement | undefined;
+
+    if (tabsScrollerElement) {
+      const handleScroll = () => {
+        const { scrollWidth, clientWidth, scrollLeft } = tabsScrollerElement;
+        const isScrolledToStart = scrollLeft === 0;
+
+        const isScrolledToEnd =
+          scrollWidth - Math.round(scrollLeft + clientWidth) < 0;
+
+        setIsFirstTabVisible(isScrolledToStart);
+        setIsLastTabVisible(isScrolledToEnd);
+      };
+
+      handleScroll();
+
+      tabsScrollerElement.addEventListener("wheel", handleScroll);
+      tabsScrollerElement.addEventListener("scroll", handleScroll);
+
+      return () => {
+        tabsScrollerElement.removeEventListener("wheel", handleScroll);
+        tabsScrollerElement.removeEventListener("scroll", handleScroll);
+      };
+    }
+  }, []);
+
   const currentDocsTab = useMemo(() => {
     const tab = docsTabs.find(
       ({ href }) => href === `/docs${docsSlug[0] ? `/${docsSlug[0]}` : ""}`,
@@ -149,7 +185,46 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
           borderBottomStyle: "solid",
         }}
       >
-        <Tabs value={currentDocsTab.href} aria-label="docs-tabs">
+        <Tabs
+          ref={tabsRef}
+          scrollButtons={false}
+          variant="scrollable"
+          value={currentDocsTab.href}
+          aria-label="docs-tabs"
+          sx={{
+            flexGrow: 1,
+            position: "relative",
+            marginRight: {
+              xs: 0,
+              md: 2,
+            },
+            "&::before": {
+              content: "''",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: 50,
+              height: "100%",
+              transition: ({ transitions }) => transitions.create("opacity"),
+              opacity: isFirstTabVisible ? 0 : 1,
+              background: ({ palette }) =>
+                `linear-gradient(to left, ${palette.gray[10]}00, ${palette.gray[10]}FF)`,
+              zIndex: 1,
+            },
+            "&::after": {
+              content: "''",
+              position: "absolute",
+              top: 0,
+              right: 0,
+              width: 50,
+              height: "100%",
+              transition: ({ transitions }) => transitions.create("opacity"),
+              opacity: isLastTabVisible ? 0 : 1,
+              background: ({ palette }) =>
+                `linear-gradient(to right, ${palette.gray[10]}00, ${palette.gray[10]}FF)`,
+            },
+          }}
+        >
           {docsTabs.map(({ href, title }) => (
             <Tab
               key={href}

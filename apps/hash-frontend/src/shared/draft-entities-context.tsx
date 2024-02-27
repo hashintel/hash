@@ -20,6 +20,8 @@ import {
   StructuralQueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
+import { useAuthInfo } from "../pages/shared/auth-info-context";
+import { pollInterval } from "./poll-interval";
 
 export type DraftEntitiesContextValue = {
   draftEntities?: Entity[];
@@ -41,8 +43,6 @@ export const useDraftEntities = () => {
   return draftEntitiesContext;
 };
 
-const draftEntitiesPollingInterval = 10_000;
-
 export const DraftEntitiesContextProvider: FunctionComponent<
   PropsWithChildren
 > = ({ children }) => {
@@ -50,6 +50,8 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     previouslyFetchedDraftEntitiesData,
     setPreviouslyFetchedDraftEntitiesData,
   ] = useState<StructuralQueryEntitiesQuery>();
+
+  const { authenticatedUser } = useAuthInfo();
 
   const {
     data: draftEntitiesData,
@@ -64,7 +66,9 @@ export const DraftEntitiesContextProvider: FunctionComponent<
         filter: {
           all: [
             {
-              equal: [{ path: ["draft"] }, { parameter: true }],
+              // @ts-expect-error -- Support null in Path parameter in structural queries in Node
+              //                     @see https://linear.app/hash/issue/H-1207
+              notEqual: [{ path: ["draftId"] }, null],
             },
             {
               equal: [{ path: ["archived"] }, { parameter: false }],
@@ -78,8 +82,9 @@ export const DraftEntitiesContextProvider: FunctionComponent<
       includePermissions: false,
     },
     onCompleted: (data) => setPreviouslyFetchedDraftEntitiesData(data),
-    pollInterval: draftEntitiesPollingInterval,
+    pollInterval,
     fetchPolicy: "network-only",
+    skip: !authenticatedUser,
   });
 
   const draftEntitiesSubgraph = useMemo(

@@ -28,13 +28,13 @@ const gettingStartedLinks = [
     title: "Run on the global network",
     description: "Quickest, easiest, recommended",
     icon: <GlobeRegularIcon />,
-    href: "https://app.hash.ai",
+    href: "https://app.hash.ai/signup",
   },
   {
     title: "Self-host HASH",
     description: "Run HASH on your own infrastructure",
     icon: <ServerRegularIcon />,
-    href: "/",
+    href: "/docs/get-started/setup#local-hash",
   },
 ];
 
@@ -322,9 +322,9 @@ export const DocsHomePage: FunctionComponent = () => {
             </Typography>
             <Typography marginBottom={3} fontSize={16}>
               Continue seamlessly working with information in your existing
-              favorite tools and apps
+              favorite tools and apps…
             </Typography>
-            <Link href="/">
+            <Link href="/docs/get-started/adopt">
               <Box
                 display="flex"
                 sx={{
@@ -391,7 +391,7 @@ export const DocsHomePage: FunctionComponent = () => {
                     gap: 3,
                   }}
                 >
-                  {["BigQuery", "Snowflake", "Postgres"].map((name) => (
+                  {["BigQuery", "Snowflake", "PostgreSql"].map((name) => (
                     <LabelWithIcon
                       key={name}
                       label={name}
@@ -444,10 +444,6 @@ export const DocsHomePage: FunctionComponent = () => {
                       icon: <HubspotIcon />,
                     },
                     { name: "TBD" },
-                    {
-                      name: "Browse all...",
-                      icon: <EllipsisRegularIcon />,
-                    },
                   ].map(({ name, icon }) => (
                     <LabelWithIcon
                       key={name}
@@ -457,6 +453,13 @@ export const DocsHomePage: FunctionComponent = () => {
                       width={180}
                     />
                   ))}
+                  <LabelWithIcon
+                    label="View all →"
+                    href="https://hash.ai/integrations"
+                    iconBackground="teal"
+                    icon={<EllipsisRegularIcon />}
+                    width={180}
+                  />
                 </Box>
               </Grid>
             </Grid>

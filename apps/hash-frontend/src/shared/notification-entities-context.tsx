@@ -32,6 +32,7 @@ import {
   updateEntitiesMutation,
 } from "../graphql/queries/knowledge/entity.queries";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
+import { pollInterval } from "./poll-interval";
 
 export type NotificationEntitiesContextValues = {
   notificationEntities?: Entity<NotificationProperties>[];
@@ -65,8 +66,6 @@ export const useNotificationEntities = () => {
   return notificationsEntitiesContext;
 };
 
-const fetchNotificationPollInterval = 5_000;
-
 export const NotificationEntitiesContextProvider: FunctionComponent<
   PropsWithChildren
 > = ({ children }) => {
@@ -80,7 +79,7 @@ export const NotificationEntitiesContextProvider: FunctionComponent<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
-    pollInterval: fetchNotificationPollInterval,
+    pollInterval,
     variables: {
       includePermissions: false,
       query: {

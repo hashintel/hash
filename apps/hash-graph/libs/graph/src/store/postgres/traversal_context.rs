@@ -14,7 +14,7 @@ use crate::{
         crud::Read,
         postgres::ontology::OntologyId,
         query::{Filter, FilterExpression, ParameterList},
-        AsClient, PostgresStore, QueryError, Record,
+        AsClient, PostgresStore, QueryError, SubgraphRecord,
     },
     subgraph::{edges::GraphResolveDepths, temporal_axes::VariableAxis, Subgraph},
 };

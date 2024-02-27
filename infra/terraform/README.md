@@ -56,26 +56,48 @@ Deployment currently relies on a couple of manual steps - but is to be automated
 
 Secret environment should be provided in HashiCorp Vault. These are expected in a kvv2 secrets engine path starting with `pipelines/hash/` and ending with the environment name, e.g. for a secrets engine `automation` the path would be `automation/pipelines/hash/prod`. The following secrets are expected:
 
-```json
+```json5
 {
-  "hash_block_protocol_api_key": "*",
-  "hash_seed_users": [
+  aws_s3_uploads_access_key_id: "changeme",
+  aws_s3_uploads_secret_access_key: "changeme",
+  aws_s3_uploads_bucket: "changeme",
+  aws_s3_uploads_endpoint: "changeme", // if not using the default S3 endpoint, e.g. if using another S3-compatible service
+  graph_sentry_dsn: "https://changeme.ingest.sentry.io/changeme",
+  hash_api_rudderstack_key: "changeme",
+  hash_block_protocol_api_key: "changeme",
+  hash_openai_api_key: "changeme",
+  hash_seed_users: [
     {
-      "email": "chageme@example.com",
-      "isInstanceAdmin": true,
-      "password": "changeme",
-      "preferredName": "Instance Admin",
-      "shortname": "instance-admin"
-    }
+      email: "changeme@example.com",
+      isInstanceAdmin: true,
+      password: "changeme",
+      preferredName: "Instance Admin",
+      shortname: "instance-admin",
+    },
   ],
-  "kratos_api_key": "changeme",
-  "kratos_secrets_cipher": "32-LONG-SECRET-NOT-SECURE-AT-ALL",
-  "kratos_secrets_cookie": "changeme",
-  "pg_graph_user_password_hash": "SCRAM-SHA-256$4096:calculateme",
-  "pg_graph_user_password_raw": "changeme",
-  "pg_kratos_user_password_hash": "SCRAM-SHA-256$4096:calculateme",
-  "pg_kratos_user_password_raw": "chageme",
-  "pg_superuser_password": "changeme"
+  hydra_secrets_system: "changeme",
+  hydra_secrets_cookie: "changeme",
+  kratos_api_key: "changeme",
+  kratos_secrets_cipher: "32-LONG-SECRET-NOT-SECURE-AT-ALL",
+  kratos_secrets_cookie: "changeme",
+  linear_webhook_secret: "changeme",
+  mailchimp_api_key: "changeme",
+  mailchimp_list_id: "changeme",
+  node_api_sentry_dsn: "https://changeme.ingest.sentry.io/changeme",
+  pg_graph_user_password_hash: "SCRAM-SHA-256$4096:calculateme-see-postgres_roles.tf",
+  pg_graph_user_password_raw: "changeme",
+  pg_hydra_user_password_hash: "SCRAM-SHA-256$4096:calculateme-see-postgres_roles.tf",
+  pg_hydra_user_password_raw: "changeme",
+  pg_kratos_user_password_hash: "SCRAM-SHA-256$4096:calculateme-see-postgres_roles.tf",
+  pg_kratos_user_password_raw: "changeme",
+  pg_spicedb_password_hash: "SCRAM-SHA-256$4096:calculateme-see-postgres_roles.tf",
+  pg_spicedb_password_raw: "changeme",
+  pg_superuser_password: "changeme",
+  pg_temporal_user_password_hash: "SCRAM-SHA-256$4096:calculateme-see-postgres_roles.tf",
+  pg_temporal_user_password_raw: "changeme",
+  pg_temporal_visibility_user_password_hash: "SCRAM-SHA-256$4096:calculateme-see-postgres_roles.tf",
+  pg_temporal_visibility_user_password_raw: "changeme",
+  spicedb_grpc_preshared_key: "changeme",
 }
 ```
 
