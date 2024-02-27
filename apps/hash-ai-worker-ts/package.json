@@ -51,7 +51,6 @@
     "officeparser": "4.0.6",
     "openai": "4.20.0",
     "openai-chat-tokens": "0.2.8",
-    "ts-node": "10.9.1",
     "typescript": "5.1.6"
   },
   "devDependencies": {
@@ -62,7 +61,6 @@
     "@types/dotenv-flow": "3.2.0",
     "@types/lodash.ismatch": "4.4.9",
     "eslint": "8.57.0",
-    "ts-node-dev": "2.0.0",
     "tsx": "3.13.0"
   }
 }
