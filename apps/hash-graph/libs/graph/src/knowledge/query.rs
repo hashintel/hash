@@ -160,8 +160,8 @@ pub enum EntityQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["firstNonDraftCreatedAtTransactionTime"]))?;
-    /// assert_eq!(path, EntityQueryPath::FirstNonDraftCreatedAtTransactionTime);
+    /// let path = EntityQueryPath::deserialize(json!(["firstNonDraftCreatedAtDecisionTime"]))?;
+    /// assert_eq!(path, EntityQueryPath::FirstNonDraftCreatedAtDecisionTime);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
