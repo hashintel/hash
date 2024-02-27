@@ -24,7 +24,7 @@
     "fractional-indexing": "2.1.0",
     "graphql": "16.8.1",
     "graphql-request": "3.4.0",
-    "node-fetch": "^3.3.0"
+    "node-fetch": "2.7.0"
   },
   "devDependencies": {
     "@babel/preset-env": "7.23.9",
