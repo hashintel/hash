@@ -25,12 +25,12 @@
   "scripts": {
     "build": "tsc --build && yarn exe ./scripts/bundle-workflow-code.ts",
     "build:docker": "docker buildx build --tag hash-ai-worker-ts --file ./docker/Dockerfile ../../ --load",
-    "dev": "NODE_ENV=development tsx watch --max-old-space-size=2048 --clear-screen=false ./src/main.ts",
+    "dev": "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false ./src/main.ts",
     "exe": "tsx",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "start": "cross-env NODE_ENV=production tsx --max-old-space-size=2048 ./src/main.ts",
+    "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/main.ts",
     "test:unit": "jest"
   },
   "dependencies": {
