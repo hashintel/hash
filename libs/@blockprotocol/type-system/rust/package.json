@@ -1,0 +1,15 @@
+{
+  "name": "@blockprotocol/type-system-rs",
+  "version": "0.0.0-private",
+  "private": true,
+  "scripts": {
+    "build:wasm": "wasm-pack build --target web --out-name type-system --scope blockprotocol --release . && rm pkg/package.json",
+    "fix:clippy": "just clippy --fix",
+    "postinstall": "wasm-pack --version | grep -q '0.12.1' || cargo install 'wasm-pack' --version '0.12.1' --locked --force",
+    "lint:clippy": "just clippy && just clippy --target wasm32-unknown-unknown",
+    "test:unit": "cargo nextest run --all-features --all-targets && cargo test --all-features --doc"
+  },
+  "devDependencies": {
+    "@tests/hash-graph-test-data-rs": "0.0.0-private"
+  }
+}

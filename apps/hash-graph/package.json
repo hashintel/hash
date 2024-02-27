@@ -27,6 +27,7 @@
     "test:unit": "just test-unit"
   },
   "dependencies": {
+    "@blockprotocol/type-system-rs": "0.0.0-private",
     "@local/codec-rs": "0.0.0-private",
     "@local/hash-authorization-rs": "0.0.0-private",
     "@local/hash-graph-types-rs": "0.0.0-private",

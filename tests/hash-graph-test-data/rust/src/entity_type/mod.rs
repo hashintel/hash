@@ -6,6 +6,7 @@ pub const UK_ADDRESS_V1: &str = include_str!("uk_address.json");
 pub const BLOCK_V1: &str = include_str!("block.json");
 pub const BOOK_V1: &str = include_str!("book.json");
 pub const BUILDING_V1: &str = include_str!("building.json");
+pub const CHURCH_V1: &str = include_str!("church.json");
 pub const ORGANIZATION_V1: &str = include_str!("organization.json");
 pub const PAGE_V1: &str = include_str!("page_v1.json");
 pub const PAGE_V2: &str = include_str!("page_v2.json");

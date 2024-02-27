@@ -37,9 +37,10 @@ const SEED_DATA_TYPES: [&str; 6] = [
     data_type::TEXT_V1,
 ];
 
-const SEED_PROPERTY_TYPES: [&str; 20] = [
+const SEED_PROPERTY_TYPES: [&str; 21] = [
     property_type::ADDRESS_LINE_1_V1,
     property_type::AGE_V1,
+    property_type::BUILT_AT,
     property_type::BLURB_V1,
     property_type::CITY_V1,
     property_type::EMAIL_V1,
