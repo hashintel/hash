@@ -7,12 +7,12 @@
   "scripts": {
     "build": "tsc --build && yarn exe ./scripts/bundle-workflow-code.ts",
     "build:docker": "docker buildx build --tag hash-integration-worker --file ./docker/Dockerfile ../../ --load",
-    "dev": "node --max-old-space-size=2048 ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/main.ts",
+    "dev": "tsx watch --max-old-space-size=2048 --clear-screen=false ./src/main.ts",
     "exe": "tsx",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "start": "cross-env NODE_ENV=production node --max-old-space-size=2048 ./node_modules/.bin/ts-node --transpile-only ./src/main.ts"
+    "start": "cross-env NODE_ENV=production tsx --max-old-space-size=2048 ./src/main.ts"
   },
   "dependencies": {
     "@blockprotocol/type-system": "0.1.1",
@@ -27,13 +27,13 @@
     "agentkeepalive": "4.2.1",
     "axios": "1.6.0",
     "dotenv-flow": "3.2.0",
+    "tsx": "3.13.0",
     "typescript": "5.1.6"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/dotenv-flow": "3.2.0",
-    "eslint": "8.57.0",
-    "tsx": "3.13.0"
+    "eslint": "8.57.0"
   }
 }
