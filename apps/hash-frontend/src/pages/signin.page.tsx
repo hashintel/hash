@@ -208,6 +208,13 @@ const SigninPage: NextPageWithLayout = () => {
               return;
             }
 
+            if (err.response?.status === 429) {
+              // This is a rate limiting error
+              setErrorMessage("Too many attempts, please try again shortly.");
+              return;
+            }
+
+            // This is an unexpected error, throw it so that it's reported
             return Promise.reject(err);
           }),
       );
