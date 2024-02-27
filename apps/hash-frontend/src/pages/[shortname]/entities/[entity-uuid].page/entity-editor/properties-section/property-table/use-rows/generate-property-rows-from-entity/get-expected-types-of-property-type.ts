@@ -47,7 +47,11 @@ export const getExpectedTypesOfPropertyType = (
   let isArray = false;
   let expectedTypes: DataTypeWithMetadata["schema"][] = [];
 
-  // @todo handle property types with multiple expected values
+  /**
+   * @todo handle property types with multiple expected values -- H-2257
+   * e.g. the Paragraph block expects either 'string' or 'object[]'
+   * The entity editor input currently can only handle either different single values, or a mixed array – not single value or array
+   */
   const firstType = propertyType.oneOf[0];
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment

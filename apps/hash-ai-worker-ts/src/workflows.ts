@@ -1,5 +1,7 @@
 import type { EntityQueryCursor, Filter } from "@local/hash-graph-client";
 import type {
+  CreateEmbeddingsParams,
+  CreateEmbeddingsReturn,
   InferEntitiesCallerParams,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
@@ -72,6 +74,12 @@ export const inferEntities = async (params: InferEntitiesCallerParams) => {
     }
     throw err;
   }
+};
+
+export const createEmbeddings = async (
+  params: CreateEmbeddingsParams,
+): Promise<CreateEmbeddingsReturn> => {
+  return await aiActivities.createEmbeddingsActivity(params);
 };
 
 type UpdateDataTypeEmbeddingsParams = {
