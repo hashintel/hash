@@ -14,7 +14,7 @@
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@playwright/test": "1.41.2",
-    "eslint": "8.56.0",
+    "eslint": "8.57.0",
     "execa": "5.1.1",
     "js-yaml": "4.1.0",
     "typescript": "5.1.6"
