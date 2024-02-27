@@ -3,7 +3,7 @@
   "version": "0.0.0-private",
   "private": true,
   "scripts": {
-    "exe": "ts-node --transpile-only",
+    "exe": "tsx",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit"
@@ -18,7 +18,8 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/node": "18.15.13",
-    "eslint": "8.57.0"
+    "eslint": "8.57.0",
+    "tsx": "3.13.0"
   },
   "engines": {
     "node": ">=v18.15.0"

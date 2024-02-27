@@ -33,7 +33,7 @@ export type KanbanBoardBlockProperties = {
  *
  * Each card ID should be unique across all cards within a given board.
  */
-export type KanbanBoardCardIDPropertyValue = Text;
+export type KanbanBoardCardIDPropertyValue = TextDataType;
 
 /**
  * The definition of a specific card within a column on the “Kanban Board” block.
@@ -48,7 +48,7 @@ export type KanbanBoardCardPropertyValue = {
  *
  * Each column ID should be unique across all columns within a given board.
  */
-export type KanbanBoardColumnIDPropertyValue = Text;
+export type KanbanBoardColumnIDPropertyValue = TextDataType;
 
 /**
  * The definition of a specific column within the “Kanban Board” block.
@@ -62,14 +62,14 @@ export type KanbanBoardColumnPropertyValue = {
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataType = string;
 
 /**
  * The text material, information, or body, that makes up the content of this thing.
  */
-export type TextualContentPropertyValue = Text;
+export type TextualContentPropertyValue = TextDataType;
 
 /**
  * The name given to something to identify it, generally associated with objects or inanimate things such as books, websites, songs, etc.
  */
-export type TitlePropertyValue = Text;
+export type TitlePropertyValue = TextDataType;

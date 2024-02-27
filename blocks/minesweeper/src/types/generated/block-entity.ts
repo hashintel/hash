@@ -28,14 +28,14 @@ export type MinesweeperBlockProperties = {
 /**
  * An arithmetical value (in the Real number system)
  */
-export type Number = number;
+export type NumberDataType = number;
 
 /**
  * How many columns there are or should be
  */
-export type NumberOfColumnsPropertyValue = Number;
+export type NumberOfColumnsPropertyValue = NumberDataType;
 
 /**
  * How many mines there are or should be
  */
-export type NumberOfMinesPropertyValue = Number;
+export type NumberOfMinesPropertyValue = NumberDataType;

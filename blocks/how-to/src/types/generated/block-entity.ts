@@ -11,7 +11,7 @@ export type BlockEntityOutgoingLinkAndTarget = HowToBlockOutgoingLinkAndTarget;
 /**
  * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
  */
-export type DescriptionPropertyValue = Text;
+export type DescriptionPropertyValue = TextDataType;
 
 export type HasHowToBlockIntroduction =
   Entity<HasHowToBlockIntroductionProperties> & { linkData: LinkData };
@@ -126,9 +126,9 @@ export type LinkProperties = {};
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataType = string;
 
 /**
  * The name given to something to identify it, generally associated with objects or inanimate things such as books, websites, songs, etc.
  */
-export type TitlePropertyValue = Text;
+export type TitlePropertyValue = TextDataType;

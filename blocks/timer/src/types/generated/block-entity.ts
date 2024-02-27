@@ -13,12 +13,12 @@ export type BlockEntityOutgoingLinkAndTarget = TimerBlockOutgoingLinkAndTarget;
  *
  * For example: “2233-03-22T13:30:23Z”
  */
-export type TargetDateAndTimePropertyValue = Text;
+export type TargetDateAndTimePropertyValue = TextDataType;
 
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataType = string;
 
 export type TimerBlock = Entity<TimerBlockProperties>;
 
@@ -33,7 +33,7 @@ export type TimerBlockOutgoingLinksByLinkEntityTypeId = {};
  *
  * See: https://blockprotocol.org/@hash/blocks/timer
  */
-export type TimerBlockPauseDurationPropertyValue = Text;
+export type TimerBlockPauseDurationPropertyValue = TextDataType;
 
 /**
  * Defines the relative offsets of the timer block when in a paused or unpaused state, respective to the total duration.
@@ -67,4 +67,4 @@ export type TimerBlockProperties = {
  *
  * See: https://blockprotocol.org/@hash/blocks/timer
  */
-export type TimerBlockTotalDurationPropertyValue = Text;
+export type TimerBlockTotalDurationPropertyValue = TextDataType;

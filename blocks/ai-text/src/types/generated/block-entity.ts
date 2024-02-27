@@ -32,7 +32,7 @@ export type BlockEntityOutgoingLinkAndTarget = AITextBlockOutgoingLinkAndTarget;
  *
  * See: https://platform.openai.com/docs/models/gpt-3
  */
-export type OpenAITextModelNamePropertyValue = Text;
+export type OpenAITextModelNamePropertyValue = TextDataType;
 
 /**
  * The prompt provided as an input to an OpenAI-model capable of generating text.
@@ -41,14 +41,14 @@ export type OpenAITextModelNamePropertyValue = Text;
  *
  * See: https://blockprotocol.org/docs/spec/service-module
  */
-export type OpenAITextModelPromptPropertyValue = Text;
+export type OpenAITextModelPromptPropertyValue = TextDataType;
 
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataType = string;
 
 /**
  * The text material, information, or body, that makes up the content of this thing.
  */
-export type TextualContentPropertyValue = Text;
+export type TextualContentPropertyValue = TextDataType;

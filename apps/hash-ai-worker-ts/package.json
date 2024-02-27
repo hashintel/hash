@@ -25,12 +25,12 @@
   "scripts": {
     "build": "tsc --build && yarn exe ./scripts/bundle-workflow-code.ts",
     "build:docker": "docker buildx build --tag hash-ai-worker-ts --file ./docker/Dockerfile ../../ --load",
-    "dev": "NODE_ENV=development node --max-old-space-size=2048 ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/main.ts",
-    "exe": "ts-node --transpile-only",
+    "dev": "NODE_ENV=development tsx watch --max-old-space-size=2048 --clear-screen=false ./src/main.ts",
+    "exe": "tsx",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "start": "cross-env NODE_ENV=production node --max-old-space-size=2048 ./node_modules/.bin/ts-node --transpile-only ./src/main.ts",
+    "start": "cross-env NODE_ENV=production tsx --max-old-space-size=2048 ./src/main.ts",
     "test:unit": "jest"
   },
   "dependencies": {
@@ -51,7 +51,7 @@
     "officeparser": "4.0.6",
     "openai": "4.20.0",
     "openai-chat-tokens": "0.2.8",
-    "ts-node": "10.9.1",
+    "tsx": "3.13.0",
     "typescript": "5.1.6"
   },
   "devDependencies": {
@@ -61,7 +61,6 @@
     "@types/dedent": "0.7.0",
     "@types/dotenv-flow": "3.2.0",
     "@types/lodash.ismatch": "4.4.9",
-    "eslint": "8.57.0",
-    "ts-node-dev": "2.0.0"
+    "eslint": "8.57.0"
   }
 }

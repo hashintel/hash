@@ -19,7 +19,7 @@
     "codegen:generate-openapi-specs": "just generate-openapi-specs",
     "dev": "cargo run --bin hash-graph --all-features -- server",
     "dev:test-server": "cargo run --bin hash-graph --all-features -- test-server --api-port 4001",
-    "exe": "ts-node",
+    "exe": "tsx",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
     "reset-database": "httpyac send --all tests/reset-database.http",
@@ -34,13 +34,13 @@
     "@local/status-rust": "0.0.0-private",
     "@local/temporal-client-rs": "0.0.0-private",
     "@local/temporal-versioning-rs": "0.0.0-private",
-    "@local/tracing-rs": "0.0.0-private",
-    "ts-node": "10.9.1"
+    "@local/tracing-rs": "0.0.0-private"
   },
   "devDependencies": {
     "@tests/hash-graph-test-data-rs": "0.0.0-private",
     "httpyac": "6.11.3",
     "quicktype": "^16.0.43",
+    "tsx": "3.13.0",
     "typescript": "5.1.6"
   }
 }

@@ -45,12 +45,12 @@ export type ShuffleBlockHasRepresentativeShuffleBlockItemLink = {
 /**
  * The EntityId of the “Has Representative Shuffle Block Item” link entity associated with this item.
  */
-export type ShuffleBlockItemAssociatedLinkEntityIDPropertyValue = Text;
+export type ShuffleBlockItemAssociatedLinkEntityIDPropertyValue = TextDataType;
 
 /**
  * A unique identifier for a Shuffle Block item, used to keep track as the item is shuffled.
  */
-export type ShuffleBlockItemIDPropertyValue = Text;
+export type ShuffleBlockItemIDPropertyValue = TextDataType;
 
 /**
  * An item within the Shuffle Block random list, the contents of which may be a string, or some representation of another entity.
@@ -83,9 +83,9 @@ export type ShuffleBlockProperties = {
 /**
  * An ordered sequence of characters
  */
-export type Text = string;
+export type TextDataType = string;
 
 /**
  * The text material, information, or body, that makes up the content of this thing.
  */
-export type TextualContentPropertyValue = Text;
+export type TextualContentPropertyValue = TextDataType;

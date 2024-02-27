@@ -26,6 +26,7 @@
     "@apollo/client": "3.6.9",
     "@blockprotocol/core": "0.1.2",
     "@blockprotocol/graph": "0.3.3",
+    "@local/advanced-types": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@sentry/browser": "7.93.0",
@@ -34,7 +35,6 @@
     "immer": "9.0.6",
     "jsonschema": "1.4.0",
     "lodash": "4.17.21",
-    "node-fetch": "^2.6.7",
     "pluralize": "8.0.0",
     "prosemirror-commands": "1.3.1",
     "prosemirror-dropcursor": "1.6.1",
@@ -58,13 +58,12 @@
     "@temporalio/workflow": "1.8.1",
     "@types/lodash": "4.14.188",
     "@types/node": "18.15.13",
-    "@types/node-fetch": "^2.6.2",
     "@types/pluralize": "0.0.33",
     "eslint": "8.57.0",
     "graphql": "16.8.1",
     "next": "13.5.5",
     "react": "18.2.0",
-    "rimraf": "^5.0.5",
+    "rimraf": "5.0.5",
     "typescript": "5.1.6"
   }
 }

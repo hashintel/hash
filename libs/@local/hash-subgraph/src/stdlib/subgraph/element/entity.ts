@@ -1,3 +1,4 @@
+import { Timestamp } from "@blockprotocol/graph";
 import { Subgraph as SubgraphBp } from "@blockprotocol/graph/temporal";
 import {
   getEntities as getEntitiesBp,
@@ -11,7 +12,6 @@ import {
   EntityRevisionId,
   Subgraph,
   TimeInterval,
-  Timestamp,
 } from "../../../main";
 
 /**

@@ -8,10 +8,6 @@ import {
 } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
 import * as Sentry from "@sentry/browser";
-import {
-  RequestInfo as RequestInfoFromNodeFetch,
-  RequestInit as RequestInitFromNodeFetch,
-} from "node-fetch";
 
 import { apiGraphQLEndpoint } from "./environment";
 import possibleTypes from "./graphql/fragment-types.gen.json";
@@ -49,14 +45,6 @@ export const createApolloClient = (params?: {
   isBrowser: boolean;
   additionalHeaders?: { [key: string]: string | undefined };
 }): ApolloClient<NormalizedCacheObject> => {
-  const ponyfilledFetch =
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    typeof (globalThis as any).fetch === "undefined"
-      ? // eslint-disable-next-line global-require
-        require("node-fetch")
-      : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (globalThis as any).fetch;
-
   /**
    * This wraps fetch to inject the query operation name into the URL, which makes it easier
    * to identify in dev tools.
@@ -64,8 +52,8 @@ export const createApolloClient = (params?: {
    * @todo disable this in production due to caching concerns
    */
   const wrappedFetch = (
-    uri: RequestInfoFromNodeFetch | Request,
-    options: RequestInitFromNodeFetch | RequestInit | undefined,
+    uri: string | Request,
+    options: RequestInit | undefined,
   ) => {
     let operationName: string | null = null;
 
@@ -78,7 +66,7 @@ export const createApolloClient = (params?: {
       }
     }
 
-    return ponyfilledFetch(
+    return fetch(
       operationName
         ? `${typeof uri === "string" ? uri : JSON.stringify(uri)}?${operationName}`
         : uri,
@@ -89,7 +77,7 @@ export const createApolloClient = (params?: {
   const httpLink = new HttpLink({
     uri: apiGraphQLEndpoint,
     credentials: "include",
-    fetch: wrappedFetch,
+    fetch: wrappedFetch as WindowOrWorkerGlobalScope["fetch"],
     headers: params?.additionalHeaders,
   });
 
