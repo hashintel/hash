@@ -1,3 +1,4 @@
+
 [hash terms of service]: https://hash.ai/legal/terms?utm_medium=organic&utm_source=github_license_hash-license
 [hash developer docs]: https://hash.dev/docs?utm_medium=organic&utm_source=github_license_hash-license
 [hash product]: https://hash.ai/platform/hash?utm_medium=organic&utm_source=github_license_hash-license
@@ -18,8 +19,8 @@ successors.
 "**HASH-O**" shall mean the "Open" version of the [HASH product] described in the
 [HASH Developer Docs] available at `https://hash.dev/docs`.
 
-"**HASH-O License**" shall mean the [primary open-source license] available at
-`https://hash.dev/license`.
+"**HASH-O License**" shall mean the [primary open-source license] available directly
+at or via `https://hash.dev/license`.
 
 "**HASH Subscription**" shall mean a valid, active subscription agreement with HASH
 for the correct number of user seats and instances as defined in the [HASH
