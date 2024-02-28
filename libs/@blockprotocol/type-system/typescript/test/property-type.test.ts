@@ -3,7 +3,7 @@ import {
   PropertyType,
   TypeSystemInitializer,
   validatePropertyType,
-} from "..";
+} from "@blockprotocol/type-system";
 
 const propertyTypes: PropertyType[] = [
   {

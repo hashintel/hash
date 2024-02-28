@@ -3,7 +3,7 @@ import {
   ParseDataTypeError,
   TypeSystemInitializer,
   validateDataType,
-} from "..";
+} from "@blockprotocol/type-system";
 
 const primitiveDataTypes: DataType[] = [
   {

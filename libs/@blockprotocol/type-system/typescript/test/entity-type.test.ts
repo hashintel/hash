@@ -3,7 +3,7 @@ import {
   ParseEntityTypeError,
   TypeSystemInitializer,
   validateEntityType,
-} from "..";
+} from "@blockprotocol/type-system";
 
 const entityTypes: EntityType[] = [
   {
