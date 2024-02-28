@@ -689,8 +689,8 @@ export const generateSystemEntityTypeSchema = (
                       entityTypeIdOrReference === "SELF_REFERENCE"
                         ? params.entityTypeId
                         : typeof entityTypeIdOrReference === "object"
-                          ? entityTypeIdOrReference.schema.$id
-                          : entityTypeIdOrReference,
+                        ? entityTypeIdOrReference.schema.$id
+                        : entityTypeIdOrReference,
                   }),
                 ),
               }
@@ -843,7 +843,7 @@ export const getCurrentHashSystemEntityTypeId = ({
   return versionedUrlFromComponents(entityTypeBaseUrl, entityTypeVersion);
 };
 
-export const getExistingHashLinkEntityTypeId = ({
+export const getCurrentHashLinkEntityTypeId = ({
   linkEntityTypeKey,
   migrationState,
 }: {
@@ -868,7 +868,7 @@ export const getExistingHashLinkEntityTypeId = ({
   );
 };
 
-export const getExistingHashPropertyTypeId = ({
+export const getCurrentHashPropertyTypeId = ({
   propertyTypeKey,
   migrationState,
 }: {

@@ -1,3 +1,4 @@
+import { AccountId } from "@local/hash-subgraph";
 import axios, { AxiosError, AxiosInstance } from "axios";
 
 type VaultSecret<D = unknown> = {
@@ -80,4 +81,19 @@ export const createVaultClient = () => {
         token: process.env.HASH_VAULT_ROOT_TOKEN,
       })
     : undefined;
+};
+
+export const createUserSecretPath = ({
+  accountId,
+  restOfPath,
+  service,
+}: {
+  /** The user's accountId */
+  accountId: AccountId;
+  /** The rest of the path to the secret, determined by the service. May contain multiple segments. */
+  restOfPath: string;
+  /** The service the secret is for */
+  service: "google" | "linear";
+}) => {
+  return `users/${accountId}/${service}/${restOfPath.replace(/^\//, "")}`;
 };

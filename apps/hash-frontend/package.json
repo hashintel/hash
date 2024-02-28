@@ -112,6 +112,7 @@
     "@types/emoji-mart": "3.0.9",
     "@types/gapi": "0.0.47",
     "@types/google.accounts": "0.0.14",
+    "@types/google.picker": "0.0.42",
     "@types/iframe-resizer": "3.5.9",
     "@types/jsonpath": "0.2.0",
     "@types/lodash": "4.14.188",
@@ -131,3 +132,4 @@
     "node": ">=v18.15.0"
   }
 }
+

@@ -8,8 +8,8 @@ import {
   anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
+  getCurrentHashLinkEntityTypeId,
   getCurrentHashSystemEntityTypeId,
-  getExistingHashLinkEntityTypeId,
   updateSystemEntityType,
   upgradeDependenciesInHashEntityType,
 } from "../util";
@@ -117,7 +117,7 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const currentOccurredInEntityEntityTypeId = getExistingHashLinkEntityTypeId({
+  const currentOccurredInEntityEntityTypeId = getCurrentHashLinkEntityTypeId({
     linkEntityTypeKey: "occurredInEntity",
     migrationState,
   });

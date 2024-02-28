@@ -33,6 +33,7 @@ import {
   LinearIntegration,
 } from "../../graph/knowledge/system-types/linear-integration-entity";
 import { isUserMemberOfOrg } from "../../graph/knowledge/system-types/user";
+import { createUserSecretPath } from "../../vault";
 
 const linearClientId = process.env.LINEAR_CLIENT_ID;
 const linearClientSecret = process.env.LINEAR_CLIENT_SECRET;
@@ -53,7 +54,6 @@ const stateMap = new Map<
     actorEntityId: EntityId;
     expires: Date;
     ownedById: EntityUuid;
-    ownerType: "user" | "org";
   }
 >();
 
@@ -116,18 +116,12 @@ export const oAuthLinear: RequestHandler<
       return;
     }
 
-    const ownerType =
-      extractEntityUuidFromEntityId(userEntityId) === ownedById
-        ? "user"
-        : "org";
-
     const state = crypto.randomBytes(16).toString("hex");
 
     stateMap.set(state, {
       actorEntityId: req.user.entity.metadata.recordId.entityId,
       expires: new Date(Date.now() + 1000 * 60 * 5), // 5 minutes expiry
       ownedById: ownedById as EntityUuid,
-      ownerType,
     });
 
     res.redirect(generateLinearOAuthUrl(state));
@@ -174,7 +168,7 @@ export const oAuthLinearCallback: RequestHandler<
       return;
     }
 
-    const { actorEntityId, ownerType } = stateData;
+    const { actorEntityId } = stateData;
 
     stateMap.delete(state);
 
@@ -220,8 +214,11 @@ export const oAuthLinearCallback: RequestHandler<
 
     const authentication = { actorId: userAccountId };
 
-    // @todo give the path components some more thought
-    const vaultPath = `${ownerType}/${userAccountId}/linear/user/${actorEntityId}/workspace/${linearOrgId}`;
+    const vaultPath = createUserSecretPath({
+      accountId: userAccountId,
+      service: "linear",
+      restOfPath: `workspace/${linearOrgId}`,
+    });
 
     await req.context.vaultClient.write({
       data: { value: access_token },
