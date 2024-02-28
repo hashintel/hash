@@ -1,0 +1,27 @@
+{
+  "$schema": "../../node_modules/@openapitools/openapi-generator-cli/config.schema.json",
+  "spaces": 2,
+  "generator-cli": {
+    "version": "6.0.1",
+    "useDocker": true,
+    "generators": {
+      "ts": {
+        "generateAliasAsModel": true,
+        "generatorName": "typescript-axios",
+        "output": "#{cwd}/typescript",
+        "inputSpec": "http://host.docker.internal:5002/openapi.json",
+        "additionalProperties": {
+          "npmName": "@local/internal-api-client",
+          "npmVersion": "0.0.0-private",
+          "supportsES6": "true",
+          "withInterfaces": true,
+          "disallowAdditionalPropertiesIfNotPresent": true,
+          "sortModelPropertiesByRequiredFlag": false,
+          "sortParamsByRequiredFlag": false,
+          "ensureUniqueParams": true,
+          "modelPropertyNaming": "original"
+        }
+      }
+    }
+  }
+}
