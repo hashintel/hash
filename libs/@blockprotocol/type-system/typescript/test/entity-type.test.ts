@@ -494,7 +494,8 @@ const invalidEntityTypes: [string, EntityType, ParseEntityTypeError][] = [
 // Quick sanity check that passing in a completely different object also throws an error cleanly, this shouldn't be
 // normally possible if we don't do something silly like the use of any below. This sanity check is important because
 // it is possible for wasm to error in unusual ways that can't easily be handled, and that should be viewed as a bug.
-const brokenTypes: [unknown, ParseEntityTypeError][] = [
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const brokenTypes: [any, ParseEntityTypeError][] = [
   [
     {},
     {
@@ -547,6 +548,7 @@ describe("validateEntityType", () => {
   test.each(brokenTypes)(
     "validateEntityType cleanly returns errors on different type: %s",
     (input, expected) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       expect(validateEntityType(input)).toEqual({
         type: "Err",
         inner: expected,
