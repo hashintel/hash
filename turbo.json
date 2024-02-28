@@ -5,7 +5,7 @@
       "cache": false
     },
     "codegen": {
-      "dependsOn": ["^codegen"]
+      "dependsOn": ["^build"]
     },
     "build": {
       "dependsOn": ["codegen"]
