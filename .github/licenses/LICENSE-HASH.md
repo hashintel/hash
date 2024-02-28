@@ -1,31 +1,31 @@
-[hash global terms of service]: https://hash.ai/legal/terms?utm_medium=organic&utm_source=github_license_hash-license
-[hash pricing]: https://hash.ai/pricing?utm_medium=organic&utm_source=github_license_hash-license
+[hash terms of service]: https://hash.ai/legal/terms?utm_medium=organic&utm_source=github_license_hash-license
+[hash developer docs]: https://hash.dev/docs?utm_medium=organic&utm_source=github_license_hash-license
 [hash product]: https://hash.ai/platform/hash?utm_medium=organic&utm_source=github_license_hash-license
 [hash subscription agreement]: https://hash.ai/legal?utm_medium=organic&utm_source=github_license_hash-license
-[https://hash.ai/legal/license]: https://hash.ai/legal/license?utm_medium=organic&utm_source=github_license_hash-license
-[primary open-source license]: https://github.com/hashintel/hash/blob/main/apps/hash/LICENSE.md
+[https://hash.dev/license]: https://hash.dev/license?utm_medium=organic&utm_source=github_license_hash-license
+[primary open-source license]: https://hash.dev/license?utm_medium=organic&utm_source=github_license_hash-license
 
 # HASH License
 
-_Version 1.0_
-_Copyright © 2019–, HASH &lt;[https://hash.ai/legal/license]&gt;_
+_Version 1.1_
+_Copyright © 2019–, HASH &lt;[https://hash.dev/license]&gt;_
 
 ### 1. Definitions
 
 "**HASH**" shall mean _HASH, Inc._, its affiliates, subsidiaries, and any legal
 successors.
 
-"**HASH-O**" shall mean the "Open" version of the [HASH product] described on the
-[HASH Pricing] page available at `https://hash.ai/pricing`.
+"**HASH-O**" shall mean the "Open" version of the [HASH product] described in the
+[HASH Developer Docs] available at `https://hash.dev/docs`.
 
 "**HASH-O License**" shall mean the [primary open-source license] available at
-`https://github.com/hashintel/hash/blob/main/apps/hash/LICENSE.md`.
+`https://hash.dev/license`.
 
 "**HASH Subscription**" shall mean a valid, active subscription agreement with HASH
 for the correct number of user seats and instances as defined in the [HASH
 Subscription Agreement], linked to from `https://hash.ai/legal`.
 
-"**HASH Terms**" shall mean the [HASH Global Terms of Service], available at
+"**HASH Terms**" shall mean the [HASH Terms of Service], available at
 `https://hash.ai/legal/terms`.
 
 “**Legal Entity**” shall mean the union of the acting entity and all other entities
