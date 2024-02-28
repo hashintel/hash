@@ -1,6 +1,4 @@
-import fs from "node:fs";
-import path from "node:path";
-
+import nodeResolve from "@rollup/plugin-node-resolve";
 import typescript from "@rollup/plugin-typescript";
 import { wasm } from "@rollup/plugin-wasm";
 
@@ -35,36 +33,7 @@ const rolls = (fmt, env) => ({
       inlineSources: !production,
       outputToFilesystem: false,
     }),
-    {
-      name: "copy-pkg",
-      // wasm-bindgen outputs an import.meta.url when using the web target.
-      // rollup will either preserve the statement when outputting an esm,
-      // which will cause webpack < 5 to choke, or it will output a
-      // "require('url')", for other output types, causing more choking. Since
-      // we want a downstream developer to either not worry about providing wasm
-      // at all, or forcing them to deal with bundling, we resolve the import to
-      // an empty string. This will error at runtime.
-      resolveImportMeta: () => `""`,
-      generateBundle() {
-        fs.mkdirSync(path.resolve(`dist/wasm`), { recursive: true });
-
-        fs.copyFileSync(
-          "../rust/pkg/type-system_bg.wasm",
-          `dist/wasm/type-system.wasm`,
-        );
-        // copy the typescript definitions that wasm-bindgen creates into the
-        // distribution so that downstream users can benefit from documentation
-        // on the rust code
-        fs.copyFileSync(
-          "../rust/pkg/type-system_bg.wasm.d.ts",
-          `dist/wasm/type-system.wasm.d.ts`,
-        );
-        fs.copyFileSync(
-          path.resolve("../rust/pkg/type-system.d.ts"),
-          path.resolve(`dist/wasm/type-system.d.ts`),
-        );
-      },
-    },
+    nodeResolve(),
   ],
 });
 

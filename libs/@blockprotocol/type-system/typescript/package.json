@@ -46,7 +46,7 @@
   ],
   "scripts": {
     "build": "rollup -c --bundleConfigAsCjs",
-    "clean": "rimraf ./dist/ ./wasm/",
+    "clean": "rimraf ./dist/",
     "compressed-size": "yarn build && find dist -iname '*.js' -exec npx terser@latest --compress --mangle --output {} -- {} \\;",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
@@ -55,15 +55,14 @@
     "test": "jest"
   },
   "dependencies": {
-    "@blockprotocol/type-system-rs": "0.0.0-private",
-    "fs-extra": "11.1.0"
+    "@blockprotocol/type-system-rs": "0.0.0-private"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
+    "@rollup/plugin-node-resolve": "15.2.3",
     "@rollup/plugin-typescript": "11.1.6",
     "@rollup/plugin-wasm": "6.0.1",
-    "@types/fs-extra": "9.0.13",
     "@types/jest": "29.5.12",
     "@types/react": "18.0.26",
     "eslint": "8.57.0",
