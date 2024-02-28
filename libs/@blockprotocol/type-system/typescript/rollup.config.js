@@ -15,7 +15,7 @@ const outdir = (fmt, env) => {
 };
 
 const rolls = (fmt, env) => ({
-  input: env !== "slim" ? "src/index.ts" : "src/index-slim.ts",
+  input: env !== "slim" ? "src/main.ts" : "src/main-slim.ts",
   output: {
     dir: outdir(fmt, env),
     format: fmt,

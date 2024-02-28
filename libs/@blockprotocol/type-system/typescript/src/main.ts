@@ -1,4 +1,3 @@
-/* eslint-disable canonical/filename-no-index */
 import wasm from "@blockprotocol/type-system-rs/pkg/type-system_bg.wasm";
 
 import { setWasmInit } from "./common";

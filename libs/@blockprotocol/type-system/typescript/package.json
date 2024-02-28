@@ -17,27 +17,27 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/cjs/index.d.ts",
-      "node": "./dist/node/index.cjs",
-      "import": "./dist/es/index.js",
-      "default": "./dist/cjs/index.cjs"
+      "types": "./dist/cjs/main.d.ts",
+      "node": "./dist/node/main.cjs",
+      "import": "./dist/es/main.js",
+      "default": "./dist/cjs/main.cjs"
     },
     "./slim": {
-      "types": "./dist/cjs-slim/index-slim.d.ts",
-      "node": "./dist/node/index.cjs",
-      "import": "./dist/es-slim/index-slim.js",
-      "default": "./dist/cjs-slim/index-slim.cjs"
+      "types": "./dist/cjs-slim/main-slim.d.ts",
+      "node": "./dist/node/main.cjs",
+      "import": "./dist/es-slim/main-slim.js",
+      "default": "./dist/cjs-slim/main-slim.cjs"
     },
     "./type-system.wasm": "./dist/wasm/type-system.wasm",
     "./package.json": "./package.json"
   },
-  "main": "./dist/umd/index.js",
-  "module": "./dist/es/index.js",
-  "types": "./dist/umd/index.d.ts",
+  "main": "./dist/umd/main.js",
+  "module": "./dist/es/main.js",
+  "types": "./dist/umd/main.d.ts",
   "typesVersions": {
     "*": {
       "slim": [
-        "./dist/cjs-slim/index-slim.d.ts"
+        "./dist/cjs-slim/main-slim.d.ts"
       ]
     }
   },
