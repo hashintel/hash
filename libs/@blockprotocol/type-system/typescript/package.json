@@ -61,7 +61,7 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@rollup/plugin-typescript": "9.0.2",
+    "@rollup/plugin-typescript": "11.1.6",
     "@rollup/plugin-wasm": "6.0.1",
     "@types/fs-extra": "9.0.13",
     "@types/jest": "29.5.12",
