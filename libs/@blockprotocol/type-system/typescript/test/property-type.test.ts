@@ -3,7 +3,7 @@ import {
   PropertyType,
   TypeSystemInitializer,
   validatePropertyType,
-} from "@blockprotocol/type-system";
+} from "..";
 
 const propertyTypes: PropertyType[] = [
   {
@@ -376,7 +376,6 @@ describe("validatePropertyType", () => {
   test.each(brokenTypes)(
     "validatePropertyType cleanly returns errors on different type: %s",
     (input, expected) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       expect(validatePropertyType(input)).toEqual({
         type: "Err",
         inner: expected,

@@ -8,7 +8,7 @@ import {
   validateBaseUrl,
   validateVersionedUrl,
   VersionedUrl,
-} from "@blockprotocol/type-system";
+} from "..";
 
 const invalidBaseUrlCases: [string, ParseBaseUrlError][] = [
   ["http://example.com", { reason: "MissingTrailingSlash" }],

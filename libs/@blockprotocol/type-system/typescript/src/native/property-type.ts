@@ -4,7 +4,7 @@ import {
   PropertyType,
   PropertyValues,
   VersionedUrl,
-} from "@blockprotocol/type-system-rs/pkg/type-system";
+} from "@blockprotocol/type-system-rs";
 
 export const PROPERTY_TYPE_META_SCHEMA: PropertyType["$schema"] =
   "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type";

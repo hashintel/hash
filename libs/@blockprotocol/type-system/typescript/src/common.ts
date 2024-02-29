@@ -1,4 +1,4 @@
-import init from "@blockprotocol/type-system-rs/pkg/type-system";
+import init from "@blockprotocol/type-system-rs";
 
 export type InitInput =
   | RequestInfo

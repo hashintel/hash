@@ -3,7 +3,7 @@ import {
   ParseEntityTypeError,
   TypeSystemInitializer,
   validateEntityType,
-} from "@blockprotocol/type-system";
+} from "..";
 
 const entityTypes: EntityType[] = [
   {
@@ -548,7 +548,6 @@ describe("validateEntityType", () => {
   test.each(brokenTypes)(
     "validateEntityType cleanly returns errors on different type: %s",
     (input, expected) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       expect(validateEntityType(input)).toEqual({
         type: "Err",
         inner: expected,

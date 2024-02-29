@@ -3,7 +3,7 @@ import {
   ParseDataTypeError,
   TypeSystemInitializer,
   validateDataType,
-} from "@blockprotocol/type-system";
+} from "..";
 
 const primitiveDataTypes: DataType[] = [
   {
@@ -155,7 +155,6 @@ describe("validateDataType", () => {
   test.each(brokenTypes)(
     "validateDataType cleanly returns errors on different type: %s",
     (input, expected) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       expect(validateDataType(input)).toEqual({ type: "Err", inner: expected });
     },
   );
