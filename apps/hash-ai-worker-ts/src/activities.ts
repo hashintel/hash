@@ -20,8 +20,8 @@ import { StatusCode } from "@local/status";
 import { ApplicationFailure } from "@temporalio/activity";
 import type { CreateEmbeddingResponse } from "openai/resources";
 
-import { getTextFromWebPage } from "./activities/get-text-from-web-page";
-import { getWebSearchResults } from "./activities/get-web-search-results";
+import { getTextFromWebPageActivity } from "./activities/get-text-from-web-page-activity";
+import { getWebSearchResultsActivity } from "./activities/get-web-search-results-activity";
 import { inferEntitiesActivity } from "./activities/infer-entities";
 import { parseTextFromFile } from "./activities/parse-text-from-file";
 import {
@@ -111,7 +111,7 @@ export const createAiActivities = ({
     });
   },
 
-  getWebSearchResults,
+  getWebSearchResultsActivity,
 
-  getTextFromWebPage,
+  getTextFromWebPageActivity,
 });

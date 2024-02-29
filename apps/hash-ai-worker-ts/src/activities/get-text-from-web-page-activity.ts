@@ -1,6 +1,6 @@
 import puppeteer from "puppeteer";
 
-export const getTextFromWebPage = async (params: { url: string }) => {
+export const getTextFromWebPageActivity = async (params: { url: string }) => {
   const { url } = params;
 
   /** @todo: consider re-using the same `browser` instance across requests  */
