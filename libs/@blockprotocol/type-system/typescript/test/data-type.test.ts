@@ -89,8 +89,7 @@ const invalidDataTypes: [DataType, ParseDataTypeError][] = [
 // Quick sanity check that passing in a completely different object also throws an error cleanly, this shouldn't be
 // normally possible if we don't do something silly like the use of any below. This sanity check is important because
 // it is possible for wasm to error in unusual ways that can't easily be handled, and that should be viewed as a bug.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const brokenTypes: [any, ParseDataTypeError][] = [
+const brokenTypes: [unknown, ParseDataTypeError][] = [
   [
     {},
     {
@@ -155,7 +154,10 @@ describe("validateDataType", () => {
   test.each(brokenTypes)(
     "validateDataType cleanly returns errors on different type: %s",
     (input, expected) => {
-      expect(validateDataType(input)).toEqual({ type: "Err", inner: expected });
+      expect(validateDataType(input as DataType)).toEqual({
+        type: "Err",
+        inner: expected,
+      });
     },
   );
 });

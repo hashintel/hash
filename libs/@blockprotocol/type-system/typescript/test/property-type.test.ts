@@ -376,7 +376,7 @@ describe("validatePropertyType", () => {
   test.each(brokenTypes)(
     "validatePropertyType cleanly returns errors on different type: %s",
     (input, expected) => {
-      expect(validatePropertyType(input)).toEqual({
+      expect(validatePropertyType(input as PropertyType)).toEqual({
         type: "Err",
         inner: expected,
       });

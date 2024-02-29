@@ -548,7 +548,7 @@ describe("validateEntityType", () => {
   test.each(brokenTypes)(
     "validateEntityType cleanly returns errors on different type: %s",
     (input, expected) => {
-      expect(validateEntityType(input)).toEqual({
+      expect(validateEntityType(input as EntityType)).toEqual({
         type: "Err",
         inner: expected,
       });
