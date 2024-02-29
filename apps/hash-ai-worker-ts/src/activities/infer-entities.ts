@@ -1,5 +1,3 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
   getHashInstanceAdminAccountGroupId,
   isUserHashInstanceAdmin,
@@ -15,24 +13,19 @@ import type {
   InferEntitiesCallerParams,
   InferEntitiesReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { AccountId, Timestamp } from "@local/hash-subgraph";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 import { StatusCode } from "@local/status";
 import { CancelledFailure, Context } from "@temporalio/activity";
 import dedent from "dedent";
 
+import { getDereferencedEntityTypesActivity } from "./get-dereferenced-entity-types-activity";
 import { createInferenceUsageRecord } from "./infer-entities/create-inference-usage-record";
-import type { DereferencedEntityType } from "./infer-entities/dereference-entity-type";
-import { dereferenceEntityType } from "./infer-entities/dereference-entity-type";
 import { getResultsFromInferenceState } from "./infer-entities/get-results-from-inference-state";
 import { inferEntitiesSystemMessage } from "./infer-entities/infer-entities-system-message";
 import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-summaries-from-web-page";
 import type {
+  DereferencedEntityTypesByTypeId,
   InferenceState,
   PermittedOpenAiModel,
 } from "./infer-entities/inference-types";
@@ -220,36 +213,21 @@ const inferEntities = async ({
   }
   /** The AI Assistant has permission in the specified web, proceed with inference */
 
-  /** Fetch the full schemas for the requested entity types */
-  const entityTypes: Record<
-    VersionedUrl,
-    { isLink: boolean; schema: DereferencedEntityType }
-  > = {};
+  const model = modelAliasToSpecificModel[modelAlias];
+
+  let entityTypes: DereferencedEntityTypesByTypeId;
 
   try {
-    const { data: entityTypesSubgraph } =
-      await graphApiClient.getEntityTypesByQuery(aiAssistantAccountId, {
-        filter: {
-          any: entityTypeIds.map((entityTypeId) => ({
-            equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
-          })),
-        },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          constrainsValuesOn: { outgoing: 255 },
-          constrainsPropertiesOn: { outgoing: 255 },
-          inheritsFrom: { outgoing: 255 },
-        },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
-      });
-
-    for (const entityTypeId of entityTypeIds) {
-      entityTypes[entityTypeId] = dereferenceEntityType(
-        entityTypeId,
-        mapGraphApiSubgraphToSubgraph(entityTypesSubgraph),
-      );
-    }
+    /**
+     * @todo: once `inferEntities` has been refactored to become a workflow,
+     * use the `getDereferencedEntityTypesActivity` function as an activity
+     * instead of directly calling the underlying function.
+     */
+    entityTypes = await getDereferencedEntityTypesActivity({
+      entityTypeIds,
+      graphApiClient,
+      actorId: aiAssistantAccountId,
+    });
   } catch (err) {
     return {
       code: StatusCode.Internal,
@@ -258,49 +236,6 @@ const inferEntities = async ({
         (err as Error).message
       }`,
     };
-  }
-
-  const model = modelAliasToSpecificModel[modelAlias];
-
-  const unusableTypeIds = entityTypeIds.filter((entityTypeId) => {
-    const details = entityTypes[entityTypeId];
-    if (!details) {
-      return true;
-    }
-
-    const { isLink } = details;
-
-    if (!isLink) {
-      /**
-       * If it's not a link we assume it can be satisfied.
-       * @todo consider checking if it has required links (minItems > 1) which cannot be satisfied
-       */
-      return false;
-    }
-
-    /**
-     * If this is a link type, only search for it if it can be used, given the other types of entities being sought
-     */
-    const linkCanBeSatisfied = Object.values(entityTypes).some((option) =>
-      typedEntries(option.schema.links ?? {}).some(
-        ([linkTypeId, targetSchema]) =>
-          // It must exist as a potential link on at least one of the other entity types being sought...
-          linkTypeId === entityTypeId &&
-          // ...and that link must not have destination constraints which cannot be met
-          !(
-            "oneOf" in targetSchema.items &&
-            !targetSchema.items.oneOf.some(
-              (targetOption) => entityTypes[targetOption.$ref],
-            )
-          ),
-      ),
-    );
-
-    return !linkCanBeSatisfied;
-  });
-
-  for (const unusableTypeId of unusableTypeIds) {
-    delete entityTypes[unusableTypeId];
   }
 
   /**
