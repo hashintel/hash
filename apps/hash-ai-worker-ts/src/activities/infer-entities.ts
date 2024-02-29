@@ -2,10 +2,7 @@ import {
   getHashInstanceAdminAccountGroupId,
   isUserHashInstanceAdmin,
 } from "@local/hash-backend-utils/hash-instance";
-import {
-  getMachineActorId,
-  getWebMachineActorId,
-} from "@local/hash-backend-utils/machine-actors";
+import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { getUserServiceUsage } from "@local/hash-backend-utils/service-usage";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
@@ -19,6 +16,7 @@ import { StatusCode } from "@local/status";
 import { CancelledFailure, Context } from "@temporalio/activity";
 import dedent from "dedent";
 
+import { getAiAssistantAccountIdActivity } from "./get-ai-assistant-account-id-activity";
 import { getDereferencedEntityTypesActivity } from "./get-dereferenced-entity-types-activity";
 import { createInferenceUsageRecord } from "./infer-entities/create-inference-usage-record";
 import { getResultsFromInferenceState } from "./infer-entities/get-results-from-inference-state";
@@ -153,15 +151,21 @@ const inferEntities = async ({
     };
   }
 
-  /** Fetch the AI Assistant actor and check if it has permission to create entities in the requested web */
-  let aiAssistantAccountId: AccountId;
-  try {
-    aiAssistantAccountId = await getMachineActorId(
-      { graphApi: graphApiClient },
-      userAuthenticationInfo,
-      { identifier: "hash-ai" },
-    );
-  } catch {
+  /** Fetch the AI Assistant actor and ensure it has permission to create entities in the requested web */
+
+  const aiAssistantAccountId =
+    /**
+     * @todo: once `inferEntities` has been refactored to become a workflow,
+     * use the `getAiAssistantAccountIdActivity` function as an activity
+     * instead of directly calling the underlying function.
+     */
+    await getAiAssistantAccountIdActivity({
+      authentication: userAuthenticationInfo,
+      grantCreatePermissionForWeb: ownedById,
+      graphApiClient,
+    });
+
+  if (!aiAssistantAccountId) {
     return {
       code: StatusCode.Internal,
       contents: [],
@@ -169,48 +173,6 @@ const inferEntities = async ({
     };
   }
 
-  const aiAssistantHasPermission = await graphApiClient
-    .checkWebPermission(aiAssistantAccountId, ownedById, "update_entity")
-    .then((resp) => resp.data.has_permission);
-
-  if (!aiAssistantHasPermission) {
-    /** The AI Assistant does not have permission in the requested web, use the web-scoped bot to grant it */
-    const webMachineActorId = await getWebMachineActorId(
-      { graphApi: graphApiClient },
-      userAuthenticationInfo,
-      {
-        ownedById,
-      },
-    );
-
-    await graphApiClient.modifyWebAuthorizationRelationships(
-      webMachineActorId,
-      [
-        {
-          operation: "create",
-          resource: ownedById,
-          relationAndSubject: {
-            subject: {
-              kind: "account",
-              subjectId: aiAssistantAccountId,
-            },
-            relation: "entityCreator",
-          },
-        },
-        {
-          operation: "create",
-          resource: ownedById,
-          relationAndSubject: {
-            subject: {
-              kind: "account",
-              subjectId: aiAssistantAccountId,
-            },
-            relation: "entityEditor",
-          },
-        },
-      ],
-    );
-  }
   /** The AI Assistant has permission in the specified web, proceed with inference */
 
   const model = modelAliasToSpecificModel[modelAlias];

@@ -20,6 +20,7 @@ import { StatusCode } from "@local/status";
 import { ApplicationFailure } from "@temporalio/activity";
 import type { CreateEmbeddingResponse } from "openai/resources";
 
+import { getAiAssistantAccountIdActivity } from "./activities/get-ai-assistant-account-id-activity";
 import { getDereferencedEntityTypesActivity } from "./activities/get-dereferenced-entity-types-activity";
 import { getTextFromWebPageActivity } from "./activities/get-text-from-web-page-activity";
 import { getWebSearchResultsActivity } from "./activities/get-web-search-results-activity";
@@ -123,6 +124,18 @@ export const createAiActivities = ({
     >,
   ) {
     return getDereferencedEntityTypesActivity({
+      ...params,
+      graphApiClient,
+    });
+  },
+
+  async getAiAssistantAccountIdActivity(
+    params: Omit<
+      Parameters<typeof getAiAssistantAccountIdActivity>[0],
+      "graphApiClient"
+    >,
+  ) {
+    return getAiAssistantAccountIdActivity({
       ...params,
       graphApiClient,
     });
