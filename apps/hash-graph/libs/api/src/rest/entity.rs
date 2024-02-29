@@ -462,7 +462,6 @@ where
 struct UpdateEntityRequest {
     properties: EntityProperties,
     entity_id: EntityId,
-    #[schema(value_type = SHARED_VersionedUrl)]
     entity_type_id: VersionedUrl,
     #[serde(flatten)]
     order: EntityLinkOrder,

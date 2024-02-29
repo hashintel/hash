@@ -3744,6 +3744,7 @@ dependencies = [
  "thiserror",
  "tsify",
  "url",
+ "utoipa",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
@@ -3869,6 +3870,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.52",
+ "url",
  "uuid",
 ]
 

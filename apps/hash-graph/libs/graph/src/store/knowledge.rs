@@ -46,7 +46,7 @@ impl ToSchema<'_> for EntityValidationType<'_> {
             Schema::OneOf(
                 schema::OneOfBuilder::new()
                     .item(Ref::from_schema_name("VAR_ENTITY_TYPE"))
-                    .item(Ref::from_schema_name("SHARED_VersionedUrl"))
+                    .item(Ref::from_schema_name("VersionedUrl"))
                     .build(),
             )
             .into(),
@@ -175,7 +175,6 @@ pub struct CreateEntityParams<R> {
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub decision_time: Option<Timestamp<DecisionTime>>,
-    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
     pub entity_type_id: VersionedUrl,
     pub properties: EntityProperties,
     #[serde(default)]
@@ -218,7 +217,6 @@ pub struct UpdateEntityParams {
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub decision_time: Option<Timestamp<DecisionTime>>,
-    #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_VersionedUrl))]
     pub entity_type_id: VersionedUrl,
     pub properties: EntityProperties,
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]

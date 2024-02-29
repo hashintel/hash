@@ -162,7 +162,6 @@ struct CreateEntityTypeRequest {
     schema: MaybeListOfEntityType,
     owned_by_id: OwnedById,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schema(value_type = SHARED_BaseUrl)]
     label_property: Option<BaseUrl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     icon: Option<String>,
@@ -173,7 +172,6 @@ struct CreateEntityTypeRequest {
 #[serde(rename_all = "camelCase")]
 struct ModifyEntityTypeAuthorizationRelationship {
     operation: ModifyRelationshipOperation,
-    #[schema(value_type = SHARED_VersionedUrl)]
     resource: VersionedUrl,
     relation_and_subject: EntityTypeRelationAndSubject,
 }
@@ -523,15 +521,11 @@ where
 #[serde(untagged)]
 enum LoadExternalEntityTypeRequest {
     #[serde(rename_all = "camelCase")]
-    Fetch {
-        #[schema(value_type = SHARED_VersionedUrl)]
-        entity_type_id: VersionedUrl,
-    },
+    Fetch { entity_type_id: VersionedUrl },
     Create {
         #[schema(value_type = VAR_ENTITY_TYPE)]
         schema: EntityType,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        #[schema(value_type = SHARED_BaseUrl)]
         label_property: Option<BaseUrl>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         icon: Option<String>,
@@ -741,10 +735,8 @@ where
 struct UpdateEntityTypeRequest {
     #[schema(value_type = VAR_UPDATE_ENTITY_TYPE)]
     schema: serde_json::Value,
-    #[schema(value_type = SHARED_VersionedUrl)]
     type_to_update: VersionedUrl,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schema(value_type = SHARED_BaseUrl)]
     label_property: Option<BaseUrl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     icon: Option<String>,

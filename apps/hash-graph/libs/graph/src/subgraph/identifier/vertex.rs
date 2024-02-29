@@ -42,7 +42,6 @@ macro_rules! define_ontology_type_vertex_id {
         #[cfg_attr(feature = "utoipa", derive(ToSchema))]
         #[serde(rename_all = "camelCase")]
         pub struct $name {
-            #[cfg_attr(feature = "utoipa", schema(value_type = SHARED_BaseUrl))]
             pub base_id: BaseUrl,
             pub revision_id: OntologyTypeVersion,
         }

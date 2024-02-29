@@ -5,6 +5,8 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 #[cfg(target_arch = "wasm32")]
 use tsify::Tsify;
 use url::Url;
+#[cfg(feature = "utoipa")]
+use utoipa::{openapi, ToSchema};
 
 mod error;
 #[cfg(target_arch = "wasm32")]
@@ -85,6 +87,21 @@ impl<'de> Deserialize<'de> for BaseUrl {
         D: Deserializer<'de>,
     {
         Self::new(String::deserialize(deserializer)?).map_err(de::Error::custom)
+    }
+}
+
+#[cfg(feature = "utoipa")]
+impl ToSchema<'_> for BaseUrl {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "BaseUrl",
+            openapi::schema::ObjectBuilder::new()
+                .schema_type(openapi::SchemaType::String)
+                .format(Some(openapi::SchemaFormat::KnownFormat(
+                    openapi::KnownFormat::Uri,
+                )))
+                .into(),
+        )
     }
 }
 
@@ -182,6 +199,21 @@ impl<'de> Deserialize<'de> for VersionedUrl {
         String::deserialize(deserializer)?
             .parse()
             .map_err(de::Error::custom)
+    }
+}
+
+#[cfg(feature = "utoipa")]
+impl ToSchema<'_> for VersionedUrl {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "VersionedUrl",
+            openapi::schema::ObjectBuilder::new()
+                .schema_type(openapi::SchemaType::String)
+                .format(Some(openapi::SchemaFormat::KnownFormat(
+                    openapi::KnownFormat::Uri,
+                )))
+                .into(),
+        )
     }
 }
 
