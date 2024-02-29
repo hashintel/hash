@@ -20,7 +20,6 @@ export const GoogleFilePicker = ({
       const picker = new google.picker.PickerBuilder()
         .addView(google.picker.ViewId.SPREADSHEETS)
         .setOAuthToken(accessToken)
-        .setDeveloperKey(apiKey)
         .setCallback(onFilePicked)
         .build();
       picker.setVisible(true);

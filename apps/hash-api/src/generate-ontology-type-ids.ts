@@ -183,11 +183,16 @@ const generateOntologyIds = async () => {
 
   const graphContext: ImpureGraphContext = { graphApi, temporalClient: null };
 
-  const [hashOrg, linearOrg] = await Promise.all([
+  const [hashOrg, googleOrg, linearOrg] = await Promise.all([
     getOrgByShortname(
       graphContext,
       { actorId: publicUserAccountId },
       { shortname: "hash" },
+    ),
+    getOrgByShortname(
+      graphContext,
+      { actorId: publicUserAccountId },
+      { shortname: "google" },
     ),
     getOrgByShortname(
       graphContext,
@@ -200,6 +205,10 @@ const generateOntologyIds = async () => {
     throw new Error("HASH org not found");
   }
 
+  if (!googleOrg) {
+    throw new Error("Google org not found");
+  }
+
   if (!linearOrg) {
     throw new Error("Linear org not found");
   }
@@ -210,6 +219,8 @@ const generateOntologyIds = async () => {
     hashEntityTypes,
     hashPropertyTypes,
     hashDataTypes,
+    googleEntityTypes,
+    googlePropertyTypes,
     linearEntityTypes,
     linearPropertyTypes,
     blockProtocolEntityTypes,
@@ -225,6 +236,13 @@ const generateOntologyIds = async () => {
     }).then((subgraph) => getRoots(subgraph)),
     getDataTypes(graphContext, authentication, {
       query: getLatestTypesInOrganizationQuery({ organization: hashOrg }),
+    }).then((subgraph) => getRoots(subgraph)),
+    // Google types
+    getEntityTypes(graphContext, authentication, {
+      query: getLatestTypesInOrganizationQuery({ organization: googleOrg }),
+    }).then((subgraph) => getRoots(subgraph)),
+    getPropertyTypes(graphContext, authentication, {
+      query: getLatestTypesInOrganizationQuery({ organization: googleOrg }),
     }).then((subgraph) => getRoots(subgraph)),
     // Linear types
     getEntityTypes(graphContext, authentication, {
@@ -259,6 +277,11 @@ const generateOntologyIds = async () => {
         dataTypes: hashDataTypes,
         /** @todo: change this to "hash"? */
         prefix: "system",
+      }),
+      serializeTypes(graphContext, authentication, {
+        entityTypes: googleEntityTypes,
+        propertyTypes: googlePropertyTypes,
+        prefix: "google",
       }),
       serializeTypes(graphContext, authentication, {
         entityTypes: linearEntityTypes,

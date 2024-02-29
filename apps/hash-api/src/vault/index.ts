@@ -38,17 +38,15 @@ export class VaultClient {
     );
   }
 
-  async write<
-    D extends Record<string, string> = Record<"value", string>,
-  >(params: {
-    secretMountPath: string;
+  async write<D extends object = Record<"value", string>>(params: {
+    secretMountPath: "secret";
     path: string;
     data: D;
   }): Promise<VaultSecret<D>> {
     const { secretMountPath, path, data } = params;
 
     const response = await this.client.post<{ data: VaultSecret["metadata"] }>(
-      `/${secretMountPath}/data/${path}`,
+      `/${secretMountPath}/data/${path.replace(/^\//, "")}`,
       { data },
     );
 
@@ -59,7 +57,7 @@ export class VaultClient {
   }
 
   async read<D = unknown>(params: {
-    secretMountPath: string;
+    secretMountPath: "secret";
     path: string;
   }): Promise<VaultSecret<D>> {
     const { secretMountPath, path } = params;

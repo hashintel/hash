@@ -13,7 +13,7 @@ import { frontendUrl } from "./environment";
 
 export type SchemaKind = "data-type" | "property-type" | "entity-type";
 
-export const systemTypeWebShortnames = ["hash", "linear"] as const;
+export const systemTypeWebShortnames = ["hash", "google", "linear"] as const;
 export type SystemTypeWebShortname = (typeof systemTypeWebShortnames)[number];
 
 /**

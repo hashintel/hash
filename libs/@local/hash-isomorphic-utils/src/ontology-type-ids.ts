@@ -60,6 +60,12 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/github-account/",
   },
+  googleSheetsIntegration: {
+    entityTypeId:
+      "https://hash.ai/@hash/types/entity-type/google-sheets-integration/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/google-sheets-integration/",
+  },
   graphChangeNotification: {
     entityTypeId:
       "https://hash.ai/@hash/types/entity-type/graph-change-notification/v/1",
@@ -177,6 +183,12 @@ export const systemEntityTypes = {
 } as const;
 
 export const systemLinkEntityTypes = {
+  associatedWithAccount: {
+    linkEntityTypeId:
+      "https://hash.ai/@hash/types/entity-type/associated-with-account/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/associated-with-account/",
+  },
   authoredBy: {
     linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/authored-by/v/1",
     linkEntityTypeBaseUrl:
@@ -309,6 +321,11 @@ export const systemLinkEntityTypes = {
 } as const;
 
 export const systemPropertyTypes = {
+  accountId: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/account-id/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/account-id/",
+  },
   appliesFrom: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/applies-from/v/1",
@@ -379,6 +396,10 @@ export const systemPropertyTypes = {
       "https://hash.ai/@hash/types/property-type/feature-name/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/feature-name/",
+  },
+  fileId: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/file-id/v/1",
+    propertyTypeBaseUrl: "https://hash.ai/@hash/types/property-type/file-id/",
   },
   fileStorageBucket: {
     propertyTypeId:
@@ -691,6 +712,19 @@ export const systemDataTypes = {
     dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/uri/",
     title: "URI",
     description: "A unique identifier for a resource (e.g. a URL, or URN).",
+  },
+} as const;
+
+export const googleEntityTypes = {} as const;
+
+export const googleLinkEntityTypes = {} as const;
+
+export const googlePropertyTypes = {
+  accountId: {
+    propertyTypeId:
+      "https://hash.ai/@google/types/property-type/account-id/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@google/types/property-type/account-id/",
   },
 } as const;
 
