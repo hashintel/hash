@@ -25,6 +25,7 @@ import { getDereferencedEntityTypesActivity } from "./activities/get-dereference
 import { getTextFromWebPageActivity } from "./activities/get-text-from-web-page-activity";
 import { getWebSearchResultsActivity } from "./activities/get-web-search-results-activity";
 import { inferEntitiesActivity } from "./activities/infer-entities";
+import { inferEntitiesFromWebPageActivity } from "./activities/infer-entities-from-web-page-activity";
 import { parseTextFromFile } from "./activities/parse-text-from-file";
 import {
   createDataTypeEmbeddings,
@@ -140,4 +141,6 @@ export const createAiActivities = ({
       graphApiClient,
     });
   },
+
+  inferEntitiesFromWebPageActivity,
 });

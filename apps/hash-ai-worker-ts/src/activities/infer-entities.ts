@@ -331,6 +331,7 @@ export const inferEntitiesActivity = async ({
     iterationCount: 1,
     inProgressEntityIds: [],
     proposedEntitySummaries: [],
+    proposedEntityCreationsByType: {},
     resultsByTemporaryId: {},
     usage: [],
   };
