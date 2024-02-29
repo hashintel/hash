@@ -3764,7 +3764,7 @@
   resolved "https://registry.yarnpkg.com/@graphql-typed-document-node/core/-/core-3.2.0.tgz#5f3d96ec6b2354ad6d8a28bf216a1d97b5426861"
   integrity sha512-mB9oAsNCm9aM3/SOv4YtBMqZbYj10R7dkq8byBqxGY/ncFwhf2oQzMV+LCRlWoDSEBJ3COiR1yeDvMtsoOsuFQ==
 
-"@grpc/grpc-js@^1.10.1", "@grpc/grpc-js@^1.7.1":
+"@grpc/grpc-js@^1.10.1", "@grpc/grpc-js@^1.7.1", "@grpc/grpc-js@^1.9.13":
   version "1.10.1"
   resolved "https://registry.yarnpkg.com/@grpc/grpc-js/-/grpc-js-1.10.1.tgz#be450560c990c08274bc19d514e181ea205ccaa8"
   integrity sha512-55ONqFytZExfOIjF1RjXPcVmT/jJqFzbbDqxK9jmRV4nxiYWtL9hENSW1Jfx0SdZfrvoqd44YJ/GJTqfRrawSQ==
@@ -8065,11 +8065,6 @@
     "@types/minimatch" "^5.1.2"
     "@types/node" "*"
 
-"@types/google-protobuf@^3.7.2":
-  version "3.15.9"
-  resolved "https://registry.yarnpkg.com/@types/google-protobuf/-/google-protobuf-3.15.9.tgz#a983fc4bc35acb2b84a824d2ec8107d084e8603f"
-  integrity sha512-l51aVJnCNNMBkmSUQddSStXinB2qSXqfrmY9zkdcE9sqPzDneQ3BGg/hu7LfeOCUeGHOu+Rly89YhuDhvbmmPw==
-
 "@types/graceful-fs@^4.1.3":
   version "4.1.5"
   resolved "https://registry.yarnpkg.com/@types/graceful-fs/-/graceful-fs-4.1.5.tgz#21ffba0d98da4350db64891f92a9e5db3cdb4e15"
@@ -8230,13 +8225,6 @@
   dependencies:
     "@types/lodash" "*"
 
-"@types/lodash.set@^4.3.6":
-  version "4.3.8"
-  resolved "https://registry.yarnpkg.com/@types/lodash.set/-/lodash.set-4.3.8.tgz#694db1eb1b781860744edebdfd6b039bc2d9f007"
-  integrity sha512-WYIWnVO5xkcEKehhZf0Whrf9wj9D1AuaGTpwT/mCEJXKgdC2UWcMpvRqJahKQNhnOjmGEhpUqbYNJ6gUgdGSQw==
-  dependencies:
-    "@types/lodash" "*"
-
 "@types/lodash.uniqueid@4.0.7":
   version "4.0.7"
   resolved "https://registry.yarnpkg.com/@types/lodash.uniqueid/-/lodash.uniqueid-4.0.7.tgz#d366034c757fb6b00cc4fe1f1fa942e6be3ff012"
@@ -8244,7 +8232,12 @@
   dependencies:
     "@types/lodash" "*"
 
-"@types/lodash@*", "@types/lodash@4.14.188", "@types/lodash@^4.14.149", "@types/lodash@^4.14.167", "@types/lodash@^4.14.182":
+"@types/lodash@*", "@types/lodash@^4.14.149", "@types/lodash@^4.14.167", "@types/lodash@^4.14.182", "@types/lodash@^4.14.202":
+  version "4.14.202"
+  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.202.tgz#f09dbd2fb082d507178b2f2a5c7e74bd72ff98f8"
+  integrity sha512-OvlIYQK9tNneDlS0VN54LLd5uiPCBOp7gS5Z0f1mjoJYBrtStzgmJBxONW3U6OZqdtNzZPmn9BS/7WI7BFFcFQ==
+
+"@types/lodash@4.14.188":
   version "4.14.188"
   resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.188.tgz#e4990c4c81f7c9b00c5ff8eae389c10f27980da5"
   integrity "sha1-5JkMTIH3ybAMX/jq44nBDyeYDaU= sha512-zmEmF5OIM3rb7SbLCFYoQhO4dGt2FRM9AMkxvA3LaADOF1n8in/zGJlWji9fmafLoNyz+FoL6FE0SLtGIArD7w=="
@@ -14800,7 +14793,7 @@ globby@^6.1.0:
     pify "^2.0.0"
     pinkie-promise "^2.0.0"
 
-google-protobuf@^3.12.2:
+google-protobuf@^3.21.2:
   version "3.21.2"
   resolved "https://registry.yarnpkg.com/google-protobuf/-/google-protobuf-3.21.2.tgz#4580a2bea8bbb291ee579d1fefb14d6fa3070ea4"
   integrity sha512-3MSOYFO5U9mPGikIYCzK0SaThypfGgS6bHqrUGXG3DPHCrb+txNqeEcns1W0lkGfk0rCyNXm7xB9rMxnCiZOoA==
@@ -14932,16 +14925,15 @@ gray-matter@4.0.3:
     section-matter "^1.0.0"
     strip-bom-string "^1.0.0"
 
-grpc-reflection-js@^0.3.0:
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/grpc-reflection-js/-/grpc-reflection-js-0.3.0.tgz#bfa9776d38f88ff7199d126fcfe0046411045aa8"
-  integrity sha512-3lhTlQluPxVgbowCXA3tAZC3RJW+GSOUkguLNYl1QffYRiutUB3RDfPkQFTcrCFJgNiIIxx+iJkr8s3uSp3zWA==
+grpc-js-reflection-client@^1.2.14:
+  version "1.2.14"
+  resolved "https://registry.yarnpkg.com/grpc-js-reflection-client/-/grpc-js-reflection-client-1.2.14.tgz#2f376115db84608c19e75804bbf134c451856ddd"
+  integrity sha512-gsQO/Qn5rpaipQogpXWIyDzbJ3Lvs18dKFZu/YUHUWTGOfJ9DnaOT9FTR1NjPq2zqO6tAFnTNHsQbLsWOiEEsA==
   dependencies:
-    "@types/google-protobuf" "^3.7.2"
-    "@types/lodash.set" "^4.3.6"
-    google-protobuf "^3.12.2"
-    lodash.set "^4.3.2"
-    protobufjs "^7.2.2"
+    "@grpc/grpc-js" "^1.9.13"
+    "@types/lodash" "^4.14.202"
+    lodash "^4.17.21"
+    protobufjs "^7.2.5"
 
 gunzip-maybe@^1.4.2:
   version "1.4.2"
@@ -15428,10 +15420,10 @@ https-proxy-agent@^7.0.0, https-proxy-agent@^7.0.4:
     agent-base "^7.0.2"
     debug "4"
 
-httpyac@6.11.4:
-  version "6.11.4"
-  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-6.11.4.tgz#4d50397ea0ac2683f001403fae2aed866ded8290"
-  integrity sha512-9L1YVcn9v2HCMTgsW7IE9ffAw24fwsQyQIDkoI2HHZswUUfehGHYNe7JTs5cQPpOGM80Kw3CDTvihwMqWYlK9Q==
+httpyac@6.11.5:
+  version "6.11.5"
+  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-6.11.5.tgz#7187604afd7a36dda940e1ba35f7b8ce2d1b364f"
+  integrity sha512-JYXadQVy3/PNgB8FtsazjYfFpW+4ispGJqtijw28nSWAzXVtUwoyRi0wMLe7wxDOT0zM/tvOaM69OLaft1OxzQ==
   dependencies:
     "@cloudamqp/amqp-client" "^2.1.1"
     "@grpc/grpc-js" "^1.10.1"
@@ -15448,8 +15440,9 @@ httpyac@6.11.4:
     eventsource "^2.0.2"
     filesize "^10.1.0"
     globby "^14.0.1"
+    google-protobuf "^3.21.2"
     got "^11.8.6"
-    grpc-reflection-js "^0.3.0"
+    grpc-js-reflection-client "^1.2.14"
     hookpoint "4.0.0"
     http-proxy-agent "^7.0.2"
     https-proxy-agent "^7.0.4"
@@ -17542,11 +17535,6 @@ lodash.padend@^4.6.1:
   version "4.6.1"
   resolved "https://registry.yarnpkg.com/lodash.padend/-/lodash.padend-4.6.1.tgz#53ccba047d06e158d311f45da625f4e49e6f166e"
   integrity sha512-sOQs2aqGpbl27tmCS1QNZA09Uqp01ZzWfDUoD+xzTii0E7dSQfRKcRetFwa+uXaxaqL+TKm7CgD2JdKP7aZBSw==
-
-lodash.set@^4.3.2:
-  version "4.3.2"
-  resolved "https://registry.yarnpkg.com/lodash.set/-/lodash.set-4.3.2.tgz#d8757b1da807dde24816b0d6a84bea1a76230b23"
-  integrity sha512-4hNPN5jlm/N/HLMCO43v8BXKq9Z7QdAGc/VGrRD61w8gN9g/6jF9A4L1pbUgBLCffi0w9VsXfTOij5x8iTyFvg==
 
 lodash.sortby@^4.7.0:
   version "4.7.0"
@@ -20613,10 +20601,10 @@ proto3-json-serializer@^1.0.3:
   dependencies:
     protobufjs "^7.0.0"
 
-protobufjs@^7.0.0, protobufjs@^7.2.2, protobufjs@^7.2.4:
-  version "7.2.5"
-  resolved "https://registry.yarnpkg.com/protobufjs/-/protobufjs-7.2.5.tgz#45d5c57387a6d29a17aab6846dcc283f9b8e7f2d"
-  integrity sha512-gGXRSXvxQ7UiPgfw8gevrfRWcTlSbOFg+p/N+JVJEK5VhueL2miT6qTymqAmjr1Q5WbOCyJbyrk6JfWKwlFn6A==
+protobufjs@^7.0.0, protobufjs@^7.2.4, protobufjs@^7.2.5:
+  version "7.2.6"
+  resolved "https://registry.yarnpkg.com/protobufjs/-/protobufjs-7.2.6.tgz#4a0ccd79eb292717aacf07530a07e0ed20278215"
+  integrity sha512-dgJaEDDL6x8ASUZ1YqWciTRrdOuYNzoOf27oHNfdyvKqHr5i0FV7FSLU+aIeFjyFgVxrpTOtQUi0BLLBymZaBw==
   dependencies:
     "@protobufjs/aspromise" "^1.1.2"
     "@protobufjs/base64" "^1.1.2"

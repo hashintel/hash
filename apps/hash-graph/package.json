@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@tests/hash-graph-test-data-rs": "0.0.0-private",
-    "httpyac": "6.11.4",
+    "httpyac": "6.11.5",
     "quicktype": "^16.0.43",
     "tsx": "3.13.0",
     "typescript": "5.1.6"
