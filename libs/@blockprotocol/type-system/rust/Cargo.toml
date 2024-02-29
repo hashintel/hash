@@ -16,6 +16,7 @@ serde_json = "1.0.114"
 thiserror = "1.0.57"
 tsify = "0.4.5"
 url = "2.5.0"
+utoipa = { version = "4.2.0", features = ["url"], optional = true }
 
 [dev-dependencies]
 graph-test-data = { workspace = true }
