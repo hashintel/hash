@@ -3,7 +3,7 @@ import {
   PropertyType,
   TypeSystemInitializer,
   validatePropertyType,
-} from "..";
+} from "../src/main";
 
 const propertyTypes: PropertyType[] = [
   {

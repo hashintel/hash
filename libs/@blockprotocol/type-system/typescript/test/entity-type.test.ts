@@ -3,7 +3,7 @@ import {
   ParseEntityTypeError,
   TypeSystemInitializer,
   validateEntityType,
-} from "..";
+} from "../src/main";
 
 const entityTypes: EntityType[] = [
   {

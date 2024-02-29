@@ -8,7 +8,7 @@ import {
   validateBaseUrl,
   validateVersionedUrl,
   VersionedUrl,
-} from "..";
+} from "../src/main";
 
 const invalidBaseUrlCases: [string, ParseBaseUrlError][] = [
   ["http://example.com", { reason: "MissingTrailingSlash" }],
