@@ -20,6 +20,7 @@ import { StatusCode } from "@local/status";
 import { ApplicationFailure } from "@temporalio/activity";
 import type { CreateEmbeddingResponse } from "openai/resources";
 
+import { getWebSearchResults } from "./activities/get-web-search-results";
 import { inferEntitiesActivity } from "./activities/infer-entities";
 import { parseTextFromFile } from "./activities/parse-text-from-file";
 import {
@@ -107,5 +108,9 @@ export const createAiActivities = ({
         $id: propertyType.schema.$id,
       })),
     });
+  },
+
+  async getWebSearchResults(params: { query: string }) {
+    return getWebSearchResults(params);
   },
 });
