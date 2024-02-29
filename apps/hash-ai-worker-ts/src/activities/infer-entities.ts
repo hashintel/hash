@@ -25,13 +25,13 @@ import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 import { StatusCode } from "@local/status";
 import { CancelledFailure, Context } from "@temporalio/activity";
 import dedent from "dedent";
-import type OpenAI from "openai";
 
 import { createInferenceUsageRecord } from "./infer-entities/create-inference-usage-record";
 import type { DereferencedEntityType } from "./infer-entities/dereference-entity-type";
 import { dereferenceEntityType } from "./infer-entities/dereference-entity-type";
 import { getResultsFromInferenceState } from "./infer-entities/get-results-from-inference-state";
-import { inferEntitySummaries } from "./infer-entities/infer-entity-summaries";
+import { inferEntitiesSystemMessage } from "./infer-entities/infer-entities-system-message";
+import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-summaries-from-web-page";
 import type {
   InferenceState,
   PermittedOpenAiModel,
@@ -49,29 +49,6 @@ const modelAliasToSpecificModel = {
   "gpt-4-turbo": "gpt-4-1106-preview", // 'gpt-4-turbo' is not a valid model name in the OpenAI API yet, it's in preview only
   "gpt-4": "gpt-4", // this points to the latest available anyway as of 6 Dec 2023
 } as const satisfies Record<InferenceModelName, PermittedOpenAiModel>;
-
-const systemMessage: OpenAI.ChatCompletionSystemMessageParam = {
-  role: "system",
-  content: dedent(`
-    You are an Entity Inference Assistant. The user provides you with a text input, from which you infer entities for creation. 
-    Each created entity should be given a unique numerical identifier as their 'entityId' property. 
-    Some entities require sourceEntityId and targetEntityId properties – these are links between other entities, 
-      and sourceEntityId and targetEntityId must correspond to the entityId of other entities you create.
-      The schema of the source entity will show which links are valid for it, under the 'links' field. 
-    The provided user text is your only source of information, so make sure to extract as much information as possible, 
-      and do not rely on other information about the entities in question you may know. 
-    The entities you create must be suitable for the schema chosen 
-      – ignore any entities in the provided text which do not have an appropriate schema to use. 
-      The keys of the entities 'properties' objects are URLs which end in a trailing slash. This is intentional –
-      please do not omit the trailing slash.
-    The user may respond advising you that some proposed entities already exist, and give you a new string identifier for them,
-      as well as their existing properties. You can then call update_entities instead to update the relevant entities, 
-      making sure that you retain any useful information in the existing properties, augmenting it with what you have inferred. 
-    The more entities you infer, the happier the user will be!
-    Make sure you attempt to create entities of all the provided types, if there is data to do so!
-    The user has requested that you fill out as many properties as possible, so please do so. Do not optimise for short responses.
-  `),
-};
 
 const usageCostLimit = {
   admin: {
@@ -338,37 +315,18 @@ const inferEntities = async ({
    * This step may need its own internal iteration if there are very many entities to infer – to be handled inside the
    * inferEntitySummaries function.
    */
-  const summariseEntitiesPrompt = dedent(`
-    First, let's get a summary of the entities you can infer from the provided text. Please provide a brief description
-    of each entity you can infer. It only needs to be long enough to uniquely identify the entity in the text – we'll
-    worry about any more details in a future step.
-    For entities that link other entities together, the sourceEntityId must correspond to an entityId of an entity you provide, as must the targetEntityId.
-    I'm about to provide you with the content of a website hosted at ${sourceUrl}, titled ${sourceTitle}.
-    Pay particular attention to providing responses for entities which are most prominent in the page,
-      and any which are mentioned in the title or URL – but include as many other entities as you can find also.
-    Here is the website content:
-    ${textInput}
-    ---WEBSITE CONTENT ENDS---
-  
-    Your comprehensive list entities of the requested types you are able to infer from the website:
-  `);
 
-  const { code, message } = await inferEntitySummaries({
-    completionPayload: {
-      max_tokens: maxTokens,
-      messages: [
-        systemMessage,
-        {
-          role: "user",
-          content: summariseEntitiesPrompt,
-        },
-      ],
-      model,
-      temperature,
+  const { code, message } = await inferEntitySummariesFromWebPage({
+    webPage: {
+      title: sourceTitle,
+      url: sourceUrl,
+      textContent: textInput,
     },
+    maxTokens,
+    model,
+    temperature,
     entityTypes,
     inferenceState,
-    providedOrRerequestedEntityTypes: new Set(),
   });
 
   log(`Inference state after entity summaries: ${stringify(inferenceState)}`);
@@ -419,7 +377,7 @@ const inferEntities = async ({
   `);
 
   const promptMessages = [
-    systemMessage,
+    inferEntitiesSystemMessage,
     {
       role: "user",
       content: persistEntitiesPrompt,
@@ -431,7 +389,7 @@ const inferEntities = async ({
     completionPayload: {
       max_tokens: maxTokens,
       messages: [
-        systemMessage,
+        inferEntitiesSystemMessage,
         {
           role: "user",
           content: persistEntitiesPrompt,

@@ -54,3 +54,9 @@ export type InferenceState = {
   /** The token usage for each iteration, in order */
   usage: InferenceTokenUsage[];
 };
+
+export type WebPage = {
+  title: string;
+  url: string;
+  textContent: string;
+};
