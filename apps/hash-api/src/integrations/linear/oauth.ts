@@ -287,7 +287,26 @@ export const oAuthLinearCallback: RequestHandler<
         entityTypeId: systemEntityTypes.userSecret.entityTypeId,
         ownedById: userAccountId as OwnedById,
         properties: secretMetadata,
-        relationships: userAndBotAndWebAdminsOnly,
+        relationships: [
+          /**
+           * Create the user secret, which only the user and Google bot can access.
+           * The web bot has edit access to allow it to edit the user secret entity.
+           */
+          {
+            relation: "editor",
+            subject: {
+              kind: "account",
+              subjectId: linearBotAccountId,
+            },
+          },
+          {
+            relation: "setting",
+            subject: {
+              kind: "setting",
+              subjectId: "viewFromWeb",
+            },
+          },
+        ],
       });
 
       const linearIntegrationProperties: LinearIntegrationProperties = {

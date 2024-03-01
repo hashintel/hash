@@ -9,6 +9,8 @@ export const hiddenEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.browserPluginSettings.entityTypeId,
   systemEntityTypes.comment.entityTypeId,
   systemEntityTypes.commentNotification.entityTypeId,
+  systemEntityTypes.googleAccount.entityTypeId,
+  systemEntityTypes.googleSheetsIntegration.entityTypeId,
   systemEntityTypes.graphChangeNotification.entityTypeId,
   systemEntityTypes.linearIntegration.entityTypeId,
   systemEntityTypes.mentionNotification.entityTypeId,
@@ -21,4 +23,5 @@ export const hiddenEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.tiktokAccount.entityTypeId,
   systemEntityTypes.machine.entityTypeId,
   systemEntityTypes.usageRecord.entityTypeId,
+  systemEntityTypes.userSecret.entityTypeId,
 ];

@@ -1,16 +1,37 @@
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
+import { stringifyPropertyValue } from "@apps/hash-frontend/src/pages/shared/entities-table/stringify-property-value";
+import { MultiFilter } from "@blockprotocol/graph";
+import { typedKeys } from "@local/advanced-types/typed-entries";
+import {
+  createDefaultAuthorizationRelationships,
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolLinkEntityTypes,
   systemEntityTypes,
+  systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 import { GoogleSheetsIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
-import { EntityId, OwnedById } from "@local/hash-subgraph";
+import {
+  Entity,
+  EntityId,
+  EntityRootType,
+  OwnedById,
+  Subgraph,
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { RequestHandler } from "express";
-import { google } from "googleapis";
+import { Auth, google, sheets_v4 } from "googleapis";
 
-import { createEntity } from "../../graph/knowledge/primitive/entity";
+import {
+  createEntity,
+  getEntities,
+  getLatestEntityById,
+} from "../../graph/knowledge/primitive/entity";
+import { bpMultiFilterToGraphFilter } from "../../graph/knowledge/primitive/entity/query";
 import { enabledIntegrations } from "../enabled-integrations";
-import { googleOAuth2Client } from "./client";
+import { googleOAuth2Client } from "./oauth-client";
 import { getGoogleAccountById } from "./shared/get-google-account";
 import { getSecretsForAccount } from "./shared/get-secrets-for-account";
 
@@ -37,40 +58,90 @@ const createSpreadsheet = async (filename: string) => {
   return spreadsheetId;
 };
 
-const updateSpreadsheet = (spreadsheetFileId: string, contents: any) => {
-  const sheet = await sheets.spreadsheets.batchUpdate({
-    spreadsheetId: spreadsheetFileId,
-    requestBody: {
-      requests: [
+const entitySubgraphToRows = (
+  entitySubgraph: Subgraph<EntityRootType>,
+): sheets_v4.Schema$RowData[] => {
+  const entities = getRoots(entitySubgraph);
+
+  if (!entities[0]) {
+    return [];
+  }
+
+  const propertyKeys = typedKeys(entities[0].properties);
+
+  const headers = ["entityId", ...propertyKeys];
+
+  const headerRow = {
+    values: headers.map((header) => {
+      return {
+        userEnteredValue: {
+          stringValue: header,
+        },
+      };
+    }),
+  };
+
+  const valueRows = getRoots(entitySubgraph).map((entity) => {
+    return {
+      values: [
         {
-          addSheet: {
-            properties: {
-              title: "Sheet1",
-            },
+          userEnteredValue: {
+            stringValue: entity.metadata.recordId.entityId,
           },
         },
+        ...propertyKeys.map((key) => {
+          const value = entity.properties[key];
+
+          if (typeof value === "number") {
+            return {
+              userEnteredValue: {
+                numberValue: value,
+              },
+            };
+          } else if (typeof value === "boolean") {
+            return {
+              userEnteredValue: {
+                boolValue: value,
+              },
+            };
+          }
+
+          return {
+            userEnteredValue: {
+              stringValue: stringifyPropertyValue(value),
+            },
+          };
+        }),
+      ],
+    };
+  });
+
+  return [headerRow, ...valueRows];
+};
+
+const updateSpreadsheet = async (
+  spreadsheetId: string,
+  rows: sheets_v4.Schema$RowData[],
+) => {
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: [
+        // {
+        //   updateSheetProperties: {
+        //     properties: {
+        //       title: "Entities",
+        //     },
+        //   },
+        // },
         {
           updateCells: {
             fields: "*",
             range: {
               sheetId: 0,
               startRowIndex: 0,
-              endRowIndex: 1,
-              startColumnIndex: 0,
-              endColumnIndex: 1,
             },
-            rows: [
-              // @todo convert a subgraph to rows
-              {
-                values: [
-                  {
-                    userEnteredValue: {
-                      formulaValue: "=SUM(1, 2, 3)",
-                    },
-                  },
-                ],
-              },
-            ],
+            rows,
           },
         },
       ],
@@ -84,12 +155,14 @@ type SyncToSheetRequestBody = {
   schedule: "hourly" | "daily" | "weekly" | "monthly";
 } & (
   | {
-      fileId: string;
+      spreadsheetId: string;
     }
   | { newFileName: string }
 );
 
-type SyncToSheetResponseBody = { ok: "Ok" } | { error: string };
+type SyncToSheetResponseBody =
+  | { integrationEntity: Entity }
+  | { error: string };
 
 export const createSheetsIntegration: RequestHandler<
   Record<string, never>,
@@ -142,59 +215,101 @@ export const createSheetsIntegration: RequestHandler<
       authentication,
       {
         userAccountId: req.user.accountId,
-        googleAccountEntityId: googleAccount.properties[
-          "https://hash.ai/@hash/types/property-type/account-id/"
-        ] as EntityId,
+        googleAccountEntityId: googleAccount.metadata.recordId.entityId,
       },
     );
 
-    if (secretAndLinkPairs.length === 0) {
+    if (!secretAndLinkPairs[0]) {
       res.status(400).send({
         error: `No secrets found for Google account with id ${googleAccountId}.`,
       });
       return;
     }
 
+    const { userSecret } = secretAndLinkPairs[0];
+
+    const vaultPath =
+      userSecret.properties[
+        "https://hash.ai/@hash/types/property-type/vault-path/"
+      ];
+
+    const tokens = await req.context.vaultClient.read<Auth.Credentials>({
+      secretMountPath: "secret",
+      path: vaultPath,
+    });
+
+    googleOAuth2Client.setCredentials(tokens.data);
+
     /**
      * Find the spreadsheetId to use with the integration by either:
      * 1. Confirming it exists and is accessible if an existing id has been provided, or
      * 2. Creating a new spreadsheet if a filename has been provided
      */
-    if (!("fileId" in req.body) && !("newFileName" in req.body)) {
+    if (!("spreadsheetId" in req.body) && !("newFileName" in req.body)) {
       res.status(400).send({
-        error: "Either fileId or newFileName must be provided.",
+        error: "Either spreadsheetId or newFileName must be provided.",
       });
       return;
     }
 
-    if ("fileId" in req.body) {
+    if ("spreadsheetId" in req.body) {
       const spreadsheet = await sheets.spreadsheets.get({
-        spreadsheetId: req.body.fileId,
+        spreadsheetId: req.body.spreadsheetId,
       });
-      if (!spreadsheet) {
+
+      if (!spreadsheet.data.spreadsheetId) {
         res.status(400).send({
-          error: `No spreadsheet found with id ${req.body.fileId}.`,
+          error: `No spreadsheet found with id ${req.body.spreadsheetId}.`,
         });
         return;
       }
     }
 
+    const queryEntity = (await getLatestEntityById(
+      req.context,
+      authentication,
+      {
+        entityId: queryEntityId,
+      },
+    )) as Entity<QueryProperties>;
+
+    const multiFilter =
+      queryEntity.properties[
+        "https://blockprotocol.org/@hash/types/property-type/query/"
+      ];
+
+    const filter = bpMultiFilterToGraphFilter(multiFilter as MultiFilter);
+
+    const entitySubgraph = await getEntities(req.context, authentication, {
+      query: {
+        filter,
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+      },
+    });
+
     const spreadsheetId =
-      "fileId" in req.body
-        ? req.body.fileId
+      "spreadsheetId" in req.body
+        ? req.body.spreadsheetId
         : await createSpreadsheet(req.body.newFileName);
+
+    const rows = entitySubgraphToRows(entitySubgraph);
+
+    console.log(JSON.stringify({ rows }, undefined, 2));
+
+    await updateSpreadsheet(spreadsheetId, rows);
 
     const googleSheetIntegrationProperties: GoogleSheetsIntegrationProperties =
       {
         "https://hash.ai/@hash/types/property-type/file-id/": spreadsheetId,
-        "https://hash.ai/@hash/types/property-type/schedule/": schedule,
       };
 
     const googleSheetIntegrationEntity = await createEntity(
       req.context,
       authentication,
       {
-        entityType: systemEntityTypes.googleSheetsIntegration.entityTypeId,
+        entityTypeId: systemEntityTypes.googleSheetsIntegration.entityTypeId,
         ownedById: req.user.accountId as OwnedById,
         properties: googleSheetIntegrationProperties,
         relationships: createDefaultAuthorizationRelationships({
@@ -210,9 +325,18 @@ export const createSheetsIntegration: RequestHandler<
               actorId: req.user.accountId,
             }),
           },
+          {
+            ownedById: req.user.accountId as OwnedById,
+            rightEntityId: googleAccount.metadata.recordId.entityId,
+            linkEntityTypeId:
+              systemLinkEntityTypes.associatedWithAccount.linkEntityTypeId,
+            relationships: createDefaultAuthorizationRelationships({
+              actorId: req.user.accountId,
+            }),
+          },
         ],
       },
     );
 
-    return googleSheetIntegrationEntity;
+    res.json({ integrationEntity: googleSheetIntegrationEntity });
   };

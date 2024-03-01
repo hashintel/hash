@@ -58,7 +58,10 @@ import {
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
-import { googleOAuthCallback } from "./integrations/google/oauth";
+import { createSheetsIntegration } from "./integrations/google/create-sheets-integration";
+import { getGoogleAccessToken } from "./integrations/google/get-access-token";
+import { googleOAuthCallback } from "./integrations/google/oauth-callback";
+import { getGoogleAccountById } from "./integrations/google/shared/get-google-account";
 import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
 import { linearWebhook } from "./integrations/linear/webhook";
 import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher";
@@ -512,6 +515,12 @@ const main = async () => {
   app.post("/webhooks/linear", linearWebhook);
 
   app.post("/oauth/google/callback", rateLimiter, googleOAuthCallback);
+  app.post("/oauth/google/token", rateLimiter, getGoogleAccessToken);
+  app.post(
+    "/integrations/google-sheets/sync",
+    rateLimiter,
+    createSheetsIntegration,
+  );
 
   // Endpoints used by HashGPT or in support of it
   app.post("/gpt/entities/query", gptQueryEntities);

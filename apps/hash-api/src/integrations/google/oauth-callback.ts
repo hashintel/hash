@@ -22,7 +22,7 @@ import {
 import { createLinkEntity } from "../../graph/knowledge/primitive/link-entity";
 import { createUserSecretPath } from "../../vault";
 import { enabledIntegrations } from "../enabled-integrations";
-import { googleOAuth2Client } from "./client";
+import { googleOAuth2Client } from "./oauth-client";
 import { getGoogleAccountById } from "./shared/get-google-account";
 import { getSecretsForAccount } from "./shared/get-secrets-for-account";
 
@@ -33,7 +33,7 @@ const oauth2 = google.oauth2({
 
 export const googleOAuthCallback: RequestHandler<
   Record<string, never>,
-  { accessToken: string; googleAccountEntityId: EntityId } | { error: string },
+  { googleAccountEntityId: EntityId } | { error: string },
   { code: string }
 > =
   // @todo upgrade to Express 5, which handles errors from async request handlers automatically
@@ -116,7 +116,7 @@ export const googleOAuthCallback: RequestHandler<
       };
 
       newGoogleAccountEntity = await createEntity(req.context, authentication, {
-        entityTypeId: systemEntityTypes.google.account.entityTypeId,
+        entityTypeId: systemEntityTypes.googleAccount.entityTypeId,
         ownedById: req.user.accountId as OwnedById,
         properties: googleAccountProperties,
         relationships: [
@@ -186,18 +186,12 @@ export const googleOAuthCallback: RequestHandler<
     /** Google Account is now created and existing secrets are archived */
 
     /**
-     * Create the user secret, which only the user, Google bot, and web admins can access
+     * Create the user secret, which only the user and Google bot can access.
+     * The web bot has edit access to allow it to edit the user secret entity.
      */
     const userAndBotAndWebAdminsOnly: EntityRelationAndSubject[] = [
       {
-        relation: "administrator",
-        subject: {
-          kind: "account",
-          subjectId: req.user.accountId,
-        },
-      },
-      {
-        relation: "viewer",
+        relation: "editor",
         subject: {
           kind: "account",
           subjectId: googleBotAccountId,
@@ -207,7 +201,7 @@ export const googleOAuthCallback: RequestHandler<
         relation: "setting",
         subject: {
           kind: "setting",
-          subjectId: "administratorFromWeb",
+          subjectId: "viewFromWeb",
         },
       },
     ];
@@ -254,11 +248,10 @@ export const googleOAuthCallback: RequestHandler<
      * 3. A link between the Google Account and the user secret
      *
      * Features may now create integrations with resources accessible by the user account, with the scopes from the
-     * token
+     * token.
      */
 
     res.json({
-      accessToken: tokens.access_token,
       googleAccountEntityId: googleAccountEntity.metadata.recordId.entityId,
     });
   };

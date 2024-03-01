@@ -1,26 +1,22 @@
-import { extractBaseUrl } from "@blockprotocol/type-system";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  googleEntityTypes,
-  googlePropertyTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { GoogleAccountProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { AccountId, Entity } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/src/stdlib/subgraph/roots";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { ImpureGraphFunction } from "../../../graph/context-types";
 import { getEntities } from "../../../graph/knowledge/primitive/entity";
 
 /**
- * Get a linear integration by the linear org ID
+ * Get a Google Account entity by the account id in Google
  */
 export const getGoogleAccountById: ImpureGraphFunction<
   { userAccountId: AccountId; googleAccountId: string },
-  Promise<Entity<GoogleAccountProperties> | null>
+  Promise<Entity<GoogleAccountProperties> | undefined>
 > = async (context, authentication, params) => {
   const { userAccountId, googleAccountId } = params;
   const entities = await getEntities(context, authentication, {
@@ -30,8 +26,9 @@ export const getGoogleAccountById: ImpureGraphFunction<
           {
             equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
           },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
           generateVersionedUrlMatchingFilter(
-            googleEntityTypes.account.entityTypeId,
+            systemEntityTypes.googleAccount.entityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -39,7 +36,7 @@ export const getGoogleAccountById: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  extractBaseUrl(googlePropertyTypes.accountId.propertyTypeId),
+                  "https://hash.ai/@hash/types/property-type/account-id/", // @todo FIX THIS once types regenerated
                 ],
               },
               { parameter: googleAccountId },
@@ -63,5 +60,5 @@ export const getGoogleAccountById: ImpureGraphFunction<
 
   const entity = entities[0];
 
-  return entity ?? null;
+  return entity as Entity<GoogleAccountProperties> | undefined;
 };

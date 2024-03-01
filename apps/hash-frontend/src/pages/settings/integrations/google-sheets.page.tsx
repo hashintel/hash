@@ -1,74 +1,26 @@
-import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
-import { Box, Container, Typography } from "@mui/material";
-import Script from "next/script";
+import { Box, Container, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
 import { NextPageWithLayout } from "../../../shared/layout";
 import { Button } from "../../../shared/ui/button";
 import { getSettingsLayout } from "../shared/settings-layout";
-import { GoogleFilePicker } from "./google-sheets/google-file-picker";
-
-const googleOAuthClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
+import { EditSheetsIntegration } from "./google-sheets/edit-sheets-integration";
+import { GoogleAuthProvider } from "./google-sheets/google-auth-context";
+import { useSheetsIntegrations } from "./google-sheets/use-sheet-integrations";
 
 const GoogleSheetsPage: NextPageWithLayout = () => {
-  const [oauthClient, setOAuthClient] =
-    useState<google.accounts.oauth2.CodeClient | null>(null);
-  const [accessToken, setAccessToken] = useState("");
+  const [addingNewIntegration, setAddingNewIntegration] = useState(false);
 
-  const loadOAuthClient = () => {
-    if (!googleOAuthClientId) {
-      throw new Error("GOOGLE_OAUTH_CLIENT_ID is not set");
-    }
-
-    const client = google.accounts.oauth2.initCodeClient({
-      client_id: googleOAuthClientId,
-      scope:
-        /**
-         * Scopes required:
-         * drive.file in order to create new files or to read/update/delete existing files that the user picks
-         * userinfo.email in order to know which Google account the token is associated with, in case the user has multiple
-         */
-        "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email",
-      ux_mode: "popup",
-      callback: async (response) => {
-        if (response.error === "access_denied") {
-          return;
-        } else if (response.error) {
-          throw new Error(`Google OAuth error: ${response.error}`);
-        }
-
-        const apiResponse = await fetch(`${apiOrigin}/oauth/google/callback`, {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ code: response.code }),
-        }).then((resp) => resp.json());
-
-        console.log({ apiResponse });
-
-        setAccessToken(apiResponse.accessToken);
-      },
-    });
-
-    setOAuthClient(client);
-  };
+  const {
+    integrations,
+    loading: integrationsLoading,
+    refetch,
+  } = useSheetsIntegrations();
 
   return (
-    <>
-      <Script
-        src="https://accounts.google.com/gsi/client"
-        onLoad={loadOAuthClient}
-      />
-      {accessToken && (
-        <GoogleFilePicker
-          accessToken={accessToken}
-          onFilePicked={console.log}
-        />
-      )}
+    <GoogleAuthProvider>
       <Container>
-        <Typography variant="h1" mt={10} mb={4} fontWeight="bold">
+        <Typography variant="h1" mt={0} mb={4} fontWeight="bold">
           Google Sheets
         </Typography>
         <Typography mb={4}>
@@ -76,20 +28,54 @@ const GoogleSheetsPage: NextPageWithLayout = () => {
           You will choose which files we are able to access – we cannot access
           files you don't choose.
         </Typography>
-        <Box>
-          <Button
-            onClick={() => {
-              if (!oauthClient) {
-                throw new Error("Google client not initialized");
-              }
-              oauthClient.requestCode();
+        {addingNewIntegration ? (
+          <EditSheetsIntegration
+            close={() => setAddingNewIntegration(false)}
+            onComplete={() => {
+              setAddingNewIntegration(false);
+              refetch();
             }}
-          >
-            Get started
-          </Button>
-        </Box>
+          />
+        ) : (
+          <Box>
+            <Button onClick={() => setAddingNewIntegration(true)}>
+              Add new sync
+            </Button>
+          </Box>
+        )}
+        {!integrationsLoading && !!integrations.length && (
+          <Box mt={4}>
+            <Typography variant="h4" mb={1}>
+              Existing syncs
+            </Typography>
+            <Stack direction="row" gap={2}>
+              {integrations.map((integration) => {
+                return (
+                  <Box key={integration.metadata.recordId.entityId}>
+                    <Typography>
+                      Account:{" "}
+                      {
+                        integration.account.properties[
+                          "https://hash.ai/@hash/types/property-type/email/"
+                        ]
+                      }
+                    </Typography>
+                    <Typography>
+                      Sheet id:{" "}
+                      {
+                        integration.properties[
+                          "https://hash.ai/@hash/types/property-type/file-id/"
+                        ]
+                      }
+                    </Typography>
+                  </Box>
+                );
+              })}
+            </Stack>
+          </Box>
+        )}
       </Container>
-    </>
+    </GoogleAuthProvider>
   );
 };
 

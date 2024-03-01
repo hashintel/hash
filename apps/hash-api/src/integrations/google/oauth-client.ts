@@ -3,6 +3,7 @@ import { google } from "googleapis";
 const googleOAuthClientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
 const googleOAuthClientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
 
+// @todo construct this per request
 export const googleOAuth2Client = new google.auth.OAuth2(
   googleOAuthClientId,
   googleOAuthClientSecret,

@@ -15,16 +15,12 @@ import {
   AccountId,
   Entity,
   EntityId,
-  EntityRootType,
   extractEntityUuidFromEntityId,
 } from "@local/hash-subgraph";
-import {
-  getEntityRevision,
-  getRoots,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { getEntityRevision, getRoots } from "@local/hash-subgraph/stdlib";
 
 import { ImpureGraphFunction } from "../../../graph/context-types";
+import { getEntities } from "../../../graph/knowledge/primitive/entity";
 
 export const getSecretsForAccount: ImpureGraphFunction<
   { userAccountId: AccountId; googleAccountEntityId: EntityId },
@@ -35,96 +31,91 @@ export const getSecretsForAccount: ImpureGraphFunction<
     }[]
   >
 > = async (context, authentication, params) => {
-  return await context.graphApi
-    .getEntitiesByQuery(authentication.actorId, {
-      query: {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
+  return await getEntities(context, authentication, {
+    query: {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
+            {
+              ignoreParents: true,
+            },
+          ),
+          {
+            equal: [
+              { path: ["leftEntity", "uuid"] },
               {
-                ignoreParents: true,
+                parameter: extractEntityUuidFromEntityId(
+                  params.googleAccountEntityId,
+                ),
               },
-            ),
-            {
-              equal: [
-                { path: ["leftEntity", "uuid"] },
-                {
-                  parameter: extractEntityUuidFromEntityId(
-                    params.googleAccountEntityId,
-                  ),
-                },
-              ],
-            },
-            {
-              equal: [
-                { path: ["rightEntity", "entityTypeId"] },
-                {
-                  parameter: systemEntityTypes.userSecret.entityTypeId,
-                },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasRightEntity: { incoming: 0, outgoing: 1 },
-        },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
+            ],
+          },
+          {
+            equal: [
+              { path: ["rightEntity", "type", "versionedUrl"] },
+              {
+                parameter: systemEntityTypes.userSecret.entityTypeId,
+              },
+            ],
+          },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+        ],
       },
-    })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-      );
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        hasRightEntity: { incoming: 0, outgoing: 1 },
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+    },
+  }).then((subgraph) => {
+    const linkEntities = getRoots(subgraph);
 
-      const linkEntities = getRoots(subgraph);
+    const linkAndSecretPairs: {
+      usesUserSecretLink: Entity<UsesUserSecretProperties>;
+      userSecret: Entity<UserSecretProperties>;
+    }[] = [];
 
-      const linkAndSecretPairs: {
-        usesUserSecretLink: Entity<UsesUserSecretProperties>;
-        userSecret: Entity<UserSecretProperties>;
-      }[] = [];
-
-      for (const link of linkEntities) {
-        if (
-          link.metadata.entityTypeId !==
-          systemLinkEntityTypes.usesUserSecret.linkEntityTypeId
-        ) {
-          throw new Error(
-            `Unexpected entity type ${link.metadata.entityTypeId} in getSecretsForAccount subgraph`,
-          );
-        }
-
-        if (!link.linkData) {
-          throw new Error(
-            `Link entity ${link.metadata.recordId.entityId} is missing link data`,
-          );
-        }
-
-        const target = getEntityRevision(subgraph, link.linkData.rightEntityId);
-
-        if (!target) {
-          throw new Error(
-            `Link entity ${link.metadata.recordId.entityId} references missing target entity ${link.linkData.rightEntityId}`,
-          );
-        }
-
-        if (
-          target.metadata.entityTypeId !==
-          systemEntityTypes.userSecret.entityTypeId
-        ) {
-          throw new Error(
-            `Unexpected entity type ${target.metadata.entityTypeId} in getSecretsForAccount subgraph`,
-          );
-        }
-
-        linkAndSecretPairs.push({
-          usesUserSecretLink: link,
-          userSecret: target as Entity<UserSecretProperties>,
-        });
+    for (const link of linkEntities) {
+      if (
+        link.metadata.entityTypeId !==
+        systemLinkEntityTypes.usesUserSecret.linkEntityTypeId
+      ) {
+        throw new Error(
+          `Unexpected entity type ${link.metadata.entityTypeId} in getSecretsForAccount subgraph`,
+        );
       }
 
-      return linkAndSecretPairs;
-    });
+      if (!link.linkData) {
+        throw new Error(
+          `Link entity ${link.metadata.recordId.entityId} is missing link data`,
+        );
+      }
+
+      const target = getEntityRevision(subgraph, link.linkData.rightEntityId);
+
+      if (!target) {
+        throw new Error(
+          `Link entity ${link.metadata.recordId.entityId} references missing target entity ${link.linkData.rightEntityId}`,
+        );
+      }
+
+      if (
+        target.metadata.entityTypeId !==
+        systemEntityTypes.userSecret.entityTypeId
+      ) {
+        throw new Error(
+          `Unexpected entity type ${target.metadata.entityTypeId} in getSecretsForAccount subgraph`,
+        );
+      }
+
+      linkAndSecretPairs.push({
+        usesUserSecretLink: link,
+        userSecret: target as Entity<UserSecretProperties>,
+      });
+    }
+
+    return linkAndSecretPairs;
+  });
 };

@@ -1,37 +1,38 @@
 import Script from "next/script";
+import { useEffect, useState } from "react";
 
 type GoogleFilePickerProps = {
   accessToken: string;
-  onFilePicked: (file: unknown) => void;
+  onUserChoice: (response: google.picker.ResponseObject) => void;
 };
-
-const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PICKER_API_KEY;
 
 export const GoogleFilePicker = ({
   accessToken,
-  onFilePicked,
+  onUserChoice,
 }: GoogleFilePickerProps) => {
-  const showPicker = () => {
-    if (!apiKey) {
-      throw new Error("GOOGLE_PICKER_API_KEY is not set");
-    }
+  const [ready, setReady] = useState(typeof gapi !== "undefined");
 
-    gapi.load("picker", () => {
-      const picker = new google.picker.PickerBuilder()
-        .addView(google.picker.ViewId.SPREADSHEETS)
-        .setOAuthToken(accessToken)
-        .setCallback(onFilePicked)
-        .build();
-      picker.setVisible(true);
-    });
-  };
+  console.log({ ready, accessToken });
+
+  useEffect(() => {
+    if (accessToken && ready) {
+      gapi.load("picker", () => {
+        const picker = new google.picker.PickerBuilder()
+          .addView(google.picker.ViewId.SPREADSHEETS)
+          .setOAuthToken(accessToken)
+          .setCallback(onUserChoice)
+          .build();
+        picker.setVisible(true);
+      });
+    }
+  }, [accessToken, onUserChoice, ready]);
 
   return (
     <Script
       async
       defer
       src="https://apis.google.com/js/api.js"
-      onLoad={showPicker}
+      onLoad={() => setReady(true)}
     />
   );
 };
