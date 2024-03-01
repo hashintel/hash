@@ -15,13 +15,20 @@ import { stringify } from "./infer-entities/stringify";
 
 export const inferEntitiesFromWebPageActivity = async (params: {
   webPage: WebPage;
+  relevantEntitiesPrompt?: string;
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
   maxTokens?: number | null;
   temperature?: number;
 }) => {
-  const { webPage, entityTypes, inferenceState, maxTokens, temperature } =
-    params;
+  const {
+    webPage,
+    relevantEntitiesPrompt,
+    entityTypes,
+    inferenceState,
+    maxTokens,
+    temperature,
+  } = params;
 
   /** @todo: allow for overriding this */
   const model: PermittedOpenAiModel = "gpt-4-1106-preview";
@@ -41,6 +48,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
 
   const status = await inferEntitySummariesFromWebPage({
     webPage,
+    relevantEntitiesPrompt,
     entityTypes,
     inferenceState,
     model,
@@ -70,7 +78,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     ${webPage.textContent}
     ---WEBSITE CONTENT ENDS---
     
-    You already provided a summary of the entities you can infer from the website. Here it is:
+    You already provided a summary of the ${relevantEntitiesPrompt ? "relevant entities you inferred" : "entities you can infer"} from the website. Here it is:
     ${JSON.stringify(Object.values(inferenceState.proposedEntitySummaries))}
   `);
 
