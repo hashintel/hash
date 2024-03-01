@@ -87,6 +87,11 @@ To run HASH locally, please follow these steps:
    ```sh
    yarn install
    ```
+   
+1. Install yarn global dependencies
+   ```sh
+   yarn global add typescript wasm-pack
+   ```
 
 1. Ensure Docker is running.
    If you are on Windows or macOS, you should see app icon in the system tray or the menu bar.
