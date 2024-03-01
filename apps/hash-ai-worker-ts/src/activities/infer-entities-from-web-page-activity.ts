@@ -1,3 +1,5 @@
+import type { GraphApi } from "@local/hash-graph-client";
+import { AccountId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
@@ -18,6 +20,8 @@ export const inferEntitiesFromWebPageActivity = async (params: {
   relevantEntitiesPrompt?: string;
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
+  validationActorId: AccountId;
+  graphApiClient: GraphApi;
   maxTokens?: number | null;
   temperature?: number;
 }) => {
@@ -25,6 +29,8 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     webPage,
     relevantEntitiesPrompt,
     entityTypes,
+    validationActorId,
+    graphApiClient,
     inferenceState,
     maxTokens,
     temperature,
@@ -103,6 +109,8 @@ export const inferEntitiesFromWebPageActivity = async (params: {
       model,
       temperature,
     },
+    validationActorId,
+    graphApiClient,
     entityTypes,
     inferenceState: {
       ...inferenceState,

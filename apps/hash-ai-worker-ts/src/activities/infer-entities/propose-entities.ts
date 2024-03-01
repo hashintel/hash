@@ -1,4 +1,6 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
+import { AccountId } from "@local/hash-subgraph";
 import { Status, StatusCode } from "@local/status";
 import dedent from "dedent";
 import OpenAI from "openai";
@@ -14,6 +16,7 @@ import {
   validateProposedEntitiesByType,
 } from "./persist-entities/generate-persist-entities-tools";
 import { generateProposeEntitiesTools } from "./propose-entities/generate-propose-entities-tools";
+import { extractErrorMessage } from "./shared/extract-validation-failure-details";
 import { firstUserMessageIndex } from "./shared/first-user-message-index";
 import { getOpenAiResponse } from "./shared/get-open-ai-response";
 import { stringify } from "./stringify";
@@ -28,11 +31,15 @@ export const proposeEntities = async (params: {
   completionPayload: CompletionPayload;
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
+  validationActorId: AccountId;
+  graphApiClient: GraphApi;
   originalPromptMessages: OpenAI.ChatCompletionMessageParam[];
 }): Promise<Status<InferenceState>> => {
   const {
     completionPayload,
     entityTypes,
+    validationActorId,
+    graphApiClient,
     inferenceState,
     originalPromptMessages,
   } = params;
@@ -344,13 +351,77 @@ export const proposeEntities = async (params: {
             ) as ProposedEntityCreationsByType;
             validateProposedEntitiesByType(proposedEntitiesByType, false);
 
-            const proposedEntities = Object.values(
-              proposedEntitiesByType,
-            ).flat();
+            let retryMessageContent = "";
+            let requiresOriginalContextForRetry = false;
 
-            log(`Proposed ${proposedEntities.length} additional entities.`);
+            /**
+             * Check if any proposed entities are invalid according to the Graph API,
+             * to prevent a validation error when creating the entity in the graph.
+             */
+            const invalidProposedEntities = await Promise.all(
+              Object.entries(proposedEntitiesByType).map(
+                async ([entityTypeId, proposedEntitiesOfType]) => {
+                  const invalidProposedEntitiesOfType = await Promise.all(
+                    proposedEntitiesOfType.map(async (proposedEntityOfType) => {
+                      try {
+                        await graphApiClient.validateEntity(validationActorId, {
+                          entityType: entityTypeId,
+                          profile: "draft",
+                          properties: proposedEntityOfType.properties ?? {},
+                        });
 
-            for (const proposedEntity of proposedEntities) {
+                        return [];
+                      } catch (error) {
+                        const invalidReason = `${extractErrorMessage(error)}.`;
+
+                        return {
+                          invalidProposedEntity: proposedEntityOfType,
+                          invalidReason,
+                        };
+                      }
+                    }),
+                  ).then((invalidProposals) => invalidProposals.flat());
+
+                  return invalidProposedEntitiesOfType;
+                },
+              ),
+            ).then((invalidProposals) => invalidProposals.flat());
+
+            if (invalidProposedEntities.length > 0) {
+              retryMessageContent += dedent(`
+                Some of the entities you suggested for creation were invalid. Please review their properties and try again. 
+                The entities you should review and make a 'create_entities' call for are:
+                ${invalidProposedEntities
+                  .map(
+                    ({ invalidProposedEntity, invalidReason }) => `
+                  your proposed entity: ${stringify(invalidProposedEntity)}
+                  invalid reason: ${invalidReason}
+                `,
+                  )
+                  .join("\n")}
+              `);
+              requiresOriginalContextForRetry = true;
+            }
+
+            const validProposedEntities = Object.values(proposedEntitiesByType)
+              .flat()
+              .filter(
+                ({ entityId }) =>
+                  !invalidProposedEntities.some(
+                    ({
+                      invalidProposedEntity: { entityId: invalidEntityId },
+                    }) => invalidEntityId === entityId,
+                  ),
+              );
+
+            log(
+              `Proposed ${validProposedEntities.length} valid additional entities.`,
+            );
+            log(
+              `Proposed ${invalidProposedEntities.length} invalid additional entities.`,
+            );
+
+            for (const proposedEntity of validProposedEntities) {
               inferenceState.inProgressEntityIds =
                 inferenceState.inProgressEntityIds.filter(
                   (inProgressEntityId) =>
@@ -365,11 +436,27 @@ export const proposeEntities = async (params: {
                 ...prev,
                 [entityTypeId]: [
                   ...(prev[entityTypeId as VersionedUrl] ?? []),
-                  ...proposedEntitiesOfType,
+                  ...proposedEntitiesOfType.filter(
+                    ({ entityId }) =>
+                      !invalidProposedEntities.some(
+                        ({
+                          invalidProposedEntity: { entityId: invalidEntityId },
+                        }) => invalidEntityId === entityId,
+                      ),
+                  ),
                 ],
               }),
               inferenceState.proposedEntityCreationsByType,
             );
+
+            if (retryMessageContent) {
+              retryMessages.push({
+                role: "tool",
+                tool_call_id: toolCallId,
+                content: retryMessageContent,
+                requiresOriginalContext: requiresOriginalContextForRetry,
+              });
+            }
           } catch (err) {
             log(
               `Model provided invalid argument to create_entities function. Argument provided: ${stringify(
