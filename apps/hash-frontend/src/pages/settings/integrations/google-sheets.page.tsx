@@ -48,7 +48,7 @@ const GoogleSheetsPage: NextPageWithLayout = () => {
             <Typography variant="h4" mb={1}>
               Existing syncs
             </Typography>
-            <Stack direction="row" gap={2}>
+            <Stack gap={2}>
               {integrations.map((integration) => {
                 return (
                   <Box key={integration.metadata.recordId.entityId}>

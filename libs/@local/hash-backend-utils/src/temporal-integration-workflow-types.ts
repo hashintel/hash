@@ -1,6 +1,6 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { Team } from "@linear/sdk";
-import { AccountId, Entity, OwnedById } from "@local/hash-subgraph";
+import { AccountId, Entity, EntityId, OwnedById } from "@local/hash-subgraph";
 
 export type PartialEntity = {
   properties: Partial<Entity["properties"]>;
@@ -50,6 +50,13 @@ export type UpdateLinearDataWorkflow = (params: {
   entity: Entity;
 }) => Promise<void>;
 
+export type SyncQueryToGoogleSheetWorkflow = (params: {
+  accessToken: string;
+  authentication: { actorId: AccountId };
+  queryEntityId: EntityId;
+  spreadsheetId: string;
+}) => Promise<void>;
+
 export type WorkflowTypeMap = {
   syncWorkspace: SyncWorkspaceWorkflow;
   readLinearTeams: ReadLinearTeamsWorkflow;
@@ -59,4 +66,6 @@ export type WorkflowTypeMap = {
 
   updateLinearData: UpdateLinearDataWorkflow;
   /** @todo: add `createLinearData` */
+
+  syncQueryToGoogleSheet: SyncQueryToGoogleSheetWorkflow;
 };

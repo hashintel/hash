@@ -5,7 +5,7 @@ import {
   PartialEntity,
   UpdateHashEntityFromLinearData,
   UpdateLinearDataWorkflow,
-} from "@local/hash-backend-utils/temporal-workflow-types";
+} from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { GraphApi } from "@local/hash-graph-client";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {

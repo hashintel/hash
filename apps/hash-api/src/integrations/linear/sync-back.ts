@@ -1,7 +1,7 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { linearTypeMappings } from "@local/hash-backend-utils/linear-type-mappings";
 import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
-import { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/temporal-workflow-types";
+import { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { GraphApi } from "@local/hash-graph-client";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {

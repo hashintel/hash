@@ -5,7 +5,7 @@ import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import {
   supportedLinearTypes,
   WorkflowTypeMap,
-} from "@local/hash-backend-utils/temporal-workflow-types";
+} from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import {
   extractEntityUuidFromEntityId,
   OwnedById,

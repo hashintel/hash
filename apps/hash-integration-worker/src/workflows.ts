@@ -1,22 +1,33 @@
 import {
   CreateHashEntityFromLinearData,
   ReadLinearTeamsWorkflow,
+  SyncQueryToGoogleSheetWorkflow,
   SyncWorkspaceWorkflow,
   UpdateHashEntityFromLinearData,
   UpdateLinearDataWorkflow,
-} from "@local/hash-backend-utils/temporal-workflow-types";
-import { proxyActivities } from "@temporalio/workflow";
+} from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import { ActivityOptions, proxyActivities } from "@temporalio/workflow";
 
-import { createLinearIntegrationActivities } from "./activities";
+import * as googleActivities from "./google-activities";
+import { createGraphActivities } from "./graph-activities";
+import { createLinearIntegrationActivities } from "./linear-activities";
 
-const linear = proxyActivities<
-  ReturnType<typeof createLinearIntegrationActivities>
->({
+const commonConfig: ActivityOptions = {
   startToCloseTimeout: "180 second",
   retry: {
     maximumAttempts: 3,
   },
-});
+};
+
+const graph =
+  proxyActivities<ReturnType<typeof createGraphActivities>>(commonConfig);
+
+const linear =
+  proxyActivities<ReturnType<typeof createLinearIntegrationActivities>>(
+    commonConfig,
+  );
+
+const google = proxyActivities<typeof googleActivities>(commonConfig);
 
 export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
   const { apiKey, workspaceOwnedById, authentication, teamIds } = params;
@@ -69,3 +80,14 @@ export const readLinearTeams: ReadLinearTeamsWorkflow = async ({ apiKey }) =>
 
 export const updateLinearData: UpdateLinearDataWorkflow = async (params) =>
   linear.updateLinearData(params);
+
+export const syncQueryToGoogleSheet = async ({
+  accessToken,
+  authentication,
+  queryEntityId,
+  spreadsheetId,
+}): SyncQueryToGoogleSheetWorkflow => {
+  const entitySubgraph = await graph.getSubgraphFromBlockProtocolFilter({
+    authentication,
+  });
+};

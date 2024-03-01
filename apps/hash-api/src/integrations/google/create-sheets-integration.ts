@@ -1,4 +1,3 @@
-import { stringifyPropertyValue } from "@apps/hash-frontend/src/pages/shared/entities-table/stringify-property-value";
 import { MultiFilter } from "@blockprotocol/graph";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import {
@@ -11,6 +10,7 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { QueryProperties } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 import { GoogleSheetsIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/googlesheetsintegration";
 import {
@@ -58,6 +58,7 @@ const createSpreadsheet = async (filename: string) => {
   return spreadsheetId;
 };
 
+// @todo lock spreadsheet editing
 const entitySubgraphToRows = (
   entitySubgraph: Subgraph<EntityRootType>,
 ): sheets_v4.Schema$RowData[] => {
@@ -295,8 +296,6 @@ export const createSheetsIntegration: RequestHandler<
         : await createSpreadsheet(req.body.newFileName);
 
     const rows = entitySubgraphToRows(entitySubgraph);
-
-    console.log(JSON.stringify({ rows }, undefined, 2));
 
     await updateSpreadsheet(spreadsheetId, rows);
 

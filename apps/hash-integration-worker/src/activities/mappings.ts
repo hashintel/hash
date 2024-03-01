@@ -5,7 +5,7 @@ import {
   SupportedLinearTypes,
   SupportedLinearUpdateInput,
 } from "@local/hash-backend-utils/linear-type-mappings";
-import { PartialEntity } from "@local/hash-backend-utils/temporal-workflow-types";
+import { PartialEntity } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { GraphApi } from "@local/hash-graph-client";
 import {
   AccountId,

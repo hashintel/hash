@@ -514,11 +514,11 @@ const main = async () => {
   app.get("/oauth/linear/callback", authRouteRateLimiter, oAuthLinearCallback);
   app.post("/webhooks/linear", linearWebhook);
 
-  app.post("/oauth/google/callback", rateLimiter, googleOAuthCallback);
-  app.post("/oauth/google/token", rateLimiter, getGoogleAccessToken);
+  app.post("/oauth/google/callback", authRouteRateLimiter, googleOAuthCallback);
+  app.post("/oauth/google/token", authRouteRateLimiter, getGoogleAccessToken);
   app.post(
     "/integrations/google-sheets/sync",
-    rateLimiter,
+    authRouteRateLimiter,
     createSheetsIntegration,
   );
 

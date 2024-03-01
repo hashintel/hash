@@ -4,11 +4,11 @@ import * as path from "node:path";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-workflow-types";
+import { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
-import * as activities from "./activities";
+import * as linearActivities from "./linear-activities";
 import * as workflows from "./workflows";
 
 // This is a workaround to ensure that all functions defined in WorkflowTypeMap are exported from the workflows file
@@ -68,9 +68,11 @@ async function run() {
 
   const worker = await Worker.create({
     ...workflowOption(),
-    activities: activities.createLinearIntegrationActivities({
-      graphApiClient,
-    }),
+    activities: {
+      ...linearActivities.createLinearIntegrationActivities({
+        graphApiClient,
+      }),
+    },
     connection: await NativeConnection.connect({
       address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
     }),
