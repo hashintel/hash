@@ -178,7 +178,7 @@ mod tests {
         );
 
         church
-            .merge_parent(building)
+            .merge_parents([building])
             .expect("merging entity types failed");
 
         assert!(

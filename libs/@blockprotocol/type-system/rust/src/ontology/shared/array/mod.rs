@@ -1,18 +1,24 @@
 pub(crate) mod error;
 pub(in crate::ontology) mod raw;
 
+use std::num::NonZero;
+
 use crate::{url::BaseUrl, ValidateUrl, ValidationError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Array<T> {
-    items: T,
-    min_items: Option<usize>,
-    max_items: Option<usize>,
+    pub items: T,
+    pub min_items: Option<usize>,
+    pub max_items: Option<NonZero<usize>>,
 }
 
 impl<T> Array<T> {
     #[must_use]
-    pub const fn new(items: T, min_items: Option<usize>, max_items: Option<usize>) -> Self {
+    pub const fn new(
+        items: T,
+        min_items: Option<usize>,
+        max_items: Option<NonZero<usize>>,
+    ) -> Self {
         Self {
             items,
             min_items,
@@ -31,7 +37,7 @@ impl<T> Array<T> {
     }
 
     #[must_use]
-    pub const fn max_items(&self) -> Option<usize> {
+    pub const fn max_items(&self) -> Option<NonZero<usize>> {
         self.max_items
     }
 }

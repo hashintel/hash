@@ -1,3 +1,5 @@
+use std::num::NonZero;
+
 use serde::{Deserialize, Serialize};
 #[cfg(target_arch = "wasm32")]
 use tsify::Tsify;
@@ -22,13 +24,28 @@ enum ArrayTypeTag {
 pub struct Array<T> {
     #[cfg_attr(target_arch = "wasm32", tsify(type = "'array'"))]
     r#type: ArrayTypeTag,
-    items: T,
+    pub items: T,
     #[cfg_attr(target_arch = "wasm32", tsify(optional))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    min_items: Option<usize>,
+    pub min_items: Option<usize>,
     #[cfg_attr(target_arch = "wasm32", tsify(optional))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    max_items: Option<usize>,
+    pub max_items: Option<NonZero<usize>>,
+}
+
+impl<T> Array<T> {
+    pub const fn new(
+        items: T,
+        min_items: Option<usize>,
+        max_items: Option<NonZero<usize>>,
+    ) -> Self {
+        Self {
+            r#type: ArrayTypeTag::Array,
+            items,
+            min_items,
+            max_items,
+        }
+    }
 }
 
 impl TryFrom<Array<raw::OneOf<raw::PropertyValues>>> for super::Array<OneOf<PropertyValues>> {
@@ -185,7 +202,7 @@ mod tests {
                 r#type: ArrayTypeTag::Array,
                 items: StringTypeStruct::default(),
                 min_items: Some(10),
-                max_items: Some(20),
+                max_items: NonZero::new(20),
             }),
         );
     }

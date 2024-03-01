@@ -1,4 +1,5 @@
 #![feature(lint_reasons)]
+#![feature(generic_nonzero)]
 #![allow(unsafe_code)]
 #![cfg_attr(
     target_arch = "wasm32",

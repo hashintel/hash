@@ -6,7 +6,8 @@ mod wasm;
 
 use std::{
     collections::{HashMap, HashSet},
-    ptr,
+    iter::once,
+    mem, ptr,
 };
 
 pub use error::{MergeEntityTypeError, ParseEntityTypeError};
@@ -79,7 +80,7 @@ impl EntityType {
     }
 
     #[must_use]
-    pub fn required(&self) -> &[BaseUrl] {
+    pub const fn required(&self) -> &HashSet<BaseUrl> {
         self.property_object.required()
     }
 
@@ -110,38 +111,56 @@ impl EntityType {
     /// # Errors
     ///
     /// - [`DoesNotInheritFrom`] if the other entity type is not in the `allOf` field
+    /// - [`IncompleteMerge`] if a parent entity type contains unmerged parents
+    /// - [`ParentMissing`] if a parent entity type is missing in `others`
     ///
     /// [`DoesNotInheritFrom`]: MergeEntityTypeError::DoesNotInheritFrom
-    pub fn merge_parent(&mut self, other: Self) -> Result<(), MergeEntityTypeError> {
-        self.inherits_from.elements.remove(
-            self.inherits_from
-                .all_of()
-                .iter()
-                .position(|x| x.url == other.id)
-                .ok_or_else(|| MergeEntityTypeError::DoesNotInheritFrom {
-                    child: self.id.clone(),
-                    parent: other.id.clone(),
-                })?,
-        );
+    /// [`IncompleteMerge`]: MergeEntityTypeError::IncompleteMerge
+    /// [`ParentMissing`]: MergeEntityTypeError::ParentMissing
+    pub fn merge_parents(
+        &mut self,
+        others: impl IntoIterator<Item = Self>,
+    ) -> Result<(), MergeEntityTypeError> {
+        let mut properties = Vec::new();
+        let mut links = Vec::new();
 
-        self.inherits_from
-            .elements
-            .extend(other.inherits_from.elements);
+        for other in others {
+            if !other.inherits_from.all_of().is_empty() {
+                return Err(MergeEntityTypeError::IncompleteMerge {
+                    unmerged: other.inherits_from.all_of().to_vec(),
+                });
+            }
 
-        self.property_object
-            .properties
-            .extend(other.property_object.properties);
+            self.inherits_from.elements.remove(
+                self.inherits_from
+                    .all_of()
+                    .iter()
+                    .position(|x| x.url == other.id)
+                    .ok_or_else(|| MergeEntityTypeError::DoesNotInheritFrom {
+                        child: self.id.clone(),
+                        parent: other.id,
+                    })?,
+            );
 
-        self.property_object.required = self
-            .property_object
-            .required
-            .drain(..)
-            .chain(other.property_object.required)
-            .collect::<HashSet<_>>()
+            if !self.inherits_from.elements.is_empty() {
+                return Err(MergeEntityTypeError::ParentMissing {
+                    missing: self.inherits_from.elements.clone(),
+                });
+            }
+
+            properties.push(other.property_object);
+            links.push(other.links);
+        }
+
+        // The properties and links of the current entity type are merged last to ensure that the
+        // properties and links from this entity type take precedence.
+        self.property_object = properties
             .into_iter()
+            .chain(once(mem::take(&mut self.property_object)))
             .collect();
-
-        self.links.0.extend(other.links.0);
+        let current_links = mem::take(&mut self.links);
+        self.links = links.into_iter().collect();
+        self.links.0.extend(current_links.0);
 
         Ok(())
     }

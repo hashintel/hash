@@ -309,6 +309,7 @@ impl<C: AsClient> PostgresStore<C> {
         let mut visited_ids = HashSet::from([entity_type_id]);
 
         loop {
+            let mut parents = Vec::with_capacity(current_type.inherits_from.elements.len());
             for parent in current_type.inherits_from.elements.clone() {
                 let parent_id = EntityTypeId::from_url(parent.url());
 
@@ -318,7 +319,7 @@ impl<C: AsClient> PostgresStore<C> {
                 );
 
                 if visited_ids.contains(&parent_id) {
-                    // This can happens in case of multiple inheritance or cycles. Cycles are
+                    // This may happen in case of multiple inheritance or cycles. Cycles are
                     // already checked above, so we can just skip this parent.
                     current_type
                         .inherits_from
@@ -327,20 +328,21 @@ impl<C: AsClient> PostgresStore<C> {
                     break;
                 }
 
-                current_type
-                    .merge_parent(
-                        available_types
-                            .get(&parent_id)
-                            .ok_or_else(|| Report::new(QueryError))
-                            .attach_printable("entity type not available")
-                            .attach_printable_lazy(|| parent.url().clone())?
-                            .clone(),
-                    )
-                    .change_context(QueryError)
-                    .attach_printable("could not merge parent")?;
+                parents.push(
+                    available_types
+                        .get(&parent_id)
+                        .ok_or_else(|| Report::new(QueryError))
+                        .attach_printable("entity type not available")
+                        .attach_printable_lazy(|| parent.url().clone())?
+                        .clone(),
+                );
 
                 visited_ids.insert(parent_id);
             }
+            current_type
+                .merge_parents(parents)
+                .change_context(QueryError)
+                .attach_printable("could not merge parent")?;
 
             if current_type.inherits_from.elements.is_empty() {
                 break;

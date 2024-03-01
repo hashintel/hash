@@ -1,14 +1,14 @@
 pub(crate) mod error;
 pub(in crate::ontology) mod raw;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::{url::BaseUrl, ValidateUrl, ValidationError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Object<T, const MIN: usize = 0> {
     pub(crate) properties: HashMap<BaseUrl, T>,
-    pub(crate) required: Vec<BaseUrl>,
+    pub(crate) required: HashSet<BaseUrl>,
 }
 
 impl<T: ValidateUrl, const MIN: usize> Object<T, MIN> {
@@ -22,7 +22,7 @@ impl<T: ValidateUrl, const MIN: usize> Object<T, MIN> {
     ///   `MIN`.
     pub fn new(
         properties: HashMap<BaseUrl, T>,
-        required: Vec<BaseUrl>,
+        required: HashSet<BaseUrl>,
     ) -> Result<Self, ValidationError> {
         let object = Self::new_unchecked(properties, required);
         object.validate()?;
@@ -55,7 +55,10 @@ impl<T: ValidateUrl, const MIN: usize> Object<T, MIN> {
 impl<T, const MIN: usize> Object<T, MIN> {
     /// Creates a new `Object` without validating.
     #[must_use]
-    pub fn new_unchecked(properties: HashMap<BaseUrl, T>, required: Vec<BaseUrl>) -> Self {
+    pub const fn new_unchecked(
+        properties: HashMap<BaseUrl, T>,
+        required: HashSet<BaseUrl>,
+    ) -> Self {
         Self {
             properties,
             required,
@@ -68,8 +71,40 @@ impl<T, const MIN: usize> Object<T, MIN> {
     }
 
     #[must_use]
-    pub fn required(&self) -> &[BaseUrl] {
+    pub const fn required(&self) -> &HashSet<BaseUrl> {
         &self.required
+    }
+}
+
+impl<T, const MIN: usize> FromIterator<Self> for Object<T, MIN> {
+    fn from_iter<I: IntoIterator<Item = Self>>(iter: I) -> Self {
+        let mut properties = HashMap::new();
+        let mut required = HashSet::new();
+
+        for property_object in iter {
+            // TODO: We want to merge properties and bail on conflicting properties, however, we
+            //       want to allow properties where the origin is the same entity type. For that it
+            //       is necessary to track where a property comes from.
+            //       Note, that this requires the full property type to be available and this
+            //       function is only aware of the ID of the property type.
+            //   see https://linear.app/hash/issue/H-860/improve-type-parent-validation
+            properties.extend(property_object.properties);
+            required.extend(property_object.required);
+        }
+
+        Self {
+            properties,
+            required,
+        }
+    }
+}
+
+impl<T, const MIN: usize> Default for Object<T, MIN> {
+    fn default() -> Self {
+        Self {
+            properties: HashMap::new(),
+            required: HashSet::new(),
+        }
     }
 }
 

@@ -61,6 +61,8 @@ impl From<super::Links> for Links {
 pub struct MaybeOrderedArray<T> {
     #[serde(flatten)]
     array: raw::Array<T>,
+    #[cfg_attr(target_arch = "wasm32", tsify(optional))]
+    #[serde(default, skip_serializing_if = "core::ops::Not::not")]
     ordered: bool,
 }
 
@@ -144,7 +146,10 @@ mod tests {
     //  entity types
 
     mod maybe_ordered_array {
+        use std::num::NonZero;
+
         use super::*;
+        use crate::ontology::raw::Array;
 
         #[test]
         fn unordered() {
@@ -161,8 +166,7 @@ mod tests {
                 "type": "array",
                 "items": {
                     "type": "string"
-                },
-                "ordered": false
+                }
             });
 
             let inner_array: raw::Array<StringTypeStruct> = serde_json::from_value(expected_inner)
@@ -226,7 +230,6 @@ mod tests {
                 "items": {
                     "type": "string"
                 },
-                "ordered": false,
                 "minItems": 10,
                 "maxItems": 20,
             });
@@ -240,6 +243,175 @@ mod tests {
                     array: inner_array,
                     ordered: false,
                 }),
+            );
+        }
+
+        #[test]
+        fn unconstrained() {
+            check_repr_serialization_from_value(
+                json!({}),
+                Some(Links {
+                    links: HashMap::new(),
+                }),
+            );
+
+            let link_type = "https://example.com/@example-org/types/entity-type/friend-of/v/1";
+
+            check_repr_serialization_from_value(
+                json!({
+                    "links": {
+                        link_type: {
+                            "type": "array",
+                            "items": {},
+                            "maxItems": 10,
+                        }
+                    }
+                }),
+                Some(Links {
+                    links: HashMap::from([(
+                        link_type.to_owned(),
+                        MaybeOrderedArray {
+                            array: Array::new(
+                                MaybeOneOfEntityTypeReference { inner: None },
+                                None,
+                                NonZero::new(10),
+                            ),
+                            ordered: false,
+                        },
+                    )]),
+                }),
+            );
+        }
+
+        #[test]
+        #[expect(
+            clippy::too_many_lines,
+            reason = "Test is long because it's merging multiple link constraints"
+        )]
+        fn merged() {
+            let link_type_a = VersionedUrl::from_str(
+                "https://example.com/@example-org/types/entity-type/friend-of/v/1",
+            )
+            .expect("failed to parse VersionedUrl");
+
+            let link_type_b = VersionedUrl::from_str(
+                "https://example.com/@example-org/types/entity-type/created-at/v/1",
+            )
+            .expect("failed to parse VersionedUrl");
+            let link_type_b_1_dest = VersionedUrl::from_str(
+                "https://example.com/@example-org/types/entity-type/location/v/1",
+            )
+            .expect("failed to parse VersionedUrl");
+            let link_type_b_2_dest = VersionedUrl::from_str(
+                "https://example.com/@example-org/types/entity-type/city/v/1",
+            )
+            .expect("failed to parse VersionedUrl");
+
+            let link_type_c = VersionedUrl::from_str(
+                "https://example.com/@example-org/types/entity-type/born-in/v/1",
+            )
+            .expect("failed to parse VersionedUrl");
+            let link_type_c_dest = VersionedUrl::from_str(
+                "https://example.com/@example-org/types/entity-type/country/v/1",
+            )
+            .expect("failed to parse VersionedUrl");
+
+            check_repr_serialization_from_value(
+                json!({
+                    "links": {
+                        link_type_a.to_string(): {
+                            "type": "array",
+                            "items": {},
+                            "minItems": 2,
+                            "maxItems": 10,
+                        },
+                        link_type_b.to_string(): {
+                            "type": "array",
+                            "items": {
+                                "oneOf": [
+                                    { "$ref": link_type_b_1_dest.to_string() },
+                                ]
+                            },
+                            "minItems": 15,
+                            "maxItems": 10,
+                        },
+                        link_type_c.to_string(): {
+                            "type": "array",
+                            "items": {
+                                "oneOf": [
+                                    { "$ref": link_type_c_dest.to_string() },
+                                ]
+                            },
+                            "minItems": 1,
+                            "maxItems": 2,
+                        },
+                    }
+                }),
+                Some(Links::from(
+                    [
+                        json!({
+                            "links": {
+                                link_type_a.to_string(): {
+                                    "type": "array",
+                                    "items": {},
+                                    "maxItems": 10,
+                                },
+                                link_type_b.to_string(): {
+                                    "type": "array",
+                                    "items": {
+                                        "oneOf": [
+                                            { "$ref": link_type_b_1_dest.to_string() },
+                                            { "$ref": link_type_b_2_dest.to_string() },
+                                        ]
+                                    },
+                                    "minItems": 2,
+                                    "maxItems": 10,
+                                },
+                                link_type_c.to_string(): {
+                                    "type": "array",
+                                    "items": {
+                                        "oneOf": [
+                                            { "$ref": link_type_c_dest.to_string() },
+                                        ]
+                                    },
+                                },
+                            }
+                        }),
+                        json!({
+                            "links": {
+                                link_type_a.to_string(): {
+                                    "type": "array",
+                                    "items": {},
+                                    "minItems": 2,
+                                },
+                                link_type_b.to_string(): {
+                                    "type": "array",
+                                    "items": {
+                                        "oneOf": [
+                                            { "$ref": link_type_b_1_dest.to_string() },
+                                        ]
+                                    },
+                                    "minItems": 15,
+                                },
+                                link_type_c.to_string(): {
+                                    "type": "array",
+                                    "items": {},
+                                    "minItems": 1,
+                                    "maxItems": 2,
+                                },
+                            }
+                        }),
+                    ]
+                    .into_iter()
+                    .map(|json| {
+                        crate::Links::try_from(
+                            serde_json::from_value::<Links>(json)
+                                .expect("failed to deserialize links"),
+                        )
+                        .expect("failed to convert links")
+                    })
+                    .collect::<crate::Links>(),
+                )),
             );
         }
 
