@@ -1,7 +1,7 @@
 import type {
   DataTypeWithMetadata as DataTypeWithMetadataBp,
   EntityTypeWithMetadata as EntityTypeWithMetadataBp,
-  type OntologyElementMetadata as OntologyElementMetadataBp,
+  OntologyElementMetadata as OntologyElementMetadataBp,
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
 } from "@blockprotocol/graph/temporal";
 import type {

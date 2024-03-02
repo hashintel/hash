@@ -1,14 +1,14 @@
 import type {
-  type Entity as EntityBp,
-  type EntityMetadata as EntityMetadataBp,
-  type EntityPropertiesObject as EntityPropertiesObjectBp,
-  type EntityPropertyValue as EntityPropertyValueBp,
-  type EntityRecordId as EntityRecordIdBp,
-  type EntityRevisionId as EntityRevisionIdBp,
-  type EntityTemporalVersioningMetadata as EntityTemporalVersioningMetadataBp,
+  Entity as EntityBp,
+  EntityMetadata as EntityMetadataBp,
+  EntityPropertiesObject as EntityPropertiesObjectBp,
+  EntityPropertyValue as EntityPropertyValueBp,
+  EntityRecordId as EntityRecordIdBp,
+  EntityRevisionId as EntityRevisionIdBp,
+  EntityTemporalVersioningMetadata as EntityTemporalVersioningMetadataBp,
   isEntityRecordId as isEntityRecordIdBp,
-  type LinkData as LinkDataBp,
-  type LinkEntityAndRightEntity as LinkEntityAndRightEntityBp,
+  LinkData as LinkDataBp,
+  LinkEntityAndRightEntity as LinkEntityAndRightEntityBp,
 } from "@blockprotocol/graph/temporal";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { Brand } from "@local/advanced-types/brand";
