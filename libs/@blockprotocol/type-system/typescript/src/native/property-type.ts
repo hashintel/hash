@@ -1,4 +1,4 @@
-import {
+import type {
   Array as TypeSystemArray,
   OneOf,
   PropertyType,

@@ -1,9 +1,5 @@
-import {
-  EntityType,
-  ParseEntityTypeError,
-  TypeSystemInitializer,
-  validateEntityType,
-} from "../src/main";
+import type { EntityType, ParseEntityTypeError } from "../src/main";
+import { TypeSystemInitializer, validateEntityType } from "../src/main";
 
 const entityTypes: EntityType[] = [
   {

@@ -1,13 +1,15 @@
-import {
+import type {
   BaseUrl,
-  extractBaseUrl,
-  extractVersion,
   ParseBaseUrlError,
   ParseVersionedUrlError,
+  VersionedUrl,
+} from "../src/main";
+import {
+  extractBaseUrl,
+  extractVersion,
   TypeSystemInitializer,
   validateBaseUrl,
   validateVersionedUrl,
-  VersionedUrl,
 } from "../src/main";
 
 const invalidBaseUrlCases: [string, ParseBaseUrlError][] = [

@@ -2,7 +2,8 @@ import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
 import { resetDb } from "./shared/reset-db";
-import { expect, Locator, Page, test } from "./shared/runtime";
+import type { Locator, Page } from "./shared/runtime";
+import { expect, test } from "./shared/runtime";
 
 const getCellText = async (
   canvas: Locator,

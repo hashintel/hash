@@ -14,7 +14,7 @@ import {
   unionOfIntervals as unionOfIntervalsBp,
 } from "@blockprotocol/graph/temporal/stdlib";
 
-import {
+import type {
   BoundedTimeInterval,
   LimitedTemporalBound,
   TemporalBound,

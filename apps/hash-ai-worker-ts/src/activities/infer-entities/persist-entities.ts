@@ -5,20 +5,22 @@ import type { InferEntitiesReturn } from "@local/hash-isomorphic-utils/ai-infere
 import type { AccountId, Entity, OwnedById } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
-import OpenAI from "openai";
+import type OpenAI from "openai";
 
 import { getResultsFromInferenceState } from "./get-results-from-inference-state";
-import {
+import type {
   CompletionPayload,
   DereferencedEntityTypesByTypeId,
   InferenceState,
 } from "./inference-types";
 import { log } from "./log";
 import { createEntities } from "./persist-entities/create-entities";
-import {
-  generatePersistEntitiesTools,
+import type {
   ProposedEntityCreationsByType,
   ProposedEntityUpdatesByType,
+} from "./persist-entities/generate-persist-entities-tools";
+import {
+  generatePersistEntitiesTools,
   validateProposedEntitiesByType,
 } from "./persist-entities/generate-persist-entities-tools";
 import { updateEntities } from "./persist-entities/update-entities";
